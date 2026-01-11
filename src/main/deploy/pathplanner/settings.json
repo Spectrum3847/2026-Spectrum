@@ -42,9 +42,6 @@
     "{\"name\":\"Line\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.05,\"y\":0.35},\"end\":{\"x\":0.13,\"y\":0.05},\"strokeWidth\":0.03}}",
     "{\"name\":\"Line\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.14,\"y\":-0.35},\"end\":{\"x\":0.15,\"y\":-0.04},\"strokeWidth\":0.01}}",
     "{\"name\":\"Line\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.09,\"y\":-0.35},\"end\":{\"x\":0.15,\"y\":-0.04},\"strokeWidth\":0.01}}",
-    "{\"name\":\"Line\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.03,\"y\":-0.35},\"end\":{\"x\":0.15,\"y\":-0.04},\"strokeWidth\":0.01}}",
-    "{\"name\":\"Arm Front Left\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.47,\"y\":0.165},\"end\":{\"x\":0.584,\"y\":0.1651},\"strokeWidth\":0.075}}",
-    "{\"name\":\"Elevator\",\"type\":\"rounded_rect\",\"data\":{\"center\":{\"x\":0.0,\"y\":-0.41},\"size\":{\"width\":0.1,\"length\":0.51},\"borderRadius\":0.01,\"strokeWidth\":0.02,\"filled\":false}}",
-    "{\"name\":\"Arm Front Right\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.47,\"y\":-0.1651},\"end\":{\"x\":0.584,\"y\":-0.1651},\"strokeWidth\":0.075}}"
+    "{\"name\":\"Line\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.03,\"y\":-0.35},\"end\":{\"x\":0.15,\"y\":-0.04},\"strokeWidth\":0.01}}"
   ]
 }
