@@ -4,15 +4,23 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
+import com.ctre.phoenix6.sim.TalonFXSimState;
+
 import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
+import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumCANcoder;
 import frc.spectrumLib.SpectrumCANcoderConfig;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.Circle;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
+
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
@@ -22,7 +30,7 @@ public class Turret extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         // Positions set as percentage of Turret
-        @Getter private final int initializedPosition = 20;
+        @Getter private final int initializedPosition = 0;
 
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
@@ -56,7 +64,10 @@ public class Turret extends Mechanism {
         @Getter @Setter private double CANcoderOffset = 0;
         @Getter @Setter private boolean CANcoderAttached = false;
 
-        /* Sim properties */
+         /* Sim Configs */
+         @Getter private double intakeX = 2; // Vertical Center
+         @Getter private double intakeY = 2; // Horizontal Center
+         @Getter private double wheelDiameter = 40;
 
         public TurretConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
@@ -70,11 +81,11 @@ public class Turret extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configMinMaxRotations(-.25, 0.75);
-            configReverseSoftLimit(getMinRotations(), false);
-            configForwardSoftLimit(getMaxRotations(), false);
+            configReverseSoftLimit(getMinRotations(), true);
+            configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
-            configGravityType(true);
+            configGravityType(false);
             configClockwise_Positive();
         }
 
@@ -89,6 +100,7 @@ public class Turret extends Mechanism {
     }
 
     @Getter private TurretConfig config;
+    @Getter  private TurretSim sim;
     private SpectrumCANcoder canCoder;
     private SpectrumCANcoderConfig canCoderConfig;
     CANcoderSimState canCoderSim;
@@ -142,15 +154,9 @@ public class Turret extends Mechanism {
         if (isAttached()) {
             builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
             builder.addDoubleProperty("Degrees", this::getPositionDegrees, null);
-            // builder.addDoubleProperty("Velocity", this::getVelocityRPM, null);
+            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
             builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
             builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-            // builder.addDoubleProperty("Front-TX", Robot.getVision().frontLL::getTagTx, null);
-            // builder.addDoubleProperty("Front-TA", Robot.getVision().frontLL::getTagTA, null);
-            // builder.addDoubleProperty(
-            //        "Front-Rotation", Robot.getVision().frontLL::getTagRotationDegrees, null);
-            // builder.addDoubleProperty(
-            //        "Front-ClosestTag", Robot.getVision().frontLL::getClosestTagID, null);
         }
     }
 
@@ -305,7 +311,7 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     private void simulationInit() {
         if (isAttached()) {
-        //     sim = new TurretSim(motor.getSimState(), RobotSim.leftView, this);
+            sim = new TurretSim(RobotSim.topView, motor.getSimState());
 
             // m_CANcoder.setPosition(0);
         }
@@ -314,8 +320,18 @@ public class Turret extends Mechanism {
     @Override
     public void simulationPeriodic() {
         if (isAttached()) {
-            // sim.simulationPeriodic();
+            sim.simulationPeriodic();
             // m_CANcoder.getSimState().setRawPosition(sim.getAngleRads() / 0.202);
+        }
+    }
+    class TurretSim extends RollerSim {
+        public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
+            super(
+                    new RollerConfig(config.wheelDiameter)
+                            .setPosition(config.intakeX, config.intakeY),
+                    mech,
+                    turretMotorSim,
+                    config.getName());
         }
     }
 }

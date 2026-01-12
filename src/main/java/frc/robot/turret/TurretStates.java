@@ -16,6 +16,38 @@ public class TurretStates {
 
     // -------------------- State Commands --------------------
    
+    public static void moveTo270() {
+        scheduleIfNotRunning(
+                log(
+                        turret
+                                .moveToRotations(() -> -0.25)
+                                .withName("Turret.moveTo270")));
+    }
+    
+    public static void moveTo180() {
+        scheduleIfNotRunning(
+                log(
+                        turret
+                                .moveToRotations(() -> 0.5)
+                                .withName("Turret.moveTo180")));
+    }
+
+    public static void moveTo90() {
+        scheduleIfNotRunning(
+                log(
+                        turret
+                                .moveToRotations(() -> 0.25)
+                                .withName("Turret.moveTo90")));
+    }
+
+    public static void moveTo0() {
+        scheduleIfNotRunning(
+                log(
+                        turret
+                                .moveToRotations(() -> 0)
+                                .withName("Turret.moveTo0")));
+    }
+
 
 
     // --------------------------------------------------------
