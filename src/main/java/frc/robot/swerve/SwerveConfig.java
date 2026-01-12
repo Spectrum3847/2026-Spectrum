@@ -166,7 +166,7 @@ public class SwerveConfig {
     @Getter @Setter private boolean invertLeftSide = false;
     @Getter @Setter private boolean invertRightSide = true;
 
-    @Getter @Setter private CANBus canBus = new CANBus("*", "./logs/spectrum.hoot");
+    @Getter @Setter private CANBus canBus = new CANBus("rio", "./logs/spectrum.hoot");
     @Getter private int pigeonId = 0;
 
     // These are only used for simulation
@@ -184,7 +184,7 @@ public class SwerveConfig {
             constantCreator;
 
     private final double wheelBaseInches = 23.75;
-    private final double trackWidthInches = 23.75;
+    private final double trackWidthInches = 20.25;
 
     // Front Left
     @Getter private int frontLeftDriveMotorId = 1;

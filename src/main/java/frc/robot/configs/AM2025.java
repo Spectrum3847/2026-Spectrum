@@ -8,7 +8,7 @@ public class AM2025 extends Config {
 
     public AM2025() {
         super();
-        swerve.configEncoderOffsets(-0.399170, -0.189209, 0.121826, -0.021973);
+        swerve.configEncoderOffsets(0.289551, 0.394043, -0.203857, -0.039307);
 
         // Attached Mechanisms
         pilot.setAttached(true);

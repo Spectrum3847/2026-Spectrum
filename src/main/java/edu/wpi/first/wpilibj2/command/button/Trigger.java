@@ -72,7 +72,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (m_pressedLast != pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         }
 
                         m_pressedLast = pressed;
@@ -98,7 +98,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (!m_pressedLast && pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         }
 
                         m_pressedLast = pressed;
@@ -125,7 +125,7 @@ public class Trigger implements BooleanSupplier {
 
                         if (!m_pressedLast && pressed) {
                             for (Command command : commands) {
-                                command.schedule();
+                                CommandScheduler.getInstance().schedule(command);
                             }
                         }
 
@@ -152,7 +152,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (m_pressedLast && !pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         }
 
                         m_pressedLast = pressed;
@@ -173,7 +173,7 @@ public class Trigger implements BooleanSupplier {
 
                         if (m_pressedLast && !pressed) {
                             for (Command command : commands) {
-                                command.schedule();
+                                CommandScheduler.getInstance().schedule(command);
                             }
                         }
 
@@ -201,7 +201,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (m_pressedLast && !pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         }
 
                         m_pressedLast = pressed;
@@ -228,7 +228,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (!m_pressedLast && pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         }
 
                         m_pressedLast = pressed;
@@ -258,7 +258,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (!m_pressedLast && pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         } else if (m_pressedLast && !pressed) {
                             command.cancel();
                         }
@@ -291,7 +291,7 @@ public class Trigger implements BooleanSupplier {
 
                         for (Command command : commands) {
                             if (!m_pressedLast && pressed) {
-                                command.schedule();
+                                CommandScheduler.getInstance().schedule(command);
                             } else if (m_pressedLast && !pressed) {
                                 command.cancel();
                             }
@@ -324,7 +324,7 @@ public class Trigger implements BooleanSupplier {
                         boolean pressed = m_condition.getAsBoolean();
 
                         if (m_pressedLast && !pressed) {
-                            command.schedule();
+                            CommandScheduler.getInstance().schedule(command);
                         } else if (!m_pressedLast && pressed) {
                             command.cancel();
                         }
@@ -347,7 +347,7 @@ public class Trigger implements BooleanSupplier {
 
                         for (Command command : commands) {
                             if (m_pressedLast && !pressed) {
-                                command.schedule();
+                                CommandScheduler.getInstance().schedule(command);
                             } else if (!m_pressedLast && pressed) {
                                 command.cancel();
                             }
@@ -379,7 +379,7 @@ public class Trigger implements BooleanSupplier {
                             if (command.isScheduled()) {
                                 command.cancel();
                             } else {
-                                command.schedule();
+                                CommandScheduler.getInstance().schedule(command);
                             }
                         }
 
@@ -409,7 +409,7 @@ public class Trigger implements BooleanSupplier {
                             if (command.isScheduled()) {
                                 command.cancel();
                             } else {
-                                command.schedule();
+                                CommandScheduler.getInstance().schedule(command);
                             }
                         }
 
