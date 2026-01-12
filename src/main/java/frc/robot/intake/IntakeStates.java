@@ -1,5 +1,7 @@
 package frc.robot.intake;
 
+import java.util.function.DoubleSupplier;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
@@ -21,9 +23,14 @@ public class IntakeStates {
 
     public static void intakeFuel() {
         scheduleIfNotRunning(
-            intake.runTorqueFOC(() -> 0.0)
+            intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
             .withName("Intake.intakeFuel")
         );
+    }
+
+    public static Command intakeFuelCommand() {
+        return intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
+            .withName("Intake.intakeFuelCommand");
     }
 
     public static void coastMode() {
@@ -34,10 +41,10 @@ public class IntakeStates {
         scheduleIfNotRunning(intake.ensureBrakeMode());
     }
 
-    // private static Command runVoltageCurrentLimits(
-    //         DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-    //     return intake.runVoltageCurrentLimits(voltage, supplyCurrent, torqueCurrent);
-    // }
+    private static Command runVoltageCurrentLimits(
+            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
+        return intake.runVoltageCurrentLimits(voltage, supplyCurrent, torqueCurrent);
+    }
 
     // Log Command
     protected static Command log(Command cmd) {

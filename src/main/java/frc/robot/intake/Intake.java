@@ -1,12 +1,19 @@
 package frc.robot.intake;
 
 import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.FunctionalCommand;
+import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
+
 import java.util.function.DoubleSupplier;
+
+import com.ctre.phoenix6.sim.TalonFXSimState;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -46,7 +53,7 @@ public class Intake extends Mechanism {
     }
 
     private IntakeConfig config;
-    // private FuelIntakeSim sim;
+    private FuelIntakeSim sim;
 
     public Intake(IntakeConfig config) {
         super(config);
@@ -92,10 +99,6 @@ public class Intake extends Mechanism {
         return run(() -> setTorqueCurrentFoc(torque));
     }
 
-    public Command intakeFuel(DoubleSupplier current, DoubleSupplier torque) {
-        return runTorqueFOC(torque);
-    }
-
     public void setVoltageAndCurrentLimits(
             DoubleSupplier voltage, DoubleSupplier supply, DoubleSupplier torque) {
         setVoltageOutput(voltage);
@@ -122,7 +125,7 @@ public class Intake extends Mechanism {
     public void simulationInit() {
         if (isAttached()) {
             // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            // sim = new CoralIntakeSim(RobotSim.leftView, motor.getSimState());
+            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
         }
     }
 
@@ -131,19 +134,18 @@ public class Intake extends Mechanism {
     @Override
     public void simulationPeriodic() {
         if (isAttached()) {
-            // sim.simulationPeriodic();
+            sim.simulationPeriodic();
         }
     }
 
-    // class CoralIntakeSim extends RollerSim {
-        // public CoralIntakeSim(Mechanism2d mech, TalonFXSimState coralRollerMotorSim) {
-        //     super(
-        //             new RollerConfig(config.wheelDiameter)
-        //                     .setPosition(config.intakeX, config.intakeY)
-        //                     .setMount(Robot.getElbow().getSim()),
-        //             mech,
-        //             coralRollerMotorSim,
-        //             config.getName());
-        // }
-    // }
+    class FuelIntakeSim extends RollerSim {
+        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+            super(
+                    new RollerConfig(config.wheelDiameter)
+                            .setPosition(config.intakeX, config.intakeY),
+                    mech,
+                    rollerMotorSim,
+                    config.getName());
+        }
+    }
 }
