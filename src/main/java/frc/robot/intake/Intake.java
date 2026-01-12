@@ -2,6 +2,7 @@ package frc.robot.intake;
 
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -45,6 +46,7 @@ public class Intake extends Mechanism {
     }
 
     private IntakeConfig config;
+    // private FuelIntakeSim sim;
 
     public Intake(IntakeConfig config) {
         super(config);
@@ -85,8 +87,13 @@ public class Intake extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
+    
     public Command runTorqueFOC(DoubleSupplier torque) {
         return run(() -> setTorqueCurrentFoc(torque));
+    }
+
+    public Command intakeFuel(DoubleSupplier current, DoubleSupplier torque) {
+        return runTorqueFOC(torque);
     }
 
     public void setVoltageAndCurrentLimits(
