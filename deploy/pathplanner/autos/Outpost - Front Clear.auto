@@ -7,19 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "center - hp"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 3.0
+            "pathName": "Start to Outpost"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "hp-climb"
+            "pathName": "Outpost to Depot"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Depot to Climb"
           }
         }
       ]

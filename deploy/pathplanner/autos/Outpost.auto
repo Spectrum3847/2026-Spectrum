@@ -7,19 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Outpost 1"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 12.0
+            "pathName": "Start to Outpost"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Outpost 2"
+            "pathName": "Outpost to Climb"
           }
         }
       ]

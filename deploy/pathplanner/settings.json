@@ -4,10 +4,9 @@
   "holonomicMode": true,
   "pathFolders": [
     "Depot",
-    "Neutral Zone",
     "Front Clear",
-    "Outpost",
-    "center right-focus auto"
+    "Neutral Zone",
+    "Outpost"
   ],
   "autoFolders": [],
   "defaultMaxVel": 3.0,

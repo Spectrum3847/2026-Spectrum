@@ -7,31 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "left-center to depot"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": null
+            "pathName": "Start to Depot"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "depot-hp"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 3.0
+            "pathName": "Depot to Outpost"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "hp-climb"
+            "pathName": "Outpost to Climb"
           }
         }
       ]
