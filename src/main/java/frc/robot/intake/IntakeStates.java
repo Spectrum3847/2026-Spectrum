@@ -19,6 +19,13 @@ public class IntakeStates {
         scheduleIfNotRunning(intake.runVoltage(() -> 0).withName("Intake.neutral"));
     }
 
+    public static void intakeFuel() {
+        scheduleIfNotRunning(
+            intake.runTorqueFOC(() -> 0.0)
+            .withName("Intake.intakeFuel")
+        );
+    }
+
     public static void coastMode() {
         scheduleIfNotRunning(intake.coastMode());
     }
