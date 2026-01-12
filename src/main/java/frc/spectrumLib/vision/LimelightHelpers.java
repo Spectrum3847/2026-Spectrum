@@ -1,4 +1,4 @@
-// LimelightHelpers v1.11 (REQUIRES LLOS 2025.0 OR LATER)
+// LimelightHelpers v1.11 (REQUIRES LLOS 2026.0 OR LATER)
 
 package frc.spectrumLib.vision;
 
