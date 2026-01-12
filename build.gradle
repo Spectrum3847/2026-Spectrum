@@ -136,3 +136,10 @@ tasks.spotbugsMain {
         setStylesheet("fancy-hist.xsl")
     }
 }
+
+//Javadoc Gradle task configuation
+javadoc {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    failOnError = false
+    exclude '**/*.md'
+}
