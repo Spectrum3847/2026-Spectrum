@@ -15,7 +15,7 @@ public class Pilot extends Gamepad {
     // If triggers need any of the config values set them in the constructor
     /*  A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
     public final Trigger enabled = teleop.or(testMode); // works for both teleop and testMode
-    private final Trigger photon = new Trigger(() -> Rio.id == Rio.PHOTON_2025);
+    private final Trigger photon = new Trigger(() -> Rio.id == Rio.PHOTON_2026);
     public final Trigger fn = leftBumper;
     public final Trigger noFn = fn.not();
     public final Trigger home_select = select;

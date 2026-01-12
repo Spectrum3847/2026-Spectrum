@@ -113,7 +113,7 @@ public class Vision implements NTSendable, Subsystem {
         try {
             tagLayout =
                     AprilTagFieldLayout.loadFromResource(
-                            AprilTagFields.k2025ReefscapeAndyMark.m_resourceFile);
+                            AprilTagFields.k2026ReefscapeAndyMark.m_resourceFile);
         } catch (IOException e) {
             System.err.println(e);
         }
