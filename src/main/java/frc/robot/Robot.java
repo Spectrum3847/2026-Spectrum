@@ -19,7 +19,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.auton.Auton;
-import frc.robot.configs.AM2026;
+import frc.robot.configs.AM2025;
 import frc.robot.intake.Intake;
 import frc.robot.intake.Intake.IntakeConfig;
 import frc.robot.leds.LedFull;
@@ -93,7 +93,7 @@ public class Robot extends SpectrumRobot {
             /* Set up the config */
             config =
                     switch (Rio.id) {
-                        default -> new AM2026();
+                        default -> new AM2025();
                     };
 
             /*
