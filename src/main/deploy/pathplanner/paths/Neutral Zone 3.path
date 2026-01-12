@@ -3,57 +3,41 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.39,
-        "y": 5.74
+        "x": 3.24,
+        "y": 5.43
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.39,
-        "y": 5.74
+        "x": 3.6847149624831674,
+        "y": 5.43
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.74,
-        "y": 5.74
+        "x": 6.074647727272727,
+        "y": 5.43
       },
       "prevControl": {
-        "x": 5.106659235811475,
-        "y": 5.74
+        "x": 5.574909235021273,
+        "y": 5.446169086623654
       },
       "nextControl": {
-        "x": 6.373340764188526,
-        "y": 5.74
+        "x": 6.574386219524182,
+        "y": 5.413830913376345
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.89919318181818,
-        "y": 6.817840909090909
+        "x": 8.177238636363636,
+        "y": 4.498806818181818
       },
       "prevControl": {
-        "x": 6.264091084958468,
-        "y": 6.817840909090909
-      },
-      "nextControl": {
-        "x": 7.5342952786778925,
-        "y": 6.817840909090909
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 8.01,
-        "y": 5.15
-      },
-      "prevControl": {
-        "x": 7.897420454545454,
-        "y": 6.18700753319714
+        "x": 8.177238636363636,
+        "y": 5.498806818181818
       },
       "nextControl": null,
       "isLocked": false,
@@ -62,12 +46,8 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 1.2079806529625163,
+      "waypointRelativePos": 0.9528415961305936,
       "rotationDegrees": -29.999999999999996
-    },
-    {
-      "waypointRelativePos": 2.0894800483675793,
-      "rotationDegrees": -55.0
     }
   ],
   "constraintZones": [],
@@ -82,8 +62,8 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 0.0,
-    "rotation": -90.0
+    "velocity": 0,
+    "rotation": -71.11391263029078
   },
   "reversed": false,
   "folder": "Neutral Zone",
