@@ -47,10 +47,10 @@ public class LedStates {
 
     static void autoPattern(Trigger trigger) {
         ledDefaultCommand(
-                "right.autoPattern", right, right.countdown(Timer::getFPGATimestamp, 15), trigger);
+                "right.autoPattern", right, right.countdown(Timer::getFPGATimestamp, 20), trigger);
 
         ledDefaultCommand(
-                "left.autoPattern", left, left.countdown(Timer::getFPGATimestamp, 15), trigger);
+                "left.autoPattern", left, left.countdown(Timer::getFPGATimestamp, 20), trigger);
     }
 
     static void testModePattern(Trigger trigger) {
@@ -63,6 +63,11 @@ public class LedStates {
             String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
         return trigger.and(sLed.checkPriority(priority))
                 .whileTrue(log(sLed.setPattern(pattern, priority).withName(name)));
+    }
+
+    static void timeLeftInTeleopLED(Trigger trigger, int priority) {
+        ledCommand("right.timeLeft", right, right.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
+        ledCommand("left.timeLeft", left, left.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
     }
 
     static void homeFinishLED(Trigger trigger, int priority) {
