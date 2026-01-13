@@ -418,6 +418,42 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         };
     }
 
+    public LEDPattern colorCountdown(Color color, DoubleSupplier countStartTimeSec, double durationInSeconds) {
+        double startTime = countStartTimeSec.getAsDouble();
+        return new LEDPattern() {
+            @Override
+            public void applyTo(LEDReader reader, LEDWriter writer) {
+                int bufLen = reader.getLength();
+                double currentTimeSecs = Timer.getFPGATimestamp();
+                double elapsedTimeInSeconds = currentTimeSecs - startTime;
+
+                // Calculate the progress of the countdown
+                double progress = elapsedTimeInSeconds / durationInSeconds;
+
+                // Calculate the number of LEDs to turn off based on the progress
+                int ledsToTurnOff = (int) (bufLen * progress);
+
+                // Update the LEDs from the end of the strip towards the beginning
+                for (int tempLed = bufLen - 1; tempLed >= 0; tempLed--) {
+                    if (bufLen - tempLed <= ledsToTurnOff) {
+                        // Turn off the LEDs progressively
+                        writer.setLED(tempLed, Color.kBlack);
+                    } else {
+                        // Set the remaining LEDs to the countdown color
+                        writer.setLED(tempLed, color);
+                    }
+                }
+
+                // If the countdown is complete, ensure all LEDs are turned off
+                if (progress >= 1.0) {
+                    for (int i = 0; i < bufLen; i++) {
+                        writer.setLED(i, Color.kBlack);
+                    }
+                }
+            }
+        };
+    }
+
     public LEDPattern edges(Color c, double length) {
         return new LEDPattern() {
             public void applyTo(LEDReader reader, LEDWriter writer) {

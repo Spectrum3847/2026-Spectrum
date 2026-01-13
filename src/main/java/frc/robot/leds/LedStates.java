@@ -24,6 +24,7 @@ public class LedStates {
         testModePattern(Util.testMode.and(Util.dsAttached));
 
         timeLeftInTeleopLED(Util.teleop.and(Util.dsAttached), 10);
+        timeLeftInShiftLED(Util.teleop.and(Util.dsAttached), 11);
     }
 
     /** Default LED commands for each mode */
@@ -68,8 +69,33 @@ public class LedStates {
     }
 
     static void timeLeftInTeleopLED(Trigger trigger, int priority) {
-        ledCommand("right.timeLeft", right, right.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
-        ledCommand("left.timeLeft", left, left.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
+        ledCommand("right.teleopTimeLeft", right, right.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
+        ledCommand("left.teleopTimeLeft", left, left.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
+    }
+
+    static void timeLeftInShiftLED(Trigger trigger, int priority){
+        Color color;
+
+        if (Timer.getMatchTime() > 130 || Timer.getMatchTime() < 30 || Util.autoMode.getAsBoolean()){
+            return;
+        }
+
+
+        if (Timer.getMatchTime() > 105){
+            color = Color.kRed; // fix to show the current active team instead of assuming red goes first
+        }
+        else if (Timer.getMatchTime() > 80){
+            color = Color.kBlue;
+        }
+        else if (Timer.getMatchTime() > 55){
+            color = Color.kRed;
+        }
+        else { // if (Timer.getMatchTime() > 30){
+            color = Color.kBlue;
+        }
+
+        ledCommand("right.shiftTimeLeft", right, right.colorCountdown(color, Timer::getFPGATimestamp, 25), 10, trigger);
+        ledCommand("left.shiftTimeLeft", left, left.colorCountdown(color, Timer::getFPGATimestamp, 25), 10, trigger);
     }
 
     static void homeFinishLED(Trigger trigger, int priority) {
