@@ -20,7 +20,7 @@ public class TurretStates {
         scheduleIfNotRunning(
                 log(
                         turret
-                                .moveToRotations(() -> -0.25)
+                                .moveToDegrees(() -> 270)
                                 .withName("Turret.moveTo270")));
     }
     
@@ -28,7 +28,7 @@ public class TurretStates {
         scheduleIfNotRunning(
                 log(
                         turret
-                                .moveToRotations(() -> 0.5)
+                                .moveToDegrees(() -> 180)
                                 .withName("Turret.moveTo180")));
     }
 
@@ -36,7 +36,7 @@ public class TurretStates {
         scheduleIfNotRunning(
                 log(
                         turret
-                                .moveToRotations(() -> 0.25)
+                                .moveToDegrees(() -> 90)
                                 .withName("Turret.moveTo90")));
     }
 
@@ -44,7 +44,7 @@ public class TurretStates {
         scheduleIfNotRunning(
                 log(
                         turret
-                                .moveToRotations(() -> 0)
+                                .moveToDegrees(() -> 0)
                                 .withName("Turret.moveTo0")));
     }
 

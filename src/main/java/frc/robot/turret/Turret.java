@@ -17,10 +17,8 @@ import frc.spectrumLib.SpectrumCANcoder;
 import frc.spectrumLib.SpectrumCANcoderConfig;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.Circle;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
-
+import frc.spectrumLib.sim.ArmConfig;
+import frc.spectrumLib.sim.ArmSim;
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
@@ -28,9 +26,6 @@ public class Turret extends Mechanism {
 
     public static class TurretConfig extends Config {
         @Getter @Setter private boolean reversed = false;
-
-        // Positions set as percentage of Turret
-        @Getter private final int initializedPosition = 0;
 
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
@@ -67,7 +62,8 @@ public class Turret extends Mechanism {
          /* Sim Configs */
          @Getter private double intakeX = 2; // Vertical Center
          @Getter private double intakeY = 2; // Horizontal Center
-         @Getter private double wheelDiameter = 40;
+         @Getter private double simRatio = 22.4;
+         @Getter private double length = 1;
 
         public TurretConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
@@ -119,7 +115,7 @@ public class Turret extends Mechanism {
                                 config.isCANcoderAttached());
                 canCoder =
                         new SpectrumCANcoder(
-                                44,
+                                45,
                                 canCoderConfig,
                                 motor,
                                 config,
@@ -324,11 +320,17 @@ public class Turret extends Mechanism {
             // m_CANcoder.getSimState().setRawPosition(sim.getAngleRads() / 0.202);
         }
     }
-    class TurretSim extends RollerSim {
+    class TurretSim extends ArmSim {
         public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
             super(
-                    new RollerConfig(config.wheelDiameter)
-                            .setPosition(config.intakeX, config.intakeY),
+                    new ArmConfig(
+                                    config.intakeX,
+                                    config.intakeY,
+                                    config.simRatio,
+                                    config.length,
+                                    -360,
+                                    360 - 90,
+                                    90),
                     mech,
                     turretMotorSim,
                     config.getName());
