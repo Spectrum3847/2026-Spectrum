@@ -22,6 +22,8 @@ public class LedStates {
         teleopPattern(Util.teleop.and(Util.dsAttached));
         autoPattern(Util.autoMode.and(Util.dsAttached));
         testModePattern(Util.testMode.and(Util.dsAttached));
+
+        timeLeftInTeleopLED(Util.teleop, 10);
     }
 
     /** Default LED commands for each mode */
