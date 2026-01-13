@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
+import frc.robot.turret.Turret.TurretSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumCANcoder;
 import frc.spectrumLib.SpectrumCANcoderConfig;
@@ -29,7 +30,7 @@ public class Turret extends Mechanism {
 
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
-        @Getter private double turretTolerance = 45;
+        @Getter private double unwrapTolerance = 10;
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
@@ -76,7 +77,7 @@ public class Turret extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-.25, 0.75);
+            configMinMaxRotations(-1, 1);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
@@ -180,6 +181,27 @@ public class Turret extends Mechanism {
     // Custom Commands
     // --------------------------------------------------------------------------------
 
+    private void setDegrees(DoubleSupplier degrees) {
+        setMMPositionFoc(() -> degreesToRotations(degrees));
+    }
+
+    // from frc254 2024 codebase
+    private double adjustSetpointForWrap(double angleFromCenter) {
+        // We have two options the raw radiansFromCenter or +/- 2 * PI.
+        double alternative = angleFromCenter - 360;
+        if (angleFromCenter < 0.0) {
+            alternative = angleFromCenter + 360;
+        }
+        if (Math.abs(getPositionDegrees() - alternative) < Math.abs(getPositionDegrees() - angleFromCenter)) {
+            return alternative;
+        }
+        return angleFromCenter;
+    }
+
+    private boolean unwrapped(double setpoint) {
+        return (setpoint - config.getUnwrapTolerance() <= getPositionDegrees()) && (setpoint + config.getUnwrapTolerance() >= getPositionDegrees());
+    }
+    
     /** Holds the position of the Turret. */
     public Command runHoldTurret() {
         return new Command() {
@@ -226,72 +248,6 @@ public class Turret extends Mechanism {
     @Override
     public Command moveToDegrees(DoubleSupplier degrees) {
         return super.moveToDegrees(degrees).withName(getName() + ".runPoseDegrees");
-    }
-
-    private void setDegrees(DoubleSupplier degrees) {
-        setMMPositionFoc(() -> degreesToRotations(degrees));
-    }
-
-    public Command move(DoubleSupplier targetDegrees, boolean clockwise) {
-        return run(
-                () -> {
-                    double currentDegrees = getPositionDegrees();
-                    // Normalize targetDegrees to be within 0 to 360
-                    double target = (targetDegrees.getAsDouble() % 360);
-                    // Normalize currentDegrees to be within 0 to 360
-                    double currentMod = (currentDegrees % 360);
-                    if (currentMod < 0) {
-                        currentMod += 360;
-                    }
-
-                    double output = currentDegrees;
-
-                    if (Math.abs(currentMod - target)
-                            < config.getTurretTolerance()) { // check if the difference is within
-                        // tolerance
-                        if (currentMod - target > 0) {
-                            output = currentDegrees - (currentMod - target);
-                        } else {
-                            output = currentDegrees + (target - currentMod);
-                        }
-                    } else if (Math.abs(currentMod - target) > 360 - config.getTurretTolerance()
-                            && Math.abs(Math.abs(currentMod - target) - 360)
-                                    < config.getTurretTolerance()) { // check if the difference is
-                        // within tolerance and currentMod or target is near 0 and 360
-                        if (currentMod < target) {
-                            if (currentMod - (target - 360) > 0) {
-                                output = currentDegrees + (currentMod - (target - 360));
-                            } else {
-                                output = currentDegrees - (currentMod - (target - 360));
-                            }
-                        } else {
-                            if ((currentMod - 360) - target > 0) {
-                                output = currentDegrees + ((currentMod - 360) - target);
-                            } else {
-                                output = currentDegrees - ((currentMod - 360) - target);
-                            }
-                        }
-                    } else {
-                        if (clockwise) {
-                            // Calculate the closest clockwise position
-                            if (currentMod > target) {
-                                output = currentDegrees - (currentMod - target);
-                            } else if (currentMod < target) {
-                                output = currentDegrees - (360 + currentMod - target);
-                            }
-                        } else {
-                            // Calculate the closest counterclockwise position
-                            if (currentMod < target) {
-                                output = currentDegrees + (target - currentMod);
-                            } else if (currentMod > target) {
-                                output = currentDegrees + (360 + target - currentMod);
-                            }
-                        }
-                    }
-
-                    final double out = output;
-                    setDegrees(() -> out);
-                });
     }
 
     @Override
