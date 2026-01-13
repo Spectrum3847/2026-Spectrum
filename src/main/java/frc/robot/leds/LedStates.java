@@ -69,8 +69,8 @@ public class LedStates {
     }
 
     static void timeLeftInTeleopLED(Trigger trigger, int priority) {
-        ledCommand("right.teleopTimeLeft", right, right.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
-        ledCommand("left.teleopTimeLeft", left, left.countdown(Timer::getFPGATimestamp, 140), 10, trigger);
+        ledCommand("right.teleopTimeLeft", right, right.countdown(Timer::getFPGATimestamp, 140), priority, trigger);
+        ledCommand("left.teleopTimeLeft", left, left.countdown(Timer::getFPGATimestamp, 140), priority, trigger);
     }
 
     static void timeLeftInShiftLED(Trigger trigger, int priority){
@@ -94,8 +94,8 @@ public class LedStates {
             color = Color.kBlue;
         }
 
-        ledCommand("right.shiftTimeLeft", right, right.colorCountdown(color, Timer::getFPGATimestamp, 25), 10, trigger);
-        ledCommand("left.shiftTimeLeft", left, left.colorCountdown(color, Timer::getFPGATimestamp, 25), 10, trigger);
+        ledCommand("right.shiftTimeLeft", right, right.colorCountdown(color, Timer::getFPGATimestamp, 25), priority, trigger);
+        ledCommand("left.shiftTimeLeft", left, left.colorCountdown(color, Timer::getFPGATimestamp, 25), priority, trigger);
     }
 
     static void homeFinishLED(Trigger trigger, int priority) {
