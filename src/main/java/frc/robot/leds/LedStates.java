@@ -20,11 +20,11 @@ public class LedStates {
 
     static void bindTriggers() {
         disabledPattern(Util.disabled.and(Util.dsAttached));
-        //teleopPattern(Util.teleop.and(Util.dsAttached));
+        // teleopPattern(Util.teleop.and(Util.dsAttached));
         autoPattern(Util.autoMode.and(Util.dsAttached));
         testModePattern(Util.testMode.and(Util.dsAttached));
 
-        //timeLeftInTeleopLED(Util.teleop.and(Util.dsAttached));
+        timeLeftInTeleopLED(Util.teleop.and(Util.dsAttached));
         timeLeftInShiftLED(Util.teleop.and(Util.dsAttached));
     }
 
@@ -51,14 +51,14 @@ public class LedStates {
 
         if (Timer.getMatchTime() > 105){
             color = Color.kRed; // fix to show the current active team instead of assuming red goes first
-            return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20));
+            return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20), 10);
         }
         else if (Timer.getMatchTime() > 80){
             color = Color.kRed; // fix to show the current active team instead of assuming red goes first
-            return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20));
+            return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20), 10);
         }
 
-        return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20));
+        return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20), 10);
     }
 
     static void disabledPattern(Trigger trigger) {
@@ -94,8 +94,8 @@ public class LedStates {
     }
 
     static void timeLeftInTeleopLED(Trigger trigger) {
-        ledDefaultCommand("right.teleopTimeLeft", right, right.countdown(Timer::getFPGATimestamp, 20), trigger);
-        ledDefaultCommand("left.teleopTimeLeft", left, left.countdown(Timer::getFPGATimestamp, 20), trigger);
+        ledCommand("right.teleopTimeLeft", right, right.countdown(Timer::getFPGATimestamp, 20), 9, trigger);
+        ledCommand("left.teleopTimeLeft", left, left.countdown(Timer::getFPGATimestamp, 20), 9, trigger);
     }
 
     static void timeLeftInShiftLED(Trigger trigger){
