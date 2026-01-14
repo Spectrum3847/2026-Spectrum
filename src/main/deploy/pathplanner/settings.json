@@ -3,11 +3,10 @@
   "robotLength": 0.9,
   "holonomicMode": true,
   "pathFolders": [
-    "Config Paths",
     "Depot",
     "Front Clear",
     "Neutral Zone",
-    "NZ Flush",
+    "Config Paths",
     "Outpost"
   ],
   "autoFolders": [
