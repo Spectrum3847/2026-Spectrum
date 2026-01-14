@@ -12,7 +12,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
-import frc.robot.turret.Turret.TurretSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumCANcoder;
 import frc.spectrumLib.SpectrumCANcoderConfig;
@@ -39,14 +38,14 @@ public class Turret extends Mechanism {
         @Getter private final double currentLimit = 10;
         @Getter private final double torqueCurrentLimit = 100;
         @Getter private final double positionKp = 1000;
-        @Getter private final double positionKd = 70;
-        @Getter private final double positionKv = 0;
+        @Getter private final double positionKd = 175;
+        @Getter private final double positionKv = 0.15;
         @Getter private final double positionKs = 1.8;
         @Getter private final double positionKa = 2;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 4.2;
-        @Getter private final double mmAcceleration = 32;
-        @Getter private final double mmJerk = 0;
+        @Getter private final double mmCruiseVelocity = 50;
+        @Getter private final double mmAcceleration = 300;
+        @Getter private final double mmJerk = 1000;
 
         @Getter @Setter private double sensorToMechanismRatio = 22.4;
         @Getter @Setter private double rotorToSensorRatio = 1;
@@ -180,26 +179,30 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
+    
+    // Choose the best equivalent in degrees that lies inside the configured soft-limits.
+    // If no equivalent exists in the soft-limit window (soft window < 360°), clamp to nearest endpoint.
+    private double wrapDegreesToSoftLimits(double targetDegrees) {
 
-    private void setDegrees(DoubleSupplier degrees) {
-        setMMPositionFoc(() -> degreesToRotations(degrees));
-    }
+        double minDeg = config.getMinRotations() * 360.0;
+        double maxDeg = config.getMaxRotations() * 360.0;
+        double currentDeg = getPositionDegrees();
 
-    // from frc254 2024 codebase
-    private double adjustSetpointForWrap(double angleFromCenter) {
-        // We have two options the raw radiansFromCenter or +/- 2 * PI.
-        double alternative = angleFromCenter - 360;
-        if (angleFromCenter < 0.0) {
-            alternative = angleFromCenter + 360;
+        // Solve for integer n such that minDeg <= targetDegrees + 360*n <= maxDeg
+        int nMin = (int) Math.ceil((minDeg - targetDegrees) / 360.0);
+        int nMax = (int) Math.floor((maxDeg - targetDegrees) / 360.0);
+
+        if (nMin <= nMax) {
+            // At least one equivalent fits in soft limits.
+            int nClosest = (int) Math.round((currentDeg - targetDegrees) / 360.0);
+            int n = Math.max(nMin, Math.min(nClosest, nMax)); // clamp the closest candidate to allowed range
+            return targetDegrees + n * 360.0;
+        } else {
+            // No equivalent fits in soft limits -> clamp to nearest soft limit endpoint.
+            double toMin = Math.abs(currentDeg - minDeg);
+            double toMax = Math.abs(currentDeg - maxDeg);
+            return (toMin < toMax) ? minDeg : maxDeg;
         }
-        if (Math.abs(getPositionDegrees() - alternative) < Math.abs(getPositionDegrees() - angleFromCenter)) {
-            return alternative;
-        }
-        return angleFromCenter;
-    }
-
-    private boolean unwrapped(double setpoint) {
-        return (setpoint - config.getUnwrapTolerance() <= getPositionDegrees()) && (setpoint + config.getUnwrapTolerance() >= getPositionDegrees());
     }
     
     /** Holds the position of the Turret. */
@@ -247,7 +250,7 @@ public class Turret extends Mechanism {
 
     @Override
     public Command moveToDegrees(DoubleSupplier degrees) {
-        return super.moveToDegrees(degrees).withName(getName() + ".runPoseDegrees");
+        return super.moveToDegrees(() -> wrapDegreesToSoftLimits(degrees.getAsDouble())).withName(getName() + ".runPoseDegrees");
     }
 
     @Override
@@ -284,8 +287,8 @@ public class Turret extends Mechanism {
                                     config.intakeY,
                                     config.simRatio,
                                     config.length,
-                                    -360,
-                                    360 - 90,
+                                    -720,
+                                    720,
                                     90),
                     mech,
                     turretMotorSim,

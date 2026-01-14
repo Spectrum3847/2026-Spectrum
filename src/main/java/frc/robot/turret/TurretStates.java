@@ -48,6 +48,14 @@ public class TurretStates {
                                 .withName("Turret.moveTo0")));
     }
 
+    public static void holdRotation() {
+        scheduleIfNotRunning(
+                log(
+                        turret
+                                .moveToDegrees(() -> Robot.getSwerve().getRobotPose().getRotation().getDegrees())
+                                .withName("Turret.holdRotation")));
+    }
+
 
 
     // --------------------------------------------------------

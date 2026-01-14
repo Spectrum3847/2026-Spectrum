@@ -27,10 +27,7 @@ public class PilotStates {
         pilot.upReorient
                 .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)
                 .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
-        pilot.AButton.onTrue(new InstantCommand(() -> TurretStates.moveTo0()));
-        pilot.BButton.onTrue(new InstantCommand(() -> TurretStates.moveTo90()));
-        pilot.XButton.onTrue(new InstantCommand(() -> TurretStates.moveTo180()));
-        pilot.YButton.onTrue(new InstantCommand(() -> TurretStates.moveTo270()));
+        pilot.AButton.onTrue(new InstantCommand(() -> TurretStates.holdRotation()));
     }
 
     /** Command that can be used to rumble the pilot controller */
