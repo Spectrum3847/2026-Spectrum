@@ -3,41 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.3167720037453186,
-        "y": 5.656355337078653
+        "x": 5.687,
+        "y": 5.776
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.316772003745326,
-        "y": 5.656355337078653
+        "x": 5.618564733521313,
+        "y": 4.923402105220162
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 4.869499063670412,
-        "y": 5.059152621722847
+        "x": 4.024227528089887,
+        "y": 3.6626170411985024
       },
       "prevControl": {
-        "x": 4.869499063670412,
-        "y": 5.496353160988703
-      },
-      "nextControl": {
-        "x": 4.869499063670412,
-        "y": 4.459152621722847
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 4.07935393258427,
-        "y": 3.6993679775280897
-      },
-      "prevControl": {
-        "x": 5.329353932584274,
-        "y": 3.6993679775280897
+        "x": 5.263640505306048,
+        "y": 4.515780353697615
       },
       "nextControl": null,
       "isLocked": false,
@@ -58,13 +42,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 1.4320961841647744
+    "rotation": 88.95837332399013
   },
   "reversed": false,
-  "folder": "Depot",
+  "folder": "NZ Flush",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": -91.11940865040457
   },
   "useDefaultConstraints": true
 }
