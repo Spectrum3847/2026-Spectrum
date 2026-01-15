@@ -1,17 +1,16 @@
 package frc.robot.leds;
 
-import static edu.wpi.first.units.Units.*;
-
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.Telemetry;
+import frc.robot.pilot.PilotStates;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
+import java.util.function.BooleanSupplier;
 
 public class LedStates {
     private static LedFull leds = Robot.getLeds();
@@ -20,12 +19,12 @@ public class LedStates {
 
     static void bindTriggers() {
         disabledPattern(Util.disabled.and(Util.dsAttached));
-        // teleopPattern(Util.teleop.and(Util.dsAttached));
+        teleopPattern(Util.teleop.and(Util.dsAttached));
         autoPattern(Util.autoMode.and(Util.dsAttached));
         testModePattern(Util.testMode.and(Util.dsAttached));
 
-        timeLeftInTeleopLED(Util.teleop.and(Util.dsAttached));
-        timeLeftInShiftLED(Util.teleop.and(Util.dsAttached));
+        // General Led Commands
+        testPattern(PilotStates.buttonAPress.and(Util.teleop), 5);
     }
 
     /** Default LED commands for each mode */
@@ -35,30 +34,6 @@ public class LedStates {
         return trigger.and(sLeds.checkPriority(priority), sLeds.defaultTrigger)
                 // .onTrue(sLeds.setPattern(pattern, priority).withName(name));
                 .onTrue(sLeds.setPattern(pattern, priority));
-    }
-
-    private static Trigger ledSwitchCommand(String name, SpectrumLEDs sLeds, Trigger trigger) {
-        int priority = -1;
-        return trigger.and(sLeds.checkPriority(priority), sLeds.defaultTrigger)
-                // .onTrue(sLeds.setPattern(pattern, priority).withName(name));
-                .whileTrue(
-                    ledSwitchColors(name, sLeds, trigger)
-                );
-    }
-
-    static Command ledSwitchColors(String name, SpectrumLEDs sLeds, Trigger trigger) {
-        Color color = Color.kRed;
-
-        if (Timer.getMatchTime() > 105){
-            color = Color.kRed; // fix to show the current active team instead of assuming red goes first
-            return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20), 10);
-        }
-        else if (Timer.getMatchTime() > 80){
-            color = Color.kRed; // fix to show the current active team instead of assuming red goes first
-            return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20), 10);
-        }
-
-        return sLeds.setPattern(leds.colorCountdown(color, Timer::getFPGATimestamp, 20), 10);
     }
 
     static void disabledPattern(Trigger trigger) {
@@ -75,10 +50,10 @@ public class LedStates {
 
     static void autoPattern(Trigger trigger) {
         ledDefaultCommand(
-                "right.autoPattern", right, right.countdown(Timer::getFPGATimestamp, 20), trigger);
+                "right.autoPattern", right, right.countdown(Timer::getFPGATimestamp, 15), trigger);
 
         ledDefaultCommand(
-                "left.autoPattern", left, left.countdown(Timer::getFPGATimestamp, 20), trigger);
+                "left.autoPattern", left, left.countdown(Timer::getFPGATimestamp, 15), trigger);
     }
 
     static void testModePattern(Trigger trigger) {
@@ -90,47 +65,13 @@ public class LedStates {
     private static Trigger ledCommand(
             String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
         return trigger.and(sLed.checkPriority(priority))
-                .whileTrue(log(sLed.setPattern(pattern, priority).withName(name)));
+                .whileTrue((sLed.setPattern(pattern, priority).withName(name)));
     }
 
-    static void timeLeftInTeleopLED(Trigger trigger) {
-        ledCommand("right.teleopTimeLeft", right, right.countdown(Timer::getFPGATimestamp, 20), 9, trigger);
-        ledCommand("left.teleopTimeLeft", left, left.countdown(Timer::getFPGATimestamp, 20), 9, trigger);
-    }
-
-    static void timeLeftInShiftLED(Trigger trigger){
-        ledSwitchCommand("right.teleopTimeLeft", leds, trigger);
-    }
-
-    static void homeFinishLED(Trigger trigger, int priority) {
+    static void testPattern(Trigger trigger, int priority) {
         ledCommand(
-                "right.HomeFinish",
-                right,
-                right.bounce(right.purple, 3)
-                        .blend(right.solid(right.purple).atBrightness(Percent.of(75))),
-                priority,
-                trigger);
+                "right.testPattern", right, right.colorCountdown(Color.kRed, () -> Timer.getFPGATimestamp(), 5), priority, trigger);
         ledCommand(
-                "left.HomeFinish",
-                left,
-                right.bounce(right.purple, 3)
-                        .blend(right.solid(right.purple).atBrightness(Percent.of(75))),
-                priority,
-                trigger);
-    }
-
-    static void climbReadyLED(Trigger trigger, int priority) {
-        ledCommand("right.ClimbReady", right, right.scrollingRainbow(), priority, trigger);
-        ledCommand("left.ClimbReady", left, left.scrollingRainbow(), priority, trigger);
-    }
-    
-    static void seesTagDefaultLED(Trigger trigger, int priority) {
-        ledCommand("right.SeesTag", right, right.bounce(Color.kYellow, 3), priority, trigger);
-        ledCommand("left.SeesTag", left, left.bounce(Color.kYellow, 3), priority, trigger);
-    }
-
-    // Log Command
-    protected static Command log(Command cmd) {
-        return Telemetry.log(cmd);
+                "left.testPattern", left, left.colorCountdown(Color.kRed, () -> Timer.getFPGATimestamp(), 5), priority, trigger);
     }
 }
