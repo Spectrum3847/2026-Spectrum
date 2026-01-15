@@ -9,12 +9,6 @@
           "data": {
             "pathName": "1 Meter"
           }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "shoulderL4"
-          }
         }
       ]
     }
