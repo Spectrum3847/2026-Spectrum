@@ -438,7 +438,7 @@ public class SpectrumLEDs implements SpectrumSubsystem {
                 double currentTimeSecs = Timer.getMatchTime();
 
 
-                double elapsedTimeInSeconds = 135 - currentTimeSecs;
+                double elapsedTimeInSeconds = 140 - currentTimeSecs;
 
                 // Calculate the progress of the countdown
                 int shiftTime = 0;
