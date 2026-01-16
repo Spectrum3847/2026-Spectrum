@@ -27,7 +27,9 @@ public class RobotSim {
 
     public RobotSim() {
         SmartDashboard.putData("TopView", RobotSim.topView);
+        SmartDashboard.putData("LeftView", RobotSim.leftView);
         topView.setBackgroundColor(new Color8Bit(Color.kLightGray));
+        leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
 
         drawTurretCircle();
     }

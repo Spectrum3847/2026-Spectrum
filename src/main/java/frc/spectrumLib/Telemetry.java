@@ -76,18 +76,18 @@ public class Telemetry extends DogLog implements Subsystem {
     // Boolean logger
     public static void log(String key, Boolean value) {
         var now = HALUtil.getFPGATime();
-        logger.log(now, key, value);
+        logger.log(now, key, false, value);
     }
 
     // double logger
     public static void log(String key, double value) {
         var now = HALUtil.getFPGATime();
-        logger.log(now, key, value);
+        logger.log(now, key, false, value);
     }
 
     public static void log(String key, double[] value) {
         var now = HALUtil.getFPGATime();
-        logger.log(now, key, value);
+        logger.log(now, key, false, value);
     }
 
     /** Print a statement if they are enabled */
