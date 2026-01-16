@@ -13,27 +13,32 @@ import frc.spectrumLib.sim.Circle;
 // Always move the root/origin to change it's display position
 // Looking at the robot from the left view (right side of the robot)
 public class RobotSim {
-    public static final double height = 150;
-    public static final double width = 150;
+    public static final double topViewHeight = 150;
+    public static final double topViewWidth = 150;
+    public static final double leftViewHeight = 75;
+    public static final double leftViewWidth = 75;
 
     public static final Translation2d origin =
-            new Translation2d(Units.inchesToMeters(width / 2), 0.0);
+            new Translation2d(0.0, 0.0);
 
     public static final Mechanism2d topView =
-            new Mechanism2d(Units.inchesToMeters(width), Units.inchesToMeters(height));
+            new Mechanism2d(Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
     public static final Mechanism2d leftView =
-            new Mechanism2d(Units.inchesToMeters(width), Units.inchesToMeters(height));
+            new Mechanism2d(Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
 
     public RobotSim() {
         SmartDashboard.putData("TopView", RobotSim.topView);
+        SmartDashboard.putData("LeftView", RobotSim.leftView);
         topView.setBackgroundColor(new Color8Bit(Color.kLightGray));
+        leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
 
         drawTurretCircle();
     }
+
     @SuppressWarnings("unused")
     public void drawTurretCircle() {
-        MechanismRoot2d circleRoot = topView.getRoot("Turret Circle Root", 2, 2);
+        MechanismRoot2d circleRoot = topView.getRoot("Turret Circle Root", Units.inchesToMeters(topViewHeight / 2), Units.inchesToMeters(topViewWidth / 2));
         Circle circle = new Circle(50, 40, "Turret Circle", circleRoot, topView);
     }
 }

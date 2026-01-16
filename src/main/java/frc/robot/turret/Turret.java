@@ -6,6 +6,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -60,8 +61,8 @@ public class Turret extends Mechanism {
         @Getter @Setter private boolean CANcoderAttached = false;
 
          /* Sim Configs */
-         @Getter private double intakeX = 2; // Vertical Center
-         @Getter private double intakeY = 2; // Horizontal Center
+         @Getter private double intakeX = Units.inchesToMeters(75); // Vertical Center
+         @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
          @Getter private double simRatio = 22.4;
          @Getter private double length = 1;
 

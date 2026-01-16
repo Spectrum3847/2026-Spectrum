@@ -20,8 +20,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
-import frc.robot.intake.Intake;
-import frc.robot.intake.Intake.IntakeConfig;
+import frc.robot.configs.FM2026;
+import frc.robot.intake.FuelIntake;
+import frc.robot.intake.FuelIntake.FuelIntakeConfig;
 import frc.robot.leds.LedFull;
 import frc.robot.leds.LedFull.LedFullConfig;
 import frc.robot.operator.Operator;
@@ -64,14 +65,14 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
 
-        public IntakeConfig intake = new IntakeConfig();
+        public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public LedFullConfig leds = new LedFullConfig();
         public TurretConfig turret = new TurretConfig();
         public VisionConfig vision = new VisionConfig();
     }
 
     @Getter private static Swerve swerve;
-    @Getter private static Intake intake;
+    @Getter private static FuelIntake fuelIntake;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -93,7 +94,7 @@ public class Robot extends SpectrumRobot {
             /* Set up the config */
             config =
                     switch (Rio.id) {
-                        default -> new AM2026();
+                        default -> new FM2026();
                     };
 
             /*
@@ -108,7 +109,7 @@ public class Robot extends SpectrumRobot {
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
-            intake = new Intake(config.intake);
+            fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
             visionSystem = new VisionSystem(swerve::getRobotPose);
