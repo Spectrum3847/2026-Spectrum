@@ -418,17 +418,55 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         };
     }
 
-    public LEDPattern colorCountdown(Color color, DoubleSupplier countStartTimeSec, double durationInSeconds) {
-        double startTime = countStartTimeSec.getAsDouble();
+
+    public LEDPattern switchCountdown(Color startingColor) {
+    
         return new LEDPattern() {
             @Override
             public void applyTo(LEDReader reader, LEDWriter writer) {
+
+                int[] times = {
+                    10,  //surely there's a more efficient way to do this
+                    25, 
+                    25,
+                    25,
+                    25,
+                    30,
+                };
+
                 int bufLen = reader.getLength();
-                double currentTimeSecs = Timer.getFPGATimestamp();
-                double elapsedTimeInSeconds = currentTimeSecs - startTime;
+                double currentTimeSecs = Timer.getMatchTime();
+
+
+                double elapsedTimeInSeconds = 135 - currentTimeSecs;
 
                 // Calculate the progress of the countdown
-                double progress = elapsedTimeInSeconds / durationInSeconds;
+                int shiftTime = 0;
+                int cumulativeTime = 0;
+                Color color = Color.kBlack;
+                
+                for (int i = 0; i < times.length; i++){
+                    cumulativeTime += times[i];
+                    if (cumulativeTime > elapsedTimeInSeconds){
+                        shiftTime = times[i];
+                        switch(i){
+                            case 0,5: //this is also kinda a mess but it works wtv
+                                color = Color.kPurple;
+                                break;
+                            case 1,3:
+                                color = startingColor;
+                                break;
+                            case 2,4:
+                                if (startingColor == Color.kRed)
+                                    color = Color.kBlue;
+                                else
+                                    color = Color.kRed;
+                                break;
+                        }
+                        break;
+                    }
+                }
+                double progress = 1 - (cumulativeTime - elapsedTimeInSeconds) / shiftTime;
 
                 // Calculate the number of LEDs to turn off based on the progress
                 int ledsToTurnOff = (int) (bufLen * progress);

@@ -69,9 +69,9 @@ public class LedStates {
     }
 
     static void testPattern(Trigger trigger, int priority) {
-        ledCommand(
-                "right.testPattern", right, right.colorCountdown(Color.kRed, () -> Timer.getFPGATimestamp(), 5), priority, trigger);
-        ledCommand(
-                "left.testPattern", left, left.colorCountdown(Color.kRed, () -> Timer.getFPGATimestamp(), 5), priority, trigger);
+            ledCommand(
+                "right.testPattern", right, right.switchCountdown(Color.kBlue), priority, trigger);
+            ledCommand(
+                "left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
+        }
     }
-}
