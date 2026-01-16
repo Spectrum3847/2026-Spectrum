@@ -38,7 +38,7 @@
     },
     "###/SmartDashboard/LeftView": {
       "Collapsed": "0",
-      "Pos": "1366,650",
+      "Pos": "1364,652",
       "Size": "353,376"
     },
     "###/SmartDashboard/Scheduler": {
@@ -59,7 +59,7 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "268,27",
-      "Size": "202,214"
+      "Size": "336,158"
     },
     "###Joysticks": {
       "Collapsed": "0",
