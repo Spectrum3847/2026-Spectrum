@@ -22,6 +22,8 @@ public class PilotStates {
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
+
+        pilot.buttonA.whileTrue(IntakeStates.intakeFuelCommand());
         
         // Rumble whenever we reorient
         pilot.upReorient
