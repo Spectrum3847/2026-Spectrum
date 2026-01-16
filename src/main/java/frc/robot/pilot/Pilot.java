@@ -20,28 +20,24 @@ public class Pilot extends Gamepad {
     public final Trigger noFn = fn.not();
     public final Trigger home_select = select;
 
-    public final Trigger stationIntake_LT = leftTrigger.and(noFn, teleop);
-    public final Trigger groundAlgae_RT = rightTrigger.and(noFn, teleop, photon.not());
-    public final Trigger photonRemoveL2Algae = groundAlgae_RT.and(photon);
-    public final Trigger groundCoral_LB_LT = leftTrigger.and(fn, teleop, photon.not());
+    public final Trigger LT = leftTrigger.and(noFn, teleop);
+    public final Trigger RT = rightTrigger.and(noFn, teleop, photon.not());
+    public final Trigger LB_LT = leftTrigger.and(fn, teleop, photon.not());
 
-    public final Trigger buttonA = A.and(teleop);
+    public final Trigger XButton = X.and(teleop);
+    public final Trigger YButton = Y.and(teleop);
 
-    public final Trigger l2AlgaeRemoval = X.and(teleop);
-    public final Trigger l3AlgaeRemoval = Y.and(teleop);
-    public final Trigger photonRemoveL3Algae = rightTrigger.and(fn, teleop, photon);
+    public final Trigger startButton = start.and(noFn, teleop);
 
-    public final Trigger climbRoutine_start = start.and(noFn, teleop);
-
-    public final Trigger actionReady_RB = rightBumper.and(teleop);
+    public final Trigger RB = rightBumper.and(teleop);
 
     // Vision Triggers
     public final Trigger tagsInView = new Trigger(() -> Robot.getVision().tagsInView());
 
     // vision Drive
     // public final Trigger reefAim_A = A.and(teleop, tagsInView.not()); // turn off
-    public final Trigger reefVision_A = A.and(teleop); // , tagsInView); // remove tags in view
-    public final Trigger reefAlignScore_B = B.and(teleop);
+    public final Trigger AButton = A.and(teleop); // , tagsInView); // remove tags in view
+    public final Trigger BButton = B.and(teleop);
     // public final Trigger cageAim_B = B.and(teleop);
 
     // Drive Triggers
