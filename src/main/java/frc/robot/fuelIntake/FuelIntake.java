@@ -1,154 +1,102 @@
 package frc.robot.fuelIntake;
 
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import com.revrobotics.spark.ClosedLoopSlot;
+import com.revrobotics.spark.FeedbackSensor;
+import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Robot;
-import frc.robot.RobotSim;
-import frc.spectrumLib.Rio;
-import frc.spectrumLib.Telemetry;
-import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
-
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
+import com.revrobotics.PersistMode;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.ResetMode;
 
-import com.ctre.phoenix6.sim.TalonFXSimState;
+public class FuelIntake extends SubsystemBase{
+    private SparkMax motor;
+    private SparkMaxConfig motorConfig;
+    private SparkClosedLoopController closedLoopController;
+    private RelativeEncoder encoder;
 
-import lombok.Getter;
-import lombok.Setter;
+    public FuelIntake() {
+    /*
+     * Initialize the SPARK MAX and get its encoder and closed loop controller
+     * objects for later use.
+     */
+    motor = new SparkMax(1, MotorType.kBrushless);
+    closedLoopController = motor.getClosedLoopController();
+    encoder = motor.getEncoder();
 
-public class FuelIntake extends Mechanism {
+    /*
+     * Create a new SPARK MAX configuration object. This will store the
+     * configuration parameters for the SPARK MAX that we will set below.
+     */
+    motorConfig = new SparkMaxConfig();
 
-    public static class FuelIntakeConfig extends Config {
+    /*
+     * Configure the encoder. For this specific example, we are using the
+     * integrated encoder of the NEO, and we don't need to configure it. If
+     * needed, we can adjust values like the position or velocity conversion
+     * factors.
+     */
+    motorConfig.encoder
+        .positionConversionFactor(1)
+        .velocityConversionFactor(1);
 
-        // Intake Voltages and Current
-        @Getter @Setter private double fuelIntakeVoltage = 9.0;
-        @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
-        @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
+    /*
+     * Configure the closed loop controller. We want to make sure we set the
+     * feedback sensor as the primary encoder.
+     */
+    motorConfig.closedLoop
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+        // Set PID values for position control. We don't need to pass a closed loop
+        // slot, as it will default to slot 0.
+        .p(0.1)
+        .i(0)
+        .d(0)
+        .outputRange(-1, 1)
+        // Set PID values for velocity control in slot 1
+        .p(5, ClosedLoopSlot.kSlot1)
+        .i(0, ClosedLoopSlot.kSlot1)
+        .d(0, ClosedLoopSlot.kSlot1)
+        .outputRange(-1, 1, ClosedLoopSlot.kSlot1)
+        .feedForward
+          // kV is now in Volts, so we multiply by the nominal voltage (12V)
+          .kV(12.0 / 5767, ClosedLoopSlot.kSlot1);
 
-        /* Intake config values */
-        @Getter private double currentLimit = 44;
-        @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 12;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 14;
+    /*
+     * Apply the configuration to the SPARK MAX.
+     *
+     * kResetSafeParameters is used to get the SPARK MAX to a known state. This
+     * is useful in case the SPARK MAX is replaced.
+     *
+     * kPersistParameters is used to ensure the configuration is not lost when
+     * the SPARK MAX loses power. This is useful for power cycles that may occur
+     * mid-operation.
+     */
+    motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
 
-        /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters((RobotSim.getLeftViewWidth() / 2) - 15);
-        @Getter private double intakeY = Units.inchesToMeters((RobotSim.getLeftViewWidth() / 2) - 5);
-        @Getter private double wheelDiameter = 6;
+    // Initialize dashboard values
+    SmartDashboard.setDefaultNumber("Target Position", 0);
+    SmartDashboard.setDefaultNumber("Target Velocity", 0);
+    SmartDashboard.setDefaultBoolean("Control Mode", false);
+    SmartDashboard.setDefaultBoolean("Reset Encoder", false);
+  }
 
-        public FuelIntakeConfig() {
-            super("Intake", 5, Rio.CANIVORE);
-            configPIDGains(0, velocityKp, 0, 0);
-            configFeedForwardGains(velocityKs, velocityKv, 0, 0);
-            configGearRatio(1);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
-        }
-    }
-
-    private FuelIntakeConfig config;
-    private FuelIntakeSim sim;
-
-    public FuelIntake(FuelIntakeConfig config) {
-        super(config);
-        this.config = config;
-
-        simulationInit();
-        telemetryInit();
-        Telemetry.print(getName() + " Subsystem Initialized");
-    }
-
-    @Override
-    public void periodic() {}
-
-    @Override
-    public void setupStates() {}
-
-    @Override
-    public void setupDefaultCommand() {
-        FuelIntakeStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
-    }
-
-    // --------------------------------------------------------------------------------
-    // Custom Commands
-    // --------------------------------------------------------------------------------
-    
-    public Command runTorqueFOC(DoubleSupplier torque) {
-        return run(() -> setTorqueCurrentFoc(torque));
-    }
-
-    public void setVoltageAndCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supply, DoubleSupplier torque) {
-        setVoltageOutput(voltage);
-        setCurrentLimits(supply, torque);
-    }
-
-    public Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return runVoltage(voltage).alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command runTCcurrentLimits(DoubleSupplier torqueCurrent, DoubleSupplier supplyCurrent) {
-        return runTorqueCurrentFoc(torqueCurrent)
-                .alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command stopMotor() {
-        return run(() -> stop());
-    }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
-
-    class FuelIntakeSim extends RollerSim {
-        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY())
-                            .setMount(Robot.getIntakeExtension().getSim()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    public Command runDutyCycleOut(DoubleSupplier dutyCycleSupplier) {
+        return Commands.run(
+                () -> {
+                    double targetDutyCycle = dutyCycleSupplier.getAsDouble();
+                    closedLoopController.setSetpoint(
+                            targetDutyCycle, 
+                            ControlType.kDutyCycle, 
+                            ClosedLoopSlot.kSlot1);
+                },
+                this)
+            .withName("FuelIntake.runDutyCycleOut");
+  }
 }

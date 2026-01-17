@@ -22,7 +22,6 @@ import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
-import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.leds.LedFull;
@@ -65,7 +64,6 @@ public class Robot extends SpectrumRobot {
         public SwerveConfig swerve = new SwerveConfig();
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
-        public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public LedFullConfig leds = new LedFullConfig();
         public TurretConfig turret = new TurretConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
@@ -118,7 +116,7 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
-            fuelIntake = new FuelIntake(config.fuelIntake);
+            fuelIntake = new FuelIntake();
             auton = new Auton();
             coordinator = new Coordinator();
 
