@@ -5,8 +5,9 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.Robot;
 import frc.robot.fuelIntake.FuelIntakeStates;
-import frc.robot.intakeExtension.IntakeExtensionStates;
-import frc.robot.turret.TurretStates;
+import frc.robot.launcher.LauncherStates;
+import frc.robot.turretHood.TurretHoodStates;
+import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -25,16 +26,16 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        pilot.AButton.whileTrue(new InstantCommand(() -> FuelIntakeStates.intakeFuel()));
-        pilot.BButton.whileTrue(new InstantCommand(() -> TurretStates.holdRotation()));
-        pilot.XButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullExtend()));
-        pilot.YButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
+        pilot.AButton.whileTrue(FuelIntakeStates.intakeFuelCommand());
+        pilot.BButton.whileTrue(new InstantCommand(() -> RotationalPivotStates.holdRotation()));
+        pilot.XButton.whileTrue(TurretHoodStates.hoodDownComm());
+        pilot.YButton.whileTrue(TurretHoodStates.hoodUpComm(), LauncherStates.launchFuel());
         
         // Rumble whenever we reorient
         pilot.upReorient
                 .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)
                 .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
-        pilot.AButton.onTrue(new InstantCommand(() -> TurretStates.holdRotation()));
+        pilot.AButton.onTrue(new InstantCommand(() -> RotationalPivotStates.holdRotation()));
     }
 
     /** Command that can be used to rumble the pilot controller */
