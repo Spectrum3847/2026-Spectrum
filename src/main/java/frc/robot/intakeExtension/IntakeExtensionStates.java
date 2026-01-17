@@ -15,7 +15,13 @@ public class IntakeExtensionStates {
 
     // -------------------- State Commands --------------------
 
-    
+    public static void fullExtend() {
+        scheduleIfNotRunning(intakeExtension.move(() -> config.getMaxRotations()));
+    }
+
+    public static void fullRetract() {
+        scheduleIfNotRunning(intakeExtension.move(() -> config.getMinRotations()));
+    }
 
     // --------------------------------------------------------
     

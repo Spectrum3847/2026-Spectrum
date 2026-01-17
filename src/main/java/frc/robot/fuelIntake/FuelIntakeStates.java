@@ -1,4 +1,4 @@
-package frc.robot.intake;
+package frc.robot.fuelIntake;
 
 import java.util.function.DoubleSupplier;
 

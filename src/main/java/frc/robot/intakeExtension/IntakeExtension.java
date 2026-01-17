@@ -1,16 +1,18 @@
 package frc.robot.intakeExtension;
 
+import java.util.function.DoubleSupplier;
+
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -20,9 +22,8 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
 import frc.spectrumLib.sim.LinearSim;
-
-import java.util.function.DoubleSupplier;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
 
 public class IntakeExtension extends Mechanism {
 
@@ -35,10 +36,13 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
+        @Getter @Setter private double maxRotations = 4.0;
+        @Getter @Setter private double minRotations = 0.0;
+
         @Getter private final double currentLimit = 10;
         @Getter private final double torqueCurrentLimit = 100;
-        @Getter private final double positionKp = 1000;
-        @Getter private final double positionKd = 175;
+        @Getter private final double positionKp = 250;
+        @Getter private final double positionKd = 15;
         @Getter private final double positionKv = 0.15;
         @Getter private final double positionKs = 1.8;
         @Getter private final double positionKa = 2;
@@ -60,33 +64,31 @@ public class IntakeExtension extends Mechanism {
         @Getter @Setter private boolean CANcoderAttached = false;
 
          /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(RobotSim.leftViewWidth / 2); // Vertical Center
-         @Getter private double intakeY = Units.inchesToMeters(RobotSim.leftViewHeight / 2); // Horizontal Center
+         @Getter private double intakeX = Units.inchesToMeters(50);
+         @Getter private double intakeY = Units.inchesToMeters(40);
          @Getter private double extensionMass = 10.0;
          @Getter private double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
          @Getter private double extensionGearing = 1.7;
-         @Getter private double angle = 90;
-         @Getter private double staticLength = 30;
+         @Getter private double angle = 180;
+         @Getter private double staticLength = 10;
          @Getter private double movingLength = 30;
+         @Getter private double lineWidth = 80;
+         @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
             super("IntakeExtension", 6, Rio.CANIVORE); // Rio.CANIVORE);
+            configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, 0, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configGearRatio(sensorToMechanismRatio);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-1, 1);
-            configReverseSoftLimit(getMinRotations(), true);
-            configForwardSoftLimit(getMaxRotations(), true);
+            configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
+            configForwardSoftLimit(maxRotations, true);
+            configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configContinuousWrap(false);
-            configGravityType(false);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
@@ -227,17 +229,8 @@ public class IntakeExtension extends Mechanism {
         };
     }
 
-    @Override
-    public Command moveToDegrees(DoubleSupplier degrees) {
-        return super.moveToDegrees(degrees).withName(getName() + ".runPoseDegrees");
-    }
-
-    @Override
-    public Trigger atDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(((getPositionDegrees() % 360) + 360) % 360 - target.getAsDouble())
-                                < tolerance.getAsDouble());
+    public Command move(DoubleSupplier rotations) {
+        return run(() -> setMMPositionFoc(rotations));
     }
 
     // --------------------------------------------------------------------------------
@@ -259,14 +252,16 @@ public class IntakeExtension extends Mechanism {
         public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
             super(
                     new LinearConfig(
-                                    config.intakeX,
-                                    config.intakeY,
+                                    config.getIntakeX(),
+                                    config.getIntakeY(),
                                     config.getExtensionGearing(),
                                     config.getDrumRadiusMeters())
-                                .setAngle(0)
+                                .setAngle(config.getAngle())
                                 .setMovingLength(config.getMovingLength())
                                 .setStaticLength(config.getStaticLength())
-                                .setMaxHeight(40),
+                                .setMaxHeight(config.getMaxExtensionHeight())
+                                .setLineWidth(config.getLineWidth())
+                                .setColor(new Color8Bit(Color.kLightGray)),
                     mech,
                     intakeExtensionMotorSim,
                     config.getName());

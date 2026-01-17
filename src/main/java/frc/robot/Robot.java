@@ -21,8 +21,8 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
-import frc.robot.intake.FuelIntake;
-import frc.robot.intake.FuelIntake.FuelIntakeConfig;
+import frc.robot.fuelIntake.FuelIntake;
+import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.leds.LedFull;
@@ -111,14 +111,14 @@ public class Robot extends SpectrumRobot {
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
-            fuelIntake = new FuelIntake(config.fuelIntake);
-            Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
             visionSystem = new VisionSystem(swerve::getRobotPose);
             Timer.delay(canInitDelay);
             turret = new Turret(config.turret);
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
+            Timer.delay(canInitDelay);
+            fuelIntake = new FuelIntake(config.fuelIntake);
             auton = new Auton();
             coordinator = new Coordinator();
 
