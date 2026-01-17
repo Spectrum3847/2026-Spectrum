@@ -4,7 +4,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.Robot;
-import frc.robot.intake.FuelIntakeStates;
+import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.turret.TurretStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
@@ -24,8 +25,10 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        pilot.AButton.whileTrue(FuelIntakeStates.intakeFuelCommand());
+        pilot.AButton.whileTrue(new InstantCommand(() -> FuelIntakeStates.intakeFuel()));
         pilot.BButton.whileTrue(new InstantCommand(() -> TurretStates.holdRotation()));
+        pilot.XButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullExtend()));
+        pilot.YButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
         
         // Rumble whenever we reorient
         pilot.upReorient

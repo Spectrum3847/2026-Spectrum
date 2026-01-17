@@ -21,8 +21,10 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
-import frc.robot.intake.FuelIntake;
-import frc.robot.intake.FuelIntake.FuelIntakeConfig;
+import frc.robot.fuelIntake.FuelIntake;
+import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.intakeExtension.IntakeExtension;
+import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.leds.LedFull;
 import frc.robot.leds.LedFull.LedFullConfig;
 import frc.robot.operator.Operator;
@@ -61,25 +63,25 @@ public class Robot extends SpectrumRobot {
 
     public static class Config {
         public SwerveConfig swerve = new SwerveConfig();
-
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
-
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public LedFullConfig leds = new LedFullConfig();
         public TurretConfig turret = new TurretConfig();
+        public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public VisionConfig vision = new VisionConfig();
     }
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
+    @Getter private static Turret turret;
+    @Getter private static IntakeExtension intakeExtension;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
-    @Getter private static Turret turret;
     @Getter private static Coordinator coordinator;
     public static boolean commandInit = false;
 
@@ -109,12 +111,14 @@ public class Robot extends SpectrumRobot {
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
-            fuelIntake = new FuelIntake(config.fuelIntake);
-            Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
             visionSystem = new VisionSystem(swerve::getRobotPose);
             Timer.delay(canInitDelay);
             turret = new Turret(config.turret);
+            Timer.delay(canInitDelay);
+            intakeExtension = new IntakeExtension(config.intakeExtension);
+            Timer.delay(canInitDelay);
+            fuelIntake = new FuelIntake(config.fuelIntake);
             auton = new Auton();
             coordinator = new Coordinator();
 

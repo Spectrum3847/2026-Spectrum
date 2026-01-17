@@ -1,9 +1,10 @@
-package frc.robot.intake;
+package frc.robot.fuelIntake;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
@@ -35,9 +36,9 @@ public class FuelIntake extends Mechanism {
         @Getter private double velocityKs = 14;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(75/2);
-        @Getter private double intakeY = Units.inchesToMeters(75/2);
-        @Getter private double wheelDiameter = 12;
+        @Getter private double intakeX = Units.inchesToMeters((RobotSim.getLeftViewWidth() / 2) - 15);
+        @Getter private double intakeY = Units.inchesToMeters((RobotSim.getLeftViewWidth() / 2) - 5);
+        @Getter private double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
             super("Intake", 5, Rio.CANIVORE);
@@ -86,7 +87,7 @@ public class FuelIntake extends Mechanism {
         if (isAttached()) {
             builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
             builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            // builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
+            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
             builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
             builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
         }
@@ -142,8 +143,9 @@ public class FuelIntake extends Mechanism {
     class FuelIntakeSim extends RollerSim {
         public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
-                    new RollerConfig(config.wheelDiameter)
-                            .setPosition(config.intakeX, config.intakeY),
+                    new RollerConfig(config.getWheelDiameter())
+                            .setPosition(config.getIntakeX(), config.getIntakeY())
+                            .setMount(Robot.getIntakeExtension().getSim()),
                     mech,
                     rollerMotorSim,
                     config.getName());
