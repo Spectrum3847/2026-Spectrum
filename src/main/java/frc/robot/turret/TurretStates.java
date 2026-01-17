@@ -2,12 +2,10 @@ package frc.robot.turret;
 
 import edu.wpi.first.wpilibj2.command.*;
 import frc.robot.Robot;
-import frc.robot.turret.Turret.TurretConfig;
 import frc.spectrumLib.Telemetry;
 
 public class TurretStates {
     private static Turret turret = Robot.getTurret();
-    private static TurretConfig config = Robot.getConfig().turret;
 
     public static void setupDefaultCommand() {
         turret.setDefaultCommand(log(turret.runHoldTurret().withName("Turret.default")));
@@ -15,48 +13,11 @@ public class TurretStates {
     }
 
     // -------------------- State Commands --------------------
-   
-    public static void moveTo270() {
-        scheduleIfNotRunning(
-                log(
-                        turret
-                                .moveToDegrees(() -> 270)
-                                .withName("Turret.moveTo270")));
-    }
-    
-    public static void moveTo180() {
-        scheduleIfNotRunning(
-                log(
-                        turret
-                                .moveToDegrees(() -> 180)
-                                .withName("Turret.moveTo180")));
-    }
 
-    public static void moveTo90() {
+    public static void aimAtHub() {
         scheduleIfNotRunning(
-                log(
-                        turret
-                                .moveToDegrees(() -> 90)
-                                .withName("Turret.moveTo90")));
+                log(turret.trackTargetCommand()).withName("Turret.aimAtHub"));
     }
-
-    public static void moveTo0() {
-        scheduleIfNotRunning(
-                log(
-                        turret
-                                .moveToDegrees(() -> 0)
-                                .withName("Turret.moveTo0")));
-    }
-
-    public static void holdRotation() {
-        scheduleIfNotRunning(
-                log(
-                        turret
-                                .moveToDegrees(() -> Robot.getSwerve().getRobotPose().getRotation().getDegrees())
-                                .withName("Turret.holdRotation")));
-    }
-
-
 
     // --------------------------------------------------------
     

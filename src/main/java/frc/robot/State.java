@@ -1,7 +1,21 @@
 package frc.robot;
 
 public enum State {
-    IDLE;
+    IDLE,
+
+    INTAKE_FUEL,
+
+    AIM_TURRET_WITH_SPINUP,
+    AIM_TURRET_WITH_LAUNCH,
+
+    FIX_TURRET_WITH_SPINUP,
+    FIX_TURRET_WITH_LAUNCH,
+
+    L1_CLIMB_PREP,
+    L1_CLIMB_EXECUTE,
+    
+    L3_CLIMB_PREP,
+    L3_CLIMB_EXECUTE;
 
     private State() {}
 

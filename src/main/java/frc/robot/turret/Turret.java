@@ -5,12 +5,13 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -83,7 +84,7 @@ public class Turret extends Mechanism {
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
 
         public TurretConfig modifyMotorConfig(TalonFX motor) {
@@ -205,6 +206,26 @@ public class Turret extends Mechanism {
             return (toMin < toMax) ? minDeg : maxDeg;
         }
     }
+
+    public void aimFieldRelative(Rotation2d fieldAngle) {
+        double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+        double turretDeg = fieldAngle.getDegrees() - robotHeadingDeg;
+        final double wrappedTurretDeg = wrapDegreesToSoftLimits(turretDeg);
+
+        setDynMMPositionFoc(
+                () -> degreesToRotations(() -> wrappedTurretDeg),
+                () -> config.getMmCruiseVelocity(),
+                () -> config.getMmAcceleration(),
+                () -> config.getMmJerk());
+    }
+
+    public Command trackTargetCommand() {
+    return run(() -> {
+        var params = ShotCalculator.getInstance().getParameters();
+        aimFieldRelative(params.turretAngle());
+        });
+    }
+
     
     /** Holds the position of the Turret. */
     public Command runHoldTurret() {
@@ -290,7 +311,7 @@ public class Turret extends Mechanism {
                                     config.length,
                                     -720,
                                     720,
-                                    90),
+                                    0),
                     mech,
                     turretMotorSim,
                     config.getName());
