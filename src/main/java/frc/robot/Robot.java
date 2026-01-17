@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
@@ -191,6 +192,7 @@ public class Robot extends SpectrumRobot {
 
             SmartDashboard.putNumber("MatchTime", DriverStation.getMatchTime());
             field2d.setRobotPose(swerve.getRobotPose());
+            ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);

@@ -25,16 +25,16 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        pilot.AButton.whileTrue(new InstantCommand(() -> FuelIntakeStates.intakeFuel()));
-        pilot.BButton.whileTrue(new InstantCommand(() -> TurretStates.holdRotation()));
-        pilot.XButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullExtend()));
-        pilot.YButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
+        pilot.AButton.onTrue(new InstantCommand(() -> FuelIntakeStates.intakeFuel()));
+        pilot.AButton.onFalse(new InstantCommand(() -> FuelIntakeStates.neutral()));
+        pilot.BButton.onTrue(new InstantCommand(() -> TurretStates.aimAtHub()));
+        pilot.XButton.onTrue(new InstantCommand(() -> IntakeExtensionStates.fullExtend()));
+        pilot.YButton.onTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
         
         // Rumble whenever we reorient
         pilot.upReorient
                 .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)
                 .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
-        pilot.AButton.onTrue(new InstantCommand(() -> TurretStates.holdRotation()));
     }
 
     /** Command that can be used to rumble the pilot controller */
