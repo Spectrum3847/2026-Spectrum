@@ -4,15 +4,22 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
+import com.ctre.phoenix6.sim.TalonFXSimState;
+
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
+import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumCANcoder;
 import frc.spectrumLib.SpectrumCANcoderConfig;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.ArmConfig;
+import frc.spectrumLib.sim.ArmSim;
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
@@ -21,12 +28,9 @@ public class Turret extends Mechanism {
     public static class TurretConfig extends Config {
         @Getter @Setter private boolean reversed = false;
 
-        // Positions set as percentage of Turret
-        @Getter private final int initializedPosition = 20;
-
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
-        @Getter private double turretTolerance = 45;
+        @Getter private double unwrapTolerance = 10;
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
@@ -35,14 +39,14 @@ public class Turret extends Mechanism {
         @Getter private final double currentLimit = 10;
         @Getter private final double torqueCurrentLimit = 100;
         @Getter private final double positionKp = 1000;
-        @Getter private final double positionKd = 70;
-        @Getter private final double positionKv = 0;
+        @Getter private final double positionKd = 175;
+        @Getter private final double positionKv = 0.15;
         @Getter private final double positionKs = 1.8;
         @Getter private final double positionKa = 2;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 4.2;
-        @Getter private final double mmAcceleration = 32;
-        @Getter private final double mmJerk = 0;
+        @Getter private final double mmCruiseVelocity = 50;
+        @Getter private final double mmAcceleration = 300;
+        @Getter private final double mmJerk = 1000;
 
         @Getter @Setter private double sensorToMechanismRatio = 22.4;
         @Getter @Setter private double rotorToSensorRatio = 1;
@@ -56,7 +60,11 @@ public class Turret extends Mechanism {
         @Getter @Setter private double CANcoderOffset = 0;
         @Getter @Setter private boolean CANcoderAttached = false;
 
-        /* Sim properties */
+         /* Sim Configs */
+         @Getter private double intakeX = Units.inchesToMeters(75); // Vertical Center
+         @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
+         @Getter private double simRatio = 22.4;
+         @Getter private double length = 1;
 
         public TurretConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
@@ -69,12 +77,12 @@ public class Turret extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-.25, 0.75);
-            configReverseSoftLimit(getMinRotations(), false);
-            configForwardSoftLimit(getMaxRotations(), false);
+            configMinMaxRotations(-1, 1);
+            configReverseSoftLimit(getMinRotations(), true);
+            configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
-            configGravityType(true);
+            configGravityType(false);
             configClockwise_Positive();
         }
 
@@ -89,6 +97,7 @@ public class Turret extends Mechanism {
     }
 
     @Getter private TurretConfig config;
+    @Getter  private TurretSim sim;
     private SpectrumCANcoder canCoder;
     private SpectrumCANcoderConfig canCoderConfig;
     CANcoderSimState canCoderSim;
@@ -107,7 +116,7 @@ public class Turret extends Mechanism {
                                 config.isCANcoderAttached());
                 canCoder =
                         new SpectrumCANcoder(
-                                44,
+                                45,
                                 canCoderConfig,
                                 motor,
                                 config,
@@ -142,15 +151,9 @@ public class Turret extends Mechanism {
         if (isAttached()) {
             builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
             builder.addDoubleProperty("Degrees", this::getPositionDegrees, null);
-            // builder.addDoubleProperty("Velocity", this::getVelocityRPM, null);
+            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
             builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
             builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-            // builder.addDoubleProperty("Front-TX", Robot.getVision().frontLL::getTagTx, null);
-            // builder.addDoubleProperty("Front-TA", Robot.getVision().frontLL::getTagTA, null);
-            // builder.addDoubleProperty(
-            //        "Front-Rotation", Robot.getVision().frontLL::getTagRotationDegrees, null);
-            // builder.addDoubleProperty(
-            //        "Front-ClosestTag", Robot.getVision().frontLL::getClosestTagID, null);
         }
     }
 
@@ -177,7 +180,32 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
+    
+    // Choose the best equivalent in degrees that lies inside the configured soft-limits.
+    // If no equivalent exists in the soft-limit window (soft window < 360°), clamp to nearest endpoint.
+    private double wrapDegreesToSoftLimits(double targetDegrees) {
 
+        double minDeg = config.getMinRotations() * 360.0;
+        double maxDeg = config.getMaxRotations() * 360.0;
+        double currentDeg = getPositionDegrees();
+
+        // Solve for integer n such that minDeg <= targetDegrees + 360*n <= maxDeg
+        int nMin = (int) Math.ceil((minDeg - targetDegrees) / 360.0);
+        int nMax = (int) Math.floor((maxDeg - targetDegrees) / 360.0);
+
+        if (nMin <= nMax) {
+            // At least one equivalent fits in soft limits.
+            int nClosest = (int) Math.round((currentDeg - targetDegrees) / 360.0);
+            int n = Math.max(nMin, Math.min(nClosest, nMax)); // clamp the closest candidate to allowed range
+            return targetDegrees + n * 360.0;
+        } else {
+            // No equivalent fits in soft limits -> clamp to nearest soft limit endpoint.
+            double toMin = Math.abs(currentDeg - minDeg);
+            double toMax = Math.abs(currentDeg - maxDeg);
+            return (toMin < toMax) ? minDeg : maxDeg;
+        }
+    }
+    
     /** Holds the position of the Turret. */
     public Command runHoldTurret() {
         return new Command() {
@@ -223,73 +251,7 @@ public class Turret extends Mechanism {
 
     @Override
     public Command moveToDegrees(DoubleSupplier degrees) {
-        return super.moveToDegrees(degrees).withName(getName() + ".runPoseDegrees");
-    }
-
-    private void setDegrees(DoubleSupplier degrees) {
-        setMMPositionFoc(() -> degreesToRotations(degrees));
-    }
-
-    public Command move(DoubleSupplier targetDegrees, boolean clockwise) {
-        return run(
-                () -> {
-                    double currentDegrees = getPositionDegrees();
-                    // Normalize targetDegrees to be within 0 to 360
-                    double target = (targetDegrees.getAsDouble() % 360);
-                    // Normalize currentDegrees to be within 0 to 360
-                    double currentMod = (currentDegrees % 360);
-                    if (currentMod < 0) {
-                        currentMod += 360;
-                    }
-
-                    double output = currentDegrees;
-
-                    if (Math.abs(currentMod - target)
-                            < config.getTurretTolerance()) { // check if the difference is within
-                        // tolerance
-                        if (currentMod - target > 0) {
-                            output = currentDegrees - (currentMod - target);
-                        } else {
-                            output = currentDegrees + (target - currentMod);
-                        }
-                    } else if (Math.abs(currentMod - target) > 360 - config.getTurretTolerance()
-                            && Math.abs(Math.abs(currentMod - target) - 360)
-                                    < config.getTurretTolerance()) { // check if the difference is
-                        // within tolerance and currentMod or target is near 0 and 360
-                        if (currentMod < target) {
-                            if (currentMod - (target - 360) > 0) {
-                                output = currentDegrees + (currentMod - (target - 360));
-                            } else {
-                                output = currentDegrees - (currentMod - (target - 360));
-                            }
-                        } else {
-                            if ((currentMod - 360) - target > 0) {
-                                output = currentDegrees + ((currentMod - 360) - target);
-                            } else {
-                                output = currentDegrees - ((currentMod - 360) - target);
-                            }
-                        }
-                    } else {
-                        if (clockwise) {
-                            // Calculate the closest clockwise position
-                            if (currentMod > target) {
-                                output = currentDegrees - (currentMod - target);
-                            } else if (currentMod < target) {
-                                output = currentDegrees - (360 + currentMod - target);
-                            }
-                        } else {
-                            // Calculate the closest counterclockwise position
-                            if (currentMod < target) {
-                                output = currentDegrees + (target - currentMod);
-                            } else if (currentMod > target) {
-                                output = currentDegrees + (360 + target - currentMod);
-                            }
-                        }
-                    }
-
-                    final double out = output;
-                    setDegrees(() -> out);
-                });
+        return super.moveToDegrees(() -> wrapDegreesToSoftLimits(degrees.getAsDouble())).withName(getName() + ".runPoseDegrees");
     }
 
     @Override
@@ -305,7 +267,7 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     private void simulationInit() {
         if (isAttached()) {
-        //     sim = new TurretSim(motor.getSimState(), RobotSim.leftView, this);
+            sim = new TurretSim(RobotSim.topView, motor.getSimState());
 
             // m_CANcoder.setPosition(0);
         }
@@ -314,8 +276,24 @@ public class Turret extends Mechanism {
     @Override
     public void simulationPeriodic() {
         if (isAttached()) {
-            // sim.simulationPeriodic();
+            sim.simulationPeriodic();
             // m_CANcoder.getSimState().setRawPosition(sim.getAngleRads() / 0.202);
+        }
+    }
+    class TurretSim extends ArmSim {
+        public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
+            super(
+                    new ArmConfig(
+                                    config.intakeX,
+                                    config.intakeY,
+                                    config.simRatio,
+                                    config.length,
+                                    -720,
+                                    720,
+                                    90),
+                    mech,
+                    turretMotorSim,
+                    config.getName());
         }
     }
 }
