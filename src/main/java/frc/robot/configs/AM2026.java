@@ -12,7 +12,7 @@ public class AM2026 extends Config {
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(false);
+        //fuelIntake.setAttached(false);
         turret.setAttached(false);
         intakeExtension.setAttached(false);
     }
