@@ -94,7 +94,7 @@ public class Robot extends SpectrumRobot {
             /* Set up the config */
             config =
                     switch (Rio.id) {
-                        default -> new FM2026();
+                        default -> new AM2026();
                     };
 
             /*

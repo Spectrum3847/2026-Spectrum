@@ -8,11 +8,20 @@ import frc.spectrumLib.Telemetry;
 public class FuelIntakeStates {
     private static FuelIntake intake = Robot.getFuelIntake();
 
+    public static Command intakeFuelComm() {
+        return
+            intake.runIntakeOut(() -> -1)
+            .withName("Intake.intakeFuel");
+    }
+
     public static void intakeFuel() {
-        scheduleIfNotRunning(
-            intake.runDutyCycleOut(() -> 1)
-            .withName("Intake.intakeFuel")
-        );
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -1)
+        .withName("Intake.intakeFuel"));
+    }
+
+    public static Command stopIntake() {
+        return intake.runIntakeOut(() -> 0)
+            .withName("Intake.stopIntake");
     }
 
     // Log Command

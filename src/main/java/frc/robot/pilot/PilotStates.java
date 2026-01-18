@@ -25,8 +25,8 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        pilot.AButton.whileTrue(new InstantCommand(() -> FuelIntakeStates.intakeFuel()));
-        pilot.BButton.whileTrue(new InstantCommand(() -> TurretStates.holdRotation()));
+        pilot.AButton.whileTrue(FuelIntakeStates.intakeFuelComm());
+        pilot.BButton.whileTrue(FuelIntakeStates.stopIntake());
         pilot.XButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullExtend()));
         pilot.YButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
         
