@@ -22,6 +22,10 @@ import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
+import frc.robot.indexerBackward.IndexerBackward;
+import frc.robot.indexerBackward.IndexerBackward.IndexerBackwardConfig;
+import frc.robot.indexerForward.IndexerForward;
+import frc.robot.indexerForward.IndexerForward.IndexerForwardConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.leds.LedFull;
@@ -68,12 +72,16 @@ public class Robot extends SpectrumRobot {
         public TurretConfig turret = new TurretConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public VisionConfig vision = new VisionConfig();
+        public IndexerBackwardConfig indexerBackward = new IndexerBackwardConfig();
+        public IndexerForwardConfig indexerForward = new IndexerForwardConfig();
     }
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
     @Getter private static Turret turret;
     @Getter private static IntakeExtension intakeExtension;
+    @Getter private static IndexerBackward indexerBackward;
+    @Getter private static IndexerForward indexerForward;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -117,6 +125,10 @@ public class Robot extends SpectrumRobot {
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake();
+            Timer.delay(canInitDelay);
+            indexerBackward = new IndexerBackward(config.indexerBackward);
+            Timer.delay(canInitDelay);
+            indexerForward = new IndexerForward(config.indexerForward);
             auton = new Auton();
             coordinator = new Coordinator();
 

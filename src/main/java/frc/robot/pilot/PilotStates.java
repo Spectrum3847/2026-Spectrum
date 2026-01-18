@@ -5,6 +5,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.Robot;
 import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.indexerBackward.IndexerBackwardStates;
+import frc.robot.indexerForward.IndexerForwardStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.turret.TurretStates;
 import frc.robot.vision.VisionStates;
@@ -27,7 +29,7 @@ public class PilotStates {
 
         pilot.AButton.whileTrue(FuelIntakeStates.intakeFuelComm());
         pilot.BButton.whileTrue(FuelIntakeStates.stopIntake());
-        pilot.XButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullExtend()));
+        pilot.XButton.whileTrue(IndexerForwardStates.spinMaxComm(), IndexerBackwardStates.spinBackComm());
         pilot.YButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
         
         // Rumble whenever we reorient
