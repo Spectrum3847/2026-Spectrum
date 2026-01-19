@@ -25,7 +25,7 @@ public class IndexerBackward extends Mechanism {
         // Intake Voltages and Current
         @Getter @Setter private double IndexerBackwardVoltage = 9.0;
         @Getter @Setter private double IndexerBackwardSupplyCurrent = 30.0;
-        @Getter @Setter private double IndexerBackwardTorqueCurrent = 200.0;
+        @Getter @Setter private double IndexerBackwardTorqueCurrent = 35;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;

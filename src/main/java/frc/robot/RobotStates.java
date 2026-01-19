@@ -26,6 +26,8 @@ public class RobotStates {
     public static void setupStates() {
         pilot.AButton.onTrue(applyState(State.INTAKING_WITH_INDEXER));
         pilot.AButton.onFalse(applyState(State.IDLE));
+        pilot.BButton.onTrue(applyState(State.LAUNCHING_WITH_INDEXER));
+        pilot.BButton.onFalse(applyState(State.IDLE));
     }
 
     private RobotStates() {

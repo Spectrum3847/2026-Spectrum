@@ -22,7 +22,7 @@ public class IndexerForward extends Mechanism {
         // Intake Voltages and Current
         @Getter @Setter private double IndexerForwardVoltage = 9.0;
         @Getter @Setter private double IndexerForwardCurrent = 30.0;
-        @Getter @Setter private double IndexerForwardTorqueCurrent = -200.0;
+        @Getter @Setter private double IndexerForwardTorqueCurrent = -35;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;

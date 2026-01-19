@@ -2,6 +2,7 @@ package frc.robot.launcher;
 
 import java.util.function.DoubleSupplier;
 
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
@@ -10,6 +11,7 @@ import frc.spectrumLib.Telemetry;
 public class LauncherStates {
     private static Launcher launcher = Robot.getLauncher();
     private static Launcher.LauncherConfig config = Robot.getConfig().launcher;
+    public static final InterpolatingDoubleTreeMap DISTANCE_MAP = new InterpolatingDoubleTreeMap();
 
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
@@ -26,6 +28,11 @@ public class LauncherStates {
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(launcher.ensureBrakeMode());
+    }
+
+    public static void launch() {
+        scheduleIfNotRunning(launcher.runVelocityTcFocRpm(config::getAMshooterRPM)
+                .withName("Launcher.launch"));
     }
 
     // Log Command

@@ -15,7 +15,7 @@ public class Coordinator {
     public void applyRobotState(State state) {
         switch (state) {
             case IDLE -> {
-                FuelIntakeStates.stopMotor();
+                FuelIntakeStates.stop();
                 IndexerBackwardStates.neutral();
                 IndexerForwardStates.neutral();
                 IntakeExtensionStates.fullExtend();
@@ -37,7 +37,7 @@ public class Coordinator {
                 IndexerBackwardStates.spinBack();
                 IndexerForwardStates.spinMax();
                 // IntakeExtensionStates.agitateFuel();
-                // LauncherStates.prepVelocity();
+                LauncherStates.launch();
                 TowerIndexerStates.spinMax();
                 TurretStates.neutral();
             }

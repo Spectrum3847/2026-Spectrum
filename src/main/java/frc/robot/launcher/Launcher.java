@@ -12,7 +12,10 @@ public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        /* Intake config values */
+        /* Launcher Velocities (RPM) */
+        @Getter private double AMshooterRPM = 3000;
+
+        /* Launcher config values */
         @Getter private double currentLimit = 44;
         @Getter private double torqueCurrentLimit = 200;
         @Getter private double velocityKp = 12;
@@ -34,17 +37,12 @@ public class Launcher extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
     }
 
-    private LauncherConfig config;
-    // private IndexerBackwardSim sim;
-
     public Launcher(LauncherConfig config) {
         super(config);
-        this.config = config;
-
         // simulationInit();
         telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");

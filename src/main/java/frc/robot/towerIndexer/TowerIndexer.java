@@ -22,10 +22,8 @@ public class TowerIndexer extends Mechanism {
 
     public static class TowerIndexerConfig extends Config {
 
-        // Intake Voltages and Current
-        @Getter @Setter private double TowerIndexerVoltage = 9.0;
-        @Getter @Setter private double TowerIndexerCurrent = 30.0;
-        @Getter @Setter private double TowerIndexerTorqueCurrent = -200.0;
+        /* TowerIndexer Velocities (RPM) */
+        @Getter @Setter private double AMTowerIndexerVelocity = 4250;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -49,7 +47,7 @@ public class TowerIndexer extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
     }
 

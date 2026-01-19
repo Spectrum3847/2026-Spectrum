@@ -21,7 +21,7 @@ public class TowerIndexerStates {
     }
 
     public static void spinMax() {
-        scheduleIfNotRunning(intake.runTorqueFOC(config::getTowerIndexerTorqueCurrent)
+        scheduleIfNotRunning(intake.runVelocity(config::getAMTowerIndexerVelocity)
                 .withName("TowerIndexer.spinMax"));
     }
 

@@ -104,4 +104,8 @@ public class FuelIntake extends SubsystemBase{
         return run(() -> motor.set(dutyCycleSupplier.getAsDouble()))
             .withName("FuelIntake.runIntakeOut");
     }
+
+    public Command stopMotor() {
+        return run(() -> motor.stopMotor());
+    }
 }
