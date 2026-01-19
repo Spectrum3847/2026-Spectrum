@@ -1,7 +1,10 @@
 package frc.robot;
 
 public enum State {
-    IDLE;
+    IDLE,
+    
+    INTAKING_WITH_INDEXER,
+    LAUNCHING_WITH_INDEXER;
 
     private State() {}
 

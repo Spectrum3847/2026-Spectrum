@@ -15,13 +15,12 @@ public class FuelIntakeStates {
     }
 
     public static void intakeFuel() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -1)
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.5)
         .withName("Intake.intakeFuel"));
     }
 
-    public static Command stopIntake() {
-        return intake.runIntakeOut(() -> 0)
-            .withName("Intake.stopIntake");
+    public static void stopMotor() {
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> 0));
     }
 
     // Log Command

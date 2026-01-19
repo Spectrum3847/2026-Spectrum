@@ -1,28 +1,16 @@
-package frc.robot.indexerForward;
+package frc.robot.launcher;
 
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;
-import lombok.Setter;
 
-public class IndexerForward extends Mechanism {
+public class Launcher extends Mechanism {
 
-    public static class IndexerForwardConfig extends Config {
-
-        // Intake Voltages and Current
-        @Getter @Setter private double IndexerForwardVoltage = 9.0;
-        @Getter @Setter private double IndexerForwardCurrent = 30.0;
-        @Getter @Setter private double IndexerForwardTorqueCurrent = -200.0;
+    public static class LauncherConfig extends Config {
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -32,12 +20,12 @@ public class IndexerForward extends Mechanism {
         @Getter private double velocityKs = 14;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(4);
-        @Getter private double intakeY = Units.inchesToMeters(8);
-        @Getter private double wheelDiameter = 4;
+        // @Getter private double intakeX = Units.inchesToMeters(4);
+        // @Getter private double intakeY = Units.inchesToMeters(4);
+        // @Getter private double wheelDiameter = 4;
 
-        public IndexerForwardConfig() {
-            super("IndexerForward", 47, Rio.RIO_CANBUS);
+        public LauncherConfig() {
+            super("Launcher", 49, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -50,14 +38,14 @@ public class IndexerForward extends Mechanism {
         }
     }
 
-    private IndexerForwardConfig config;
-    private IndexerFowardSim sim;
+    private LauncherConfig config;
+    // private IndexerBackwardSim sim;
 
-    public IndexerForward(IndexerForwardConfig config) {
+    public Launcher(LauncherConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
+        // simulationInit();
         telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -72,7 +60,7 @@ public class IndexerForward extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        IndexerForwardStates.setupDefaultCommand();
+        LauncherStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -120,33 +108,35 @@ public class IndexerForward extends Mechanism {
     }
 
     public Command cycleOut(DoubleSupplier voltage) {
-        return runVoltage(voltage);
+        return runPercentage(voltage);
     }
 
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            sim = new IndexerFowardSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         sim = new IndexerBackwardSim(RobotSim.leftView, motor.getSimState());
+    //     }
+    // }
 
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class IndexerFowardSim extends RollerSim {
-        public IndexerFowardSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class IndexerBackwardSim extends RollerSim {
+    //     public IndexerBackwardSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }

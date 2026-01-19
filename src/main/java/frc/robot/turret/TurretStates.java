@@ -56,7 +56,9 @@ public class TurretStates {
                                 .withName("Turret.holdRotation")));
     }
 
-
+    public static void neutral() {
+        scheduleIfNotRunning(log(turret.runVoltage(() -> 0)));
+    }
 
     // --------------------------------------------------------
     

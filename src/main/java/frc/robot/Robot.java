@@ -28,6 +28,8 @@ import frc.robot.indexerForward.IndexerForward;
 import frc.robot.indexerForward.IndexerForward.IndexerForwardConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
+import frc.robot.launcher.Launcher;
+import frc.robot.launcher.Launcher.LauncherConfig;
 import frc.robot.leds.LedFull;
 import frc.robot.leds.LedFull.LedFullConfig;
 import frc.robot.operator.Operator;
@@ -77,6 +79,7 @@ public class Robot extends SpectrumRobot {
         public IndexerBackwardConfig indexerBackward = new IndexerBackwardConfig();
         public IndexerForwardConfig indexerForward = new IndexerForwardConfig();
         public TowerIndexerConfig towerIndexer = new TowerIndexerConfig();
+        public LauncherConfig launcher = new LauncherConfig();
     }
 
     @Getter private static Swerve swerve;
@@ -86,6 +89,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static IndexerBackward indexerBackward;
     @Getter private static IndexerForward indexerForward;
     @Getter private static TowerIndexer towerIndexer;
+    @Getter private static Launcher launcher;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -135,6 +139,8 @@ public class Robot extends SpectrumRobot {
             indexerForward = new IndexerForward(config.indexerForward);
             Timer.delay(canInitDelay);
             towerIndexer = new TowerIndexer(config.towerIndexer);
+            Timer.delay(canInitDelay);
+            launcher = new Launcher(config.launcher);
             auton = new Auton();
             coordinator = new Coordinator();
 
