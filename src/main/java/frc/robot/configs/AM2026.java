@@ -15,8 +15,8 @@ public class AM2026 extends Config {
         //fuelIntake.setAttached(false);
         turret.setAttached(false);
         intakeExtension.setAttached(false);
-        indexerBackward.setAttached(true);
-        indexerForward.setAttached(true);
+        indexerBackward.setAttached(false);
+        indexerForward.setAttached(false);
         towerIndexer.setAttached(true);
     }
 }
