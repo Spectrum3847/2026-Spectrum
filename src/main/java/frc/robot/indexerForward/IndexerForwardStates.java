@@ -21,12 +21,12 @@ public class IndexerForwardStates {
     }
 
     public static void spinMax() {
-        scheduleIfNotRunning(intake.runTorqueFOC(config::getTorqueCurrentLimit)
+        scheduleIfNotRunning(intake.runTorqueFOC(config::getIndexerForwardTorqueCurrent)
                 .withName("IndexerForward.spinMax"));
     }
 
     public static Command spinMaxComm() {
-        return intake.runTorqueFOC(config::getTorqueCurrentLimit)
+        return intake.cycleOut(() -> 6)
                 .withName("IndexerForward.spinMaxComm");
     }
 

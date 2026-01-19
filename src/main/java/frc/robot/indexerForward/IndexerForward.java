@@ -14,6 +14,8 @@ import frc.spectrumLib.sim.RollerSim;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.compound.Diff_DutyCycleOut_Open;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import lombok.Getter;
@@ -26,7 +28,7 @@ public class IndexerForward extends Mechanism {
         // Intake Voltages and Current
         @Getter @Setter private double IndexerForwardVoltage = 9.0;
         @Getter @Setter private double IndexerForwardCurrent = 30.0;
-        @Getter @Setter private double IndexerForwardTorqueCurrent = 85.0;
+        @Getter @Setter private double IndexerForwardTorqueCurrent = -200.0;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -41,7 +43,7 @@ public class IndexerForward extends Mechanism {
         @Getter private double wheelDiameter = 4;
 
         public IndexerForwardConfig() {
-            super("IndexerForward", 47, Rio.CANIVORE);
+            super("IndexerForward", 47, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -121,6 +123,10 @@ public class IndexerForward extends Mechanism {
 
     public Command stopMotor() {
         return run(() -> stop());
+    }
+
+    public Command cycleOut(DoubleSupplier voltage) {
+        return runVoltage(voltage);
     }
 
     // --------------------------------------------------------------------------------

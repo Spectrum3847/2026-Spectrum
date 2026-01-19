@@ -8,6 +8,7 @@ import frc.robot.fuelIntake.FuelIntakeStates;
 import frc.robot.indexerBackward.IndexerBackwardStates;
 import frc.robot.indexerForward.IndexerForwardStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
+import frc.robot.towerIndexer.TowerIndexerStates;
 import frc.robot.turret.TurretStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
@@ -29,7 +30,7 @@ public class PilotStates {
 
         pilot.AButton.whileTrue(FuelIntakeStates.intakeFuelComm());
         pilot.BButton.whileTrue(FuelIntakeStates.stopIntake());
-        pilot.XButton.whileTrue(IndexerForwardStates.spinMaxComm(), IndexerBackwardStates.spinBackComm());
+        pilot.XButton.whileTrue(IndexerForwardStates.spinMaxComm(), IndexerBackwardStates.spinBackComm(), TowerIndexerStates.spinMaxComm());
         pilot.YButton.whileTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
         
         // Rumble whenever we reorient

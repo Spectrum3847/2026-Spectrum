@@ -35,7 +35,7 @@ public class SpectrumCANcoder {
         this.feedbackSource = feedbackSource;
 
         if (config.isAttached()) {
-            canCoder = new CANcoder(CANcoderID, Rio.CANIVORE);
+            canCoder = new CANcoder(CANcoderID, Rio.RIO_CANBUS);
             CANcoderConfiguration canCoderConfigs = new CANcoderConfiguration();
             canCoderConfigs.MagnetSensor.MagnetOffset = config.getOffset();
             canCoderConfigs.MagnetSensor.SensorDirection =

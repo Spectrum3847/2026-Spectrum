@@ -1,4 +1,4 @@
-package frc.robot.indexerBackward;
+package frc.robot.towerIndexer;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -19,14 +19,14 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;
 import lombok.Setter;
 
-public class IndexerBackward extends Mechanism {
+public class TowerIndexer extends Mechanism {
 
-    public static class IndexerBackwardConfig extends Config {
+    public static class TowerIndexerConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double IndexerBackwardVoltage = 9.0;
-        @Getter @Setter private double IndexerBackwardSupplyCurrent = 30.0;
-        @Getter @Setter private double IndexerBackwardTorqueCurrent = 200.0;
+        @Getter @Setter private double TowerIndexerVoltage = 9.0;
+        @Getter @Setter private double TowerIndexerCurrent = 30.0;
+        @Getter @Setter private double TowerIndexerTorqueCurrent = -200.0;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -37,11 +37,11 @@ public class IndexerBackward extends Mechanism {
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(4);
-        @Getter private double intakeY = Units.inchesToMeters(4);
+        @Getter private double intakeY = Units.inchesToMeters(16);
         @Getter private double wheelDiameter = 4;
 
-        public IndexerBackwardConfig() {
-            super("IndexerBackward", 46, Rio.RIO_CANBUS);
+        public TowerIndexerConfig() {
+            super("TowerIndexer", 48, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -54,10 +54,10 @@ public class IndexerBackward extends Mechanism {
         }
     }
 
-    private IndexerBackwardConfig config;
-    private IndexerBackwardSim sim;
+    private TowerIndexerConfig config;
+    private TowerIndexerSim sim;
 
-    public IndexerBackward(IndexerBackwardConfig config) {
+    public TowerIndexer(TowerIndexerConfig config) {
         super(config);
         this.config = config;
 
@@ -76,7 +76,7 @@ public class IndexerBackward extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        IndexerBackwardStates.setupDefaultCommand();
+        TowerIndexerStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -132,12 +132,10 @@ public class IndexerBackward extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            sim = new IndexerBackwardSim(RobotSim.leftView, motor.getSimState());
+            sim = new TowerIndexerSim(RobotSim.leftView, motor.getSimState());
         }
     }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
     @Override
     public void simulationPeriodic() {
         if (isAttached()) {
@@ -145,8 +143,8 @@ public class IndexerBackward extends Mechanism {
         }
     }
 
-    class IndexerBackwardSim extends RollerSim {
-        public IndexerBackwardSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    class TowerIndexerSim extends RollerSim {
+        public TowerIndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getIntakeX(), config.getIntakeY()),

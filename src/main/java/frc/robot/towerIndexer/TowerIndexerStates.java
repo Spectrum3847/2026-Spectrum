@@ -1,4 +1,4 @@
-package frc.robot.indexerBackward;
+package frc.robot.towerIndexer;
 
 import java.util.function.DoubleSupplier;
 
@@ -7,27 +7,27 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
-public class IndexerBackwardStates {
-    private static IndexerBackward intake = Robot.getIndexerBackward();
-    private static IndexerBackward.IndexerBackwardConfig config = Robot.getConfig().indexerBackward;
+public class TowerIndexerStates {
+    private static TowerIndexer intake = Robot.getTowerIndexer();
+    private static TowerIndexer.TowerIndexerConfig config = Robot.getConfig().towerIndexer;
 
     public static void setupDefaultCommand() {
         intake.setDefaultCommand(
-                intake.stopMotor().ignoringDisable(true).withName("IndexerBackward.default"));
+                intake.stopMotor().ignoringDisable(true).withName("TowerIndexer.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(intake.runVoltage(() -> 0).withName("IndexerBackward.neutral"));
+        scheduleIfNotRunning(intake.runVoltage(() -> 0).withName("TowerIndexer.neutral"));
     }
 
-    public static void spinBack() {
-        scheduleIfNotRunning(intake.runTorqueFOC(config::getIndexerBackwardTorqueCurrent)
-                .withName("IndexerBackward.spinBack"));
+    public static void spinMax() {
+        scheduleIfNotRunning(intake.runTorqueFOC(config::getTowerIndexerTorqueCurrent)
+                .withName("TowerIndexer.spinMax"));
     }
 
-    public static Command spinBackComm() {
-        return intake.cycleOut(() -> 0.2)
-                .withName("IndexerBackward.spinBackComm");
+    public static Command spinMaxComm() {
+        return intake.cycleOut(() -> -1)
+                .withName("TowerIndexer.spinMaxComm");
     }
 
     public static void coastMode() {
