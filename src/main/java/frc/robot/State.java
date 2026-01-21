@@ -1,5 +1,10 @@
 package frc.robot;
 
+import java.util.Map;
+import java.util.function.BooleanSupplier;
+
+import com.google.common.collect.ImmutableMap;
+
 public enum State {
     IDLE,
 
@@ -20,17 +25,30 @@ public enum State {
     private State() {}
 
     // Define the scoring sequence map, the 2nd state is the next state after the current one
-    // private static final ImmutableMap<State, State> scoreSequence =
+    private static final ImmutableMap<State, State> scoreSequence = 
+        ImmutableMap.ofEntries(
+            Map.entry(AIM_TURRET_WITH_SPINUP, AIM_TURRET_WITH_LAUNCH)
+        );
 
     // ------ STATE ATTRIBUTES ------//
-    
-    // ------------------------------//
 
-    // public State getNextState(State state) {
-    //     return scoreSequence.getOrDefault(state, state);
-    // }
+    public State getNextState(State state) {
+        return scoreSequence.getOrDefault(state, state);
+    }
 
-    // public State getNext() {
-    //     return getNextState(this);
-    // }
+    private static BooleanSupplier isReadyState(State state) {
+        return () ->
+                switch (state) {
+                    case AIM_TURRET_WITH_SPINUP -> true;
+                    default -> false;
+                };
+    }
+
+    public BooleanSupplier isReady() {
+        return isReadyState(this);
+    }
+
+    public State getNext() {
+        return getNextState(this);
+    }
 }
