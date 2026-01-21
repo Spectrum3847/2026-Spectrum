@@ -3,9 +3,7 @@ package frc.spectrumLib.leds;
 import static edu.wpi.first.units.Units.*;
 
 import edu.wpi.first.units.measure.*;
-import edu.wpi.first.wpilibj.AddressableLED;
-import edu.wpi.first.wpilibj.AddressableLEDBuffer;
-import edu.wpi.first.wpilibj.AddressableLEDBufferView;
+import com.ctre.phoenix6.hardware.CANdle;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.LEDPattern.GradientType;
 import edu.wpi.first.wpilibj.LEDReader;
@@ -26,45 +24,25 @@ public class SpectrumLEDs implements SpectrumSubsystem {
 
     // Example Animation List - https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 
+
     public static class Config {
         @Getter private String name;
         @Getter @Setter private boolean attached = true;
-        @Getter @Setter private AddressableLED led;
-        @Getter @Setter private AddressableLEDBuffer buffer;
-        @Getter @Setter private AddressableLEDBufferView view;
-        @Getter @Setter private int startingIndex = 0;
-        @Getter @Setter private int endingIndex = 0;
-        @Getter @Setter private int port = 0;
+        @Getter @Setter private CANdle candle;
+        @Getter @Setter private int port = 0; // CAN ID for the CANdle
         @Getter @Setter private int length;
-        // LED strip density
         @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
 
-        public Config(String name, int length) {
+        public Config(String name, int length, int canId) {
             this.name = name;
             this.length = length;
-            this.startingIndex = 0;
-            this.endingIndex = length - 1;
-        }
-
-        public Config(
-                String name,
-                AddressableLED l,
-                AddressableLEDBuffer lb,
-                int startingIndex,
-                int endingIndex) {
-            this.name = name;
-            this.led = l;
-            this.buffer = lb;
-            this.startingIndex = startingIndex;
-            this.endingIndex = endingIndex;
+            this.candle = new CANdle(canId);
         }
     }
 
     @Getter private Config config;
 
-    @Getter protected final AddressableLED led;
-    @Getter protected final AddressableLEDBuffer ledBuffer;
-    @Getter protected final AddressableLEDBufferView ledView;
+    @Getter protected final CANdle candle;
     private boolean mainView = false;
 
     protected final LEDPattern defaultPattern = blink(Color.kOrange, 1);
@@ -84,23 +62,17 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         this.config = config;
 
         // Must be a PWM header, not MXP or DIO
-        if (config.getLed() == null) {
-            led = new AddressableLED(config.port);
-            // Length is expensive to set, so only set it once, then just update data
-            ledBuffer = new AddressableLEDBuffer(config.length);
-            led.setLength(ledBuffer.getLength());
+        if (config.getCandle() == null) {
+            // Initialize the CANdle with the provided CAN ID
+            candle = new CANdle(config.port);
             mainView = true;
+            
         } else {
-            led = config.getLed();
-            ledBuffer = config.buffer;
+            candle = config.getCandle();
         }
 
-        ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
-
         // Set the data
-        led.setData(ledBuffer);
         setPattern(defaultPattern);
-        led.start();
 
         SpectrumRobot.add(this);
         CommandScheduler.getInstance().registerSubsystem(this);
@@ -125,7 +97,7 @@ public class SpectrumLEDs implements SpectrumSubsystem {
     public Command setPattern(LEDPattern pattern, int priority) {
         return run(() -> {
                     commandPriority = priority;
-                    pattern.applyTo(ledView);
+                    pattern.applyTo(candle);
                 })
                 .ignoringDisable(true)
                 .withName("LEDs.setPattern");
