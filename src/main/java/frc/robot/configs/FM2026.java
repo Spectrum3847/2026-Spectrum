@@ -16,5 +16,6 @@ public class FM2026 extends Config {
         turret.setAttached(true);
         intakeExtension.setAttached(true);
         turretHood.setAttached(true);
+        indexer.setAttached(true);
     }
 }

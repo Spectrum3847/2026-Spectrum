@@ -1,4 +1,4 @@
-package frc.robot.indexerBackward;
+package frc.robot.indexer;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -19,14 +19,14 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;
 import lombok.Setter;
 
-public class IndexerBackward extends Mechanism {
+public class Indexer extends Mechanism {
 
-    public static class IndexerBackwardConfig extends Config {
+    public static class IndexerConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerBackwardVoltage = 9.0;
-        @Getter @Setter private double indexerBackwardCurrent = 30.0;
-        @Getter @Setter private double indexerBackwardTorqueCurrent = 85.0;
+        @Getter @Setter private double indexerVoltage = 9.0;
+        @Getter @Setter private double indexerCurrent = 30.0;
+        @Getter @Setter private double indexerTorqueCurrent = 85.0;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -40,8 +40,8 @@ public class IndexerBackward extends Mechanism {
         @Getter private double intakeY = Units.inchesToMeters(12);
         @Getter private double wheelDiameter = 4;
 
-        public IndexerBackwardConfig() {
-            super("IndexerBackward", 47, Rio.CANIVORE);
+        public IndexerConfig() {
+            super("indexer", 51, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -54,10 +54,10 @@ public class IndexerBackward extends Mechanism {
         }
     }
 
-    private IndexerBackwardConfig config;
-    private indexerBackwardSim sim;
+    private IndexerConfig config;
+    private indexerSim sim;
 
-    public IndexerBackward(IndexerBackwardConfig config) {
+    public Indexer(IndexerConfig config) {
         super(config);
         this.config = config;
 
@@ -74,7 +74,7 @@ public class IndexerBackward extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        IndexerBackwardStates.setupDefaultCommand();
+        IndexerStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -127,7 +127,7 @@ public class IndexerBackward extends Mechanism {
     public void simulationInit() {
         if (isAttached()) {
             // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new indexerBackwardSim(RobotSim.leftView, motor.getSimState());
+            sim = new indexerSim(RobotSim.leftView, motor.getSimState());
         }
     }
 
@@ -140,12 +140,11 @@ public class IndexerBackward extends Mechanism {
         }
     }
 
-    class indexerBackwardSim extends RollerSim {
-        public indexerBackwardSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    class indexerSim extends RollerSim {
+        public indexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY())
-                            .setMount(Robot.getIntakeExtension().getSim()),
+                            .setPosition(config.getIntakeX(), config.getIntakeY()),
                     mech,
                     rollerMotorSim,
                     config.getName());

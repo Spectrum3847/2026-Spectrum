@@ -1,4 +1,4 @@
-package frc.robot.fuelIntake;
+package frc.robot.indexer;
 
 import java.util.function.DoubleSupplier;
 
@@ -7,42 +7,35 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
-public class IndexerBackwardStates {
-    private static IndexerBackward intake = Robot.getFuelIntake();
-    private static FuelIntake.IndexerForward config = Robot.getConfig().fuelIntake;
+public class IndexerStates {
+    private static Indexer indexer = Robot.getIndexer();
+    private static Indexer.IndexerConfig config = Robot.getConfig().indexer;
 
     public static void setupDefaultCommand() {
-        intake.setDefaultCommand(
-                intake.stopMotor().ignoringDisable(true).withName("Intake.default"));
+        indexer.setDefaultCommand(
+                indexer.stopMotor().ignoringDisable(true).withName("Indexer.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(intake.runVoltage(() -> 0).withName("Intake.neutral"));
+        scheduleIfNotRunning(indexer.runVoltage(() -> 0).withName("Indexer.neutral"));
     }
 
-    public static void intakeFuel() {
-        scheduleIfNotRunning(
-            intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
-            .withName("Intake.intakeFuel")
-        );
-    }
-
-    public static Command intakeFuelCommand() {
-        return intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
-            .withName("Intake.intakeFuelCommand");
+    public static void indexMax() {
+        scheduleIfNotRunning(indexer.runTorqueFOC(config::getIndexerTorqueCurrent)
+            .withName("Indexer.feedMax"));
     }
 
     public static void coastMode() {
-        scheduleIfNotRunning(intake.coastMode());
+        scheduleIfNotRunning(indexer.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(intake.ensureBrakeMode());
+        scheduleIfNotRunning(indexer.ensureBrakeMode());
     }
 
     private static Command runVoltageCurrentLimits(
             DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return intake.runVoltageCurrentLimits(voltage, supplyCurrent, torqueCurrent);
+        return indexer.runVoltageCurrentLimits(voltage, supplyCurrent, torqueCurrent);
     }
 
     // Log Command
@@ -60,7 +53,7 @@ public class IndexerBackwardStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(intake);
+        Command current = commandScheduler.requiring(indexer);
 
         // Only schedule if it's not already the same same command
         if (current != command) {

@@ -23,6 +23,8 @@ import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.indexer.Indexer;
+import frc.robot.indexer.Indexer.IndexerConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
@@ -74,6 +76,7 @@ public class Robot extends SpectrumRobot {
         public RotationalPivotConfig turret = new RotationalPivotConfig();
         public TurretHoodConfig turretHood = new TurretHoodConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
+        public IndexerConfig indexer = new IndexerConfig();
         public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
     }
@@ -83,6 +86,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static RotationalPivot turret;
     @Getter private static TurretHood hood;
     @Getter private static IntakeExtension intakeExtension;
+    @Getter private static Indexer indexer;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -131,6 +135,8 @@ public class Robot extends SpectrumRobot {
             hood = new TurretHood(config.turretHood);
             Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
+            Timer.delay(canInitDelay);
+            indexer = new Indexer(config.indexer);
             auton = new Auton();
             coordinator = new Coordinator();
 
