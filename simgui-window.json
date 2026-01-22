@@ -1,7 +1,7 @@
 {
   "Docking": {
     "Data": [
-      "DockNode  ID=0x00000001 Pos=9,835 Size=937,509 Selected=0x48913727"
+      "DockNode  ID=0x00000001 Pos=9,835 Size=937,509 Selected=0x2D9B9756"
     ]
   },
   "MainWindow": {
@@ -18,6 +18,11 @@
     }
   },
   "Table": {
+    "0x542B5671,2": {
+      "Column 0  Width": "327",
+      "Column 1  Width": "429",
+      "RefScale": "16"
+    },
     "0xE56EC1C2,4": {
       "Column 0  Weight": "1.0000",
       "Column 1  Weight": "1.0000",
@@ -59,7 +64,7 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "268,27",
-      "Size": "202,214"
+      "Size": "336,158"
     },
     "###Joysticks": {
       "Collapsed": "0",

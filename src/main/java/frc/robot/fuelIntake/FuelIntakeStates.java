@@ -27,9 +27,8 @@ public class FuelIntakeStates {
         );
     }
 
-    public static Command intakeFuelCommand() {
-        return intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
-            .withName("Intake.intakeFuelCommand");
+    public static void stop() {
+        scheduleIfNotRunning(intake.stopMotor().withName("Intake.stop"));
     }
 
     public static void coastMode() {
