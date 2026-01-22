@@ -10,7 +10,6 @@ import frc.rebuilt.Field;
 import frc.rebuilt.Zones;
 import frc.robot.Robot;
 import frc.robot.pilot.Pilot;
-import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import java.util.function.DoubleSupplier;
 
@@ -19,10 +18,25 @@ public class SwerveStates {
     static SwerveConfig config = Robot.getConfig().swerve;
     static Pilot pilot = Robot.getPilot();
     static Zones zones = new Zones();
+    static Field field = new Field();
+
+    /* Swerve Request Types */
+    private static final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric()
+            .withDeadband(
+                    config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
+            .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    
+    private static final SwerveRequest.RobotCentric robotCentric = new SwerveRequest.RobotCentric()
+            .withDeadband(
+                    config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
+            .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
+    private static final SwerveRequest.SwerveDriveBrake swerveXBreak = new SwerveRequest.SwerveDriveBrake();
 
     static Command pilotSteerCommand =
             log(pilotDrive().withName("SwerveCommands.pilotSteer").ignoringDisable(true));
-    static SpectrumState steeringLock = new SpectrumState("SteeringLock");
 
     protected static void setupDefaultCommand() {
         swerve.setDefaultCommand(pilotSteerCommand);
@@ -41,7 +55,8 @@ public class SwerveStates {
         pilot.rightReorient.onTrue(log(reorientRight()));
     }
 
-    /** Pilot Commands ************************************************************************ */
+    /* ------------------------- Pilot Commands --------------------------------------- */
+
     /** Drive the robot using left stick and control orientation using the right stick. */
     protected static Command pilotDrive() {
         return drive(
@@ -51,34 +66,16 @@ public class SwerveStates {
                 .withName("Swerve.PilotDrive");
     }
 
-    public static Command alignToXDrive(DoubleSupplier xGoalMeters) {
-        return resetXController()
-                .andThen(
-                        drive(
-                                getAlignToX(xGoalMeters),
-                                pilot::getDriveLeftPositive,
-                                pilot::getDriveCCWPositive));
+    /** Drive the robot with its front bumper as the forward direction. */
+    protected static Command fpvDrive() {
+        return fpvDrive(
+                        pilot::getDriveFwdPositive,
+                        pilot::getDriveLeftPositive,
+                        pilot::getDriveCCWPositive)
+                .withName("Swerve.PilotFPVDrive");
     }
 
-    public static Command alignToYDrive(DoubleSupplier yGoalMeters) {
-        return resetYController()
-                .andThen(
-                        drive(
-                                pilot::getDriveFwdPositive,
-                                getAlignToY(yGoalMeters),
-                                pilot::getDriveCCWPositive));
-    }
-
-    public static Command alignXYDrive(DoubleSupplier xGoalMeters, DoubleSupplier yGoalMeters) {
-        return resetXController()
-                .alongWith(resetYController())
-                .andThen(
-                        drive(
-                                getAlignToX(xGoalMeters),
-                                getAlignToY(yGoalMeters),
-                                pilot::getDriveCCWPositive));
-    }
-
+    /** Align the robot to the given x, y, and heading goals. */
     public static Command alignDrive(
             DoubleSupplier xGoalMeters, DoubleSupplier yGoalMeters, DoubleSupplier headingRadians) {
         if (Field.isRed()) {
@@ -102,12 +99,32 @@ public class SwerveStates {
                                 getAlignHeading(headingRadians)));
     }
 
-    private static double getTagTxVelocity() {
-        if (Robot.getVision().tagsInView()) {
-            return swerve.calculateTagCenterAlignController(
-                    () -> 0, () -> Robot.getVision().getTagTX());
-        }
-        return 0;
+    /** Drive the robot with the robot's orientation snapping to the closest cardinal direction. */
+    protected static Command snapSteerDrive() {
+        return drive(
+                pilot::getDriveFwdPositive,
+                pilot::getDriveLeftPositive,
+                pilot::chooseCardinalDirections)
+                .withName("Swerve.PilotStickSteer");
+    }
+
+    /** Drive the robot with the front bumper trying to match the robot's motion. */
+    protected static Command snakeDrive() {
+        return aimDrive(
+                pilot::getDriveFwdPositive,
+                pilot::getDriveLeftPositive,
+                pilot::getPilotStickAngle)
+                .withName("Swerve.SnakeDrive");
+    }
+
+    /** Turn the swerve wheels to an X to prevent the robot from moving */
+    protected static Command xBrake() {
+        return swerve.applyRequest(() -> swerveXBreak).withName("Swerve.Xbrake");
+    }
+
+    protected static Command pilotAimDrive(DoubleSupplier targetDegrees) {
+            return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
+                    .withName("Swerve.PilotAimDrive");
     }
 
     private static DoubleSupplier getAlignToX(DoubleSupplier xGoalMeters) {
@@ -120,35 +137,6 @@ public class SwerveStates {
 
     private static DoubleSupplier getAlignHeading(DoubleSupplier headingRadians) {
         return () -> swerve.calculateRotationController(headingRadians);
-    }
-
-    protected static Command snapSteerDrive() {
-        return drive(
-                        pilot::getDriveFwdPositive,
-                        pilot::getDriveLeftPositive,
-                        pilot::chooseCardinalDirections)
-                .withName("Swerve.PilotStickSteer");
-    }
-
-    protected static Command fpvDrive() {
-        return fpvDrive(
-                        pilot::getDriveFwdPositive,
-                        pilot::getDriveLeftPositive,
-                        pilot::getDriveCCWPositive)
-                .withName("Swerve.PilotFPVDrive");
-    }
-
-    protected static Command pilotAimDrive(DoubleSupplier targetDegrees) {
-        return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
-                .withName("Swerve.PilotAimDrive");
-    }
-
-    protected static Command snakeDrive() {
-        return aimDrive(
-                        pilot::getDriveFwdPositive,
-                        pilot::getDriveLeftPositive,
-                        pilot::getPilotStickAngle)
-                .withName("Swerve.SnakeDrive");
     }
 
     protected static Command headingLockDrive() {
@@ -164,11 +152,6 @@ public class SwerveStates {
     protected static Command lockToClosestFieldAngleDrive() {
         return lockToClosestFieldAngle(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive)
                 .withName("Swerve.PilotLockToFieldAngleDrive");
-    }
-
-    /** Turn the swerve wheels to an X to prevent the robot from moving */
-    protected static Command xBrake() {
-        return swerve.applyRequest(SwerveRequest.SwerveDriveBrake::new).withName("Swerve.Xbrake");
     }
 
      // **********************   Helper Commands    ****************************
@@ -191,13 +174,6 @@ public class SwerveStates {
                 .withName("SetTargetHeading");
     }
 
-    private static final SwerveRequest.FieldCentric fieldCentricDrive =
-            new SwerveRequest.FieldCentric()
-                    .withDeadband(
-                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-
     // Uses m/s and rad/s
     private static Command drive(
             DoubleSupplier fwdPositive, DoubleSupplier leftPositive, DoubleSupplier ccwPositive) {
@@ -209,9 +185,6 @@ public class SwerveStates {
                                         .withRotationalRate(ccwPositive.getAsDouble()))
                 .withName("Swerve.drive");
     }
-
-    private static final SwerveRequest.RobotCentric robotCentric =
-            new SwerveRequest.RobotCentric().withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     private static Command fpvDrive(
             DoubleSupplier fwdPositive, DoubleSupplier leftPositive, DoubleSupplier ccwPositive) {
