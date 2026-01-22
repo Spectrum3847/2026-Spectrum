@@ -56,7 +56,9 @@ public class RotationalPivotStates {
                                 .withName("Turret.holdRotation")));
     }
 
-
+    public static void neutral() {
+        scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
+    }
 
     // --------------------------------------------------------
     

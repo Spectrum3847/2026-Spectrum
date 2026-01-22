@@ -31,6 +31,10 @@ public class TurretHoodStates {
         log(turretHood.moveToDegrees(config::getMaxRotations)).withName("TurretHood.hoodDown");
     }
 
+    public static void neutral() {
+        scheduleIfNotRunning(turretHood.runVoltage(() -> 0).withName("TurretHood.neutral"));
+    }
+
     // --------------------------------------------------------
     
     // Log Command
