@@ -1,7 +1,5 @@
 package frc.robot.indexer;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
@@ -31,11 +29,6 @@ public class IndexerStates {
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(indexer.ensureBrakeMode());
-    }
-
-    private static Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return indexer.runVoltageCurrentLimits(voltage, supplyCurrent, torqueCurrent);
     }
 
     // Log Command

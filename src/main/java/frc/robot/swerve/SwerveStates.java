@@ -48,6 +48,7 @@ public class SwerveStates {
                 swerve.getDefaultCommand()); 
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
+        pilot.AButton.whileTrue(log(snakeDrive()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));
@@ -86,7 +87,7 @@ public class SwerveStates {
                             drive(
                                     () -> -getAlignToX(xGoalMeters).getAsDouble(),
                                     () -> -getAlignToY(yGoalMeters).getAsDouble(),
-                                    () -> getAlignHeading(headingRadians).getAsDouble()));
+                                    () -> getAlignHeading(headingRadians, true).getAsDouble()));
         }
 
         return resetXController()
@@ -96,7 +97,7 @@ public class SwerveStates {
                         drive(
                                 getAlignToX(xGoalMeters),
                                 getAlignToY(yGoalMeters),
-                                getAlignHeading(headingRadians)));
+                                getAlignHeading(headingRadians, true)));
     }
 
     /** Drive the robot with the robot's orientation snapping to the closest cardinal direction. */
@@ -135,8 +136,8 @@ public class SwerveStates {
         return swerve.calculateYController(yGoalMeters);
     }
 
-    private static DoubleSupplier getAlignHeading(DoubleSupplier headingRadians) {
-        return () -> swerve.calculateRotationController(headingRadians);
+    private static DoubleSupplier getAlignHeading(DoubleSupplier headingRadians, boolean usehold) {
+        return () -> swerve.calculateRotationController(headingRadians, usehold);
     }
 
     protected static Command headingLockDrive() {
@@ -200,7 +201,7 @@ public class SwerveStates {
     protected static Command fpvAimDrive(
             DoubleSupplier velocityX, DoubleSupplier velocityY, DoubleSupplier targetRadians) {
         return resetTurnController()
-                .andThen(fpvDrive(velocityX, velocityY, getAlignHeading(targetRadians)))
+                .andThen(fpvDrive(velocityX, velocityY, getAlignHeading(targetRadians, true)))
                 .withName("Swerve.fpvAimDrive");
     }
 
@@ -211,7 +212,7 @@ public class SwerveStates {
     protected static Command aimDrive(
             DoubleSupplier velocityX, DoubleSupplier velocityY, DoubleSupplier targetRadians) {
         return resetTurnController()
-                .andThen(drive(velocityX, velocityY, getAlignHeading(targetRadians)))
+                .andThen(drive(velocityX, velocityY, getAlignHeading(targetRadians, false)))
                 .withName("Swerve.aimDrive");
     }
 
@@ -265,7 +266,7 @@ public class SwerveStates {
                     && Math.abs(velocityY.getAsDouble()) < 0.5) {
                 return 0;
             } else {
-                return getAlignHeading(heading).getAsDouble();
+                return getAlignHeading(heading, true).getAsDouble();
             }
         };
     }
