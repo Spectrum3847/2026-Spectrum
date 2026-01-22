@@ -35,7 +35,7 @@ public class PilotStates {
                 .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
     }
 
-    public static final Trigger buttonAPress = pilot.buttonA;
+    public static final Trigger buttonAPress = pilot.AButton;
 
     /** Command that can be used to rumble the pilot controller */
     public static Command rumble(double intensity, double durationSeconds) {
