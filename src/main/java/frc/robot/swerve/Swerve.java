@@ -394,8 +394,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return getRobotPose().getRotation().getRadians();
     }
 
-    double calculateRotationController(DoubleSupplier targetRadians) {
-        return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians());
+    double calculateRotationController(DoubleSupplier targetRadians, boolean useHold) {
+        return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians(), useHold);
     }
 
     // --------------------------------------------------------------------------------

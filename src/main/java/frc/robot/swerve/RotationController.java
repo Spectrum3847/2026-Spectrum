@@ -10,6 +10,7 @@ public class RotationController {
     private final PIDController holdController;
     private final SwerveConfig config;
 
+    @SuppressWarnings("unused")
     private double lastOutput = 0.0;
     private final double deadband = 1e-3;
 

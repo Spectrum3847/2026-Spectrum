@@ -232,7 +232,7 @@ public class Robot extends SpectrumRobot {
                                     new InstantCommand(
                                             () -> SmartDashboard.putBoolean("Initialized?", true)))
                             .ignoringDisable(true);
-            autonStartCommand.schedule();
+            CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
         }
 
@@ -285,8 +285,6 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void disabledExit() {
-        // TODO: fix
-        // RobotStates.coastMode.setFalse(); // Ensure motors are in brake mode
         Telemetry.print("### Disabled Exit### ");
     }
 
