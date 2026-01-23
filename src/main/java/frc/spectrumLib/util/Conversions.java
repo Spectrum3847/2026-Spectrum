@@ -2,6 +2,9 @@ package frc.spectrumLib.util;
 
 import java.util.function.DoubleSupplier;
 
+/**
+ * Utility class for unit conversions.
+ */
 public class Conversions {
 
     /**

@@ -58,6 +58,10 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import org.json.simple.parser.ParseException;
 
+/**
+ * The main robot class.
+ * This class is the entry point for the robot code and manages all subsystems and their configurations.
+ */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
     @Getter private static Config config;

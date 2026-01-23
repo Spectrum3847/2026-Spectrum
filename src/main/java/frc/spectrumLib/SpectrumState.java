@@ -11,6 +11,10 @@ import java.util.HashMap;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
+/**
+ * Represents a global or subsystem-specific state that can be used as a Trigger.
+ * Integrates with WPILib's Trigger and Alert systems.
+ */
 public class SpectrumState extends Trigger {
 
     private static final HashMap<String, Boolean> stateConditions = new HashMap<>();
@@ -64,6 +68,12 @@ public class SpectrumState extends Trigger {
                 .withName(name + " state: TrueWhileRunning");
     }
 
+    /**
+     * Create a command that will set the state to true for a given time.
+     *
+     * @param time The time in seconds to set the state to true
+     * @return the command
+     */
     public Command setTrueForTime(DoubleSupplier time) {
         return Commands.runOnce(() -> setState(true))
                 .alongWith(new WaitCommand(time.getAsDouble()))
@@ -72,6 +82,12 @@ public class SpectrumState extends Trigger {
                 .withName(name + " state: SetTrueForTime->" + time.getAsDouble());
     }
 
+    /**
+     * Create a command that will set the state to false for a given time.
+     *
+     * @param time The time in seconds to set the state to false
+     * @return the command
+     */
     public Command setFalseForTime(DoubleSupplier time) {
         return Commands.runOnce(() -> setState(false))
                 .alongWith(new WaitCommand(time.getAsDouble()))
@@ -80,6 +96,13 @@ public class SpectrumState extends Trigger {
                 .withName(name + " state: SetFalseForTime->" + time.getAsDouble());
     }
 
+    /**
+     * Create a command that will set the state to true for a given time, or until a cancel condition is met.
+     *
+     * @param time The time in seconds to set the state to true
+     * @param cancelCondition The condition that will cancel the timer and set the state to false
+     * @return the command
+     */
     public Command setTrueForTimeWithCancel(DoubleSupplier time, Trigger cancelCondition) {
         return Commands.runOnce(() -> setState(true))
                 .alongWith(new WaitCommand(time.getAsDouble()).onlyWhile(cancelCondition.not()))

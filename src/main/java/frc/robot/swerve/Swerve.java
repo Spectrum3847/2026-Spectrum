@@ -43,11 +43,10 @@ import java.util.function.Supplier;
 import lombok.Getter;
 
 /**
- * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
- * in command-based projects easily.
+ * The Swerve Drivetrain subsystem.
+ * Uses CTRE Phoenix 6 Swerve API.
  */
-public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
-        implements SpectrumSubsystem, NTSendable {
+public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements SpectrumSubsystem, NTSendable {
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
     private double lastSimTime;

@@ -7,6 +7,10 @@ import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
+/**
+ * Manages the high-level robot states.
+ * This class coordinates multiple subsystems based on the current robot state.
+ */
 public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
     private static final Pilot pilot = Robot.getPilot();
