@@ -14,5 +14,8 @@ public class FM2026 extends Config {
         operator.setAttached(true);
         fuelIntake.setAttached(true);
         turret.setAttached(true);
+        intakeExtension.setAttached(true);
+        turretHood.setAttached(true);
+        indexer.setAttached(true);
     }
 }

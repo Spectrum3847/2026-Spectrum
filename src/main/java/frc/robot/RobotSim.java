@@ -8,15 +8,16 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import frc.spectrumLib.sim.Circle;
+import lombok.Getter;
 
 // General Sim principles
 // Always move the root/origin to change it's display position
 // Looking at the robot from the left view (right side of the robot)
 public class RobotSim {
-    public static final double topViewHeight = 150;
-    public static final double topViewWidth = 150;
-    public static final double leftViewHeight = 75;
-    public static final double leftViewWidth = 75;
+    @Getter public static final double topViewHeight = 150;
+    @Getter public static final double topViewWidth = 150;
+    @Getter public static final double leftViewHeight = 75;
+    @Getter public static final double leftViewWidth = 75;
 
     public static final Translation2d origin =
             new Translation2d(0.0, 0.0);
