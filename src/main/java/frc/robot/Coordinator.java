@@ -9,7 +9,8 @@ import frc.robot.turretRotationalPivot.RotationalPivotStates;
 
 public class Coordinator {
 
-    public void update() {}
+    public void update() {
+    }
 
     public void applyRobotState(State state) {
         switch (state) {
@@ -29,17 +30,21 @@ public class Coordinator {
                 TurretHoodStates.neutral();
                 RotationalPivotStates.neutral();
             }
-            case AIM_TURRET_WITH_SPINUP -> {
-
+            case TURRET_TRACK_WITH_SPINUP -> {
+                FuelIntakeStates.stop();
+                IndexerStates.neutral();
+                IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtHub();
+                TurretHoodStates.aimAtHub();
+                RotationalPivotStates.aimAtHub();
             }
-            case AIM_TURRET_WITH_LAUNCH -> {
-
-            }
-            case FIX_TURRET_WITH_SPINUP -> {
-
-            }
-            case FIX_TURRET_WITH_LAUNCH -> {
-
+            case TURRET_TRACK_WITH_LAUNCH -> {
+                FuelIntakeStates.stop();
+                IndexerStates.indexMax();
+                IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtHub();
+                TurretHoodStates.aimAtHub();
+                RotationalPivotStates.aimAtHub();
             }
             case L1_CLIMB_PREP -> {
 

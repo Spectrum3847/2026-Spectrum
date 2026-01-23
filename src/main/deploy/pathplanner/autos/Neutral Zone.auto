@@ -15,18 +15,6 @@
           "data": {
             "pathName": "Neutral Zone 2"
           }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Neutral Zone 3"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Neutral Zone 4"
-          }
         }
       ]
     }

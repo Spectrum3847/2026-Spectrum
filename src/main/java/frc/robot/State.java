@@ -10,25 +10,22 @@ public enum State {
 
     INTAKE_FUEL,
 
-    AIM_TURRET_WITH_SPINUP,
-    AIM_TURRET_WITH_LAUNCH,
-
-    FIX_TURRET_WITH_SPINUP,
-    FIX_TURRET_WITH_LAUNCH,
+    TURRET_TRACK_WITH_SPINUP,
+    TURRET_TRACK_WITH_LAUNCH,
 
     L1_CLIMB_PREP,
     L1_CLIMB_EXECUTE,
-    
+
     L3_CLIMB_PREP,
     L3_CLIMB_EXECUTE;
 
-    private State() {}
+    private State() {
+    }
 
-    // Define the scoring sequence map, the 2nd state is the next state after the current one
-    private static final ImmutableMap<State, State> scoreSequence = 
-        ImmutableMap.ofEntries(
-            Map.entry(AIM_TURRET_WITH_SPINUP, AIM_TURRET_WITH_LAUNCH)
-        );
+    // Define the scoring sequence map, the 2nd state is the next state after the
+    // current one
+    private static final ImmutableMap<State, State> scoreSequence = ImmutableMap.ofEntries(
+            Map.entry(TURRET_TRACK_WITH_SPINUP, TURRET_TRACK_WITH_LAUNCH));
 
     // ------ STATE ATTRIBUTES ------//
 
@@ -37,11 +34,10 @@ public enum State {
     }
 
     private static BooleanSupplier isReadyState(State state) {
-        return () ->
-                switch (state) {
-                    case AIM_TURRET_WITH_SPINUP -> true;
-                    default -> false;
-                };
+        return () -> switch (state) {
+            case TURRET_TRACK_WITH_SPINUP -> true;
+            default -> false;
+        };
     }
 
     public BooleanSupplier isReady() {

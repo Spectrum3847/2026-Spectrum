@@ -16,44 +16,8 @@ public class RotationalPivotStates {
 
     // -------------------- State Commands --------------------
    
-    public static void moveTo270() {
-        scheduleIfNotRunning(
-                log(
-                        turretRotation
-                                .moveToDegrees(() -> 270)
-                                .withName("Turret.moveTo270")));
-    }
-    
-    public static void moveTo180() {
-        scheduleIfNotRunning(
-                log(
-                        turretRotation
-                                .moveToDegrees(() -> 180)
-                                .withName("Turret.moveTo180")));
-    }
-
-    public static void moveTo90() {
-        scheduleIfNotRunning(
-                log(
-                        turretRotation
-                                .moveToDegrees(() -> 90)
-                                .withName("Turret.moveTo90")));
-    }
-
-    public static void moveTo0() {
-        scheduleIfNotRunning(
-                log(
-                        turretRotation
-                                .moveToDegrees(() -> 0)
-                                .withName("Turret.moveTo0")));
-    }
-
-    public static void holdRotation() {
-        scheduleIfNotRunning(
-                log(
-                        turretRotation
-                                .moveToDegrees(() -> Robot.getSwerve().getRobotPose().getRotation().getDegrees())
-                                .withName("Turret.holdRotation")));
+    public static void aimAtHub() {
+        scheduleIfNotRunning(log(turretRotation.trackTargetCommand()).withName("Turret.aimAtHub"));
     }
 
     public static void neutral() {

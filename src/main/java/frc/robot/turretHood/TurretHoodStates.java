@@ -14,21 +14,9 @@ public class TurretHoodStates {
     }
 
     // -------------------- State Commands --------------------
-   
-    public static void hoodUp() {
-        log(turretHood.moveToDegrees(config::getMinRotations)).withName("TurretHood.hoodUp");
-    }
 
-    public static Command hoodDownComm() {
-        return turretHood.moveToDegrees(config::getMinRotations).withName("TurretHood.hoodUPs");
-    }
-
-    public static Command hoodUpComm() {
-        return turretHood.moveToDegrees(config::getMaxRotations).withName("TurretHood.hoodDOWNs");
-    }
-
-    public static void hoodDown() {
-        log(turretHood.moveToDegrees(config::getMaxRotations)).withName("TurretHood.hoodDown");
+    public static void aimAtHub() {
+        scheduleIfNotRunning(log(turretHood.trackTargetCommand()).withName("TurretHood.aimAtHub"));
     }
 
     public static void neutral() {
