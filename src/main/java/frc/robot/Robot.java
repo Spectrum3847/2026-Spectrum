@@ -297,6 +297,7 @@ public class Robot extends SpectrumRobot {
     /** This method is called once when autonomous starts */
     @Override
     public void autonomousInit() {
+        Telemetry.print("@@@ Auton Init @@@ ");
         try {
             auton.init();
         } catch (Throwable t) {

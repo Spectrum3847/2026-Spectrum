@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "1 Meter"
+            "pathName": "Neutral Zone 1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Neutral Zone 2"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Config Autos",
+  "folder": null,
   "choreoAuto": false
 }
