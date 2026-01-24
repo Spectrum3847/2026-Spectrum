@@ -15,6 +15,18 @@
           "data": {
             "pathName": "Neutral Zone 2"
           }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 5.0
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Neutral Zone End to Climb"
+          }
         }
       ]
     }
