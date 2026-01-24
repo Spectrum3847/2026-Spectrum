@@ -6,11 +6,13 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -164,6 +166,25 @@ public class RotationalPivot extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
+
+    public void aimFieldRelative(Rotation2d fieldAngle) {
+        double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+        double turretDeg = fieldAngle.getDegrees() - robotHeadingDeg;
+        final double wrappedTurretDeg = wrapDegreesToSoftLimits(turretDeg);
+
+        setDynMMPositionFoc(
+                () -> degreesToRotations(() -> wrappedTurretDeg),
+                () -> config.getMmCruiseVelocity(),
+                () -> config.getMmAcceleration(),
+                () -> config.getMmJerk());
+    }
+
+    public Command trackTargetCommand() {
+        return run(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+            aimFieldRelative(params.turretAngle());
+            });
+    }
     
     // Choose the best equivalent in degrees that lies inside the configured soft-limits.
     // If no equivalent exists in the soft-limit window (soft window < 360°), clamp to nearest endpoint.
