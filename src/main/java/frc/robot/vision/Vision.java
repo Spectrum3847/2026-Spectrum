@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
-import frc.rebuilt.offsets.HomeOffsets;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
@@ -67,13 +66,9 @@ public class Vision implements NTSendable, Subsystem {
                 VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
     }
 
-    /** Limelights */
+    /* Limelights */
     @Getter public final Limelight frontLL;
-
-    // private static final HomeOffsets offsets;
-    private static final HomeOffsets offsets = new HomeOffsets();
-
-    public final Limelight backLL;
+    @Getter public final Limelight backLL;
 
     public final Limelight[] allLimelights;
 

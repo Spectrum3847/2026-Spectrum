@@ -2,6 +2,12 @@
 // https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
 package frc.robot.swerve;
 
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Pounds;
+import static edu.wpi.first.units.Units.Seconds;
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
+import org.ironmaple.simulation.SimulatedArena;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -11,11 +17,13 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendable;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -29,6 +37,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -38,8 +47,6 @@ import frc.robot.Robot;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
 import lombok.Getter;
 
 /**
@@ -86,10 +93,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 TalonFX::new,
                 CANcoder::new,
                 config.getDrivetrainConstants(),
-                config.getModules());
+                MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(config.getModules()));
         // this.robotConfig = robotConfig;
         this.config = config;
-        configurePathPlanner();
 
         rotationController = new RotationController(config);
         tagCenterAlignController = new TagCenterAlignController(config);
@@ -100,6 +106,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         if (Utils.isSimulation()) {
             startSimThread();
         }
+
+        configurePathPlanner();
 
         SendableRegistry.add(this, "Swerve");
         SmartDashboard.putData(this);
@@ -121,6 +129,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     public void periodic() {
         posePublisher.set(getRobotPose());
         setPilotPerspective();
+        DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
+        DogLog.log("Drive/OdometryPose", getState().Pose);
+        DogLog.log("Drive/TargetStates", getState().ModuleTargets);
+        DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
+        DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
+        DogLog.log(
+                "FieldSimulation/Fuel",
+                SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
     }
 
     @Override
@@ -181,24 +197,20 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      *     `seedCheckedPose` method with the current pose as an argument.
      */
     public Pose2d getRobotPose() {
-        Pose2d pose = getState().Pose;
-        return keepPoseOnField(pose);
+        // Simulates collision by with field obstacles and boundaries
+        if (this.mapleSimSwerveDrivetrain != null) {
+            return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
+        }
+        return getState().Pose;
     }
 
-    // Keep the robot on the field
-    private Pose2d keepPoseOnField(Pose2d pose) {
-        double halfRobot = config.getRobotLength() / 2;
-        double x = pose.getX();
-        double y = pose.getY();
+    @Override
+    public void resetPose(Pose2d pose) {
+        if (this.mapleSimSwerveDrivetrain != null)
+            mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
+        Timer.delay(0.05); // Wait for simulation to update
+        super.resetPose(pose);
 
-        double newX = Util.limit(x, halfRobot, Field.getFieldLength() - halfRobot);
-        double newY = Util.limit(y, halfRobot, Field.getFieldWidth() - halfRobot);
-
-        if (x != newX || y != newY) {
-            pose = new Pose2d(new Translation2d(newX, newY), pose.getRotation());
-            resetPose(pose);
-        }
-        return pose;
     }
 
     public Trigger inXzone(double minXmeter, double maxXmeter) {
@@ -394,8 +406,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return getRobotPose().getRotation().getRadians();
     }
 
-    double calculateRotationController(DoubleSupplier targetRadians) {
-        return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians());
+    double calculateRotationController(DoubleSupplier targetRadians, boolean useHold) {
+        return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians(), useHold);
     }
 
     // --------------------------------------------------------------------------------
@@ -496,7 +508,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                                 AutoRequest.withSpeeds(
                                         speeds)), // Consumer of ChassisSpeeds to drive the robot
                 new PPHolonomicDriveController(
-                        new PIDConstants(6, 0, 0), new PIDConstants(8, 0, 0), Robot.kDefaultPeriod),
+                        new PIDConstants(3, 0, 0), new PIDConstants(3, 0, 0), Robot.kDefaultPeriod),
                 robotConfig,
                 () ->
                         DriverStation.getAlliance().orElse(Alliance.Blue)
@@ -509,20 +521,27 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    private void startSimThread() {
-        lastSimTime = Utils.getCurrentTimeSeconds();
-
-        /* Run simulation at a faster rate so PID gains behave more reasonably */
-        simNotifier =
-                new Notifier(
-                        () -> {
-                            final double currentTime = Utils.getCurrentTimeSeconds();
-                            double deltaTime = currentTime - lastSimTime;
-                            lastSimTime = currentTime;
-
-                            /* use the measured time delta, get battery voltage from WPILib */
-                            updateSimState(deltaTime, RobotController.getBatteryVoltage());
-                        });
-        simNotifier.startPeriodic(config.getSimLoopPeriod());
-    }
+    private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
+        @SuppressWarnings("unchecked")
+        private void startSimThread() {
+            mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
+            Seconds.of(config.getSimLoopPeriod()),
+            // TODO: modify the following constants according to your robot
+            Pounds.of(115), // robot weight
+            Inches.of(30), // bumper length
+            Inches.of(30), // bumper width
+            DCMotor.getKrakenX60Foc(1), // drive motor type
+            DCMotor.getKrakenX60Foc(1), // steer motor type
+            1.2, // wheel COF
+            getModuleLocations(),
+            getPigeon2(),
+            getModules(),
+            config.getFrontLeft(),
+            config.getFrontRight(),
+            config.getBackLeft(),
+            config.getBackRight());
+    /* Run simulation at a faster rate so PID gains behave more reasonably */
+    simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
+    simNotifier.startPeriodic(config.getSimLoopPeriod());
+}
 }

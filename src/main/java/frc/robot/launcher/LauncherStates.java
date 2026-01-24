@@ -1,7 +1,5 @@
 package frc.robot.launcher;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
@@ -33,9 +31,8 @@ public class LauncherStates {
         scheduleIfNotRunning(intake.ensureBrakeMode());
     }
 
-    private static Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return intake.runVoltageCurrentLimits(voltage, supplyCurrent, torqueCurrent);
+    public static void aimAtHub() {
+        scheduleIfNotRunning(intake.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
     // Log Command

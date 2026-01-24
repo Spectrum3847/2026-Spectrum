@@ -15,25 +15,14 @@ public class RotationalPivotStates {
     }
 
     // -------------------- State Commands --------------------
-
+   
     public static void aimAtHub() {
-        scheduleIfNotRunning(
-                log(turretRotation.trackTargetCommand()).withName("RotationalPivot.aimAtHub"));
+        scheduleIfNotRunning(log(turretRotation.trackTargetCommand()).withName("Turret.aimAtHub"));
     }
 
-    public static void feed() {
-        scheduleIfNotRunning(log(turretRotation.trackTargetCommand()).withName("RotationalPivot.feed"));
+    public static void neutral() {
+        scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
     }
-
-    public static void holdRotation() {
-        scheduleIfNotRunning(
-                log(
-                        turretRotation
-                                .moveToDegrees(() -> Robot.getSwerve().getRobotPose().getRotation().getDegrees())
-                                .withName("Turret.holdRotation")));
-    }
-
-
 
     // --------------------------------------------------------
     

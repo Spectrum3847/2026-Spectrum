@@ -3,19 +3,15 @@ package frc.robot.turretHood;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.Robot;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
-import frc.spectrumLib.SpectrumCANcoder;
-import frc.spectrumLib.SpectrumCANcoderConfig;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
@@ -181,6 +177,13 @@ public class TurretHood extends Mechanism {
                 stop();
             }
         };
+    }
+
+    public Command trackTargetCommand() {
+    return run(() -> {
+        var params = ShotCalculator.getInstance().getParameters();
+        moveToDegrees(() -> params.hoodAngle());
+        });
     }
 
     @Override

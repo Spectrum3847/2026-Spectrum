@@ -56,6 +56,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
+
+import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
 public class Robot extends SpectrumRobot {
@@ -232,7 +234,7 @@ public class Robot extends SpectrumRobot {
                                     new InstantCommand(
                                             () -> SmartDashboard.putBoolean("Initialized?", true)))
                             .ignoringDisable(true);
-            autonStartCommand.schedule();
+            CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
         }
 
@@ -285,8 +287,6 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void disabledExit() {
-        // TODO: fix
-        // RobotStates.coastMode.setFalse(); // Ensure motors are in brake mode
         Telemetry.print("### Disabled Exit### ");
     }
 
@@ -299,6 +299,7 @@ public class Robot extends SpectrumRobot {
     /** This method is called once when autonomous starts */
     @Override
     public void autonomousInit() {
+        Telemetry.print("@@@ Auton Init @@@ ");
         try {
             auton.init();
         } catch (Throwable t) {
@@ -382,7 +383,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
-
+        SimulatedArena.getInstance().resetFieldForAuto();
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
 

@@ -2,12 +2,8 @@ package frc.robot.pilot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.robot.fuelIntake.FuelIntakeStates;
-import frc.robot.launcher.LauncherStates;
-import frc.robot.turretHood.TurretHoodStates;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -25,14 +21,14 @@ public class PilotStates {
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
-
-        pilot.YButton.onTrue(LauncherStates.launchFuel());
         
         // Rumble whenever we reorient
         pilot.upReorient
                 .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)
                 .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
     }
+
+    public static final Trigger buttonAPress = pilot.AButton;
 
     /** Command that can be used to rumble the pilot controller */
     public static Command rumble(double intensity, double durationSeconds) {

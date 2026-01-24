@@ -84,6 +84,9 @@
   "NetworkTables": {
     "transitory": {
       "SmartDashboard": {
+        "Rotation Controller": {
+          "open": true
+        },
         "open": true
       }
     }
