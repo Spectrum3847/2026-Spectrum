@@ -8,7 +8,6 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import java.io.IOException;
 import org.photonvision.PhotonCamera;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
@@ -57,14 +56,8 @@ public class VisionSystem extends SubsystemBase {
         // visionSim.addCamera(cameraSimBack, robotToBackCamera);
 
         // Add AprilTags to vision sim
-        try {
-            AprilTagFieldLayout tagLayout =
-                    AprilTagFieldLayout.loadFromResource(
-                            AprilTagFields.k2025ReefscapeAndyMark.m_resourceFile);
-            visionSim.addAprilTags(tagLayout);
-        } catch (IOException e) {
-            System.err.println(e);
-        }
+        AprilTagFieldLayout tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+        visionSim.addAprilTags(tagLayout);
     }
 
     @Override

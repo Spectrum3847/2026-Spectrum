@@ -23,10 +23,6 @@ import lombok.Setter;
 
 public class SwerveConfig {
 
-    @Getter
-    private final double scoreOffsetFromReef =
-            Units.inchesToMeters(8.0 + 18.5); // Offset + half of robot length with bumpers
-
     @Getter private final double simLoopPeriod = 0.005; // 5 ms
     @Getter @Setter private double robotWidth = Units.inchesToMeters(29.5);
     @Getter @Setter private double robotLength = Units.inchesToMeters(29.5);
@@ -45,9 +41,7 @@ public class SwerveConfig {
 
     // Theoretical free speed (m/s) at 12v applied output;
     @Getter @Setter
-    private LinearVelocity speedAt12Volts =
-            MetersPerSecond.of(
-                    (95 / driveGearRatio) * 2 * Math.PI * wheelRadius.in(Meters)); // 4.28699874;
+    private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
 
     @Getter private double kSdrive = 0.10; // 0.13
     @Getter private double kSsteer = 0.25; // 0.2
@@ -76,9 +70,7 @@ public class SwerveConfig {
 
     @Getter
     private Constraints translationConstraints =
-            new Constraints(
-                    speedAt12Volts.baseUnitMagnitude() * 0.9,
-                    Math.pow(speedAt12Volts.baseUnitMagnitude(), 2));
+            new Constraints(speedAt12Volts.baseUnitMagnitude(), 10);
 
     @Getter private double kPTagCenterController = 1.3;
     @Getter private double kITagCenterController = 0.0;
@@ -104,7 +96,7 @@ public class SwerveConfig {
             new Slot0Configs()
                     .withKP(4000.0)
                     .withKI(0)
-                    .withKD(50.0)
+                    .withKD(50)
                     .withKS(0.15)
                     .withKV(1.5)
                     .withKA(0)
@@ -114,13 +106,7 @@ public class SwerveConfig {
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     @Getter
     private Slot0Configs driveGains =
-            new Slot0Configs()
-                    .withKP(50.0)
-                    .withKI(0)
-                    .withKD(0.0)
-                    .withKS(2.261118000000002)
-                    .withKA(0.0)
-                    .withKV(0.0);
+    new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(1.5).withKV(0.0);
     // new Slot0Configs().withKP(0.1).withKI(0).withKD(0).withKS(0).withKV(0.124).withKA(0);
 
     // The closed-loop output type to use for the steer motors;
@@ -136,7 +122,7 @@ public class SwerveConfig {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    @Getter @Setter private Current slipCurrent = Amps.of(120.0);
+    @Getter @Setter private Current slipCurrent = Amps.of(80);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -160,7 +146,7 @@ public class SwerveConfig {
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    @Getter private double coupleRatio = 3.125 * 14.0 / 13.0; // copied from 254-2024
+    @Getter private double coupleRatio = 25 / 7; // 3.571428571
 
     @Getter @Setter private boolean steerMotorReversed = true;
     @Getter @Setter private boolean invertLeftSide = false;

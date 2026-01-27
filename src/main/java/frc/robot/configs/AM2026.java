@@ -4,8 +4,7 @@ import frc.robot.Robot.Config;
 
 public class AM2026 extends Config {
 
-    // Alpha Robot
-
+    // Alpha Machine
     public AM2026() {
         super();
         swerve.configEncoderOffsets(0.289551, 0.394043, -0.203857, -0.039307);
@@ -13,7 +12,8 @@ public class AM2026 extends Config {
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        intake.setAttached(true);
+        fuelIntake.setAttached(false);
         turret.setAttached(false);
+        intakeExtension.setAttached(false);
     }
 }

@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
-import frc.rebuilt.offsets.HomeOffsets;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
@@ -26,7 +25,6 @@ import frc.spectrumLib.util.Util;
 import frc.spectrumLib.vision.Limelight;
 import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import lombok.Getter;
@@ -68,13 +66,9 @@ public class Vision implements NTSendable, Subsystem {
                 VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
     }
 
-    /** Limelights */
+    /* Limelights */
     @Getter public final Limelight frontLL;
-
-    // private static final HomeOffsets offsets;
-    private static final HomeOffsets offsets = new HomeOffsets();
-
-    public final Limelight backLL;
+    @Getter public final Limelight backLL;
 
     public final Limelight[] allLimelights;
 
@@ -108,18 +102,12 @@ public class Vision implements NTSendable, Subsystem {
             limelight.setLEDMode(false);
             limelight.setIMUmode(1);
         }
-
-        /* Get the April Tag Field Layout */
-        try {
-            tagLayout =
-                    AprilTagFieldLayout.loadFromResource(
-                            AprilTagFields.k2025ReefscapeAndyMark.m_resourceFile);
-        } catch (IOException e) {
-            System.err.println(e);
-        }
-
+        
+        tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+        
         this.register();
         telemetryInit();
+        Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override

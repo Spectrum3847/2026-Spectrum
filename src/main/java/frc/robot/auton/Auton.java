@@ -25,16 +25,10 @@ public class Auton {
 
     // TODO: Setup EventTriggers
     // Should all be public static final
-
-    public static final EventTrigger autonDepotIntake = new EventTrigger("depotIntake");
-    public static final EventTrigger autonOutpostIntake = new EventTrigger("outpostIntake");
-    public static final EventTrigger autonNeutralIntake = new EventTrigger("neutralIntake");
+    public static final EventTrigger autonIntake = new EventTrigger("intake");
+    public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
-    public static final EventTrigger autonScore = new EventTrigger("score");
-    public static final EventTrigger autonClearStates = new EventTrigger("clearStates");
-    public static final EventTrigger autonHome = new EventTrigger("home");
-    public static final EventTrigger autonLeft = new EventTrigger("left");
-    public static final EventTrigger autonRight = new EventTrigger("right");
+    public static final EventTrigger autonClearState = new EventTrigger("clearState");
 
     private final SendableChooser<Command> pathChooser = new SendableChooser<>();
     private boolean autoMessagePrinted = true;
@@ -51,6 +45,8 @@ public class Auton {
         pathChooser.addOption("1 Meter", SpectrumAuton("1 Meter", false));
         pathChooser.addOption("3 Meter", SpectrumAuton("3 Meter", false));
         pathChooser.addOption("5 Meter", SpectrumAuton("5 Meter", false));
+
+        pathChooser.addOption("Neutral Zone Run", SpectrumAuton("Neutral Zone", false));
 
         pathChooser.addOption("Drive Forward", SpectrumAuton("Drive Forward", false));
 
