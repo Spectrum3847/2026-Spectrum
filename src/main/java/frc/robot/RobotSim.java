@@ -1,5 +1,16 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Degrees;
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Radians;
+
+import org.ironmaple.simulation.SimulatedArena;
+import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
+
+import dev.doglog.DogLog;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -7,6 +18,9 @@ import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import frc.rebuilt.ShotCalculator;
 import frc.spectrumLib.sim.Circle;
 import lombok.Getter;
 
@@ -41,5 +55,29 @@ public class RobotSim {
     public void drawTurretCircle() {
         MechanismRoot2d circleRoot = topView.getRoot("Turret Circle Root", Units.inchesToMeters(topViewHeight / 2), Units.inchesToMeters(topViewWidth / 2));
         Circle circle = new Circle(50, 40, "Turret Circle", circleRoot, topView);
+    }
+
+    // Maple Sim Fuel Scoring
+    public static Command mapleSimLaunchFuel() {
+        return new InstantCommand(
+                () -> {
+                    var parameters = ShotCalculator.getInstance().getParameters();
+                    SimulatedArena.getInstance()
+                            .addGamePieceProjectile(
+                                    new RebuiltFuelOnFly(
+                                            Robot.getSwerve().getRobotPose().getTranslation(),
+                                            new Translation2d(),
+                                            Robot.getSwerve().getCurrentRobotChassisSpeeds(),
+                                            parameters.turretAngle(),
+                                            Inches.of(25),
+                                            MetersPerSecond.of(parameters.flywheelSpeed() * 0.0325),
+                                            Radians.of(parameters.hoodAngle()))
+                                                .withProjectileTrajectoryDisplayCallBack(
+                                                        // Callback for when the fuel will eventually hit the target (if configured)
+                                                        (pose3ds) -> DogLog.log("SimShot/FuelProjectileSuccessfulShot", pose3ds.toArray(Pose3d[]::new)),
+                                                        // Callback for when the fuel will eventually miss the target, or if no target is configured
+                                                        (pose3ds) -> DogLog.log("SimShot/FuelProjectileUnsuccessfulShot", pose3ds.toArray(Pose3d[]::new))
+                                                        ));
+                });
     }
 }

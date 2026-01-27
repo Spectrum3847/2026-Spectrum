@@ -29,7 +29,7 @@ public class Field {
     public static final double startingLineX =
             Units.inchesToMeters(299.438); // Measured from the inside of starting line
 
-    public static final double tag26X = 158.61;
+    public static final double tag26X = Units.inchesToMeters(158.61);
 
     public static class BlueHub {
         public static final double width = Units.inchesToMeters(47.0);

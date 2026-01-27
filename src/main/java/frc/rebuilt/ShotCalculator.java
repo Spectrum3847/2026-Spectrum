@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Robot;
 
 public class ShotCalculator {
@@ -34,10 +35,10 @@ public class ShotCalculator {
       new InterpolatingDoubleTreeMap();
 
   static {
-    shotHoodAngleMap.put(1.8122, Rotation2d.fromDegrees(20.0));
-    shotHoodAngleMap.put(2.612079, Rotation2d.fromDegrees(25.0));
-    shotHoodAngleMap.put(3.75661, Rotation2d.fromDegrees(30.0));
-    shotHoodAngleMap.put(4.96786, Rotation2d.fromDegrees(35.0));
+    shotHoodAngleMap.put(1.8122, Rotation2d.fromDegrees(50.0));
+    shotHoodAngleMap.put(2.612079, Rotation2d.fromDegrees(55.0));
+    shotHoodAngleMap.put(3.75661, Rotation2d.fromDegrees(60.0));
+    shotHoodAngleMap.put(4.96786, Rotation2d.fromDegrees(65.0));
 
     shotFlywheelSpeedMap.put(1.8122, 200.0);
     shotFlywheelSpeedMap.put(2.612079, 210.0);
@@ -76,7 +77,14 @@ public class ShotCalculator {
             turretAngle,
             hoodAngle,
             flywheelSpeed);
-
+    
+    
+    SmartDashboard.putString("ShotCalc/Target", target.toString());
+    SmartDashboard.putNumber("ShotCalc/DistanceMeters", distance);
+    SmartDashboard.putNumber("ShotCalc/TurretAngleDeg", turretAngle.getDegrees());
+    SmartDashboard.putNumber("ShotCalc/HoodAngleRad", hoodAngle);
+    SmartDashboard.putNumber("ShotCalc/HoodAngleDeg", Math.toDegrees(hoodAngle));
+    SmartDashboard.putNumber("ShotCalc/FlywheelSpeed", flywheelSpeed);
     return latestParameters;
   }
 
