@@ -31,6 +31,10 @@ public class LauncherStates {
         scheduleIfNotRunning(intake.ensureBrakeMode());
     }
 
+    public static void aimAtHub() {
+        scheduleIfNotRunning(intake.trackTargetCommand().withName("Launcher.aimAtHub"));
+    }
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);

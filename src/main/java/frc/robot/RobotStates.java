@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import frc.robot.auton.Auton;
 import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
@@ -15,21 +16,35 @@ public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
     private static final Pilot pilot = Robot.getPilot();
 
-    @Getter private static State appliedState = State.IDLE;
+    @Getter
+    private static State appliedState = State.IDLE;
 
     /**
-     * Define Robot States here and how they can be triggered States should be triggers that command
-     * multiple mechanism or can be used in teleop or auton Use onTrue/whileTrue to run a command
-     * when entering the state Use onFalse/whileFalse to run a command when leaving the state
+     * Define Robot States here and how they can be triggered States should be
+     * triggers that command
+     * multiple mechanism or can be used in teleop or auton Use onTrue/whileTrue to
+     * run a command
+     * when entering the state Use onFalse/whileFalse to run a command when leaving
+     * the state
      * RobotType Triggers
      */
 
-     // Define triggers here
+    // Define triggers here
 
     // Setup any binding to set states
     public static void setupStates() {
+        // Pilot Triggers
         pilot.AButton.onTrue(applyState(State.INTAKE_FUEL));
         pilot.AButton.onFalse(applyState(State.IDLE));
+        pilot.BButton.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
+        pilot.BButton.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.home_select.onTrue(clearState());
+
+        // Auton Triggers
+        Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
+        Auton.autonShotPrep.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
+        Auton.autonShoot.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        Auton.autonClearState.onTrue(clearState());
     }
 
     private RobotStates() {
@@ -38,22 +53,22 @@ public class RobotStates {
 
     public static Command applyState(State state) {
         return new InstantCommand(
-                        () -> {
-                            appliedState = state;
-                            SmartDashboard.putString("APPLIED STATE", state.toString());
-                            Telemetry.print("Applied State: " + state.toString());
-                            coordinator.applyRobotState(state);
-                        })
+                () -> {
+                    appliedState = state;
+                    SmartDashboard.putString("APPLIED STATE", state.toString());
+                    Telemetry.print("Applied State: " + state.toString());
+                    coordinator.applyRobotState(state);
+                })
                 .withName("APPLYING STATE: " + state.toString());
     }
 
     public static Command clearState() {
         return new InstantCommand(
-                        () -> {
-                            appliedState = State.IDLE;
-                            SmartDashboard.putString("APPLIED STATE", "CLEARED TO IDLE");
-                            coordinator.applyRobotState(State.IDLE);
-                        })
+                () -> {
+                    appliedState = State.IDLE;
+                    SmartDashboard.putString("APPLIED STATE", "CLEARED TO IDLE");
+                    coordinator.applyRobotState(State.IDLE);
+                })
                 .withName("CLEARING STATE TO IDLE");
     }
 }
