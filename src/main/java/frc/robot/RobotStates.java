@@ -3,14 +3,17 @@ package frc.robot;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
 import frc.robot.pilot.Pilot;
+import frc.robot.swerve.Swerve;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
 public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
     private static final Pilot pilot = Robot.getPilot();
+    private static final Swerve swerve = Robot.getSwerve();
 
     @Getter
     private static State appliedState = State.IDLE;
@@ -26,6 +29,9 @@ public class RobotStates {
      */
 
     // Define triggers here
+    public static final Trigger robotInNeutralZone = swerve.inNeutralZone();
+    public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
+    // public static final Trigger hopperFull = new Trigger(null);
 
     // Setup any binding to set states
     public static void setupStates() {
@@ -35,6 +41,8 @@ public class RobotStates {
         pilot.BButton.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
         pilot.BButton.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
         pilot.home_select.onTrue(clearState());
+
+        robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
