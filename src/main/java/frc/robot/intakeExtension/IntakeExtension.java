@@ -64,15 +64,15 @@ public class IntakeExtension extends Mechanism {
         @Getter @Setter private boolean CANcoderAttached = false;
 
          /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(50);
-         @Getter private double intakeY = Units.inchesToMeters(40);
+         @Getter private double intakeX = Units.inchesToMeters(70);
+         @Getter private double intakeY = Units.inchesToMeters(23);
          @Getter private double extensionMass = 10.0;
          @Getter private double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
          @Getter private double extensionGearing = 1.7;
          @Getter private double angle = 180;
          @Getter private double staticLength = 10;
-         @Getter private double movingLength = 30;
-         @Getter private double lineWidth = 80;
+         @Getter private double movingLength = 55;
+         @Getter private double lineWidth = 20;
          @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
