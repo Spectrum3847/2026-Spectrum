@@ -181,8 +181,7 @@ public class TurretHood extends Mechanism {
 
     public Command trackTargetCommand() {
     return run(() -> {
-        var params = ShotCalculator.getInstance().getParameters();
-        moveToDegrees(() -> params.hoodAngle());
+        moveToDegrees(() -> 65);
         });
     }
 

@@ -23,6 +23,8 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
+        pilot.AButton.whileTrue(RobotSim.mapleSimIntakeFuel());
+
         pilot.YButton.onTrue(RobotSim.mapleSimLaunchFuel());
         
         // Rumble whenever we reorient

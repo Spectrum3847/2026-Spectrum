@@ -1,9 +1,13 @@
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Degree;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Radians;
+
+import org.ironmaple.simulation.IntakeSimulation;
 import org.ironmaple.simulation.SimulatedArena;
+import org.ironmaple.simulation.drivesims.AbstractDriveTrainSimulation;
 import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -17,6 +21,7 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.turretRotationalPivot.RotationalPivot;
 import frc.spectrumLib.sim.Circle;
 import lombok.Getter;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -29,6 +34,15 @@ public class RobotSim {
     @Getter public static final double topViewWidth = 150;
     @Getter public static final double leftViewHeight = 75;
     @Getter public static final double leftViewWidth = 75;
+
+    @Getter private static final IntakeSimulation intakeSimulation =
+            IntakeSimulation.OverTheBumperIntake(
+                    "Fuel",
+                    Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
+                    Inches.of(29),
+                    Inches.of(12),
+                    IntakeSimulation.IntakeSide.FRONT,
+                    80);;
 
     public static final Translation2d origin =
             new Translation2d(0.0, 0.0);
@@ -109,6 +123,21 @@ public class RobotSim {
         shooter.setColor(new Color8Bit((Color.kBlack)));
     }
 
+    // Maple Sim Fuel Intaking
+    public static Command mapleSimIntakeFuel() {
+        return new Command() {
+            @Override
+            public void initialize() {
+                RobotSim.getIntakeSimulation().startIntake();
+            }
+
+            @Override
+            public void end(boolean interrupted) {
+                RobotSim.getIntakeSimulation().stopIntake();
+            }
+        };
+    }
+
     // Maple Sim Fuel Scoring
     public static Command mapleSimLaunchFuel() {
         return new InstantCommand(
@@ -121,9 +150,9 @@ public class RobotSim {
                                             new Translation2d(),
                                             Robot.getSwerve().getCurrentRobotChassisSpeeds(),
                                             parameters.turretAngle(),
-                                            Inches.of(25),
+                                            Inches.of(29),
                                             MetersPerSecond.of(parameters.flywheelSpeed() * 0.0325),
-                                            Radians.of(parameters.hoodAngle()))
+                                            Degree.of(65))
                                                 .withProjectileTrajectoryDisplayCallBack(
                                                         // Callback for when the fuel will eventually hit the target (if configured)
                                                         (pose3ds) -> DogLog.log("SimShot/FuelProjectileSuccessfulShot", pose3ds.toArray(Pose3d[]::new)),

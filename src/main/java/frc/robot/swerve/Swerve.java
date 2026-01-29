@@ -568,7 +568,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
+    @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
         @SuppressWarnings("unchecked")
         private void startSimThread() {
             mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
