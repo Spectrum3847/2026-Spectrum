@@ -9,7 +9,7 @@ package frc.spectrumLib.util;
  *
  * @param <A> The first object's type.
  * @param <B> The second object's type.
- * @param <C> The second object's type.
+ * @param <C> The third object's type.
  */
 public class Trio<A, B, C> {
     private final A m_first;
@@ -59,7 +59,7 @@ public class Trio<A, B, C> {
      * @param <C> The third object's type.
      * @param a The first object.
      * @param b The second object.
-     * @param b The second object.
+     * @param c The third object.
      * @return A trio comprised of the three given objects.
      */
     public static <A, B, C> Trio<A, B, C> of(A a, B b, C c) {

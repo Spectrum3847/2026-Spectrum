@@ -19,6 +19,10 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * The Fuel Intake subsystem.
+ * Responsible for intake and handling of fuel elements.
+ */
 public class FuelIntake extends Mechanism {
 
     public static class FuelIntakeConfig extends Config {
