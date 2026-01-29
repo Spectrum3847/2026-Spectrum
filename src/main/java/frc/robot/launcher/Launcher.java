@@ -37,8 +37,8 @@ public class Launcher extends Mechanism {
         @Getter private double velocityKs = 14;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(23);
-        @Getter private double intakeY = Units.inchesToMeters(8);
+        @Getter private double intakeX = Units.inchesToMeters(50);
+        @Getter private double intakeY = Units.inchesToMeters(63);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
@@ -151,8 +151,7 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY())
-                            .setMount(Robot.getHood().getSim()),
+                            .setPosition(config.getIntakeX(), config.getIntakeY()),
                     mech,
                     rollerMotorSim,
                     config.getName());

@@ -46,6 +46,22 @@ public class Coordinator {
                 TurretHoodStates.aimAtHub();
                 RotationalPivotStates.aimAtHub();
             }
+            case TURRET_FEED_WITH_SPINUP -> {
+                FuelIntakeStates.stop();
+                IndexerStates.neutral();
+                IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtHub();
+                TurretHoodStates.aimAtHub();
+                RotationalPivotStates.aimAtHub();
+            }
+            case TURRET_FEED_WITH_LAUNCH -> {
+                FuelIntakeStates.stop();
+                IndexerStates.indexMax();
+                IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtHub();
+                TurretHoodStates.aimAtHub();
+                RotationalPivotStates.aimAtHub();
+            }
             case L1_CLIMB_PREP -> {
 
             }

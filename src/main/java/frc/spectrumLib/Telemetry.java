@@ -15,6 +15,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Telemetry and logging utility.
+ * Extends DogLog to provide structured logging and console output with priority levels.
+ */
 public class Telemetry extends DogLog implements Subsystem {
 
     private static final Map<String, String[]> previousAlerts = new HashMap<>();
@@ -46,6 +50,12 @@ public class Telemetry extends DogLog implements Subsystem {
         logAlerts();
     }
 
+    /**
+     * Start the telemetry system.
+     * @param ntPublish Whether to publish to NetworkTables.
+     * @param captureNt Whether to capture NetworkTables entries in the log.
+     * @param priority The minimum priority level for console output.
+     */
     public static void start(boolean ntPublish, boolean captureNt, PrintPriority priority) {
         setPriority(priority);
         Telemetry.setOptions(
