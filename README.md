@@ -3,7 +3,7 @@
 Repo for Spectrum's 2026 robots.
 
 ## Overview
-This repository contains the robot code for Spectrum for the 2026 season. The project is built using the WPILib framework and follows a command-based architecture. It leverages a custom library, `spectrumLib`, for shared utilities and abstractions.
+This repository contains the robot code for Spectrum for the 2026 season. The project is built using the WPILib. It uses a custom library, `spectrumLib`, for shared utilities.
 
 ### Key Features
 - **Swerve Drive**: Powered by CTRE Phoenix 6.
@@ -15,7 +15,6 @@ This repository contains the robot code for Spectrum for the 2026 season. The pr
 ## Requirements
 - **Java Development Kit (JDK) 17**
 - **WPILib 2026**
-- **Frc-characterization / SysId**
 
 ## Stack
 - **Language**: Java 17
@@ -28,7 +27,7 @@ This repository contains the robot code for Spectrum for the 2026 season. The pr
   - DogLog
   - WPILib New Commands
 
-## Setup & Run Commands
+## Setup
 
 ### Installation
 1. Clone the repository:
