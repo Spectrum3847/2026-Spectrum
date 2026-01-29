@@ -40,8 +40,8 @@ public class FuelIntake extends Mechanism {
         @Getter private double velocityKs = 14;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters((RobotSim.getLeftViewWidth() / 2) - 15);
-        @Getter private double intakeY = Units.inchesToMeters((RobotSim.getLeftViewWidth() / 2) - 5);
+        @Getter private double intakeX = Units.inchesToMeters(15);
+        @Getter private double intakeY = Units.inchesToMeters(23);
         @Getter private double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
