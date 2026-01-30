@@ -64,12 +64,12 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "268,27",
-      "Size": "336,158"
+      "Size": "210,214"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "11,442",
-      "Size": "976,139"
+      "Size": "976,278"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -101,7 +101,7 @@
     "###Timing": {
       "Collapsed": "0",
       "Pos": "15,24",
-      "Size": "246,220"
+      "Size": "246,272"
     },
     "Debug##Default": {
       "Collapsed": "0",

@@ -25,7 +25,7 @@ public class PilotStates {
 
         pilot.AButton.whileTrue(RobotSim.mapleSimIntakeFuel());
 
-        pilot.YButton.onTrue(RobotSim.mapleSimLaunchFuel());
+        pilot.YButton.whileTrue(RobotSim.mapleSimLaunchFuel());
         
         // Rumble whenever we reorient
         pilot.upReorient
