@@ -54,6 +54,12 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
+      "name": "clearState",
+      "waypointRelativePos": 0.5677368833202773,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
       "name": "shotPrep",
       "waypointRelativePos": 1.7016444792482346,
       "endWaypointRelativePos": null,

@@ -49,9 +49,9 @@ public class RobotStates {
         robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 
         // Auton Triggers
-        Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
+        Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL).alongWith(RobotSim.mapleSimIntakeFuel()));
         Auton.autonShotPrep.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
-        Auton.autonShoot.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        Auton.autonShoot.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH).alongWith(RobotSim.mapleSimLaunchFuel()));
         Auton.autonClearState.onTrue(clearState());
     }
 

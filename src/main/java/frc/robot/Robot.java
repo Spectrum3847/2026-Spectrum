@@ -1,5 +1,6 @@
 package frc.robot;
 
+import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -147,7 +148,9 @@ public class Robot extends SpectrumRobot {
             auton = new Auton();
             coordinator = new Coordinator();
 
-            robotSim = new RobotSim();
+            if (Utils.isSimulation()) {
+                robotSim = new RobotSim();
+            }
 
             // Setup Default Commands for all subsystems
             setupDefaultCommands();
@@ -308,6 +311,9 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
+        if (Utils.isSimulation()) {
+            SimulatedArena.getInstance().resetFieldForAuto();
+        }
         try {
             auton.init();
         } catch (Throwable t) {

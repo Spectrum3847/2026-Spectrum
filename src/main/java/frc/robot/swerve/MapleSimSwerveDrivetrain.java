@@ -121,8 +121,11 @@ public class MapleSimSwerveDrivetrain {
         for (int i = 0; i < this.simModules.length; i++)
             simModules[i] = new SimSwerveModule(moduleConstants[0], moduleSimulations[i], modules[i]);
 
+        Arena2026Rebuilt arena = new Arena2026Rebuilt(false);
+        arena.setEfficiencyMode(true);
+
         SimulatedArena.overrideSimulationTimings(simPeriod, 1);
-        SimulatedArena.overrideInstance(new Arena2026Rebuilt(false));
+        SimulatedArena.overrideInstance(arena);
         SimulatedArena.getInstance().addDriveTrainSimulation(mapleSimDrive);
     }
 

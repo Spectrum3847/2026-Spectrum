@@ -13,6 +13,7 @@ import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
@@ -151,10 +152,11 @@ public class RobotSim {
                     GamePieceProjectile fuelProjectile = new RebuiltFuelOnFly(
                             Robot.getSwerve().getRobotPose().getTranslation(),
                             new Translation2d(),
-                            Robot.getSwerve().getCurrentRobotChassisSpeeds(),
+                            ChassisSpeeds.fromRobotRelativeSpeeds(Robot.getSwerve().getCurrentRobotChassisSpeeds(),
+                                    Robot.getSwerve().getRobotPose().getRotation()),
                             parameters.turretAngle(),
                             Inches.of(29),
-                            MetersPerSecond.of(parameters.flywheelSpeed() * 0.0325),
+                            MetersPerSecond.of(parameters.flywheelSpeed() * 0.0275),
                             Degrees.of(65))
                             .withProjectileTrajectoryDisplayCallBack(
                                     // Callback for when the fuel will eventually hit the target (if configured)
