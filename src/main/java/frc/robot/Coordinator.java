@@ -48,7 +48,7 @@ public class Coordinator {
             }
             case TURRET_FEED_WITH_SPINUP -> {
                 FuelIntakeStates.stop();
-                IndexerStates.neutral();
+                IndexerStates.indexMax();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.aimAtHub();
                 TurretHoodStates.aimAtHub();

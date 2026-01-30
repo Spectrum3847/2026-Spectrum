@@ -31,18 +31,27 @@ public class RobotStates {
     // Define triggers here
     public static final Trigger robotInNeutralZone = swerve.inNeutralZone();
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
-    // public static final Trigger hopperFull = new Trigger(null);
+    public static final Trigger hopperFull = new Trigger(() -> true);
+    public static final Trigger robotReadyScore = new Trigger(() -> false); //movement stable + stable vision
+    public static final Trigger robotReadyFeed = new Trigger(hopperFull); //movement stable + vision stable + hopper full
+    public static final Trigger robotInScoreZone = robotInEnemyZone.not().and(robotInNeutralZone.not());
+    public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone); 
 
     // Setup any binding to set states
     public static void setupStates() {
         // Pilot Triggers
         pilot.AButton.onTrue(applyState(State.INTAKE_FUEL));
         pilot.AButton.onFalse(applyState(State.IDLE));
-        pilot.BButton.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
-        pilot.BButton.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.BButton.onTrue();
+        pilot.XButton.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
+        pilot.YButton.onTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
         pilot.home_select.onTrue(clearState());
 
-        robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
+        robotInScoreZone.and(robotReadyScore.not()).onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
+        robotInScoreZone.and(robotReadyScore).onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        
+        robotInFeedZone.and(robotReadyFeed.not()).onTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
+        robotInFeedZone.and(robotReadyFeed).onTrue(applyState(State.TURRET_FEED_WITH_LAUNCH));
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));

@@ -9,6 +9,7 @@ public enum State {
     IDLE,
 
     INTAKE_FUEL,
+    SMART_INTAKE,
 
     TURRET_TRACK_WITH_SPINUP,
     TURRET_TRACK_WITH_LAUNCH,
