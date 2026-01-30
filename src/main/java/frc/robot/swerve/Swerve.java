@@ -223,6 +223,53 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 () -> Util.inRange(() -> getRobotPose().getY(), () -> minYmeter, () -> maxYmeter));
     }
 
+    public Trigger inNeutralZone() {
+        final double fieldLengthMeters = Units.feetToMeters(54.0); // full field length
+        final double fieldWidthMeters = Units.feetToMeters(27.0);  // full field width
+
+        final double neutralDepthMeters = Units.inchesToMeters(283.0);   // depth along field length (X)
+        final double neutralLengthMeters = Units.inchesToMeters(317.7); // span across field width (Y)
+
+        final double centerX = fieldLengthMeters / 2.0;
+        final double centerY = fieldWidthMeters / 2.0;
+
+        final double minX = centerX - neutralDepthMeters / 2.0;
+        final double maxX = centerX + neutralDepthMeters / 2.0;
+        final double minY = centerY - neutralLengthMeters / 2.0;
+        final double maxY = centerY + neutralLengthMeters / 2.0;
+
+        return new Trigger(
+                () -> {
+                    double x = FieldHelpers.flipXifRed(getRobotPose().getX()); // make alliance-agnostic
+                    double y = getRobotPose().getY();
+                    return Util.inRange(() -> x, () -> minX, () -> maxX)
+                            && Util.inRange(() -> y, () -> minY, () -> maxY);
+                });
+    }
+
+    public Trigger inEnemyAllianceZone() {
+        final double fieldLengthMeters = Units.feetToMeters(54.0);
+        final double fieldWidthMeters = Units.feetToMeters(27.0);
+
+        final double allianceDepthMeters = Units.inchesToMeters(158.6); // X depth of an alliance zone
+        final double allianceSpanMeters = Units.inchesToMeters(317.7);  // Y span of an alliance zone
+
+        final double minX = fieldLengthMeters - allianceDepthMeters; // enemy side (far end) in alliance-agnostic coords
+        final double maxX = fieldLengthMeters;
+
+        final double centerY = fieldWidthMeters / 2.0;
+        final double minY = centerY - allianceSpanMeters / 2.0;
+        final double maxY = centerY + allianceSpanMeters / 2.0;
+
+        return new Trigger(
+                () -> {
+                    double x = FieldHelpers.flipXifRed(getRobotPose().getX()); // alliance-agnostic X
+                    double y = getRobotPose().getY();
+                    return Util.inRange(() -> x, () -> minX, () -> maxX)
+                            && Util.inRange(() -> y, () -> minY, () -> maxY);
+                });
+    }
+
     /**
      * This method is used to check if the robot is in the X zone of the field flips the values if
      * Red Alliance

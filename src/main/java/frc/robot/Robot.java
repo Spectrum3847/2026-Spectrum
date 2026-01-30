@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.AM2026;
@@ -60,6 +61,10 @@ import lombok.Getter;
 import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
+/**
+ * The main robot class.
+ * This class is the entry point for the robot code and manages all subsystems and their configurations.
+ */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
     @Getter private static Config config;
@@ -211,6 +216,8 @@ public class Robot extends SpectrumRobot {
             CommandScheduler.getInstance().run();
 
             SmartDashboard.putNumber("MatchTime", DriverStation.getMatchTime());
+            SmartDashboard.putBoolean("InShift", ShiftHelpers.currentShiftIsYours());
+            SmartDashboard.putNumber("TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
             field2d.setRobotPose(swerve.getRobotPose());
             ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {
