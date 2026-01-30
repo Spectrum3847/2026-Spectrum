@@ -35,12 +35,12 @@ public class Indexer extends Mechanism {
         @Getter private double velocityKs = 14;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(10);
-        @Getter private double intakeY = Units.inchesToMeters(12);
-        @Getter private double wheelDiameter = 4;
+        @Getter private double intakeX = Units.inchesToMeters(60);
+        @Getter private double intakeY = Units.inchesToMeters(75);
+        @Getter private double wheelDiameter = 12;
 
         public IndexerConfig() {
-            super("indexer", 51, Rio.CANIVORE);
+            super("Indexer", 51, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -126,7 +126,7 @@ public class Indexer extends Mechanism {
     public void simulationInit() {
         if (isAttached()) {
             // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new indexerSim(RobotSim.leftView, motor.getSimState());
+            sim = new indexerSim(RobotSim.topView, motor.getSimState());
         }
     }
 

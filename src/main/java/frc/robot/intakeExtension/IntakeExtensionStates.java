@@ -31,9 +31,9 @@ public class IntakeExtensionStates {
     }
 
     /**
-     * Schedules a command for a subsystem only if it's not already the running command
+     * Schedules a command for the intake extension subsystem only if it's not already the running
+     * command
      *
-     * @param subsystem the subsystem the command requires
      * @param command the command to schedule
      */
     public static void scheduleIfNotRunning(Command command) {

@@ -63,7 +63,7 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean CANcoderAttached = false;
 
          /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(75); // Vertical Center
+         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
          @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
          @Getter private double simRatio = 22.4;
          @Getter private double length = 1;

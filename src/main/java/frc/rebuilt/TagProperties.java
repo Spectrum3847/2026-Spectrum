@@ -30,7 +30,7 @@ public class TagProperties {
      * @param rearCenterOffsetInchesRight the rear right offset in inches from the center of the
      *     robot to the center of the tag
      * @param taGoal the target area goal for the tag
-     * @param angle the angle in degrees from the robot to the tag
+     * @param angleDegrees the angle in degrees from the robot to the tag
      */
     public TagProperties(
             double frontOffsetInchesLeft,
