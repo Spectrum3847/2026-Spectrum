@@ -111,7 +111,6 @@ public class Robot extends SpectrumRobot {
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
-            robotSim = new RobotSim();
 
             /* Set up the config */
             config =
@@ -147,6 +146,8 @@ public class Robot extends SpectrumRobot {
             indexer = new Indexer(config.indexer);
             auton = new Auton();
             coordinator = new Coordinator();
+
+            robotSim = new RobotSim();
 
             // Setup Default Commands for all subsystems
             setupDefaultCommands();

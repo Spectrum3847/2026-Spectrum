@@ -7,8 +7,6 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
-import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
-import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.robot.Robot;
 
@@ -26,7 +24,6 @@ public class ShotCalculator {
 
   public record ShootingParameters(
       Rotation2d turretAngle,
-      double hoodAngle,
       double flywheelSpeed) {
   }
 
@@ -34,20 +31,12 @@ public class ShotCalculator {
 
   private static double phaseDelay;
 
-  private static final InterpolatingTreeMap<Double, Rotation2d> shotHoodAngleMap = new InterpolatingTreeMap<>(
-      InverseInterpolator.forDouble(), Rotation2d::interpolate);
-
   private static final InterpolatingDoubleTreeMap shotFlywheelSpeedMap = new InterpolatingDoubleTreeMap();
 
   private static final InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
 
   static {
     phaseDelay = 0.03;
-
-    shotHoodAngleMap.put(1.8122, Rotation2d.fromDegrees(50.0));
-    shotHoodAngleMap.put(2.612079, Rotation2d.fromDegrees(55.0));
-    shotHoodAngleMap.put(3.75661, Rotation2d.fromDegrees(60.0));
-    shotHoodAngleMap.put(4.96786, Rotation2d.fromDegrees(65.0));
 
     shotFlywheelSpeedMap.put(1.34, 210.0);
     shotFlywheelSpeedMap.put(1.78, 220.0);
@@ -116,18 +105,15 @@ public class ShotCalculator {
     }
     // Calculate parameters accounted for imparted velocity
     Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
-    double hoodAngle = shotHoodAngleMap.get(lookaheadTurretToTargetDistance).getRadians();
     double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadTurretToTargetDistance);
 
     latestParameters = new ShootingParameters(
         turretAngle,
-        hoodAngle,
         flywheelSpeed);
 
     DogLog.log("ShotCalc/DistanceMeters", Double.toString(lookaheadTurretToTargetDistance));
     DogLog.log("ShotCalc/LookaheadPose", lookaheadPose);
     DogLog.log("ShotCalc/TurretAngleDeg", Double.toString(turretAngle.getDegrees()));
-    DogLog.log("ShotCalc/HoodAngleDeg", Double.toString(Math.toDegrees(hoodAngle)));
     DogLog.log("ShotCalc/FlywheelSpeed", Double.toString(flywheelSpeed));
     return latestParameters;
   }
