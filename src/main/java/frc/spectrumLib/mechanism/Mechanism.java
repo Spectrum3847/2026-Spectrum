@@ -39,16 +39,20 @@ import lombok.*;
 
 /**
  * Base class for a motor-driven mechanism.
- * Handles common tasks like telemetry, current limits, and various control modes using TalonFX.
+ * Handles common tasks like telemetry, current limits, and various control
+ * modes using TalonFX.
  *
- * <p>Control Modes Docs:
+ * <p>
+ * Control Modes Docs:
  * https://pro.docs.ctr-electronics.com/en/latest/docs/migration/migration-guide/control-requests-guide.html
  * Closed-loop and Motion Magic Docs:
  * https://pro.docs.ctr-electronics.com/en/latest/docs/migration/migration-guide/closed-loop-guide.html
  */
 public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
-    @Getter protected TalonFX motor;
-    @Getter protected TalonFX[] followerMotors;
+    @Getter
+    protected TalonFX motor;
+    @Getter
+    protected TalonFX[] followerMotors;
     public Config config;
 
     Alert currentAlert = new Alert("", AlertType.kWarning);
@@ -69,11 +73,10 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
             followerMotors = new TalonFX[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
-                followerMotors[i] =
-                        TalonFXFactory.createPermanentFollowerTalon(
-                                config.followerConfigs[i].id,
-                                motor,
-                                config.followerConfigs[i].opposeLeader);
+                followerMotors[i] = TalonFXFactory.createPermanentFollowerTalon(
+                        config.followerConfigs[i].id,
+                        motor,
+                        config.followerConfigs[i].opposeLeader);
             }
         }
 
@@ -93,7 +96,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         config.attached = attached;
     }
 
-    // Setup the telemetry values, has to be called at the end of the implemented mechanism
+    // Setup the telemetry values, has to be called at the end of the implemented
+    // mechanism
     // constructor
     public void telemetryInit() {
         SendableRegistry.add(this, getName());
@@ -101,10 +105,12 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+    }
 
     @Override
-    public void simulationPeriodic() {}
+    public void simulationPeriodic() {
+    }
 
     @Override
     public String getName() {
@@ -152,9 +158,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
     public Trigger atRotations(DoubleSupplier target, DoubleSupplier tolerance) {
         return new Trigger(
-                () ->
-                        Math.abs(getPositionRotations() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+                () -> Math.abs(getPositionRotations() - target.getAsDouble()) < tolerance.getAsDouble());
     }
 
     public Trigger belowRotations(DoubleSupplier target, DoubleSupplier tolerance) {
@@ -169,9 +173,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
     public Trigger atPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
         return new Trigger(
-                () ->
-                        Math.abs(getPositionPercentage() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+                () -> Math.abs(getPositionPercentage() - target.getAsDouble()) < tolerance.getAsDouble());
     }
 
     public Trigger belowPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
@@ -186,9 +188,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
     public Trigger atDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
         return new Trigger(
-                () ->
-                        Math.abs(getPositionDegrees() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+                () -> Math.abs(getPositionDegrees() - target.getAsDouble()) < tolerance.getAsDouble());
     }
 
     public Trigger belowDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
@@ -218,9 +218,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
     public Trigger atCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
         return new Trigger(
-                () ->
-                        Math.abs(getStatorCurrent() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+                () -> Math.abs(getStatorCurrent() - target.getAsDouble()) < tolerance.getAsDouble());
     }
 
     public Trigger belowCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
@@ -415,7 +413,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     /**
-     * Runs to the specified Motion Magic position using FOC control. Will require different PID and
+     * Runs to the specified Motion Magic position using FOC control. Will require
+     * different PID and
      * feedforward configs
      *
      * @param rotations position in revolutions
@@ -429,7 +428,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     /**
-     * Temporarily sets the mechanism to coast mode. The configuration is applied when the command
+     * Temporarily sets the mechanism to coast mode. The configuration is applied
+     * when the command
      * is started and reverted when the command is ended.
      */
     public Command coastMode() {
@@ -442,10 +442,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     public Command ensureBrakeMode() {
         return runOnce(() -> setBrakeMode(true))
                 .onlyIf(
-                        () ->
-                                config.attached
-                                        && config.talonConfig.MotorOutput.NeutralMode
-                                                == NeutralModeValue.Coast)
+                        () -> config.attached
+                                && config.talonConfig.MotorOutput.NeutralMode == NeutralModeValue.Coast)
                 .ignoringDisable(true)
                 .withName(getName() + ".ensureBrakeMode");
     }
@@ -551,12 +549,13 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
     /**
      * Closed-loop Position Motion Magic with torque control (requires Pro).
-     * Dynamic allows you to set velocity, acceleration, and jerk during the command.
+     * Dynamic allows you to set velocity, acceleration, and jerk during the
+     * command.
      *
-     * @param rotations The target position in rotations.
-     * @param velocity The maximum velocity in rotations per second.
+     * @param rotations    The target position in rotations.
+     * @param velocity     The maximum velocity in rotations per second.
      * @param acceleration The maximum acceleration in rotations per second squared.
-     * @param jerk The maximum jerk in rotations per second cubed.
+     * @param jerk         The maximum jerk in rotations per second cubed.
      */
     protected void setDynMMPositionFoc(
             DoubleSupplier rotations,
@@ -565,12 +564,11 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
             DoubleSupplier jerk) {
         if (isAttached()) {
             target = rotations.getAsDouble();
-            DynamicMotionMagicTorqueCurrentFOC mm =
-                    config.dynamicMMPositionFOC
-                            .withPosition(target)
-                            .withVelocity(velocity.getAsDouble())
-                            .withAcceleration(acceleration.getAsDouble())
-                            .withJerk(jerk.getAsDouble());
+            DynamicMotionMagicTorqueCurrentFOC mm = config.dynamicMMPositionFOC
+                    .withPosition(target)
+                    .withVelocity(velocity.getAsDouble())
+                    .withAcceleration(acceleration.getAsDouble())
+                    .withJerk(jerk.getAsDouble());
             motor.setControl(mm);
         }
     }
@@ -588,13 +586,12 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
      * Closed-loop Position Motion Magic using a slot other than 0
      *
      * @param rotations rotations
-     * @param slot gains slot
+     * @param slot      gains slot
      */
     public void setMMPosition(DoubleSupplier rotations, int slot) {
         if (isAttached()) {
             target = rotations.getAsDouble();
-            MotionMagicVoltage mm =
-                    config.mmPositionVoltageSlot.withSlot(slot).withPosition(target);
+            MotionMagicVoltage mm = config.mmPositionVoltageSlot.withSlot(slot).withPosition(target);
             motor.setControl(mm);
         }
     }
@@ -606,9 +603,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
      */
     public void setPercentOutput(DoubleSupplier percent) {
         if (isAttached()) {
-            VoltageOut output =
-                    config.voltageControl.withOutput(
-                            config.voltageCompSaturation * percent.getAsDouble());
+            VoltageOut output = config.voltageControl.withOutput(
+                    config.voltageCompSaturation * percent.getAsDouble());
             motor.setControl(output);
         }
     }
@@ -672,8 +668,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     public void applyCurrentLimit(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
         if (isAttached()) {
             if (config.talonConfig.CurrentLimits.StatorCurrentLimit != statorLimit.getAsDouble()
-                    && config.talonConfig.CurrentLimits.SupplyCurrentLimit
-                            != supplyLimit.getAsDouble()) {
+                    && config.talonConfig.CurrentLimits.SupplyCurrentLimit != supplyLimit.getAsDouble()) {
                 config.configSupplyCurrentLimit(Math.abs(supplyLimit.getAsDouble()), true);
                 config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);
                 config.configForwardTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
@@ -714,8 +709,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
             @Override
             public void end(boolean interrupted) {
                 double avgCurrent = totalCurrent / count;
-                if (Math.abs(avgCurrent - expectedCurrent.getAsDouble())
-                        > tolerance.getAsDouble()) {
+                if (Math.abs(avgCurrent - expectedCurrent.getAsDouble()) > tolerance.getAsDouble()) {
                     currentAlert.setText(
                             alertText
                                     + " Expected: "
@@ -795,10 +789,14 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     public static class FollowerConfig {
-        @Getter private String name;
-        @Getter private CanDeviceId id;
-        @Getter private boolean attached = true;
-        @Getter private MotorAlignmentValue opposeLeader = MotorAlignmentValue.Aligned;
+        @Getter
+        private String name;
+        @Getter
+        private CanDeviceId id;
+        @Getter
+        private boolean attached = true;
+        @Getter
+        private MotorAlignmentValue opposeLeader = MotorAlignmentValue.Aligned;
 
         public FollowerConfig(String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
             this.name = name;
@@ -808,48 +806,61 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     public static class Config {
-        @Getter private String name;
-        @Getter @Setter private boolean attached = true;
-        @Getter private CanDeviceId id;
-        @Getter @Setter protected TalonFXConfiguration talonConfig;
-        @Getter private int numMotors = 1;
-        @Getter private double voltageCompSaturation = 12.0; // 12V by default
-        @Getter private double minRotations = 0;
-        @Getter private double maxRotations = 1;
-
-        @Getter private FollowerConfig[] followerConfigs = new FollowerConfig[0];
+        @Getter
+        private String name;
+        @Getter
+        @Setter
+        private boolean attached = true;
+        @Getter
+        private CanDeviceId id;
+        @Getter
+        @Setter
+        protected TalonFXConfiguration talonConfig;
+        @Getter
+        private int numMotors = 1;
+        @Getter
+        private double voltageCompSaturation = 12.0; // 12V by default
+        @Getter
+        private double minRotations = 0;
+        @Getter
+        private double maxRotations = 1;
 
         @Getter
-        private MotionMagicVelocityTorqueCurrentFOC mmVelocityFOC =
-                new MotionMagicVelocityTorqueCurrentFOC(0);
+        private FollowerConfig[] followerConfigs = new FollowerConfig[0];
+
+        @Getter
+        private MotionMagicVelocityTorqueCurrentFOC mmVelocityFOC = new MotionMagicVelocityTorqueCurrentFOC(0);
 
         @Getter
         private MotionMagicTorqueCurrentFOC mmPositionFOC = new MotionMagicTorqueCurrentFOC(0);
 
         @Getter
-        private DynamicMotionMagicTorqueCurrentFOC dynamicMMPositionFOC =
-                new DynamicMotionMagicTorqueCurrentFOC(0, 0, 0);
+        private DynamicMotionMagicTorqueCurrentFOC dynamicMMPositionFOC = new DynamicMotionMagicTorqueCurrentFOC(0, 0,
+                0);
 
         @Getter
         private MotionMagicVelocityVoltage mmVelocityVoltage = new MotionMagicVelocityVoltage(0);
 
-        @Getter private MotionMagicVoltage mmPositionVoltage = new MotionMagicVoltage(0);
+        @Getter
+        private MotionMagicVoltage mmPositionVoltage = new MotionMagicVoltage(0);
 
         @Getter
         private MotionMagicVoltage mmPositionVoltageSlot = new MotionMagicVoltage(0).withSlot(1);
 
-        @Getter private VoltageOut voltageControl = new VoltageOut(0);
-        @Getter private VelocityVoltage velocityControl = new VelocityVoltage(0);
+        @Getter
+        private VoltageOut voltageControl = new VoltageOut(0);
+        @Getter
+        private VelocityVoltage velocityControl = new VelocityVoltage(0);
 
         @Getter
         private VelocityTorqueCurrentFOC velocityTorqueCurrentFOC = new VelocityTorqueCurrentFOC(0);
 
-        @Getter private TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0);
+        @Getter
+        private TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0);
 
         @Getter
-        private DutyCycleOut percentOutput =
-                new DutyCycleOut(
-                        0); // Percent Output control using percentage of supply voltage //Should
+        private DutyCycleOut percentOutput = new DutyCycleOut(
+                0); // Percent Output control using percentage of supply voltage //Should
         // normally use VoltageOut
 
         public Config(String name, int id, String canbus) {
@@ -941,10 +952,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
         // Configure optional motion magic velocity parameters
         public void configMotionMagicVelocity(double acceleration, double feedforward) {
-            mmVelocityFOC =
-                    mmVelocityFOC.withAcceleration(acceleration).withFeedForward(feedforward);
-            mmVelocityVoltage =
-                    mmVelocityVoltage.withAcceleration(acceleration).withFeedForward(feedforward);
+            mmVelocityFOC = mmVelocityFOC.withAcceleration(acceleration).withFeedForward(feedforward);
+            mmVelocityVoltage = mmVelocityVoltage.withAcceleration(acceleration).withFeedForward(feedforward);
         }
 
         // Configure optional motion magic position parameters
@@ -960,7 +969,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         }
 
         // This is the ratio of rotor rotations to the mechanism's output.
-        // If a remote sensor is used this a ratio of sensor rotations to the mechanism's output.
+        // If a remote sensor is used this a ratio of sensor rotations to the
+        // mechanism's output.
         public void configGearRatio(double gearRatio) {
             talonConfig.Feedback.SensorToMechanismRatio = gearRatio;
         }
@@ -1027,8 +1037,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         }
 
         public void configGravityType(int slot, boolean isArm) {
-            GravityTypeValue gravityType =
-                    isArm ? GravityTypeValue.Arm_Cosine : GravityTypeValue.Elevator_Static;
+            GravityTypeValue gravityType = isArm ? GravityTypeValue.Arm_Cosine : GravityTypeValue.Elevator_Static;
             if (slot == 0) {
                 talonConfig.Slot0.GravityType = gravityType;
             } else if (slot == 1) {

@@ -12,7 +12,7 @@ public class Operator extends Gamepad {
 
     // Triggers, these would be robot states such as intake, visionAim, etc.
     // If triggers need any of the config values set them in the constructor
-    /*  A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
+    /* A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
 
     public final Trigger enabled = teleop.or(testMode); // works for both teleop and testMode
     public final Trigger fn = leftBumper;
@@ -41,8 +41,7 @@ public class Operator extends Gamepad {
 
     public final Trigger toggleReverse = upDpad.and(climbPrep_start.not(), teleop);
 
-    public final Trigger antiSecretClimb_LTRSup =
-            leftTriggerOnly.and(rightYTrigger(Threshold.LESS, -0.5));
+    public final Trigger antiSecretClimb_LTRSup = leftTriggerOnly.and(rightYTrigger(Threshold.LESS, -0.5));
 
     public final Trigger processorScore_LT = leftTriggerOnly;
 
@@ -68,11 +67,13 @@ public class Operator extends Gamepad {
         Telemetry.print("Operator Subsystem Initialized: ");
     }
 
+    @Override
     public void setupStates() {
         // Left Blank so we can bind when the controller is connected
         OperatorStates.setStates();
     }
 
+    @Override
     public void setupDefaultCommand() {
         OperatorStates.setupDefaultCommand();
     }

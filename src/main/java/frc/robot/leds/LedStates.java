@@ -6,7 +6,7 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.robot.pilot.PilotStates;
-import frc.spectrumLib.leds.SpectrumLEDs`;
+import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
 
 public class LedStates {
@@ -58,7 +58,10 @@ public class LedStates {
         ledDefaultCommand("left.testModePattern", left, left.chase(Color.kRed, 0.2, 1), trigger);
     }
 
-    /** LED non-default Commands, set the priority value to see which command takes precedence */
+    /**
+     * LED non-default Commands, set the priority value to see which command takes
+     * precedence
+     */
     private static Trigger ledCommand(
             String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
         return trigger.and(sLed.checkPriority(priority))
@@ -66,9 +69,9 @@ public class LedStates {
     }
 
     static void testPattern(Trigger trigger, int priority) {
-            ledCommand(
+        ledCommand(
                 "right.testPattern", right, right.switchCountdown(Color.kBlue), priority, trigger);
-            ledCommand(
+        ledCommand(
                 "left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
-        }
     }
+}
