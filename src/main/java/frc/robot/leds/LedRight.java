@@ -1,17 +1,13 @@
 package frc.robot.leds;
 
-import static edu.wpi.first.units.Units.*;
+import com.ctre.phoenix6.hardware.CANdle;
+import frc.spectrumLib.leds.SpectrumLEDs2;
 
-import edu.wpi.first.wpilibj.AddressableLED;
-import edu.wpi.first.wpilibj.AddressableLEDBuffer;
-import frc.spectrumLib.leds.SpectrumLEDs;
-
-public class LedRight extends SpectrumLEDs {
+public class LedRight extends SpectrumLEDs2 {
 
     public static class LedConfig extends Config {
-        public LedConfig(AddressableLED l, AddressableLEDBuffer lb) {
-            super("LEDS Right", l, lb, 0, lb.getLength() / 2 - 1);
-            setLedSpacing(Meters.of(1 / 120.0));
+        public LedConfig(CANdle candle, int length, int startingIndex) {
+            super("LEDS Right", length, candle, startingIndex);
         }
     }
 
@@ -22,19 +18,11 @@ public class LedRight extends SpectrumLEDs {
         this.config = config;
     }
 
-    /**
-     * Binds the triggers for the LED commands. This method overrides the bindTriggers method to
-     * ensure that the LED commands are properly bound to their respective triggers.
-     */
     @Override
     public void setupStates() {
         // LedStates.bindTriggers();
     }
 
-    /**
-     * Sets up the default command for the LED subsystem. This method is called to assign the
-     * default command that will run when no other commands are scheduled for the subsystem.
-     */
     @Override
     public void setupDefaultCommand() {
         setDefaultCommand(defaultCommand);
