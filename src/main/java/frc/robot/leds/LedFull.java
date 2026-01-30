@@ -1,44 +1,43 @@
 package frc.robot.leds;
 
-import static edu.wpi.first.units.Units.*;
-
-import frc.spectrumLib.leds.SpectrumLEDs;
+import frc.spectrumLib.leds.SpectrumLEDs2;
 import lombok.Getter;
 
-public class LedFull extends SpectrumLEDs {
+public class LedFull extends SpectrumLEDs2 {
 
     public static class LedFullConfig extends Config {
         public LedFullConfig() {
-            super("LEDS", 30 * 2);
-            setLedSpacing(Meters.of(1 / 120.0));
+            super("LEDS", 30 * 2, 61); // 60 LEDs total, 30 per side. CAN ID 61.
         }
     }
 
     protected LedFullConfig config;
-    @Getter protected LedRight right;
-    @Getter protected LedLeft left;
+    @Getter
+    protected LedRight right;
+    @Getter
+    protected LedLeft left;
 
     public LedFull(LedFullConfig config) {
         super(config);
         this.config = config;
 
-        right = new LedRight(new LedRight.LedConfig(getLed(), getLedBuffer()));
-        left = new LedLeft(new LedLeft.LedConfig(getLed(), getLedBuffer()));
+        // Initialize segments sharing the same CANdle instance
+        // Right side is 0-29? Left side is 30-59?
+        // Based on original LedRight: 0 to length/2 - 1
+        // LedLeft: length/2 to length - 1
+
+        int halfLength = config.getLength() / 2;
+
+        // Pass the CANdle instance from this (LedFull) to the children
+        right = new LedRight(new LedRight.LedConfig(getLeds(), halfLength, 0));
+        left = new LedLeft(new LedLeft.LedConfig(getLeds(), halfLength, halfLength));
     }
 
-    /**
-     * Binds the triggers for the LED commands. This method overrides the bindTriggers method to
-     * ensure that the LED commands are properly bound to their respective triggers.
-     */
     @Override
     public void setupStates() {
         LedStates.bindTriggers();
     }
 
-    /**
-     * Sets up the default command for the LED subsystem. This method is called to assign the
-     * default command that will run when no other commands are scheduled for the subsystem.
-     */
     @Override
     public void setupDefaultCommand() {
         setDefaultCommand(defaultCommand);
