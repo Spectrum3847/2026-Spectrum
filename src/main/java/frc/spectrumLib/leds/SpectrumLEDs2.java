@@ -33,9 +33,9 @@ public class SpectrumLEDs2 extends SubsystemBase{
     }
 
     @Getter private Config config;
-    public static final int LedEndIndex = 120;
+    @Getter private int length;
 
-    protected final ControlRequest defaultPattern = new StrobeAnimation(0, LedEndIndex).withColor(new RGBWColor(Color.kGreen)).withFrameRate(500);
+    protected final ControlRequest defaultPattern = new StrobeAnimation(0, length).withColor(new RGBWColor(Color.kGreen)).withFrameRate(500);
 
     @Getter
     protected Command defaultCommand =
@@ -54,7 +54,11 @@ public class SpectrumLEDs2 extends SubsystemBase{
     }
 }
 
-    public SpectrumLEDs2() {
+    public SpectrumLEDs2(Config config) {
+        this.config = config;
+
+        this.length = config.length;
+
         leds = new CANdle(ledsID);
         configs = new LEDConfigs();
         configs.StripType = StripTypeValue.RGB;
