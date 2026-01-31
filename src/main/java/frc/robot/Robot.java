@@ -38,8 +38,6 @@ import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.swerve.Swerve;
 import frc.robot.swerve.SwerveConfig;
-import frc.robot.turretHood.TurretHood;
-import frc.robot.turretHood.TurretHood.TurretHoodConfig;
 import frc.robot.turretRotationalPivot.RotationalPivot;
 import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.robot.vision.Vision;
@@ -81,7 +79,6 @@ public class Robot extends SpectrumRobot {
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public LedFullConfig leds = new LedFullConfig();
         public RotationalPivotConfig turret = new RotationalPivotConfig();
-        public TurretHoodConfig turretHood = new TurretHoodConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerConfig indexer = new IndexerConfig();
         public LauncherConfig launcher = new LauncherConfig();
@@ -91,7 +88,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
     @Getter private static RotationalPivot turret;
-    @Getter private static TurretHood hood;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static Indexer indexer;
     @Getter private static LedFull leds;
@@ -137,8 +133,6 @@ public class Robot extends SpectrumRobot {
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake(config.fuelIntake);
-            Timer.delay(canInitDelay);
-            hood = new TurretHood(config.turretHood);
             Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
