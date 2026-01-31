@@ -55,7 +55,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         implements SpectrumSubsystem, NTSendable {
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
-    private double lastSimTime;
     private RotationController rotationController;
     private TagCenterAlignController tagCenterAlignController;
     private TagDistanceAlignController tagDistanceAlignController;
@@ -571,7 +570,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         private void startSimThread() {
             mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
             Seconds.of(config.getSimLoopPeriod()),
-            // TODO: modify the following constants according to your robot
             Pounds.of(115), // robot weight
             Inches.of(30), // bumper length
             Inches.of(30), // bumper width

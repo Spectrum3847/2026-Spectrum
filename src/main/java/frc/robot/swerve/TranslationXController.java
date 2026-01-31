@@ -24,7 +24,7 @@ public class TranslationXController {
                         config.getTranslationConstraints());
 
         controller.setTolerance(config.getTranslationTolerance());
-        SmartDashboard.putData("X Controller", controller);
+        SmartDashboard.putData("PID Controllers/X Controller", controller);
     }
 
     public double calculate(double goalMeters, double currentMeters) {
