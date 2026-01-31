@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
@@ -216,9 +215,9 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            SmartDashboard.putNumber("MatchTime", DriverStation.getMatchTime());
-            SmartDashboard.putBoolean("InShift", ShiftHelpers.currentShiftIsYours());
-            SmartDashboard.putNumber("TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+            SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
+            SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
             field2d.setRobotPose(swerve.getRobotPose());
             ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {
@@ -240,7 +239,7 @@ public class Robot extends SpectrumRobot {
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
                                     new InstantCommand(
-                                            () -> SmartDashboard.putBoolean("Initialized?", true)))
+                                            () -> SmartDashboard.putBoolean("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
