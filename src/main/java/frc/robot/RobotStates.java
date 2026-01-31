@@ -35,6 +35,7 @@ public class RobotStates {
     // Define triggers here
     public static final Trigger robotInNeutralZone = swerve.inNeutralZone();
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
+    public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
     // public static final Trigger hopperFull = new Trigger(null);
 
     // Setup any binding to set states

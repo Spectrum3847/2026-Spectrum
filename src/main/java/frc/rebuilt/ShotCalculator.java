@@ -8,7 +8,10 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import frc.rebuilt.targetFactories.FeedTargetFactory;
+import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
+import frc.robot.RobotStates;
 
 public class ShotCalculator {
   private static ShotCalculator instance;
@@ -62,7 +65,8 @@ public class ShotCalculator {
     }
 
     // Target location on the field
-    Translation2d target = HubTargetFactory.generate().toTranslation2d();
+    boolean feed = RobotStates.robotInFeedZone.getAsBoolean();
+    Translation2d target = feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
     // Calculate estimated pose while accounting for phase delay
     Pose2d robotPose = Robot.getSwerve().getRobotPose();
@@ -115,6 +119,7 @@ public class ShotCalculator {
     DogLog.log("ShotCalc/LookaheadPose", lookaheadPose);
     DogLog.log("ShotCalc/TurretAngleDeg", Double.toString(turretAngle.getDegrees()));
     DogLog.log("ShotCalc/FlywheelSpeed", Double.toString(flywheelSpeed));
+    DogLog.log("ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
     return latestParameters;
   }
 
