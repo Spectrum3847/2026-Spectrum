@@ -267,6 +267,20 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 });
     }
 
+    public Trigger inFieldLeft() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() >= halfWidth);
+    }
+
+    public Trigger inFieldRight() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() < halfWidth);
+    }
+
     /**
      * This method is used to check if the robot is in the X zone of the field flips the values if
      * Red Alliance
