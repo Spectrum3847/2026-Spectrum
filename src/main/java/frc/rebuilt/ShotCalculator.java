@@ -38,6 +38,23 @@ public class ShotCalculator {
 
   private static final InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
 
+  /**
+   * Percentage of pivot rotation added/removed from vision launching flywheel speeds
+   * (percentage of the CHANGE in angle you set to, not +- the angle you set to) 
+   * (the actual offset to angles gets bigger as you get farther away)
+   */
+  public static final double STARTING_OFFSET = 0;
+
+  public static double OFFSET = STARTING_OFFSET;
+
+  public static void increaseOffset() {
+    OFFSET += 1;
+  }
+
+  public static void decreaseOffset() {
+    OFFSET -= 1;
+  }
+
   static {
     phaseDelay = 0.03;
 
@@ -110,6 +127,7 @@ public class ShotCalculator {
     // Calculate parameters accounted for imparted velocity
     Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
     double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadTurretToTargetDistance);
+    flywheelSpeed += flywheelSpeed * (OFFSET / 100.0);
 
     latestParameters = new ShootingParameters(
         turretAngle,
@@ -120,6 +138,7 @@ public class ShotCalculator {
     DogLog.log("ShotCalc/TurretAngleDeg", Double.toString(turretAngle.getDegrees()));
     DogLog.log("ShotCalc/FlywheelSpeed", Double.toString(flywheelSpeed));
     DogLog.log("ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
+    DogLog.log("ShotCalc/Offset", OFFSET);
     return latestParameters;
   }
 
