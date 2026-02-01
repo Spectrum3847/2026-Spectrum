@@ -76,11 +76,20 @@
           "length": 0.8299999833106995,
           "width": 0.8299999833106995
         },
+        "apriltag": {
+          "image": "C:\\Users\\Spectrum\\Documents\\GitHub\\2026-Spectrum\\images\\tag-blue.png"
+        },
         "bottom": 1914,
+        "cameras": {
+          "style": "Hidden"
+        },
         "height": 8.069275856018066,
         "left": 245,
         "right": 3942,
         "top": 118,
+        "visibleTargetPoses": {
+          "image": "C:\\Users\\Spectrum\\Documents\\GitHub\\2026-Spectrum\\images\\tag-green.png"
+        },
         "width": 16.54119300842285,
         "window": {
           "visible": true

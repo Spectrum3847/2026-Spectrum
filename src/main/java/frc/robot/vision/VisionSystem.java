@@ -4,30 +4,31 @@ package frc.robot.vision;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import org.photonvision.PhotonCamera;
+import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
 
 public class VisionSystem extends SubsystemBase {
-    @SuppressWarnings("unused")
-    private final PhotonCamera camera = new PhotonCamera("cameraName");
-    // private final PhotonCamera frontCam = new PhotonCamera(VisionConfig.FRONT_LL);
-    // private final PhotonCamera backCam = new PhotonCamera(VisionConfig.RIGHT_LL);
+    private final PhotonCamera frontCam = new PhotonCamera("frontCam");
+    private final PhotonCamera backCam = new PhotonCamera("backCam");
     private final VisionSystemSim visionSim = new VisionSystemSim("main");
     private final Pose2dSupplier getSimPose;
 
     Transform3d robotToFrontCamera =
             new Transform3d(
-                    new Translation3d(0, 0, 0.5), // Centered on the robot, 0.5m up
-                    new Rotation3d(0, Math.toRadians(-15), 0)); // Pitched 15 deg up
+                    new Translation3d(Units.inchesToMeters(10), 0, Units.inchesToMeters(22)),
+                    new Rotation3d(0, Math.toRadians(-15), 0));
     Transform3d robotToBackCamera =
             new Transform3d(
-                    new Translation3d(0, 0, 0.5), // Centered on the robot, 0.5m up
-                    new Rotation3d(0, Math.toRadians(-15), 0)); // Pitched 15 deg up
+                    new Translation3d(Units.inchesToMeters(-10), 0, Units.inchesToMeters(22)),
+                    new Rotation3d(0, Math.toRadians(-15), Math.toRadians(180)));
 
     @FunctionalInterface
     public interface Pose2dSupplier {
@@ -39,21 +40,22 @@ public class VisionSystem extends SubsystemBase {
 
         // Setup simulated camera properties
         SimCameraProperties props = new SimCameraProperties();
+        props.setCalibration(1280, 960, Rotation2d.fromDegrees(82));
         props.setCalibError(0.25, 0.08);
-        props.setFPS(20.0);
+        props.setFPS(40);
         props.setAvgLatencyMs(35.0);
         props.setLatencyStdDevMs(5.0);
 
         // Setup simulated camera
-        // PhotonCameraSim cameraSimFront = new PhotonCameraSim(frontCam, props);
-        // PhotonCameraSim cameraSimBack = new PhotonCameraSim(backCam, props);
+        PhotonCameraSim cameraSimFront = new PhotonCameraSim(frontCam, props);
+        PhotonCameraSim cameraSimBack = new PhotonCameraSim(backCam, props);
         // Draw field wireframe in simulated camera view
-        // cameraSimFront.enableDrawWireframe(true);
-        // cameraSimBack.enableDrawWireframe(false);
+        cameraSimFront.enableDrawWireframe(true);
+        cameraSimBack.enableDrawWireframe(true);
 
         // // Add simulated camera to vision sim
-        // visionSim.addCamera(cameraSimFront, robotToFrontCamera);
-        // visionSim.addCamera(cameraSimBack, robotToBackCamera);
+        visionSim.addCamera(cameraSimFront, robotToFrontCamera);
+        visionSim.addCamera(cameraSimBack, robotToBackCamera);
 
         // Add AprilTags to vision sim
         AprilTagFieldLayout tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
