@@ -1,4 +1,4 @@
-package frc.rebuilt;
+package frc.rebuilt.targetFactories;
 
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -6,6 +6,7 @@ import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.Interpolator;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.util.Units;
+import frc.rebuilt.Field;
 import frc.robot.Robot;
 
 public class HubTargetFactory {

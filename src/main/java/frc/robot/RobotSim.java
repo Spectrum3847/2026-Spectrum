@@ -56,8 +56,8 @@ public class RobotSim {
             Units.inchesToMeters(leftViewHeight));
 
     public RobotSim() {
-        SmartDashboard.putData("TopView", RobotSim.topView);
-        SmartDashboard.putData("LeftView", RobotSim.leftView);
+        SmartDashboard.putData("Sim/TopView", RobotSim.topView);
+        SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
         topView.setBackgroundColor(new Color8Bit(Color.kLightGray));
         leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
 
@@ -134,7 +134,7 @@ public class RobotSim {
 
             @Override
             public void execute() {
-                SmartDashboard.putNumber("FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+                SmartDashboard.putNumber("Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
             }
 
             @Override
@@ -168,7 +168,7 @@ public class RobotSim {
                                             pose3ds.toArray(Pose3d[]::new)));
                     SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
                     RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-                    SmartDashboard.putNumber("FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+                    SmartDashboard.putNumber("Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
                 });
     }
 

@@ -29,7 +29,7 @@ public class TagCenterAlignController {
                         config.getKDTagCenterController());
         controller.setTolerance(0.0);
 
-        SmartDashboard.putData("tagCenterController", controller);
+        SmartDashboard.putData("PID Controllers/tagCenterController", controller);
     }
 
     public double calculate(double goalMeters, double currentMeters) {
