@@ -10,29 +10,32 @@ public class IntakeExtensionStates {
     private static IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
 
     public static void setupDefaultCommand() {
-        intakeExtension.setDefaultCommand(log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
+        intakeExtension
+                .setDefaultCommand(log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
     // -------------------- State Commands --------------------
 
     public static void fullExtend() {
-        scheduleIfNotRunning(intakeExtension.move(() -> config.getMaxRotations()));
+        scheduleIfNotRunning(intakeExtension.move(() -> config.getMaxRotations())
+                .withName("IntakeExtension.fullExtend"));
     }
 
     public static void fullRetract() {
-        scheduleIfNotRunning(intakeExtension.move(() -> config.getMinRotations()));
+        scheduleIfNotRunning(intakeExtension.move(() -> config.getMinRotations())
+                .withName("IntakeExtension.fullRetract"));
     }
 
     // --------------------------------------------------------
-    
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);
     }
 
     /**
-     * Schedules a command for the intake extension subsystem only if it's not already the running
-     * command
+     * Schedules a command for the intake extension subsystem only if it's not
+     * already the running command
      *
      * @param command the command to schedule
      */

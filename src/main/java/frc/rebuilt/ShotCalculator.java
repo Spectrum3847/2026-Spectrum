@@ -27,7 +27,8 @@ public class ShotCalculator {
 
   public record ShootingParameters(
       Rotation2d turretAngle,
-      double flywheelSpeed) {
+      double flywheelSpeed,
+      Translation2d targetPose) {
   }
 
   private ShootingParameters latestParameters = null;
@@ -137,7 +138,8 @@ public class ShotCalculator {
 
     latestParameters = new ShootingParameters(
         turretAngle,
-        flywheelSpeed);
+        flywheelSpeed,
+        target);
 
     DogLog.log("ShotCalc/DistanceMeters", Double.toString(lookaheadTurretToTargetDistance));
     DogLog.log("ShotCalc/LookaheadPose", lookaheadPose);

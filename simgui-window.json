@@ -41,6 +41,11 @@
       "Pos": "143,297",
       "Size": "307,60"
     },
+    "###/SmartDashboard/Field2d": {
+      "Collapsed": "0",
+      "Pos": "1229,877",
+      "Size": "1009,512"
+    },
     "###/SmartDashboard/LeftView": {
       "Collapsed": "0",
       "Pos": "1364,652",
@@ -64,7 +69,7 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "268,27",
-      "Size": "210,214"
+      "Size": "336,158"
     },
     "###Joysticks": {
       "Collapsed": "0",

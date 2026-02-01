@@ -44,6 +44,42 @@
           "visible": true
         }
       },
+      "/SmartDashboard/Field2d": {
+        "AutoPath": {
+          "arrows": false,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "style": "Line"
+        },
+        "Robot": {
+          "width": 0.8199999928474426
+        },
+        "bottom": 1914,
+        "height": 8.069275856018066,
+        "launcherTargetTraj": {
+          "arrows": false,
+          "style": "Line"
+        },
+        "left": 245,
+        "limelight-back": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "limelight-front": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "right": 3942,
+        "top": 118,
+        "width": 16.54119300842285,
+        "window": {
+          "visible": true
+        }
+      },
       "/SmartDashboard/LeftView": {
         "window": {
           "visible": true
@@ -75,6 +111,9 @@
           ],
           "length": 0.8299999833106995,
           "width": 0.8299999833106995
+        },
+        "apriltag": {
+          "image": "C:\\Users\\Spectrum\\Documents\\GitHub\\2026-Spectrum\\images\\tag-blue.png"
         },
         "bottom": 1914,
         "height": 8.069275856018066,

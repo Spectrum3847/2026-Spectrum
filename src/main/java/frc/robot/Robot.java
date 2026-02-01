@@ -212,7 +212,21 @@ public class Robot extends SpectrumRobot {
             SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
             SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
             SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
-            field2d.setRobotPose(swerve.getRobotPose());
+            
+            var targetTranslation = ShotCalculator.getInstance().getParameters().targetPose();
+            var targetPose = new Pose2d(targetTranslation, new Rotation2d());
+            var robotPose = swerve.getRobotPose();
+
+            // Force Elastic to view this list as a trajectory
+            List<Pose2d> launcherTargetTraj = new ArrayList<>();
+            for (int i = 0; i < 8; i++) {
+                launcherTargetTraj.add(robotPose);
+            }
+            launcherTargetTraj.add(targetPose);
+
+            field2d.getObject("launcherTargetTraj").setPoses(launcherTargetTraj);
+            field2d.setRobotPose(robotPose);
+
             ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {
             // intercept error and log it
@@ -281,7 +295,7 @@ public class Robot extends SpectrumRobot {
                                                             new Rotation2d()))
                                     .collect(Collectors.toList()));
                 }
-                field2d.getObject("path").setPoses(poses);
+                field2d.getObject("AutoPath").setPoses(poses);
             }
         }
     }
@@ -324,7 +338,7 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
             resetCommandsAndButtons();
-            field2d.getObject("path").setPoses(new ArrayList<>()); // clears auto visualizer
+            field2d.getObject("AutoPath").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
         } catch (Throwable t) {

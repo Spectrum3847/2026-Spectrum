@@ -47,9 +47,9 @@
           {
             "title": "Alerts",
             "x": 1408.0,
-            "y": 384.0,
+            "y": 512.0,
             "width": 384.0,
-            "height": 512.0,
+            "height": 384.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
@@ -69,7 +69,7 @@
               "field_game": "Rebuilt",
               "robot_width": 0.85,
               "robot_length": 0.85,
-              "show_other_objects": false,
+              "show_other_objects": true,
               "show_trajectories": true,
               "field_rotation": 0.0,
               "robot_color": 4294198070,
@@ -157,21 +157,42 @@
             }
           },
           {
-            "title": "Offset",
+            "title": "FlywheelSpeedOffset",
             "x": 1408.0,
             "y": 0.0,
             "width": 384.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Radial Gauge",
             "properties": {
-              "topic": "/Robot/ShotCalc/Offset",
-              "period": 0.033,
+              "topic": "/Robot/ShotCalc/FlywheelSpeedOffset",
+              "period": 0.06,
               "data_type": "double",
               "start_angle": -140.0,
               "end_angle": 140.0,
-              "min_value": -5.0,
-              "max_value": 5.0,
-              "number_of_labels": 10,
+              "min_value": -10.0,
+              "max_value": 10.0,
+              "number_of_labels": 5,
+              "wrap_value": false,
+              "show_pointer": true,
+              "show_ticks": true
+            }
+          },
+          {
+            "title": "TurretAngleOffsetDegrees",
+            "x": 1408.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 256.0,
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
+              "period": 0.06,
+              "data_type": "double",
+              "start_angle": -140.0,
+              "end_angle": 140.0,
+              "min_value": -15.0,
+              "max_value": 15.0,
+              "number_of_labels": 6,
               "wrap_value": false,
               "show_pointer": true,
               "show_ticks": true
@@ -792,68 +813,108 @@
       }
     },
     {
-      "name": "Vision",
+      "name": "Launching",
       "grid_layout": {
-        "layouts": [],
-        "containers": [
+        "layouts": [
           {
-            "title": "limelight-back",
-            "x": 1408.0,
-            "y": 0.0,
-            "width": 512.0,
-            "height": 384.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-back",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
-          },
-          {
-            "title": "limelight-front",
+            "title": "ShotCalc",
             "x": 0.0,
-            "y": 0.0,
-            "width": 512.0,
-            "height": 384.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-front",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
-          },
-          {
-            "title": "limelight-top",
-            "x": 512.0,
-            "y": 0.0,
-            "width": 896.0,
+            "y": 128.0,
+            "width": 384.0,
             "height": 640.0,
-            "type": "Camera Stream",
+            "type": "List Layout",
             "properties": {
-              "topic": "/CameraPublisher/limelight-top",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "DistanceMeters",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/DistanceMeters",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "TurretAngleDeg",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/TurretAngleDeg",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "FlywheelSpeed",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/FlywheelSpeed",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "FlywheelSpeedOffset",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Number Slider",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/FlywheelSpeedOffset",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "min_value": -5.0,
+                  "max_value": 5.0,
+                  "divisions": 6,
+                  "update_continuously": false
+                }
+              },
+              {
+                "title": "TurretAngleOffsetDegrees",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Number Slider",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "min_value": -15.0,
+                  "max_value": 15.0,
+                  "divisions": 6,
+                  "update_continuously": false
+                }
+              }
+            ]
           }
-        ]
-      }
-    },
-    {
-      "name": "Field",
-      "grid_layout": {
-        "layouts": [],
+        ],
         "containers": [
           {
             "title": "Field2d",
-            "x": 0.0,
-            "y": 0.0,
-            "width": 1792.0,
-            "height": 1024.0,
+            "x": 384.0,
+            "y": 128.0,
+            "width": 1152.0,
+            "height": 640.0,
             "type": "Field",
             "properties": {
               "topic": "/SmartDashboard/Field2d",
               "period": 0.06,
-              "field_game": "Reefscape",
+              "field_game": "Rebuilt",
               "robot_width": 0.85,
               "robot_length": 0.85,
               "show_other_objects": false,
