@@ -2,12 +2,10 @@ package frc.robot.turretRotationalPivot;
 
 import edu.wpi.first.wpilibj2.command.*;
 import frc.robot.Robot;
-import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.spectrumLib.Telemetry;
 
 public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
-    private static RotationalPivotConfig config = Robot.getConfig().turret;
 
     public static void setupDefaultCommand() {
         turretRotation.setDefaultCommand(log(turretRotation.runHoldTurret().withName("Turret.default")));
@@ -15,9 +13,11 @@ public class RotationalPivotStates {
     }
 
     // -------------------- State Commands --------------------
-   
+
     public static void aimAtHub() {
-        scheduleIfNotRunning(log(turretRotation.trackTargetCommand()).withName("Turret.aimAtHub"));
+        Command aimAtHubCommand = log(turretRotation.trackUntilSeeTag())
+                .withName("Turret.aimAtHub");
+        scheduleIfNotRunning(aimAtHubCommand);
     }
 
     public static void neutral() {
@@ -25,14 +25,15 @@ public class RotationalPivotStates {
     }
 
     // --------------------------------------------------------
-    
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);
     }
 
     /**
-     * Schedules a command for the rotational pivot subsystem only if it's not already the running
+     * Schedules a command for the rotational pivot subsystem only if it's not
+     * already the running
      * command
      *
      * @param command the command to schedule

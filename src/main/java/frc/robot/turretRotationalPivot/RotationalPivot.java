@@ -6,12 +6,14 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.Field;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
@@ -22,6 +24,8 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
+import frc.spectrumLib.vision.Limelight;
+
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
@@ -50,6 +54,9 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
+        @Getter private final double visionTrackingKp = 0.03;
+        @Getter private final double maxTrackingRPS = 0.5;
+
         @Getter @Setter private double sensorToMechanismRatio = 22.4;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
@@ -62,11 +69,11 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private double CANcoderOffset = 0;
         @Getter @Setter private boolean CANcoderAttached = false;
 
-         /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
-         @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
-         @Getter private double simRatio = 22.4;
-         @Getter private double length = 1;
+        /* Sim Configs */
+        @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
+        @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
+        @Getter private double simRatio = 22.4;
+        @Getter private double length = 1;
 
         public RotationalPivotConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
@@ -204,10 +211,32 @@ public class RotationalPivot extends Mechanism {
                 () -> config.getMmJerk());
     }
 
-    public Command trackTargetCommand() {
+    public Command trackUntilSeeTag() {
         return run(() -> {
             var params = ShotCalculator.getInstance().getParameters();
-            aimFieldRelative(params.turretAngle());
+            Limelight turretLL = Robot.getVision().getTurretLL();
+            double targetTagID = turretLL.getClosestTagID();
+            double hubID = Field.isBlue() ? 10 : 26;
+            if (turretLL.targetInView() && targetTagID == hubID) {
+                double error = params.visionTurretOffset();
+                double angularVelocityDegreePerSec = error * config.getVisionTrackingKp();
+                double angularVelocityRotationsPerSec = angularVelocityDegreePerSec / 360.0;
+
+                angularVelocityRotationsPerSec = MathUtil.clamp(
+                        angularVelocityRotationsPerSec,
+                        -config.getMaxTrackingRPS(),
+                        config.getMaxTrackingRPS());
+
+                if (Math.abs(error) < 0.25) {
+                    setVelocity(() -> 0.0);
+                    return;
+                }
+
+                final double angularVelocityRotationsPerSecFinal = angularVelocityRotationsPerSec;
+                setVelocity(() -> angularVelocityRotationsPerSecFinal);
+            } else {
+                aimFieldRelative(params.turretAngle());
+            }
         });
     }
 

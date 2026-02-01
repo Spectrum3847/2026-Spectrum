@@ -12,6 +12,7 @@ import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
+import frc.spectrumLib.vision.LimelightHelpers;
 
 public class ShotCalculator {
   private static ShotCalculator instance;
@@ -27,6 +28,7 @@ public class ShotCalculator {
 
   public record ShootingParameters(
       Rotation2d turretAngle,
+      double visionTurretOffset,
       double flywheelSpeed) {
   }
 
@@ -111,8 +113,11 @@ public class ShotCalculator {
     Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
     double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadTurretToTargetDistance);
 
+    double visionTurretOffset = Robot.getVision().getTurretLL().getTagTx();
+
     latestParameters = new ShootingParameters(
         turretAngle,
+        visionTurretOffset,
         flywheelSpeed);
 
     DogLog.log("ShotCalc/DistanceMeters", Double.toString(lookaheadTurretToTargetDistance));

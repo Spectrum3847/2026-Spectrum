@@ -37,23 +37,27 @@ public class Vision implements NTSendable, Subsystem {
         /* Limelight Configuration */
         @Getter final String frontLL = "limelight-front";
 
-        @Getter
-        final LimelightConfig frontConfig =
+        @Getter final LimelightConfig frontConfig =
                 new LimelightConfig(frontLL)
                         .withTranslation(0.215, 0, 0.188)
                         .withRotation(0, Math.toRadians(28), 0);
 
         @Getter final String backLL = "limelight-back";
 
-        @Getter
-        final LimelightConfig backConfig =
+        @Getter final LimelightConfig backConfig =
                 new LimelightConfig(backLL)
                         .withTranslation(-0.215, 0.0, 0.188)
                         .withRotation(0, Math.toRadians(28), Math.toRadians(180));
 
+        @Getter final String turretLL = "limelight-turret";
+        
+        @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL);
+        
+
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
         @Getter final int backTagPipeline = 0;
+        @Getter final int turretTagPipeline = 0;
 
         /* Pose Estimation Constants */
 
@@ -69,6 +73,7 @@ public class Vision implements NTSendable, Subsystem {
     /* Limelights */
     @Getter public final Limelight frontLL;
     @Getter public final Limelight backLL;
+    @Getter public final Limelight turretLL;
 
     public final Limelight[] allLimelights;
 
@@ -91,6 +96,8 @@ public class Vision implements NTSendable, Subsystem {
         frontLL = new Limelight(config.frontLL, config.frontTagPipeline, config.frontConfig);
 
         backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
+
+        turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
 
         allLimelights = new Limelight[] {frontLL, backLL};
 
@@ -130,7 +137,6 @@ public class Vision implements NTSendable, Subsystem {
         setLimeLightOrientation();
         disabledLimelightUpdates();
         enabledLimelightUpdates();
-        // autonLimelightUpdates();
 
         Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
@@ -224,37 +230,6 @@ public class Vision implements NTSendable, Subsystem {
             }
         }
     }
-
-    // private void autonLimelightUpdates() {
-    //     if (Util.autoMode.getAsBoolean() && RobotStates.poseUpdate.getAsBoolean()) {
-    //         for (Limelight limelight : allLimelights) {
-    //             limelight.setIMUmode(1);
-    //         }
-    //         try {
-    //             addMegaTag2_VisionInputAuton(backLL);
-    //         } catch (Exception e) {
-    //             Telemetry.print("REAR MT2: Vision pose not present but tried to access it");
-    //         }
-
-    //         try {
-    //             addMegaTag2_VisionInputAuton(frontLL);
-    //         } catch (Exception e) {
-    //             Telemetry.print("FRONT MT2: Vision pose not present but tried to access it");
-    //         }
-
-    //         try {
-    //             addMegaTag1_VisionInputAuton(backLL, false);
-    //         } catch (Exception e) {
-    //             Telemetry.print("REAR MT1: Vision pose not present but tried to access it");
-    //         }
-
-    //         try {
-    //             addMegaTag1_VisionInputAuton(frontLL, false);
-    //         } catch (Exception e) {
-    //             Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
-    //         }
-    //     }
-    // }
 
     @SuppressWarnings("all")
     private void addMegaTag1_VisionInput(Limelight ll, boolean integrateXY) {
