@@ -42,6 +42,11 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
+import frc.robot.swerve.controllers.RotationController;
+import frc.robot.swerve.controllers.TagCenterAlignController;
+import frc.robot.swerve.controllers.TagDistanceAlignController;
+import frc.robot.swerve.controllers.TranslationXController;
+import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -131,9 +136,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         DogLog.log("Drive/TargetStates", getState().ModuleTargets);
         DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
         DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
-        DogLog.log(
-                "FieldSimulation/Fuel",
-                SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        if (Utils.isSimulation()) {
+            DogLog.log(
+                    "FieldSimulation/Fuel",
+                    SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        }
     }
 
     @Override
