@@ -10,6 +10,7 @@ public class RotationController {
     private final PIDController holdController;
     private final SwerveConfig config;
 
+    @SuppressWarnings("unused")
     private double lastOutput = 0.0;
     private final double deadband = 1e-3;
 
@@ -27,7 +28,7 @@ public class RotationController {
 
         motionController.enableContinuousInput(-Math.PI, Math.PI);
         motionController.setTolerance(config.getRotationTolerance());
-        SmartDashboard.putData("Rotation Controller", motionController);
+        SmartDashboard.putData("PID Controllers/Rotation Controller", motionController);
 
         holdController =
                 new PIDController(

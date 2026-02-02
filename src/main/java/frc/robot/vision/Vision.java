@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
-import frc.rebuilt.offsets.HomeOffsets;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
@@ -67,13 +66,9 @@ public class Vision implements NTSendable, Subsystem {
                 VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
     }
 
-    /** Limelights */
+    /* Limelights */
     @Getter public final Limelight frontLL;
-
-    // private static final HomeOffsets offsets;
-    private static final HomeOffsets offsets = new HomeOffsets();
-
-    public final Limelight backLL;
+    @Getter public final Limelight backLL;
 
     public final Limelight[] allLimelights;
 
@@ -83,8 +78,8 @@ public class Vision implements NTSendable, Subsystem {
 
     @Getter private boolean isAiming = false;
 
-    int[] blueTags = {17, 18, 19, 20, 21, 22};
-    int[] redTags = {6, 7, 8, 9, 10, 11};
+    int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
+    int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
 
     @Getter private static AprilTagFieldLayout tagLayout;
 
@@ -759,9 +754,9 @@ public class Vision implements NTSendable, Subsystem {
     }
 
     public boolean isRearTagClosest() {
-        int closetTag = getClosestTagID();
+        int closestTag = getClosestTagID();
         int closestTagIDBack = (int) backLL.getClosestTagID();
-        return closetTag != -1 && closestTagIDBack == closetTag;
+        return closestTag != -1 && closestTagIDBack == closestTag;
     }
 
     public boolean tagsInView() {

@@ -7,20 +7,28 @@ import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
+/**
+ * Manages the high-level robot states.
+ * This class coordinates multiple subsystems based on the current robot state.
+ */
 public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
     private static final Pilot pilot = Robot.getPilot();
 
-    @Getter private static State appliedState = State.IDLE;
+    @Getter
+    private static State appliedState = State.IDLE;
 
     /**
-     * Define Robot States here and how they can be triggered States should be triggers that command
-     * multiple mechanism or can be used in teleop or auton Use onTrue/whileTrue to run a command
-     * when entering the state Use onFalse/whileFalse to run a command when leaving the state
+     * Define Robot States here and how they can be triggered States should be
+     * triggers that command
+     * multiple mechanism or can be used in teleop or auton Use onTrue/whileTrue to
+     * run a command
+     * when entering the state Use onFalse/whileFalse to run a command when leaving
+     * the state
      * RobotType Triggers
      */
 
-     // Define triggers here
+    // Define triggers here
 
     // Setup any binding to set states
     public static void setupStates() {
@@ -36,22 +44,22 @@ public class RobotStates {
 
     public static Command applyState(State state) {
         return new InstantCommand(
-                        () -> {
-                            appliedState = state;
-                            SmartDashboard.putString("APPLIED STATE", state.toString());
-                            Telemetry.print("Applied State: " + state.toString());
-                            coordinator.applyRobotState(state);
-                        })
+                () -> {
+                    appliedState = state;
+                    SmartDashboard.putString("APPLIED STATE", state.toString());
+                    Telemetry.print("Applied State: " + state.toString());
+                    coordinator.applyRobotState(state);
+                })
                 .withName("APPLYING STATE: " + state.toString());
     }
 
     public static Command clearState() {
         return new InstantCommand(
-                        () -> {
-                            appliedState = State.IDLE;
-                            SmartDashboard.putString("APPLIED STATE", "CLEARED TO IDLE");
-                            coordinator.applyRobotState(State.IDLE);
-                        })
+                () -> {
+                    appliedState = State.IDLE;
+                    SmartDashboard.putString("APPLIED STATE", "CLEARED TO IDLE");
+                    coordinator.applyRobotState(State.IDLE);
+                })
                 .withName("CLEARING STATE TO IDLE");
     }
 }

@@ -10,7 +10,8 @@ import frc.robot.turret.TurretStates;
 
 public class Coordinator {
 
-    public void update() {}
+    public void update() {
+    }
 
     public void applyRobotState(State state) {
         switch (state) {

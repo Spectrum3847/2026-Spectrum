@@ -5,13 +5,8 @@ import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
-import frc.rebuilt.offsets.HomeOffsets;
 
 public class FieldHelpers {
-
-    private static Zones zones = new Zones();
-    private static final HomeOffsets offsets = new HomeOffsets();
-
     // -----------------------------------------------------------------------
     // Field Helper Methods
     // -----------------------------------------------------------------------

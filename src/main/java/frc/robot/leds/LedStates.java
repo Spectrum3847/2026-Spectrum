@@ -1,14 +1,11 @@
 package frc.robot.leds;
 
-import static edu.wpi.first.units.Units.*;
-
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.Telemetry;
+import frc.robot.pilot.PilotStates;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
 
@@ -22,6 +19,9 @@ public class LedStates {
         teleopPattern(Util.teleop.and(Util.dsAttached));
         autoPattern(Util.autoMode.and(Util.dsAttached));
         testModePattern(Util.testMode.and(Util.dsAttached));
+
+        // General Led Commands
+        testPattern(PilotStates.buttonAPress.and(Util.teleop), 5);
     }
 
     /** Default LED commands for each mode */
@@ -62,38 +62,13 @@ public class LedStates {
     private static Trigger ledCommand(
             String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
         return trigger.and(sLed.checkPriority(priority))
-                .whileTrue(log(sLed.setPattern(pattern, priority).withName(name)));
+                .whileTrue((sLed.setPattern(pattern, priority).withName(name)));
     }
 
-    static void homeFinishLED(Trigger trigger, int priority) {
-        ledCommand(
-                "right.HomeFinish",
-                right,
-                right.bounce(right.purple, 3)
-                        .blend(right.solid(right.purple).atBrightness(Percent.of(75))),
-                priority,
-                trigger);
-        ledCommand(
-                "left.HomeFinish",
-                left,
-                right.bounce(right.purple, 3)
-                        .blend(right.solid(right.purple).atBrightness(Percent.of(75))),
-                priority,
-                trigger);
+    static void testPattern(Trigger trigger, int priority) {
+            ledCommand(
+                "right.testPattern", right, right.switchCountdown(Color.kBlue), priority, trigger);
+            ledCommand(
+                "left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
+        }
     }
-
-    static void climbReadyLED(Trigger trigger, int priority) {
-        ledCommand("right.ClimbReady", right, right.scrollingRainbow(), priority, trigger);
-        ledCommand("left.ClimbReady", left, left.scrollingRainbow(), priority, trigger);
-    }
-    
-    static void seesTagDefaultLED(Trigger trigger, int priority) {
-        ledCommand("right.SeesTag", right, right.bounce(Color.kYellow, 3), priority, trigger);
-        ledCommand("left.SeesTag", left, left.bounce(Color.kYellow, 3), priority, trigger);
-    }
-
-    // Log Command
-    protected static Command log(Command cmd) {
-        return Telemetry.log(cmd);
-    }
-}

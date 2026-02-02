@@ -5,7 +5,7 @@ import java.net.*;
 
 /** Common Network Utilities */
 public class Network {
-    static final String unkown = "UNKNOWN";
+    static final String unknown = "UNKNOWN";
     /**
      * Gets the MAC address of the robot
      *
@@ -19,11 +19,11 @@ public class Network {
         for (int i = 0; i < 10; i++) {
             try {
                 localHost = InetAddress.getLocalHost();
-                if (localHost == null) return unkown;
+                if (localHost == null) return unknown;
                 ni = NetworkInterface.getByInetAddress(localHost);
-                if (ni == null) return unkown;
+                if (ni == null) return unknown;
                 hardwareAddress = ni.getHardwareAddress();
-                if (hardwareAddress == null) return unkown;
+                if (hardwareAddress == null) return unknown;
 
                 String[] hexadecimal = new String[hardwareAddress.length];
                 for (int j = 0; j < hardwareAddress.length; j++) {
@@ -37,7 +37,7 @@ public class Network {
         }
 
         DriverStation.reportWarning("Failed to get MAC", null);
-        return unkown;
+        return unknown;
     }
 
     /**
@@ -59,7 +59,7 @@ public class Network {
         }
 
         DriverStation.reportWarning("Failed to get IP", null);
-        return unkown;
+        return unknown;
     }
 
     /**
@@ -80,6 +80,6 @@ public class Network {
             }
         }
         DriverStation.reportWarning("Failed to get IP", null);
-        return unkown;
+        return unknown;
     }
 }

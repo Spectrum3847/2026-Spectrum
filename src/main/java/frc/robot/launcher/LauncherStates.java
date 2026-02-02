@@ -1,7 +1,5 @@
 package frc.robot.launcher;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;

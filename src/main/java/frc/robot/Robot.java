@@ -18,8 +18,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import frc.rebuilt.ShiftHelpers;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.indexerBackward.IndexerBackward;
@@ -56,8 +57,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
+
+import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
+/**
+ * The main robot class.
+ * This class is the entry point for the robot code and manages all subsystems and their configurations.
+ */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
     @Getter private static Config config;
@@ -73,8 +80,10 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
         public LedFullConfig leds = new LedFullConfig();
-        public TurretConfig turret = new TurretConfig();
+        public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
+        public IndexerConfig indexer = new IndexerConfig();
+        public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
         public IndexerBackwardConfig indexerBackward = new IndexerBackwardConfig();
         public IndexerForwardConfig indexerForward = new IndexerForwardConfig();
@@ -84,7 +93,7 @@ public class Robot extends SpectrumRobot {
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
-    @Getter private static Turret turret;
+    @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerBackward indexerBackward;
     @Getter private static IndexerForward indexerForward;
@@ -94,6 +103,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
+    @Getter private static Launcher launcher;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
@@ -105,7 +115,6 @@ public class Robot extends SpectrumRobot {
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
-            robotSim = new RobotSim();
 
             /* Set up the config */
             config =
@@ -128,7 +137,7 @@ public class Robot extends SpectrumRobot {
             vision = new Vision(config.vision);
             visionSystem = new VisionSystem(swerve::getRobotPose);
             Timer.delay(canInitDelay);
-            turret = new Turret(config.turret);
+            turret = new RotationalPivot(config.turret);
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
@@ -143,6 +152,8 @@ public class Robot extends SpectrumRobot {
             launcher = new Launcher(config.launcher);
             auton = new Auton();
             coordinator = new Coordinator();
+
+            robotSim = new RobotSim();
 
             // Setup Default Commands for all subsystems
             setupDefaultCommands();
@@ -211,8 +222,11 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            SmartDashboard.putNumber("MatchTime", DriverStation.getMatchTime());
+            SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
+            SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
             field2d.setRobotPose(swerve.getRobotPose());
+            ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
@@ -232,9 +246,9 @@ public class Robot extends SpectrumRobot {
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
                                     new InstantCommand(
-                                            () -> SmartDashboard.putBoolean("Initialized?", true)))
+                                            () -> SmartDashboard.putBoolean("Initialized", true)))
                             .ignoringDisable(true);
-            autonStartCommand.schedule();
+            CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
         }
 
@@ -287,8 +301,6 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void disabledExit() {
-        // TODO: fix
-        // RobotStates.coastMode.setFalse(); // Ensure motors are in brake mode
         Telemetry.print("### Disabled Exit### ");
     }
 
@@ -301,6 +313,7 @@ public class Robot extends SpectrumRobot {
     /** This method is called once when autonomous starts */
     @Override
     public void autonomousInit() {
+        Telemetry.print("@@@ Auton Init @@@ ");
         try {
             auton.init();
         } catch (Throwable t) {
@@ -384,7 +397,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
-
+        SimulatedArena.getInstance().resetFieldForAuto();
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
 
