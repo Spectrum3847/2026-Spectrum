@@ -18,5 +18,6 @@ public class AM2026 extends Config {
         indexerBackward.setAttached(false);
         indexerForward.setAttached(false);
         towerIndexer.setAttached(true);
+        launcher.setAttached(true);
     }
 }
