@@ -1,4 +1,4 @@
-package frc.robot.turretRotationalPivot;
+package frc.robot.turret;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
@@ -6,13 +6,11 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -25,9 +23,9 @@ import frc.spectrumLib.sim.ArmSim;
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
-public class RotationalPivot extends Mechanism {
+public class Turret extends Mechanism {
 
-    public static class RotationalPivotConfig extends Config {
+    public static class TurretConfig extends Config {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
@@ -63,12 +61,12 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean CANcoderAttached = false;
 
          /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
+         @Getter private double intakeX = Units.inchesToMeters(75); // Vertical Center
          @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
          @Getter private double simRatio = 22.4;
          @Getter private double length = 1;
 
-        public RotationalPivotConfig() {
+        public TurretConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
             configPIDGains(0, positionKp, 0, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
@@ -85,10 +83,10 @@ public class RotationalPivot extends Mechanism {
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
 
-        public RotationalPivotConfig modifyMotorConfig(TalonFX motor) {
+        public TurretConfig modifyMotorConfig(TalonFX motor) {
             TalonFXConfigurator configurator = motor.getConfigurator();
             TalonFXConfiguration talonConfigMod = getTalonConfig();
 
@@ -98,17 +96,33 @@ public class RotationalPivot extends Mechanism {
         }
     }
 
-    @Getter private RotationalPivotConfig config;
-    @Getter  private RotationalPivotSim sim;
+    @Getter private TurretConfig config;
+    @Getter  private TurretSim sim;
     private SpectrumCANcoder canCoder;
     private SpectrumCANcoderConfig canCoderConfig;
     CANcoderSimState canCoderSim;
 
-    public RotationalPivot(RotationalPivotConfig config) {
+    public Turret(TurretConfig config) {
         super(config);
         this.config = config;
 
         if (isAttached()) {
+            if (config.isCANcoderAttached() && !Robot.isSimulation()) {
+                canCoderConfig =
+                        new SpectrumCANcoderConfig(
+                                config.getCANcoderRotorToSensorRatio(),
+                                config.getCANcoderSensorToMechanismRatio(),
+                                config.getCANcoderOffset(),
+                                config.isCANcoderAttached());
+                canCoder =
+                        new SpectrumCANcoder(
+                                45,
+                                canCoderConfig,
+                                motor,
+                                config,
+                                SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
+            }
+
             setInitialPosition();
         }
 
@@ -125,7 +139,7 @@ public class RotationalPivot extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        RotationalPivotStates.setupDefaultCommand();
+        TurretStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -192,25 +206,6 @@ public class RotationalPivot extends Mechanism {
         }
     }
     
-    public void aimFieldRelative(Rotation2d fieldAngle) {
-        double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
-        double turretDeg = fieldAngle.getDegrees() - robotHeadingDeg;
-        final double wrappedTurretDeg = wrapDegreesToSoftLimits(turretDeg);
-
-        setDynMMPositionFoc(
-                () -> degreesToRotations(() -> wrappedTurretDeg),
-                () -> config.getMmCruiseVelocity(),
-                () -> config.getMmAcceleration(),
-                () -> config.getMmJerk());
-    }
-
-    public Command trackTargetCommand() {
-        return run(() -> {
-            var params = ShotCalculator.getInstance().getParameters();
-            aimFieldRelative(params.turretAngle());
-        });
-    }
-
     /** Holds the position of the Turret. */
     public Command runHoldTurret() {
         return new Command() {
@@ -219,7 +214,7 @@ public class RotationalPivot extends Mechanism {
             // constructor
             {
                 setName("Turret.holdPosition");
-                addRequirements(RotationalPivot.this);
+                addRequirements(Turret.this);
             }
 
             @Override
@@ -272,7 +267,7 @@ public class RotationalPivot extends Mechanism {
     // --------------------------------------------------------------------------------
     private void simulationInit() {
         if (isAttached()) {
-            sim = new RotationalPivotSim(RobotSim.topView, motor.getSimState());
+            sim = new TurretSim(RobotSim.topView, motor.getSimState());
 
             // m_CANcoder.setPosition(0);
         }
@@ -285,8 +280,8 @@ public class RotationalPivot extends Mechanism {
             // m_CANcoder.getSimState().setRawPosition(sim.getAngleRads() / 0.202);
         }
     }
-    class RotationalPivotSim extends ArmSim {
-        public RotationalPivotSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
+    class TurretSim extends ArmSim {
+        public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
             super(
                     new ArmConfig(
                                     config.intakeX,
@@ -295,7 +290,7 @@ public class RotationalPivot extends Mechanism {
                                     config.length,
                                     -720,
                                     720,
-                                    0),
+                                    90),
                     mech,
                     turretMotorSim,
                     config.getName());

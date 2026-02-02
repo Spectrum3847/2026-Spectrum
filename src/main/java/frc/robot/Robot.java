@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
+import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.indexerBackward.IndexerBackward;
@@ -80,30 +81,27 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
         public LedFullConfig leds = new LedFullConfig();
-        public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public IndexerConfig indexer = new IndexerConfig();
         public LauncherConfig launcher = new LauncherConfig();
+        public TurretConfig turret = new TurretConfig();
         public VisionConfig vision = new VisionConfig();
         public IndexerBackwardConfig indexerBackward = new IndexerBackwardConfig();
         public IndexerForwardConfig indexerForward = new IndexerForwardConfig();
         public TowerIndexerConfig towerIndexer = new TowerIndexerConfig();
-        public LauncherConfig launcher = new LauncherConfig();
     }
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
-    @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerBackward indexerBackward;
     @Getter private static IndexerForward indexerForward;
     @Getter private static TowerIndexer towerIndexer;
     @Getter private static Launcher launcher;
+    @Getter private static Turret turret;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
-    @Getter private static Launcher launcher;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
@@ -135,9 +133,8 @@ public class Robot extends SpectrumRobot {
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
-            visionSystem = new VisionSystem(swerve::getRobotPose);
             Timer.delay(canInitDelay);
-            turret = new RotationalPivot(config.turret);
+            turret = new Turret(config.turret);
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
@@ -151,6 +148,7 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             auton = new Auton();
+            visionSystem = new VisionSystem(swerve::getRobotPose);
             coordinator = new Coordinator();
 
             robotSim = new RobotSim();

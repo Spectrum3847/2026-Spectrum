@@ -1,10 +1,5 @@
 package frc.robot;
 
-import java.util.Map;
-import java.util.function.BooleanSupplier;
-
-import com.google.common.collect.ImmutableMap;
-
 public enum State {
     IDLE,
     
