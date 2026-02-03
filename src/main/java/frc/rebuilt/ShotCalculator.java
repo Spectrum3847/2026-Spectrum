@@ -9,9 +9,7 @@ import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
-import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
-import frc.robot.RobotStates;
 
 public class ShotCalculator {
   private static ShotCalculator instance;
@@ -87,8 +85,8 @@ public class ShotCalculator {
     }
 
     // Target location on the field
-    boolean feed = RobotStates.robotInFeedZone.getAsBoolean();
-    Translation2d target = feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
+    // boolean feed = RobotStates.robotInFeedZone.getAsBoolean();
+    Translation2d target = FeedTargetFactory.generate();
 
     // Calculate estimated pose while accounting for phase delay
     Pose2d robotPose = Robot.getSwerve().getRobotPose();
