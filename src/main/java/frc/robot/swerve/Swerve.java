@@ -20,6 +20,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -64,6 +65,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     @Getter
     protected SwerveModuleState[] setpoints =
             new SwerveModuleState[] {}; // This currently doesn't do anything
+
+    // Buffer stores 1.5 seconds of pose history
+    private final TimeInterpolatableBuffer<Pose2d> poseHistory = 
+            TimeInterpolatableBuffer.createBuffer(1.5);
 
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
@@ -134,6 +139,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         DogLog.log(
                 "FieldSimulation/Fuel",
                 SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+
+        // Store current pose in history buffer every periodic cycle
+        poseHistory.addSample(
+            Utils.getCurrentTimeSeconds(),
+            this.getState().Pose
+        );
     }
 
     @Override
@@ -199,6 +210,17 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
         return getState().Pose;
+    }
+
+    /**
+     * Get the robot's pose at a specific timestamp using interpolation
+     * 
+     * @param timestampSeconds The timestamp to sample at
+     * @return The interpolated pose, or current pose if timestamp not in buffer
+     */
+    public Pose2d getPoseAtTimestamp(double timestampSeconds) {
+        return poseHistory.getSample(timestampSeconds)
+                .orElse(this.getState().Pose);
     }
 
     @Override
