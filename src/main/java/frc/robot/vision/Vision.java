@@ -29,9 +29,11 @@ import frc.spectrumLib.vision.Limelight;
 import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import lombok.Getter;
-import lombok.Setter;
 
 public class Vision implements NTSendable, Subsystem {
 
@@ -91,8 +93,6 @@ public class Vision implements NTSendable, Subsystem {
 
     private final DecimalFormat df = new DecimalFormat();
 
-    @Getter @Setter private boolean isIntegrating = false;
-
     @Getter private boolean isAiming = false;
 
     int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
@@ -107,8 +107,8 @@ public class Vision implements NTSendable, Subsystem {
 
         frontLL = new Limelight(config.frontLL, config.frontTagPipeline, config.frontConfig);
         backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
-        leftLL = new Limelight(config.leftLL, config.frontTagPipeline, config.leftConfig);
-        rightLL = new Limelight(config.rightLL, config.backTagPipeline, config.rightConfig);
+        leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
+        rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
 
         allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
 
@@ -141,6 +141,8 @@ public class Vision implements NTSendable, Subsystem {
 
         Robot.getField2d().getObject(frontLL.getCameraName());
         Robot.getField2d().getObject(backLL.getCameraName());
+        Robot.getField2d().getObject(leftLL.getCameraName());
+        Robot.getField2d().getObject(rightLL.getCameraName());
     }
 
     @Override
@@ -200,6 +202,12 @@ public class Vision implements NTSendable, Subsystem {
         builder.addDoubleProperty("BackTX", backLL::getTagTx, null);
         builder.addDoubleProperty("BackTA", backLL::getTagTA, null);
         builder.addDoubleProperty("BackTagID", backLL::getClosestTagID, null);
+        builder.addDoubleProperty("LeftTX", leftLL::getTagTx, null);
+        builder.addDoubleProperty("LeftTA", leftLL::getTagTA, null);
+        builder.addDoubleProperty("LeftTagID", leftLL::getClosestTagID, null);
+        builder.addDoubleProperty("RightTX", rightLL::getTagTx, null);
+        builder.addDoubleProperty("RightTA", rightLL::getTagTA, null);
+        builder.addDoubleProperty("RightTagID", rightLL::getClosestTagID, null);
     }
 
     private void setLimeLightOrientation() {
@@ -215,168 +223,150 @@ public class Vision implements NTSendable, Subsystem {
             for (Limelight limelight : allLimelights) {
                 limelight.setIMUmode(1);
             }
-            try {
-                addMegaTag1_VisionInput(backLL, true);
-            } catch (Exception e) {
-                Telemetry.print("REAR MT1: Vision pose not present but tried to access it");
-            }
-
-            try {
-                addMegaTag1_VisionInput(frontLL, true);
-            } catch (Exception e) {
-                Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
-            }
+        // MegaTag1 estimates (3D) for each camera
+        VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, true);
+        VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, true);
+        VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, true);
+        VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, true);
+        integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
         }
     }
 
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean()) {
             for (Limelight limelight : allLimelights) {
-                limelight.setIMUmode(1);
+                limelight.setIMUmode(4);
             }
-            try {
-                addMegaTag2_VisionInput(backLL);
-            } catch (Exception e) {
-                Telemetry.print("REAR MT2: Vision pose not present but tried to access it");
-            }
+            // MegaTag1 estimates (3D) for each camera
+            VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, false);
+            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, false);
+            VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, false);
+            VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, false);
+            integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
 
-            try {
-                addMegaTag2_VisionInput(frontLL);
-            } catch (Exception e) {
-                Telemetry.print("FRONT MT2: Vision pose not present but tried to access it");
-            }
-
-            try {
-                addMegaTag1_VisionInput(backLL, false);
-            } catch (Exception e) {
-                Telemetry.print("REAR MT1: Vision pose not present but tried to access it");
-            }
-
-            try {
-                addMegaTag1_VisionInput(frontLL, false);
-            } catch (Exception e) {
-                Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
-            }
+            // MegaTag2 estimates (2D) for each camera
+            VisionFieldPoseEstimate frontMT2 = getMT2VisionEstimate(frontLL);
+            VisionFieldPoseEstimate backMT2 = getMT2VisionEstimate(backLL);
+            VisionFieldPoseEstimate leftMT2 = getMT2VisionEstimate(leftLL);
+            VisionFieldPoseEstimate rightMT2 = getMT2VisionEstimate(rightLL);
+            integrateMultipleEstimates(frontMT2, backMT2, leftMT2, rightMT2);
         }
     }
 
-    @SuppressWarnings("all")
-    private void addMegaTag1_VisionInput(Limelight ll, boolean integrateXY) {
-        double xyStds;
-        double degStds;
+    private VisionFieldPoseEstimate getMT1VisionEstimate(Limelight ll, boolean integrateXY) {
+        if (!ll.targetInView()) {
+            ll.setTagStatus("No Targets in View");
+            ll.sendInvalidStatus("No Targets in View Rejection");
+            return null;
+        }
 
-        // integrate vision
-        if (ll.targetInView()) {
-            boolean multiTags = ll.multipleTagsInView();
-            double targetSize = ll.getTargetSize();
-            Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-            Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
-            RawFiducial[] tags = ll.getRawFiducial();
-            double highestAmbiguity = 2;
-            ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        boolean multiTags = ll.multipleTagsInView();
+        double targetSize = ll.getTargetSize();
+        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
+        Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
+        RawFiducial[] tags = ll.getRawFiducial();
+        double highestAmbiguity = 2;
+        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
 
-            // distance from current pose to vision estimated MT2 pose
-            double mt1PoseDifference =
-                    Robot.getSwerve()
-                            .getRobotPose()
-                            .getTranslation()
-                            .getDistance(megaTag1Pose2d.getTranslation());
+        // distance from current pose to vision estimated MT1 pose
+        double mt1PoseDifference = Robot.getSwerve()
+                .getRobotPose()
+                .getTranslation()
+                .getDistance(megaTag1Pose2d.getTranslation());
 
-            /* rejections */
-            // reject mt1 pose if individual tag ambiguity is too high
-            ll.setTagStatus("");
+        // ambiguity / basic rejections
+        ll.setTagStatus("");
+        if (tags != null) {
             for (RawFiducial tag : tags) {
-                // search for highest ambiguity tag for later checks
                 if (highestAmbiguity == 2 || tag.ambiguity > highestAmbiguity) {
                     highestAmbiguity = tag.ambiguity;
                 }
-                // ambiguity rejection check
                 if (tag.ambiguity > 0.9) {
-                    return;
+                    // ambiguity too high -> reject
+                    ll.sendInvalidStatus("High Ambiguity Rejection");
+                    return null;
                 }
             }
-
-            /* rejections */
-            if (rejectionCheck(megaTag1Pose2d, targetSize)) {
-                return;
-            }
-
-            if (Math.abs(megaTag1Pose3d.getRotation().getX()) > 5
-                    || Math.abs(megaTag1Pose3d.getRotation().getY()) > 5) {
-                // reject if pose is 5 degrees titled in roll or pitch
-                ll.sendInvalidStatus("roll/pitch rejection");
-                return;
-            }
-
-            /* integrations */
-            // if almost stationary and extremely close to tag
-            if (robotSpeed.vxMetersPerSecond + robotSpeed.vyMetersPerSecond <= 0.2
-                    && targetSize > 4) {
-                ll.sendValidStatus("Stationary close integration");
-                xyStds = 0.1;
-                degStds = 0.1;
-            } else if (multiTags && targetSize > 2) {
-                ll.sendValidStatus("Strong Multi integration");
-                xyStds = 0.1;
-                degStds = 0.1;
-            } else if (multiTags && targetSize > 0.2) {
-                ll.sendValidStatus("Multi integration");
-                xyStds = 0.25;
-                degStds = 8;
-            } else if (targetSize > 2 && (mt1PoseDifference < 0.5)) {
-                // Integrate if the target is very big and we are close to pose
-                ll.sendValidStatus("Close integration");
-                xyStds = 0.5;
-                degStds = 999999;
-            } else if (targetSize > 1 && (mt1PoseDifference < 0.25)) {
-                // Integrate if we are very close to pose and target is large enough
-                ll.sendValidStatus("Proximity integration");
-                xyStds = 1.0;
-                degStds = 999999;
-            } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
-                ll.sendValidStatus("Stable integration");
-                xyStds = 1.5;
-                degStds = 999999;
-            } else {
-                // Shouldn't integrate
-                return;
-            }
-
-            // strict with degree std and ambiguity and rotation because this is megatag1
-            if (highestAmbiguity > 0.5) {
-                degStds = 15;
-            }
-
-            if (robotSpeed.omegaRadiansPerSecond >= 0.5) {
-                degStds = 50;
-            }
-
-            if (!integrateXY) {
-                xyStds = 999999;
-            }
-
-            if (integrateXY) { // If we are disabled just use this pose
-                xyStds = 0.01;
-                degStds = 0.01;
-            }
-
-            Pose2d integratedPose =
-                    new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
-            Robot.getSwerve()
-                    .addVisionMeasurement(
-                            integratedPose,
-                            Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp()),
-                            VecBuilder.fill(xyStds, xyStds, degStds));
-        } else {
-            ll.setTagStatus("no tags");
-            ll.sendInvalidStatus("no tag found rejection");
         }
+
+        if (rejectionCheck(megaTag1Pose2d, targetSize)) {
+            return null;
+        }
+
+        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > 5
+                || Math.abs(megaTag1Pose3d.getRotation().getY()) > 5) {
+            // reject if pose is tilted in roll or pitch
+            ll.sendInvalidStatus("Roll/Pitch Rejection");
+            return null;
+        }
+
+        // Determine std devs similar to the original logic
+        double xyStds;
+        double degStds;
+
+        if (robotSpeed.vxMetersPerSecond + robotSpeed.vyMetersPerSecond <= 0.2
+                && targetSize > 4) {
+            ll.sendValidStatus("Stationary close integration");
+            xyStds = 0.1;
+            degStds = 0.1;
+        } else if (multiTags && targetSize > 2) {
+            ll.sendValidStatus("Strong Multi integration");
+            xyStds = 0.1;
+            degStds = 0.1;
+        } else if (multiTags && targetSize > 0.2) {
+            ll.sendValidStatus("Multi integration");
+            xyStds = 0.25;
+            degStds = 8;
+        } else if (targetSize > 2 && (mt1PoseDifference < 0.5)) {
+            ll.sendValidStatus("Close integration");
+            xyStds = 0.5;
+            degStds = config.getKLargeVariance();
+        } else if (targetSize > 1 && (mt1PoseDifference < 0.25)) {
+            ll.sendValidStatus("Proximity integration");
+            xyStds = 1.0;
+            degStds = config.getKLargeVariance();
+        } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
+            ll.sendValidStatus("Stable integration");
+            xyStds = 1.5;
+            degStds = config.getKLargeVariance();
+        } else {
+            // shouldn't integrate
+            ll.sendInvalidStatus("Integration Criteria not Met");
+            return null;
+        }
+
+        // Strict with degree std and ambiguity for MegaTag1
+        if (highestAmbiguity > 0.5) {
+            degStds = 15;
+        }
+
+        if (robotSpeed.omegaRadiansPerSecond >= 0.5) {
+            degStds = 50;
+        }
+
+        if (!integrateXY) {
+            xyStds = 999999;
+        }
+
+        // If we're forcing integration (e.g., for testing), use very tight stds
+        if (integrateXY) {
+            xyStds = 0.01;
+            degStds = 0.01;
+        }
+
+        Pose2d integratedPose = new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
+
+        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
+        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
+        int numTags = tags == null ? 1 : tags.length;
+
+        return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
 
-    private VisionFieldPoseEstimate getMegaTag2_VisionEstimate(Limelight ll) {
+    private VisionFieldPoseEstimate getMT2VisionEstimate(Limelight ll) {
         if (!ll.targetInView()) {
-            ll.setTagStatus("no tags");
-            ll.sendInvalidStatus("no tag found rejection");
+            ll.setTagStatus("No Targets in View");
+            ll.sendInvalidStatus("No Targets in View Rejection");
             return null;
         }
 
@@ -446,39 +436,38 @@ public class Vision implements NTSendable, Subsystem {
         }
     }
 
-    /**
-     * Integrate vision estimates - fuse if both available, otherwise use individual
-     */
-    private void integrateVisionEstimates(
-            VisionFieldPoseEstimate front, VisionFieldPoseEstimate back) {
+    /** Helper to integrate multiple estimates close in time by fusing them together first */
+    private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
+        // Collect non-null estimates
+        List<VisionFieldPoseEstimate> list = new ArrayList<>();
+        for (VisionFieldPoseEstimate e : estimates) {
+            if (e != null)
+                list.add(e);
+        }
+        if (list.isEmpty())
+            return;
 
-        // If both cameras have valid estimates
-        if (front != null && back != null) {
-            // Check if timestamps are close enough to fuse
-            double timeDelta = Math.abs(front.getTimestampSeconds() - back.getTimestampSeconds());
+        // Sort by timestamp ascending (old -> new). fuseEstimates expects to project
+        // older -> newer.
+        list.sort(Comparator.comparingDouble(VisionFieldPoseEstimate::getTimestampSeconds));
+
+        // Iteratively group/fuse estimates close in time.
+        VisionFieldPoseEstimate currentGroup = list.get(0);
+        for (int i = 1; i < list.size(); i++) {
+            VisionFieldPoseEstimate next = list.get(i);
+            double timeDelta = Math.abs(next.getTimestampSeconds() - currentGroup.getTimestampSeconds());
 
             if (timeDelta < config.getKMaxTimeDeltaSeconds()) {
-                // Fuse the estimates
-                VisionFieldPoseEstimate fused = fuseEstimates(front, back);
-
-                // Integrate fused estimate
-                Robot.getSwerve()
-                        .addVisionMeasurement(
-                                fused.getVisionRobotPoseMeters(),
-                                fused.getTimestampSeconds(),
-                                fused.getVisionMeasurementStdDevs());
-
-                Telemetry.log("Vision/FusedEstimate", "Both cameras fused");
+                // Fuse into current group (currentGroup older, next newer)
+                currentGroup = fuseEstimates(currentGroup, next);
             } else {
-                // Too far apart in time, integrate separately
-                integrateSingleEstimate(front);
-                integrateSingleEstimate(back);
+                // No close timestamp: integrate current group and start a new one
+                integrateSingleEstimate(currentGroup);
+                currentGroup = next;
             }
-        } else if (front != null) {
-            integrateSingleEstimate(front);
-        } else if (back != null) {
-            integrateSingleEstimate(back);
         }
+        // integrate the final fused group
+        integrateSingleEstimate(currentGroup);
     }
 
     private boolean rejectionCheck(Pose2d pose, double targetSize) {
