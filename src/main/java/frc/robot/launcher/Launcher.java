@@ -14,6 +14,7 @@ import frc.spectrumLib.sim.RollerSim;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import lombok.Getter;
@@ -51,6 +52,7 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            setFollowerConfigs(new FollowerConfig("LauncherRight", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
