@@ -51,7 +51,10 @@ public class Vision implements NTSendable, Subsystem {
 
         @Getter final String turretLL = "limelight-turret";
         
-        @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL);
+        @Getter final LimelightConfig turretConfig = 
+            new LimelightConfig(turretLL)
+                .withTranslation(0, 0, 0.8128)
+                .withRotation(0, Math.toRadians(30), 0);
         
 
         /* Pipeline configs */
@@ -130,6 +133,7 @@ public class Vision implements NTSendable, Subsystem {
 
         Robot.getField2d().getObject(frontLL.getCameraName());
         Robot.getField2d().getObject(backLL.getCameraName());
+        Robot.getField2d().getObject(turretLL.getCameraName());
     }
 
     @Override
@@ -140,6 +144,7 @@ public class Vision implements NTSendable, Subsystem {
 
         Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
+        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag2Pose());
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -152,6 +157,14 @@ public class Vision implements NTSendable, Subsystem {
 
     public Pose2d getBackMegaTag2Pose() {
         Pose2d pose = backLL.getMegaTag2_Pose2d();
+        if (pose != null) {
+            return pose;
+        }
+        return new Pose2d();
+    }
+
+    public Pose2d getTurretMegaTag2Pose() {
+        Pose2d pose = turretLL.getMegaTag2_Pose2d();
         if (pose != null) {
             return pose;
         }
@@ -171,6 +184,9 @@ public class Vision implements NTSendable, Subsystem {
         builder.addDoubleProperty("BackTX", backLL::getTagTx, null);
         builder.addDoubleProperty("BackTA", backLL::getTagTA, null);
         builder.addDoubleProperty("BackTagID", backLL::getClosestTagID, null);
+        builder.addDoubleProperty("TurretTX", turretLL::getTagTx, null);
+        builder.addDoubleProperty("TurretTA", turretLL::getTagTA, null);
+        builder.addDoubleProperty("TurretTagID", turretLL::getClosestTagID, null);
     }
 
     private void setLimeLightOrientation() {

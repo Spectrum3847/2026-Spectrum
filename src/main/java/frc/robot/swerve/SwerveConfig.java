@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
+import frc.spectrumLib.Rio;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -152,7 +153,7 @@ public class SwerveConfig {
     @Getter @Setter private boolean invertLeftSide = false;
     @Getter @Setter private boolean invertRightSide = true;
 
-    @Getter @Setter private CANBus canBus = new CANBus("rio", "./logs/spectrum.hoot");
+    @Getter @Setter private CANBus canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
     @Getter private int pigeonId = 0;
 
     // These are only used for simulation

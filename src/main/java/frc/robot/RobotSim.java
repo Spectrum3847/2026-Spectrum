@@ -10,6 +10,9 @@ import org.ironmaple.simulation.IntakeSimulation;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.gamepieces.GamePieceProjectile;
 import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
+
+import com.ctre.phoenix6.Utils;
+
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -38,13 +41,16 @@ public class RobotSim {
     @Getter public static final double leftViewHeight = 75;
     @Getter public static final double leftViewWidth = 75;
 
-    @Getter private static final IntakeSimulation intakeSimulation = IntakeSimulation.OverTheBumperIntake(
-            "Fuel",
-            Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-            Inches.of(29),
-            Inches.of(12),
-            IntakeSimulation.IntakeSide.FRONT,
-            80);;
+    @Getter
+    private static final IntakeSimulation intakeSimulation = edu.wpi.first.wpilibj.RobotBase.isSimulation()
+            ? IntakeSimulation.OverTheBumperIntake(
+                    "Fuel",
+                    Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
+                    Inches.of(29),
+                    Inches.of(12),
+                    IntakeSimulation.IntakeSide.FRONT,
+                    80)
+            : null;
 
     public static final Translation2d origin = new Translation2d(0.0, 0.0);
 
@@ -125,6 +131,9 @@ public class RobotSim {
 
     // Maple Sim Fuel Intaking
     public static Command mapleSimIntakeFuel() {
+        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+            return Commands.none();
+        }
         return new Command() {
             @Override
             public void initialize() {
@@ -140,11 +149,14 @@ public class RobotSim {
             public void end(boolean interrupted) {
                 RobotSim.getIntakeSimulation().stopIntake();
             }
-        };
+        }.withName("RobotSim.mapleSimIntakeFuel");
     }
 
     // Maple Sim Fuel Projectile Creator
     public static Command mapleSimCreateFuelProjectile() {
+        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+            return Commands.none();
+        }
         return new InstantCommand(
                 () -> {
                     var parameters = ShotCalculator.getInstance().getParameters();
@@ -167,10 +179,13 @@ public class RobotSim {
                     SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
                     RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
                     SmartDashboard.putNumber("Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
-                });
+                }).withName("RobotSim.mapleSimCreateFuelProjectile");
     }
 
     public static Command mapleSimLaunchFuel() {
+        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+            return Commands.none();
+        }
         return Commands.defer(
                 () -> {
                     int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();

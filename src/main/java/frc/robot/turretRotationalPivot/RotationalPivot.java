@@ -44,8 +44,8 @@ public class RotationalPivot extends Mechanism {
 
         @Getter private final double currentLimit = 10;
         @Getter private final double torqueCurrentLimit = 100;
-        @Getter private final double positionKp = 1000;
-        @Getter private final double positionKd = 175;
+        @Getter private final double positionKp = 400;
+        @Getter private final double positionKd = 75;
         @Getter private final double positionKv = 0.15;
         @Getter private final double positionKs = 1.8;
         @Getter private final double positionKa = 2;
@@ -57,17 +57,17 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double visionTrackingKp = 0.03;
         @Getter private final double maxTrackingRPS = 0.5;
 
-        @Getter @Setter private double sensorToMechanismRatio = 22.4;
+        @Getter @Setter private double sensorToMechanismRatio = 45;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
-        @Getter @Setter private double CANcoderRotorToSensorRatio = 22.4;
+        @Getter @Setter private double CANcoderRotorToSensorRatio = 5;
         // CANcoderRotorToSensorRatio / sensorToMechanismRatio;
 
-        @Getter @Setter private double CANcoderSensorToMechanismRatio = 1;
+        @Getter @Setter private double CANcoderSensorToMechanismRatio = 9;
 
         @Getter @Setter private double CANcoderOffset = 0;
-        @Getter @Setter private boolean CANcoderAttached = false;
+        @Getter @Setter private boolean CANcoderAttached = true;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
@@ -86,7 +86,7 @@ public class RotationalPivot extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-1, 1);
+            configMinMaxRotations(-.95, 0.8);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);

@@ -131,9 +131,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         DogLog.log("Drive/TargetStates", getState().ModuleTargets);
         DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
         DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
-        DogLog.log(
-                "FieldSimulation/Fuel",
-                SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        if (Utils.isSimulation()) {
+            DogLog.log(
+                    "FieldSimulation/Fuel",
+                    SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        }
     }
 
     @Override
