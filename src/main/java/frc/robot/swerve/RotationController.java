@@ -28,7 +28,7 @@ public class RotationController {
 
         motionController.enableContinuousInput(-Math.PI, Math.PI);
         motionController.setTolerance(config.getRotationTolerance());
-        SmartDashboard.putData("Rotation Controller", motionController);
+        SmartDashboard.putData("PID Controllers/Rotation Controller", motionController);
 
         holdController =
                 new PIDController(

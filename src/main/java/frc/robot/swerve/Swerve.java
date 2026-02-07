@@ -20,7 +20,6 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -41,7 +40,6 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.spectrumLib.SpectrumSubsystem;
@@ -57,7 +55,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         implements SpectrumSubsystem, NTSendable {
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
-    private double lastSimTime;
     private RotationController rotationController;
     private TagCenterAlignController tagCenterAlignController;
     private TagDistanceAlignController tagDistanceAlignController;
@@ -268,6 +265,34 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     return Util.inRange(() -> x, () -> minX, () -> maxX)
                             && Util.inRange(() -> y, () -> minY, () -> maxY);
                 });
+    }
+
+    public Trigger inFieldLeft() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() >= halfWidth);
+    }
+
+    public Trigger inFieldRight() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() < halfWidth);
+    }
+
+    public Trigger inFieldLeft() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() >= halfWidth);
+    }
+
+    public Trigger inFieldRight() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() < halfWidth);
     }
 
 
@@ -597,12 +622,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
+    @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
         @SuppressWarnings("unchecked")
         private void startSimThread() {
             mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
             Seconds.of(config.getSimLoopPeriod()),
-            // TODO: modify the following constants according to your robot
             Pounds.of(115), // robot weight
             Inches.of(30), // bumper length
             Inches.of(30), // bumper width

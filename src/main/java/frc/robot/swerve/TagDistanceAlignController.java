@@ -26,7 +26,7 @@ public class TagDistanceAlignController {
                         config.getKDTagDistanceController());
 
         controller.setTolerance(0.0);
-        SmartDashboard.putData("tagDistanceController", controller);
+        SmartDashboard.putData("PID Controllers/tagDistanceController", controller);
     }
 
     public double calculate(double goalArea, double currentArea) {

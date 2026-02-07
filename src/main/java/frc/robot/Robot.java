@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
@@ -39,8 +38,6 @@ import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.swerve.Swerve;
 import frc.robot.swerve.SwerveConfig;
-import frc.robot.turretHood.TurretHood;
-import frc.robot.turretHood.TurretHood.TurretHoodConfig;
 import frc.robot.turretRotationalPivot.RotationalPivot;
 import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.robot.vision.Vision;
@@ -61,6 +58,10 @@ import lombok.Getter;
 import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
+/**
+ * The main robot class.
+ * This class is the entry point for the robot code and manages all subsystems and their configurations.
+ */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
     @Getter private static Config config;
@@ -78,7 +79,6 @@ public class Robot extends SpectrumRobot {
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public LedFullConfig leds = new LedFullConfig();
         public RotationalPivotConfig turret = new RotationalPivotConfig();
-        public TurretHoodConfig turretHood = new TurretHoodConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerConfig indexer = new IndexerConfig();
         public LauncherConfig launcher = new LauncherConfig();
@@ -88,7 +88,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
     @Getter private static RotationalPivot turret;
-    @Getter private static TurretHood hood;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static Indexer indexer;
     @Getter private static LedFull leds;
@@ -107,7 +106,6 @@ public class Robot extends SpectrumRobot {
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
-            robotSim = new RobotSim();
 
             /* Set up the config */
             config =
@@ -136,13 +134,13 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
-            hood = new TurretHood(config.turretHood);
-            Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
             indexer = new Indexer(config.indexer);
             auton = new Auton();
             coordinator = new Coordinator();
+
+            robotSim = new RobotSim();
 
             // Setup Default Commands for all subsystems
             setupDefaultCommands();
@@ -211,9 +209,9 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            SmartDashboard.putNumber("MatchTime", DriverStation.getMatchTime());
-            SmartDashboard.putBoolean("InShift", ShiftHelpers.currentShiftIsYours());
-            SmartDashboard.putNumber("TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+            SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
+            SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
             field2d.setRobotPose(swerve.getRobotPose());
             ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {
@@ -235,7 +233,7 @@ public class Robot extends SpectrumRobot {
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
                                     new InstantCommand(
-                                            () -> SmartDashboard.putBoolean("Initialized?", true)))
+                                            () -> SmartDashboard.putBoolean("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;

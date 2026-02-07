@@ -85,6 +85,7 @@ public class MapleSimSwerveDrivetrain {
      *                             SwerveDrivetrain#getModules()}
      * @param moduleConstants      the constants for the swerve modules
      */
+    @SuppressWarnings("unchecked")
     public MapleSimSwerveDrivetrain(
             Time simPeriod,
             Mass robotMassWithBumpers,

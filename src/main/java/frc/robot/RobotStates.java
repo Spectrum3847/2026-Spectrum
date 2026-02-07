@@ -10,6 +10,10 @@ import frc.robot.swerve.Swerve;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
+/**
+ * Manages the high-level robot states.
+ * This class coordinates multiple subsystems based on the current robot state.
+ */
 public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
     private static final Pilot pilot = Robot.getPilot();
@@ -36,8 +40,7 @@ public class RobotStates {
     public static final Trigger robotReadyFeed = new Trigger(hopperFull); //movement stable + vision stable + hopper full
     public static final Trigger robotInScoreZone = robotInEnemyZone.not().and(robotInNeutralZone.not());
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone); 
-
-    // Setup any binding to set states
+    
     public static void setupStates() {
         // Pilot Triggers
         pilot.AButton.onTrue(applyState(State.INTAKE_FUEL));
