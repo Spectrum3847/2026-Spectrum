@@ -87,7 +87,7 @@ public class ShotCalculator {
     }
 
     // Target location on the field
-    boolean feed = RobotStates.robotInFeedZone.getAsBoolean();
+    boolean feed = RobotStates.robotInFeedZone.getAsBoolean() && !RobotStates.forceScore.getAsBoolean();
     Translation2d target = feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
     // Calculate estimated pose while accounting for phase delay

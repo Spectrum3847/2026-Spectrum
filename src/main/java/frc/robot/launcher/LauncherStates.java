@@ -6,33 +6,33 @@ import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class LauncherStates {
-    private static Launcher intake = Robot.getLauncher();
+    private static Launcher launcher = Robot.getLauncher();
     private static Launcher.LauncherConfig config = Robot.getConfig().launcher;
 
     public static void setupDefaultCommand() {
-        intake.setDefaultCommand(
-                intake.stopMotor().ignoringDisable(true).withName("Launcher.default"));
+        launcher.setDefaultCommand(
+                launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(intake.runVoltage(() -> 0).withName("Launcher.neutral"));
+        scheduleIfNotRunning(launcher.runVoltage(() -> 0).withName("Launcher.neutral"));
     }
 
     public static Command launchFuel() {
-        return intake.runTorqueFOC(config::getLauncherTorqueCurrent)
+        return launcher.runTorqueFOC(config::getLauncherTorqueCurrent)
             .withName("Launcher.launchFuelCommand");
     }
 
     public static void coastMode() {
-        scheduleIfNotRunning(intake.coastMode());
+        scheduleIfNotRunning(launcher.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(intake.ensureBrakeMode());
+        scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
     public static void aimAtHub() {
-        scheduleIfNotRunning(intake.trackTargetCommand().withName("Launcher.aimAtHub"));
+        scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
     // Log Command
@@ -49,7 +49,7 @@ public class LauncherStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(intake);
+        Command current = commandScheduler.requiring(launcher);
 
         // Only schedule if it's not already the same same command
         if (current != command) {

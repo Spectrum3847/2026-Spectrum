@@ -267,13 +267,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 });
     }
 
-    public Trigger inFieldLeft() {
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
-        final double halfWidth = fieldWidthMeters / 2.0;
-
-        return new Trigger(() -> getRobotPose().getY() >= halfWidth);
-    }
-
     public Trigger inFieldRight() {
         final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
         final double halfWidth = fieldWidthMeters / 2.0;
@@ -287,14 +280,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         return new Trigger(() -> getRobotPose().getY() >= halfWidth);
     }
-
-    public Trigger inFieldRight() {
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
-        final double halfWidth = fieldWidthMeters / 2.0;
-
-        return new Trigger(() -> getRobotPose().getY() < halfWidth);
-    }
-
 
     private static final double DEFAULT_OVERSPEED_METERS_PER_SECOND = 10.0;
 

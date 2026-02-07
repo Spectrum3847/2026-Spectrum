@@ -64,16 +64,21 @@
     "###FMS": {
       "Collapsed": "0",
       "Pos": "268,27",
-      "Size": "210,214"
+      "Size": "202,214"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "11,442",
-      "Size": "976,278"
+      "Size": "976,219"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
       "Pos": "266,326",
+      "Size": "300,560"
+    },
+    "###Keyboard 1 Settings": {
+      "Collapsed": "0",
+      "Pos": "320,50",
       "Size": "300,560"
     },
     "###NetworkTables": {
