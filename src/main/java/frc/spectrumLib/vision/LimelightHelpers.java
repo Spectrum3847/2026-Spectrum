@@ -17,6 +17,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 
+import java.util.Objects;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
@@ -651,6 +652,11 @@ public class LimelightHelpers {
                 Double.compare(ambiguity, other.ambiguity) == 0;
         }
 
+        @Override
+        public int hashCode() {
+            return Objects.hash(id, txnc, tync, ta, distToCamera, distToRobot, ambiguity);
+        }
+
     }
 
     /**
@@ -675,6 +681,11 @@ public class LimelightHelpers {
             return Double.compare(txnc, other.txnc) == 0 &&
                 Double.compare(tync, other.tync) == 0 &&
                 Double.compare(ta, other.ta) == 0;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(txnc, tync, ta);
         }
     }
 
@@ -775,6 +786,13 @@ public class LimelightHelpers {
                 && Double.compare(that.avgTagArea, avgTagArea) == 0
                 && pose.equals(that.pose)
                 && Arrays.equals(rawFiducials, that.rawFiducials);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(pose, latency, tagCount, tagSpan, avgTagDist, avgTagArea);
+            result = 31 * result + Arrays.hashCode(rawFiducials);
+            return result;
         }
 
     }
