@@ -45,6 +45,7 @@ public class RobotStates {
         pilot.BButton.onTrue(applyState(State.TURRET_TRACK_WITH_SPINUP));
         pilot.BButton.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
         pilot.home_select.onTrue(clearState());
+        pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
 
         // robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 
