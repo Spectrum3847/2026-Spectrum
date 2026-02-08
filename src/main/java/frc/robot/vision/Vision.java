@@ -28,6 +28,9 @@ import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import java.text.DecimalFormat;
 import java.util.Arrays;
+import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -87,6 +90,8 @@ public class Vision implements NTSendable, Subsystem {
 
     @Getter private boolean isAiming = false;
 
+    @Getter private DoubleSupplier turretRotationSupplier = () -> Robot.getTurret().getPositionDegrees();
+
     int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
     int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
 
@@ -113,6 +118,8 @@ public class Vision implements NTSendable, Subsystem {
             limelight.setLEDMode(false);
             limelight.setIMUmode(1);
         }
+
+        turretLL.setIMUmode(2);
         
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
         
@@ -145,7 +152,7 @@ public class Vision implements NTSendable, Subsystem {
 
         Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag2Pose());
+        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -166,6 +173,14 @@ public class Vision implements NTSendable, Subsystem {
 
     public Pose2d getTurretMegaTag2Pose() {
         Pose2d pose = turretLL.getMegaTag2_Pose2d();
+        if (pose != null) {
+            return pose;
+        }
+        return new Pose2d();
+    }
+
+    public Pose2d getTurretMegaTag1Pose() {
+        Pose2d pose = turretLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
@@ -215,10 +230,12 @@ public class Vision implements NTSendable, Subsystem {
                 Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
             }
 
-            try {
-                addMegaTag1_TurretInput(turretLL, true);
-            } catch (Exception e) {
-                Telemetry.print("TURRET MT1: Vision pose not present but tried to access it");
+            if (Robot.getTurret().isAttached()) {
+                try {
+                    addMegaTag1_TurretInput(turretLL, true);
+                } catch (Exception e) {
+                    Telemetry.print("TURRET MT1: Vision pose not present but tried to access it");
+                }
             }
         }
     }
@@ -252,10 +269,12 @@ public class Vision implements NTSendable, Subsystem {
                 Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
             }
 
-            try {
-                addMegaTag1_TurretInput(turretLL, isIntegrating);
-            } catch (Exception e) {
-                Telemetry.print("TURRET MT1: Vision pose not present but tried to access it");
+            if (Robot.getTurret().isAttached()) {
+                try {
+                    addMegaTag1_TurretInput(turretLL, isIntegrating);
+                } catch (Exception e) {
+                    Telemetry.print("TURRET MT1: Vision pose not present but tried to access it");
+                }
             }
         }
     }
@@ -586,10 +605,13 @@ public class Vision implements NTSendable, Subsystem {
             xyStds = Double.POSITIVE_INFINITY;
         }
 
+        xyStds = 0.01;
+        degStds = 0.01;
+
         /* ---------------- Turret adjustment ---------------- */
 
         Rotation2d turretAdjustedRotation = megaTag1Pose2d.getRotation()
-                .minus(Rotation2d.fromDegrees(Robot.getTurret().getPositionDegrees()));
+                .minus(Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble()));
 
         Pose2d integratedPose = new Pose2d(megaTag1Pose2d.getTranslation(), turretAdjustedRotation);
 

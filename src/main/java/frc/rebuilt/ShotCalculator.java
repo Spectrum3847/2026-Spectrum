@@ -47,6 +47,8 @@ public class ShotCalculator {
     shotFlywheelSpeedMap.put(1.78, 31.0);
     shotFlywheelSpeedMap.put(2.00, 33.5);
     shotFlywheelSpeedMap.put(2.35, 35.0);
+    shotFlywheelSpeedMap.put(2.56, 36.0);
+    shotFlywheelSpeedMap.put(2.96, 36.5);
 
     timeOfFlightMap.put(5.68, 1.16);
     timeOfFlightMap.put(4.55, 1.12);

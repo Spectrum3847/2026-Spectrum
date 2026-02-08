@@ -2,11 +2,9 @@ package frc.robot.pilot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -29,6 +27,7 @@ public class PilotStates {
         pilot.YButton.whileTrue(RobotSim.mapleSimLaunchFuel());
 
         pilot.AButton.whileTrue(Robot.getTurret().trackTarget());
+        pilot.AButton.whileTrue(Robot.getLauncher().trackTargetCommand());
         
         // Rumble whenever we reorient
         pilot.upReorient
