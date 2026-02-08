@@ -8,7 +8,7 @@ public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
 
     public static void setupDefaultCommand() {
-        turretRotation.setDefaultCommand(log(turretRotation.runHoldTurret().withName("Turret.default")));
+        turretRotation.setDefaultCommand(log(turretRotation.runStop().withName("Turret.default")));
         // turret.runStop());
     }
 

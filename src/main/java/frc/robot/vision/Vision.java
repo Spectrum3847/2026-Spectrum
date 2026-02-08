@@ -213,6 +213,12 @@ public class Vision implements NTSendable, Subsystem {
             } catch (Exception e) {
                 Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
             }
+
+            try {
+                addMegaTag1_VisionInput(turretLL, true);
+            } catch (Exception e) {
+                Telemetry.print("Turret MT1: Vision pose not present but tried to access it");
+            }
         }
     }
 
@@ -233,6 +239,12 @@ public class Vision implements NTSendable, Subsystem {
                 Telemetry.print("FRONT MT2: Vision pose not present but tried to access it");
             }
 
+            // try {
+            //     addMegaTag2_VisionInput(turretLL);
+            // } catch (Exception e) {
+            //     Telemetry.print("Turret MT2: Vision pose not present but tried to access it");
+            // }
+
             try {
                 addMegaTag1_VisionInput(backLL, false);
             } catch (Exception e) {
@@ -244,6 +256,13 @@ public class Vision implements NTSendable, Subsystem {
             } catch (Exception e) {
                 Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
             }
+
+            try {
+                addMegaTag1_VisionInput(turretLL, true);
+            } catch (Exception e) {
+                Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
+            }
+
         }
     }
 

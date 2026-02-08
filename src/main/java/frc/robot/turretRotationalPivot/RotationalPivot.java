@@ -43,7 +43,7 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double holdMaxSpeedRPM = 18;
 
         @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double torqueCurrentLimit = 10;
         @Getter private final double positionKp = 400;
         @Getter private final double positionKd = 75;
         @Getter private final double positionKv = 0.15;
@@ -54,7 +54,7 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
-        @Getter private final double visionTrackingKp = 0.03;
+        @Getter private final double visionTrackingKp = 15;
         @Getter private final double maxTrackingRPS = 0.5;
 
         @Getter @Setter private double sensorToMechanismRatio = 45;
@@ -66,7 +66,7 @@ public class RotationalPivot extends Mechanism {
 
         @Getter @Setter private double CANcoderSensorToMechanismRatio = 9;
 
-        @Getter @Setter private double CANcoderOffset = 0;
+        @Getter @Setter private double CANcoderOffset = -0.1298828125;
         @Getter @Setter private boolean CANcoderAttached = true;
 
         /* Sim Configs */
@@ -92,7 +92,7 @@ public class RotationalPivot extends Mechanism {
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
 
         public RotationalPivotConfig modifyMotorConfig(TalonFX motor) {
@@ -117,6 +117,19 @@ public class RotationalPivot extends Mechanism {
 
         if (isAttached()) {
             setInitialPosition();
+            if (config.isCANcoderAttached() && !Robot.isSimulation()) {
+                canCoderConfig = new SpectrumCANcoderConfig(
+                        config.getCANcoderRotorToSensorRatio(),
+                        config.getCANcoderSensorToMechanismRatio(),
+                        config.getCANcoderOffset(),
+                        config.isCANcoderAttached());
+                canCoder = new SpectrumCANcoder(
+                        44,
+                        canCoderConfig,
+                        motor,
+                        config,
+                        SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
+            }
         }
 
         simulationInit();
@@ -216,7 +229,7 @@ public class RotationalPivot extends Mechanism {
             var params = ShotCalculator.getInstance().getParameters();
             Limelight turretLL = Robot.getVision().getTurretLL();
             double targetTagID = turretLL.getClosestTagID();
-            double hubID = Field.isBlue() ? 10 : 26;
+            double hubID = Field.isBlue() ? 27 : 26;
             if (turretLL.targetInView() && targetTagID == hubID) {
                 double error = params.visionTurretOffset();
                 double angularVelocityDegreePerSec = error * config.getVisionTrackingKp();
@@ -227,12 +240,12 @@ public class RotationalPivot extends Mechanism {
                         -config.getMaxTrackingRPS(),
                         config.getMaxTrackingRPS());
 
-                if (Math.abs(error) < 0.25) {
-                    setVelocity(() -> 0.0);
+                if (Math.abs(error) < 1) {
+                    stop();
                     return;
                 }
 
-                final double angularVelocityRotationsPerSecFinal = angularVelocityRotationsPerSec;
+                final double angularVelocityRotationsPerSecFinal = -angularVelocityRotationsPerSec;
                 setVelocity(() -> angularVelocityRotationsPerSecFinal);
             } else {
                 aimFieldRelative(params.turretAngle());

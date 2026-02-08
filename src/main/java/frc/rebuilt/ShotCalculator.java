@@ -43,16 +43,10 @@ public class ShotCalculator {
   static {
     phaseDelay = 0.03;
 
-    shotFlywheelSpeedMap.put(1.34, 210.0);
-    shotFlywheelSpeedMap.put(1.78, 220.0);
-    shotFlywheelSpeedMap.put(2.17, 220.0);
-    shotFlywheelSpeedMap.put(2.81, 230.0);
-    shotFlywheelSpeedMap.put(3.82, 250.0);
-    shotFlywheelSpeedMap.put(4.09, 255.0);
-    shotFlywheelSpeedMap.put(4.40, 260.0);
-    shotFlywheelSpeedMap.put(4.77, 265.0);
-    shotFlywheelSpeedMap.put(5.57, 275.0);
-    shotFlywheelSpeedMap.put(5.60, 290.0);
+    shotFlywheelSpeedMap.put(1.5, 30.5);
+    shotFlywheelSpeedMap.put(1.78, 31.0);
+    shotFlywheelSpeedMap.put(2.00, 33.5);
+    shotFlywheelSpeedMap.put(2.35, 35.0);
 
     timeOfFlightMap.put(5.68, 1.16);
     timeOfFlightMap.put(4.55, 1.12);
@@ -113,7 +107,7 @@ public class ShotCalculator {
     Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
     double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadTurretToTargetDistance);
 
-    double visionTurretOffset = Robot.getVision().getTurretLL().getTagTx();
+    double visionTurretOffset = Robot.getVision().getTurretLL().getHorizontalOffset();
 
     latestParameters = new ShootingParameters(
         turretAngle,
