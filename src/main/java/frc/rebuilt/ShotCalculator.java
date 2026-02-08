@@ -40,6 +40,28 @@ public class ShotCalculator {
 
   private static final InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
 
+  public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0;
+  public static double FLYWHEEL_SPEED_OFFSET = STARTING_FLYWHEEL_SPEED_OFFSET;
+
+  public static final double STARTING_TURRET_ANGLE_OFFSET_DEGREES = 0;
+  public static double TURRET_ANGLE_OFFSET_DEGREES = STARTING_TURRET_ANGLE_OFFSET_DEGREES;
+
+  public static void increaseFlywheelSpeedOffset() {
+    FLYWHEEL_SPEED_OFFSET += 1;
+  }
+
+  public static void decreaseFlywheelSpeedOffset() {
+    FLYWHEEL_SPEED_OFFSET -= 1;
+  }
+
+  public static void increaseTurretAngleOffsetDegrees() {
+    TURRET_ANGLE_OFFSET_DEGREES += 1;
+  }
+
+  public static void decreaseTurretAngleOffsetDegrees() {
+    TURRET_ANGLE_OFFSET_DEGREES -= 1;
+  }
+
   static {
     phaseDelay = 0.03;
 
@@ -108,6 +130,8 @@ public class ShotCalculator {
     // Calculate parameters accounted for imparted velocity
     Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
     double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadTurretToTargetDistance);
+    turretAngle = turretAngle.plus(Rotation2d.fromDegrees(TURRET_ANGLE_OFFSET_DEGREES));
+    flywheelSpeed += flywheelSpeed * (FLYWHEEL_SPEED_OFFSET / 100.0);
 
     double visionTurretOffset = Robot.getVision().getTurretLL().getHorizontalOffset();
 
@@ -121,6 +145,8 @@ public class ShotCalculator {
     DogLog.log("ShotCalc/TurretAngleDeg", Double.toString(turretAngle.getDegrees()));
     DogLog.log("ShotCalc/FlywheelSpeedRPM", Double.toString(flywheelSpeed));
     DogLog.log("ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
+    DogLog.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
+    DogLog.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
     return latestParameters;
   }
 
