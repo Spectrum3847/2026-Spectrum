@@ -1,5 +1,6 @@
 package frc.robot.pilot;
 
+import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -18,21 +19,21 @@ public class PilotStates {
         pilot.setDefaultCommand(log(rumble(0, 1).withName("Pilot.noRumble")));
     }
 
+    private static Trigger reorientButton = pilot.upReorient
+            .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
+    
     /** Set the states for the pilot controller */
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        pilot.AButton.whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.YButton.whileTrue(RobotSim.mapleSimLaunchFuel());
+        // Simulation Only: Map A and Y to intake and launch fuel for testing
+        pilot.AButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
+        pilot.YButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
 
-        pilot.AButton.whileTrue(Robot.getTurret().trackTargetCommand());
-        pilot.AButton.whileTrue(Robot.getLauncher().trackTargetCommand());
-        
         // Rumble whenever we reorient
-        pilot.upReorient
-                .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)
-                .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
+        reorientButton.onTrue(log(rumble(1, 0.5)
+                .withName("Pilot.reorientRumble")));
     }
 
     public static final Trigger buttonAPress = pilot.AButton;

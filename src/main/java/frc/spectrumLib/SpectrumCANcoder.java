@@ -1,5 +1,6 @@
 package frc.spectrumLib;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -35,7 +36,7 @@ public class SpectrumCANcoder {
         this.feedbackSource = feedbackSource;
 
         if (config.isAttached()) {
-            canCoder = new CANcoder(CANcoderID, Rio.CANIVORE);
+            canCoder = new CANcoder(CANcoderID, new CANBus(Rio.CANIVORE));
             CANcoderConfiguration canCoderConfigs = new CANcoderConfiguration();
             canCoderConfigs.MagnetSensor.MagnetOffset = config.getOffset();
             canCoderConfigs.MagnetSensor.SensorDirection =

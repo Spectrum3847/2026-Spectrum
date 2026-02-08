@@ -28,9 +28,7 @@ import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import java.text.DecimalFormat;
 import java.util.Arrays;
-import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
-
 import lombok.Getter;
 import lombok.Setter;
 

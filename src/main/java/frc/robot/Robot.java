@@ -21,8 +21,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.AM2026;
-import frc.robot.configs.FM2026;
+import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.indexer.Indexer;
@@ -111,7 +110,7 @@ public class Robot extends SpectrumRobot {
             /* Set up the config */
             config =
                     switch (Rio.id) {
-                        default -> new AM2026();
+                        default -> new XM2026();
                     };
 
             /*
@@ -213,6 +212,7 @@ public class Robot extends SpectrumRobot {
             SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
             SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
             SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+            SmartDashboard.putString("Applied State", RobotStates.getAppliedState().toString());
             field2d.setRobotPose(swerve.getRobotPose());
             ShotCalculator.getInstance().clearShootingParameters();
             ShotCalculator.getInstance().getParameters();

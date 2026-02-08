@@ -1,6 +1,5 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -47,7 +46,7 @@ public class RobotStates {
         pilot.BButton.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
         pilot.home_select.onTrue(clearState());
 
-        robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
+        // robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
@@ -64,7 +63,6 @@ public class RobotStates {
         return new InstantCommand(
                 () -> {
                     appliedState = state;
-                    SmartDashboard.putString("APPLIED STATE", state.toString());
                     Telemetry.print("Applied State: " + state.toString());
                     coordinator.applyRobotState(state);
                 })
@@ -75,7 +73,6 @@ public class RobotStates {
         return new InstantCommand(
                 () -> {
                     appliedState = State.IDLE;
-                    SmartDashboard.putString("APPLIED STATE", "CLEARED TO IDLE");
                     coordinator.applyRobotState(State.IDLE);
                 })
                 .withName("CLEARING STATE TO IDLE");

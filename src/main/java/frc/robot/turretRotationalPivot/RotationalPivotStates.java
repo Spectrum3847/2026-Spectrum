@@ -8,20 +8,20 @@ public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
 
     public static void setupDefaultCommand() {
-        turretRotation.setDefaultCommand(log(turretRotation.runStop().withName("Turret.default")));
-        // turret.runStop());
+        turretRotation.setDefaultCommand(log(turretRotation.runStop()
+                .withName("Turret.default")));
     }
 
     // -------------------- State Commands --------------------
 
     public static void aimAtHub() {
-        Command aimAtHubCommand = log(turretRotation.trackTargetCommand())
-                .withName("Turret.aimAtHub");
-        scheduleIfNotRunning(aimAtHubCommand);
+        scheduleIfNotRunning(log(turretRotation.trackTargetCommand())
+                .withName("Turret.aimAtHub"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
+        scheduleIfNotRunning(log(turretRotation.runVoltage(() -> 0))
+                .withName("Turret.neutral"));
     }
 
     // --------------------------------------------------------
