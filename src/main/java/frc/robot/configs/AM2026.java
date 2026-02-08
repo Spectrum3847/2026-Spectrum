@@ -16,6 +16,6 @@ public class AM2026 extends Config {
         turret.setAttached(true);
         intakeExtension.setAttached(false);
         indexer.setAttached(false);
-        launcher.setAttached(false);
+        launcher.setAttached(true);
     }
 }

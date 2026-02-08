@@ -124,10 +124,10 @@ public class Launcher extends Mechanism {
     }
 
     public Command trackTargetCommand() {
-    return run(() -> {
-        var params = ShotCalculator.getInstance().getParameters();
-        runTorqueCurrentFoc(() -> params.flywheelSpeed());
-        });
+        return run(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+            setVelocityTCFOCrpm(() -> params.flywheelSpeed());
+        }).withName("Launcher.trackTargetCommand");
     }
 
     // --------------------------------------------------------------------------------

@@ -38,7 +38,7 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double holdMaxSpeedRPM = 18;
 
         @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 10;
+        @Getter private final double torqueCurrentLimit = 35;
         @Getter private final double positionKp = 400;
         @Getter private final double positionKd = 75;
         @Getter private final double positionKv = 0.15;
@@ -61,7 +61,7 @@ public class RotationalPivot extends Mechanism {
 
         @Getter @Setter private double CANcoderSensorToMechanismRatio = 9;
 
-        @Getter @Setter private double CANcoderOffset = -0.1298828125;
+        @Getter @Setter private double CANcoderOffset = -0.196533203125;
         @Getter @Setter private boolean CANcoderAttached = true;
 
         /* Sim Configs */
@@ -81,7 +81,7 @@ public class RotationalPivot extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-.95, 0.8);
+            configMinMaxRotations(-0.40, 0.515); // 329.4° range
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
@@ -219,11 +219,11 @@ public class RotationalPivot extends Mechanism {
                 () -> config.getMmJerk());
     }
 
-    public Command trackTarget() {
+    public Command trackTargetCommand() {
         return run(() -> {
             var params = ShotCalculator.getInstance().getParameters();
             aimFieldRelative(params.turretAngle());
-        });
+        }).withName("Turret.trackTargetCommand");
     }
 
     /** Holds the position of the Turret. */
@@ -317,3 +317,4 @@ public class RotationalPivot extends Mechanism {
         }
     }
 }
+

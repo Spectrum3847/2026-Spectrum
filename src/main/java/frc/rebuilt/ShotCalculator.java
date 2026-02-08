@@ -12,7 +12,7 @@ import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
-import frc.spectrumLib.vision.LimelightHelpers;
+import frc.spectrumLib.util.Conversions;
 
 public class ShotCalculator {
   private static ShotCalculator instance;
@@ -43,12 +43,12 @@ public class ShotCalculator {
   static {
     phaseDelay = 0.03;
 
-    shotFlywheelSpeedMap.put(1.5, 30.5);
-    shotFlywheelSpeedMap.put(1.78, 31.0);
-    shotFlywheelSpeedMap.put(2.00, 33.5);
-    shotFlywheelSpeedMap.put(2.35, 35.0);
-    shotFlywheelSpeedMap.put(2.56, 36.0);
-    shotFlywheelSpeedMap.put(2.96, 36.5);
+    shotFlywheelSpeedMap.put(1.5, Conversions.RPStoRPM(30.5));
+    shotFlywheelSpeedMap.put(1.78, Conversions.RPStoRPM(31.0));
+    shotFlywheelSpeedMap.put(2.00, Conversions.RPStoRPM(33.0));
+    shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(34.5));
+    shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(35.5));
+    shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(36.0));
 
     timeOfFlightMap.put(5.68, 1.16);
     timeOfFlightMap.put(4.55, 1.12);
@@ -119,7 +119,7 @@ public class ShotCalculator {
     DogLog.log("ShotCalc/DistanceMeters", Double.toString(lookaheadTurretToTargetDistance));
     DogLog.log("ShotCalc/LookaheadPose", lookaheadPose);
     DogLog.log("ShotCalc/TurretAngleDeg", Double.toString(turretAngle.getDegrees()));
-    DogLog.log("ShotCalc/FlywheelSpeed", Double.toString(flywheelSpeed));
+    DogLog.log("ShotCalc/FlywheelSpeedRPM", Double.toString(flywheelSpeed));
     DogLog.log("ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
     return latestParameters;
   }

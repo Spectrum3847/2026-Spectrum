@@ -15,7 +15,7 @@ public class RotationalPivotStates {
     // -------------------- State Commands --------------------
 
     public static void aimAtHub() {
-        Command aimAtHubCommand = log(turretRotation.trackTarget())
+        Command aimAtHubCommand = log(turretRotation.trackTargetCommand())
                 .withName("Turret.aimAtHub");
         scheduleIfNotRunning(aimAtHubCommand);
     }
