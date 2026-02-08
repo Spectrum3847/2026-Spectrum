@@ -7,6 +7,7 @@ import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
@@ -215,9 +216,9 @@ public class Vision implements NTSendable, Subsystem {
             }
 
             try {
-                addMegaTag1_VisionInput(turretLL, true);
+                addMegaTag1_TurretInput(turretLL, true);
             } catch (Exception e) {
-                Telemetry.print("Turret MT1: Vision pose not present but tried to access it");
+                Telemetry.print("TURRET MT1: Vision pose not present but tried to access it");
             }
         }
     }
@@ -239,12 +240,6 @@ public class Vision implements NTSendable, Subsystem {
                 Telemetry.print("FRONT MT2: Vision pose not present but tried to access it");
             }
 
-            // try {
-            //     addMegaTag2_VisionInput(turretLL);
-            // } catch (Exception e) {
-            //     Telemetry.print("Turret MT2: Vision pose not present but tried to access it");
-            // }
-
             try {
                 addMegaTag1_VisionInput(backLL, false);
             } catch (Exception e) {
@@ -258,11 +253,10 @@ public class Vision implements NTSendable, Subsystem {
             }
 
             try {
-                addMegaTag1_VisionInput(turretLL, true);
+                addMegaTag1_TurretInput(turretLL, isIntegrating);
             } catch (Exception e) {
-                Telemetry.print("FRONT MT1: Vision pose not present but tried to access it");
+                Telemetry.print("TURRET MT1: Vision pose not present but tried to access it");
             }
-
         }
     }
 
@@ -489,6 +483,120 @@ public class Vision implements NTSendable, Subsystem {
             ll.setTagStatus("no tags");
             ll.sendInvalidStatus("no tag found rejection");
         }
+    }
+
+    private void addMegaTag1_TurretInput(Limelight ll, boolean integrateXY) {
+        double xyStds;
+        double degStds;
+
+        if (!ll.targetInView()) {
+            ll.setTagStatus("no tags");
+            ll.sendInvalidStatus("no tag found rejection");
+            return;
+        }
+
+        boolean multiTags = ll.multipleTagsInView();
+        double targetSize = ll.getTargetSize();
+        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
+        Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
+        RawFiducial[] tags = ll.getRawFiducial();
+
+        double highestAmbiguity = 0.0;
+        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+
+        double robotLinearSpeed = Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+
+        double mt1PoseDifference = Robot.getSwerve()
+                .getRobotPose()
+                .getTranslation()
+                .getDistance(megaTag1Pose2d.getTranslation());
+
+        /* ---------------- Rejections ---------------- */
+
+        for (RawFiducial tag : tags) {
+            highestAmbiguity = Math.max(highestAmbiguity, tag.ambiguity);
+
+            if (tag.ambiguity > 0.9) {
+                ll.sendInvalidStatus("high ambiguity rejection");
+                return;
+            }
+        }
+
+        if (rejectionCheck(megaTag1Pose2d, targetSize)) {
+            ll.sendInvalidStatus("generic rejection");
+            return;
+        }
+
+        // Roll / pitch rejection
+        if (Math.abs(Math.toDegrees(megaTag1Pose3d.getRotation().getX())) > 5
+                || Math.abs(Math.toDegrees(megaTag1Pose3d.getRotation().getY())) > 5) {
+            ll.sendInvalidStatus("roll/pitch rejection");
+            return;
+        }
+
+        /* ---------------- Integration tuning ---------------- */
+
+        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
+            ll.sendValidStatus("Stationary close integration");
+            xyStds = 0.1;
+            degStds = 0.1;
+
+        } else if (multiTags && targetSize > 2) {
+            ll.sendValidStatus("Strong multi integration");
+            xyStds = 0.1;
+            degStds = 0.1;
+
+        } else if (multiTags && targetSize > 0.2) {
+            ll.sendValidStatus("Multi integration");
+            xyStds = 0.25;
+            degStds = 8.0;
+
+        } else if (targetSize > 2 && mt1PoseDifference < 0.5) {
+            ll.sendValidStatus("Close integration");
+            xyStds = 0.5;
+            degStds = Double.POSITIVE_INFINITY;
+
+        } else if (targetSize > 1 && mt1PoseDifference < 0.25) {
+            ll.sendValidStatus("Proximity integration");
+            xyStds = 1.0;
+            degStds = Double.POSITIVE_INFINITY;
+
+        } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
+            ll.sendValidStatus("Stable integration");
+            xyStds = 1.5;
+            degStds = Double.POSITIVE_INFINITY;
+
+        } else {
+            ll.sendInvalidStatus("confidence too low");
+            return;
+        }
+
+        /* ---------------- MT1-specific tightening ---------------- */
+
+        // MT1 rotation is weak — trust it even less when ambiguity rises
+        if (highestAmbiguity > 0.5) {
+            degStds = Math.max(degStds, 50.0);
+        }
+
+        if (Math.abs(robotSpeed.omegaRadiansPerSecond) >= 0.5) {
+            degStds = Math.max(degStds, 75.0);
+        }
+
+        if (!integrateXY) {
+            xyStds = Double.POSITIVE_INFINITY;
+        }
+
+        /* ---------------- Turret adjustment ---------------- */
+
+        Rotation2d turretAdjustedRotation = megaTag1Pose2d.getRotation()
+                .minus(Rotation2d.fromDegrees(Robot.getTurret().getPositionDegrees()));
+
+        Pose2d integratedPose = new Pose2d(megaTag1Pose2d.getTranslation(), turretAdjustedRotation);
+
+        Robot.getSwerve().addVisionMeasurement(
+                integratedPose,
+                Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp()),
+                VecBuilder.fill(xyStds, xyStds, degStds));
     }
 
     @SuppressWarnings("all")

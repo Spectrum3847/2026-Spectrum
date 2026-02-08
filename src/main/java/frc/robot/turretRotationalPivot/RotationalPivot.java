@@ -5,15 +5,12 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.rebuilt.Field;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
@@ -24,8 +21,6 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
-import frc.spectrumLib.vision.Limelight;
-
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
@@ -224,32 +219,10 @@ public class RotationalPivot extends Mechanism {
                 () -> config.getMmJerk());
     }
 
-    public Command trackUntilSeeTag() {
+    public Command trackTarget() {
         return run(() -> {
             var params = ShotCalculator.getInstance().getParameters();
-            Limelight turretLL = Robot.getVision().getTurretLL();
-            double targetTagID = turretLL.getClosestTagID();
-            double hubID = Field.isBlue() ? 27 : 26;
-            if (turretLL.targetInView() && targetTagID == hubID) {
-                double error = params.visionTurretOffset();
-                double angularVelocityDegreePerSec = error * config.getVisionTrackingKp();
-                double angularVelocityRotationsPerSec = angularVelocityDegreePerSec / 360.0;
-
-                angularVelocityRotationsPerSec = MathUtil.clamp(
-                        angularVelocityRotationsPerSec,
-                        -config.getMaxTrackingRPS(),
-                        config.getMaxTrackingRPS());
-
-                if (Math.abs(error) < 1) {
-                    stop();
-                    return;
-                }
-
-                final double angularVelocityRotationsPerSecFinal = -angularVelocityRotationsPerSec;
-                setVelocity(() -> angularVelocityRotationsPerSecFinal);
-            } else {
-                aimFieldRelative(params.turretAngle());
-            }
+            aimFieldRelative(params.turretAngle());
         });
     }
 
