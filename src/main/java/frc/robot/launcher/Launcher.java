@@ -11,34 +11,25 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-
 import java.util.function.DoubleSupplier;
-
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import lombok.Getter;
-import lombok.Setter;
 
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        // Intake Voltages and Current
-        @Getter @Setter private double LauncherVoltage = 9.0;
-        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
-        @Getter @Setter private double LauncherTorqueCurrent = 85.0;
-
-        /* Intake config values */
-        @Getter private double currentLimit = 44;
+        /* Launcher config values */
+        @Getter private double currentLimit = 60;
         @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 12;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 14;
+        @Getter private double velocityKp = 9;
+        @Getter private double velocityKv = 0.48;
+        @Getter private double velocityKs = 0.03;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(50);
-        @Getter private double intakeY = Units.inchesToMeters(63);
+        @Getter private double launcherX = Units.inchesToMeters(50);
+        @Getter private double launcherY = Units.inchesToMeters(63);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
@@ -152,7 +143,7 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY()),
                     mech,
                     rollerMotorSim,
                     config.getName());

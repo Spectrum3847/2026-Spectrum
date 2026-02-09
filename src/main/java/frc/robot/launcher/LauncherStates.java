@@ -7,7 +7,6 @@ import frc.spectrumLib.Telemetry;
 
 public class LauncherStates {
     private static Launcher launcher = Robot.getLauncher();
-    private static Launcher.LauncherConfig config = Robot.getConfig().launcher;
 
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
@@ -16,11 +15,6 @@ public class LauncherStates {
 
     public static void neutral() {
         scheduleIfNotRunning(launcher.runVoltage(() -> 0).withName("Launcher.neutral"));
-    }
-
-    public static Command launchFuel() {
-        return launcher.runTorqueFOC(config::getLauncherTorqueCurrent)
-            .withName("Launcher.launchFuelCommand");
     }
 
     public static void coastMode() {
