@@ -15,12 +15,12 @@ public class RotationalPivotStates {
     // -------------------- State Commands --------------------
 
     public static void aimAtHub() {
-        scheduleIfNotRunning(log(turretRotation.trackTargetCommand())
+        scheduleIfNotRunning(turretRotation.trackTargetCommand()
                 .withName("Turret.aimAtHub"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(log(turretRotation.runVoltage(() -> 0))
+        scheduleIfNotRunning(turretRotation.runVoltage(() -> 0)
                 .withName("Turret.neutral"));
     }
 

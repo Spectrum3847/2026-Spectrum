@@ -64,8 +64,8 @@ public class Vision implements NTSendable, Subsystem {
 
         @Getter final String turretLL = "limelight-turret";
         @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL)
-                .withTranslation(0, 0, 0.8)
-                .withRotation(0, Math.toRadians(15), 0);
+                .withTranslation(0, 0, 0.79)
+                .withRotation(0, Math.toRadians(12.5), 0);
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
@@ -551,8 +551,8 @@ public class Vision implements NTSendable, Subsystem {
             xyStds = config.getKLargeVariance();
         }
 
-        // If we're forcing integration (disabled mode), use very tight stds
-        if (integrateXY && Util.disabled.getAsBoolean()) {
+        // If we're forcing integration, use very tight stds
+        if (integrateXY) {
             xyStds = 0.01;
             degStds = 0.01;
         }
