@@ -1,7 +1,7 @@
 {
   "Docking": {
     "Data": [
-      "DockNode  ID=0x00000001 Pos=9,835 Size=937,509 Selected=0x48913727"
+      "DockNode  ID=0x00000001 Pos=9,835 Size=937,509 Selected=0x2D9B9756"
     ]
   },
   "MainWindow": {
@@ -50,6 +50,21 @@
       "Collapsed": "0",
       "Pos": "1002,1036",
       "Size": "340,360"
+    },
+    "###/SmartDashboard/Sim/LeftView": {
+      "Collapsed": "0",
+      "Pos": "1366,653",
+      "Size": "393,372"
+    },
+    "###/SmartDashboard/Sim/TopView": {
+      "Collapsed": "0",
+      "Pos": "998,654",
+      "Size": "361,374"
+    },
+    "###/SmartDashboard/States": {
+      "Collapsed": "0",
+      "Pos": "247,711",
+      "Size": "300,150"
     },
     "###/SmartDashboard/TopView": {
       "Collapsed": "0",

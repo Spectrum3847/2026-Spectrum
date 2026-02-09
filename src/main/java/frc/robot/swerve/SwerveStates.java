@@ -6,10 +6,12 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.Zones;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
+import frc.robot.State;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
@@ -46,6 +48,10 @@ public class SwerveStates {
         swerve.setDefaultCommand(pilotSteerCommand);
     }
 
+    //define Triggers here
+    private static final Trigger inSnakeDrive = new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
+    private static final Trigger inScoreOrFeed = new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
+
     protected static void setStates() {
         // Force back to manual steering when we steer
         pilot.steer.whileTrue(
@@ -53,8 +59,8 @@ public class SwerveStates {
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
         
-        pilot.BButton.toggleOnTrue(log(snakeDrive()));
-        RobotStates.robotReadyScore.or(RobotStates.robotReadyFeed).toggleOnTrue(log(tweakOut()));
+        inSnakeDrive.whileTrue(log(snakeDrive()));
+        inScoreOrFeed.whileTrue(log(tweakOut()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));
