@@ -24,6 +24,8 @@ public class Pilot extends Gamepad {
     public final Trigger RT = rightTrigger.and(noFn, teleop, photon.not());
     public final Trigger LB_LT = leftTrigger.and(fn, teleop, photon.not());
 
+    public final Trigger AButton = A.and(teleop);
+    public final Trigger BButton = B.and(teleop);
     public final Trigger XButton = X.and(teleop);
     public final Trigger YButton = Y.and(teleop);
 
@@ -38,12 +40,6 @@ public class Pilot extends Gamepad {
 
     // Vision Triggers
     public final Trigger tagsInView = new Trigger(() -> Robot.getVision().tagsInView());
-
-    // vision Drive
-    // public final Trigger reefAim_A = A.and(teleop, tagsInView.not()); // turn off
-    public final Trigger AButton = A.and(teleop); // , tagsInView); // remove tags in view
-    public final Trigger BButton = B.and(teleop);
-    // public final Trigger cageAim_B = B.and(teleop);
 
     // Drive Triggers
     public final Trigger upReorient = upDpad.and(fn, teleop);

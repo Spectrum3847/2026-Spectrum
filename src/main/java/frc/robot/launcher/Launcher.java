@@ -14,6 +14,7 @@ import frc.spectrumLib.sim.RollerSim;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import lombok.Getter;
@@ -36,8 +37,8 @@ public class Launcher extends Mechanism {
         @Getter private double velocityKs = 14;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(50);
-        @Getter private double intakeY = Units.inchesToMeters(63);
+        @Getter private double launcherX = Units.inchesToMeters(50);
+        @Getter private double launcherY = Units.inchesToMeters(63);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
@@ -51,6 +52,7 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            setFollowerConfigs(new FollowerConfig("LauncherFollower", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -150,7 +152,7 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY()),
                     mech,
                     rollerMotorSim,
                     config.getName());

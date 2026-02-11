@@ -6,17 +6,23 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.Zones;
 import frc.robot.Robot;
+import frc.robot.RobotStates;
+import frc.robot.State;
+import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
+import java.util.Set;
 import java.util.function.DoubleSupplier;
 
 public class SwerveStates {
     static Swerve swerve = Robot.getSwerve();
     static SwerveConfig config = Robot.getConfig().swerve;
     static Pilot pilot = Robot.getPilot();
+    static Operator operator = Robot.getOperator();
     static Zones zones = new Zones();
     static Field field = new Field();
 
@@ -42,13 +48,19 @@ public class SwerveStates {
         swerve.setDefaultCommand(pilotSteerCommand);
     }
 
+    //define Triggers here
+    private static final Trigger inSnakeDrive = new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
+    private static final Trigger inScoreOrFeed = new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
+
     protected static void setStates() {
         // Force back to manual steering when we steer
         pilot.steer.whileTrue(
                 swerve.getDefaultCommand()); 
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
-        pilot.AButton.whileTrue(log(snakeDrive()));
+        
+        inSnakeDrive.whileTrue(log(snakeDrive()));
+        inScoreOrFeed.whileTrue(log(tweakOut()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));
@@ -116,6 +128,33 @@ public class SwerveStates {
                 pilot::getDriveLeftPositive,
                 pilot::getPilotStickAngle)
                 .withName("Swerve.SnakeDrive");
+    }
+    protected static Command tweakOut() {
+        return Commands.runOnce(() -> swerve.resetRotationController())
+            .andThen(
+                Commands.defer(
+                        () -> {
+                            final double base = swerve.getRotation().getRadians();
+                            final double delta = Math.toRadians(15.0);
+
+                            Command toMinus =
+                                drive(
+                                        pilot::getDriveFwdPositive,
+                                        pilot::getDriveLeftPositive,
+                                        getAlignHeading(() -> base - delta, false))
+                                    .withTimeout(0.12);
+
+                            Command toPlus =
+                                drive(
+                                        pilot::getDriveFwdPositive,
+                                        pilot::getDriveLeftPositive,
+                                        getAlignHeading(() -> base + delta, false))
+                                    .withTimeout(0.12);
+
+                            return Commands.repeatingSequence(toMinus, toPlus);
+                        },
+                        Set.of(swerve))
+                    .withName("Swerve.tweakOut"));
     }
 
     /** Turn the swerve wheels to an X to prevent the robot from moving */

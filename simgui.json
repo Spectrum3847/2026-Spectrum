@@ -44,17 +44,17 @@
           "visible": true
         }
       },
-      "/SmartDashboard/LeftView": {
-        "window": {
-          "visible": true
-        }
-      },
       "/SmartDashboard/Scheduler": {
         "window": {
           "visible": true
         }
       },
-      "/SmartDashboard/TopView": {
+      "/SmartDashboard/Sim/LeftView": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/Sim/TopView": {
         "window": {
           "visible": true
         }
@@ -89,6 +89,9 @@
     }
   },
   "NetworkTables": {
+    "Retained Values": {
+      "open": false
+    },
     "transitory": {
       "Robot": {
         "FieldSimulation": {
@@ -106,6 +109,9 @@
     }
   },
   "NetworkTables Info": {
+    "Clients": {
+      "open": true
+    },
     "visible": true
   }
 }
