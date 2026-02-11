@@ -30,8 +30,6 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private double triggerTolerance = 5;
-        @Getter private double unwrapTolerance = 10;
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
@@ -279,6 +277,19 @@ public class RotationalPivot extends Mechanism {
                 () ->
                         Math.abs(((getPositionDegrees() % 360) + 360) % 360 - target.getAsDouble())
                                 < tolerance.getAsDouble());
+    }
+
+    public Trigger aimingAtTarget() {
+        return new Trigger(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+
+            Rotation2d targetRotation = params.turretAngle();
+            Rotation2d currentRotation = Rotation2d.fromDegrees(getPositionDegrees());
+
+            double errorDeg = currentRotation.minus(targetRotation).getDegrees();
+
+            return Math.abs(errorDeg) < 3;
+        });
     }
 
     // --------------------------------------------------------------------------------

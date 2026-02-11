@@ -4,6 +4,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -119,6 +120,19 @@ public class Launcher extends Mechanism {
             var params = ShotCalculator.getInstance().getParameters();
             setVelocityTCFOCrpm(() -> params.flywheelSpeed());
         }).withName("Launcher.trackTargetCommand");
+    }
+
+    public Trigger aimingAtTarget() {
+        return new Trigger(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+
+            double targetRPM = params.flywheelSpeed();
+            double currentRPM = getVelocityRPM();
+
+            double errorRPM = currentRPM - targetRPM;
+
+            return Math.abs(errorRPM) < 50;
+        });
     }
 
     // --------------------------------------------------------------------------------

@@ -2,6 +2,7 @@ package frc.robot.launcher;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
@@ -12,6 +13,12 @@ public class LauncherStates {
         launcher.setDefaultCommand(
                 launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
     }
+
+    public static Trigger aimingAtTarget() {
+        return launcher.aimingAtTarget();
+    }
+
+    // -------------------- State Commands --------------------
 
     public static void neutral() {
         scheduleIfNotRunning(launcher.runVoltage(() -> 0).withName("Launcher.neutral"));
@@ -28,6 +35,8 @@ public class LauncherStates {
     public static void aimAtHub() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
+
+    // --------------------------------------------------------
 
     // Log Command
     protected static Command log(Command cmd) {

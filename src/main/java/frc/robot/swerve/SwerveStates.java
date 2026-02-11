@@ -6,6 +6,7 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.Zones;
 import frc.robot.Robot;
@@ -34,6 +35,14 @@ public class SwerveStates {
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
     private static final SwerveRequest.SwerveDriveBrake swerveXBreak = new SwerveRequest.SwerveDriveBrake();
+
+    public static Trigger robotInNeutralZone() { 
+        return robotInNeutralZone();
+    }
+
+    public static Trigger robotInEnemyZone() {
+        return robotInEnemyZone();
+    }
 
     static Command pilotSteerCommand =
             log(pilotDrive().withName("SwerveCommands.pilotSteer").ignoringDisable(true));

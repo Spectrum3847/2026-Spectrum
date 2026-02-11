@@ -5,7 +5,9 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
 import frc.robot.pilot.Pilot;
-import frc.robot.swerve.Swerve;
+import frc.robot.launcher.LauncherStates;
+import frc.robot.swerve.SwerveStates;
+import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
@@ -16,7 +18,6 @@ import lombok.Getter;
 public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
     private static final Pilot pilot = Robot.getPilot();
-    private static final Swerve swerve = Robot.getSwerve();
 
     @Getter
     private static State appliedState = State.IDLE;
@@ -32,9 +33,10 @@ public class RobotStates {
      */
 
     // Define triggers here
-    public static final Trigger robotInNeutralZone = swerve.inNeutralZone();
-    public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
-    public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
+    public static final Trigger inNeutralZone = SwerveStates.robotInNeutralZone();
+    public static final Trigger inEnemyZone = SwerveStates.robotInEnemyZone();
+    public static final Trigger inFeedZone = inEnemyZone.or(inNeutralZone);
+    public static final Trigger readyToLaunch = RotationalPivotStates.aimingAtTarget().and(LauncherStates.aimingAtTarget());
     // public static final Trigger hopperFull = new Trigger(null);
 
     // Setup any binding to set states
