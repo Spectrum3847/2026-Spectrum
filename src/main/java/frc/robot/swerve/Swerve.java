@@ -281,33 +281,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return new Trigger(() -> getRobotPose().getY() >= halfWidth);
     }
 
-    private static final double DEFAULT_OVERSPEED_METERS_PER_SECOND = 10.0;
-
-    /**
-     * Check if the robot's linear velocity (vx, vy) magnitude exceeds the given threshold.
-     *
-     * @param thresholdMetersPerSecond speed threshold in m/s
-     * @return true if current linear speed > threshold
-     */
-    public boolean isGoingTooFast(double thresholdMetersPerSecond) {
+    public boolean isGoingTooFast(double thresholdSpeed) {
         ChassisSpeeds speeds = getCurrentRobotChassisSpeeds();
         double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-        return linearSpeed > thresholdMetersPerSecond;
+        return linearSpeed > thresholdSpeed;
     }
 
-    /** Check against the default threshold (10 m/s). */
-    public boolean isGoingTooFast() {
-        return isGoingTooFast(DEFAULT_OVERSPEED_METERS_PER_SECOND);
-    }
-
-    /** Trigger that becomes active when the robot exceeds the default overspeed threshold. */
-    public Trigger overSpeedTrigger() {
-        return overSpeedTrigger(DEFAULT_OVERSPEED_METERS_PER_SECOND);
-    }
-
-    /** Trigger that becomes active when the robot exceeds the provided threshold. */
-    public Trigger overSpeedTrigger(double thresholdMetersPerSecond) {
-        return new Trigger(() -> isGoingTooFast(thresholdMetersPerSecond));
+    public Trigger overSpeedTrigger(double thresholdSpeed) {
+        return new Trigger(() -> isGoingTooFast(thresholdSpeed));
     }
     /**
      * This method is used to check if the robot is in the X zone of the field flips the values if
