@@ -50,7 +50,10 @@ public class SwerveStates {
 
     //define Triggers here
     private static final Trigger inSnakeDrive = new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
-    private static final Trigger inScoreOrFeed = new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
+    private static final Trigger inScoreOrFeed = new Trigger(() -> 
+        RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH 
+        || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH 
+        || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
 
     protected static void setStates() {
         // Force back to manual steering when we steer

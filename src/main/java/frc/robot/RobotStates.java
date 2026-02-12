@@ -23,6 +23,7 @@ public final class RobotStates {
     private static final Swerve swerve = Robot.getSwerve();
 
     @Getter public static State appliedState = State.IDLE;
+    @Getter public static double thresholdSpeed = 1.0;
 
     public static final Trigger robotInNeutralZone = swerve.inNeutralZone();
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
@@ -30,10 +31,10 @@ public final class RobotStates {
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
 
     public static final Trigger forceScore = operator.AButton;
-    public static final Trigger hopperFull = new Trigger(() -> true);
+    public static final Trigger hopperFull = new Trigger(operator.BButton); //TODO: replace with actual hopper full condition
 
     //placeholders
-    private static final Trigger movementStable = new Trigger(() -> true);
+    private static final Trigger movementStable = new Trigger(swerve.overSpeedTrigger(thresholdSpeed).not());
     private static final Trigger visionStable = new Trigger(() -> true);
 
     public static final Trigger robotReadyScore = (robotInScoreZone).and(movementStable).and(visionStable);
@@ -91,9 +92,10 @@ public final class RobotStates {
                         () -> {
                             State next = (appliedState == toggledState) ? State.IDLE : toggledState;
                             appliedState = next;
-                            applyState(next);
-                        })
-        );
+                            SmartDashboard.putString("APPLIED STATE", next.toString());
+                            coordinator.applyRobotState(next);
+                        },
+                        swerve));
     }
 
     private static void pressToState(Trigger button, State pressedState) {
