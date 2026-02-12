@@ -9,6 +9,7 @@ import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.robot.swerve.Swerve;
+import frc.robot.vision.Vision;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
@@ -21,6 +22,7 @@ public final class RobotStates {
     private static final Pilot pilot = Robot.getPilot();
     private static final Operator operator = Robot.getOperator();
     private static final Swerve swerve = Robot.getSwerve();
+    private static final Vision vision = Robot.getVision();
 
     @Getter public static State appliedState = State.IDLE;
     @Getter public static double thresholdSpeed = 1.0;
@@ -31,11 +33,11 @@ public final class RobotStates {
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
 
     public static final Trigger forceScore = operator.AButton;
-    public static final Trigger hopperFull = new Trigger(operator.BButton); //TODO: replace with actual hopper full condition
+    public static final Trigger hopperFull = new Trigger(operator.BButton); //TODO: indexer current increases? velocity decreases? 
 
     //placeholders
     private static final Trigger movementStable = new Trigger(swerve.overSpeedTrigger(thresholdSpeed).not());
-    private static final Trigger visionStable = new Trigger(() -> true);
+    private static final Trigger visionStable = new Trigger(() -> vision.hasAccuratePose()); //TODO: change with potentially better logic
 
     public static final Trigger robotReadyScore = (robotInScoreZone).and(movementStable).and(visionStable);
 
