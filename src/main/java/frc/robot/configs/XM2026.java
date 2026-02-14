@@ -7,16 +7,16 @@ public class XM2026 extends Config {
     // Experimental Machine
     public XM2026() {
         super();
-        swerve.configEncoderOffsets(0.289551, 0.394043, -0.203857, -0.039307);
+        swerve.configEncoderOffsets(0.1892089844 - 0.5, -0.2736816406 + 0.5, -0.404052734375 + 0.5, -0.478759765625 + 0.5);
         turret.setCANcoderOffset(-0.196533203125);
 
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(false);
+        fuelIntake.setAttached(true);
         turret.setAttached(true);
-        intakeExtension.setAttached(false);
-        indexer.setAttached(false);
+        intakeExtension.setAttached(true);
+        indexer.setAttached(true);
         launcher.setAttached(true);
     }
 }

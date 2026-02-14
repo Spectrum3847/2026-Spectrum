@@ -37,11 +37,11 @@ public class SwerveStates {
     private static final SwerveRequest.SwerveDriveBrake swerveXBreak = new SwerveRequest.SwerveDriveBrake();
 
     public static Trigger robotInNeutralZone() { 
-        return robotInNeutralZone();
+        return swerve.inNeutralZone();
     }
 
     public static Trigger robotInEnemyZone() {
-        return robotInEnemyZone();
+        return swerve.inEnemyAllianceZone();
     }
 
     static Command pilotSteerCommand =

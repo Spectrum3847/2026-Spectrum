@@ -76,7 +76,7 @@ public class IntakeExtension extends Mechanism {
          @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
-            super("IntakeExtension", 6, Rio.CANIVORE); // Rio.CANIVORE);
+            super("IntakeExtension", 7, Rio.CANIVORE); // Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, 0, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);

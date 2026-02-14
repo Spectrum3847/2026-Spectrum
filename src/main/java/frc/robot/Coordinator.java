@@ -16,7 +16,7 @@ public class Coordinator {
             case IDLE -> {
                 FuelIntakeStates.stop();
                 IndexerStates.neutral();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.neutral();
                 LauncherStates.neutral();
                 RotationalPivotStates.neutral();
             }
