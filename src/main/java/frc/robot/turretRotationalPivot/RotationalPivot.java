@@ -35,12 +35,12 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 35;
-        @Getter private final double positionKp = 400;
-        @Getter private final double positionKd = 75;
-        @Getter private final double positionKv = 0.15;
-        @Getter private final double positionKs = 1.8;
+        @Getter private final double currentLimit = 30;
+        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double positionKp = 850;
+        @Getter private final double positionKd = 20;
+        @Getter private final double positionKv = 0.2;
+        @Getter private final double positionKs = 0.6;
         @Getter private final double positionKa = 2;
         @Getter private final double positionKg = 0;
         @Getter private final double mmCruiseVelocity = 50;

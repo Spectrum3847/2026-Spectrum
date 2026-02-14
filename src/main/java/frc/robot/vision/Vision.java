@@ -165,7 +165,7 @@ public class Vision implements NTSendable, Subsystem {
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
         Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
         Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag2Pose());
+        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -202,6 +202,14 @@ public class Vision implements NTSendable, Subsystem {
 
     public Pose2d getTurretMegaTag2Pose() {
         Pose2d pose = turretLL.getMegaTag2_Pose2d();
+        if (pose != null) {
+            return pose;
+        }
+        return new Pose2d();
+    }
+
+    public Pose2d getTurretMegaTag1Pose() {
+        Pose2d pose = turretLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
