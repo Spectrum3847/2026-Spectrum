@@ -41,6 +41,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.robot.swerve.controllers.RotationController;
@@ -569,38 +570,34 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     private void configurePathPlanner() {
         // Seed robot to mid field at start (Paths will change this starting position)
-        resetPose(
-                new Pose2d(
-                        Units.feetToMeters(10),
-                        Units.feetToMeters(27.0 / 2.0),
-                        config.getBlueAlliancePerspectiveRotation()));
+        resetPose(Field.getCenterField());
 
-        RobotConfig robotConfig = null; // Initialize with null in case of exception
         try {
-            robotConfig =
-                    RobotConfig.fromGUISettings(); // Takes config from Robot Config on Pathplanner
-            // Settings
-        } catch (Exception e) {
-            e.printStackTrace(); // Fallback to a default configuration
+            var config = RobotConfig.fromGUISettings();
+            AutoBuilder.configure(
+                    () -> getState().Pose, // Supplier of current robot pose
+                    this::resetPose, // Consumer for seeding pose against auto
+                    () -> getState().Speeds, // Supplier of current robot speeds
+                    // Consumer of ChassisSpeeds and feedforwards to drive the robot
+                    (speeds, feedforwards) -> setControl(
+                            AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
+                                    .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
+                                    .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())),
+                    new PPHolonomicDriveController(
+                            // PID constants for translation
+                            new PIDConstants(3, 0, 0),
+                            // PID constants for rotation
+                            new PIDConstants(3, 0, 0)),
+                    config,
+                    // Assume the path needs to be flipped for Red vs Blue, this is normally the
+                    // case
+                    () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+                    this // Subsystem for requirements
+            );
+        } catch (Exception ex) {
+            DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder",
+                    ex.getStackTrace());
         }
-
-        AutoBuilder.configure(
-                () -> this.getState().Pose, // Supplier of current robot pose
-                this::resetPose, // Consumer for seeding pose against auto
-                this::getCurrentRobotChassisSpeeds,
-                speeds ->
-                        this.setControl(
-                                AutoRequest.withSpeeds(
-                                        speeds)), // Consumer of ChassisSpeeds to drive the robot
-                new PPHolonomicDriveController(
-                        new PIDConstants(3, 0, 0), new PIDConstants(3, 0, 0), Robot.kDefaultPeriod),
-                robotConfig,
-                () ->
-                        DriverStation.getAlliance().orElse(Alliance.Blue)
-                                == Alliance.Red, // Assume the path needs to be flipped for Red vs
-                // Blue, this is normally
-                // the case
-                this); // Subsystem for requirements
     }
 
     // --------------------------------------------------------------------------------

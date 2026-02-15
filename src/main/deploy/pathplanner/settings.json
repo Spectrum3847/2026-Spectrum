@@ -1,6 +1,6 @@
 {
-  "robotWidth": 0.889,
-  "robotLength": 0.889,
+  "robotWidth": 0.89,
+  "robotLength": 0.778,
   "holonomicMode": true,
   "pathFolders": [
     "Config Paths",
@@ -16,24 +16,26 @@
   "defaultMaxAngVel": 540.0,
   "defaultMaxAngAccel": 720.0,
   "defaultNominalVoltage": 12.0,
-  "robotMass": 55.0,
+  "robotMass": 45.0,
   "robotMOI": 7.0,
   "robotTrackwidth": 0.546,
-  "driveWheelRadius": 0.0484505,
-  "driveGearing": 6.21,
+  "driveWheelRadius": 0.05,
+  "driveGearing": 7.03,
   "maxDriveSpeed": 4.0,
-  "driveMotorType": "falcon500FOC",
+  "driveMotorType": "krakenX60FOC",
   "driveCurrentLimit": 80.0,
-  "wheelCOF": 1.95,
-  "flModuleX": 0.213,
+  "wheelCOF": 2.225,
+  "flModuleX": 0.251,
   "flModuleY": 0.302,
-  "frModuleX": 0.213,
+  "frModuleX": 0.251,
   "frModuleY": -0.302,
-  "blModuleX": -0.302,
+  "blModuleX": -0.251,
   "blModuleY": 0.302,
-  "brModuleX": -0.302,
+  "brModuleX": -0.251,
   "brModuleY": -0.302,
   "bumperOffsetX": 0.0,
   "bumperOffsetY": 0.0,
-  "robotFeatures": []
+  "robotFeatures": [
+    "{\"name\":\"Line\",\"type\":\"line\",\"data\":{\"start\":{\"x\":0.389,\"y\":0.0},\"end\":{\"x\":0.614,\"y\":0.0},\"strokeWidth\":0.89}}"
+  ]
 }

@@ -62,7 +62,6 @@ public class SwerveStates {
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
         // pilot.AButton.whileTrue(log(snakeDrive()));
-        pilot.RT.whileTrue(log(wheelRadiusCharacterization()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));

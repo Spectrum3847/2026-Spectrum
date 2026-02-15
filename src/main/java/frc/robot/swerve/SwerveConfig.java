@@ -36,7 +36,7 @@ public class SwerveConfig {
 
     @Getter @Setter
     // Estimated at first, then fudge-factored to make odom match record
-    private Distance wheelRadius = Inches.of(3.815 / 2); // 0.0484505 m
+    private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
     // Theoretical free speed (m/s) at 12v applied output;
     @Getter @Setter
@@ -48,8 +48,9 @@ public class SwerveConfig {
     // -----------------------------------------------------------------------
     // PID Controller Constants
     // -----------------------------------------------------------------------
-    @Getter private double maxAngularVelocity = 2 * Math.PI; // rad/s
-    @Getter private double maxAngularAcceleration = Math.pow(maxAngularVelocity, 2); // rad/s^2
+    @Getter private double maxAngularVelocity = 1.5 * Math.PI; // rad/s
+    @Getter private double maxAngularAcceleration = 2 * Math.PI; // rad/s^2
+    
     @Getter private double kPRotationController = 2; // 4.5 // 6.5 // 8.0;
     @Getter private double kIRotationController = 0.0;
     @Getter private double kDRotationController = 0.0; // 0.2
@@ -67,8 +68,7 @@ public class SwerveConfig {
     @Getter private double translationTolerance = Units.inchesToMeters(0.6); // 0.4
     @Getter private double translationVelocityTolerance = Units.inchesToMeters(0.8); // 0.75
 
-    @Getter
-    private Constraints translationConstraints =
+    @Getter private Constraints translationConstraints =
             new Constraints(speedAt12Volts.baseUnitMagnitude(), 10);
 
     @Getter private double kPTagCenterController = 1.3;
@@ -89,11 +89,11 @@ public class SwerveConfig {
     // Both sets of gains need to be tuned to your individual robot.
     @Getter private Slot0Configs steerGains = 
         new Slot0Configs()
-                    .withKP(1000)
+                    .withKP(500)
                     .withKI(0)
-                    .withKD(50)
+                    .withKD(20)
                     .withKS(0.15)
-                    .withKV(1.5)
+                    .withKV(1.0)
                     .withKA(0)
                     .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
@@ -102,19 +102,18 @@ public class SwerveConfig {
                 .withKP(10.0)
                 .withKI(0.0)
                 .withKD(0.0)
-                .withKS(1.5)
+                .withKS(4)
                 .withKV(0.0);
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
-    @Getter
-    private ClosedLoopOutputType steerClosedLoopOutput =
-            ClosedLoopOutputType.TorqueCurrentFOC; // .Voltage;
+    @Getter private ClosedLoopOutputType steerClosedLoopOutput =
+            ClosedLoopOutputType.TorqueCurrentFOC;
+
     // The closed-loop output type to use for the drive motors;
     // This affects the PID/FF gains for the drive motors
-    @Getter
-    private ClosedLoopOutputType driveClosedLoopOutput =
-            ClosedLoopOutputType.TorqueCurrentFOC; // .Voltage;
+    @Getter private ClosedLoopOutputType driveClosedLoopOutput =
+            ClosedLoopOutputType.TorqueCurrentFOC;
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
@@ -122,20 +121,27 @@ public class SwerveConfig {
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
-    @Getter private TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
+    @Getter private TalonFXConfiguration driveInitialConfigs = 
+                new TalonFXConfiguration()
+                    .withCurrentLimits(
+                            new CurrentLimitsConfigs()
+                                    .withStatorCurrentLimit(Amps.of(100))
+                                    .withStatorCurrentLimitEnable(true)
+                                    .withSupplyCurrentLimit(Amps.of(70))
+                                    .withSupplyCurrentLimitEnable(true));
 
+    // Swerve azimuth does not require much torque output, so we can set a
+    // relatively low stator current limit to help avoid
+    // brownouts without impacting performance.                             
     @Getter private TalonFXConfiguration steerInitialConfigs =
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    // Swerve azimuth does not require much torque output, so we can
-                                    // set a relatively low stator current limit to help avoid
-                                    // brownouts without
-                                    // impacting performance.
                                     .withStatorCurrentLimit(Amps.of(60))
                                     .withStatorCurrentLimitEnable(true));
 
     @Getter private CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
+
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
     @Getter private Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();
 
@@ -162,8 +168,8 @@ public class SwerveConfig {
     @Getter
     private SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constantCreator;
 
-    private final double wheelBaseInches = 25;
-    private final double trackWidthInches = 29;
+    private final double wheelBaseInches = 19.75;
+    private final double trackWidthInches = 23.75;
 
     // Distance from robot center to each module (drivebase "radius") in inches
     @Getter private final double drivebaseRadiusInches = Math.hypot(wheelBaseInches / 2.0, trackWidthInches / 2.0);
@@ -209,27 +215,21 @@ public class SwerveConfig {
     @Getter private Distance backRightXPos = Inches.of(-wheelBaseInches / 2);
     @Getter private Distance backRightYPos = Inches.of(-trackWidthInches / 2);
 
-    @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            frontLeft;
-
-    @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            frontRight;
-
-    @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            backLeft;
-
-    @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            backRight;
-
     @Getter @Setter private double targetHeading = 0;
 
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-                    []
-            modules;
+    @Getter
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> frontLeft;
+
+    @Getter
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> frontRight;
+
+    @Getter
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> backLeft;
+
+    @Getter
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> backRight;
+
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>[] modules;
 
     @SuppressWarnings("unchecked")
     public SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
@@ -272,7 +272,8 @@ public class SwerveConfig {
                         .withFeedbackSource(SteerFeedbackType.FusedCANcoder)
                         .withCouplingGearRatio(coupleRatio)
                         .withDriveMotorInitialConfigs(driveInitialConfigs)
-                        .withSteerMotorInitialConfigs(steerInitialConfigs);
+                        .withSteerMotorInitialConfigs(steerInitialConfigs)
+                        .withEncoderInitialConfigs(canCoderInitialConfigs);
 
         frontLeft =
                 constantCreator.createModuleConstants(
