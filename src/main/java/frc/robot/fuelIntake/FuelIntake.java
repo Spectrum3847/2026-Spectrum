@@ -14,6 +14,7 @@ import frc.spectrumLib.sim.RollerSim;
 
 import java.util.function.DoubleSupplier;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import lombok.Getter;
@@ -35,9 +36,9 @@ public class FuelIntake extends Mechanism {
         /* Intake config values */
         @Getter private double currentLimit = 44;
         @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 12;
+        @Getter private double velocityKp = 5;
         @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 14;
+        @Getter private double velocityKs = 2;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(15);
@@ -45,7 +46,7 @@ public class FuelIntake extends Mechanism {
         @Getter private double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
-            super("Intake", 5, Rio.CANIVORE);
+            super("Intake Left", 5, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -55,6 +56,7 @@ public class FuelIntake extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            setFollowerConfigs(new FollowerConfig("Intake Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
