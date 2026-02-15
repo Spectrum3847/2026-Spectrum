@@ -13,6 +13,9 @@ import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
 
 import com.ctre.phoenix6.Utils;
 
+
+import com.ctre.phoenix6.Utils;
+
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -169,11 +172,8 @@ public class RobotSim {
                             MetersPerSecond.of(parameters.flywheelSpeed() * 0.0325),
                             Degrees.of(65))
                             .withProjectileTrajectoryDisplayCallBack(
-                                    // Callback for when the fuel will eventually hit the target (if configured)
                                     (pose3ds) -> DogLog.log("SimShot/FuelProjectileSuccessfulShot",
                                             pose3ds.toArray(Pose3d[]::new)),
-                                    // Callback for when the fuel will eventually miss the target, or if no target
-                                    // is configured
                                     (pose3ds) -> DogLog.log("SimShot/FuelProjectileUnsuccessfulShot",
                                             pose3ds.toArray(Pose3d[]::new)));
                     SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
@@ -188,6 +188,10 @@ public class RobotSim {
         }
         return Commands.defer(
                 () -> {
+                    if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+                        return Commands.none();
+                    }
+
                     int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
                     SequentialCommandGroup group = new SequentialCommandGroup();
                     for (int i = 0; i < fuelCount; i++) {

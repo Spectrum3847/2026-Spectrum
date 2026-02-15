@@ -25,8 +25,8 @@ import lombok.Setter;
 public class SwerveConfig {
 
     @Getter private final double simLoopPeriod = 0.005; // 5 ms
-    @Getter @Setter private double robotWidth = Units.inchesToMeters(29.5);
-    @Getter @Setter private double robotLength = Units.inchesToMeters(29.5);
+    @Getter @Setter private double robotWidth = Units.inchesToMeters(25);
+    @Getter @Setter private double robotLength = Units.inchesToMeters(29);
 
     @Getter @Setter private double maxAngularRate = 1.5 * Math.PI; // rad/s
     @Getter @Setter private double deadband = 0.00;
@@ -160,12 +160,14 @@ public class SwerveConfig {
     @Getter private SwerveDrivetrainConstants drivetrainConstants;
 
     @Getter
-    private SwerveModuleConstantsFactory<
-                    TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            constantCreator;
+    private SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constantCreator;
 
-    private final double wheelBaseInches = 20.5;
-    private final double trackWidthInches = 23.5;
+    private final double wheelBaseInches = 25;
+    private final double trackWidthInches = 29;
+
+    // Distance from robot center to each module (drivebase "radius") in inches
+    @Getter private final double drivebaseRadiusInches = Math.hypot(wheelBaseInches / 2.0, trackWidthInches / 2.0);
+    @Getter private final double drivebaseRadiusMeters = Units.inchesToMeters(drivebaseRadiusInches);
 
     // Front Left
     @Getter private int frontLeftDriveMotorId = 1;
