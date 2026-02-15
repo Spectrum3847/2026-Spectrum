@@ -57,7 +57,7 @@ public class SwerveStates {
                 swerve.getDefaultCommand()); 
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
-        pilot.AButton.whileTrue(log(snakeDrive()));
+        // pilot.AButton.whileTrue(log(snakeDrive()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));

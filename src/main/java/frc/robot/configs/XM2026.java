@@ -16,7 +16,7 @@ public class XM2026 extends Config {
         fuelIntake.setAttached(true);
         turret.setAttached(true);
         intakeExtension.setAttached(false);
-        indexer.setAttached(true);
-        launcher.setAttached(true);
+        indexer.setAttached(false);
+        launcher.setAttached(false);
     }
 }
