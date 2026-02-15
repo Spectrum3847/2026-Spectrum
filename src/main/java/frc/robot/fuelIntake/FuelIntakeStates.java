@@ -8,10 +8,14 @@ import frc.spectrumLib.Telemetry;
 public class FuelIntakeStates {
     private static FuelIntake intake = Robot.getFuelIntake();
 
-    public static Command intakeFuelComm() {
-        return
-            intake.runIntakeOut(() -> -1)
-            .withName("Intake.intakeFuel");
+    public static void climbForwardComm() {
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> 0.25)
+                .withName("Climb.climbForward"));
+    }
+
+    public static void climbBackwardComm() {
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.25)
+                .withName("Climb.climbBackward"));
     }
 
     public static void intakeFuel() {

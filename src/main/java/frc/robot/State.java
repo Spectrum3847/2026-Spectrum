@@ -3,8 +3,8 @@ package frc.robot;
 public enum State {
     IDLE,
     
-    INTAKING_WITH_INDEXER,
-    LAUNCHING_WITH_INDEXER;
+    CLIMB_FORWARD,
+    CLIMB_BACKWARD;
 
     private State() {}
 

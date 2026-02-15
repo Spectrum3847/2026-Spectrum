@@ -17,6 +17,6 @@ public class AM2026 extends Config {
         intakeExtension.setAttached(false);
         indexerBackward.setAttached(false);
         indexerForward.setAttached(false);
-        towerIndexer.setAttached(true);
+        towerIndexer.setAttached(false);
     }
 }

@@ -24,9 +24,9 @@ public class RobotStates {
 
     // Setup any binding to set states
     public static void setupStates() {
-        pilot.AButton.onTrue(applyState(State.INTAKING_WITH_INDEXER));
+        pilot.AButton.onTrue(applyState(State.CLIMB_FORWARD));
         pilot.AButton.onFalse(applyState(State.IDLE));
-        pilot.BButton.onTrue(applyState(State.LAUNCHING_WITH_INDEXER));
+        pilot.BButton.onTrue(applyState(State.CLIMB_BACKWARD));
         pilot.BButton.onFalse(applyState(State.IDLE));
     }
 

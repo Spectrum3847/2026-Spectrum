@@ -27,7 +27,7 @@ public class FuelIntake extends SubsystemBase{
      * Initialize the SPARK MAX and get its encoder and closed loop controller
      * objects for later use.
      */
-    motor = new SparkMax(1, MotorType.kBrushless);
+    motor = new SparkMax(45, MotorType.kBrushless);
     closedLoopController = motor.getClosedLoopController();
     encoder = motor.getEncoder();
 

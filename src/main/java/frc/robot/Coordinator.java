@@ -23,23 +23,11 @@ public class Coordinator {
                 TowerIndexerStates.neutral();
                 TurretStates.neutral();
             }
-            case INTAKING_WITH_INDEXER -> {
-                FuelIntakeStates.intakeFuel();
-                IndexerBackwardStates.spinBack();
-                IndexerForwardStates.spinMax();
-                IntakeExtensionStates.fullExtend();
-                LauncherStates.neutral();
-                TowerIndexerStates.spinMax();
-                TurretStates.neutral();
+            case CLIMB_FORWARD -> {
+                FuelIntakeStates.climbForwardComm();
             }
-            case LAUNCHING_WITH_INDEXER -> {
-                FuelIntakeStates.intakeFuel();
-                IndexerBackwardStates.spinBack();
-                IndexerForwardStates.spinMax();
-                // IntakeExtensionStates.agitateFuel();
-                LauncherStates.launch();
-                TowerIndexerStates.spinMax();
-                TurretStates.neutral();
+            case CLIMB_BACKWARD -> {
+                FuelIntakeStates.climbBackwardComm();
             }
             default -> {
                 // Handle other states or throw an error
