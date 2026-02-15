@@ -3,23 +3,17 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-
 import java.util.Set;
-
 import org.ironmaple.simulation.IntakeSimulation;
 import org.ironmaple.simulation.SimulatedArena;
 import org.ironmaple.simulation.gamepieces.GamePieceProjectile;
 import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
-
 import com.ctre.phoenix6.Utils;
-
-
-import com.ctre.phoenix6.Utils;
-
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -44,8 +38,7 @@ public class RobotSim {
     @Getter public static final double leftViewHeight = 75;
     @Getter public static final double leftViewWidth = 75;
 
-    @Getter
-    private static final IntakeSimulation intakeSimulation = edu.wpi.first.wpilibj.RobotBase.isSimulation()
+    @Getter private static final IntakeSimulation intakeSimulation = RobotBase.isSimulation()
             ? IntakeSimulation.OverTheBumperIntake(
                     "Fuel",
                     Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
