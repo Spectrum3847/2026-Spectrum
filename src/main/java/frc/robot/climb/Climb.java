@@ -78,12 +78,6 @@ public class Climb extends SubsystemBase{
      * mid-operation.
      */
     motor.configure(motorConfig, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
-
-    // Initialize dashboard values
-    SmartDashboard.setDefaultNumber("Target Position", 0);
-    SmartDashboard.setDefaultNumber("Target Velocity", 0);
-    SmartDashboard.setDefaultBoolean("Control Mode", false);
-    SmartDashboard.setDefaultBoolean("Reset Encoder", false);
   }
 
     public Command runDutyCycleOut(DoubleSupplier dutyCycleSupplier) {
@@ -100,5 +94,16 @@ public class Climb extends SubsystemBase{
 
     public Command stopMotor() {
         return run(() -> motor.stopMotor());
+    }
+
+    @Override
+    public void periodic() {
+        SmartDashboard.putNumber("Climb/Applied Output", motor.getAppliedOutput());
+        SmartDashboard.putNumber("Climb/Output Current", motor.getOutputCurrent());
+        SmartDashboard.putNumber("Climb/Bus Voltage", motor.getBusVoltage());
+        SmartDashboard.putNumber("Climb/Temperature", motor.getMotorTemperature());
+        SmartDashboard.putString("Climb/Controller Output Type", closedLoopController.getControlType().toString());
+        SmartDashboard.putNumber("Climb/Velocity", encoder.getVelocity());
+        SmartDashboard.putNumber("Climb/Position", encoder.getPosition());
     }
 }
