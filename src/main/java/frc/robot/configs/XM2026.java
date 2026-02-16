@@ -18,6 +18,6 @@ public class XM2026 extends Config {
         turret.setAttached(true);
         launcher.setAttached(false);
         indexerTower.setAttached(false);
-        indexerBed.setAttached(false);
+        indexerBed.setAttached(true);
     }
 }

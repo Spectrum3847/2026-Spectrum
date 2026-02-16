@@ -604,9 +604,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
                     new PPHolonomicDriveController(
                             // PID constants for translation
-                            new PIDConstants(4, 0, 0),
+                            new PIDConstants(5, 0, 0),
                             // PID constants for rotation
-                            new PIDConstants(4, 0, 0)),
+                            new PIDConstants(5, 0, 0)),
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case
