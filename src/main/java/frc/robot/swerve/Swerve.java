@@ -580,14 +580,28 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         try {
             var config = RobotConfig.fromGUISettings();
             AutoBuilder.configure(
-                    () -> getState().Pose, // Supplier of current robot pose
+                    this::getRobotPose, // Supplier of current robot pose
                     this::resetPose, // Consumer for seeding pose against auto
-                    () -> getState().Speeds, // Supplier of current robot speeds
+                    this::getCurrentRobotChassisSpeeds, // Supplier of current robot speeds
                     // Consumer of ChassisSpeeds and feedforwards to drive the robot
-                    (speeds, feedforwards) -> setControl(
-                            AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
-                                    .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesXNewtons())
-                                    .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())),
+                    (speeds, feedforwards) -> {
+                        // Copy feedforward arrays
+                        double[] ffX = feedforwards.robotRelativeForcesXNewtons().clone();
+                        double[] ffY = feedforwards.robotRelativeForcesYNewtons().clone();
+
+                        // Flip right-side modules (assuming 0=FL, 1=FR, 2=BL, 3=BR)
+                        ffX[1] *= -1;
+                        ffY[1] *= -1;
+                        ffX[3] *= -1;
+                        ffY[3] *= -1;
+
+                        AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
+                                .withWheelForceFeedforwardsX(ffX)
+                                .withWheelForceFeedforwardsY(ffY);
+
+                        setControl(AutoRequest);
+                    },
+
                     new PPHolonomicDriveController(
                             // PID constants for translation
                             new PIDConstants(4, 0, 0),
