@@ -1,34 +1,34 @@
-package frc.robot.indexer;
+package frc.robot.indexerTower;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
-public class IndexerStates {
-    private static Indexer indexer = Robot.getIndexer();
-    private static Indexer.IndexerConfig config = Robot.getConfig().indexer;
+public class IndexerTowerStates {
+    private static IndexerTower indexerTower = Robot.getIndexerTower();
+    private static IndexerTower.IndexerTowerConfig config = Robot.getConfig().indexerTower;
 
     public static void setupDefaultCommand() {
-        indexer.setDefaultCommand(
-                indexer.stopMotor().ignoringDisable(true).withName("Indexer.default"));
+        indexerTower.setDefaultCommand(
+                indexerTower.stopMotor().ignoringDisable(true).withName("IndexerTower.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(indexer.runVoltage(() -> 0).withName("Indexer.neutral"));
+        scheduleIfNotRunning(indexerTower.runVoltage(() -> 0).withName("IndexerTower.neutral"));
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(indexer.runTorqueFOC(config::getIndexerTorqueCurrent)
-            .withName("Indexer.feedMax"));
+        scheduleIfNotRunning(indexerTower.runTorqueFOC(config::getIndexerTorqueCurrent)
+            .withName("IndexerTower.feedMax"));
     }
 
     public static void coastMode() {
-        scheduleIfNotRunning(indexer.coastMode());
+        scheduleIfNotRunning(indexerTower.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(indexer.ensureBrakeMode());
+        scheduleIfNotRunning(indexerTower.ensureBrakeMode());
     }
 
     // Log Command
@@ -45,7 +45,7 @@ public class IndexerStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(indexer);
+        Command current = commandScheduler.requiring(indexerTower);
 
         // Only schedule if it's not already the same same command
         if (current != command) {

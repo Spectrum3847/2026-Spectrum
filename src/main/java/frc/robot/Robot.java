@@ -24,8 +24,10 @@ import frc.robot.auton.Auton;
 import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.indexer.Indexer;
-import frc.robot.indexer.Indexer.IndexerConfig;
+import frc.robot.indexerBed.IndexerBed;
+import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
+import frc.robot.indexerTower.IndexerTower;
+import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
@@ -80,7 +82,8 @@ public class Robot extends SpectrumRobot {
         public LedFullConfig leds = new LedFullConfig();
         public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public IndexerConfig indexer = new IndexerConfig();
+        public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
+        public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
     }
@@ -89,7 +92,8 @@ public class Robot extends SpectrumRobot {
     @Getter private static FuelIntake fuelIntake;
     @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
-    @Getter private static Indexer indexer;
+    @Getter private static IndexerTower indexerTower;
+    @Getter private static IndexerBed indexerBed;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -136,7 +140,9 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
-            indexer = new Indexer(config.indexer);
+            indexerTower = new IndexerTower(config.indexerTower);
+            Timer.delay(canInitDelay);
+            indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             coordinator = new Coordinator();
 

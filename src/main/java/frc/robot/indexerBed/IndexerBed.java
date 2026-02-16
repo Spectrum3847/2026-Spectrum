@@ -1,40 +1,36 @@
-package frc.robot.launcher;
+package frc.robot.indexerBed;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.rebuilt.ShotCalculator;
-import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;
+import lombok.Setter;
 
-public class Launcher extends Mechanism {
+public class IndexerBed extends Mechanism {
 
-    public static class LauncherConfig extends Config {
+    public static class IndexerBedConfig extends Config {
 
-        /* Launcher config values */
-        @Getter private double currentLimit = 100;
-        @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 9;
-        @Getter private double velocityKv = 0.48;
-        @Getter private double velocityKs = 0.03;
+        // Intake Voltages and Current
+        @Getter @Setter private double indexerTorqueCurrent = 50;
+
+        /* Intake config values */
+        @Getter @Setter private double currentLimit = 60;
+        @Getter @Setter private double torqueCurrentLimit = 100;
+        @Getter @Setter private double velocityKp = 5;
+        @Getter @Setter private double velocityKv = 0.2;
+        @Getter @Setter private double velocityKs = 4;
 
         /* Sim Configs */
-        @Getter private double launcherX = Units.inchesToMeters(50);
-        @Getter private double launcherY = Units.inchesToMeters(63);
-        @Getter private double wheelDiameter = 4;
+        @Getter @Setter private double intakeX = Units.inchesToMeters(60);
+        @Getter @Setter private double intakeY = Units.inchesToMeters(75);
+        @Getter @Setter private double wheelDiameter = 12;
 
-        public LauncherConfig() {
-            super("Launcher", 48, Rio.CANIVORE);
+        public IndexerBedConfig() {
+            super("IndexerBed", 8, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -43,32 +39,33 @@ public class Launcher extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
-            setFollowerConfigs(new FollowerConfig("LauncherRight", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+            configClockwise_Positive();
         }
     }
 
-    private LauncherConfig config;
-    private LauncherSim sim;
+    private IndexerBedConfig config;
+    // private IndexerSim sim;
 
-    public Launcher(LauncherConfig config) {
+    public IndexerBed(IndexerBedConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
+        // simulationInit();
         telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+    }
 
     @Override
-    public void setupStates() {}
+    public void setupStates() {
+    }
 
     @Override
     public void setupDefaultCommand() {
-        LauncherStates.setupDefaultCommand();
+        IndexerBedStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -90,7 +87,7 @@ public class Launcher extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
-    
+
     public Command runTorqueFOC(DoubleSupplier torque) {
         return run(() -> setTorqueCurrentFoc(torque));
     }
@@ -115,52 +112,34 @@ public class Launcher extends Mechanism {
         return run(() -> stop());
     }
 
-    public Command trackTargetCommand() {
-        return run(() -> {
-            var params = ShotCalculator.getInstance().getParameters();
-            setVelocityTCFOCrpm(() -> params.flywheelSpeed());
-        }).withName("Launcher.trackTargetCommand");
-    }
-
-    public Trigger aimingAtTarget() {
-        return new Trigger(() -> {
-            var params = ShotCalculator.getInstance().getParameters();
-
-            double targetRPM = params.flywheelSpeed();
-            double currentRPM = getVelocityRPM();
-
-            double errorRPM = currentRPM - targetRPM;
-
-            return Math.abs(errorRPM) < 50;
-        });
-    }
-
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+    //         // diameter
+    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
+    //     }
+    // }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class LauncherSim extends RollerSim {
-        public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class IndexerSim extends RollerSim {
+    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }

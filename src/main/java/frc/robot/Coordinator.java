@@ -1,7 +1,8 @@
 package frc.robot;
 
 import frc.robot.fuelIntake.FuelIntakeStates;
-import frc.robot.indexer.IndexerStates;
+import frc.robot.indexerBed.IndexerBedStates;
+import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.turretRotationalPivot.RotationalPivotStates;
@@ -15,42 +16,48 @@ public class Coordinator {
         switch (state) {
             case IDLE -> {
                 FuelIntakeStates.stop();
-                IndexerStates.neutral();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
                 IntakeExtensionStates.neutral();
                 LauncherStates.neutral();
                 RotationalPivotStates.neutral();
             }
             case INTAKE_FUEL -> {
                 FuelIntakeStates.intakeFuel();
-                IndexerStates.neutral();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.neutral();
                 RotationalPivotStates.neutral();
             }
             case TURRET_TRACK_WITH_SPINUP -> {
                 FuelIntakeStates.stop();
-                IndexerStates.neutral();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.aimAtHub();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_TRACK_WITH_LAUNCH -> {
                 FuelIntakeStates.stop();
-                IndexerStates.indexMax();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.aimAtHub();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_FEED_WITH_SPINUP -> {
                 FuelIntakeStates.stop();
-                IndexerStates.neutral();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.aimAtHub();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_FEED_WITH_LAUNCH -> {
                 FuelIntakeStates.stop();
-                IndexerStates.indexMax();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.aimAtHub();
                 RotationalPivotStates.aimAtHub();

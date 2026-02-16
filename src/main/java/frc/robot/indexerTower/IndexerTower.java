@@ -1,4 +1,4 @@
-package frc.robot.indexer;
+package frc.robot.indexerTower;
 
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -10,26 +10,22 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-
 import java.util.function.DoubleSupplier;
-
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import lombok.Getter;
 import lombok.Setter;
 
-public class Indexer extends Mechanism {
+public class IndexerTower extends Mechanism {
 
-    public static class IndexerConfig extends Config {
+    public static class IndexerTowerConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerTorqueCurrent = 75;
+        @Getter @Setter private double indexerTorqueCurrent = 100;
 
         /* Intake config values */
-        @Getter private double currentLimit = 60;
-        @Getter private double torqueCurrentLimit = 100;
-        @Getter private double velocityKp = 5;
+        @Getter private double currentLimit = 100;
+        @Getter private double torqueCurrentLimit = 200;
+        @Getter private double velocityKp = 50;
         @Getter private double velocityKv = 0.2;
         @Getter private double velocityKs = 4;
 
@@ -38,8 +34,8 @@ public class Indexer extends Mechanism {
         @Getter private double intakeY = Units.inchesToMeters(75);
         @Getter private double wheelDiameter = 12;
 
-        public IndexerConfig() {
-            super("Indexer", 51, Rio.CANIVORE);
+        public IndexerTowerConfig() {
+            super("IndexerTower", 51, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -48,15 +44,14 @@ public class Indexer extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
-            setFollowerConfigs(new FollowerConfig("Indexer Bed", 8, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+            configCounterClockwise_Positive();
         }
     }
 
-    private IndexerConfig config;
+    private IndexerTowerConfig config;
     private IndexerSim sim;
 
-    public Indexer(IndexerConfig config) {
+    public IndexerTower(IndexerTowerConfig config) {
         super(config);
         this.config = config;
 
@@ -73,7 +68,7 @@ public class Indexer extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        IndexerStates.setupDefaultCommand();
+        IndexerTowerStates.setupDefaultCommand();
     }
 
     /*-------------------
