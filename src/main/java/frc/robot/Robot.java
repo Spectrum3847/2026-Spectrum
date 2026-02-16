@@ -19,9 +19,9 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.auton.Auton;
+import frc.robot.climb.Climb;
 import frc.robot.configs.AM2026;
 import frc.robot.configs.FM2026;
-import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.indexerBackward.IndexerBackward;
 import frc.robot.indexerBackward.IndexerBackward.IndexerBackwardConfig;
 import frc.robot.indexerForward.IndexerForward;
@@ -83,7 +83,7 @@ public class Robot extends SpectrumRobot {
     }
 
     @Getter private static Swerve swerve;
-    @Getter private static FuelIntake fuelIntake;
+    @Getter private static Climb climb;
     @Getter private static Turret turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerBackward indexerBackward;
@@ -132,7 +132,7 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
-            fuelIntake = new FuelIntake();
+            climb = new Climb();
             Timer.delay(canInitDelay);
             indexerBackward = new IndexerBackward(config.indexerBackward);
             Timer.delay(canInitDelay);

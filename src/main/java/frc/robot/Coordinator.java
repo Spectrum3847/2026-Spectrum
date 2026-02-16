@@ -1,6 +1,6 @@
 package frc.robot;
 
-import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.climb.ClimbStates;
 import frc.robot.indexerBackward.IndexerBackwardStates;
 import frc.robot.indexerForward.IndexerForwardStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
@@ -15,7 +15,7 @@ public class Coordinator {
     public void applyRobotState(State state) {
         switch (state) {
             case IDLE -> {
-                FuelIntakeStates.stop();
+                ClimbStates.stop();
                 IndexerBackwardStates.neutral();
                 IndexerForwardStates.neutral();
                 IntakeExtensionStates.fullExtend();
@@ -24,10 +24,10 @@ public class Coordinator {
                 TurretStates.neutral();
             }
             case CLIMB_FORWARD -> {
-                FuelIntakeStates.climbForward();
+                ClimbStates.climbForward();
             }
             case CLIMB_BACKWARD -> {
-                FuelIntakeStates.climbBackward();
+                ClimbStates.climbBackward();
             }
             default -> {
                 // Handle other states or throw an error

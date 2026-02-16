@@ -1,4 +1,4 @@
-package frc.robot.fuelIntake;
+package frc.robot.climb;
 
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.FeedbackSensor;
@@ -15,13 +15,13 @@ import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
 
-public class FuelIntake extends SubsystemBase{
+public class Climb extends SubsystemBase{
     private SparkMax motor;
     private SparkMaxConfig motorConfig;
     private SparkClosedLoopController closedLoopController;
     private RelativeEncoder encoder;
 
-    public FuelIntake() {
+    public Climb() {
     /*
      * Initialize the SPARK MAX and get its encoder and closed loop controller
      * objects for later use.

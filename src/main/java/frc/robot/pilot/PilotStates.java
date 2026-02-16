@@ -2,14 +2,7 @@ package frc.robot.pilot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.Robot;
-import frc.robot.fuelIntake.FuelIntakeStates;
-import frc.robot.indexerBackward.IndexerBackwardStates;
-import frc.robot.indexerForward.IndexerForwardStates;
-import frc.robot.intakeExtension.IntakeExtensionStates;
-import frc.robot.towerIndexer.TowerIndexerStates;
-import frc.robot.turret.TurretStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;

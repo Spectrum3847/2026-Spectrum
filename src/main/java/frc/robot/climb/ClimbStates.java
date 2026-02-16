@@ -1,12 +1,12 @@
-package frc.robot.fuelIntake;
+package frc.robot.climb;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
-public class FuelIntakeStates {
-    private static FuelIntake intake = Robot.getFuelIntake();
+public class ClimbStates {
+    private static Climb intake = Robot.getClimb();
 
     public static void climbForward() {
         scheduleIfNotRunning(intake.runDutyCycleOut(() -> 0.9)
@@ -20,7 +20,7 @@ public class FuelIntakeStates {
 
     public static void intakeFuel() {
         scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.55)
-        .withName("Intake.intakeFuel"));
+                .withName("Intake.intakeFuel"));
     }
 
     public static void stop() {
@@ -33,10 +33,11 @@ public class FuelIntakeStates {
     }
 
     /**
-     * Schedules a command for a subsystem only if it's not already the running command
+     * Schedules a command for a subsystem only if it's not already the running
+     * command
      *
      * @param subsystem the subsystem the command requires
-     * @param command the command to schedule
+     * @param command   the command to schedule
      */
     public static void scheduleIfNotRunning(Command command) {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();

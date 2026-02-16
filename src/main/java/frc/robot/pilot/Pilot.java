@@ -2,7 +2,6 @@ package frc.robot.pilot;
 
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.gamepads.Gamepad;
