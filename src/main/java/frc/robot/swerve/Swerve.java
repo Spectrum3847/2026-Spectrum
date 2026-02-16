@@ -12,6 +12,8 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
@@ -79,7 +81,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
 
-    private final SwerveRequest.ApplyRobotSpeeds AutoRequest = new SwerveRequest.ApplyRobotSpeeds();
+    private final SwerveRequest.ApplyRobotSpeeds AutoRequest = new SwerveRequest.ApplyRobotSpeeds()
+            .withDriveRequestType(DriveRequestType.Velocity)
+            .withSteerRequestType(SteerRequestType.Position)
+            .withDesaturateWheelSpeeds(true);
 
     // Logging publisher
     StructArrayPublisher<SwerveModuleState> moduleStatePublisher =
@@ -585,9 +590,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                                     .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesYNewtons())),
                     new PPHolonomicDriveController(
                             // PID constants for translation
-                            new PIDConstants(3, 0, 0),
+                            new PIDConstants(4, 0, 0),
                             // PID constants for rotation
-                            new PIDConstants(3, 0, 0)),
+                            new PIDConstants(4, 0, 0)),
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case
@@ -603,26 +608,28 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
+
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
-        @SuppressWarnings("unchecked")
-        private void startSimThread() {
-            mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
-            Seconds.of(config.getSimLoopPeriod()),
-            Pounds.of(115), // robot weight
-            Inches.of(30), // bumper length
-            Inches.of(30), // bumper width
-            DCMotor.getKrakenX60Foc(1), // drive motor type
-            DCMotor.getKrakenX60Foc(1), // steer motor type
-            1.2, // wheel COF
-            getModuleLocations(),
-            getPigeon2(),
-            getModules(),
-            config.getFrontLeft(),
-            config.getFrontRight(),
-            config.getBackLeft(),
-            config.getBackRight());
-    /* Run simulation at a faster rate so PID gains behave more reasonably */
-    simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
-    simNotifier.startPeriodic(config.getSimLoopPeriod());
+
+    @SuppressWarnings("unchecked")
+    private void startSimThread() {
+        mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
+                Seconds.of(config.getSimLoopPeriod()),
+                Pounds.of(115), // robot weight
+                Inches.of(30), // bumper length
+                Inches.of(30), // bumper width
+                DCMotor.getKrakenX60Foc(1), // drive motor type
+                DCMotor.getKrakenX60Foc(1), // steer motor type
+                1.2, // wheel COF
+                getModuleLocations(),
+                getPigeon2(),
+                getModules(),
+                config.getFrontLeft(),
+                config.getFrontRight(),
+                config.getBackLeft(),
+                config.getBackRight());
+        /* Run simulation at a faster rate so PID gains behave more reasonably */
+        simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
+        simNotifier.startPeriodic(config.getSimLoopPeriod());
 }
 }
