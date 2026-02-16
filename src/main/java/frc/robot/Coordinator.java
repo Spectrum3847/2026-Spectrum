@@ -24,10 +24,10 @@ public class Coordinator {
                 TurretStates.neutral();
             }
             case CLIMB_FORWARD -> {
-                FuelIntakeStates.climbForwardComm();
+                FuelIntakeStates.climbForward();
             }
             case CLIMB_BACKWARD -> {
-                FuelIntakeStates.climbBackwardComm();
+                FuelIntakeStates.climbBackward();
             }
             default -> {
                 // Handle other states or throw an error

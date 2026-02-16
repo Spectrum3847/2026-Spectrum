@@ -9,7 +9,6 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
 import com.revrobotics.PersistMode;
@@ -88,21 +87,15 @@ public class FuelIntake extends SubsystemBase{
   }
 
     public Command runDutyCycleOut(DoubleSupplier dutyCycleSupplier) {
-        return new InstantCommand(
+        return run(
                 () -> {
                     double targetDutyCycle = dutyCycleSupplier.getAsDouble();
                     closedLoopController.setSetpoint(
-                            targetDutyCycle, 
-                            ControlType.kDutyCycle, 
+                            targetDutyCycle,
+                            ControlType.kDutyCycle,
                             ClosedLoopSlot.kSlot1);
-                },
-                this)
-            .withName("FuelIntake.runDutyCycleOut");
-    }
-
-    public Command runIntakeOut(DoubleSupplier dutyCycleSupplier) {
-        return run(() -> motor.set(dutyCycleSupplier.getAsDouble()))
-            .withName("FuelIntake.runIntakeOut");
+                })
+                .withName("FuelIntake.runDutyCycleOut");
     }
 
     public Command stopMotor() {
