@@ -22,6 +22,7 @@ public class LedStates {
 
         // General Led Commands
         testPattern(PilotStates.buttonAPress.and(Util.teleop), 5);
+
     }
 
     /** Default LED commands for each mode */
@@ -71,4 +72,5 @@ public class LedStates {
             ledCommand(
                 "left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
         }
-    }
+    
+}
