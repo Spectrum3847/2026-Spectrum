@@ -585,28 +585,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     this::getCurrentRobotChassisSpeeds, // Supplier of current robot speeds
                     // Consumer of ChassisSpeeds and feedforwards to drive the robot
                     (speeds, feedforwards) -> {
-                        // Copy feedforward arrays
-                        double[] ffX = feedforwards.robotRelativeForcesXNewtons().clone();
-                        double[] ffY = feedforwards.robotRelativeForcesYNewtons().clone();
-
-                        // Flip right-side modules (assuming 0=FL, 1=FR, 2=BL, 3=BR)
-                        ffX[1] *= -1;
-                        ffY[1] *= -1;
-                        ffX[3] *= -1;
-                        ffY[3] *= -1;
-
-                        AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
-                                .withWheelForceFeedforwardsX(ffX)
-                                .withWheelForceFeedforwardsY(ffY);
-
-                        setControl(AutoRequest);
+                        setControl(AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
+                                .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesX())
+                                .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesY()));
                     },
 
                     new PPHolonomicDriveController(
                             // PID constants for translation
-                            new PIDConstants(5, 0, 0),
+                            new PIDConstants(4.5, 0, 0),
                             // PID constants for rotation
-                            new PIDConstants(5, 0, 0)),
+                            new PIDConstants(7, 0, 0)),
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case
