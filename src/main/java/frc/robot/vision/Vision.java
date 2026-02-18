@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendable;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.util.sendable.SendableRegistry;
@@ -64,8 +65,14 @@ public class Vision implements NTSendable, Subsystem {
 
         @Getter final String turretLL = "limelight-turret";
         @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL)
-                .withTranslation(0, 0, 0.79)
-                .withRotation(0, Math.toRadians(12.5), 0);
+                .withTranslation(
+                    Units.inchesToMeters(1.572), 
+                    Units.inchesToMeters(-4.655), 
+                    Units.inchesToMeters(27))
+                .withRotation(
+                    0, 
+                    Math.toRadians(10), 
+                    0);
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
@@ -243,14 +250,14 @@ public class Vision implements NTSendable, Subsystem {
     private void setLimeLightOrientation() {
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
 
-        for (Limelight limelight : swerveLimelights) {
+        for (Limelight limelight : allLimelights) {
             limelight.setRobotOrientation(yaw);
         }
     }
 
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
-            for (Limelight limelight : swerveLimelights) {
+            for (Limelight limelight : allLimelights) {
                 limelight.setIMUmode(1);
             }
             // MegaTag1 estimates (3D) for each swerve camera
@@ -262,7 +269,7 @@ public class Vision implements NTSendable, Subsystem {
 
             // Turret estimate
             if (Robot.getTurret().isAttached()) {
-                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true);
+                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true, true);
                 integrateSingleEstimate(turretMT1);
             }
         }
@@ -270,7 +277,7 @@ public class Vision implements NTSendable, Subsystem {
 
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean()) {
-            for (Limelight limelight : swerveLimelights) {
+            for (Limelight limelight : allLimelights) {
                 limelight.setIMUmode(4);
             }
             // MegaTag1 estimates (3D) for each swerve camera
@@ -289,10 +296,8 @@ public class Vision implements NTSendable, Subsystem {
 
             // Turret estimate
             if (Robot.getTurret().isAttached()) {
-                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, false);
-                VisionFieldPoseEstimate turretMT2 = getMT2VisionEstimate(turretLL);
+                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true, false);
                 integrateSingleEstimate(turretMT1);
-                integrateSingleEstimate(turretMT2);
             }
         }
     }
@@ -469,7 +474,7 @@ public class Vision implements NTSendable, Subsystem {
                 (int) ll.getTagCountInView());
     }
 
-    private VisionFieldPoseEstimate getMT1TurretEstimate(Limelight ll, boolean integrateXY) {
+    private VisionFieldPoseEstimate getMT1TurretEstimate(Limelight ll, boolean integrateXY, boolean forceIntegration) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
@@ -562,16 +567,32 @@ public class Vision implements NTSendable, Subsystem {
         }
 
         // If we're forcing integration, use very tight stds
-        if (integrateXY) {
+        if (forceIntegration) {
             xyStds = 0.01;
             degStds = 0.01;
         }
 
         /* ---------------- Turret adjustment ---------------- */
-        Rotation2d turretAdjustedRotation = megaTag1Pose2d.getRotation()
-                .minus(Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble()));
+        double turretDegrees = turretRotationSupplier.getAsDouble();
+        Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
+        Translation2d turretCameraOffset = new Translation2d(
+                config.getTurretConfig().getForward(),
+                config.getTurretConfig().getRight() * -1); // Negate because left is positive in WPI coordinate system
 
-        Pose2d integratedPose = new Pose2d(megaTag1Pose2d.getTranslation(), turretAdjustedRotation);
+        // Rotate camera offset by turret angle
+        Translation2d rotatedOffset = turretCameraOffset.rotateBy(turretRotation);
+
+        // Camera pose reported by LL
+        Pose2d cameraPose = megaTag1Pose2d;
+
+        // Robot rotation = camera rotation - turret angle
+        Rotation2d robotRotation = cameraPose.getRotation().minus(turretRotation);
+
+        // Robot translation =
+        // camera translation - rotated camera offset
+        Translation2d robotTranslation = cameraPose.getTranslation().minus(rotatedOffset);
+
+        Pose2d integratedPose = new Pose2d(robotTranslation, robotRotation);
 
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
