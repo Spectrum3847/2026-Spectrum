@@ -72,8 +72,8 @@ public class LedCANdle extends LedStates{
 
     }
 
-    void bindTriggers() {
-        test(Util.teleop, 1);
+    void bind() {
+        test(Util.teleop, 5);
     }
 
     void test(Trigger trigger, int priority) {
