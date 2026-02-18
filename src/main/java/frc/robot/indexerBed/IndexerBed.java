@@ -15,12 +15,12 @@ public class IndexerBed extends Mechanism {
     public static class IndexerBedConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerTorqueCurrent = 25;
+        @Getter @Setter private double indexerTorqueCurrent = 50;
 
         /* Intake config values */
         @Getter @Setter private double currentLimit = 60;
         @Getter @Setter private double torqueCurrentLimit = 100;
-        @Getter @Setter private double velocityKp = 5;
+        @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
 
@@ -39,7 +39,7 @@ public class IndexerBed extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
     }
 

@@ -20,7 +20,7 @@ public class IndexerTower extends Mechanism {
     public static class IndexerTowerConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerTorqueCurrent = 100;
+        @Getter @Setter private double indexerTorqueCurrent = 150;
 
         /* Intake config values */
         @Getter private double currentLimit = 100;

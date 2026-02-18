@@ -6,29 +6,29 @@ import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class IndexerBedStates {
-    private static IndexerBed IndexerBed = Robot.getIndexerBed();
+    private static IndexerBed indexerBed = Robot.getIndexerBed();
     private static IndexerBed.IndexerBedConfig config = Robot.getConfig().indexerBed;
 
     public static void setupDefaultCommand() {
-        IndexerBed.setDefaultCommand(
-                IndexerBed.stopMotor().ignoringDisable(true).withName("IndexerBed.default"));
+        indexerBed.setDefaultCommand(
+                indexerBed.stopMotor().ignoringDisable(true).withName("IndexerBed.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(IndexerBed.runVoltage(() -> 0).withName("IndexerBed.neutral"));
+        scheduleIfNotRunning(indexerBed.runVoltage(() -> 0).withName("IndexerBed.neutral"));
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(IndexerBed.runTorqueFOC(config::getIndexerTorqueCurrent)
+        scheduleIfNotRunning(indexerBed.runTorqueFOC(config::getIndexerTorqueCurrent)
                 .withName("IndexerBed.feedMax"));
     }
 
     public static void coastMode() {
-        scheduleIfNotRunning(IndexerBed.coastMode());
+        scheduleIfNotRunning(indexerBed.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(IndexerBed.ensureBrakeMode());
+        scheduleIfNotRunning(indexerBed.ensureBrakeMode());
     }
 
     // Log Command
@@ -46,7 +46,7 @@ public class IndexerBedStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(IndexerBed);
+        Command current = commandScheduler.requiring(indexerBed);
 
         // Only schedule if it's not already the same same command
         if (current != command) {
