@@ -47,8 +47,6 @@ import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.robot.swerve.controllers.RotationController;
-import frc.robot.swerve.controllers.TagCenterAlignController;
-import frc.robot.swerve.controllers.TagDistanceAlignController;
 import frc.robot.swerve.controllers.TranslationXController;
 import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
@@ -65,8 +63,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
     private RotationController rotationController;
-    private TagCenterAlignController tagCenterAlignController;
-    private TagDistanceAlignController tagDistanceAlignController;
     private TranslationXController xController;
     private TranslationYController yController;
 
@@ -111,8 +107,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         this.config = config;
 
         rotationController = new RotationController(config);
-        tagCenterAlignController = new TagCenterAlignController(config);
-        tagDistanceAlignController = new TagDistanceAlignController(config);
         xController = new TranslationXController(config);
         yController = new TranslationYController(config);
 
@@ -501,52 +495,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians(), useHold);
     }
 
-    // --------------------------------------------------------------------------------
-    // Tag Center Align Controller
-    // --------------------------------------------------------------------------------
-    // void resetTagCenterAlignController(double currentMeters) {
-    //     tagCenterAlignController.reset(currentMeters);
-    // }
-
-    double calculateTagCenterAlignController(
-            DoubleSupplier targetMeters, DoubleSupplier currentMeters) {
-        return tagCenterAlignController.calculate(
-                targetMeters.getAsDouble(), currentMeters.getAsDouble());
-    }
-
-    public boolean atTagCenterGoal(double currentMeters) {
-        return tagCenterAlignController.atGoal(currentMeters);
-    }
-
-    // --------------------------------------------------------------------------------
-    // Tag Distance Align Controller
-    // --------------------------------------------------------------------------------
-    void resetTagDistanceAlignController(double currentMeters) {
-        tagDistanceAlignController.reset(currentMeters);
-    }
-
-    double calculateTagDistanceAlignController(DoubleSupplier targetArea) {
-        boolean front = true;
-        if (Robot.getVision().frontLL.targetInView()) {
-            front = true;
-        } else if (Robot.getVision().backLL.targetInView()) {
-            front = false;
-        }
-
-        double output =
-                tagDistanceAlignController.calculate(
-                        targetArea.getAsDouble(), Robot.getVision().getTagTA());
-
-        if (Robot.getVision().tagsInView()) {
-            return front ? output : -output;
-        } else {
-            return 0;
-        }
-    }
-
-    public boolean atTagDistanceGoal(double currentArea) {
-        return tagDistanceAlignController.atGoal(currentArea);
-    }
 
     // --------------------------------------------------------------------------------
     // Translation X Controller

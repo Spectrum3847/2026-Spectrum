@@ -680,7 +680,7 @@ public class Vision implements NTSendable, Subsystem {
     public Limelight getBestLimelight() {
         Limelight bestLimelight = frontLL;
         double bestScore = 0;
-        for (Limelight limelight : swerveLimelights) {
+        for (Limelight limelight : allLimelights) {
             double score = 0;
             // prefer LL with most tags, when equal tag count, prefer LL closer to tags
             score += limelight.getTagCountInView();
@@ -779,72 +779,22 @@ public class Vision implements NTSendable, Subsystem {
         }
     }
 
-    public int getClosestTagID() {
-        int closestTagIDFront = (int) frontLL.getClosestTagID();
-        int closestTagIDBack = (int) backLL.getClosestTagID();
-
-        if (frontLL.getTagTA() < 2) {
-            closestTagIDFront = -1;
-        }
-
-        if (backLL.getTagTA() < 2) {
-            closestTagIDBack = -1;
-        }
-
-        if (closestTagIDFront == -1) {
-            return closestTagIDBack;
-        }
-        return closestTagIDFront;
-    }
-
-    public boolean isRearTagClosest() {
-        int closestTag = getClosestTagID();
-        int closestTagIDBack = (int) backLL.getClosestTagID();
-        return closestTag != -1 && closestTagIDBack == closestTag;
+    public boolean isTurretSeeingTag() {
+        return turretLL.targetInView() && turretLL.getTagTA() >= 2;
     }
 
     public boolean tagsInView() {
-
         DriverStation.Alliance alliance = DriverStation.getAlliance().orElse(DriverStation.Alliance.Red);
-
         if (alliance == DriverStation.Alliance.Blue) {
-            double closestTagIDFront = frontLL.getClosestTagID();
-            double closestTagIDBack = backLL.getClosestTagID();
-
-            boolean isFrontTagInBlue = Arrays.stream(blueTags).anyMatch(tag -> tag == closestTagIDFront);
-            boolean isBackTagInBlue = Arrays.stream(blueTags).anyMatch(tag -> tag == closestTagIDBack);
-
-            return isFrontTagInBlue || isBackTagInBlue;
+            return Arrays.stream(allLimelights)
+                    .mapToInt(ll -> (int) ll.getClosestTagID())
+                    .anyMatch(id -> Arrays.stream(blueTags).anyMatch(tag -> tag == id));
         } else if (alliance == DriverStation.Alliance.Red) {
-            double closestTagIDFront = frontLL.getClosestTagID();
-            double closestTagIDBack = backLL.getClosestTagID();
-
-            boolean isFrontTagInRed = Arrays.stream(redTags).anyMatch(tag -> tag == closestTagIDFront);
-            boolean isBackTagInRed = Arrays.stream(redTags).anyMatch(tag -> tag == closestTagIDBack);
-
-            return isFrontTagInRed || isBackTagInRed;
+            return Arrays.stream(allLimelights)
+                    .mapToInt(ll -> (int) ll.getClosestTagID())
+                    .anyMatch(id -> Arrays.stream(redTags).anyMatch(tag -> tag == id));
         } else {
             return false;
-        }
-    }
-
-    public double getTagTA() {
-        if (frontLL.targetInView()) {
-            return frontLL.getTagTA();
-        } else if (backLL.targetInView()) {
-            return backLL.getTagTA();
-        } else {
-            return 0;
-        }
-    }
-
-    public double getTagTX() {
-        if (frontLL.targetInView()) {
-            return frontLL.getTagTx();
-        } else if (backLL.targetInView()) {
-            return backLL.getTagTx();
-        } else {
-            return 0;
         }
     }
 
@@ -871,7 +821,17 @@ public class Vision implements NTSendable, Subsystem {
 
     /** Only blinks left limelight */
     public Command solidLimelight() {
-        return startEnd(() -> frontLL.setLEDMode(true), () -> frontLL.setLEDMode(false))
+        return startEnd(
+                () -> {
+                    for (Limelight limelight : allLimelights) {
+                        limelight.setLEDMode(true);;
+                    }
+                },
+                () -> {
+                    for (Limelight limelight : allLimelights) {
+                        limelight.setLEDMode(false);
+                    }
+                })
                 .withName("Vision.solidLimelight");
     }
 

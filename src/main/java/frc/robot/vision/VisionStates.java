@@ -8,7 +8,7 @@ public class VisionStates {
 
     private static Vision vision = Robot.getVision();
 
-    public static final Trigger usingRearTag = new Trigger(vision::isRearTagClosest);
+    public static final Trigger turretSeeingTag = new Trigger(vision::isTurretSeeingTag);
     public static final Trigger seeingTag = new Trigger(vision::tagsInView);
 
     public static void setupDefaultCommand() {
@@ -29,10 +29,5 @@ public class VisionStates {
 
     public static Command solidLimelight() {
         return vision.solidLimelight().withName("VisionCommands.solidLimelight");
-    }
-    /** Set robot pose to vision pose only if LL has good tag reading */
-    public static Command resetPoseToVision() {
-        return vision.runOnce(vision::resetPoseToVision)
-                .withName("VisionCommands.resetPoseToVision");
     }
 }
