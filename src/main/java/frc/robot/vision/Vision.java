@@ -63,16 +63,23 @@ public class Vision implements NTSendable, Subsystem {
                 .withTranslation(0, -0.215, 0.188)
                 .withRotation(0, Math.toRadians(28), Math.toRadians(-90));
 
+        // Turret must be ZEROED in LL-GUI to report a correct pose
+        // Dynamic translation and rotation will be applied in code based on turret and robot rotation
         @Getter final String turretLL = "limelight-turret";
         @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL)
                 .withTranslation(
-                    Units.inchesToMeters(1.572), 
-                    Units.inchesToMeters(-4.655), 
+                    Units.inchesToMeters(0.467), 
+                    Units.inchesToMeters(5.5), 
                     Units.inchesToMeters(27))
                 .withRotation(
                     0, 
                     Math.toRadians(10), 
                     0);
+
+        @Getter final Translation2d robotToTurretCenter = 
+            new Translation2d(
+                Units.inchesToMeters(-5.0),
+                Units.inchesToMeters(-5.5));
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
@@ -172,7 +179,7 @@ public class Vision implements NTSendable, Subsystem {
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
         Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
         Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag2Pose());
+        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -575,22 +582,24 @@ public class Vision implements NTSendable, Subsystem {
         /* ---------------- Turret adjustment ---------------- */
         double turretDegrees = turretRotationSupplier.getAsDouble();
         Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
-        Translation2d turretCameraOffset = new Translation2d(
+
+        // Robot->Camera at 0° turret
+        Translation2d robotToCamera0 = new Translation2d(
                 config.getTurretConfig().getForward(),
                 config.getTurretConfig().getRight() * -1); // Negate because left is positive in WPI coordinate system
 
-        // Rotate camera offset by turret angle
-        Translation2d rotatedOffset = turretCameraOffset.rotateBy(turretRotation);
+        // Vector from turret center -> camera at zero turret
+        Translation2d turretToCamera0 = robotToCamera0.minus(config.getRobotToTurretCenter());
 
-        // Camera pose reported by LL
-        Pose2d cameraPose = megaTag1Pose2d;
+        // Rotate vector by turret angle
+        Translation2d turretToRotatedCamera = turretToCamera0.rotateBy(turretRotation);
 
-        // Robot rotation = camera rotation - turret angle
-        Rotation2d robotRotation = cameraPose.getRotation().minus(turretRotation);
+        // Add turret center offset to get full robot->camera vector
+        Translation2d robotToRotatedCamera = config.getRobotToTurretCenter().plus(turretToRotatedCamera);
 
-        // Robot translation =
-        // camera translation - rotated camera offset
-        Translation2d robotTranslation = cameraPose.getTranslation().minus(rotatedOffset);
+        // Compute robot pose
+        Translation2d robotTranslation = megaTag1Pose2d.getTranslation().minus(robotToRotatedCamera);
+        Rotation2d robotRotation = megaTag1Pose2d.getRotation().minus(turretRotation);
 
         Pose2d integratedPose = new Pose2d(robotTranslation, robotRotation);
 
