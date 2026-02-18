@@ -4,8 +4,9 @@ import frc.robot.Robot.Config;
 
 public class PHOTON2026 extends Config {
 
+    // Photon Machine
     public PHOTON2026() {
-
+        
         super();
         // swerve.configEnconderOffsets();
 
