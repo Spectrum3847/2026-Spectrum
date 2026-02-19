@@ -44,7 +44,7 @@ public class RobotStates {
 
     // Setup any binding to set states
     public static void setupStates() {
-        pilot.IdleControl.onTrue(applyState(State.IDLE));
+        
         // Pilot Triggers
         pilot.AButton.onTrue(applyState(State.INTAKE_FUEL));
         pilot.AButton.onFalse(applyState(State.IDLE));

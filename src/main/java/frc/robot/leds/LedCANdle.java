@@ -1,6 +1,7 @@
 package frc.robot.leds;
 
 import frc.robot.State;
+import frc.robot.pilot.PilotStates;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.robot.Coordinator;
@@ -23,18 +24,19 @@ import com.ctre.phoenix6.signals.AnimationDirectionValue;
 // import com.ctre.phoenix6.signals.StatusLedWhenActiveValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
 
-public class LedCANdle extends LedStates{
+public class LedCANdle {
     
 
-    private final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
+    public static final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
 
-    private static final int kSlot0StartIdx = 8;
-    private static final int kSlot0EndIdx = 37;
+    public static final int kSlot0StartIdx = 0;
+    public static final int kSlot0EndIdx = 37;
 
-    private static final int kSlot1StartIdx = 38;
-    private static final int kSlot1EndIdx = 67;
+    public static final int kSlot1StartIdx = 38;
+    public static final int kSlot1EndIdx = 67;
 
-    private enum AnimationType {
+
+    public enum AnimationType {
         None,
         ColorFlow,
         Fire,
@@ -47,11 +49,11 @@ public class LedCANdle extends LedStates{
         TwinkleOff,
     }
 
-    private AnimationType animState0 = AnimationType.None;
-    private AnimationType animState1 = AnimationType.None;
+    public AnimationType animState0 = AnimationType.None;
+    public AnimationType animState1 = AnimationType.None;
 
-    private final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
-    private final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
+    public final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
+    public final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
 
     public LedCANdle() {
 
@@ -74,14 +76,14 @@ public class LedCANdle extends LedStates{
 
     }
 
-    void bind() {
-        test(Util.testMode.and(RobotStates.idle), 5);
-    }
+    // void bind() {
+    //     test(Util.testMode.and(PilotStates.buttonAPress), 5);
+    // }
 
-    void test(Trigger trigger, int priority) {
-        animState0 = AnimationType.ColorFlow;
-        animState1 = AnimationType.ColorFlow;
-    }
+    // void test(Trigger trigger, int priority) {
+    //     RainbowAnimation testAnim = new RainbowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0);
+    //     trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(testAnim)));
+    // }
 
     public void stateChanger() {
         /* if the selection for slot 0 changes, change animations */
@@ -91,11 +93,13 @@ public class LedCANdle extends LedStates{
 
             switch (animState0) {
                 default:
+
                 case ColorFlow:
                     candle.setControl(
                         new ColorFlowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)
                     );
                     break;
+
                 case Rainbow:
                     candle.setControl(
                         new RainbowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)

@@ -1,5 +1,7 @@
 package frc.robot.leds;
 
+import com.ctre.phoenix6.controls.RainbowAnimation;
+
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
@@ -9,7 +11,7 @@ import frc.robot.pilot.PilotStates;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
 
-public class LedStates {
+public class LedStates extends LedCANdle {
     private static LedFull leds = Robot.getLeds();
     private static LedRight right = leds.getRight();
     private static LedLeft left = leds.getLeft();
@@ -67,10 +69,9 @@ public class LedStates {
     }
 
     static void testPattern(Trigger trigger, int priority) {
-            ledCommand(
-                "right.testPattern", right, right.switchCountdown(Color.kBlue), priority, trigger);
-            ledCommand(
-                "left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
-        }
+        RainbowAnimation testAnim = new RainbowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0);
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() ->
+        candle.setControl(testAnim)));
+    }
     
 }
