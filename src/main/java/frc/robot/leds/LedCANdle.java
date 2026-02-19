@@ -1,10 +1,14 @@
 package frc.robot.leds;
 
+import frc.robot.State;
 import frc.robot.Robot;
+import frc.robot.RobotStates;
+import frc.robot.Coordinator;
 // import frc.robot.pilot.PilotStates;
 import frc.spectrumLib.Rio;
 // import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
+import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 // import edu.wpi.first.wpilibj.util.Color;
@@ -23,10 +27,6 @@ public class LedCANdle extends LedStates{
     
 
     private final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
-
-    // private static LedFull leds = Robot.getLeds();
-    // private static LedRight right = leds.getRight();
-    // private static LedLeft left = leds.getLeft();
 
     private static final int kSlot0StartIdx = 8;
     private static final int kSlot0EndIdx = 37;
@@ -75,16 +75,12 @@ public class LedCANdle extends LedStates{
     }
 
     void bind() {
-        test(Util.teleop, 5);
+        test(RobotStates.Idle, 5);
     }
 
     void test(Trigger trigger, int priority) {
-        animChooser0.setDefaultOption(
-            "Color Flow Right", AnimationType.ColorFlow
-        );
-        animChooser1.addOption(
-            "Color Flow Left", AnimationType.ColorFlow
-        );
+        animState0 = AnimationType.ColorFlow;
+        animState1 = AnimationType.ColorFlow;
     }
 
     public void stateChanger() {

@@ -43,11 +43,15 @@ public final class RobotStates {
 
     public static final Trigger robotReadyFeed = (robotInFeedZone).and(hopperFull).and(movementStable).and(visionStable);
 
+    public static final Trigger Idle = new Trigger(() -> appliedState == State.IDLE);
+
     private RobotStates() {
         throw new IllegalStateException("Utility class");
     }
 
     public static void setupStates() {
+        pressToState(pilot.IdleControl, State.IDLE);
+
         pressToState(pilot.AButton, State.INTAKE_FUEL);
         toggleToState(pilot.BButton, State.SNAKE_INTAKE);
 

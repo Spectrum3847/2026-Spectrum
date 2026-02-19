@@ -68,7 +68,9 @@ public class Pilot extends Gamepad {
     public final Trigger testTune_tY = testMode.and(Y);
     public final Trigger testTune_RB = testMode.and(rightBumper);
     public final Trigger testTune_LB = testMode.and(leftBumper);
-    public final Trigger testTriggersTrigger = testMode.and(leftTrigger.or(rightTrigger));
+    // public final Trigger testTriggersTrigger = testMode.and(leftTrigger.or(rightTrigger));
+
+    public final Trigger IdleControl = testMode.and(rightTrigger);
 
     public final Trigger testActionReady = rightBumper.and(testMode);
 
