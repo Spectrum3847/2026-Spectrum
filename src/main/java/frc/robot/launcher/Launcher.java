@@ -28,6 +28,8 @@ public class Launcher extends Mechanism {
         @Getter private double velocityKv = 0.48;
         @Getter private double velocityKs = 0.03;
 
+        @Getter private double onTargetToleranceRPM = 100;
+
         /* Sim Configs */
         @Getter private double launcherX = Units.inchesToMeters(50);
         @Getter private double launcherY = Units.inchesToMeters(63);
@@ -131,7 +133,7 @@ public class Launcher extends Mechanism {
 
             double errorRPM = currentRPM - targetRPM;
 
-            return Math.abs(errorRPM) < 50;
+            return Math.abs(errorRPM) < config.getOnTargetToleranceRPM();
         });
     }
 

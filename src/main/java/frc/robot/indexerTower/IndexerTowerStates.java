@@ -19,7 +19,7 @@ public class IndexerTowerStates {
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(indexerTower.runTorqueFOC(config::getIndexerTorqueCurrent)
+        scheduleIfNotRunning(indexerTower.runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
             .withName("IndexerTower.feedMax"));
     }
 

@@ -1,5 +1,6 @@
 package frc.robot;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -48,6 +49,17 @@ public class RobotStates {
         pilot.BButton.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
+
+        RotationalPivotStates.aimingAtTarget()
+                .onTrue(new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", true)));
+        RotationalPivotStates.aimingAtTarget()
+                .onFalse(new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", false)));
+        LauncherStates.aimingAtTarget()
+                .onTrue(new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", true)));
+        LauncherStates.aimingAtTarget()
+                .onFalse(new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", false)));
+        readyToLaunch.onTrue(new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", true)));
+        readyToLaunch.onFalse(new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", false)));
 
         // robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 

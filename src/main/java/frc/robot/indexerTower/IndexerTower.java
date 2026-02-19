@@ -20,12 +20,13 @@ public class IndexerTower extends Mechanism {
     public static class IndexerTowerConfig extends Config {
 
         // Intake Voltages and Current
+        @Getter @Setter private double indexerVoltageOut = 10;
         @Getter @Setter private double indexerTorqueCurrent = 150;
 
         /* Intake config values */
         @Getter private double currentLimit = 100;
         @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 50;
+        @Getter private double velocityKp = 100;
         @Getter private double velocityKv = 0.2;
         @Getter private double velocityKs = 4;
 
