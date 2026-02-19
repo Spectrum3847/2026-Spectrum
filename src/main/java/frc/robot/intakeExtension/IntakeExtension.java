@@ -36,16 +36,16 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter @Setter private double maxRotations = 4.0;
+        @Getter @Setter private double maxRotations = 2.65;
         @Getter @Setter private double minRotations = 0.0;
 
-        @Getter private final double currentLimit = 10;
+        @Getter private final double currentLimit = 60;
         @Getter private final double torqueCurrentLimit = 100;
         @Getter private final double positionKp = 250;
         @Getter private final double positionKd = 15;
-        @Getter private final double positionKv = 0.15;
+        @Getter private final double positionKv = 0.75;
         @Getter private final double positionKs = 1.8;
-        @Getter private final double positionKa = 2;
+        @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 300;
@@ -76,19 +76,20 @@ public class IntakeExtension extends Mechanism {
          @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
-            super("IntakeExtension", 6, Rio.CANIVORE); // Rio.CANIVORE);
+            super("IntakeExtension", 7, Rio.CANIVORE); // Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, 0, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
+            configGearRatio(3.6111);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {

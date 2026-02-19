@@ -1,28 +1,27 @@
 package frc.robot.swerve;
 
 import static edu.wpi.first.units.Units.*;
-
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.Zones;
 import frc.robot.Robot;
-import frc.robot.RobotStates;
-import frc.robot.State;
-import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
-import java.util.Set;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.function.DoubleSupplier;
 
 public class SwerveStates {
     static Swerve swerve = Robot.getSwerve();
     static SwerveConfig config = Robot.getConfig().swerve;
     static Pilot pilot = Robot.getPilot();
-    static Operator operator = Robot.getOperator();
     static Zones zones = new Zones();
     static Field field = new Field();
 
@@ -41,6 +40,14 @@ public class SwerveStates {
 
     private static final SwerveRequest.SwerveDriveBrake swerveXBreak = new SwerveRequest.SwerveDriveBrake();
 
+    public static Trigger robotInNeutralZone() { 
+        return swerve.inNeutralZone();
+    }
+
+    public static Trigger robotInEnemyZone() {
+        return swerve.inEnemyAllianceZone();
+    }
+
     static Command pilotSteerCommand =
             log(pilotDrive().withName("SwerveCommands.pilotSteer").ignoringDisable(true));
 
@@ -48,22 +55,13 @@ public class SwerveStates {
         swerve.setDefaultCommand(pilotSteerCommand);
     }
 
-    //define Triggers here
-    private static final Trigger inSnakeDrive = new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
-    private static final Trigger inScoreOrFeed = new Trigger(() -> 
-        RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH 
-        || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH 
-        || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
-
     protected static void setStates() {
         // Force back to manual steering when we steer
         pilot.steer.whileTrue(
                 swerve.getDefaultCommand()); 
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
-        
-        inSnakeDrive.whileTrue(log(snakeDrive()));
-        inScoreOrFeed.whileTrue(log(tweakOut()));
+        // pilot.AButton.whileTrue(log(snakeDrive()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));
@@ -131,33 +129,6 @@ public class SwerveStates {
                 pilot::getDriveLeftPositive,
                 pilot::getPilotStickAngle)
                 .withName("Swerve.SnakeDrive");
-    }
-    protected static Command tweakOut() {
-        return Commands.runOnce(() -> swerve.resetRotationController())
-            .andThen(
-                Commands.defer(
-                        () -> {
-                            final double base = swerve.getRotation().getRadians();
-                            final double delta = Math.toRadians(15.0);
-
-                            Command toMinus =
-                                drive(
-                                        pilot::getDriveFwdPositive,
-                                        pilot::getDriveLeftPositive,
-                                        getAlignHeading(() -> base - delta, false))
-                                    .withTimeout(0.12);
-
-                            Command toPlus =
-                                drive(
-                                        pilot::getDriveFwdPositive,
-                                        pilot::getDriveLeftPositive,
-                                        getAlignHeading(() -> base + delta, false))
-                                    .withTimeout(0.12);
-
-                            return Commands.repeatingSequence(toMinus, toPlus);
-                        },
-                        Set.of(swerve))
-                    .withName("Swerve.tweakOut"));
     }
 
     /** Turn the swerve wheels to an X to prevent the robot from moving */
@@ -313,10 +284,108 @@ public class SwerveStates {
         };
     }
 
-    /**
-     * *******************************************************************************************
-     * Reorient Commands
-     */
+    // --------------------------------------------------------------------------------
+    // Swerve Characterization Routines
+    // --------------------------------------------------------------------------------
+    private static final double WHEEL_RADIUS_MAX_VELOCITY = 1; // Rad/Sec
+    private static final double WHEEL_RADIUS_RAMP_RATE = 0.5; // Rad/Sec^2
+
+    public static double[] getWheelRadiusCharacterizationPositions() {
+        double[] positions = new double[4];
+        double wheelRadiusGuess = config.getWheelRadius().in(Meters); // current config value
+
+        for (int i = 0; i < 4; i++) {
+            positions[i] = swerve.getModule(i)
+                    .getCachedPosition().distanceMeters
+                    / wheelRadiusGuess;
+        }
+        return positions;
+    }
+    
+    /** Measures the robot's wheel radius by spinning in a circle. (Method from AdvantageKit) */
+    public static Command wheelRadiusCharacterization() {
+        SlewRateLimiter limiter = new SlewRateLimiter(WHEEL_RADIUS_RAMP_RATE);
+        WheelRadiusCharacterizationState state = new WheelRadiusCharacterizationState();
+
+        return Commands.parallel(
+                // Drive control sequence
+                Commands.sequence(
+                        // Reset acceleration limiter
+                        Commands.runOnce(
+                                () -> {
+                                    limiter.reset(0.0);
+                                }),
+
+                        // Turn in place, accelerating up to full speed
+                        Commands.run(
+                                () -> {
+                                    double speed = limiter.calculate(WHEEL_RADIUS_MAX_VELOCITY);
+                                    swerve.setControl(
+                                                    fieldCentricDrive
+                                                            .withVelocityX(0)
+                                                            .withVelocityY(0)
+                                                            .withRotationalRate(speed));
+                                },
+                                swerve)),
+
+                // Measurement sequence
+                Commands.sequence(
+                        // Wait for modules to fully orient before starting measurement
+                        Commands.waitSeconds(1.0),
+
+                        // Record starting measurement
+                        Commands.runOnce(
+                                () -> {
+                                    state.positions = getWheelRadiusCharacterizationPositions();
+                                    state.lastAngle = swerve.getRotation();
+                                    state.gyroDelta = 0.0;
+                                }),
+
+                        // Update gyro delta
+                        Commands.run(
+                                        () -> {
+                                            var rotation = swerve.getRotation();
+                                            state.gyroDelta += Math.abs(
+                                                    rotation.minus(state.lastAngle).getRadians());
+                                            state.lastAngle = rotation;
+                                        })
+
+                                // When cancelled, calculate and print results
+                                .finallyDo(
+                                        () -> {
+                                            double[] positions = getWheelRadiusCharacterizationPositions();
+                                            double wheelDelta = 0.0;
+                                            for (int i = 0; i < 4; i++) {
+                                                wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
+                                            }
+                                            double wheelRadius = (state.gyroDelta * config.getDrivebaseRadiusMeters())
+                                                    / wheelDelta;
+
+                                            NumberFormat formatter = new DecimalFormat("#0.000");
+                                            System.out.println(
+                                                    "********** Wheel Radius Characterization Results **********");
+                                            System.out.println(
+                                                    "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
+                                            System.out.println(
+                                                    "\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
+                                            System.out.println(
+                                                    "\tWheel Radius: "
+                                                            + formatter.format(wheelRadius)
+                                                            + " meters, "
+                                                            + formatter.format(Units.metersToInches(wheelRadius))
+                                                            + " inches");
+                                        })));
+    }
+
+    private static class WheelRadiusCharacterizationState {
+        double[] positions = new double[4];
+        Rotation2d lastAngle = Rotation2d.kZero;
+        double gyroDelta = 0.0;
+    }
+
+    // ------------------------------------------------------------------------
+    // Reorient Commands
+    // ------------------------------------------------------------------------ 
     protected static Command reorientForward() {
         return swerve.reorientPilotAngle(0).withName("Swerve.reorientForward");
     }

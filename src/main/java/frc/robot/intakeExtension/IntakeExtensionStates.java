@@ -23,6 +23,10 @@ public class IntakeExtensionStates {
         scheduleIfNotRunning(intakeExtension.move(() -> config.getMinRotations()));
     }
 
+    public static void neutral() {
+        scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+    }
+
     // --------------------------------------------------------
     
     // Log Command

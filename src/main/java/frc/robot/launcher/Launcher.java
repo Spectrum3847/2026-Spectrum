@@ -4,6 +4,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -11,30 +12,21 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-
 import java.util.function.DoubleSupplier;
-
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import lombok.Getter;
-import lombok.Setter;
 
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        // Intake Voltages and Current
-        @Getter @Setter private double LauncherVoltage = 9.0;
-        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
-        @Getter @Setter private double LauncherTorqueCurrent = 85.0;
-
-        /* Intake config values */
-        @Getter private double currentLimit = 44;
+        /* Launcher config values */
+        @Getter private double currentLimit = 100;
         @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 12;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 14;
+        @Getter private double velocityKp = 9;
+        @Getter private double velocityKv = 0.48;
+        @Getter private double velocityKs = 0.03;
 
         /* Sim Configs */
         @Getter private double launcherX = Units.inchesToMeters(50);
@@ -52,7 +44,7 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
-            setFollowerConfigs(new FollowerConfig("LauncherFollower", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+            setFollowerConfigs(new FollowerConfig("LauncherRight", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -124,9 +116,22 @@ public class Launcher extends Mechanism {
     }
 
     public Command trackTargetCommand() {
-    return run(() -> {
-        var params = ShotCalculator.getInstance().getParameters();
-        runTorqueCurrentFoc(() -> params.flywheelSpeed());
+        return run(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+            setVelocityTCFOCrpm(() -> params.flywheelSpeed());
+        }).withName("Launcher.trackTargetCommand");
+    }
+
+    public Trigger aimingAtTarget() {
+        return new Trigger(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+
+            double targetRPM = params.flywheelSpeed();
+            double currentRPM = getVelocityRPM();
+
+            double errorRPM = currentRPM - targetRPM;
+
+            return Math.abs(errorRPM) < 50;
         });
     }
 

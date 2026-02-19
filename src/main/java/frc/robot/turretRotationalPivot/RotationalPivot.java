@@ -5,7 +5,6 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -31,62 +30,61 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private final double presetPosition = 90;
-        @Getter private double triggerTolerance = 5;
-        @Getter private double unwrapTolerance = 10;
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 100;
-        @Getter private final double positionKp = 1000;
-        @Getter private final double positionKd = 175;
-        @Getter private final double positionKv = 0.15;
-        @Getter private final double positionKs = 1.8;
+        @Getter private final double currentLimit = 30;
+        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double positionKp = 850;
+        @Getter private final double positionKd = 20;
+        @Getter private final double positionKv = 0.2;
+        @Getter private final double positionKs = 0.6;
         @Getter private final double positionKa = 2;
         @Getter private final double positionKg = 0;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
-        @Getter @Setter private double sensorToMechanismRatio = 22.4;
+        @Getter private final double visionTrackingKp = 15;
+        @Getter private final double maxTrackingRPS = 0.5;
+
+        @Getter @Setter private double sensorToMechanismRatio = 45;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
-        @Getter @Setter private double CANcoderRotorToSensorRatio = 22.4;
+        @Getter @Setter private double CANcoderRotorToSensorRatio = 5;
         // CANcoderRotorToSensorRatio / sensorToMechanismRatio;
 
-        @Getter @Setter private double CANcoderSensorToMechanismRatio = 1;
+        @Getter @Setter private double CANcoderSensorToMechanismRatio = 9;
 
-        @Getter @Setter private double CANcoderOffset = 0;
-        @Getter @Setter private boolean CANcoderAttached = false;
+        @Getter @Setter private double CANcoderOffset = -0.196533203125;
+        @Getter @Setter private boolean CANcoderAttached = true;
 
-         /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
-         @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
-         @Getter private double simRatio = 22.4;
-         @Getter private double length = 1;
+        /* Sim Configs */
+        @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
+        @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
+        @Getter private double simRatio = 22.4;
+        @Getter private double length = 1;
 
         public RotationalPivotConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
             configPIDGains(0, positionKp, 0, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configGearRatio(sensorToMechanismRatio);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-1, 1);
+            configMinMaxRotations(-0.475, 0.535); // 363.6° range
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
 
         public RotationalPivotConfig modifyMotorConfig(TalonFX motor) {
@@ -111,6 +109,19 @@ public class RotationalPivot extends Mechanism {
 
         if (isAttached()) {
             setInitialPosition();
+            if (config.isCANcoderAttached() && !Robot.isSimulation()) {
+                canCoderConfig = new SpectrumCANcoderConfig(
+                        config.getCANcoderRotorToSensorRatio(),
+                        config.getCANcoderSensorToMechanismRatio(),
+                        config.getCANcoderOffset(),
+                        config.isCANcoderAttached());
+                canCoder = new SpectrumCANcoder(
+                        44,
+                        canCoderConfig,
+                        motor,
+                        config,
+                        SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
+            }
         }
 
         simulationInit();
@@ -209,7 +220,7 @@ public class RotationalPivot extends Mechanism {
         return run(() -> {
             var params = ShotCalculator.getInstance().getParameters();
             aimFieldRelative(params.turretAngle());
-        });
+        }).withName("Turret.trackTargetCommand");
     }
 
     /** Holds the position of the Turret. */
@@ -268,6 +279,19 @@ public class RotationalPivot extends Mechanism {
                                 < tolerance.getAsDouble());
     }
 
+    public Trigger aimingAtTarget() {
+        return new Trigger(() -> {
+            var params = ShotCalculator.getInstance().getParameters();
+
+            Rotation2d targetRotation = params.turretAngle();
+            Rotation2d currentRotation = Rotation2d.fromDegrees(getPositionDegrees());
+
+            double errorDeg = currentRotation.minus(targetRotation).getDegrees();
+
+            return Math.abs(errorDeg) < 3;
+        });
+    }
+
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
@@ -303,3 +327,4 @@ public class RotationalPivot extends Mechanism {
         }
     }
 }
+

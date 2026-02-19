@@ -1,13 +1,11 @@
 package frc.robot.pilot;
 
+import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
-import frc.robot.RobotStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -21,23 +19,21 @@ public class PilotStates {
         pilot.setDefaultCommand(log(rumble(0, 1).withName("Pilot.noRumble")));
     }
 
+    private static Trigger reorientButton = pilot.upReorient
+            .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
+    
     /** Set the states for the pilot controller */
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        pilot.AButton.whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.YButton.whileTrue(RobotSim.mapleSimLaunchFuel());
+        // Simulation Only: Map A and Y to intake and launch fuel for testing
+        pilot.AButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
+        pilot.YButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
 
-        pilot.dpadDown.onTrue(log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        pilot.dpadUp.onTrue(log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
-        pilot.dpadRight.onTrue(log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        pilot.dpadLeft.onTrue(log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));;
-        
         // Rumble whenever we reorient
-        pilot.upReorient
-                .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)
-                .onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
+        reorientButton.onTrue(log(rumble(1, 0.5)
+                .withName("Pilot.reorientRumble")));
     }
 
     public static final Trigger buttonAPress = pilot.AButton;

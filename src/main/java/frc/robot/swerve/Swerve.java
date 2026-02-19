@@ -12,6 +12,8 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
+import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
+import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
@@ -20,6 +22,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -40,8 +43,12 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
+import frc.robot.swerve.controllers.RotationController;
+import frc.robot.swerve.controllers.TranslationXController;
+import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -56,8 +63,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
     private RotationController rotationController;
-    private TagCenterAlignController tagCenterAlignController;
-    private TagDistanceAlignController tagDistanceAlignController;
     private TranslationXController xController;
     private TranslationYController yController;
 
@@ -65,10 +70,17 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     protected SwerveModuleState[] setpoints =
             new SwerveModuleState[] {}; // This currently doesn't do anything
 
+    // Buffer stores 1.5 seconds of pose history
+    private final TimeInterpolatableBuffer<Pose2d> poseHistory = 
+            TimeInterpolatableBuffer.createBuffer(1.5);
+
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
 
-    private final SwerveRequest.ApplyRobotSpeeds AutoRequest = new SwerveRequest.ApplyRobotSpeeds();
+    private final SwerveRequest.ApplyRobotSpeeds AutoRequest = new SwerveRequest.ApplyRobotSpeeds()
+            .withDriveRequestType(DriveRequestType.Velocity)
+            .withSteerRequestType(SteerRequestType.Position)
+            .withDesaturateWheelSpeeds(true);
 
     // Logging publisher
     StructArrayPublisher<SwerveModuleState> moduleStatePublisher =
@@ -95,8 +107,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         this.config = config;
 
         rotationController = new RotationController(config);
-        tagCenterAlignController = new TagCenterAlignController(config);
-        tagDistanceAlignController = new TagDistanceAlignController(config);
         xController = new TranslationXController(config);
         yController = new TranslationYController(config);
 
@@ -131,9 +141,15 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         DogLog.log("Drive/TargetStates", getState().ModuleTargets);
         DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
         DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
-        DogLog.log(
-                "FieldSimulation/Fuel",
-                SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        if (Utils.isSimulation()) {
+            DogLog.log(
+                    "FieldSimulation/Fuel",
+                    SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        }
+        // Store current pose in history buffer every periodic cycle
+        poseHistory.addSample(
+                Utils.getCurrentTimeSeconds(),
+                this.getState().Pose);
     }
 
     @Override
@@ -199,6 +215,17 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
         return getState().Pose;
+    }
+
+    /**
+     * Get the robot's pose at a specific timestamp using interpolation
+     * 
+     * @param timestampSeconds The timestamp to sample at
+     * @return The interpolated pose, or current pose if timestamp not in buffer
+     */
+    public Pose2d getPoseAtTimestamp(double timestampSeconds) {
+        return poseHistory.getSample(timestampSeconds)
+                .orElse(this.getState().Pose);
     }
 
     @Override
@@ -477,52 +504,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians(), useHold);
     }
 
-    // --------------------------------------------------------------------------------
-    // Tag Center Align Controller
-    // --------------------------------------------------------------------------------
-    // void resetTagCenterAlignController(double currentMeters) {
-    //     tagCenterAlignController.reset(currentMeters);
-    // }
-
-    double calculateTagCenterAlignController(
-            DoubleSupplier targetMeters, DoubleSupplier currentMeters) {
-        return tagCenterAlignController.calculate(
-                targetMeters.getAsDouble(), currentMeters.getAsDouble());
-    }
-
-    public boolean atTagCenterGoal(double currentMeters) {
-        return tagCenterAlignController.atGoal(currentMeters);
-    }
-
-    // --------------------------------------------------------------------------------
-    // Tag Distance Align Controller
-    // --------------------------------------------------------------------------------
-    void resetTagDistanceAlignController(double currentMeters) {
-        tagDistanceAlignController.reset(currentMeters);
-    }
-
-    double calculateTagDistanceAlignController(DoubleSupplier targetArea) {
-        boolean front = true;
-        if (Robot.getVision().frontLL.targetInView()) {
-            front = true;
-        } else if (Robot.getVision().backLL.targetInView()) {
-            front = false;
-        }
-
-        double output =
-                tagDistanceAlignController.calculate(
-                        targetArea.getAsDouble(), Robot.getVision().getTagTA());
-
-        if (Robot.getVision().tagsInView()) {
-            return front ? output : -output;
-        } else {
-            return 0;
-        }
-    }
-
-    public boolean atTagDistanceGoal(double currentArea) {
-        return tagDistanceAlignController.atGoal(currentArea);
-    }
 
     // --------------------------------------------------------------------------------
     // Translation X Controller
@@ -551,63 +532,63 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     private void configurePathPlanner() {
         // Seed robot to mid field at start (Paths will change this starting position)
-        resetPose(
-                new Pose2d(
-                        Units.feetToMeters(10),
-                        Units.feetToMeters(27.0 / 2.0),
-                        config.getBlueAlliancePerspectiveRotation()));
+        resetPose(Field.getCenterField());
 
-        RobotConfig robotConfig = null; // Initialize with null in case of exception
         try {
-            robotConfig =
-                    RobotConfig.fromGUISettings(); // Takes config from Robot Config on Pathplanner
-            // Settings
-        } catch (Exception e) {
-            e.printStackTrace(); // Fallback to a default configuration
-        }
+            var config = RobotConfig.fromGUISettings();
+            AutoBuilder.configure(
+                    this::getRobotPose, // Supplier of current robot pose
+                    this::resetPose, // Consumer for seeding pose against auto
+                    this::getCurrentRobotChassisSpeeds, // Supplier of current robot speeds
+                    // Consumer of ChassisSpeeds and feedforwards to drive the robot
+                    (speeds, feedforwards) -> {
+                        setControl(AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
+                                .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesX())
+                                .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesY()));
+                    },
 
-        AutoBuilder.configure(
-                () -> this.getState().Pose, // Supplier of current robot pose
-                this::resetPose, // Consumer for seeding pose against auto
-                this::getCurrentRobotChassisSpeeds,
-                speeds ->
-                        this.setControl(
-                                AutoRequest.withSpeeds(
-                                        speeds)), // Consumer of ChassisSpeeds to drive the robot
-                new PPHolonomicDriveController(
-                        new PIDConstants(3, 0, 0), new PIDConstants(3, 0, 0), Robot.kDefaultPeriod),
-                robotConfig,
-                () ->
-                        DriverStation.getAlliance().orElse(Alliance.Blue)
-                                == Alliance.Red, // Assume the path needs to be flipped for Red vs
-                // Blue, this is normally
-                // the case
-                this); // Subsystem for requirements
+                    new PPHolonomicDriveController(
+                            // PID constants for translation
+                            new PIDConstants(4.5, 0, 0),
+                            // PID constants for rotation
+                            new PIDConstants(7, 0, 0)),
+                    config,
+                    // Assume the path needs to be flipped for Red vs Blue, this is normally the
+                    // case
+                    () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+                    this // Subsystem for requirements
+            );
+        } catch (Exception ex) {
+            DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder",
+                    ex.getStackTrace());
+        }
     }
 
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
+
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
-        @SuppressWarnings("unchecked")
-        private void startSimThread() {
-            mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
-            Seconds.of(config.getSimLoopPeriod()),
-            Pounds.of(115), // robot weight
-            Inches.of(30), // bumper length
-            Inches.of(30), // bumper width
-            DCMotor.getKrakenX60Foc(1), // drive motor type
-            DCMotor.getKrakenX60Foc(1), // steer motor type
-            1.2, // wheel COF
-            getModuleLocations(),
-            getPigeon2(),
-            getModules(),
-            config.getFrontLeft(),
-            config.getFrontRight(),
-            config.getBackLeft(),
-            config.getBackRight());
-    /* Run simulation at a faster rate so PID gains behave more reasonably */
-    simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
-    simNotifier.startPeriodic(config.getSimLoopPeriod());
+
+    @SuppressWarnings("unchecked")
+    private void startSimThread() {
+        mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
+                Seconds.of(config.getSimLoopPeriod()),
+                Pounds.of(115), // robot weight
+                Inches.of(30), // bumper length
+                Inches.of(30), // bumper width
+                DCMotor.getKrakenX60Foc(1), // drive motor type
+                DCMotor.getKrakenX60Foc(1), // steer motor type
+                1.2, // wheel COF
+                getModuleLocations(),
+                getPigeon2(),
+                getModules(),
+                config.getFrontLeft(),
+                config.getFrontRight(),
+                config.getBackLeft(),
+                config.getBackRight());
+        /* Run simulation at a faster rate so PID gains behave more reasonably */
+        simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
+        simNotifier.startPeriodic(config.getSimLoopPeriod());
 }
 }

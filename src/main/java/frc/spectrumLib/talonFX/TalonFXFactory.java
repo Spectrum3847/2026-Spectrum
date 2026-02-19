@@ -1,5 +1,6 @@
 package frc.spectrumLib.talonFX;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -109,7 +110,7 @@ public class TalonFXFactory {
     }
 
     private static TalonFX createTalon(CanDeviceId id) {
-        TalonFX talon = new TalonFX(id.getDeviceNumber(), id.getBus());
+        TalonFX talon = new TalonFX(id.getDeviceNumber(), new CANBus(id.getBus()));
         talon.clearStickyFaults();
 
         return talon;
