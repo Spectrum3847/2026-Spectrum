@@ -3,7 +3,6 @@ package frc.robot.leds;
 import static edu.wpi.first.units.Units.*;
 
 import frc.spectrumLib.leds.SpectrumLEDs;
-import lombok.Getter;
 
 public class LedFull extends SpectrumLEDs {
 
@@ -15,8 +14,18 @@ public class LedFull extends SpectrumLEDs {
     }
 
     protected LedFullConfig config;
-    @Getter protected LedRight right;
-    @Getter protected LedLeft left;
+
+    protected LedRight right;
+
+    protected LedLeft left;
+
+    public LedRight getRight() {
+        return right;
+    }
+
+    public LedLeft getLeft() {
+        return left;
+    }
 
     public LedFull(LedFullConfig config) {
         super(config);

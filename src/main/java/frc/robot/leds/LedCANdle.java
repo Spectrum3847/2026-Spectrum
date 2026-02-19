@@ -1,12 +1,13 @@
 package frc.robot.leds;
 
 import frc.robot.Robot;
-import frc.robot.pilot.PilotStates;
-import frc.spectrumLib.leds.SpectrumLEDs;
+// import frc.robot.pilot.PilotStates;
+import frc.spectrumLib.Rio;
+// import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.util.Color;
+// import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import com.ctre.phoenix6.CANBus;
@@ -14,17 +15,18 @@ import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.hardware.CANdle;
 import com.ctre.phoenix6.signals.AnimationDirectionValue;
-import com.ctre.phoenix6.signals.RGBWColor;
-import com.ctre.phoenix6.signals.StatusLedWhenActiveValue;
+// import com.ctre.phoenix6.signals.RGBWColor;
+// import com.ctre.phoenix6.signals.StatusLedWhenActiveValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
 
 public class LedCANdle extends LedStates{
     
-    private final CANdle candle = new CANdle(0);
 
-    private static LedFull leds = Robot.getLeds();
-    private static LedRight right = leds.getRight();
-    private static LedLeft left = leds.getLeft();
+    private final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
+
+    // private static LedFull leds = Robot.getLeds();
+    // private static LedRight right = leds.getRight();
+    // private static LedLeft left = leds.getLeft();
 
     private static final int kSlot0StartIdx = 8;
     private static final int kSlot0EndIdx = 37;
@@ -54,8 +56,8 @@ public class LedCANdle extends LedStates{
     public LedCANdle() {
 
         CANdleConfiguration ledConfig = new CANdleConfiguration();
-        ledConfig.LED.StripType = StripTypeValue.RGBW;
-        ledConfig.LED.BrightnessScalar = 0.5;
+        ledConfig.LED.StripType = StripTypeValue.RGB;
+        ledConfig.LED.BrightnessScalar = 1.0;
 
         candle.getConfigurator().apply(ledConfig);
 

@@ -12,10 +12,10 @@ public class FM2026 extends Config {
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(true);
-        turret.setAttached(true);
-        intakeExtension.setAttached(true);
-        indexer.setAttached(true);
-        launcher.setAttached(true);
+        fuelIntake.setAttached(false);
+        turret.setAttached(false);
+        intakeExtension.setAttached(false);
+        indexer.setAttached(false);
+        launcher.setAttached(false);
     }
 }
