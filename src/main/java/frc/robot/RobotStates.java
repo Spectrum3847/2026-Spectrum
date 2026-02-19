@@ -3,6 +3,7 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.auton.Auton;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
@@ -61,7 +62,7 @@ public final class RobotStates {
                 robotReadyScore,
                 State.TURRET_WITHOUT_TRACK_WITH_LAUNCH);
 
-        pilot.YButton.toggleOnTrue(LauncherStates.launchFuel());
+        // pilot.YButton.toggleOnTrue(LauncherStates.launchFuel());
 
         bindAimingWithReadyUpgrade(
                 pilot.RB,
