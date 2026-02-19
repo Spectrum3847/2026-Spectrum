@@ -30,6 +30,9 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
+        @Getter private final double presetPosition = 90;
+        @Getter private double triggerTolerance = 5;
+        @Getter private double unwrapTolerance = 10;
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;

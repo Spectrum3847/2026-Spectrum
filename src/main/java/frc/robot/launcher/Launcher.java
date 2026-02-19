@@ -13,6 +13,7 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
+
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;

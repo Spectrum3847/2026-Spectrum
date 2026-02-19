@@ -90,9 +90,9 @@ public class ShotCalculator {
             return latestParameters;
         }
 
-        // Target location on the field
-        boolean feed = RobotStates.inFeedZone.getAsBoolean();
-        Translation2d target = feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
+    // Target location on the field
+    boolean feed = RobotStates.robotInFeedZone.getAsBoolean() && !RobotStates.forceScore.getAsBoolean();
+    Translation2d target = feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
         // Calculate estimated pose while accounting for phase delay
         Pose2d robotPose = Robot.getSwerve().getRobotPose();

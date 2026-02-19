@@ -12,6 +12,8 @@ public class LauncherStates {
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
                 launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
+        launcher.setDefaultCommand(
+                launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
     }
 
     public static Trigger aimingAtTarget() {
@@ -26,13 +28,16 @@ public class LauncherStates {
 
     public static void coastMode() {
         scheduleIfNotRunning(launcher.coastMode());
+        scheduleIfNotRunning(launcher.coastMode());
     }
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(launcher.ensureBrakeMode());
+        scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
     public static void aimAtHub() {
+        scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
@@ -52,6 +57,7 @@ public class LauncherStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
+        Command current = commandScheduler.requiring(launcher);
         Command current = commandScheduler.requiring(launcher);
 
         // Only schedule if it's not already the same same command
