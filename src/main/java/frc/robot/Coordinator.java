@@ -1,15 +1,10 @@
 package frc.robot;
 
-import org.checkerframework.checker.units.qual.C;
-
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.fuelIntake.FuelIntakeStates;
 import frc.robot.indexerBed.IndexerBedStates;
 import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
-import frc.robot.swerve.SwerveStates;
 import frc.robot.turretRotationalPivot.RotationalPivotStates;
 
 public class Coordinator {
@@ -34,13 +29,6 @@ public class Coordinator {
                 IntakeExtensionStates.fullExtend();
                 RotationalPivotStates.neutral();
             }
-            case SNAKE_INTAKE -> {
-                FuelIntakeStates.intakeFuel();
-                IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
-                RotationalPivotStates.neutral();
-            }
             case TURRET_TRACK -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
@@ -57,13 +45,15 @@ public class Coordinator {
             }
             case TURRET_WITHOUT_TRACK -> {
                 FuelIntakeStates.stop();
-                IndexerStates.neutral();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
                 RotationalPivotStates.aimAtPresetPosition();
             }
             case TURRET_WITHOUT_TRACK_WITH_LAUNCH -> {
                 FuelIntakeStates.stop();
-                IndexerStates.indexMax();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
                 RotationalPivotStates.aimAtPresetPosition();
             }
@@ -83,13 +73,15 @@ public class Coordinator {
             }
             case TURRET_FEED_WITHOUT_AIMING -> {
                 FuelIntakeStates.stop();
-                IndexerStates.neutral();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
                 RotationalPivotStates.aimAtPresetPosition();
             }
             case TURRET_FEED_WITHOUT_AIMING_WITH_LAUNCH -> {
                 FuelIntakeStates.stop();
-                IndexerStates.indexMax();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
                 RotationalPivotStates.aimAtPresetPosition();
             }

@@ -605,7 +605,7 @@ public class Vision implements NTSendable, Subsystem {
 
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
-        int numTags = tags == null ? 1 : tags.length;
+        int numTags = tags.length;
 
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }

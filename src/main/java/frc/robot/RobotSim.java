@@ -122,7 +122,7 @@ public class RobotSim {
         ll.setColor(edgeColor);
 
         MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
-        shooter.setColor(new Color8Bit((Color.kBlack)));
+        shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
     // Maple Sim Fuel Intaking

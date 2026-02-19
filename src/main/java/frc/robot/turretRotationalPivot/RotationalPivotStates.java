@@ -7,6 +7,7 @@ import frc.spectrumLib.Telemetry;
 
 public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
+    private static RotationalPivot.RotationalPivotConfig config = turretRotation.getConfig();
 
     public static void setupDefaultCommand() {
         turretRotation.setDefaultCommand(log(turretRotation.runStop()

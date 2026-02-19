@@ -13,14 +13,19 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
-
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import lombok.Getter;
+import lombok.Setter;
 
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
+
+         // Intake Voltages and Current
+        @Getter @Setter private double LauncherVoltage = 9.0;
+        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
+        @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
         /* Launcher config values */
         @Getter private double currentLimit = 100;

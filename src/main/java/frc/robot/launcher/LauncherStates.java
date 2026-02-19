@@ -8,6 +8,7 @@ import frc.spectrumLib.Telemetry;
 
 public class LauncherStates {
     private static Launcher launcher = Robot.getLauncher();
+    private static Launcher.LauncherConfig config = Robot.getConfig().launcher;
 
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
@@ -28,20 +29,22 @@ public class LauncherStates {
 
     public static void coastMode() {
         scheduleIfNotRunning(launcher.coastMode());
-        scheduleIfNotRunning(launcher.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(launcher.ensureBrakeMode());
         scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
     public static void aimAtHub() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
-        scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
     // --------------------------------------------------------
+
+    public static Command launchFuel() {
+        return launcher.runTorqueFOC(config::getLauncherTorqueCurrent)
+                .withName("Launcher.launchFuelCommand");
+    }
 
     // Log Command
     protected static Command log(Command cmd) {
@@ -57,7 +60,6 @@ public class LauncherStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(launcher);
         Command current = commandScheduler.requiring(launcher);
 
         // Only schedule if it's not already the same same command

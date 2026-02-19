@@ -101,7 +101,7 @@ public class RotationalPivot extends Mechanism {
     }
 
     @Getter private RotationalPivotConfig config;
-    @Getter  private RotationalPivotSim sim;
+    @Getter private RotationalPivotSim sim;
     private SpectrumCANcoder canCoder;
     private SpectrumCANcoderConfig canCoderConfig;
     CANcoderSimState canCoderSim;
