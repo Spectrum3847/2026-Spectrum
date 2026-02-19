@@ -68,8 +68,8 @@ public class Vision implements NTSendable, Subsystem {
         @Getter final String turretLL = "limelight-turret";
         @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL)
                 .withTranslation(
-                    Units.inchesToMeters(-0.467), 
-                    Units.inchesToMeters(-5.5), 
+                    Units.inchesToMeters(0.430), 
+                    Units.inchesToMeters(-5.06), 
                     Units.inchesToMeters(27))
                 .withRotation(
                     0, 
@@ -78,8 +78,8 @@ public class Vision implements NTSendable, Subsystem {
 
         @Getter final Translation2d robotToTurretCenter = 
             new Translation2d(
-                Units.inchesToMeters(-5.0),
-                Units.inchesToMeters(-5.5));
+                Units.inchesToMeters(-5.5),
+                Units.inchesToMeters(5.0));
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
