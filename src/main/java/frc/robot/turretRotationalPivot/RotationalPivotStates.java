@@ -24,10 +24,6 @@ public class RotationalPivotStates {
                 .withName("Turret.aimAtHub"));
     }
 
-    public static void aimAtPresetPosition() {
-        scheduleIfNotRunning(log(turretRotation.moveToDegrees(config::getPresetPosition)).withName("Turret.aimAtPreset"));
-    }
-
     public static void neutral() {
         scheduleIfNotRunning(turretRotation.runVoltage(() -> 0)
                 .withName("Turret.neutral"));

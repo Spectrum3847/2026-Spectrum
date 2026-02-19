@@ -75,7 +75,7 @@ public class LedCANdle extends LedStates{
     }
 
     void bind() {
-        test(RobotStates.Idle, 5);
+        test(Util.testMode.and(RobotStates.idle), 5);
     }
 
     void test(Trigger trigger, int priority) {
