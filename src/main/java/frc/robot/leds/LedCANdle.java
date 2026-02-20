@@ -23,18 +23,18 @@ import com.ctre.phoenix6.signals.AnimationDirectionValue;
 // import com.ctre.phoenix6.signals.StatusLedWhenActiveValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
 
-public class LedCANdle extends LedStates{
+public class LedCANdle {
     
 
-    private final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
+    public static final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
 
-    private static final int kSlot0StartIdx = 8;
-    private static final int kSlot0EndIdx = 37;
+    public static final int kSlot0StartIdx = 8;
+    public static final int kSlot0EndIdx = 37;
 
-    private static final int kSlot1StartIdx = 38;
-    private static final int kSlot1EndIdx = 67;
+    public static final int kSlot1StartIdx = 38;
+    public static final int kSlot1EndIdx = 67;
 
-    private enum AnimationType {
+    public enum AnimationType {
         None,
         ColorFlow,
         Fire,
@@ -47,11 +47,11 @@ public class LedCANdle extends LedStates{
         TwinkleOff,
     }
 
-    private AnimationType animState0 = AnimationType.None;
-    private AnimationType animState1 = AnimationType.None;
+    public AnimationType animState0 = AnimationType.None;
+    public AnimationType animState1 = AnimationType.None;
 
-    private final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
-    private final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
+    public final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
+    public final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
 
     public LedCANdle() {
 
@@ -72,15 +72,6 @@ public class LedCANdle extends LedStates{
         SmartDashboard.putData("Animation 0", animChooser0);
         SmartDashboard.putData("Animation 1", animChooser1);
 
-    }
-
-    void bind() {
-        test(Util.testMode.and(RobotStates.idle), 5);
-    }
-
-    void test(Trigger trigger, int priority) {
-        animState0 = AnimationType.ColorFlow;
-        animState1 = AnimationType.ColorFlow;
     }
 
     public void stateChanger() {

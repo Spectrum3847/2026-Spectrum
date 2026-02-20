@@ -41,10 +41,10 @@ public class RobotStates {
             .and(LauncherStates.aimingAtTarget());
     // public static final Trigger hopperFull = new Trigger(null);
     public static final Trigger idle = new Trigger(() -> appliedState == State.IDLE);
+    public static final Trigger launchingForLEDS = new Trigger(() -> appliedState == State.TURRET_TRACK_WITH_LAUNCH);
 
     // Setup any binding to set states
     public static void setupStates() {
-        pilot.IdleControl.onTrue(applyState(State.IDLE));
         // Pilot Triggers
         pilot.AButton.onTrue(applyState(State.INTAKE_FUEL));
         pilot.AButton.onFalse(applyState(State.IDLE));
