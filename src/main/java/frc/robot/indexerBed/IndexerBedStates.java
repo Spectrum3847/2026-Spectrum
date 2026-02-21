@@ -19,7 +19,7 @@ public class IndexerBedStates {
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(indexerBed.runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
+        scheduleIfNotRunning(indexerBed.runVoltage(config::getIndexerVoltageOut)
                 .withName("IndexerBed.feedMax"));
     }
 

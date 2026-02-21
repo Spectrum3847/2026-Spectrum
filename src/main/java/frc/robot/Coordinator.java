@@ -27,6 +27,7 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.neutral();
                 RotationalPivotStates.neutral();
             }
             case TURRET_TRACK -> {
@@ -34,6 +35,7 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_TRACK_WITH_LAUNCH -> {
@@ -41,6 +43,7 @@ public class Coordinator {
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_WITHOUT_TRACK -> {
@@ -48,6 +51,7 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
             case TURRET_WITHOUT_TRACK_WITH_LAUNCH -> {
@@ -55,6 +59,7 @@ public class Coordinator {
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
             case TURRET_FEED_WITH_AIMING -> {
@@ -62,6 +67,7 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_FEED_WITH_LAUNCH -> {
@@ -69,6 +75,7 @@ public class Coordinator {
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtHub();
             }
             case TURRET_FEED_WITHOUT_AIMING -> {
@@ -76,6 +83,7 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
             case TURRET_FEED_WITHOUT_AIMING_WITH_LAUNCH -> {
@@ -83,6 +91,7 @@ public class Coordinator {
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
             case L1_CLIMB_PREP -> {

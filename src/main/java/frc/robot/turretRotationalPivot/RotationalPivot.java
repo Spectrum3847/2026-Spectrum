@@ -330,4 +330,3 @@ public class RotationalPivot extends Mechanism {
         }
     }
 }
-

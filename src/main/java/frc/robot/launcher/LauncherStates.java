@@ -35,7 +35,7 @@ public class LauncherStates {
         scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
-    public static void aimAtHub() {
+    public static void aimAtTarget() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
