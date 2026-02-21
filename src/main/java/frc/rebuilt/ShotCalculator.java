@@ -121,17 +121,22 @@ public class ShotCalculator {
                                 - robotToTurret.getY() * Math.sin(robotAngle));
 
         // Account for imparted velocity by robot (turret) to offset
-        double timeOfFlight;
         Pose2d lookaheadPose = turretPosition;
         double lookaheadTurretToTargetDistance = turretToTargetDistance;
-        for (int i = 0; i < 20; i++) {
-            timeOfFlight = timeOfFlightMap.get(lookaheadTurretToTargetDistance);
-            double offsetX = turretVelocityX * timeOfFlight;
-            double offsetY = turretVelocityY * timeOfFlight;
-            lookaheadPose = new Pose2d(
-                    turretPosition.getTranslation().plus(new Translation2d(offsetX, offsetY)),
-                    turretPosition.getRotation());
-            lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
+        double lastDistance;
+        for (int i = 0; i < 5; i++) {
+            lastDistance = lookaheadTurretToTargetDistance;
+
+            double tof = timeOfFlightMap.get(lastDistance);
+            double offsetX = turretVelocityX * tof;
+            double offsetY = turretVelocityY * tof;
+
+            lookaheadTurretToTargetDistance = target.getDistance(
+                    turretPosition.getTranslation()
+                            .plus(new Translation2d(offsetX, offsetY)));
+
+            if (Math.abs(lookaheadTurretToTargetDistance - lastDistance) < 0.01)
+                break;
         }
         // Calculate parameters accounted for imparted velocity
         Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
