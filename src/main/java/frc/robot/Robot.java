@@ -157,6 +157,19 @@ public class Robot extends SpectrumRobot {
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
+
+        Telemetry.log("ProjectName", BuildConstants.MAVEN_NAME);
+        Telemetry.log("BuildDate", BuildConstants.BUILD_DATE);
+        Telemetry.log("GitSHA", BuildConstants.GIT_SHA);
+        Telemetry.log("GitDate", BuildConstants.GIT_DATE);
+        Telemetry.log("GitBranch", BuildConstants.GIT_BRANCH);
+        Telemetry.log(
+                "GitDirty",
+                switch (BuildConstants.DIRTY) {
+                    case 0 -> "All changes committed";
+                    case 1 -> "Uncommitted changes";
+                    default -> "Unknown";
+                });
     }
 
     /**
@@ -214,13 +227,15 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
-            SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
-            SmartDashboard.putNumber(
+            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
+            Telemetry.log("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            Telemetry.log(
                     "Match Data/TimeLeftInShift",
                     ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
-            SmartDashboard.putString("Applied State", RobotStates.getAppliedState().toString());
+            Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
+
             field2d.setRobotPose(swerve.getRobotPose());
+
             ShotCalculator.getInstance().clearShootingParameters();
             ShotCalculator.getInstance().getParameters();
         } catch (Throwable t) {
@@ -241,8 +256,7 @@ public class Robot extends SpectrumRobot {
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    new InstantCommand(
-                                            () -> SmartDashboard.putBoolean("Initialized", true)))
+                                    new InstantCommand(() -> Telemetry.log("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;

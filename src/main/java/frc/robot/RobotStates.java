@@ -1,6 +1,5 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -58,18 +57,17 @@ public class RobotStates {
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
 
         turretOnTarget.onTrue(
-                new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", true)));
+                new InstantCommand(() -> Telemetry.log("LauncherPrep/TurretOnTarget", true)));
         turretOnTarget.onFalse(
-                new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", false)));
+                new InstantCommand(() -> Telemetry.log("LauncherPrep/TurretOnTarget", false)));
         launcherOnTarget.onTrue(
-                new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", true)));
+                new InstantCommand(() -> Telemetry.log("LauncherPrep/LauncherOnTarget", true)));
         launcherOnTarget.onFalse(
-                new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", false)));
+                new InstantCommand(() -> Telemetry.log("LauncherPrep/LauncherOnTarget", false)));
         readyToLaunch.onTrue(
-                new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", true)));
+                new InstantCommand(() -> Telemetry.log("LauncherPrep/ReadyToLaunch", true)));
         readyToLaunch.onFalse(
-                new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", false)));
-
+                new InstantCommand(() -> Telemetry.log("LauncherPrep/ReadyToLaunch", false)));
         // robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 
         // Auton Triggers
@@ -89,7 +87,6 @@ public class RobotStates {
                         () -> {
                             State next = (appliedState == toggledState) ? State.IDLE : toggledState;
                             appliedState = next;
-                            SmartDashboard.putString("APPLIED STATE", next.toString());
                             coordinator.applyRobotState(next);
                         }));
     }

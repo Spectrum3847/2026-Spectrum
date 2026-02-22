@@ -1,6 +1,5 @@
 package frc.rebuilt;
 
-import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
@@ -13,6 +12,7 @@ import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
+import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Conversions;
 import java.text.DecimalFormat;
 
@@ -155,15 +155,15 @@ public class ShotCalculator {
 
         latestParameters = new ShootingParameters(turretAngle, visionTurretOffset, flywheelSpeed);
 
-        DogLog.log("ShotCalc/DistanceMeters", df.format(lookaheadTurretToTargetDistance));
-        DogLog.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
-        DogLog.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
-        DogLog.log("ShotCalc/TurretPose", turretPosition);
-        DogLog.log("ShotCalc/LookaheadPose", lookaheadPose);
-        DogLog.log(
+        Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadTurretToTargetDistance));
+        Telemetry.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
+        Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
+        Telemetry.log("ShotCalc/TurretPose", turretPosition);
+        Telemetry.log("ShotCalc/LookaheadPose", lookaheadPose);
+        Telemetry.log(
                 "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
-        DogLog.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
-        DogLog.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
+        Telemetry.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
+        Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
         return latestParameters;
     }
 
