@@ -143,7 +143,6 @@ bin/*
 ctre_sim/*
 .gradle/buildOutputCleanup/*
 .gradle/file-system.probe
-src/main/java/frc/robot/BuildConstants.java
 
 # Ignore Gradle GUI config
 gradle-app.setting
@@ -191,3 +190,6 @@ compile_commands.json
 
 # Eclipse generated file for annotation processors
 .factorypath
+
+# Version file
+src/main/java/frc/robot/BuildConstants.java
