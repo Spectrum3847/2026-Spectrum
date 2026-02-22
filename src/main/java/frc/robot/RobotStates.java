@@ -5,17 +5,17 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
-import frc.robot.pilot.Pilot;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
+import frc.robot.pilot.Pilot;
 import frc.robot.swerve.Swerve;
 import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
 /**
- * Manages the high-level robot states.
- * This class coordinates multiple subsystems based on the current robot state.
+ * Manages the high-level robot states. This class coordinates multiple subsystems based on the
+ * current robot state.
  */
 public class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
@@ -26,14 +26,15 @@ public class RobotStates {
     @Getter private static State appliedState = State.IDLE;
 
     /**
-     * Define Robot States here and how they can be triggered States should be
-     * triggers that command multiple mechanism or can be used in teleop or auton
-     * Use onTrue/whileTrue to run a command when entering the state Use
-     * onFalse/whileFalse to run a command when leaving the state RobotType Triggers
+     * Define Robot States here and how they can be triggered States should be triggers that command
+     * multiple mechanism or can be used in teleop or auton Use onTrue/whileTrue to run a command
+     * when entering the state Use onFalse/whileFalse to run a command when leaving the state
+     * RobotType Triggers
      */
 
     // Define triggers here
     public static final Trigger robotInNeutralZone = swerve.inNeutralZone();
+
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
@@ -56,12 +57,18 @@ public class RobotStates {
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
 
-        turretOnTarget.onTrue(new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", true)));
-        turretOnTarget.onFalse(new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", false)));
-        launcherOnTarget.onTrue(new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", true)));
-        launcherOnTarget.onFalse(new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", false)));
-        readyToLaunch.onTrue(new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", true)));
-        readyToLaunch.onFalse(new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", false)));
+        turretOnTarget.onTrue(
+                new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", true)));
+        turretOnTarget.onFalse(
+                new InstantCommand(() -> SmartDashboard.putBoolean("TurretOnTarget", false)));
+        launcherOnTarget.onTrue(
+                new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", true)));
+        launcherOnTarget.onFalse(
+                new InstantCommand(() -> SmartDashboard.putBoolean("LauncherOnTarget", false)));
+        readyToLaunch.onTrue(
+                new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", true)));
+        readyToLaunch.onFalse(
+                new InstantCommand(() -> SmartDashboard.putBoolean("ReadyToLaunch", false)));
 
         // robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
 
@@ -109,20 +116,20 @@ public class RobotStates {
 
     public static Command applyState(State state) {
         return new InstantCommand(
-                () -> {
-                    appliedState = state;
-                    Telemetry.print("Applied State: " + state);
-                    coordinator.applyRobotState(state);
-                })
+                        () -> {
+                            appliedState = state;
+                            Telemetry.print("Applied State: " + state);
+                            coordinator.applyRobotState(state);
+                        })
                 .withName("APPLYING STATE: " + state);
     }
 
     public static Command clearState() {
         return new InstantCommand(
-                () -> {
-                    appliedState = State.IDLE;
-                    coordinator.applyRobotState(State.IDLE);
-                })
+                        () -> {
+                            appliedState = State.IDLE;
+                            coordinator.applyRobotState(State.IDLE);
+                        })
                 .withName("CLEARING STATE TO IDLE");
     }
 }

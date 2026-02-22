@@ -3,11 +3,7 @@ package frc.robot;
 import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
-import java.util.Set;
-import org.ironmaple.simulation.IntakeSimulation;
-import org.ironmaple.simulation.SimulatedArena;
-import org.ironmaple.simulation.gamepieces.GamePieceProjectile;
-import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
+
 import com.ctre.phoenix6.Utils;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -15,6 +11,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
@@ -26,8 +23,12 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.rebuilt.ShotCalculator;
 import frc.spectrumLib.sim.Circle;
+import java.util.Set;
 import lombok.Getter;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
+import org.ironmaple.simulation.IntakeSimulation;
+import org.ironmaple.simulation.SimulatedArena;
+import org.ironmaple.simulation.gamepieces.GamePieceProjectile;
+import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
 
 // General Sim principles
 // Always move the root/origin to change it's display position
@@ -38,23 +39,27 @@ public class RobotSim {
     @Getter public static final double leftViewHeight = 75;
     @Getter public static final double leftViewWidth = 75;
 
-    @Getter private static final IntakeSimulation intakeSimulation = RobotBase.isSimulation()
-            ? IntakeSimulation.OverTheBumperIntake(
-                    "Fuel",
-                    Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-                    Inches.of(29),
-                    Inches.of(12),
-                    IntakeSimulation.IntakeSide.FRONT,
-                    80)
-            : null;
+    @Getter
+    private static final IntakeSimulation intakeSimulation =
+            RobotBase.isSimulation()
+                    ? IntakeSimulation.OverTheBumperIntake(
+                            "Fuel",
+                            Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
+                            Inches.of(29),
+                            Inches.of(12),
+                            IntakeSimulation.IntakeSide.FRONT,
+                            80)
+                    : null;
 
     public static final Translation2d origin = new Translation2d(0.0, 0.0);
 
-    public static final Mechanism2d topView = new Mechanism2d(Units.inchesToMeters(topViewWidth),
-            Units.inchesToMeters(topViewHeight));
+    public static final Mechanism2d topView =
+            new Mechanism2d(
+                    Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
-    public static final Mechanism2d leftView = new Mechanism2d(Units.inchesToMeters(leftViewWidth),
-            Units.inchesToMeters(leftViewHeight));
+    public static final Mechanism2d leftView =
+            new Mechanism2d(
+                    Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
 
     public RobotSim() {
         SmartDashboard.putData("Sim/TopView", RobotSim.topView);
@@ -73,22 +78,28 @@ public class RobotSim {
 
     @SuppressWarnings("unused")
     public void drawTurretCircle() {
-        MechanismRoot2d circleRoot = topView.getRoot("Turret Circle Root", Units.inchesToMeters(topViewHeight / 2 + 30),
-                Units.inchesToMeters(topViewWidth / 2));
+        MechanismRoot2d circleRoot =
+                topView.getRoot(
+                        "Turret Circle Root",
+                        Units.inchesToMeters(topViewHeight / 2 + 30),
+                        Units.inchesToMeters(topViewWidth / 2));
         Circle circle = new Circle(50, 30, "Turret Circle", circleRoot, topView);
     }
 
     public void drawTopRobot() {
-        MechanismRoot2d robotRoot = topView.getRoot("Top Robot Root",
-                Units.inchesToMeters(topViewWidth / 2.0 + 50),
-                Units.inchesToMeters(topViewHeight / 2.0 - 25));
+        MechanismRoot2d robotRoot =
+                topView.getRoot(
+                        "Top Robot Root",
+                        Units.inchesToMeters(topViewWidth / 2.0 + 50),
+                        Units.inchesToMeters(topViewHeight / 2.0 - 25));
 
         double rectWidthIn = 50.0;
         double rectHeightIn = 80.0;
         double rectWidthM = Units.inchesToMeters(rectWidthIn);
         double rectHeightM = Units.inchesToMeters(rectHeightIn);
 
-        MechanismLigament2d tr = robotRoot.append(new MechanismLigament2d("TopEdge", rectHeightM, 180.0));
+        MechanismLigament2d tr =
+                robotRoot.append(new MechanismLigament2d("TopEdge", rectHeightM, 180.0));
         MechanismLigament2d br = tr.append(new MechanismLigament2d("RightEdge", rectWidthM, 270.0));
         MechanismLigament2d bl = br.append(new MechanismLigament2d("BottomEdge", rectHeightM, 270));
         MechanismLigament2d ll = bl.append(new MechanismLigament2d("LeftEdge", rectWidthM, 270.0));
@@ -101,16 +112,19 @@ public class RobotSim {
     }
 
     public void drawSideRobot() {
-        MechanismRoot2d robotRoot = leftView.getRoot("Top Robot Root",
-                Units.inchesToMeters(leftViewWidth / 2.0 + 25),
-                Units.inchesToMeters(leftViewHeight / 2.0 - 12.5));
+        MechanismRoot2d robotRoot =
+                leftView.getRoot(
+                        "Top Robot Root",
+                        Units.inchesToMeters(leftViewWidth / 2.0 + 25),
+                        Units.inchesToMeters(leftViewHeight / 2.0 - 12.5));
 
         double rectWidthIn = 25.0;
         double rectHeightIn = 40.0;
         double rectWidthM = Units.inchesToMeters(rectWidthIn);
         double rectHeightM = Units.inchesToMeters(rectHeightIn);
 
-        MechanismLigament2d tr = robotRoot.append(new MechanismLigament2d("TopEdge", rectHeightM, 180.0));
+        MechanismLigament2d tr =
+                robotRoot.append(new MechanismLigament2d("TopEdge", rectHeightM, 180.0));
         MechanismLigament2d br = tr.append(new MechanismLigament2d("RightEdge", rectWidthM, 270.0));
         MechanismLigament2d bl = br.append(new MechanismLigament2d("BottomEdge", rectHeightM, 270));
         MechanismLigament2d ll = bl.append(new MechanismLigament2d("LeftEdge", rectWidthM, 270.0));
@@ -138,7 +152,8 @@ public class RobotSim {
 
             @Override
             public void execute() {
-                SmartDashboard.putNumber("Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+                SmartDashboard.putNumber(
+                        "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
             }
 
             @Override
@@ -154,25 +169,38 @@ public class RobotSim {
             return Commands.none();
         }
         return new InstantCommand(
-                () -> {
-                    var parameters = ShotCalculator.getInstance().getParameters();
-                    GamePieceProjectile fuelProjectile = new RebuiltFuelOnFly(
-                            Robot.getSwerve().getRobotPose().getTranslation(),
-                            new Translation2d(),
-                            Robot.getSwerve().getCurrentRobotChassisSpeeds(),
-                            parameters.turretAngle(),
-                            Inches.of(29),
-                            MetersPerSecond.of(parameters.flywheelSpeed() * 0.0325),
-                            Degrees.of(65))
-                            .withProjectileTrajectoryDisplayCallBack(
-                                    (pose3ds) -> DogLog.log("SimShot/FuelProjectileSuccessfulShot",
-                                            pose3ds.toArray(Pose3d[]::new)),
-                                    (pose3ds) -> DogLog.log("SimShot/FuelProjectileUnsuccessfulShot",
-                                            pose3ds.toArray(Pose3d[]::new)));
-                    SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
-                    RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-                    SmartDashboard.putNumber("Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
-                }).withName("RobotSim.mapleSimCreateFuelProjectile");
+                        () -> {
+                            var parameters = ShotCalculator.getInstance().getParameters();
+                            GamePieceProjectile fuelProjectile =
+                                    new RebuiltFuelOnFly(
+                                                    Robot.getSwerve()
+                                                            .getRobotPose()
+                                                            .getTranslation(),
+                                                    new Translation2d(),
+                                                    Robot.getSwerve()
+                                                            .getCurrentRobotChassisSpeeds(),
+                                                    parameters.turretAngle(),
+                                                    Inches.of(29),
+                                                    MetersPerSecond.of(
+                                                            parameters.flywheelSpeed() * 0.0325),
+                                                    Degrees.of(65))
+                                            .withProjectileTrajectoryDisplayCallBack(
+                                                    (pose3ds) ->
+                                                            DogLog.log(
+                                                                    "SimShot/FuelProjectileSuccessfulShot",
+                                                                    pose3ds.toArray(Pose3d[]::new)),
+                                                    (pose3ds) ->
+                                                            DogLog.log(
+                                                                    "SimShot/FuelProjectileUnsuccessfulShot",
+                                                                    pose3ds.toArray(
+                                                                            Pose3d[]::new)));
+                            SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
+                            RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
+                            SmartDashboard.putNumber(
+                                    "Sim/FuelCount",
+                                    RobotSim.getIntakeSimulation().getGamePiecesAmount());
+                        })
+                .withName("RobotSim.mapleSimCreateFuelProjectile");
     }
 
     public static Command mapleSimLaunchFuel() {
@@ -188,13 +216,11 @@ public class RobotSim {
                     int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
                     SequentialCommandGroup group = new SequentialCommandGroup();
                     for (int i = 0; i < fuelCount; i++) {
-                        group.addCommands(
-                                mapleSimCreateFuelProjectile(),
-                                new WaitCommand(0.125));
+                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.125));
                     }
                     return group.withName("RobotSim.mapleSimLaunchFuel");
                 },
                 Set.of() // no subsystem requirements
-        );
+                );
     }
 }

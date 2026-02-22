@@ -9,8 +9,7 @@ import frc.robot.turretRotationalPivot.RotationalPivotStates;
 
 public class Coordinator {
 
-    public void update() {
-    }
+    public void update() {}
 
     public void applyRobotState(State state) {
         switch (state) {
@@ -94,18 +93,10 @@ public class Coordinator {
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
-            case L1_CLIMB_PREP -> {
-
-            }
-            case L1_CLIMB_EXECUTE -> {
-
-            }
-            case L3_CLIMB_PREP -> {
-
-            }
-            case L3_CLIMB_EXECUTE -> {
-
-            }
+            case L1_CLIMB_PREP -> {}
+            case L1_CLIMB_EXECUTE -> {}
+            case L3_CLIMB_PREP -> {}
+            case L3_CLIMB_EXECUTE -> {}
             default -> {
                 // Handle other states or throw an error
             }

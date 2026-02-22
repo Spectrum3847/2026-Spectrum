@@ -66,9 +66,8 @@ public class LedStates {
     }
 
     static void testPattern(Trigger trigger, int priority) {
-            ledCommand(
+        ledCommand(
                 "right.testPattern", right, right.switchCountdown(Color.kBlue), priority, trigger);
-            ledCommand(
-                "left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
-        }
+        ledCommand("left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
     }
+}

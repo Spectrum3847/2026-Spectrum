@@ -19,8 +19,10 @@ public class IndexerTowerStates {
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(indexerTower.runVoltage(config::getIndexerVoltageOut)
-            .withName("IndexerTower.feedMax"));
+        scheduleIfNotRunning(
+                indexerTower
+                        .runVoltage(config::getIndexerVoltageOut)
+                        .withName("IndexerTower.feedMax"));
     }
 
     public static void coastMode() {

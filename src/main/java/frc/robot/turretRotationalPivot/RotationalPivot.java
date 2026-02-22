@@ -113,17 +113,19 @@ public class RotationalPivot extends Mechanism {
         if (isAttached()) {
             setInitialPosition();
             if (config.isCANcoderAttached() && !Robot.isSimulation()) {
-                canCoderConfig = new SpectrumCANcoderConfig(
-                        config.getCANcoderRotorToSensorRatio(),
-                        config.getCANcoderSensorToMechanismRatio(),
-                        config.getCANcoderOffset(),
-                        config.isCANcoderAttached());
-                canCoder = new SpectrumCANcoder(
-                        44,
-                        canCoderConfig,
-                        motor,
-                        config,
-                        SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
+                canCoderConfig =
+                        new SpectrumCANcoderConfig(
+                                config.getCANcoderRotorToSensorRatio(),
+                                config.getCANcoderSensorToMechanismRatio(),
+                                config.getCANcoderOffset(),
+                                config.isCANcoderAttached());
+                canCoder =
+                        new SpectrumCANcoder(
+                                44,
+                                canCoderConfig,
+                                motor,
+                                config,
+                                SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
             }
         }
 
@@ -181,9 +183,10 @@ public class RotationalPivot extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
-    
+
     // Choose the best equivalent in degrees that lies inside the configured soft-limits.
-    // If no equivalent exists in the soft-limit window (soft window < 360°), clamp to nearest endpoint.
+    // If no equivalent exists in the soft-limit window (soft window < 360°), clamp to nearest
+    // endpoint.
     private double wrapDegreesToSoftLimits(double targetDegrees) {
 
         double minDeg = config.getMinRotations() * 360.0;
@@ -197,7 +200,12 @@ public class RotationalPivot extends Mechanism {
         if (nMin <= nMax) {
             // At least one equivalent fits in soft limits.
             int nClosest = (int) Math.round((currentDeg - targetDegrees) / 360.0);
-            int n = Math.max(nMin, Math.min(nClosest, nMax)); // clamp the closest candidate to allowed range
+            int n =
+                    Math.max(
+                            nMin,
+                            Math.min(
+                                    nClosest,
+                                    nMax)); // clamp the closest candidate to allowed range
             return targetDegrees + n * 360.0;
         } else {
             // No equivalent fits in soft limits -> clamp to nearest soft limit endpoint.
@@ -206,7 +214,7 @@ public class RotationalPivot extends Mechanism {
             return (toMin < toMax) ? minDeg : maxDeg;
         }
     }
-    
+
     public void aimFieldRelative(Rotation2d fieldAngle) {
         double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
         double turretDeg = fieldAngle.getDegrees() - robotHeadingDeg;
@@ -221,9 +229,10 @@ public class RotationalPivot extends Mechanism {
 
     public Command trackTargetCommand() {
         return run(() -> {
-            var params = ShotCalculator.getInstance().getParameters();
-            aimFieldRelative(params.turretAngle());
-        }).withName("Turret.trackTargetCommand");
+                    var params = ShotCalculator.getInstance().getParameters();
+                    aimFieldRelative(params.turretAngle());
+                })
+                .withName("Turret.trackTargetCommand");
     }
 
     /** Holds the position of the Turret. */
@@ -271,7 +280,8 @@ public class RotationalPivot extends Mechanism {
 
     @Override
     public Command moveToDegrees(DoubleSupplier degrees) {
-        return super.moveToDegrees(() -> wrapDegreesToSoftLimits(degrees.getAsDouble())).withName(getName() + ".runPoseDegrees");
+        return super.moveToDegrees(() -> wrapDegreesToSoftLimits(degrees.getAsDouble()))
+                .withName(getName() + ".runPoseDegrees");
     }
 
     @Override
@@ -283,16 +293,17 @@ public class RotationalPivot extends Mechanism {
     }
 
     public Trigger aimingAtTarget() {
-        return new Trigger(() -> {
-            var params = ShotCalculator.getInstance().getParameters();
+        return new Trigger(
+                () -> {
+                    var params = ShotCalculator.getInstance().getParameters();
 
-            Rotation2d targetRotation = params.turretAngle();
-            Rotation2d currentRotation = Rotation2d.fromDegrees(getPositionDegrees());
+                    Rotation2d targetRotation = params.turretAngle();
+                    Rotation2d currentRotation = Rotation2d.fromDegrees(getPositionDegrees());
 
-            double errorDeg = currentRotation.minus(targetRotation).getDegrees();
+                    double errorDeg = currentRotation.minus(targetRotation).getDegrees();
 
-            return Math.abs(errorDeg) < 3;
-        });
+                    return Math.abs(errorDeg) < 3;
+                });
     }
 
     // --------------------------------------------------------------------------------
@@ -313,17 +324,18 @@ public class RotationalPivot extends Mechanism {
             // m_CANcoder.getSimState().setRawPosition(sim.getAngleRads() / 0.202);
         }
     }
+
     class RotationalPivotSim extends ArmSim {
         public RotationalPivotSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
             super(
                     new ArmConfig(
-                                    config.intakeX,
-                                    config.intakeY,
-                                    config.simRatio,
-                                    config.length,
-                                    -720,
-                                    720,
-                                    0),
+                            config.intakeX,
+                            config.intakeY,
+                            config.simRatio,
+                            config.length,
+                            -720,
+                            720,
+                            0),
                     mech,
                     turretMotorSim,
                     config.getName());

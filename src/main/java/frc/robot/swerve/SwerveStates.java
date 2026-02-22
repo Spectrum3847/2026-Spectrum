@@ -1,6 +1,7 @@
 package frc.robot.swerve;
 
 import static edu.wpi.first.units.Units.*;
+
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.filter.SlewRateLimiter;
@@ -31,21 +32,24 @@ public class SwerveStates {
     static Field field = new Field();
 
     /* Swerve Request Types */
-    private static final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric()
-            .withDeadband(
-                    config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-            .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-    
-    private static final SwerveRequest.RobotCentric robotCentric = new SwerveRequest.RobotCentric()
-            .withDeadband(
-                    config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-            .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    private static final SwerveRequest.FieldCentric fieldCentricDrive =
+            new SwerveRequest.FieldCentric()
+                    .withDeadband(
+                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
+                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
-    private static final SwerveRequest.SwerveDriveBrake swerveXBreak = new SwerveRequest.SwerveDriveBrake();
+    private static final SwerveRequest.RobotCentric robotCentric =
+            new SwerveRequest.RobotCentric()
+                    .withDeadband(
+                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
+                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
-    public static Trigger robotInNeutralZone() { 
+    private static final SwerveRequest.SwerveDriveBrake swerveXBreak =
+            new SwerveRequest.SwerveDriveBrake();
+
+    public static Trigger robotInNeutralZone() {
         return swerve.inNeutralZone();
     }
 
@@ -60,20 +64,24 @@ public class SwerveStates {
         swerve.setDefaultCommand(pilotSteerCommand);
     }
 
-    //define Triggers here
-    private static final Trigger inSnakeDrive = new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
-    private static final Trigger inScoreOrFeed = new Trigger(() -> 
-        RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH 
-        || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH 
-        || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
+    // define Triggers here
+    private static final Trigger inSnakeDrive =
+            new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
+    private static final Trigger inScoreOrFeed =
+            new Trigger(
+                    () ->
+                            RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH
+                                    || RobotStates.getAppliedState()
+                                            == State.TURRET_FEED_WITH_LAUNCH
+                                    || RobotStates.getAppliedState()
+                                            == State.TURRET_TRACK_WITH_LAUNCH);
 
     protected static void setStates() {
         // Force back to manual steering when we steer
-        pilot.steer.whileTrue(
-                swerve.getDefaultCommand()); 
+        pilot.steer.whileTrue(swerve.getDefaultCommand());
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
-        
+
         inSnakeDrive.whileTrue(log(snakeDrive()));
         // inScoreOrFeed.whileTrue(log(tweakOut()));
 
@@ -130,46 +138,51 @@ public class SwerveStates {
     /** Drive the robot with the robot's orientation snapping to the closest cardinal direction. */
     protected static Command snapSteerDrive() {
         return drive(
-                pilot::getDriveFwdPositive,
-                pilot::getDriveLeftPositive,
-                pilot::chooseCardinalDirections)
+                        pilot::getDriveFwdPositive,
+                        pilot::getDriveLeftPositive,
+                        pilot::chooseCardinalDirections)
                 .withName("Swerve.PilotStickSteer");
     }
 
     /** Drive the robot with the front bumper trying to match the robot's motion. */
     protected static Command snakeDrive() {
         return aimDrive(
-                pilot::getDriveFwdPositive,
-                pilot::getDriveLeftPositive,
-                pilot::getPilotStickAngle)
+                        pilot::getDriveFwdPositive,
+                        pilot::getDriveLeftPositive,
+                        pilot::getPilotStickAngle)
                 .withName("Swerve.SnakeDrive");
     }
+
     protected static Command tweakOut() {
         return Commands.runOnce(() -> swerve.resetRotationController())
-            .andThen(
-                Commands.defer(
-                        () -> {
-                            final double base = swerve.getRotation().getRadians();
-                            final double delta = Math.toRadians(15.0);
+                .andThen(
+                        Commands.defer(
+                                        () -> {
+                                            final double base = swerve.getRotation().getRadians();
+                                            final double delta = Math.toRadians(15.0);
 
-                            Command toMinus =
-                                drive(
-                                        pilot::getDriveFwdPositive,
-                                        pilot::getDriveLeftPositive,
-                                        getAlignHeading(() -> base - delta, false))
-                                    .withTimeout(0.12);
+                                            Command toMinus =
+                                                    drive(
+                                                                    pilot::getDriveFwdPositive,
+                                                                    pilot::getDriveLeftPositive,
+                                                                    getAlignHeading(
+                                                                            () -> base - delta,
+                                                                            false))
+                                                            .withTimeout(0.12);
 
-                            Command toPlus =
-                                drive(
-                                        pilot::getDriveFwdPositive,
-                                        pilot::getDriveLeftPositive,
-                                        getAlignHeading(() -> base + delta, false))
-                                    .withTimeout(0.12);
+                                            Command toPlus =
+                                                    drive(
+                                                                    pilot::getDriveFwdPositive,
+                                                                    pilot::getDriveLeftPositive,
+                                                                    getAlignHeading(
+                                                                            () -> base + delta,
+                                                                            false))
+                                                            .withTimeout(0.12);
 
-                            return Commands.repeatingSequence(toMinus, toPlus);
-                        },
-                        Set.of(swerve))
-                    .withName("Swerve.tweakOut"));
+                                            return Commands.repeatingSequence(toMinus, toPlus);
+                                        },
+                                        Set.of(swerve))
+                                .withName("Swerve.tweakOut"));
     }
 
     /** Turn the swerve wheels to an X to prevent the robot from moving */
@@ -178,8 +191,8 @@ public class SwerveStates {
     }
 
     protected static Command pilotAimDrive(DoubleSupplier targetDegrees) {
-            return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
-                    .withName("Swerve.PilotAimDrive");
+        return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
+                .withName("Swerve.PilotAimDrive");
     }
 
     private static DoubleSupplier getAlignToX(DoubleSupplier xGoalMeters) {
@@ -209,7 +222,7 @@ public class SwerveStates {
                 .withName("Swerve.PilotLockToFieldAngleDrive");
     }
 
-     // **********************   Helper Commands    ****************************
+    // **********************   Helper Commands    ****************************
 
     protected static Command resetXController() {
         return swerve.runOnce(() -> swerve.resetXController()).withName("ResetXController");
@@ -336,13 +349,12 @@ public class SwerveStates {
         double wheelRadiusGuess = config.getWheelRadius().in(Meters); // current config value
 
         for (int i = 0; i < 4; i++) {
-            positions[i] = swerve.getModule(i)
-                    .getCachedPosition().distanceMeters
-                    / wheelRadiusGuess;
+            positions[i] =
+                    swerve.getModule(i).getCachedPosition().distanceMeters / wheelRadiusGuess;
         }
         return positions;
     }
-    
+
     /** Measures the robot's wheel radius by spinning in a circle. (Method from AdvantageKit) */
     public static Command wheelRadiusCharacterization() {
         SlewRateLimiter limiter = new SlewRateLimiter(WHEEL_RADIUS_RAMP_RATE);
@@ -362,10 +374,10 @@ public class SwerveStates {
                                 () -> {
                                     double speed = limiter.calculate(WHEEL_RADIUS_MAX_VELOCITY);
                                     swerve.setControl(
-                                                    fieldCentricDrive
-                                                            .withVelocityX(0)
-                                                            .withVelocityY(0)
-                                                            .withRotationalRate(speed));
+                                            fieldCentricDrive
+                                                    .withVelocityX(0)
+                                                    .withVelocityY(0)
+                                                    .withRotationalRate(speed));
                                 },
                                 swerve)),
 
@@ -386,34 +398,48 @@ public class SwerveStates {
                         Commands.run(
                                         () -> {
                                             var rotation = swerve.getRotation();
-                                            state.gyroDelta += Math.abs(
-                                                    rotation.minus(state.lastAngle).getRadians());
+                                            state.gyroDelta +=
+                                                    Math.abs(
+                                                            rotation.minus(state.lastAngle)
+                                                                    .getRadians());
                                             state.lastAngle = rotation;
                                         })
 
                                 // When cancelled, calculate and print results
                                 .finallyDo(
                                         () -> {
-                                            double[] positions = getWheelRadiusCharacterizationPositions();
+                                            double[] positions =
+                                                    getWheelRadiusCharacterizationPositions();
                                             double wheelDelta = 0.0;
                                             for (int i = 0; i < 4; i++) {
-                                                wheelDelta += Math.abs(positions[i] - state.positions[i]) / 4.0;
+                                                wheelDelta +=
+                                                        Math.abs(positions[i] - state.positions[i])
+                                                                / 4.0;
                                             }
-                                            double wheelRadius = (state.gyroDelta * config.getDrivebaseRadiusMeters())
-                                                    / wheelDelta;
+                                            double wheelRadius =
+                                                    (state.gyroDelta
+                                                                    * config
+                                                                            .getDrivebaseRadiusMeters())
+                                                            / wheelDelta;
 
                                             NumberFormat formatter = new DecimalFormat("#0.000");
                                             System.out.println(
                                                     "********** Wheel Radius Characterization Results **********");
                                             System.out.println(
-                                                    "\tWheel Delta: " + formatter.format(wheelDelta) + " radians");
+                                                    "\tWheel Delta: "
+                                                            + formatter.format(wheelDelta)
+                                                            + " radians");
                                             System.out.println(
-                                                    "\tGyro Delta: " + formatter.format(state.gyroDelta) + " radians");
+                                                    "\tGyro Delta: "
+                                                            + formatter.format(state.gyroDelta)
+                                                            + " radians");
                                             System.out.println(
                                                     "\tWheel Radius: "
                                                             + formatter.format(wheelRadius)
                                                             + " meters, "
-                                                            + formatter.format(Units.metersToInches(wheelRadius))
+                                                            + formatter.format(
+                                                                    Units.metersToInches(
+                                                                            wheelRadius))
                                                             + " inches");
                                         })));
     }
@@ -426,7 +452,7 @@ public class SwerveStates {
 
     // ------------------------------------------------------------------------
     // Reorient Commands
-    // ------------------------------------------------------------------------ 
+    // ------------------------------------------------------------------------
     protected static Command reorientForward() {
         return swerve.reorientPilotAngle(0).withName("Swerve.reorientForward");
     }

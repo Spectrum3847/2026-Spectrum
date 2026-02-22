@@ -38,8 +38,8 @@ import java.util.function.DoubleSupplier;
 import lombok.*;
 
 /**
- * Base class for a motor-driven mechanism.
- * Handles common tasks like telemetry, current limits, and various control modes using TalonFX.
+ * Base class for a motor-driven mechanism. Handles common tasks like telemetry, current limits, and
+ * various control modes using TalonFX.
  *
  * <p>Control Modes Docs:
  * https://pro.docs.ctr-electronics.com/en/latest/docs/migration/migration-guide/control-requests-guide.html
@@ -550,8 +550,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     /**
-     * Closed-loop Position Motion Magic with torque control (requires Pro).
-     * Dynamic allows you to set velocity, acceleration, and jerk during the command.
+     * Closed-loop Position Motion Magic with torque control (requires Pro). Dynamic allows you to
+     * set velocity, acceleration, and jerk during the command.
      *
      * @param rotations The target position in rotations.
      * @param velocity The maximum velocity in rotations per second.
@@ -800,7 +800,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         @Getter private boolean attached = true;
         @Getter private MotorAlignmentValue opposeLeader = MotorAlignmentValue.Aligned;
 
-        public FollowerConfig(String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
+        public FollowerConfig(
+                String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
             this.name = name;
             this.id = new CanDeviceId(id, canbus);
             this.opposeLeader = opposeLeader;

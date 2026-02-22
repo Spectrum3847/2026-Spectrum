@@ -44,42 +44,54 @@ public class Vision implements NTSendable, Subsystem {
 
         /* Limelight Configuration */
         @Getter final String frontLL = "limelight-front";
-        @Getter final LimelightConfig frontConfig = new LimelightConfig(frontLL)
-                .withTranslation(0.215, 0, 0.188)
-                .withRotation(0, Math.toRadians(28), 0);
+
+        @Getter
+        final LimelightConfig frontConfig =
+                new LimelightConfig(frontLL)
+                        .withTranslation(0.215, 0, 0.188)
+                        .withRotation(0, Math.toRadians(28), 0);
 
         @Getter final String backLL = "limelight-back";
-        @Getter final LimelightConfig backConfig = new LimelightConfig(backLL)
-                .withTranslation(-0.215, 0.0, 0.188)
-                .withRotation(0, Math.toRadians(28), Math.toRadians(180));
+
+        @Getter
+        final LimelightConfig backConfig =
+                new LimelightConfig(backLL)
+                        .withTranslation(-0.215, 0.0, 0.188)
+                        .withRotation(0, Math.toRadians(28), Math.toRadians(180));
 
         @Getter final String leftLL = "limelight-left";
-        @Getter final LimelightConfig leftConfig = new LimelightConfig(leftLL)
-                .withTranslation(0, 0.215, 0.188)
-                .withRotation(0, Math.toRadians(28), Math.toRadians(90));
+
+        @Getter
+        final LimelightConfig leftConfig =
+                new LimelightConfig(leftLL)
+                        .withTranslation(0, 0.215, 0.188)
+                        .withRotation(0, Math.toRadians(28), Math.toRadians(90));
 
         @Getter final String rightLL = "limelight-right";
-        @Getter final LimelightConfig rightConfig = new LimelightConfig(rightLL)
-                .withTranslation(0, -0.215, 0.188)
-                .withRotation(0, Math.toRadians(28), Math.toRadians(-90));
+
+        @Getter
+        final LimelightConfig rightConfig =
+                new LimelightConfig(rightLL)
+                        .withTranslation(0, -0.215, 0.188)
+                        .withRotation(0, Math.toRadians(28), Math.toRadians(-90));
 
         // Turret must be ZEROED in LL-GUI to report a correct pose
-        // Dynamic translation and rotation will be applied in code based on turret and robot rotation
+        // Dynamic translation and rotation will be applied in code based on turret and robot
+        // rotation
         @Getter final String turretLL = "limelight-turret";
-        @Getter final LimelightConfig turretConfig = new LimelightConfig(turretLL)
-                .withTranslation(
-                    Units.inchesToMeters(0.430), 
-                    Units.inchesToMeters(-5.06), 
-                    Units.inchesToMeters(27))
-                .withRotation(
-                    0, 
-                    Math.toRadians(10), 
-                    0);
 
-        @Getter final Translation2d robotToTurretCenter = 
-            new Translation2d(
-                Units.inchesToMeters(-5.5),
-                Units.inchesToMeters(5.0));
+        @Getter
+        final LimelightConfig turretConfig =
+                new LimelightConfig(turretLL)
+                        .withTranslation(
+                                Units.inchesToMeters(0.430),
+                                Units.inchesToMeters(-5.06),
+                                Units.inchesToMeters(27))
+                        .withRotation(0, Math.toRadians(10), 0);
+
+        @Getter
+        final Translation2d robotToTurretCenter =
+                new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0));
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
@@ -93,10 +105,14 @@ public class Vision implements NTSendable, Subsystem {
         @Getter double visionStdDevY = 0.5;
         @Getter double visionStdDevTheta = 0.2;
 
-        @Getter final double kLargeVariance = 999999.0; // Don't fuse rotation if variance exceeds this
+        @Getter
+        final double kLargeVariance = 999999.0; // Don't fuse rotation if variance exceeds this
+
         @Getter final double kMaxTimeDeltaSeconds = 0.1; // Max time difference to consider fusion
 
-        @Getter final Matrix<N3, N1> visionStdMatrix = VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
+        @Getter
+        final Matrix<N3, N1> visionStdMatrix =
+                VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
     }
 
     /* Limelights */
@@ -112,10 +128,12 @@ public class Vision implements NTSendable, Subsystem {
     private final DecimalFormat df = new DecimalFormat();
 
     @Getter private boolean isAiming = false;
-    @Getter private DoubleSupplier turretRotationSupplier = () -> Robot.getTurret().getPositionDegrees();
 
-    int[] blueTags = { 18, 19, 20, 21, 24, 25, 26, 27 };
-    int[] redTags = { 2, 3, 4, 5, 8, 9, 10, 11, 12 };
+    @Getter
+    private DoubleSupplier turretRotationSupplier = () -> Robot.getTurret().getPositionDegrees();
+
+    int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
+    int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
 
     @Getter private static AprilTagFieldLayout tagLayout;
 
@@ -130,8 +148,8 @@ public class Vision implements NTSendable, Subsystem {
         rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
         turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
 
-        swerveLimelights = new Limelight[] { frontLL, backLL, leftLL, rightLL };
-        allLimelights = new Limelight[] { frontLL, backLL, leftLL, rightLL, turretLL };
+        swerveLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
+        allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL, turretLL};
 
         // logging
         df.setMaximumFractionDigits(2);
@@ -157,7 +175,8 @@ public class Vision implements NTSendable, Subsystem {
         return config.getName();
     }
 
-    // Setup the telemetry values, has to be called at the end of the implemented mechanism constructor
+    // Setup the telemetry values, has to be called at the end of the implemented mechanism
+    // constructor
     public void telemetryInit() {
         SendableRegistry.add(this, getName());
         SmartDashboard.putData(this);
@@ -323,13 +342,15 @@ public class Vision implements NTSendable, Subsystem {
         RawFiducial[] tags = ll.getRawFiducial();
         double highestAmbiguity = 2;
         ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed = Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        double robotLinearSpeed =
+                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
         // distance from current pose to vision estimated MT1 pose
-        double mt1PoseDifference = Robot.getSwerve()
-                .getRobotPose()
-                .getTranslation()
-                .getDistance(megaTag1Pose2d.getTranslation());
+        double mt1PoseDifference =
+                Robot.getSwerve()
+                        .getRobotPose()
+                        .getTranslation()
+                        .getDistance(megaTag1Pose2d.getTranslation());
 
         // ambiguity / basic rejections
         ll.setTagStatus("");
@@ -410,7 +431,8 @@ public class Vision implements NTSendable, Subsystem {
             degStds = 0.01;
         }
 
-        Pose2d integratedPose = new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
+        Pose2d integratedPose =
+                new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
 
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
@@ -430,12 +452,14 @@ public class Vision implements NTSendable, Subsystem {
         double targetSize = ll.getTargetSize();
         Pose2d megaTag2Pose2d = ll.getMegaTag2_Pose2d();
         ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed = Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        double robotLinearSpeed =
+                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
-        double mt2PoseDifference = Robot.getSwerve()
-                .getRobotPose()
-                .getTranslation()
-                .getDistance(megaTag2Pose2d.getTranslation());
+        double mt2PoseDifference =
+                Robot.getSwerve()
+                        .getRobotPose()
+                        .getTranslation()
+                        .getDistance(megaTag2Pose2d.getTranslation());
 
         /* rejections */
         if (rejectionCheck(megaTag2Pose2d, targetSize)) {
@@ -470,9 +494,8 @@ public class Vision implements NTSendable, Subsystem {
         // MegaTag2 doesn't provide rotation, so use large variance
         double degStds = config.getKLargeVariance();
 
-        Pose2d integratedPose = new Pose2d(
-                megaTag2Pose2d.getTranslation(),
-                megaTag2Pose2d.getRotation());
+        Pose2d integratedPose =
+                new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
 
         return new VisionFieldPoseEstimate(
                 integratedPose,
@@ -481,7 +504,8 @@ public class Vision implements NTSendable, Subsystem {
                 (int) ll.getTagCountInView());
     }
 
-    private VisionFieldPoseEstimate getMT1TurretEstimate(Limelight ll, boolean integrateXY, boolean forceIntegration) {
+    private VisionFieldPoseEstimate getMT1TurretEstimate(
+            Limelight ll, boolean integrateXY, boolean forceIntegration) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
@@ -496,12 +520,14 @@ public class Vision implements NTSendable, Subsystem {
 
         double highestAmbiguity = 0.0;
         ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed = Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        double robotLinearSpeed =
+                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
-        double mt1PoseDifference = Robot.getSwerve()
-                .getRobotPose()
-                .getTranslation()
-                .getDistance(megaTag1Pose2d.getTranslation());
+        double mt1PoseDifference =
+                Robot.getSwerve()
+                        .getRobotPose()
+                        .getTranslation()
+                        .getDistance(megaTag1Pose2d.getTranslation());
 
         /* ---------------- Rejections ---------------- */
         ll.setTagStatus("");
@@ -584,9 +610,11 @@ public class Vision implements NTSendable, Subsystem {
         Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
 
         // Robot->Camera at 0° turret
-        Translation2d robotToCamera0 = new Translation2d(
-                config.getTurretConfig().getForward(),
-                config.getTurretConfig().getRight() * -1); // Negate because left is positive in WPI coordinate system
+        Translation2d robotToCamera0 =
+                new Translation2d(
+                        config.getTurretConfig().getForward(),
+                        config.getTurretConfig().getRight()
+                                * -1); // Negate because left is positive in WPI coordinate system
 
         // Vector from turret center -> camera at zero turret
         Translation2d turretToCamera0 = robotToCamera0.minus(config.getRobotToTurretCenter());
@@ -595,10 +623,12 @@ public class Vision implements NTSendable, Subsystem {
         Translation2d turretToRotatedCamera = turretToCamera0.rotateBy(turretRotation);
 
         // Add turret center offset to get full robot->camera vector
-        Translation2d robotToRotatedCamera = config.getRobotToTurretCenter().plus(turretToRotatedCamera);
+        Translation2d robotToRotatedCamera =
+                config.getRobotToTurretCenter().plus(turretToRotatedCamera);
 
         // Compute robot pose
-        Translation2d robotTranslation = megaTag1Pose2d.getTranslation().minus(robotToRotatedCamera);
+        Translation2d robotTranslation =
+                megaTag1Pose2d.getTranslation().minus(robotToRotatedCamera);
         Rotation2d robotRotation = megaTag1Pose2d.getRotation().minus(turretRotation);
 
         Pose2d integratedPose = new Pose2d(robotTranslation, robotRotation);
@@ -621,19 +651,14 @@ public class Vision implements NTSendable, Subsystem {
         }
     }
 
-    /**
-     * Helper to integrate multiple estimates close in time by fusing them together
-     * first
-     */
+    /** Helper to integrate multiple estimates close in time by fusing them together first */
     private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
         // Collect non-null estimates
         List<VisionFieldPoseEstimate> list = new ArrayList<>();
         for (VisionFieldPoseEstimate e : estimates) {
-            if (e != null)
-                list.add(e);
+            if (e != null) list.add(e);
         }
-        if (list.isEmpty())
-            return;
+        if (list.isEmpty()) return;
 
         // Sort by timestamp ascending (old -> new). fuseEstimates expects to project
         // older -> newer.
@@ -643,7 +668,8 @@ public class Vision implements NTSendable, Subsystem {
         VisionFieldPoseEstimate currentGroup = list.get(0);
         for (int i = 1; i < list.size(); i++) {
             VisionFieldPoseEstimate next = list.get(i);
-            double timeDelta = Math.abs(next.getTimestampSeconds() - currentGroup.getTimestampSeconds());
+            double timeDelta =
+                    Math.abs(next.getTimestampSeconds() - currentGroup.getTimestampSeconds());
 
             if (timeDelta < config.getKMaxTimeDeltaSeconds()) {
                 // Fuse into current group (currentGroup older, next newer)
@@ -664,7 +690,8 @@ public class Vision implements NTSendable, Subsystem {
             return true;
         }
 
-        if (Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond) >= 1.6) {
+        if (Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond)
+                >= 1.6) {
             return true;
         }
 
@@ -739,7 +766,7 @@ public class Vision implements NTSendable, Subsystem {
 
             // Posts Current X,Y, and Angle (Theta) values
             double[] visionPose = {
-                    botpose.getX(), botpose.getY(), botpose.getRotation().getDegrees()
+                botpose.getX(), botpose.getY(), botpose.getRotation().getDegrees()
             };
             Telemetry.log("Current Vision Pose: ", visionPose);
 
@@ -750,7 +777,7 @@ public class Vision implements NTSendable, Subsystem {
             Robot.getSwerve().addVisionMeasurement(integratedPose, poseTimestamp);
             pose = Robot.getSwerve().getRobotPose();
             // Gets updated pose of x, y, and theta values
-            visionPose = new double[] { pose.getX(), pose.getY(), pose.getRotation().getDegrees() };
+            visionPose = new double[] {pose.getX(), pose.getY(), pose.getRotation().getDegrees()};
             Telemetry.log("Vision Pose Reset To: ", visionPose);
 
             // print "success"
@@ -766,8 +793,7 @@ public class Vision implements NTSendable, Subsystem {
      */
     public boolean hasAccuratePose() {
         for (Limelight limelight : allLimelights) {
-            if (limelight.hasAccuratePose())
-                return true;
+            if (limelight.hasAccuratePose()) return true;
         }
         return false;
     }
@@ -784,7 +810,8 @@ public class Vision implements NTSendable, Subsystem {
     }
 
     public boolean tagsInView() {
-        DriverStation.Alliance alliance = DriverStation.getAlliance().orElse(DriverStation.Alliance.Red);
+        DriverStation.Alliance alliance =
+                DriverStation.getAlliance().orElse(DriverStation.Alliance.Red);
         if (alliance == DriverStation.Alliance.Blue) {
             return Arrays.stream(allLimelights)
                     .mapToInt(ll -> (int) ll.getClosestTagID())
@@ -806,39 +833,37 @@ public class Vision implements NTSendable, Subsystem {
     public Command blinkLimelights() {
         Telemetry.print("Vision.blinkLimelights", PrintPriority.HIGH);
         return startEnd(
-                () -> {
-                    for (Limelight limelight : allLimelights) {
-                        limelight.blinkLEDs();
-                    }
-                },
-                () -> {
-                    for (Limelight limelight : allLimelights) {
-                        limelight.setLEDMode(false);
-                    }
-                })
+                        () -> {
+                            for (Limelight limelight : allLimelights) {
+                                limelight.blinkLEDs();
+                            }
+                        },
+                        () -> {
+                            for (Limelight limelight : allLimelights) {
+                                limelight.setLEDMode(false);
+                            }
+                        })
                 .withName("Vision.blinkLimelights");
     }
 
     /** Only blinks left limelight */
     public Command solidLimelight() {
         return startEnd(
-                () -> {
-                    for (Limelight limelight : allLimelights) {
-                        limelight.setLEDMode(true);;
-                    }
-                },
-                () -> {
-                    for (Limelight limelight : allLimelights) {
-                        limelight.setLEDMode(false);
-                    }
-                })
+                        () -> {
+                            for (Limelight limelight : allLimelights) {
+                                limelight.setLEDMode(true);
+                                ;
+                            }
+                        },
+                        () -> {
+                            for (Limelight limelight : allLimelights) {
+                                limelight.setLEDMode(false);
+                            }
+                        })
                 .withName("Vision.solidLimelight");
     }
 
-    /**
-     * Fuses two vision pose estimates using inverse-variance weighting. (FRC254
-     * 2025)
-     */
+    /** Fuses two vision pose estimates using inverse-variance weighting. (FRC254 2025) */
     private VisionFieldPoseEstimate fuseEstimates(
             VisionFieldPoseEstimate a, VisionFieldPoseEstimate b) {
         // Ensure b is the newer measurement
@@ -849,24 +874,29 @@ public class Vision implements NTSendable, Subsystem {
         }
 
         // Project both estimates to the same timestamp using odometry
-        Transform2d a_T_b = Robot.getSwerve().getPoseAtTimestamp(b.getTimestampSeconds())
-                .minus(Robot.getSwerve().getPoseAtTimestamp(a.getTimestampSeconds()));
+        Transform2d a_T_b =
+                Robot.getSwerve()
+                        .getPoseAtTimestamp(b.getTimestampSeconds())
+                        .minus(Robot.getSwerve().getPoseAtTimestamp(a.getTimestampSeconds()));
 
         Pose2d poseA = a.getVisionRobotPoseMeters().transformBy(a_T_b);
         Pose2d poseB = b.getVisionRobotPoseMeters();
 
         // Inverse‑variance weighting
-        var varianceA = a.getVisionMeasurementStdDevs().elementTimes(a.getVisionMeasurementStdDevs());
-        var varianceB = b.getVisionMeasurementStdDevs().elementTimes(b.getVisionMeasurementStdDevs());
+        var varianceA =
+                a.getVisionMeasurementStdDevs().elementTimes(a.getVisionMeasurementStdDevs());
+        var varianceB =
+                b.getVisionMeasurementStdDevs().elementTimes(b.getVisionMeasurementStdDevs());
 
         Rotation2d fusedHeading = poseB.getRotation();
         if (varianceA.get(2, 0) < config.getKLargeVariance()
                 && varianceB.get(2, 0) < config.getKLargeVariance()) {
-            fusedHeading = new Rotation2d(
-                    poseA.getRotation().getCos() / varianceA.get(2, 0)
-                            + poseB.getRotation().getCos() / varianceB.get(2, 0),
-                    poseA.getRotation().getSin() / varianceA.get(2, 0)
-                            + poseB.getRotation().getSin() / varianceB.get(2, 0));
+            fusedHeading =
+                    new Rotation2d(
+                            poseA.getRotation().getCos() / varianceA.get(2, 0)
+                                    + poseB.getRotation().getCos() / varianceB.get(2, 0),
+                            poseA.getRotation().getSin() / varianceA.get(2, 0)
+                                    + poseB.getRotation().getSin() / varianceB.get(2, 0));
         }
 
         double weightAx = 1.0 / varianceA.get(0, 0);
@@ -874,20 +904,22 @@ public class Vision implements NTSendable, Subsystem {
         double weightBx = 1.0 / varianceB.get(0, 0);
         double weightBy = 1.0 / varianceB.get(1, 0);
 
-        Pose2d fusedPose = new Pose2d(
-                new Translation2d(
-                        (poseA.getTranslation().getX() * weightAx
-                                + poseB.getTranslation().getX() * weightBx)
-                                / (weightAx + weightBx),
-                        (poseA.getTranslation().getY() * weightAy
-                                + poseB.getTranslation().getY() * weightBy)
-                                / (weightAy + weightBy)),
-                fusedHeading);
+        Pose2d fusedPose =
+                new Pose2d(
+                        new Translation2d(
+                                (poseA.getTranslation().getX() * weightAx
+                                                + poseB.getTranslation().getX() * weightBx)
+                                        / (weightAx + weightBx),
+                                (poseA.getTranslation().getY() * weightAy
+                                                + poseB.getTranslation().getY() * weightBy)
+                                        / (weightAy + weightBy)),
+                        fusedHeading);
 
-        Matrix<N3, N1> fusedStdDev = VecBuilder.fill(
-                Math.sqrt(1.0 / (weightAx + weightBx)),
-                Math.sqrt(1.0 / (weightAy + weightBy)),
-                Math.sqrt(1.0 / (1.0 / varianceA.get(2, 0) + 1.0 / varianceB.get(2, 0))));
+        Matrix<N3, N1> fusedStdDev =
+                VecBuilder.fill(
+                        Math.sqrt(1.0 / (weightAx + weightBx)),
+                        Math.sqrt(1.0 / (weightAy + weightBy)),
+                        Math.sqrt(1.0 / (1.0 / varianceA.get(2, 0) + 1.0 / varianceB.get(2, 0))));
 
         int numTags = a.getNumTags() + b.getNumTags();
         double time = b.getTimestampSeconds();

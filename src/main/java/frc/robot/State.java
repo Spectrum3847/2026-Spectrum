@@ -1,9 +1,8 @@
 package frc.robot;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
-
-import com.google.common.collect.ImmutableMap;
 
 public enum State {
     IDLE,
@@ -29,13 +28,12 @@ public enum State {
     L3_CLIMB_PREP,
     L3_CLIMB_EXECUTE;
 
-    private State() {
-    }
+    private State() {}
 
     // Define the scoring sequence map, the 2nd state is the next state after the
     // current one
-    private static final ImmutableMap<State, State> scoreSequence = ImmutableMap.ofEntries(
-            Map.entry(TURRET_TRACK, TURRET_TRACK_WITH_LAUNCH));
+    private static final ImmutableMap<State, State> scoreSequence =
+            ImmutableMap.ofEntries(Map.entry(TURRET_TRACK, TURRET_TRACK_WITH_LAUNCH));
 
     // ------ STATE ATTRIBUTES ------//
 
@@ -44,10 +42,11 @@ public enum State {
     }
 
     private static BooleanSupplier isReadyState(State state) {
-        return () -> switch (state) {
-            case TURRET_TRACK -> true;
-            default -> false;
-        };
+        return () ->
+                switch (state) {
+                    case TURRET_TRACK -> true;
+                    default -> false;
+                };
     }
 
     public BooleanSupplier isReady() {

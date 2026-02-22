@@ -5,9 +5,7 @@ package frc.robot.swerve;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Seconds;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
-import org.ironmaple.simulation.SimulatedArena;
+
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -52,7 +50,10 @@ import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 import lombok.Getter;
+import org.ironmaple.simulation.SimulatedArena;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
@@ -71,16 +72,17 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             new SwerveModuleState[] {}; // This currently doesn't do anything
 
     // Buffer stores 1.5 seconds of pose history
-    private final TimeInterpolatableBuffer<Pose2d> poseHistory = 
+    private final TimeInterpolatableBuffer<Pose2d> poseHistory =
             TimeInterpolatableBuffer.createBuffer(1.5);
 
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
 
-    private final SwerveRequest.ApplyRobotSpeeds AutoRequest = new SwerveRequest.ApplyRobotSpeeds()
-            .withDriveRequestType(DriveRequestType.Velocity)
-            .withSteerRequestType(SteerRequestType.Position)
-            .withDesaturateWheelSpeeds(true);
+    private final SwerveRequest.ApplyRobotSpeeds AutoRequest =
+            new SwerveRequest.ApplyRobotSpeeds()
+                    .withDriveRequestType(DriveRequestType.Velocity)
+                    .withSteerRequestType(SteerRequestType.Position)
+                    .withDesaturateWheelSpeeds(true);
 
     // Logging publisher
     StructArrayPublisher<SwerveModuleState> moduleStatePublisher =
@@ -147,9 +149,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
         }
         // Store current pose in history buffer every periodic cycle
-        poseHistory.addSample(
-                Utils.getCurrentTimeSeconds(),
-                this.getState().Pose);
+        poseHistory.addSample(Utils.getCurrentTimeSeconds(), this.getState().Pose);
     }
 
     @Override
@@ -219,13 +219,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     /**
      * Get the robot's pose at a specific timestamp using interpolation
-     * 
+     *
      * @param timestampSeconds The timestamp to sample at
      * @return The interpolated pose, or current pose if timestamp not in buffer
      */
     public Pose2d getPoseAtTimestamp(double timestampSeconds) {
-        return poseHistory.getSample(timestampSeconds)
-                .orElse(this.getState().Pose);
+        return poseHistory.getSample(timestampSeconds).orElse(this.getState().Pose);
     }
 
     @Override
@@ -234,7 +233,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
         Timer.delay(0.05); // Wait for simulation to update
         super.resetPose(pose);
-
     }
 
     public Trigger inXzone(double minXmeter, double maxXmeter) {
@@ -249,10 +247,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     public Trigger inNeutralZone() {
         final double fieldLengthMeters = Units.feetToMeters(54.0); // full field length
-        final double fieldWidthMeters = Units.feetToMeters(27.0);  // full field width
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width
 
-        final double neutralDepthMeters = Units.inchesToMeters(283.0);   // depth along field length (X)
-        final double neutralLengthMeters = Units.inchesToMeters(317.7); // span across field width (Y)
+        final double neutralDepthMeters =
+                Units.inchesToMeters(283.0); // depth along field length (X)
+        final double neutralLengthMeters =
+                Units.inchesToMeters(317.7); // span across field width (Y)
 
         final double centerX = fieldLengthMeters / 2.0;
         final double centerY = fieldWidthMeters / 2.0;
@@ -264,7 +264,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         return new Trigger(
                 () -> {
-                    double x = FieldHelpers.flipXifRed(getRobotPose().getX()); // make alliance-agnostic
+                    double x =
+                            FieldHelpers.flipXifRed(
+                                    getRobotPose().getX()); // make alliance-agnostic
                     double y = getRobotPose().getY();
                     return Util.inRange(() -> x, () -> minX, () -> maxX)
                             && Util.inRange(() -> y, () -> minY, () -> maxY);
@@ -275,10 +277,13 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         final double fieldLengthMeters = Units.feetToMeters(54.0);
         final double fieldWidthMeters = Units.feetToMeters(27.0);
 
-        final double allianceDepthMeters = Units.inchesToMeters(158.6); // X depth of an alliance zone
-        final double allianceSpanMeters = Units.inchesToMeters(317.7);  // Y span of an alliance zone
+        final double allianceDepthMeters =
+                Units.inchesToMeters(158.6); // X depth of an alliance zone
+        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span of an alliance zone
 
-        final double minX = fieldLengthMeters - allianceDepthMeters; // enemy side (far end) in alliance-agnostic coords
+        final double minX =
+                fieldLengthMeters
+                        - allianceDepthMeters; // enemy side (far end) in alliance-agnostic coords
         final double maxX = fieldLengthMeters;
 
         final double centerY = fieldWidthMeters / 2.0;
@@ -287,7 +292,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         return new Trigger(
                 () -> {
-                    double x = FieldHelpers.flipXifRed(getRobotPose().getX()); // alliance-agnostic X
+                    double x =
+                            FieldHelpers.flipXifRed(getRobotPose().getX()); // alliance-agnostic X
                     double y = getRobotPose().getY();
                     return Util.inRange(() -> x, () -> minX, () -> maxX)
                             && Util.inRange(() -> y, () -> minY, () -> maxY);
@@ -501,9 +507,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     double calculateRotationController(DoubleSupplier targetRadians, boolean useHold) {
-        return rotationController.calculate(targetRadians.getAsDouble(), getRotationRadians(), useHold);
+        return rotationController.calculate(
+                targetRadians.getAsDouble(), getRotationRadians(), useHold);
     }
-
 
     // --------------------------------------------------------------------------------
     // Translation X Controller
@@ -542,11 +548,13 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     this::getCurrentRobotChassisSpeeds, // Supplier of current robot speeds
                     // Consumer of ChassisSpeeds and feedforwards to drive the robot
                     (speeds, feedforwards) -> {
-                        setControl(AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
-                                .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesX())
-                                .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesY()));
+                        setControl(
+                                AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
+                                        .withWheelForceFeedforwardsX(
+                                                feedforwards.robotRelativeForcesX())
+                                        .withWheelForceFeedforwardsY(
+                                                feedforwards.robotRelativeForcesY()));
                     },
-
                     new PPHolonomicDriveController(
                             // PID constants for translation
                             new PIDConstants(4.5, 0, 0),
@@ -557,9 +565,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     // case
                     () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
                     this // Subsystem for requirements
-            );
+                    );
         } catch (Exception ex) {
-            DriverStation.reportError("Failed to load PathPlanner config and configure AutoBuilder",
+            DriverStation.reportError(
+                    "Failed to load PathPlanner config and configure AutoBuilder",
                     ex.getStackTrace());
         }
     }
@@ -572,23 +581,24 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     @SuppressWarnings("unchecked")
     private void startSimThread() {
-        mapleSimSwerveDrivetrain = new MapleSimSwerveDrivetrain(
-                Seconds.of(config.getSimLoopPeriod()),
-                Pounds.of(115), // robot weight
-                Inches.of(30), // bumper length
-                Inches.of(30), // bumper width
-                DCMotor.getKrakenX60Foc(1), // drive motor type
-                DCMotor.getKrakenX60Foc(1), // steer motor type
-                1.2, // wheel COF
-                getModuleLocations(),
-                getPigeon2(),
-                getModules(),
-                config.getFrontLeft(),
-                config.getFrontRight(),
-                config.getBackLeft(),
-                config.getBackRight());
+        mapleSimSwerveDrivetrain =
+                new MapleSimSwerveDrivetrain(
+                        Seconds.of(config.getSimLoopPeriod()),
+                        Pounds.of(115), // robot weight
+                        Inches.of(30), // bumper length
+                        Inches.of(30), // bumper width
+                        DCMotor.getKrakenX60Foc(1), // drive motor type
+                        DCMotor.getKrakenX60Foc(1), // steer motor type
+                        1.2, // wheel COF
+                        getModuleLocations(),
+                        getPigeon2(),
+                        getModules(),
+                        config.getFrontLeft(),
+                        config.getFrontRight(),
+                        config.getBackLeft(),
+                        config.getBackRight());
         /* Run simulation at a faster rate so PID gains behave more reasonably */
         simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
         simNotifier.startPeriodic(config.getSimLoopPeriod());
-}
+    }
 }
