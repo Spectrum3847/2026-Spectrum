@@ -17,11 +17,11 @@ public class LedCANdle {
 
     public static final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
 
-    public static final int kSlot0StartIdx = 8;
-    public static final int kSlot0EndIdx = 37;
+    public static final int kSlot0StartIdx = 0;
+    public static final int kSlot0EndIdx = 180;
 
-    public static final int kSlot1StartIdx = 38;
-    public static final int kSlot1EndIdx = 67;
+    public static final int kSlot1StartIdx = 181;
+    public static final int kSlot1EndIdx = 360;
 
     public enum AnimationType {
         None,
@@ -54,9 +54,9 @@ public class LedCANdle {
             candle.setControl(new EmptyAnimation(i));
         }
 
-        animChooser0.setDefaultOption("Color Flow", AnimationType.ColorFlow);
+        // animChooser0.setDefaultOption("Color Flow", AnimationType.ColorFlow);
 
-        animChooser1.setDefaultOption("Fire", AnimationType.Fire);
+        // animChooser1.setDefaultOption("Fire", AnimationType.Fire);
 
         SmartDashboard.putData("Animation 0", animChooser0);
         SmartDashboard.putData("Animation 1", animChooser1);

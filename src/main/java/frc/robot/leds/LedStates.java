@@ -25,7 +25,6 @@ public class LedStates extends LedCANdle {
 
     static void bindTriggers() {
         // disabledPattern(Util.disabled.and(Util.dsAttached));
-        betterDisabledPattern(Util.disabled);
         teleopPattern(Util.teleop.and(Util.dsAttached));
         autoPattern(Util.autoMode.and(Util.dsAttached));
         testModePattern(Util.testMode.and(Util.dsAttached));
@@ -33,12 +32,14 @@ public class LedStates extends LedCANdle {
         // Match time related patterns
         redAlliance(Util.teleop.and(() -> !ShiftHelpers.isCurrentShiftBlue(currentMatchTime)), 10);
         blueAlliance(Util.teleop.and(() -> ShiftHelpers.isCurrentShiftBlue(currentMatchTime)), 10);
+        blinkyBlonk(
+                Util.teleop.and(() -> {
+                    double t = DriverStation.getMatchTime();
+                    return (t <= 108 && t >= 102) || (t <= 83 && t >= 77) || (t <= 58 && t >= 52);
+                }),
+                25);
         shift(Util.teleop.and(() -> DriverStation.getMatchTime() <= 140 && DriverStation.getMatchTime() >= 130), 15);
         endgame(Util.teleop.and(() -> DriverStation.getMatchTime() <= 30), 20);
-
-        // Robot things
-        shootingFuel(RobotStates.launchingForLEDS, 12);
-
     }
 
     /** Default LED commands for each mode */
@@ -57,7 +58,7 @@ public class LedStates extends LedCANdle {
                 "left.disabledPattern", left, left.ombre(left.purple, left.white), trigger);
     }
 
-    static void betterDisabledPattern(Trigger trigger) {
+    static void betterDisabledPattern(Trigger trigger, int priority) {
         FireAnimation disabledFire = new FireAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0);
         trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(disabledFire)));
     }
@@ -88,28 +89,42 @@ public class LedStates extends LedCANdle {
     // }
 
     static void shift(Trigger trigger, int priority) {
-        SingleFadeAnimation shiftAnimation = new SingleFadeAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0).withColor(ShiftHelpers.blueWonAuto() ? new RGBWColor(0, 0, 255) : new RGBWColor(255, 0, 0));
-        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(shiftAnimation)));
+        SingleFadeAnimation shiftAnimationRight = new SingleFadeAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0).withColor(ShiftHelpers.blueWonAuto() ? new RGBWColor(0, 0, 255) : new RGBWColor(255, 0, 0));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(shiftAnimationRight)));
+        SingleFadeAnimation shiftAnimationLeft = new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1).withColor(ShiftHelpers.blueWonAuto() ? new RGBWColor(0, 0, 255) : new RGBWColor(255, 0, 0));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(shiftAnimationLeft)));
     }
 
     static void redAlliance(Trigger trigger, int priority) {
-        SingleFadeAnimation redAllianceShift = new SingleFadeAnimation(kSlot0StartIdx, kSlot0StartIdx).withSlot(0).withColor(new RGBWColor(255, 0, 0));
-        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(redAllianceShift)));
+        SingleFadeAnimation redAllianceShiftRight = new SingleFadeAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0).withColor(new RGBWColor(255, 0, 0));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(redAllianceShiftRight)));
+        SingleFadeAnimation redAllianceShiftLeft = new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1).withColor(new RGBWColor(255, 0, 0));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(redAllianceShiftLeft)));
     }
 
     static void blueAlliance(Trigger trigger, int priority) {
-        SingleFadeAnimation blueAllianceShift = new SingleFadeAnimation(kSlot0StartIdx, kSlot0StartIdx).withSlot(0).withColor(new RGBWColor(0, 0, 255));
-        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(blueAllianceShift)));
+        SingleFadeAnimation blueAllianceShiftRight = new SingleFadeAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0).withColor(new RGBWColor(0, 0, 255));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(blueAllianceShiftRight)));
+        SingleFadeAnimation blueAllianceShiftLeft = new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1).withColor(new RGBWColor(0, 0, 255));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(blueAllianceShiftLeft)));
+    }
+
+    static void blinkyBlonk(Trigger trigger, int priority) {
+        StrobeAnimation aboutToShiftRight = new StrobeAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0).withColor(!ShiftHelpers.isCurrentShiftBlue(currentMatchTime) ? new RGBWColor(0, 0, 255) : new RGBWColor(255, 0, 0));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(aboutToShiftRight)));
+        StrobeAnimation aboutToShiftLeft = new StrobeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1).withColor(!ShiftHelpers.isCurrentShiftBlue(currentMatchTime) ? new RGBWColor(0, 0, 255) : new RGBWColor(255, 0, 0));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(aboutToShiftLeft)));
     }
 
     static void endgame(Trigger trigger, int priority) {
-        SolidColor endgameAnimation = new SolidColor(kSlot0StartIdx, kSlot0EndIdx).withColor(new RGBWColor(207, 255, 4));
-        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(endgameAnimation)));
-    }
-    
-    static void shootingFuel(Trigger trigger, int priority) {
-        RainbowAnimation shootingFuelAnimation = new RainbowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0);
-        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(shootingFuelAnimation)));
+        SingleFadeAnimation endgameAnimationRight = new SingleFadeAnimation(kSlot0StartIdx, kSlot0EndIdx)
+                .withSlot(0)
+                .withColor(new RGBWColor(207, 255, 4));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(endgameAnimationRight)));
+        SingleFadeAnimation endgameAnimationLeft = new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx)
+                .withSlot(1)
+                .withColor(new RGBWColor(207, 255, 4));
+        trigger.onTrue(new edu.wpi.first.wpilibj2.command.InstantCommand(() -> candle.setControl(endgameAnimationLeft)));
     }
 }
 
