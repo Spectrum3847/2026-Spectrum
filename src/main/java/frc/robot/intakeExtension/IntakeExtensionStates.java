@@ -17,11 +17,11 @@ public class IntakeExtensionStates {
     // -------------------- State Commands --------------------
 
     public static void fullExtend() {
-        scheduleIfNotRunning(intakeExtension.move(() -> config.getMaxRotations()));
+        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getFullOut()));
     }
 
     public static void fullRetract() {
-        scheduleIfNotRunning(intakeExtension.move(() -> config.getMinRotations()));
+        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getHome()));
     }
 
     public static void neutral() {

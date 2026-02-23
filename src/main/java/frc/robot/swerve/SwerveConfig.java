@@ -28,7 +28,7 @@ public class SwerveConfig {
     @Getter @Setter private double robotWidth = Units.inchesToMeters(25);
     @Getter @Setter private double robotLength = Units.inchesToMeters(29);
 
-    @Getter @Setter private double maxAngularRate = 1.5 * Math.PI; // rad/s
+    @Getter @Setter private double maxAngularRate = 2 * Math.PI; // rad/s
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
 
     @Getter @Setter private double driveGearRatio = 7.03;
