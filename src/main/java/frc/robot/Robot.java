@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
+import frc.robot.configs.FM2026;
 import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
@@ -110,11 +111,21 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            /* Set up the config */
-            config =
-                    switch (Rio.id) {
-                        default -> new XM2026();
-                    };
+            /** Set up the config */
+            switch (Rio.id) {
+                case XM_2026:
+                    config = new XM2026();
+                    break;
+                    // case PM_2026:
+                    //     config = new PM2026();
+                    //     break;
+                    // case FM_2026:
+                    //     config = new FM2026();
+                    //     break;
+                default: // SIM and UNKNOWN
+                    config = new FM2026();
+                    break;
+            }
 
             /*
              * Initialize the Subsystems of the robot. Subsystems are how we divide up the robot
