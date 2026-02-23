@@ -1,46 +1,38 @@
 # 2026-Spectrum
 
-Repo for Spectrum's 2026 robots.
+Robot code for Team Spectrum 3847's 2026 season.
 
-## Overview
-This repository contains the robot code for Spectrum for the 2026 season. The project is built using the WPILib. It uses a custom library, `spectrumLib`, for shared utilities.
+## Quick Start
 
-### Key Features
-- **Swerve Drive**: Powered by CTRE Phoenix 6.
-- **Autonomous**: Integrated with PathPlanner for complex path following and auto routines.
-- **Vision**: Uses PhotonLib for vision processing.
-- **Logging**: Uses DogLog for telemetry and logging.
-- **Subsystems**: Includes Swerve, Fuel Intake, Turret (Rotational & Hood), Intake Extension, Indexer, Launcher, and LEDs.
+### Prerequisites
+- Java 17
+- WPILib 2026
+- Git
 
-## Requirements
-- **Java Development Kit (JDK) 17**
-- **WPILib 2026**
-
-## Stack
-- **Language**: Java 17
-- **Framework**: WPILib (Command-Based)
-- **Package Manager**: Gradle (via GradleRIO)
-- **Vendor Libraries**:
-  - CTRE Phoenix 6
-  - PathPlannerLib
-  - PhotonLib
-  - DogLog
-  - WPILib New Commands
-
-## Setup
-
-### Installation
-1. Clone the repository:
+### Setup
+1. Clone the repo:
    ```bash
    git clone https://github.com/Spectrum3847/2026-Spectrum.git
    ```
-2. Open the project in WPILib VS Code.
+2. Open the folder in WPILib VS Code.
 
 ## Project Structure
-- `src/main/java/frc/robot`: Main robot logic.
-  - `auton/`: Autonomous mode definitions and commands.
-  - `configs/`: Configuration sets for different robots (e.g., FM2026).
-  - `swerve/`, `fuelIntake/`, `launcher/`, etc.: Subsystem-specific implementations.
-- `src/main/java/frc/spectrumLib`: Shared library code used across multiple robots.
-- `src/main/deploy`: Files deployed to the RoboRIO (PathPlanner paths, autos, etc.).
-- `vendordeps`: JSON files defining vendor library dependencies.
+```text
+├── src/
+│   └── main/
+│       ├── java/
+│       │   └── frc/
+│       │       ├── robot/              # main robot application code
+│       │       │   ├── auton/          # autonomous routines and commands
+│       │       │   ├── configs/        # robot config selection/constants
+│       │       │   ├── swerve/
+│       │       │   ├── vision/
+│       │       │   ├── launcher/
+│       │       │   └── ...             # other subsystems
+│       │       ├── spectrumLib/        # shared Spectrum utilities
+│       │       └── rebuilt/            # field/targeting helper logic
+│       └── deploy/                     # files copied to RoboRIO
+│           └── pathplanner/
+├── vendordeps/                         # vendor dependency JSONs
+└── build.gradle                        # GradleRIO project config
+```
