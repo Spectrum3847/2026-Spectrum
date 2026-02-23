@@ -1,26 +1,15 @@
 package frc.robot.leds;
 
-import frc.robot.State;
-import frc.robot.Robot;
-import frc.robot.RobotStates;
-import frc.robot.Coordinator;
-// import frc.robot.pilot.PilotStates;
+
 import frc.spectrumLib.Rio;
-// import frc.spectrumLib.leds.SpectrumLEDs;
-import frc.spectrumLib.util.Util;
-import edu.wpi.first.wpilibj.RobotState;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-// import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.hardware.CANdle;
 import com.ctre.phoenix6.signals.AnimationDirectionValue;
-// import com.ctre.phoenix6.signals.RGBWColor;
-// import com.ctre.phoenix6.signals.StatusLedWhenActiveValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
 
 public class LedCANdle {

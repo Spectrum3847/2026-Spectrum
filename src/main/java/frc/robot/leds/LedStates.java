@@ -16,7 +16,7 @@ import frc.robot.pilot.PilotStates;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.util.Util;
 
-public class LedStates extends LedCANdle{
+public class LedStates extends LedCANdle {
     private static LedFull leds = Robot.getLeds();
     private static LedRight right = leds.getRight();
     private static LedLeft left = leds.getLeft();
@@ -33,7 +33,7 @@ public class LedStates extends LedCANdle{
         // Match time related patterns
         redAlliance(Util.teleop.and(() -> !ShiftHelpers.isCurrentShiftBlue(currentMatchTime)), 10);
         blueAlliance(Util.teleop.and(() -> ShiftHelpers.isCurrentShiftBlue(currentMatchTime)), 10);
-        // shift();
+        shift(Util.teleop.and(() -> DriverStation.getMatchTime() <= 140 && DriverStation.getMatchTime() >= 130), 15);
         endgame(Util.teleop.and(() -> DriverStation.getMatchTime() <= 30), 20);
 
         // Robot things
@@ -81,11 +81,11 @@ public class LedStates extends LedCANdle{
     }
 
     /** LED non-default Commands, set the priority value to see which command takes precedence */
-    private static Trigger ledCommand(
-            String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
-        return trigger.and(sLed.checkPriority(priority))
-                .whileTrue((sLed.setPattern(pattern, priority).withName(name)));
-    }
+    // private static Trigger ledCommand(
+    //         String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
+    //     return trigger.and(sLed.checkPriority(priority))
+    //             .whileTrue((sLed.setPattern(pattern, priority).withName(name)));
+    // }
 
     static void shift(Trigger trigger, int priority) {
         SingleFadeAnimation shiftAnimation = new SingleFadeAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0).withColor(ShiftHelpers.blueWonAuto() ? new RGBWColor(0, 0, 255) : new RGBWColor(255, 0, 0));
