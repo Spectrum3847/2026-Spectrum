@@ -18,7 +18,6 @@ Robot code for Team Spectrum 3847's 2026 season.
 
 ## Project Structure
 ```text
-.
 ├── src/
 │   └── main/
 │       ├── java/
