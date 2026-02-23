@@ -24,6 +24,12 @@ public class FuelIntakeStates {
                         .withName("Intake.intakeFuel"));
     }
 
+    public static void agitateFuel() {
+        scheduleIfNotRunning(
+                intake.runTorqueFOC(config::getFuelAgitationTorqueCurrent)
+                        .withName("Intake.agitate"));
+    }
+
     public static void stop() {
         scheduleIfNotRunning(intake.stopMotor().withName("Intake.stop"));
     }

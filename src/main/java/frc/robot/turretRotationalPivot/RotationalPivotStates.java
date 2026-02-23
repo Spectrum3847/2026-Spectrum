@@ -19,8 +19,8 @@ public class RotationalPivotStates {
 
     // -------------------- State Commands --------------------
 
-    public static void aimAtHub() {
-        scheduleIfNotRunning(turretRotation.trackTargetCommand().withName("Turret.aimAtHub"));
+    public static void aimAtTarget() {
+        scheduleIfNotRunning(turretRotation.trackTargetCommand().withName("Turret.aimAtTarget"));
     }
 
     public static void aimAtPresetPosition() {

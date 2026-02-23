@@ -25,6 +25,7 @@ public class FuelIntake extends Mechanism {
         // Intake Voltages and Current
         @Getter @Setter private double fuelIntakeVoltage = 9.0;
         @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
+        @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
         @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
 
         /* Intake config values */
