@@ -158,13 +158,13 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
 
-        Telemetry.log("ProjectName", BuildConstants.MAVEN_NAME);
-        Telemetry.log("BuildDate", BuildConstants.BUILD_DATE);
-        Telemetry.log("GitSHA", BuildConstants.GIT_SHA);
-        Telemetry.log("GitDate", BuildConstants.GIT_DATE);
-        Telemetry.log("GitBranch", BuildConstants.GIT_BRANCH);
+        Telemetry.log("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
+        Telemetry.log("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
+        Telemetry.log("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
+        Telemetry.log("BuildConstants/GitDate", BuildConstants.GIT_DATE);
+        Telemetry.log("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
         Telemetry.log(
-                "GitDirty",
+                "BuildConstants/GitDirty",
                 switch (BuildConstants.DIRTY) {
                     case 0 -> "All changes committed";
                     case 1 -> "Uncommitted changes";

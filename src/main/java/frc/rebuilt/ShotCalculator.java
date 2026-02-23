@@ -70,12 +70,12 @@ public class ShotCalculator {
     static {
         phaseDelay = 0.03;
 
-        shotFlywheelSpeedMap.put(1.5, Conversions.RPStoRPM(30.5 + 5));
-        shotFlywheelSpeedMap.put(1.78, Conversions.RPStoRPM(31.0 + 5));
-        shotFlywheelSpeedMap.put(2.00, Conversions.RPStoRPM(33.0 + 5));
-        shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(34.5 + 5));
-        shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(35.5 + 5));
-        shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(36.0 + 5));
+        shotFlywheelSpeedMap.put(1.5, Conversions.RPStoRPM(30.5 + 6));
+        shotFlywheelSpeedMap.put(1.78, Conversions.RPStoRPM(31.0 + 6));
+        shotFlywheelSpeedMap.put(2.00, Conversions.RPStoRPM(33.0 + 6));
+        shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(34.5 + 6));
+        shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(35.5 + 6));
+        shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(36.0 + 6));
 
         timeOfFlightMap.put(5.68, 1.16);
         timeOfFlightMap.put(4.55, 1.12);
