@@ -38,14 +38,14 @@ public class SwerveStates {
                     .withDeadband(
                             config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+                    .withDriveRequestType(DriveRequestType.Velocity);
 
     private static final SwerveRequest.RobotCentric robotCentric =
             new SwerveRequest.RobotCentric()
                     .withDeadband(
                             config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+                    .withDriveRequestType(DriveRequestType.Velocity);
 
     private static final SwerveRequest.SwerveDriveBrake swerveXBreak =
             new SwerveRequest.SwerveDriveBrake();
@@ -55,9 +55,9 @@ public class SwerveStates {
                     .withDeadband(
                             config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage)
+                    .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.MotionMagicExpo)
-                    .withMaxAbsRotationalRate(config.getMaxAngularRate())
+                    .withMaxAbsRotationalRate(config.getMaxAngularRate() * 0.3)
                     .withHeadingPID(
                             config.getKPRotationController(),
                             config.getKIRotationController(),
@@ -176,7 +176,7 @@ public class SwerveStates {
         return Commands.defer(
                         () -> {
                             final double base = swerve.getRotation().getRadians();
-                            final double delta = Math.toRadians(15.0);
+                            final double delta = Math.toRadians(10.0);
 
                             Command toMinus =
                                     aimDrive(
@@ -355,7 +355,8 @@ public class SwerveStates {
      *
      * @param velocityX The forward velocity in meters per second
      * @param velocityY The leftward velocity in meters per second
-     * @return A command that returns an aimDrive command that locks the robot's heading to its current heading while allowing translation control.
+     * @return A command that returns an aimDrive command that locks the robot's heading to its
+     *     current heading while allowing translation control.
      */
     protected static Command headingLock(DoubleSupplier velocityX, DoubleSupplier velocityY) {
         return aimDrive(velocityX, velocityY, () -> swerve.getRotation().getRadians())
@@ -369,8 +370,8 @@ public class SwerveStates {
      *
      * @param velocityX The forward velocity in meters per second
      * @param velocityY The leftward velocity in meters per second
-     * 
-     * @return A command that returns an aimDrive command that locks the robot's heading to the closest 45 degree angle while allowing translation control.
+     * @return A command that returns an aimDrive command that locks the robot's heading to the
+     *     closest 45 degree angle while allowing translation control.
      */
     protected static Command lockToClosest45deg(
             DoubleSupplier velocityX, DoubleSupplier velocityY) {

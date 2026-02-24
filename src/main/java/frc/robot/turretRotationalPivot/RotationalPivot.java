@@ -2,10 +2,12 @@ package frc.robot.turretRotationalPivot;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
+import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -42,16 +44,20 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double torqueCurrentLimit = 60;
         @Getter private final double positionKp = 850;
         @Getter private final double positionKd = 20;
-        @Getter private final double positionKv = 0.2;
-        @Getter private final double positionKs = 0.6;
+        @Getter private final double positionKv = 10;
+        @Getter private final double positionKs = 2;
         @Getter private final double positionKa = 2;
         @Getter private final double positionKg = 0;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
-        @Getter private final double visionTrackingKp = 15;
-        @Getter private final double maxTrackingRPS = 0.5;
+        // Trapezoidal profile constraints are in mechanism rotations and mechanism
+        // rotations per second
+        private final TrapezoidProfile turretProfile;
+
+        // CTRE request: position closed-loop (torqueCurrent), Slot0
+        private final PositionTorqueCurrentFOC turretRequest;
 
         @Getter @Setter private double sensorToMechanismRatio = 45;
         @Getter @Setter private double rotorToSensorRatio = 1;
@@ -88,6 +94,9 @@ public class RotationalPivot extends Mechanism {
             configContinuousWrap(false);
             configGravityType(false);
             configClockwise_Positive();
+
+            turretProfile = new TrapezoidProfile(new TrapezoidProfile.Constraints(80.0, 160.0));
+            turretRequest = new PositionTorqueCurrentFOC(0);
         }
 
         public RotationalPivotConfig modifyMotorConfig(TalonFX motor) {
@@ -99,6 +108,12 @@ public class RotationalPivot extends Mechanism {
             return this;
         }
     }
+
+    // Goal + setpoint are also in mechanism rotations per second
+    private TrapezoidProfile.State turretGoal = new TrapezoidProfile.State();
+    private TrapezoidProfile.State turretSetpoint = new TrapezoidProfile.State();
+
+    private boolean turretProfileInitialized = false;
 
     @Getter private RotationalPivotConfig config;
     @Getter private RotationalPivotSim sim;
@@ -217,14 +232,24 @@ public class RotationalPivot extends Mechanism {
 
     public void aimFieldRelative(Rotation2d fieldAngle) {
         double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
-        double turretDeg = fieldAngle.getDegrees() - robotHeadingDeg;
-        final double wrappedTurretDeg = wrapDegreesToSoftLimits(turretDeg);
+        double robotOmegaRadPerSec =
+                Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond;
+        double goalVelRps = -robotOmegaRadPerSec / (2.0 * Math.PI);
+        double turretGoalDeg = fieldAngle.getDegrees() - robotHeadingDeg;
+        double wrappedGoalDeg = wrapDegreesToSoftLimits(turretGoalDeg);
+        double goalRotations = degreesToRotations(() -> wrappedGoalDeg);
 
-        setDynMMPositionFoc(
-                () -> degreesToRotations(() -> wrappedTurretDeg),
-                () -> config.getMmCruiseVelocity(),
-                () -> config.getMmAcceleration(),
-                () -> config.getMmJerk());
+        if (!turretProfileInitialized) {
+            turretSetpoint = new TrapezoidProfile.State(getPositionRotations(), 0.0);
+            turretProfileInitialized = true;
+        }
+
+        turretGoal = new TrapezoidProfile.State(goalRotations, goalVelRps);
+        turretSetpoint = config.turretProfile.calculate(0.02, turretSetpoint, turretGoal);
+
+        config.turretRequest.Position = turretSetpoint.position;
+        config.turretRequest.Velocity = turretSetpoint.velocity;
+        motor.setControl(config.turretRequest);
     }
 
     public Command trackTargetCommand() {
@@ -297,10 +322,17 @@ public class RotationalPivot extends Mechanism {
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
 
-                    Rotation2d targetRotation = params.turretAngle();
+                    Rotation2d robotHeading =
+                            Rotation2d.fromDegrees(
+                                    Robot.getSwerve().getRobotPose().getRotation().getDegrees());
+                    Rotation2d targetRotationFieldRelative = params.turretAngle();
+
+                    Rotation2d targetRotationRobotRelative =
+                            targetRotationFieldRelative.minus(robotHeading);
                     Rotation2d currentRotation = Rotation2d.fromDegrees(getPositionDegrees());
 
-                    double errorDeg = currentRotation.minus(targetRotation).getDegrees();
+                    double errorDeg =
+                            currentRotation.minus(targetRotationRobotRelative).getDegrees();
 
                     return Math.abs(errorDeg) < 3;
                 });
