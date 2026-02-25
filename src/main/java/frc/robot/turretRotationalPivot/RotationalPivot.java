@@ -252,7 +252,7 @@ public class RotationalPivot extends Mechanism {
     public Command trackTargetCommand() {
         return run(() -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    aimFieldRelative(params.turretAngle(), params.turretAngularVelocityRadPerSec());
+                    aimFieldRelative(params.turretAngle(), params.turretAngularVelocityRotPerSec());
                 })
                 .withName("Turret.trackTargetCommand");
     }

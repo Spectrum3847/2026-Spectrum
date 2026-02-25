@@ -34,7 +34,7 @@ public class ShotCalculator {
     public record ShootingParameters(
             boolean isValid,
             Rotation2d turretAngle,
-            double turretAngularVelocityRadPerSec,
+            double turretAngularVelocityRotPerSec,
             double flywheelSpeed) {}
 
     private ShootingParameters latestParameters = null;
@@ -181,8 +181,8 @@ public class ShotCalculator {
 
         // Turret angular velocity (rad/s) for your position controller feedforward
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
-        double rawOmega = turretAngle.minus(lastTurretAngle).getRadians() / loopPeriodSecs; // rad/s
-        double turretAngularVelocityRadPerSec = turretOmegaFilter.calculate(rawOmega);
+        double rawOmega = turretAngle.minus(lastTurretAngle).getRotations() / loopPeriodSecs; // rad/s
+        double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
         lastTurretAngle = turretAngle;
 
         // Flywheel from map + preference offset (%)
@@ -193,12 +193,12 @@ public class ShotCalculator {
 
         latestParameters =
                 new ShootingParameters(
-                        isValid, turretAngle, turretAngularVelocityRadPerSec, flywheelSpeed);
+                        isValid, turretAngle, turretAngularVelocityRotPerSec, flywheelSpeed);
 
         Telemetry.log("ShotCalc/IsValid", isValid);
         Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadDistance));
         Telemetry.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
-        Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRadPerSec));
+        Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRotPerSec));
         Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
         Telemetry.log("ShotCalc/TurretPose", turretPose);
         Telemetry.log(
