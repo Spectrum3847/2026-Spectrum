@@ -43,7 +43,7 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double currentLimit = 30;
         @Getter private final double torqueCurrentLimit = 60;
         @Getter private final double positionKp = 850;
-        @Getter private final double positionKd = 20;
+        @Getter private final double positionKd = 5;
         @Getter private final double positionKv = 10;
         @Getter private final double positionKs = 2;
         @Getter private final double positionKa = 2;
@@ -230,11 +230,8 @@ public class RotationalPivot extends Mechanism {
         }
     }
 
-    public void aimFieldRelative(Rotation2d fieldAngle) {
+    public void aimFieldRelative(Rotation2d fieldAngle, double goalVelocity) {
         double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
-        double robotOmegaRadPerSec =
-                Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond;
-        double goalVelRps = -robotOmegaRadPerSec / (2.0 * Math.PI);
         double turretGoalDeg = fieldAngle.getDegrees() - robotHeadingDeg;
         double wrappedGoalDeg = wrapDegreesToSoftLimits(turretGoalDeg);
         double goalRotations = degreesToRotations(() -> wrappedGoalDeg);
@@ -244,7 +241,7 @@ public class RotationalPivot extends Mechanism {
             turretProfileInitialized = true;
         }
 
-        turretGoal = new TrapezoidProfile.State(goalRotations, goalVelRps);
+        turretGoal = new TrapezoidProfile.State(goalRotations, goalVelocity);
         turretSetpoint = config.turretProfile.calculate(0.02, turretSetpoint, turretGoal);
 
         config.turretRequest.Position = turretSetpoint.position;
@@ -255,7 +252,7 @@ public class RotationalPivot extends Mechanism {
     public Command trackTargetCommand() {
         return run(() -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    aimFieldRelative(params.turretAngle());
+                    aimFieldRelative(params.turretAngle(), params.turretAngularVelocityRadPerSec());
                 })
                 .withName("Turret.trackTargetCommand");
     }
