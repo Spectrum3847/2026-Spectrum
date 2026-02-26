@@ -424,5 +424,8 @@ public class Robot extends SpectrumRobot {
 
     /** This method is called periodically during simulation. */
     @Override
-    public void simulationPeriodic() {}
+    public void simulationPeriodic() {
+        SmartDashboard.putNumber(
+                "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+    }
 }

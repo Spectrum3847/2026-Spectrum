@@ -181,7 +181,8 @@ public class ShotCalculator {
 
         // Turret angular velocity (rad/s) for your position controller feedforward
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
-        double rawOmega = turretAngle.minus(lastTurretAngle).getRotations() / loopPeriodSecs; // rad/s
+        double rawOmega =
+                turretAngle.minus(lastTurretAngle).getRotations() / loopPeriodSecs; // rad/s
         double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
         lastTurretAngle = turretAngle;
 

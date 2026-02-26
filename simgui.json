@@ -14,6 +14,7 @@
       "/SmartDashboard/Field2d": "Field2d",
       "/SmartDashboard/Hold Controller": "PIDController",
       "/SmartDashboard/LeftView": "Mechanism2d",
+      "/SmartDashboard/PID Controllers/Hold Controller": "PIDController",
       "/SmartDashboard/PID Controllers/Rotation Controller": "ProfiledPIDController",
       "/SmartDashboard/PID Controllers/X Controller": "ProfiledPIDController",
       "/SmartDashboard/PID Controllers/Y Controller": "ProfiledPIDController",
@@ -40,6 +41,54 @@
         }
       },
       "/SmartDashboard/Auto Chooser": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/Field2d": {
+        "Robot": {
+          "arrowColor": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "color": [
+            0.6305078864097595,
+            0.15221920609474182,
+            0.949367105960846,
+            255.0
+          ],
+          "length": 0.8127999901771545,
+          "weight": 5.0,
+          "width": 0.8127999901771545
+        },
+        "bottom": 1914,
+        "height": 8.069275856018066,
+        "left": 245,
+        "limelight-back": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "limelight-front": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "limelight-left": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "limelight-right": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "limelight-turret": {
+          "arrows": false,
+          "style": "Hidden"
+        },
+        "right": 3942,
+        "top": 118,
+        "width": 16.54119300842285,
         "window": {
           "visible": true
         }
@@ -104,11 +153,17 @@
             "open": true
           }
         },
+        "Sim": {
+          "open": true
+        },
         "open": true
       }
     }
   },
   "NetworkTables Info": {
+    "AdvantageScope@1": {
+      "open": true
+    },
     "Clients": {
       "open": true
     },

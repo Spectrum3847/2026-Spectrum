@@ -27,9 +27,9 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        // Simulation Only: Map A and Y to intake and launch fuel for testing
-        pilot.AButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.YButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
+        // Simulation Only: Map RT and LT to intake and launch fuel for testing
+        pilot.RT.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
+        pilot.LT.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
 
         // Rumble whenever we reorient
         reorientButton.onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));

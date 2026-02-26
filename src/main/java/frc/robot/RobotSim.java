@@ -151,12 +151,6 @@ public class RobotSim {
             }
 
             @Override
-            public void execute() {
-                SmartDashboard.putNumber(
-                        "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
-            }
-
-            @Override
             public void end(boolean interrupted) {
                 RobotSim.getIntakeSimulation().stopIntake();
             }
@@ -182,7 +176,7 @@ public class RobotSim {
                                                     parameters.turretAngle(),
                                                     Inches.of(29),
                                                     MetersPerSecond.of(
-                                                            parameters.flywheelSpeed() * 0.0325),
+                                                            parameters.flywheelSpeed() * 0.0025),
                                                     Degrees.of(65))
                                             .withProjectileTrajectoryDisplayCallBack(
                                                     (pose3ds) ->
@@ -196,9 +190,6 @@ public class RobotSim {
                                                                             Pose3d[]::new)));
                             SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
                             RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-                            SmartDashboard.putNumber(
-                                    "Sim/FuelCount",
-                                    RobotSim.getIntakeSimulation().getGamePiecesAmount());
                         })
                 .withName("RobotSim.mapleSimCreateFuelProjectile");
     }
@@ -216,7 +207,7 @@ public class RobotSim {
                     int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
                     SequentialCommandGroup group = new SequentialCommandGroup();
                     for (int i = 0; i < fuelCount; i++) {
-                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.125));
+                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.066));
                     }
                     return group.withName("RobotSim.mapleSimLaunchFuel");
                 },
