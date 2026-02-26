@@ -14,7 +14,6 @@ import com.ctre.phoenix6.signals.StripTypeValue;
 
 public class LedCANdle {
     
-
     public static final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
 
     public static final int kSlot0StartIdx = 0;
