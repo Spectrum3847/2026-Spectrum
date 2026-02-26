@@ -49,6 +49,7 @@ public class Climb extends SubsystemBase {
          * feedback sensor as the primary encoder.
          */
         motorConfig
+                .smartCurrentLimit(120, 100)
                 .closedLoop
                 .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
                 // Set PID values for position control. We don't need to pass a closed loop

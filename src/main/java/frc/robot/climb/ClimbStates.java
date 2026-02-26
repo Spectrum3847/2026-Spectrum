@@ -6,22 +6,18 @@ import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class ClimbStates {
-    private static Climb intake = Robot.getClimb();
+    private static Climb climb = Robot.getClimb();
 
     public static void climbForward() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> 0.9).withName("Climb.climbForward"));
+        scheduleIfNotRunning(climb.runDutyCycleOut(() -> 0.9).withName("climb.climbForward"));
     }
 
     public static void climbBackward() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.25).withName("Climb.climbBackward"));
-    }
-
-    public static void intakeFuel() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.55).withName("Intake.intakeFuel"));
+        scheduleIfNotRunning(climb.runDutyCycleOut(() -> -0.25).withName("climb.climbBackward"));
     }
 
     public static void stop() {
-        scheduleIfNotRunning(intake.stopMotor());
+        scheduleIfNotRunning(climb.stopMotor());
     }
 
     // Log Command
@@ -39,7 +35,7 @@ public class ClimbStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(intake);
+        Command current = commandScheduler.requiring(climb);
 
         // Only schedule if it's not already the same same command
         if (current != command) {
