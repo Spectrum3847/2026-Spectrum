@@ -1,7 +1,5 @@
 package frc.robot.launcher;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -31,8 +29,8 @@ public class LauncherStates {
     }
 
     public static void launch() {
-        scheduleIfNotRunning(launcher.runVelocityTcFocRpm(config::getAMshooterRPM)
-                .withName("Launcher.launch"));
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRpm(config::getAMshooterRPM).withName("Launcher.launch"));
     }
 
     // Log Command
@@ -41,11 +39,10 @@ public class LauncherStates {
     }
 
     /**
-     * Schedules a command for a subsystem only if it's not already the running
-     * command
+     * Schedules a command for a subsystem only if it's not already the running command
      *
      * @param subsystem the subsystem the command requires
-     * @param command   the command to schedule
+     * @param command the command to schedule
      */
     public static void scheduleIfNotRunning(Command command) {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();

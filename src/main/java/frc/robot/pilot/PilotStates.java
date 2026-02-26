@@ -20,7 +20,7 @@ public class PilotStates {
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
-        
+
         // Rumble whenever we reorient
         pilot.upReorient
                 .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)

@@ -107,9 +107,9 @@ public class Vision implements NTSendable, Subsystem {
             limelight.setLEDMode(false);
             limelight.setIMUmode(1);
         }
-        
+
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
-        
+
         this.register();
         telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");

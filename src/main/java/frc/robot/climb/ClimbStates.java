@@ -9,18 +9,15 @@ public class ClimbStates {
     private static Climb intake = Robot.getClimb();
 
     public static void climbForward() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> 0.9)
-                .withName("Climb.climbForward"));
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> 0.9).withName("Climb.climbForward"));
     }
 
     public static void climbBackward() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.25)
-                .withName("Climb.climbBackward"));
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.25).withName("Climb.climbBackward"));
     }
 
     public static void intakeFuel() {
-        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.55)
-                .withName("Intake.intakeFuel"));
+        scheduleIfNotRunning(intake.runDutyCycleOut(() -> -0.55).withName("Intake.intakeFuel"));
     }
 
     public static void stop() {
@@ -33,11 +30,10 @@ public class ClimbStates {
     }
 
     /**
-     * Schedules a command for a subsystem only if it's not already the running
-     * command
+     * Schedules a command for a subsystem only if it's not already the running command
      *
      * @param subsystem the subsystem the command requires
-     * @param command   the command to schedule
+     * @param command the command to schedule
      */
     public static void scheduleIfNotRunning(Command command) {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();

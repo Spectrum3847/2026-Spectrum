@@ -1,11 +1,10 @@
 package frc.robot.towerIndexer;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
+import java.util.function.DoubleSupplier;
 
 public class TowerIndexerStates {
     private static TowerIndexer intake = Robot.getTowerIndexer();
@@ -21,13 +20,13 @@ public class TowerIndexerStates {
     }
 
     public static void spinMax() {
-        scheduleIfNotRunning(intake.runVelocity(config::getAMTowerIndexerVelocity)
-                .withName("TowerIndexer.spinMax"));
+        scheduleIfNotRunning(
+                intake.runVelocity(config::getAMTowerIndexerVelocity)
+                        .withName("TowerIndexer.spinMax"));
     }
 
     public static Command spinMaxComm() {
-        return intake.cycleOut(() -> -1)
-                .withName("TowerIndexer.spinMaxComm");
+        return intake.cycleOut(() -> -1).withName("TowerIndexer.spinMaxComm");
     }
 
     public static void coastMode() {
@@ -49,11 +48,10 @@ public class TowerIndexerStates {
     }
 
     /**
-     * Schedules a command for a subsystem only if it's not already the running
-     * command
+     * Schedules a command for a subsystem only if it's not already the running command
      *
      * @param subsystem the subsystem the command requires
-     * @param command   the command to schedule
+     * @param command the command to schedule
      */
     public static void scheduleIfNotRunning(Command command) {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();

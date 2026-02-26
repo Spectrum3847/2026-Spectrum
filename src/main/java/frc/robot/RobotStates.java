@@ -20,7 +20,7 @@ public class RobotStates {
      * RobotType Triggers
      */
 
-     // Define triggers here
+    // Define triggers here
 
     // Setup any binding to set states
     public static void setupStates() {

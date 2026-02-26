@@ -1,11 +1,10 @@
 package frc.robot.indexerForward;
 
-import java.util.function.DoubleSupplier;
-
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
+import java.util.function.DoubleSupplier;
 
 public class IndexerForwardStates {
     private static IndexerForward intake = Robot.getIndexerForward();
@@ -21,13 +20,13 @@ public class IndexerForwardStates {
     }
 
     public static void spinMax() {
-        scheduleIfNotRunning(intake.runTorqueFOC(config::getIndexerForwardTorqueCurrent)
-                .withName("IndexerForward.spinMax"));
+        scheduleIfNotRunning(
+                intake.runTorqueFOC(config::getIndexerForwardTorqueCurrent)
+                        .withName("IndexerForward.spinMax"));
     }
 
     public static Command spinMaxComm() {
-        return intake.cycleOut(() -> 6)
-                .withName("IndexerForward.spinMaxComm");
+        return intake.cycleOut(() -> 6).withName("IndexerForward.spinMaxComm");
     }
 
     public static void coastMode() {
@@ -49,11 +48,10 @@ public class IndexerForwardStates {
     }
 
     /**
-     * Schedules a command for a subsystem only if it's not already the running
-     * command
+     * Schedules a command for a subsystem only if it's not already the running command
      *
      * @param subsystem the subsystem the command requires
-     * @param command   the command to schedule
+     * @param command the command to schedule
      */
     public static void scheduleIfNotRunning(Command command) {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();

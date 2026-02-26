@@ -29,17 +29,21 @@ public class Field {
     public static final double startingLineX =
             Units.inchesToMeters(299.438); // Measured from the inside of starting line
 
-    @Getter public static final Translation3d blueHubCenter = new Translation3d(
-            Units.inchesToMeters(182.11),
-            Units.inchesToMeters(158.84),
-            Units.inchesToMeters(72));
-    @Getter public static final Translation3d redHubCenter = new Translation3d(
-            Units.inchesToMeters(469.11),
-            Units.inchesToMeters(158.84),
-            Units.inchesToMeters(72));
+    @Getter
+    public static final Translation3d blueHubCenter =
+            new Translation3d(
+                    Units.inchesToMeters(182.11),
+                    Units.inchesToMeters(158.84),
+                    Units.inchesToMeters(72));
+
+    @Getter
+    public static final Translation3d redHubCenter =
+            new Translation3d(
+                    Units.inchesToMeters(469.11),
+                    Units.inchesToMeters(158.84),
+                    Units.inchesToMeters(72));
 
     @Getter private static final double aprilTagWidth = Units.inchesToMeters(6.50);
-
 
     /** Returns {@code true} if the robot is on the blue alliance. */
     public static boolean isBlue() {

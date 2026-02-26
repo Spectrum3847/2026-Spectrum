@@ -86,7 +86,7 @@ public class LedStates {
         ledCommand("right.ClimbReady", right, right.scrollingRainbow(), priority, trigger);
         ledCommand("left.ClimbReady", left, left.scrollingRainbow(), priority, trigger);
     }
-    
+
     static void seesTagDefaultLED(Trigger trigger, int priority) {
         ledCommand("right.SeesTag", right, right.bounce(Color.kYellow, 3), priority, trigger);
         ledCommand("left.SeesTag", left, left.bounce(Color.kYellow, 3), priority, trigger);

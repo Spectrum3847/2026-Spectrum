@@ -77,7 +77,7 @@ public class Auton {
         printAutoDuration();
     }
 
-    // 
+    //
     /**
      * Creates a SpectrumAuton command sequence.
      *

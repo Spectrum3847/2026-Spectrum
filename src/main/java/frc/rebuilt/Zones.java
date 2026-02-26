@@ -13,5 +13,4 @@ public class Zones {
     public static final Trigger blueFieldSide = swerve.inXzone(0, Field.getHalfLength());
     public static final Trigger opponentFieldSide =
             new Trigger(() -> blueFieldSide.getAsBoolean() != Field.isBlue());
-
 }

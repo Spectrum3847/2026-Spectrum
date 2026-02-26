@@ -797,7 +797,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         @Getter private boolean attached = true;
         @Getter private MotorAlignmentValue opposeLeader = MotorAlignmentValue.Aligned;
 
-        public FollowerConfig(String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
+        public FollowerConfig(
+                String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
             this.name = name;
             this.id = new CanDeviceId(id, canbus);
             this.opposeLeader = opposeLeader;

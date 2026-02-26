@@ -10,7 +10,8 @@ public class IntakeExtensionStates {
     private static IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
 
     public static void setupDefaultCommand() {
-        intakeExtension.setDefaultCommand(log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
+        intakeExtension.setDefaultCommand(
+                log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
     // -------------------- State Commands --------------------
@@ -24,7 +25,7 @@ public class IntakeExtensionStates {
     }
 
     // --------------------------------------------------------
-    
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);

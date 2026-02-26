@@ -2,7 +2,7 @@ package frc.robot;
 
 public enum State {
     IDLE,
-    
+
     CLIMB_FORWARD,
     CLIMB_BACKWARD;
 
@@ -12,7 +12,7 @@ public enum State {
     // private static final ImmutableMap<State, State> scoreSequence =
 
     // ------ STATE ATTRIBUTES ------//
-    
+
     // ------------------------------//
 
     // public State getNextState(State state) {

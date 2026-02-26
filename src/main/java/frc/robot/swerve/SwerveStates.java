@@ -30,8 +30,7 @@ public class SwerveStates {
 
     protected static void setStates() {
         // Force back to manual steering when we steer
-        pilot.steer.whileTrue(
-                swerve.getDefaultCommand()); 
+        pilot.steer.whileTrue(swerve.getDefaultCommand());
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
 
@@ -171,7 +170,7 @@ public class SwerveStates {
         return swerve.applyRequest(SwerveRequest.SwerveDriveBrake::new).withName("Swerve.Xbrake");
     }
 
-     // **********************   Helper Commands    ****************************
+    // **********************   Helper Commands    ****************************
 
     protected static Command resetXController() {
         return swerve.runOnce(() -> swerve.resetXController()).withName("ResetXController");

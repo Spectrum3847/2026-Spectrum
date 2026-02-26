@@ -19,14 +19,15 @@ public class RobotSim {
     @Getter public static final double leftViewHeight = 75;
     @Getter public static final double leftViewWidth = 75;
 
-    public static final Translation2d origin =
-            new Translation2d(0.0, 0.0);
+    public static final Translation2d origin = new Translation2d(0.0, 0.0);
 
     public static final Mechanism2d topView =
-            new Mechanism2d(Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
+            new Mechanism2d(
+                    Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
     public static final Mechanism2d leftView =
-            new Mechanism2d(Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
+            new Mechanism2d(
+                    Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
 
     public RobotSim() {
         SmartDashboard.putData("TopView", RobotSim.topView);
@@ -39,7 +40,11 @@ public class RobotSim {
 
     @SuppressWarnings("unused")
     public void drawTurretCircle() {
-        MechanismRoot2d circleRoot = topView.getRoot("Turret Circle Root", Units.inchesToMeters(topViewHeight / 2), Units.inchesToMeters(topViewWidth / 2));
+        MechanismRoot2d circleRoot =
+                topView.getRoot(
+                        "Turret Circle Root",
+                        Units.inchesToMeters(topViewHeight / 2),
+                        Units.inchesToMeters(topViewWidth / 2));
         Circle circle = new Circle(50, 40, "Turret Circle", circleRoot, topView);
     }
 }
