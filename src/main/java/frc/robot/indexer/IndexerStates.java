@@ -19,8 +19,8 @@ public class IndexerStates {
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(indexer.runTorqueFOC(config::getIndexerTorqueCurrent)
-            .withName("Indexer.feedMax"));
+        scheduleIfNotRunning(
+                indexer.runTorqueFOC(config::getIndexerTorqueCurrent).withName("Indexer.feedMax"));
     }
 
     public static void coastMode() {

@@ -43,16 +43,12 @@ public class TalonFXFactory {
     /**
      * Follow the motor output of another Talon.
      *
-     * 
      * @param followerId Device ID of the follower.
      * @param leaderTalonFX The leader TalonFX to follow.
-     * @param motorAlignment Set to Aligned for motor invert to match the leader's
-     *                       configured Invert - which is typical when leader and
-     *                       follower are mechanically linked and spin in the same
-     *                       direction.  Set to Opposed for motor invert to oppose
-     *                       the leader's configured Invert - this is typical where
-     *                       the leader and follower mechanically spin in opposite
-     *                       directions..
+     * @param motorAlignment Set to Aligned for motor invert to match the leader's configured Invert
+     *     - which is typical when leader and follower are mechanically linked and spin in the same
+     *     direction. Set to Opposed for motor invert to oppose the leader's configured Invert -
+     *     this is typical where the leader and follower mechanically spin in opposite directions..
      */
     public static TalonFX createPermanentFollowerTalon(
             CanDeviceId followerId, TalonFX leaderTalonFX, MotorAlignmentValue motorAlignment) {

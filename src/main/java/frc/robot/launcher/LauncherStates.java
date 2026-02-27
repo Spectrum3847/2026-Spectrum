@@ -20,7 +20,7 @@ public class LauncherStates {
 
     public static Command launchFuel() {
         return launcher.runTorqueFOC(config::getLauncherTorqueCurrent)
-            .withName("Launcher.launchFuelCommand");
+                .withName("Launcher.launchFuelCommand");
     }
 
     public static void coastMode() {

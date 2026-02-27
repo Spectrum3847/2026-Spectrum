@@ -54,13 +54,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
-
 import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
 /**
- * The main robot class.
- * This class is the entry point for the robot code and manages all subsystems and their configurations.
+ * The main robot class. This class is the entry point for the robot code and manages all subsystems
+ * and their configurations.
  */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
@@ -211,7 +210,9 @@ public class Robot extends SpectrumRobot {
 
             SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
             SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
-            SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+            SmartDashboard.putNumber(
+                    "Match Data/TimeLeftInShift",
+                    ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
             field2d.setRobotPose(swerve.getRobotPose());
             ShotCalculator.getInstance().clearShootingParameters();
         } catch (Throwable t) {

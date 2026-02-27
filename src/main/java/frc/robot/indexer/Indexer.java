@@ -1,5 +1,6 @@
 package frc.robot.indexer;
 
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -10,11 +11,7 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-
 import java.util.function.DoubleSupplier;
-
-import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -95,7 +92,7 @@ public class Indexer extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
-    
+
     public Command runTorqueFOC(DoubleSupplier torque) {
         return run(() -> setTorqueCurrentFoc(torque));
     }

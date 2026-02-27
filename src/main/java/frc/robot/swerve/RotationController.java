@@ -12,6 +12,7 @@ public class RotationController {
 
     @SuppressWarnings("unused")
     private double lastOutput = 0.0;
+
     private final double deadband = 1e-3;
 
     public RotationController(SwerveConfig config) {
