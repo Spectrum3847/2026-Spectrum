@@ -17,7 +17,7 @@ public class ClimbStates {
     }
 
     public static void stop() {
-        scheduleIfNotRunning(climb.stopMotor());
+        scheduleIfNotRunning(climb.holdPosition());
     }
 
     // Log Command

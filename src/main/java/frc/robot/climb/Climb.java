@@ -90,6 +90,14 @@ public class Climb extends SubsystemBase {
                 .withName("FuelIntake.runDutyCycleOut");
     }
 
+    public Command holdPosition() {
+        final double holdPosition = encoder.getPosition();
+        return run(() ->
+                        closedLoopController.setSetpoint(
+                                holdPosition, ControlType.kPosition, ClosedLoopSlot.kSlot0))
+                .withName("Climb.holdPosition");
+    }
+
     public Command stopMotor() {
         return run(() -> motor.stopMotor());
     }
