@@ -40,8 +40,7 @@ public class SwerveConfig {
     private Distance wheelRadius = Inches.of(3.815 / 2); // 0.0484505 m
 
     // Theoretical free speed (m/s) at 12v applied output;
-    @Getter @Setter
-    private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
+    @Getter @Setter private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
 
     @Getter private double kSdrive = 0.10; // 0.13
     @Getter private double kSsteer = 0.25; // 0.2
@@ -106,7 +105,7 @@ public class SwerveConfig {
     // output type specified by SwerveModuleConstants.DriveMotorClosedLoopOutput
     @Getter
     private Slot0Configs driveGains =
-    new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(1.5).withKV(0.0);
+            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(1.5).withKV(0.0);
     // new Slot0Configs().withKP(0.1).withKI(0).withKD(0).withKS(0).withKV(0.124).withKA(0);
 
     // The closed-loop output type to use for the steer motors;

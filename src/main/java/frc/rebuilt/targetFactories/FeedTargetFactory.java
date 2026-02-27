@@ -13,8 +13,9 @@ public class FeedTargetFactory {
 
     private static final Swerve swerve = Robot.getSwerve();
 
-    static InterpolatingTreeMap<Double, Double> distanceOffsetMap = new InterpolatingTreeMap<>(
-            InverseInterpolator.forDouble(), Interpolator.forDouble());
+    static InterpolatingTreeMap<Double, Double> distanceOffsetMap =
+            new InterpolatingTreeMap<>(InverseInterpolator.forDouble(), Interpolator.forDouble());
+
     static {
         distanceOffsetMap.put(0.0, Units.inchesToMeters(0.0));
     }
@@ -26,15 +27,20 @@ public class FeedTargetFactory {
         Translation2d feedTarget;
 
         if (inFieldLeft) {
-            feedTarget = Field.isBlue() ? Field.LeftBlueBump.centerPose
-                    : Field.BlueToRed(Field.LeftBlueBump.centerPose);
+            feedTarget =
+                    Field.isBlue()
+                            ? Field.LeftBlueBump.centerPose
+                            : Field.BlueToRed(Field.LeftBlueBump.centerPose);
         } else {
-            feedTarget = Field.isBlue() ? Field.RightBlueBump.centerPose
-                    : Field.BlueToRed(Field.RightBlueBump.centerPose);
+            feedTarget =
+                    Field.isBlue()
+                            ? Field.RightBlueBump.centerPose
+                            : Field.BlueToRed(Field.RightBlueBump.centerPose);
         }
 
-        double distance = new Translation2d(feedTarget.getX(), feedTarget.getY()).getDistance(
-                Robot.getSwerve().getRobotPose().getTranslation());
+        double distance =
+                new Translation2d(feedTarget.getX(), feedTarget.getY())
+                        .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
         // Do math in blue alliance, we flip for red.
@@ -44,9 +50,9 @@ public class FeedTargetFactory {
             offSet = new Translation2d(-offSet.getX(), offSet.getY());
         }
 
-        feedTarget = new Translation2d(
-                feedTarget.getX() + offSet.getX(), 
-                feedTarget.getY() + offSet.getY());
+        feedTarget =
+                new Translation2d(
+                        feedTarget.getX() + offSet.getX(), feedTarget.getY() + offSet.getY());
         return feedTarget;
     }
 }

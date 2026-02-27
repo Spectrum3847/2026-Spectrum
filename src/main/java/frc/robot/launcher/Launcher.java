@@ -1,5 +1,7 @@
 package frc.robot.launcher;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -11,12 +13,7 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-
 import java.util.function.DoubleSupplier;
-
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -52,7 +49,9 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
-            setFollowerConfigs(new FollowerConfig("LauncherFollower", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+            setFollowerConfigs(
+                    new FollowerConfig(
+                            "LauncherFollower", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -98,7 +97,7 @@ public class Launcher extends Mechanism {
     // --------------------------------------------------------------------------------
     // Custom Commands
     // --------------------------------------------------------------------------------
-    
+
     public Command runTorqueFOC(DoubleSupplier torque) {
         return run(() -> setTorqueCurrentFoc(torque));
     }
@@ -124,10 +123,11 @@ public class Launcher extends Mechanism {
     }
 
     public Command trackTargetCommand() {
-    return run(() -> {
-        var params = ShotCalculator.getInstance().getParameters();
-        runTorqueCurrentFoc(() -> params.flywheelSpeed());
-        });
+        return run(
+                () -> {
+                    var params = ShotCalculator.getInstance().getParameters();
+                    runTorqueCurrentFoc(() -> params.flywheelSpeed());
+                });
     }
 
     // --------------------------------------------------------------------------------

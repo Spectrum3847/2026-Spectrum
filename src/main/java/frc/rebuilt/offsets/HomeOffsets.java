@@ -1,5 +1,3 @@
 package frc.rebuilt.offsets;
 
-public class HomeOffsets {
-
-}
+public class HomeOffsets {}

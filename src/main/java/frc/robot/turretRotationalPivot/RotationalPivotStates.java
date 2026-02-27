@@ -10,18 +10,21 @@ public class RotationalPivotStates {
     private static RotationalPivotConfig config = Robot.getConfig().turret;
 
     public static void setupDefaultCommand() {
-        turretRotation.setDefaultCommand(log(turretRotation.runHoldTurret().withName("Turret.default")));
+        turretRotation.setDefaultCommand(
+                log(turretRotation.runHoldTurret().withName("Turret.default")));
         // turret.runStop());
     }
 
     // -------------------- State Commands --------------------
-   
+
     public static void aimAtHub() {
         scheduleIfNotRunning(log(turretRotation.trackTargetCommand()).withName("Turret.aimAtHub"));
     }
 
     public static void aimAtPresetPosition() {
-        scheduleIfNotRunning(log(turretRotation.moveToDegrees(config::getPresetPosition)).withName("Turret.aimAtPreset"));
+        scheduleIfNotRunning(
+                log(turretRotation.moveToDegrees(config::getPresetPosition))
+                        .withName("Turret.aimAtPreset"));
     }
 
     public static void neutral() {
@@ -29,7 +32,7 @@ public class RotationalPivotStates {
     }
 
     // --------------------------------------------------------
-    
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);

@@ -30,9 +30,11 @@ public class PilotStates {
 
         pilot.dpadDown.onTrue(log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
         pilot.dpadUp.onTrue(log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
-        pilot.dpadRight.onTrue(log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        pilot.dpadLeft.onTrue(log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
-        
+        pilot.dpadRight.onTrue(
+                log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
+        pilot.dpadLeft.onTrue(
+                log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+
         // Rumble whenever we reorient
         pilot.upReorient
                 .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient)

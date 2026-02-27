@@ -23,7 +23,7 @@ public class Operator extends Gamepad {
     public final Trigger BButton = B.and(teleop);
     public final Trigger XButton = X.and(teleop);
     public final Trigger YButton = Y.and(teleop);
-    
+
     // DISABLED TRIGGERS
     public final Trigger coastOn_dB = disabled.and(B);
     public final Trigger coastOff_dA = disabled.and(A);
