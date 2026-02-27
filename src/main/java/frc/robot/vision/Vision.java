@@ -93,12 +93,22 @@ public class Vision implements NTSendable, Subsystem {
         final Translation2d robotToTurretCenter =
                 new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0));
 
+        
+        @Getter final String staticLL = "limelight-static";
+
+        @Getter
+        final LimelightConfig staticConfig =
+                new LimelightConfig(staticLL)
+                        .withTranslation(0, -0.215, 0.188)
+                        .withRotation(0, Math.toRadians(28), Math.toRadians(-90));
+
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
         @Getter final int backTagPipeline = 0;
         @Getter final int leftTagPipeline = 0;
         @Getter final int rightTagPipeline = 0;
         @Getter final int turretTagPipeline = 0;
+        @Getter final int staticTagPipeline = 0;
 
         /* Pose Estimation Constants */
         @Getter double visionStdDevX = 0.5;
@@ -121,6 +131,7 @@ public class Vision implements NTSendable, Subsystem {
     @Getter public final Limelight leftLL;
     @Getter public final Limelight rightLL;
     @Getter public final Limelight turretLL;
+    @Getter public final Limelight staticLL;
 
     public final Limelight[] allLimelights;
     public final Limelight[] swerveLimelights; // Non-turret cameras
@@ -147,9 +158,10 @@ public class Vision implements NTSendable, Subsystem {
         leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
         rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
         turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
+        staticLL = new Limelight(config.staticLL, config.staticTagPipeline, config.staticConfig);
 
         swerveLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
-        allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL, turretLL};
+        allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL, turretLL, staticLL};
 
         // logging
         df.setMaximumFractionDigits(2);
@@ -162,6 +174,8 @@ public class Vision implements NTSendable, Subsystem {
 
         turretLL.setLEDMode(false);
         turretLL.setIMUmode(2); // Different IMU mode for turret
+
+        staticLL.setLEDMode(false);
 
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
@@ -186,6 +200,7 @@ public class Vision implements NTSendable, Subsystem {
         Robot.getField2d().getObject(leftLL.getCameraName());
         Robot.getField2d().getObject(rightLL.getCameraName());
         Robot.getField2d().getObject(turretLL.getCameraName());
+        Robot.getField2d().getObject(staticLL.getCameraName());
     }
 
     @Override
@@ -199,6 +214,7 @@ public class Vision implements NTSendable, Subsystem {
         Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
         Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
         Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
+        Robot.getField2d().getObject(staticLL.getCameraName()).setPose(getStaticMegaTag2Pose());
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -241,6 +257,14 @@ public class Vision implements NTSendable, Subsystem {
         return new Pose2d();
     }
 
+    public Pose2d getStaticMegaTag2Pose() {
+        Pose2d pose = staticLL.getMegaTag2_Pose2d();
+        if(pose != null) {
+            return pose;
+        }
+        return new Pose2d();
+    }
+
     public Pose2d getTurretMegaTag1Pose() {
         Pose2d pose = turretLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
@@ -271,6 +295,9 @@ public class Vision implements NTSendable, Subsystem {
         builder.addDoubleProperty("TurretTX", turretLL::getTagTx, null);
         builder.addDoubleProperty("TurretTA", turretLL::getTagTA, null);
         builder.addDoubleProperty("TurretTagID", turretLL::getClosestTagID, null);
+        builder.addDoubleProperty("StaticTX", staticLL::getTagTx, null);
+        builder.addDoubleProperty("StaticTA", staticLL::getTagTA, null);
+        builder.addDoubleProperty("StaticTagID", staticLL::getClosestTagID, null);
     }
 
     private void setLimeLightOrientation() {
