@@ -3,7 +3,9 @@ package frc.robot.pilot;
 import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.robot.vision.VisionStates;
@@ -30,6 +32,10 @@ public class PilotStates {
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
         pilot.RT.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
         pilot.LT.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
+
+        pilot.dpadUp.onTrue(new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
+        pilot.dpadDown.onTrue(
+                new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
 
         // Rumble whenever we reorient
         reorientButton.onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));

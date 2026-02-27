@@ -91,12 +91,14 @@ public class ShotCalculator {
         phaseDelay = 0.03;
 
         // Flywheel map
-        shotFlywheelSpeedMap.put(1.5, Conversions.RPStoRPM(30.5 + 6));
-        shotFlywheelSpeedMap.put(1.78, Conversions.RPStoRPM(31.0 + 6));
-        shotFlywheelSpeedMap.put(2.00, Conversions.RPStoRPM(33.0 + 6));
-        shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(34.5 + 6));
-        shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(35.5 + 6));
-        shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(36.0 + 6));
+        shotFlywheelSpeedMap.put(1.5, Conversions.RPStoRPM(36.5));
+        shotFlywheelSpeedMap.put(1.78, Conversions.RPStoRPM(37.0));
+        shotFlywheelSpeedMap.put(2.00, Conversions.RPStoRPM(39.0));
+        shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(40.5));
+        shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(41.5));
+        shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(42.0));
+        shotFlywheelSpeedMap.put(3.16, Conversions.RPStoRPM(49.0));
+        shotFlywheelSpeedMap.put(3.50, Conversions.RPStoRPM(55.0));
 
         // TOF map
         timeOfFlightMap.put(5.68, 1.16);
@@ -202,6 +204,7 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRotPerSec));
         Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
         Telemetry.log("ShotCalc/TurretPose", turretPose);
+        Telemetry.log("ShotCalc/LookaheadPose", compensatedTurretTranslation);
         Telemetry.log(
                 "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
         Telemetry.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
