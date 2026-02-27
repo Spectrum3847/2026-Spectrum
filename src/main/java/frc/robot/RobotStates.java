@@ -14,8 +14,8 @@ import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
 /**
- * Manages the high-level robot states.
- * Coordinates multiple subsystems based on the current robot state.
+ * Manages the high-level robot states. Coordinates multiple subsystems based on the current robot
+ * state.
  */
 public final class RobotStates {
     private static final Coordinator coordinator = Robot.getCoordinator();
@@ -33,15 +33,21 @@ public final class RobotStates {
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
 
     public static final Trigger forceScore = operator.AButton;
-    public static final Trigger hopperFull = new Trigger(operator.BButton); //TODO: indexer current increases? velocity decreases? 
+    public static final Trigger hopperFull =
+            new Trigger(operator.BButton); // TODO: indexer current increases? velocity decreases?
 
-    //placeholders
-    private static final Trigger movementStable = new Trigger(swerve.overSpeedTrigger(thresholdSpeed).not());
-    private static final Trigger visionStable = new Trigger(() -> vision.hasAccuratePose()); //TODO: change with potentially better logic
+    // placeholders
+    private static final Trigger movementStable =
+            new Trigger(swerve.overSpeedTrigger(thresholdSpeed).not());
+    private static final Trigger visionStable =
+            new Trigger(
+                    () -> vision.hasAccuratePose()); // TODO: change with potentially better logic
 
-    public static final Trigger robotReadyScore = (robotInScoreZone).and(movementStable).and(visionStable);
+    public static final Trigger robotReadyScore =
+            (robotInScoreZone).and(movementStable).and(visionStable);
 
-    public static final Trigger robotReadyFeed = (robotInFeedZone).and(hopperFull).and(movementStable).and(visionStable);
+    public static final Trigger robotReadyFeed =
+            (robotInFeedZone).and(hopperFull).and(movementStable).and(visionStable);
 
     private RobotStates() {
         throw new IllegalStateException("Utility class");
@@ -103,9 +109,14 @@ public final class RobotStates {
     private static void pressToState(Trigger button, State pressedState) {
         button.onTrue(applyState(pressedState));
         button.onFalse(applyState(State.IDLE));
-    } 
+    }
 
-    private static void bindAimingWithReadyUpgrade(Trigger button, Trigger zone, State aimingState, Trigger readyTrigger, State readyState) {
+    private static void bindAimingWithReadyUpgrade(
+            Trigger button,
+            Trigger zone,
+            State aimingState,
+            Trigger readyTrigger,
+            State readyState) {
         Trigger active = button.and(zone);
 
         active.onTrue(applyState(aimingState));
@@ -120,7 +131,13 @@ public final class RobotStates {
                         () -> {
                             appliedState = state;
                             SmartDashboard.putString("APPLIED STATE", state.toString());
-                            SmartDashboard.putString("Current Zone", robotInNeutralZone.getAsBoolean() ? "Neutral" : robotInEnemyZone.getAsBoolean() ? "Enemy" : "Alliance");
+                            SmartDashboard.putString(
+                                    "Current Zone",
+                                    robotInNeutralZone.getAsBoolean()
+                                            ? "Neutral"
+                                            : robotInEnemyZone.getAsBoolean()
+                                                    ? "Enemy"
+                                                    : "Alliance");
                             Telemetry.print("Applied State: " + state);
                             coordinator.applyRobotState(state);
                         },

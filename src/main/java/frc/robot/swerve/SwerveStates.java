@@ -27,19 +27,22 @@ public class SwerveStates {
     static Field field = new Field();
 
     /* Swerve Request Types */
-    private static final SwerveRequest.FieldCentric fieldCentricDrive = new SwerveRequest.FieldCentric()
-            .withDeadband(
-                    config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-            .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
-    
-    private static final SwerveRequest.RobotCentric robotCentric = new SwerveRequest.RobotCentric()
-            .withDeadband(
-                    config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-            .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
-            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    private static final SwerveRequest.FieldCentric fieldCentricDrive =
+            new SwerveRequest.FieldCentric()
+                    .withDeadband(
+                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
+                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
 
-    private static final SwerveRequest.SwerveDriveBrake swerveXBreak = new SwerveRequest.SwerveDriveBrake();
+    private static final SwerveRequest.RobotCentric robotCentric =
+            new SwerveRequest.RobotCentric()
+                    .withDeadband(
+                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
+                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+                    .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+
+    private static final SwerveRequest.SwerveDriveBrake swerveXBreak =
+            new SwerveRequest.SwerveDriveBrake();
 
     static Command pilotSteerCommand =
             log(pilotDrive().withName("SwerveCommands.pilotSteer").ignoringDisable(true));
@@ -48,20 +51,24 @@ public class SwerveStates {
         swerve.setDefaultCommand(pilotSteerCommand);
     }
 
-    //define Triggers here
-    private static final Trigger inSnakeDrive = new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
-    private static final Trigger inScoreOrFeed = new Trigger(() -> 
-        RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH 
-        || RobotStates.getAppliedState() == State.TURRET_FEED_WITH_LAUNCH 
-        || RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
+    // define Triggers here
+    private static final Trigger inSnakeDrive =
+            new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
+    private static final Trigger inScoreOrFeed =
+            new Trigger(
+                    () ->
+                            RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH
+                                    || RobotStates.getAppliedState()
+                                            == State.TURRET_FEED_WITH_LAUNCH
+                                    || RobotStates.getAppliedState()
+                                            == State.TURRET_TRACK_WITH_LAUNCH);
 
     protected static void setStates() {
         // Force back to manual steering when we steer
-        pilot.steer.whileTrue(
-                swerve.getDefaultCommand()); 
+        pilot.steer.whileTrue(swerve.getDefaultCommand());
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
-        
+
         inSnakeDrive.whileTrue(log(snakeDrive()));
         inScoreOrFeed.whileTrue(log(tweakOut()));
 
@@ -118,46 +125,51 @@ public class SwerveStates {
     /** Drive the robot with the robot's orientation snapping to the closest cardinal direction. */
     protected static Command snapSteerDrive() {
         return drive(
-                pilot::getDriveFwdPositive,
-                pilot::getDriveLeftPositive,
-                pilot::chooseCardinalDirections)
+                        pilot::getDriveFwdPositive,
+                        pilot::getDriveLeftPositive,
+                        pilot::chooseCardinalDirections)
                 .withName("Swerve.PilotStickSteer");
     }
 
     /** Drive the robot with the front bumper trying to match the robot's motion. */
     protected static Command snakeDrive() {
         return aimDrive(
-                pilot::getDriveFwdPositive,
-                pilot::getDriveLeftPositive,
-                pilot::getPilotStickAngle)
+                        pilot::getDriveFwdPositive,
+                        pilot::getDriveLeftPositive,
+                        pilot::getPilotStickAngle)
                 .withName("Swerve.SnakeDrive");
     }
+
     protected static Command tweakOut() {
         return Commands.runOnce(() -> swerve.resetRotationController())
-            .andThen(
-                Commands.defer(
-                        () -> {
-                            final double base = swerve.getRotation().getRadians();
-                            final double delta = Math.toRadians(15.0);
+                .andThen(
+                        Commands.defer(
+                                        () -> {
+                                            final double base = swerve.getRotation().getRadians();
+                                            final double delta = Math.toRadians(15.0);
 
-                            Command toMinus =
-                                drive(
-                                        pilot::getDriveFwdPositive,
-                                        pilot::getDriveLeftPositive,
-                                        getAlignHeading(() -> base - delta, false))
-                                    .withTimeout(0.12);
+                                            Command toMinus =
+                                                    drive(
+                                                                    pilot::getDriveFwdPositive,
+                                                                    pilot::getDriveLeftPositive,
+                                                                    getAlignHeading(
+                                                                            () -> base - delta,
+                                                                            false))
+                                                            .withTimeout(0.12);
 
-                            Command toPlus =
-                                drive(
-                                        pilot::getDriveFwdPositive,
-                                        pilot::getDriveLeftPositive,
-                                        getAlignHeading(() -> base + delta, false))
-                                    .withTimeout(0.12);
+                                            Command toPlus =
+                                                    drive(
+                                                                    pilot::getDriveFwdPositive,
+                                                                    pilot::getDriveLeftPositive,
+                                                                    getAlignHeading(
+                                                                            () -> base + delta,
+                                                                            false))
+                                                            .withTimeout(0.12);
 
-                            return Commands.repeatingSequence(toMinus, toPlus);
-                        },
-                        Set.of(swerve))
-                    .withName("Swerve.tweakOut"));
+                                            return Commands.repeatingSequence(toMinus, toPlus);
+                                        },
+                                        Set.of(swerve))
+                                .withName("Swerve.tweakOut"));
     }
 
     /** Turn the swerve wheels to an X to prevent the robot from moving */
@@ -166,8 +178,8 @@ public class SwerveStates {
     }
 
     protected static Command pilotAimDrive(DoubleSupplier targetDegrees) {
-            return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
-                    .withName("Swerve.PilotAimDrive");
+        return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
+                .withName("Swerve.PilotAimDrive");
     }
 
     private static DoubleSupplier getAlignToX(DoubleSupplier xGoalMeters) {
@@ -197,7 +209,7 @@ public class SwerveStates {
                 .withName("Swerve.PilotLockToFieldAngleDrive");
     }
 
-     // **********************   Helper Commands    ****************************
+    // **********************   Helper Commands    ****************************
 
     protected static Command resetXController() {
         return swerve.runOnce(() -> swerve.resetXController()).withName("ResetXController");
