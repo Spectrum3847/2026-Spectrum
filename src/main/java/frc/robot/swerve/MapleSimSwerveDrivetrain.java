@@ -41,13 +41,10 @@ import org.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
  *
  * <h2>Injects Maple-Sim simulation data into a CTRE swerve drivetrain.</h2>
  *
- * <p>
- * This class retrieves simulation data from Maple-Sim and injects it into the
- * CTRE {@link
+ * <p>This class retrieves simulation data from Maple-Sim and injects it into the CTRE {@link
  * com.ctre.phoenix6.swerve.SwerveDrivetrain} instance.
  *
- * <p>
- * It replaces the {@link com.ctre.phoenix6.swerve.SimSwerveDrivetrain} class.
+ * <p>It replaces the {@link com.ctre.phoenix6.swerve.SimSwerveDrivetrain} class.
  */
 public class MapleSimSwerveDrivetrain {
     private final Pigeon2SimState pigeonSim;
@@ -59,31 +56,25 @@ public class MapleSimSwerveDrivetrain {
      *
      * <h2>Constructs a drivetrain simulation using the specified parameters.</h2>
      *
-     * @param simPeriod            the time period of the simulation
+     * @param simPeriod the time period of the simulation
      * @param robotMassWithBumpers the total mass of the robot, including bumpers
-     * @param bumperLengthX        the length of the bumper along the X-axis
-     *                             (influences the collision
-     *                             space of the robot)
-     * @param bumperWidthY         the width of the bumper along the Y-axis
-     *                             (influences the collision space
-     *                             of the robot)
-     * @param driveMotorModel      the {@link DCMotor} model for the drive motor,
-     *                             typically <code>
+     * @param bumperLengthX the length of the bumper along the X-axis (influences the collision
+     *     space of the robot)
+     * @param bumperWidthY the width of the bumper along the Y-axis (influences the collision space
+     *     of the robot)
+     * @param driveMotorModel the {@link DCMotor} model for the drive motor, typically <code>
      *     DCMotor.getKrakenX60Foc()
      *     </code>
-     * @param steerMotorModel      the {@link DCMotor} model for the steer motor,
-     *                             typically <code>
+     * @param steerMotorModel the {@link DCMotor} model for the steer motor, typically <code>
      *     DCMotor.getKrakenX60Foc()
      *     </code>
-     * @param wheelCOF             the coefficient of friction of the drive wheels
-     * @param moduleLocations      the locations of the swerve modules on the robot,
-     *                             in the order <code>
+     * @param wheelCOF the coefficient of friction of the drive wheels
+     * @param moduleLocations the locations of the swerve modules on the robot, in the order <code>
      *     FL, FR, BL, BR</code>
-     * @param pigeon               the {@link Pigeon2} IMU used in the drivetrain
-     * @param modules              the {@link SwerveModule}s, typically obtained via
-     *                             {@link
-     *                             SwerveDrivetrain#getModules()}
-     * @param moduleConstants      the constants for the swerve modules
+     * @param pigeon the {@link Pigeon2} IMU used in the drivetrain
+     * @param modules the {@link SwerveModule}s, typically obtained via {@link
+     *     SwerveDrivetrain#getModules()}
+     * @param moduleConstants the constants for the swerve modules
      */
     @SuppressWarnings("unchecked")
     public MapleSimSwerveDrivetrain(
@@ -97,30 +88,34 @@ public class MapleSimSwerveDrivetrain {
             Translation2d[] moduleLocations,
             Pigeon2 pigeon,
             SwerveModule<TalonFX, TalonFX, CANcoder>[] modules,
-            SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>... moduleConstants) {
+            SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+                            ...
+                    moduleConstants) {
         this.pigeonSim = pigeon.getSimState();
         simModules = new SimSwerveModule[moduleConstants.length];
-        DriveTrainSimulationConfig simulationConfig = DriveTrainSimulationConfig.Default()
-                .withRobotMass(robotMassWithBumpers)
-                .withBumperSize(bumperLengthX, bumperWidthY)
-                .withGyro(COTS.ofPigeon2())
-                .withCustomModuleTranslations(moduleLocations)
-                .withSwerveModule(
-                        new SwerveModuleSimulationConfig(
-                                driveMotorModel,
-                                steerMotorModel,
-                                moduleConstants[0].DriveMotorGearRatio,
-                                moduleConstants[0].SteerMotorGearRatio,
-                                Volts.of(moduleConstants[0].DriveFrictionVoltage),
-                                Volts.of(moduleConstants[0].SteerFrictionVoltage),
-                                Meters.of(moduleConstants[0].WheelRadius),
-                                KilogramSquareMeters.of(moduleConstants[0].SteerInertia),
-                                wheelCOF));
+        DriveTrainSimulationConfig simulationConfig =
+                DriveTrainSimulationConfig.Default()
+                        .withRobotMass(robotMassWithBumpers)
+                        .withBumperSize(bumperLengthX, bumperWidthY)
+                        .withGyro(COTS.ofPigeon2())
+                        .withCustomModuleTranslations(moduleLocations)
+                        .withSwerveModule(
+                                new SwerveModuleSimulationConfig(
+                                        driveMotorModel,
+                                        steerMotorModel,
+                                        moduleConstants[0].DriveMotorGearRatio,
+                                        moduleConstants[0].SteerMotorGearRatio,
+                                        Volts.of(moduleConstants[0].DriveFrictionVoltage),
+                                        Volts.of(moduleConstants[0].SteerFrictionVoltage),
+                                        Meters.of(moduleConstants[0].WheelRadius),
+                                        KilogramSquareMeters.of(moduleConstants[0].SteerInertia),
+                                        wheelCOF));
         mapleSimDrive = new SwerveDriveSimulation(simulationConfig, new Pose2d());
 
         SwerveModuleSimulation[] moduleSimulations = mapleSimDrive.getModules();
         for (int i = 0; i < this.simModules.length; i++)
-            simModules[i] = new SimSwerveModule(moduleConstants[0], moduleSimulations[i], modules[i]);
+            simModules[i] =
+                    new SimSwerveModule(moduleConstants[0], moduleSimulations[i], modules[i]);
 
         SimulatedArena.overrideSimulationTimings(simPeriod, 1);
         SimulatedArena.overrideInstance(new Arena2026Rebuilt(false));
@@ -132,9 +127,7 @@ public class MapleSimSwerveDrivetrain {
      *
      * <h2>Update the simulation.</h2>
      *
-     * <p>
-     * Updates the Maple-Sim simulation and injects the results into the simulated
-     * CTRE devices,
+     * <p>Updates the Maple-Sim simulation and injects the results into the simulated CTRE devices,
      * including motors and the IMU.
      */
     public void update() {
@@ -142,7 +135,8 @@ public class MapleSimSwerveDrivetrain {
         pigeonSim.setRawYaw(mapleSimDrive.getSimulatedDriveTrainPose().getRotation().getMeasure());
         pigeonSim.setAngularVelocityZ(
                 RadiansPerSecond.of(
-                        mapleSimDrive.getDriveTrainSimulatedChassisSpeedsRobotRelative().omegaRadiansPerSecond));
+                        mapleSimDrive.getDriveTrainSimulatedChassisSpeedsRobotRelative()
+                                .omegaRadiansPerSecond));
     }
 
     /**
@@ -151,11 +145,15 @@ public class MapleSimSwerveDrivetrain {
      * <h1>Represents the simulation of a single {@link SwerveModule}.</h1>
      */
     protected static class SimSwerveModule {
-        public final SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> moduleConstant;
+        public final SwerveModuleConstants<
+                        TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+                moduleConstant;
         public final SwerveModuleSimulation moduleSimulation;
 
         public SimSwerveModule(
-                SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> moduleConstant,
+                SwerveModuleConstants<
+                                TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+                        moduleConstant,
                 SwerveModuleSimulation moduleSimulation,
                 SwerveModule<TalonFX, TalonFX, CANcoder> module) {
             this.moduleConstant = moduleConstant;
@@ -224,14 +222,10 @@ public class MapleSimSwerveDrivetrain {
     /**
      *
      *
-     * <h2>Regulates all {@link SwerveModuleConstants} for a drivetrain
-     * simulation.</h2>
+     * <h2>Regulates all {@link SwerveModuleConstants} for a drivetrain simulation.</h2>
      *
-     * <p>
-     * This method processes an array of {@link SwerveModuleConstants} to apply
-     * necessary
-     * adjustments for simulation purposes, ensuring compatibility and avoiding
-     * known bugs.
+     * <p>This method processes an array of {@link SwerveModuleConstants} to apply necessary
+     * adjustments for simulation purposes, ensuring compatibility and avoiding known bugs.
      *
      * @see #regulateModuleConstantForSimulation(SwerveModuleConstants)
      */
@@ -248,34 +242,26 @@ public class MapleSimSwerveDrivetrain {
      *
      * <h2>Regulates the {@link SwerveModuleConstants} for a single module.</h2>
      *
-     * <p>
-     * This method applies specific adjustments to the {@link SwerveModuleConstants}
-     * for
-     * simulation purposes. These changes have no effect on real robot operations
-     * and address known
+     * <p>This method applies specific adjustments to the {@link SwerveModuleConstants} for
+     * simulation purposes. These changes have no effect on real robot operations and address known
      * simulation bugs:
      *
      * <ul>
-     * <li><strong>Inverted Drive Motors:</strong> Prevents drive PID issues caused
-     * by inverted
-     * configurations.
-     * <li><strong>Non-zero CanCoder Offsets:</strong> Fixes potential module state
-     * optimization
-     * issues.
-     * <li><strong>Steer Motor PID:</strong> Adjusts PID values tuned for real
-     * robots to improve
-     * simulation performance.
+     *   <li><strong>Inverted Drive Motors:</strong> Prevents drive PID issues caused by inverted
+     *       configurations.
+     *   <li><strong>Non-zero CanCoder Offsets:</strong> Fixes potential module state optimization
+     *       issues.
+     *   <li><strong>Steer Motor PID:</strong> Adjusts PID values tuned for real robots to improve
+     *       simulation performance.
      * </ul>
      *
-     * <h4>Note:This function is skipped when running on a real robot, ensuring no
-     * impact on
+     * <h4>Note:This function is skipped when running on a real robot, ensuring no impact on
      * constants used on real robot hardware.</h4>
      */
     private static void regulateModuleConstantForSimulation(
             SwerveModuleConstants<?, ?, ?> moduleConstants) {
         // Skip regulation if running on a real robot
-        if (RobotBase.isReal())
-            return;
+        if (RobotBase.isReal()) return;
 
         // Apply simulation-specific adjustments to module constants
         moduleConstants

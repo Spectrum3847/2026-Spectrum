@@ -1,10 +1,5 @@
 package frc.robot.leds;
 
-
-import frc.spectrumLib.Rio;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.controls.*;
@@ -12,10 +7,12 @@ import com.ctre.phoenix6.hardware.CANdle;
 import com.ctre.phoenix6.signals.AnimationDirectionValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
 import com.ctre.phoenix6.sim.*;
-import com.ctre.phoenix6.hardware.core.CoreCANdle;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.spectrumLib.Rio;
 
 public class LedCANdle {
-    
+
     public static final CANdle candle = new CANdle(0, new CANBus(Rio.CANIVORE));
 
     public static final int kSlot0StartIdx = 0;
@@ -43,6 +40,8 @@ public class LedCANdle {
     public final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
     public final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
 
+    private CANdleSim sim;
+
     public LedCANdle() {
 
         CANdleConfiguration ledConfig = new CANdleConfiguration();
@@ -61,7 +60,6 @@ public class LedCANdle {
 
         SmartDashboard.putData("Animation 0", animChooser0);
         SmartDashboard.putData("Animation 1", animChooser1);
-
     }
 
     public void stateChanger() {
@@ -74,28 +72,22 @@ public class LedCANdle {
                 default:
                 case ColorFlow:
                     candle.setControl(
-                        new ColorFlowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)
-                    );
+                            new ColorFlowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0));
                     break;
                 case Rainbow:
                     candle.setControl(
-                        new RainbowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)
-                    );
+                            new RainbowAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0));
                     break;
                 case Twinkle:
                     candle.setControl(
-                        new TwinkleAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)
-                    );
+                            new TwinkleAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0));
                     break;
                 case TwinkleOff:
                     candle.setControl(
-                        new TwinkleOffAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)
-                    );
+                            new TwinkleOffAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0));
                     break;
                 case Fire:
-                    candle.setControl(
-                        new FireAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0)
-                    );
+                    candle.setControl(new FireAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0));
                     break;
             }
         }
@@ -109,57 +101,51 @@ public class LedCANdle {
                 default:
                 case Larson:
                     candle.setControl(
-                        new LarsonAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1)
-                    );
+                            new LarsonAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1));
                     break;
                 case RgbFade:
                     candle.setControl(
-                        new RgbFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1)
-                    );
+                            new RgbFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1));
                     break;
                 case SingleFade:
                     candle.setControl(
-                        new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1)
-                    );
+                            new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1));
                     break;
                 case Strobe:
                     candle.setControl(
-                        new StrobeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1)
-                    );
+                            new StrobeAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1));
                     break;
                 case Fire:
                     /* direction can be reversed by either the Direction parameter or switching start and end */
                     candle.setControl(
-                        new FireAnimation(kSlot1StartIdx, kSlot1EndIdx).withSlot(1)
-                            .withDirection(AnimationDirectionValue.Backward)
-                            .withCooling(0.4)
-                            .withSparking(0.5)
-                    );
+                            new FireAnimation(kSlot1StartIdx, kSlot1EndIdx)
+                                    .withSlot(1)
+                                    .withDirection(AnimationDirectionValue.Backward)
+                                    .withCooling(0.4)
+                                    .withSparking(0.5));
                     break;
             }
         }
     }
-}
 
-// --------------------------------------------------------------------------------
-// Simulation
-// --------------------------------------------------------------------------------
-    
-
+    // --------------------------------------------------------------------------------
+    // Simulation
+    // --------------------------------------------------------------------------------
     public class CANdleSim extends LedStates {
-    
+
         private final CANdle candleSim = new CANdle(0);
 
         @Override
-            public void robotInit() {
+        public void robotInit() {
             CANdleConfiguration config = new CANdleConfiguration();
             config.stripType = LEDStripType.RGB; // Or RGB
             config.brightnessScalar = 0.5; // 50% brightness
             candleSim.configAllSettings(config);
-    }
+        }
 
         @Override
         public void teleopPeriodic() {
             candleSim.animate(new RainbowAnimation(1, 0.5, 64)); // Speed, Brightness, NumLEDs
         }
+    }
 }

@@ -9,8 +9,7 @@ public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
 
     public static void setupDefaultCommand() {
-        turretRotation.setDefaultCommand(log(turretRotation.runStop()
-                .withName("Turret.default")));
+        turretRotation.setDefaultCommand(log(turretRotation.runStop().withName("Turret.default")));
     }
 
     public static Trigger aimingAtTarget() {
@@ -20,13 +19,11 @@ public class RotationalPivotStates {
     // -------------------- State Commands --------------------
 
     public static void aimAtHub() {
-        scheduleIfNotRunning(turretRotation.trackTargetCommand()
-                .withName("Turret.aimAtHub"));
+        scheduleIfNotRunning(turretRotation.trackTargetCommand().withName("Turret.aimAtHub"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(turretRotation.runVoltage(() -> 0)
-                .withName("Turret.neutral"));
+        scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
     }
 
     // --------------------------------------------------------
@@ -37,8 +34,7 @@ public class RotationalPivotStates {
     }
 
     /**
-     * Schedules a command for the rotational pivot subsystem only if it's not
-     * already the running
+     * Schedules a command for the rotational pivot subsystem only if it's not already the running
      * command
      *
      * @param command the command to schedule

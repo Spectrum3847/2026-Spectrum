@@ -39,8 +39,7 @@ public class SwerveConfig {
     private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
     // Theoretical free speed (m/s) at 12v applied output;
-    @Getter @Setter
-    private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
+    @Getter @Setter private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
 
     @Getter private double kSdrive = 0.10; // 0.13
     @Getter private double kSsteer = 0.25; // 0.2
@@ -50,7 +49,7 @@ public class SwerveConfig {
     // -----------------------------------------------------------------------
     @Getter private double maxAngularVelocity = 1.5 * Math.PI; // rad/s
     @Getter private double maxAngularAcceleration = 2 * Math.PI; // rad/s^2
-    
+
     @Getter private double kPRotationController = 2; // 4.5 // 6.5 // 8.0;
     @Getter private double kIRotationController = 0.0;
     @Getter private double kDRotationController = 0.0; // 0.2
@@ -68,7 +67,8 @@ public class SwerveConfig {
     @Getter private double translationTolerance = Units.inchesToMeters(0.6); // 0.4
     @Getter private double translationVelocityTolerance = Units.inchesToMeters(0.8); // 0.75
 
-    @Getter private Constraints translationConstraints =
+    @Getter
+    private Constraints translationConstraints =
             new Constraints(speedAt12Volts.baseUnitMagnitude(), 10);
 
     @Getter private double kPTagCenterController = 1.3;
@@ -87,8 +87,9 @@ public class SwerveConfig {
     @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
 
     // Both sets of gains need to be tuned to your individual robot.
-    @Getter private Slot0Configs steerGains = 
-        new Slot0Configs()
+    @Getter
+    private Slot0Configs steerGains =
+            new Slot0Configs()
                     .withKP(500)
                     .withKI(0)
                     .withKD(20)
@@ -97,23 +98,19 @@ public class SwerveConfig {
                     .withKA(0)
                     .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
-    @Getter private Slot0Configs driveGains =
-        new Slot0Configs()
-                .withKP(10.0)
-                .withKI(0.0)
-                .withKD(0.0)
-                .withKS(4)
-                .withKV(0.0);
+    @Getter
+    private Slot0Configs driveGains =
+            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4).withKV(0.0);
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
-    @Getter private ClosedLoopOutputType steerClosedLoopOutput =
-            ClosedLoopOutputType.TorqueCurrentFOC;
+    @Getter
+    private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
 
     // The closed-loop output type to use for the drive motors;
     // This affects the PID/FF gains for the drive motors
-    @Getter private ClosedLoopOutputType driveClosedLoopOutput =
-            ClosedLoopOutputType.TorqueCurrentFOC;
+    @Getter
+    private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
@@ -121,8 +118,9 @@ public class SwerveConfig {
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
-    @Getter private TalonFXConfiguration driveInitialConfigs = 
-                new TalonFXConfiguration()
+    @Getter
+    private TalonFXConfiguration driveInitialConfigs =
+            new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
                                     .withStatorCurrentLimit(Amps.of(100))
@@ -132,8 +130,9 @@ public class SwerveConfig {
 
     // Swerve azimuth does not require much torque output, so we can set a
     // relatively low stator current limit to help avoid
-    // brownouts without impacting performance.                             
-    @Getter private TalonFXConfiguration steerInitialConfigs =
+    // brownouts without impacting performance.
+    @Getter
+    private TalonFXConfiguration steerInitialConfigs =
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
@@ -166,14 +165,20 @@ public class SwerveConfig {
     @Getter private SwerveDrivetrainConstants drivetrainConstants;
 
     @Getter
-    private SwerveModuleConstantsFactory<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> constantCreator;
+    private SwerveModuleConstantsFactory<
+                    TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+            constantCreator;
 
     private final double wheelBaseInches = 19.75;
     private final double trackWidthInches = 23.75;
 
     // Distance from robot center to each module (drivebase "radius") in inches
-    @Getter private final double drivebaseRadiusInches = Math.hypot(wheelBaseInches / 2.0, trackWidthInches / 2.0);
-    @Getter private final double drivebaseRadiusMeters = Units.inchesToMeters(drivebaseRadiusInches);
+    @Getter
+    private final double drivebaseRadiusInches =
+            Math.hypot(wheelBaseInches / 2.0, trackWidthInches / 2.0);
+
+    @Getter
+    private final double drivebaseRadiusMeters = Units.inchesToMeters(drivebaseRadiusInches);
 
     // Front Left
     @Getter private int frontLeftDriveMotorId = 1;
@@ -218,18 +223,24 @@ public class SwerveConfig {
     @Getter @Setter private double targetHeading = 0;
 
     @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> frontLeft;
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+            frontLeft;
 
     @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> frontRight;
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+            frontRight;
 
     @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> backLeft;
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+            backLeft;
 
     @Getter
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> backRight;
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+            backRight;
 
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>[] modules;
+    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+                    []
+            modules;
 
     @SuppressWarnings("unchecked")
     public SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>

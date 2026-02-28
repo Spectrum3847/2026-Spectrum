@@ -19,8 +19,10 @@ public class IndexerBedStates {
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(indexerBed.runTorqueFOC(config::getIndexerTorqueCurrent)
-                .withName("IndexerBed.feedMax"));
+        scheduleIfNotRunning(
+                indexerBed
+                        .runTorqueFOC(config::getIndexerTorqueCurrent)
+                        .withName("IndexerBed.feedMax"));
     }
 
     public static void coastMode() {
@@ -37,8 +39,7 @@ public class IndexerBedStates {
     }
 
     /**
-     * Schedules a command for the indexer subsystem only if it's not already the
-     * running command
+     * Schedules a command for the indexer subsystem only if it's not already the running command
      *
      * @param command the command to schedule
      */

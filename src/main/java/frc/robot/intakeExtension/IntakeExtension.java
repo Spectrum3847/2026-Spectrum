@@ -1,7 +1,5 @@
 package frc.robot.intakeExtension;
 
-import java.util.function.DoubleSupplier;
-
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -22,6 +20,7 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
 import frc.spectrumLib.sim.LinearSim;
+import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -63,17 +62,17 @@ public class IntakeExtension extends Mechanism {
         @Getter @Setter private double CANcoderOffset = 0;
         @Getter @Setter private boolean CANcoderAttached = false;
 
-         /* Sim Configs */
-         @Getter private double intakeX = Units.inchesToMeters(70);
-         @Getter private double intakeY = Units.inchesToMeters(23);
-         @Getter private double extensionMass = 10.0;
-         @Getter private double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-         @Getter private double extensionGearing = 1.7;
-         @Getter private double angle = 180;
-         @Getter private double staticLength = 10;
-         @Getter private double movingLength = 55;
-         @Getter private double lineWidth = 20;
-         @Getter private double maxExtensionHeight = 40;
+        /* Sim Configs */
+        @Getter private double intakeX = Units.inchesToMeters(70);
+        @Getter private double intakeY = Units.inchesToMeters(23);
+        @Getter private double extensionMass = 10.0;
+        @Getter private double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
+        @Getter private double extensionGearing = 1.7;
+        @Getter private double angle = 180;
+        @Getter private double staticLength = 10;
+        @Getter private double movingLength = 55;
+        @Getter private double lineWidth = 20;
+        @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
             super("IntakeExtension", 7, Rio.CANIVORE); // Rio.CANIVORE);
@@ -103,7 +102,7 @@ public class IntakeExtension extends Mechanism {
     }
 
     @Getter private IntakeExtensionConfig config;
-    @Getter  private IntakeExtensionSim sim;
+    @Getter private IntakeExtensionSim sim;
     private SpectrumCANcoder canCoder;
     private SpectrumCANcoderConfig canCoderConfig;
     CANcoderSimState canCoderSim;
@@ -249,6 +248,7 @@ public class IntakeExtension extends Mechanism {
             sim.simulationPeriodic();
         }
     }
+
     class IntakeExtensionSim extends LinearSim {
         public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
             super(
@@ -257,12 +257,12 @@ public class IntakeExtension extends Mechanism {
                                     config.getIntakeY(),
                                     config.getExtensionGearing(),
                                     config.getDrumRadiusMeters())
-                                .setAngle(config.getAngle())
-                                .setMovingLength(config.getMovingLength())
-                                .setStaticLength(config.getStaticLength())
-                                .setMaxHeight(config.getMaxExtensionHeight())
-                                .setLineWidth(config.getLineWidth())
-                                .setColor(new Color8Bit(Color.kLightGray)),
+                            .setAngle(config.getAngle())
+                            .setMovingLength(config.getMovingLength())
+                            .setStaticLength(config.getStaticLength())
+                            .setMaxHeight(config.getMaxExtensionHeight())
+                            .setLineWidth(config.getLineWidth())
+                            .setColor(new Color8Bit(Color.kLightGray)),
                     mech,
                     intakeExtensionMotorSim,
                     config.getName());

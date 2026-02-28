@@ -12,8 +12,8 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 /**
- * Represents a global or subsystem-specific state that can be used as a Trigger.
- * Integrates with WPILib's Trigger and Alert systems.
+ * Represents a global or subsystem-specific state that can be used as a Trigger. Integrates with
+ * WPILib's Trigger and Alert systems.
  */
 public class SpectrumState extends Trigger {
 
@@ -97,7 +97,8 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Create a command that will set the state to true for a given time, or until a cancel condition is met.
+     * Create a command that will set the state to true for a given time, or until a cancel
+     * condition is met.
      *
      * @param time The time in seconds to set the state to true
      * @param cancelCondition The condition that will cancel the timer and set the state to false

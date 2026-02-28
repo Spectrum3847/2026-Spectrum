@@ -1,6 +1,5 @@
 package frc.rebuilt;
 
-import java.text.DecimalFormat;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -15,26 +14,24 @@ import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.util.Conversions;
+import java.text.DecimalFormat;
 
 public class ShotCalculator {
     private static ShotCalculator instance;
 
     // Offset from robot center to turret center (leave zero if turret is centered)
-    private static final Transform2d robotToTurret = new Transform2d(
-            new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0)),
-            new Rotation2d());
+    private static final Transform2d robotToTurret =
+            new Transform2d(
+                    new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0)),
+                    new Rotation2d());
 
     public static ShotCalculator getInstance() {
-        if (instance == null)
-            instance = new ShotCalculator();
+        if (instance == null) instance = new ShotCalculator();
         return instance;
     }
 
     public record ShootingParameters(
-            Rotation2d turretAngle,
-            double visionTurretOffset,
-            double flywheelSpeed) {
-    }
+            Rotation2d turretAngle, double visionTurretOffset, double flywheelSpeed) {}
 
     private ShootingParameters latestParameters = null;
 
@@ -42,9 +39,11 @@ public class ShotCalculator {
 
     private static double phaseDelay;
 
-    private static final InterpolatingDoubleTreeMap shotFlywheelSpeedMap = new InterpolatingDoubleTreeMap();
+    private static final InterpolatingDoubleTreeMap shotFlywheelSpeedMap =
+            new InterpolatingDoubleTreeMap();
 
-    private static final InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
+    private static final InterpolatingDoubleTreeMap timeOfFlightMap =
+            new InterpolatingDoubleTreeMap();
 
     public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0;
     public static double FLYWHEEL_SPEED_OFFSET = STARTING_FLYWHEEL_SPEED_OFFSET;
@@ -92,33 +91,38 @@ public class ShotCalculator {
 
         // Target location on the field
         boolean feed = RobotStates.inFeedZone.getAsBoolean();
-        Translation2d target = feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
+        Translation2d target =
+                feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
         // Calculate estimated pose while accounting for phase delay
         Pose2d robotPose = Robot.getSwerve().getRobotPose();
         ChassisSpeeds robotRelativeVelocity = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        robotPose = robotPose.exp(
-                new Twist2d(
-                        robotRelativeVelocity.vxMetersPerSecond * phaseDelay,
-                        robotRelativeVelocity.vyMetersPerSecond * phaseDelay,
-                        robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
+        robotPose =
+                robotPose.exp(
+                        new Twist2d(
+                                robotRelativeVelocity.vxMetersPerSecond * phaseDelay,
+                                robotRelativeVelocity.vyMetersPerSecond * phaseDelay,
+                                robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
 
         // Calculate distance from turret to target
         Pose2d turretPosition = robotPose.transformBy(robotToTurret);
         double turretToTargetDistance = target.getDistance(turretPosition.getTranslation());
 
         // Calculate field relative turret velocity
-        ChassisSpeeds robotVelocity = ChassisSpeeds.fromRobotRelativeSpeeds(robotRelativeVelocity,
-                Robot.getSwerve().getRobotPose().getRotation());
+        ChassisSpeeds robotVelocity =
+                ChassisSpeeds.fromRobotRelativeSpeeds(
+                        robotRelativeVelocity, Robot.getSwerve().getRobotPose().getRotation());
         double robotAngle = robotPose.getRotation().getRadians();
-        double turretVelocityX = robotVelocity.vxMetersPerSecond
-                + robotVelocity.omegaRadiansPerSecond
-                        * (robotToTurret.getY() * Math.cos(robotAngle)
-                                - robotToTurret.getX() * Math.sin(robotAngle));
-        double turretVelocityY = robotVelocity.vyMetersPerSecond
-                + robotVelocity.omegaRadiansPerSecond
-                        * (robotToTurret.getX() * Math.cos(robotAngle)
-                                - robotToTurret.getY() * Math.sin(robotAngle));
+        double turretVelocityX =
+                robotVelocity.vxMetersPerSecond
+                        + robotVelocity.omegaRadiansPerSecond
+                                * (robotToTurret.getY() * Math.cos(robotAngle)
+                                        - robotToTurret.getX() * Math.sin(robotAngle));
+        double turretVelocityY =
+                robotVelocity.vyMetersPerSecond
+                        + robotVelocity.omegaRadiansPerSecond
+                                * (robotToTurret.getX() * Math.cos(robotAngle)
+                                        - robotToTurret.getY() * Math.sin(robotAngle));
 
         // Account for imparted velocity by robot (turret) to offset
         double timeOfFlight;
@@ -128,9 +132,12 @@ public class ShotCalculator {
             timeOfFlight = timeOfFlightMap.get(lookaheadTurretToTargetDistance);
             double offsetX = turretVelocityX * timeOfFlight;
             double offsetY = turretVelocityY * timeOfFlight;
-            lookaheadPose = new Pose2d(
-                    turretPosition.getTranslation().plus(new Translation2d(offsetX, offsetY)),
-                    turretPosition.getRotation());
+            lookaheadPose =
+                    new Pose2d(
+                            turretPosition
+                                    .getTranslation()
+                                    .plus(new Translation2d(offsetX, offsetY)),
+                            turretPosition.getRotation());
             lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
         }
         // Calculate parameters accounted for imparted velocity
@@ -141,17 +148,15 @@ public class ShotCalculator {
 
         double visionTurretOffset = Robot.getVision().getTurretLL().getHorizontalOffset();
 
-        latestParameters = new ShootingParameters(
-                turretAngle,
-                visionTurretOffset,
-                flywheelSpeed);
+        latestParameters = new ShootingParameters(turretAngle, visionTurretOffset, flywheelSpeed);
 
         DogLog.log("ShotCalc/DistanceMeters", df.format(lookaheadTurretToTargetDistance));
         DogLog.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
         DogLog.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
         DogLog.log("ShotCalc/TurretPose", turretPosition);
         DogLog.log("ShotCalc/LookaheadPose", lookaheadPose);
-        DogLog.log("ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
+        DogLog.log(
+                "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
         DogLog.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
         DogLog.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
         return latestParameters;

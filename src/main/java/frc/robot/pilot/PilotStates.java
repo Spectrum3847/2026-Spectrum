@@ -19,9 +19,9 @@ public class PilotStates {
         pilot.setDefaultCommand(log(rumble(0, 1).withName("Pilot.noRumble")));
     }
 
-    private static Trigger reorientButton = pilot.upReorient
-            .or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
-    
+    private static Trigger reorientButton =
+            pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
+
     /** Set the states for the pilot controller */
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
@@ -32,8 +32,7 @@ public class PilotStates {
         pilot.YButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
 
         // Rumble whenever we reorient
-        reorientButton.onTrue(log(rumble(1, 0.5)
-                .withName("Pilot.reorientRumble")));
+        reorientButton.onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
     }
 
     public static final Trigger buttonAPress = pilot.AButton;

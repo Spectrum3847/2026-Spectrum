@@ -56,12 +56,10 @@ public class IndexerBed extends Mechanism {
     }
 
     @Override
-    public void periodic() {
-    }
+    public void periodic() {}
 
     @Override
-    public void setupStates() {
-    }
+    public void setupStates() {}
 
     @Override
     public void setupDefaultCommand() {
