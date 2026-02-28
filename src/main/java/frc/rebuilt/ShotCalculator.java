@@ -97,15 +97,16 @@ public class ShotCalculator {
         shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(40.5));
         shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(41.5));
         shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(42.0));
-        shotFlywheelSpeedMap.put(3.16, Conversions.RPStoRPM(49.0));
-        shotFlywheelSpeedMap.put(3.50, Conversions.RPStoRPM(55.0));
+        shotFlywheelSpeedMap.put(3.16, Conversions.RPStoRPM(46.0));
+        shotFlywheelSpeedMap.put(3.50, Conversions.RPStoRPM(52.0));
 
         // TOF map
-        timeOfFlightMap.put(5.68, 1.16);
-        timeOfFlightMap.put(4.55, 1.12);
-        timeOfFlightMap.put(3.15, 1.11);
-        timeOfFlightMap.put(1.88, 1.09);
-        timeOfFlightMap.put(1.38, 0.90);
+        timeOfFlightMap.put(3.41, 1.10);
+        timeOfFlightMap.put(3.08, 1.09);
+        timeOfFlightMap.put(2.75, 1.07);
+        timeOfFlightMap.put(2.33, 1.05);
+        timeOfFlightMap.put(2.03, 0.95);
+        timeOfFlightMap.put(1.68, 0.86);
     }
 
     public ShootingParameters getParameters() {
