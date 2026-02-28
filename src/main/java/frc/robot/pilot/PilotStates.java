@@ -30,12 +30,17 @@ public class PilotStates {
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
-        pilot.RT.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.LT.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
+        pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
+        pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimLaunchFuel());
 
-        pilot.dpadUp.onTrue(new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
-        pilot.dpadDown.onTrue(
-                new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
+        pilot.dpadDown.onTrue(log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
+        pilot.dpadUp.onTrue(log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
+        pilot.dpadRight.onTrue(log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
+        pilot.dpadLeft.onTrue(log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+
+        // Slow mode when driver is intaking or launching fuel
+        pilot.RT.whileTrue(slowMode());
+        pilot.LT.whileTrue(slowMode());
 
         // Rumble whenever we reorient
         reorientButton.onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));

@@ -97,7 +97,7 @@ public class Pilot extends Gamepad {
     private PilotConfig config;
 
     private @Getter @Setter SpectrumState slowMode = new SpectrumState("SlowMode");
-    @Getter @Setter SpectrumState turboMode = new SpectrumState("TurboMode");
+    private @Getter @Setter SpectrumState turboMode = new SpectrumState("TurboMode");
 
     /** Create a new Pilot with the default name and port. */
     public Pilot(PilotConfig config) {
