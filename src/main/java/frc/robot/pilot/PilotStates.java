@@ -8,6 +8,8 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
+import frc.robot.RobotStates;
+import frc.robot.State;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -24,6 +26,20 @@ public class PilotStates {
     private static Trigger reorientButton =
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
+    private static final Trigger intaking =
+            new Trigger(
+                    () ->
+                            RobotStates.getAppliedState() == State.SNAKE_INTAKE
+                                    || RobotStates.getAppliedState() == State.INTAKE_FUEL);
+    private static final Trigger launching =
+            new Trigger(
+                    () ->
+                            RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH
+                                    || RobotStates.getAppliedState()
+                                            == State.TURRET_FEED_WITH_LAUNCH
+                                    || RobotStates.getAppliedState()
+                                            == State.TURRET_TRACK_WITH_LAUNCH);
+
     /** Set the states for the pilot controller */
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
@@ -35,12 +51,14 @@ public class PilotStates {
 
         pilot.dpadDown.onTrue(log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
         pilot.dpadUp.onTrue(log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
-        pilot.dpadRight.onTrue(log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        pilot.dpadLeft.onTrue(log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+        pilot.dpadRight.onTrue(
+                log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
+        pilot.dpadLeft.onTrue(
+                log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
 
         // Slow mode when driver is intaking or launching fuel
-        pilot.RT.whileTrue(slowMode());
-        pilot.LT.whileTrue(slowMode());
+        intaking.whileTrue(slowMode());
+        launching.whileTrue(slowMode());
 
         // Rumble whenever we reorient
         reorientButton.onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));
