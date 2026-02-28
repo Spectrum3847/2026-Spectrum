@@ -11,6 +11,8 @@ import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.hardware.CANdle;
 import com.ctre.phoenix6.signals.AnimationDirectionValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
+import com.ctre.phoenix6.sim.*;
+import com.ctre.phoenix6.hardware.core.CoreCANdle;
 
 public class LedCANdle {
     
@@ -137,4 +139,27 @@ public class LedCANdle {
             }
         }
     }
+}
+
+// --------------------------------------------------------------------------------
+// Simulation
+// --------------------------------------------------------------------------------
+    
+
+    public class CANdleSim extends LedStates {
+    
+        private final CANdle candleSim = new CANdle(0);
+
+        @Override
+            public void robotInit() {
+            CANdleConfiguration config = new CANdleConfiguration();
+            config.stripType = LEDStripType.RGB; // Or RGB
+            config.brightnessScalar = 0.5; // 50% brightness
+            candleSim.configAllSettings(config);
+    }
+
+        @Override
+        public void teleopPeriodic() {
+            candleSim.animate(new RainbowAnimation(1, 0.5, 64)); // Speed, Brightness, NumLEDs
+        }
 }

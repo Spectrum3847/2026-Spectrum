@@ -2,9 +2,11 @@ package frc.robot.leds;
 
 import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.signals.*;
+import com.ctre.phoenix6.sim.*;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.LEDPattern;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
