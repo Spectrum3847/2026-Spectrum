@@ -324,182 +324,225 @@ public class Vision implements NTSendable, Subsystem {
         }
     }
 
+    /**
+     * Gets a vision estimate from the MegaTag1 pose of a Limelight, applying various checks and
+     * integrating the estimate if valid.
+     *
+     * @param ll the Limelight to get the estimate from
+     * @param integrateXY whether to trust the XY components of the estimate (rotation is always
+     *     trusted)
+     * @return a VisionFieldPoseEstimate if the estimate is valid and should be integrated, or null
+     *     if it should be rejected
+     */
     private VisionFieldPoseEstimate getMT1VisionEstimate(Limelight ll, boolean integrateXY) {
+
+        // ---- Basic visibility check ----
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
             return null;
         }
 
+        // ---- Gather required data once ----
+        var swerve = Robot.getSwerve();
+
         boolean multiTags = ll.multipleTagsInView();
         double targetSize = ll.getTargetSize();
-        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-        Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
+
+        Pose3d mt1Pose3d = ll.getMegaTag1_Pose3d();
+        Pose2d mt1Pose2d = mt1Pose3d.toPose2d();
+
         RawFiducial[] tags = ll.getRawFiducial();
-        double highestAmbiguity = 2;
-        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        int tagCount = (tags == null || tags.length == 0) ? 1 : tags.length;
 
-        // distance from current pose to vision estimated MT1 pose
-        double mt1PoseDifference =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getTranslation()
-                        .getDistance(megaTag1Pose2d.getTranslation());
+        ChassisSpeeds speeds = swerve.getCurrentRobotChassisSpeeds();
+        double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
 
-        // ambiguity / basic rejections
-        ll.setTagStatus("");
+        double poseDifference =
+                swerve.getRobotPose().getTranslation().getDistance(mt1Pose2d.getTranslation());
+
+        // ---- Ambiguity check ----
+        double highestAmbiguity = 0.0;
+
         if (tags != null) {
             for (RawFiducial tag : tags) {
-                if (highestAmbiguity == 2 || tag.ambiguity > highestAmbiguity) {
-                    highestAmbiguity = tag.ambiguity;
-                }
+                highestAmbiguity = Math.max(highestAmbiguity, tag.ambiguity);
+
                 if (tag.ambiguity > 0.9) {
-                    // ambiguity too high -> reject
                     ll.sendInvalidStatus("High Ambiguity Rejection");
                     return null;
                 }
             }
         }
 
-        if (rejectionCheck(megaTag1Pose2d, targetSize)) {
+        // ---- Basic rejection checks ----
+        if (rejectionCheck(mt1Pose2d, targetSize)) {
             return null;
         }
 
-        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > 5
-                || Math.abs(megaTag1Pose3d.getRotation().getY()) > 5) {
-            // reject if pose is tilted in roll or pitch
+        // Reject if roll/pitch too large
+        if (Math.abs(mt1Pose3d.getRotation().getX()) > 5
+                || Math.abs(mt1Pose3d.getRotation().getY()) > 5) {
             ll.sendInvalidStatus("Roll/Pitch Rejection");
             return null;
         }
 
-        // Determine std devs similar to the original logic
+        // ---- Determine base standard deviations ----
         double xyStds;
         double degStds;
 
-        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
+        if (linearSpeed <= 0.2 && targetSize > 4) {
             ll.sendValidStatus("Stationary close integration");
             xyStds = 0.1;
             degStds = 0.1;
+
         } else if (multiTags && targetSize > 2) {
             ll.sendValidStatus("Strong Multi integration");
             xyStds = 0.1;
             degStds = 0.1;
+
         } else if (multiTags && targetSize > 0.2) {
             ll.sendValidStatus("Multi integration");
             xyStds = 0.25;
             degStds = 8;
-        } else if (targetSize > 2 && (mt1PoseDifference < 0.5)) {
+
+        } else if (targetSize > 2 && poseDifference < 0.5) {
             ll.sendValidStatus("Close integration");
             xyStds = 0.5;
             degStds = config.getKLargeVariance();
-        } else if (targetSize > 1 && (mt1PoseDifference < 0.25)) {
+
+        } else if (targetSize > 1 && poseDifference < 0.25) {
             ll.sendValidStatus("Proximity integration");
             xyStds = 1.0;
             degStds = config.getKLargeVariance();
+
         } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
             ll.sendValidStatus("Stable integration");
             xyStds = 1.5;
             degStds = config.getKLargeVariance();
+
         } else {
-            // shouldn't integrate
             ll.sendInvalidStatus("Integration Criteria not Met");
             return null;
         }
 
-        // Strict with degree std and ambiguity for MegaTag1
+        // ---- Adjust rotation trust ----
+
         if (highestAmbiguity > 0.5) {
             degStds = 15;
         }
 
-        if (robotSpeed.omegaRadiansPerSecond >= 0.5) {
+        if (Math.abs(speeds.omegaRadiansPerSecond) >= 0.5) {
             degStds = 50;
         }
 
+        // ---- XY integration control ----
+
         if (!integrateXY) {
-            xyStds = 999999;
+            xyStds = 999999; // effectively ignore XY
         }
 
-        // If we're forcing integration (e.g., for testing), use very tight stds
+        // Forced integration override (testing mode)
         if (integrateXY) {
             xyStds = 0.01;
             degStds = 0.01;
         }
 
-        Pose2d integratedPose =
-                new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
-
-        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
-        int numTags = tags == null ? 1 : tags.length;
-
-        return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
+        // ---- Build estimate ----
+        return new VisionFieldPoseEstimate(
+                mt1Pose2d,
+                Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp()),
+                VecBuilder.fill(xyStds, xyStds, degStds),
+                tagCount);
     }
 
+    /**
+     * Gets a vision estimate from the MegaTag2 pose of a Limelight, applying various checks and
+     * integrating the estimate if valid.
+     *
+     * @param ll the Limelight to get the estimate from
+     * @return a VisionFieldPoseEstimate if the estimate is valid and should be integrated, or null
+     *     if it should be rejected
+     */
     private VisionFieldPoseEstimate getMT2VisionEstimate(Limelight ll) {
+        // ---- Basic visibility check ----
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
             return null;
         }
 
+        // ---- Gather required data once ----
+        var swerve = Robot.getSwerve();
+        boolean disabled = DriverStation.isDisabled();
         boolean multiTags = ll.multipleTagsInView();
+
         double targetSize = ll.getTargetSize();
-        Pose2d megaTag2Pose2d = ll.getMegaTag2_Pose2d();
-        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        Pose2d mt2Pose = ll.getMegaTag2_Pose2d();
 
-        double mt2PoseDifference =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getTranslation()
-                        .getDistance(megaTag2Pose2d.getTranslation());
+        ChassisSpeeds speeds = swerve.getCurrentRobotChassisSpeeds();
+        double robotLinearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
 
-        /* rejections */
-        if (rejectionCheck(megaTag2Pose2d, targetSize)) {
+        double poseDifference =
+                swerve.getRobotPose().getTranslation().getDistance(mt2Pose.getTranslation());
+
+        // ---- Rejection check ----
+        if (rejectionCheck(mt2Pose, targetSize)) {
             return null;
         }
 
-        /* Determine standard deviations */
+        // ---- Determine integration confidence ----
         double xyStds;
 
         if (robotLinearSpeed <= 0.2 && targetSize > 4) {
             ll.sendValidStatus("Stationary close integration");
             xyStds = 0.1;
+
         } else if (multiTags && targetSize > 2) {
             ll.sendValidStatus("Strong Multi integration");
             xyStds = 0.1;
+
         } else if (multiTags && targetSize > 0.2) {
             ll.sendValidStatus("Multi integration");
             xyStds = 0.25;
-        } else if (targetSize > 2 && (mt2PoseDifference < 0.5 || DriverStation.isDisabled())) {
+
+        } else if (targetSize > 2 && (poseDifference < 0.5 || disabled)) {
             ll.sendValidStatus("Close integration");
             xyStds = 0.5;
-        } else if (targetSize > 1 && (mt2PoseDifference < 0.25 || DriverStation.isDisabled())) {
+
+        } else if (targetSize > 1 && (poseDifference < 0.25 || disabled)) {
             ll.sendValidStatus("Proximity integration");
             xyStds = 1.0;
+
         } else if (targetSize >= 0.03) {
             ll.sendValidStatus("Stable integration");
             xyStds = 1.5;
+
         } else {
-            return null; // Shouldn't integrate
+            return null; // Not confident enough to integrate
         }
 
-        // MegaTag2 doesn't provide rotation, so use large variance
+        // MegaTag2 does not provide reliable rotation → use large variance
         double degStds = config.getKLargeVariance();
 
-        Pose2d integratedPose =
-                new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
-
         return new VisionFieldPoseEstimate(
-                integratedPose,
+                mt2Pose,
                 Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp()),
                 VecBuilder.fill(xyStds, xyStds, degStds),
                 (int) ll.getTagCountInView());
     }
 
+    /**
+     * Gets a vision estimate from the MegaTag1 pose of a turreted Limelight, applying various
+     * checks and integrating the estimate if valid.
+     *
+     * @param ll the Limelight to get the estimate from
+     * @param integrateXY whether to trust the XY components of the estimate (rotation is always
+     *     trusted)
+     * @param forceIntegration whether to force integration regardless of other checks
+     * @return a VisionFieldPoseEstimate if the estimate is valid and should be integrated, or null
+     *     if it should be rejected
+     */
     private VisionFieldPoseEstimate getMT1TurretEstimate(
             Limelight ll, boolean integrateXY, boolean forceIntegration) {
         if (!ll.targetInView()) {
@@ -603,7 +646,8 @@ public class Vision implements NTSendable, Subsystem {
 
         /* ---------------- Turret adjustment ---------------- */
         double turretDegrees = turretRotationSupplier.getAsDouble();
-        Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
+        // Convert from CW-positive (turret sensor convention) to CCW-positive (WPILib Rotation2d)
+        Rotation2d turretRotation = Rotation2d.fromDegrees(-turretDegrees);
 
         // Robot->Camera at 0° turret
         Translation2d robotToCamera0 =
@@ -636,7 +680,11 @@ public class Vision implements NTSendable, Subsystem {
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
 
-    /** Helper to integrate a single estimate */
+    /**
+     * Helper to integrate a single estimate
+     *
+     * @param estimate the vision estimate to integrate, or null to skip integration
+     */
     private void integrateSingleEstimate(VisionFieldPoseEstimate estimate) {
         if (estimate != null) {
             Robot.getSwerve()
@@ -647,7 +695,11 @@ public class Vision implements NTSendable, Subsystem {
         }
     }
 
-    /** Helper to integrate multiple estimates close in time by fusing them together first */
+    /**
+     * Helper to integrate multiple estimates close in time by fusing them together first
+     *
+     * @param estimates the vision estimates to integrate, or null to skip integration
+     */
     private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
         // Collect non-null estimates
         List<VisionFieldPoseEstimate> list = new ArrayList<>();
@@ -794,7 +846,11 @@ public class Vision implements NTSendable, Subsystem {
         return false;
     }
 
-    /** Change all LL pipelines to the same pipeline */
+    /**
+     * Change all LL pipelines to the same pipeline
+     *
+     * @param pipeline The pipeline to set for all Limelights
+     */
     public void setLimelightPipelines(int pipeline) {
         for (Limelight limelight : allLimelights) {
             limelight.setLimelightPipeline(pipeline);
@@ -825,7 +881,11 @@ public class Vision implements NTSendable, Subsystem {
     // VisionStates Commands
     // ------------------------------------------------------------------------------
 
-    /** Set all Limelights to blink */
+    /**
+     * Set all Limelights to blink
+     *
+     * @return Command to set all Limelights to blink
+     */
     public Command blinkLimelights() {
         Telemetry.print("Vision.blinkLimelights", PrintPriority.HIGH);
         return startEnd(
@@ -842,7 +902,11 @@ public class Vision implements NTSendable, Subsystem {
                 .withName("Vision.blinkLimelights");
     }
 
-    /** Only blinks left limelight */
+    /**
+     * Sets all Limelights to solid (on) LEDs
+     *
+     * @return Command to set all Limelights to solid
+     */
     public Command solidLimelight() {
         return startEnd(
                         () -> {
@@ -859,7 +923,13 @@ public class Vision implements NTSendable, Subsystem {
                 .withName("Vision.solidLimelight");
     }
 
-    /** Fuses two vision pose estimates using inverse-variance weighting. (FRC254 2025) */
+    /**
+     * Fuses two vision pose estimates using inverse-variance weighting. (FRC254 2025)
+     *
+     * @param a First vision estimate
+     * @param b Second vision estimate
+     * @return Fused vision estimate
+     */
     private VisionFieldPoseEstimate fuseEstimates(
             VisionFieldPoseEstimate a, VisionFieldPoseEstimate b) {
         // Ensure b is the newer measurement
