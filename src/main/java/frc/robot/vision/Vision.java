@@ -622,9 +622,10 @@ public class Vision implements NTSendable, Subsystem {
         Translation2d robotToRotatedCamera =
                 config.getRobotToTurretCenter().plus(turretToRotatedCamera);
 
-        // Compute robot pose
-        Translation2d robotTranslation =
-                megaTag1Pose2d.getTranslation().minus(robotToRotatedCamera);
+        Translation2d robotToCameraField =
+                robotToRotatedCamera.rotateBy(Robot.getSwerve().getRobotPose().getRotation());
+
+        Translation2d robotTranslation = megaTag1Pose2d.getTranslation().minus(robotToCameraField);
         Rotation2d robotRotation = megaTag1Pose2d.getRotation().minus(turretRotation);
 
         Pose2d integratedPose = new Pose2d(robotTranslation, robotRotation);
