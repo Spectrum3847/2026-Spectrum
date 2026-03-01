@@ -21,7 +21,7 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVoltage(config::getIndexerVoltageOut)
+                        .runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
                         .withName("IndexerTower.feedMax"));
     }
 

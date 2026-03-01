@@ -20,7 +20,9 @@ public class IndexerBedStates {
 
     public static void indexMax() {
         scheduleIfNotRunning(
-                indexerBed.runVoltage(config::getIndexerVoltageOut).withName("IndexerBed.feedMax"));
+                indexerBed
+                        .runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
+                        .withName("IndexerBed.feedMax"));
     }
 
     public static void coastMode() {

@@ -16,11 +16,11 @@ public class IndexerBed extends Mechanism {
 
         // Intake Voltages and Current
         @Getter @Setter private double indexerVoltageOut = 6;
-        @Getter @Setter private double indexerTorqueCurrent = 50;
+        @Getter @Setter private double indexerTorqueCurrent = 40;
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 60;
-        @Getter @Setter private double torqueCurrentLimit = 100;
+        @Getter @Setter private double currentLimit = 50;
+        @Getter @Setter private double torqueCurrentLimit = 75;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
