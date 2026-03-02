@@ -28,11 +28,11 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
         /* Launcher config values */
-        @Getter private double currentLimit = 100;
-        @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 9;
-        @Getter private double velocityKv = 0.48;
-        @Getter private double velocityKs = 0.03;
+        @Getter private double currentLimit = 60;
+        @Getter private double torqueCurrentLimit = 80;
+        @Getter private double velocityKp = 10;
+        @Getter private double velocityKv = 0;
+        @Getter private double velocityKs = 10;
 
         @Getter private double onTargetToleranceRPM = 100;
 
