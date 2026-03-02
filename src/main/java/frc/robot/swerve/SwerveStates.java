@@ -57,7 +57,7 @@ public class SwerveStates {
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
                     .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.MotionMagicExpo)
-                    .withMaxAbsRotationalRate(config.getMaxAngularRate() * 0.3)
+                    .withMaxAbsRotationalRate(config.getMaxAngularRate() * 0.15)
                     .withHeadingPID(
                             config.getKPRotationController(),
                             config.getKIRotationController(),
@@ -97,7 +97,7 @@ public class SwerveStates {
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
 
         inSnakeDrive.whileTrue(log(snakeDrive()));
-        // inScoreOrFeed.whileTrue(log(tweakOut()));
+        inScoreOrFeed.and(Robot.getPilot().fn).whileTrue(log(tweakOut()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));

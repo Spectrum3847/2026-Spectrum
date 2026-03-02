@@ -331,7 +331,7 @@ public class RotationalPivot extends Mechanism {
                     double errorDeg =
                             currentRotation.minus(targetRotationRobotRelative).getDegrees();
 
-                    return Math.abs(errorDeg) < 3;
+                    return Math.abs(errorDeg) < 5;
                 });
     }
 

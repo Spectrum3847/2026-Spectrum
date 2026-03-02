@@ -27,15 +27,9 @@ public class FeedTargetFactory {
         Translation2d feedTarget;
 
         if (inFieldLeft) {
-            feedTarget =
-                    Field.isBlue()
-                            ? Field.LeftBlueBump.centerPose
-                            : Field.BlueToRed(Field.LeftBlueBump.centerPose);
+            feedTarget = Field.isBlue() ? Field.feedBlueLeft : Field.feedRedLeft;
         } else {
-            feedTarget =
-                    Field.isBlue()
-                            ? Field.RightBlueBump.centerPose
-                            : Field.BlueToRed(Field.RightBlueBump.centerPose);
+            feedTarget = Field.isBlue() ? Field.feedBlueRight : Field.feedRedRight;
         }
 
         double distance =

@@ -54,7 +54,7 @@ public class Launcher extends Mechanism {
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "LauncherRight", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 

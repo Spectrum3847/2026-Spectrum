@@ -3,6 +3,7 @@ package frc.robot.indexerTower;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
+import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
 
 public class IndexerTowerStates {
@@ -23,6 +24,17 @@ public class IndexerTowerStates {
                 indexerTower
                         .runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
                         .withName("IndexerTower.feedMax"));
+    }
+
+    public static void indexIfReady() {
+        scheduleIfNotRunning(
+                indexerTower
+                        .runTorqueCurrentFoc(
+                                () ->
+                                        RobotStates.turretOnTarget.getAsBoolean()
+                                                ? config.getIndexerTorqueCurrent()
+                                                : 0)
+                        .withName("IndexerTower.feedIfReady"));
     }
 
     public static void coastMode() {

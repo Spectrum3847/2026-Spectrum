@@ -41,7 +41,7 @@ public class FuelIntake extends Mechanism {
         @Getter private double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
-            super("Intake Left", 5, Rio.CANIVORE);
+            super("Intake", 5, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);

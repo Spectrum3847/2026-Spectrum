@@ -32,6 +32,11 @@ public class Field {
 
     public static final double tag26X = Units.inchesToMeters(158.61);
 
+    public static final Translation2d feedBlueLeft = new Translation2d(0, fieldWidth);
+    public static final Translation2d feedBlueRight = new Translation2d(0, 0);
+    public static final Translation2d feedRedLeft = new Translation2d(fieldLength, 0);
+    public static final Translation2d feedRedRight = new Translation2d(fieldLength, fieldWidth);
+
     public static class BlueHub {
         public static final double width = Units.inchesToMeters(47.0);
         public static final double totalHeight = Units.inchesToMeters(72.0);
