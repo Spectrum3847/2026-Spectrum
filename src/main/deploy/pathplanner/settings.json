@@ -5,8 +5,9 @@
   "pathFolders": [
     "Config Paths",
     "Depot",
-    "Neutral Zone",
-    "Outpost"
+    "Neutral Zone - Left Start",
+    "Outpost",
+    "Neutral Zone - Right Start"
   ],
   "autoFolders": [
     "Config Autos"

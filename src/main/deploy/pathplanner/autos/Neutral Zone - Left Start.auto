@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone 1"
+            "pathName": "Neutral Zone L 1"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone 2"
+            "pathName": "Neutral Zone L 2"
           }
         },
         {
@@ -25,7 +25,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone End to Climb"
+            "pathName": "Neutral Zone L End to Climb"
           }
         }
       ]

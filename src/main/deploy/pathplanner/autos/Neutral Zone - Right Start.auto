@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Taxi + Preload"
+            "pathName": "Neutral Zone R 1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Neutral Zone R 2"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
-  "folder": "Config Autos",
+  "resetOdom": false,
+  "folder": null,
   "choreoAuto": false
 }
