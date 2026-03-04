@@ -18,8 +18,7 @@ public class OperatorStates {
     }
 
     /** Set the states for the operator controller */
-    public static void setStates() {
-    }
+    public static void setStates() {}
 
     /** Command that can be used to rumble the operator controller */
     public static Command rumble(double intensity, double durationSeconds) {

@@ -1,23 +1,32 @@
 package frc.robot.turretRotationalPivot;
 
 import edu.wpi.first.wpilibj2.command.*;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.spectrumLib.Telemetry;
 
 public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
-    private static RotationalPivotConfig config = Robot.getConfig().turret;
+    private static RotationalPivot.RotationalPivotConfig config = turretRotation.getConfig();
 
     public static void setupDefaultCommand() {
-        turretRotation.setDefaultCommand(log(turretRotation.runHoldTurret().withName("Turret.default")));
-        // turret.runStop());
+        turretRotation.setDefaultCommand(log(turretRotation.runStop().withName("Turret.default")));
+    }
+
+    public static Trigger aimingAtTarget() {
+        return turretRotation.aimingAtTarget();
     }
 
     // -------------------- State Commands --------------------
-   
-    public static void aimAtHub() {
-        scheduleIfNotRunning(log(turretRotation.trackTargetCommand()).withName("Turret.aimAtHub"));
+
+    public static void aimAtTarget() {
+        scheduleIfNotRunning(turretRotation.trackTargetCommand().withName("Turret.aimAtTarget"));
+    }
+
+    public static void aimAtPresetPosition() {
+        scheduleIfNotRunning(
+                log(turretRotation.moveToDegrees(config::getPresetPosition))
+                        .withName("Turret.aimAtPreset"));
     }
 
     public static void neutral() {
@@ -25,7 +34,7 @@ public class RotationalPivotStates {
     }
 
     // --------------------------------------------------------
-    
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);

@@ -5,8 +5,8 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import java.util.ArrayList;
 
 /**
- * The base robot class for Spectrum robots.
- * Extends WPILib's TimedRobot and manages a collection of SpectrumSubsystems.
+ * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and manages a collection of
+ * SpectrumSubsystems.
  */
 public class SpectrumRobot extends TimedRobot {
 
@@ -15,6 +15,7 @@ public class SpectrumRobot extends TimedRobot {
 
     /**
      * Add a subsystem to the global list of subsystems.
+     *
      * @param subsystem The subsystem to add.
      */
     public static void add(SpectrumSubsystem subsystem) {
@@ -27,8 +28,8 @@ public class SpectrumRobot extends TimedRobot {
     }
 
     /**
-     * Set up default commands for all registered subsystems.
-     * Should be called during robot initialization.
+     * Set up default commands for all registered subsystems. Should be called during robot
+     * initialization.
      */
     protected void setupDefaultCommands() {
         // Setup Default Commands for all subsystems
@@ -36,8 +37,8 @@ public class SpectrumRobot extends TimedRobot {
     }
 
     /**
-     * Set up states and triggers for all registered subsystems.
-     * Should be called during robot initialization.
+     * Set up states and triggers for all registered subsystems. Should be called during robot
+     * initialization.
      */
     protected void setupStates() {
         // Bind Triggers for all subsystems

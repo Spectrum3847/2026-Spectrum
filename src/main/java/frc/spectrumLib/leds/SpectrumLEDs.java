@@ -418,25 +418,19 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         };
     }
 
-
     public LEDPattern switchCountdown(Color startingColor) {
-    
+
         return new LEDPattern() {
             @Override
             public void applyTo(LEDReader reader, LEDWriter writer) {
 
                 int[] times = {
-                    10,  //surely there's a more efficient way to do this
-                    25, 
-                    25,
-                    25,
-                    25,
-                    30,
+                    10, // surely there's a more efficient way to do this
+                    25, 25, 25, 25, 30,
                 };
 
                 int bufLen = reader.getLength();
                 double currentTimeSecs = Timer.getMatchTime();
-
 
                 double elapsedTimeInSeconds = 140 - currentTimeSecs;
 
@@ -444,23 +438,21 @@ public class SpectrumLEDs implements SpectrumSubsystem {
                 int shiftTime = 0;
                 int cumulativeTime = 0;
                 Color color = Color.kBlack;
-                
-                for (int i = 0; i < times.length; i++){
+
+                for (int i = 0; i < times.length; i++) {
                     cumulativeTime += times[i];
-                    if (cumulativeTime > elapsedTimeInSeconds){
+                    if (cumulativeTime > elapsedTimeInSeconds) {
                         shiftTime = times[i];
-                        switch(i){
-                            case 0,5: //this is also kinda a mess but it works wtv
+                        switch (i) {
+                            case 0, 5: // this is also kinda a mess but it works wtv
                                 color = Color.kPurple;
                                 break;
-                            case 1,3:
+                            case 1, 3:
                                 color = startingColor;
                                 break;
-                            case 2,4:
-                                if (startingColor == Color.kRed)
-                                    color = Color.kBlue;
-                                else
-                                    color = Color.kRed;
+                            case 2, 4:
+                                if (startingColor == Color.kRed) color = Color.kBlue;
+                                else color = Color.kRed;
                                 break;
                         }
                         break;

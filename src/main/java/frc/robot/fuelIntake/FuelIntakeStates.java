@@ -20,9 +20,14 @@ public class FuelIntakeStates {
 
     public static void intakeFuel() {
         scheduleIfNotRunning(
-            intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
-            .withName("Intake.intakeFuel")
-        );
+                intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
+                        .withName("Intake.intakeFuel"));
+    }
+
+    public static void agitateFuel() {
+        scheduleIfNotRunning(
+                intake.runTorqueFOC(config::getFuelAgitationTorqueCurrent)
+                        .withName("Intake.agitate"));
     }
 
     public static void stop() {
@@ -43,7 +48,8 @@ public class FuelIntakeStates {
     }
 
     /**
-     * Schedules a command for the fuel intake subsystem only if it's not already the running command
+     * Schedules a command for the fuel intake subsystem only if it's not already the running
+     * command
      *
      * @param command the command to schedule
      */

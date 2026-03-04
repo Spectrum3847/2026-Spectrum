@@ -23,10 +23,13 @@ import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
+import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.indexer.Indexer;
-import frc.robot.indexer.Indexer.IndexerConfig;
+import frc.robot.indexerBed.IndexerBed;
+import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
+import frc.robot.indexerTower.IndexerTower;
+import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
@@ -55,13 +58,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
-
 import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
 /**
- * The main robot class.
- * This class is the entry point for the robot code and manages all subsystems and their configurations.
+ * The main robot class. This class is the entry point for the robot code and manages all subsystems
+ * and their configurations.
  */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
@@ -81,7 +83,8 @@ public class Robot extends SpectrumRobot {
         public LedFullConfig leds = new LedFullConfig();
         public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public IndexerConfig indexer = new IndexerConfig();
+        public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
+        public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
     }
@@ -90,7 +93,8 @@ public class Robot extends SpectrumRobot {
     @Getter private static FuelIntake fuelIntake;
     @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
-    @Getter private static Indexer indexer;
+    @Getter private static IndexerTower indexerTower;
+    @Getter private static IndexerBed indexerBed;
     @Getter private static LedFull leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -108,11 +112,21 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            /* Set up the config */
-            config =
-                    switch (Rio.id) {
-                        default -> new FM2026();
-                    };
+            /** Set up the config */
+            switch (Rio.id) {
+                case XM_2026:
+                    config = new XM2026();
+                    break;
+                    // case PM_2026:
+                    //     config = new PM2026();
+                    //     break;
+                    // case FM_2026:
+                    //     config = new FM2026();
+                    //     break;
+                default: // SIM and UNKNOWN
+                    config = new FM2026();
+                    break;
+            }
 
             /*
              * Initialize the Subsystems of the robot. Subsystems are how we divide up the robot
@@ -137,7 +151,9 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
-            indexer = new Indexer(config.indexer);
+            indexerTower = new IndexerTower(config.indexerTower);
+            Timer.delay(canInitDelay);
+            indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             coordinator = new Coordinator();
 
@@ -155,6 +171,19 @@ public class Robot extends SpectrumRobot {
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
+
+        Telemetry.log("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
+        Telemetry.log("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
+        Telemetry.log("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
+        Telemetry.log("BuildConstants/GitDate", BuildConstants.GIT_DATE);
+        Telemetry.log("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
+        Telemetry.log(
+                "BuildConstants/GitDirty",
+                switch (BuildConstants.DIRTY) {
+                    case 0 -> "All changes committed";
+                    case 1 -> "Uncommitted changes";
+                    default -> "Unknown";
+                });
     }
 
     /**
@@ -212,11 +241,17 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
-            SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
-            SmartDashboard.putNumber("Match Data/TimeLeftInShift", ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
+            Telemetry.log("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            Telemetry.log(
+                    "Match Data/TimeLeftInShift",
+                    ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+            Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
+
             field2d.setRobotPose(swerve.getRobotPose());
+
             ShotCalculator.getInstance().clearShootingParameters();
+            ShotCalculator.getInstance().getParameters();
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
@@ -235,8 +270,7 @@ public class Robot extends SpectrumRobot {
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    new InstantCommand(
-                                            () -> SmartDashboard.putBoolean("Initialized", true)))
+                                    new InstantCommand(() -> Telemetry.log("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
@@ -396,5 +430,8 @@ public class Robot extends SpectrumRobot {
 
     /** This method is called periodically during simulation. */
     @Override
-    public void simulationPeriodic() {}
+    public void simulationPeriodic() {
+        SmartDashboard.putNumber(
+                "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+    }
 }

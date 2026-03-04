@@ -13,9 +13,10 @@ public class FM2026 extends Config {
         pilot.setAttached(true);
         operator.setAttached(true);
         fuelIntake.setAttached(true);
-        turret.setAttached(true);
         intakeExtension.setAttached(true);
-        indexer.setAttached(true);
+        turret.setAttached(true);
         launcher.setAttached(true);
+        indexerTower.setAttached(true);
+        indexerBed.setAttached(true);
     }
 }

@@ -56,7 +56,8 @@ public class VisionSystem extends SubsystemBase {
         // visionSim.addCamera(cameraSimBack, robotToBackCamera);
 
         // Add AprilTags to vision sim
-        AprilTagFieldLayout tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+        AprilTagFieldLayout tagLayout =
+                AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
         visionSim.addAprilTags(tagLayout);
     }
 

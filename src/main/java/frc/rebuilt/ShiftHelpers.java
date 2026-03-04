@@ -15,17 +15,17 @@ public class ShiftHelpers {
 
     public static int timeLeftInShiftSeconds(double currentMatchTime) {
         if (currentMatchTime >= 130) {
-            return (int)(currentMatchTime - 130);
+            return (int) (currentMatchTime - 130);
         } else if (currentMatchTime >= 105 && currentMatchTime <= 130) {
-            return (int)(currentMatchTime - 105);
+            return (int) (currentMatchTime - 105);
         } else if (currentMatchTime >= 80 && currentMatchTime <= 105) {
-            return (int)(currentMatchTime - 80);
+            return (int) (currentMatchTime - 80);
         } else if (currentMatchTime >= 55 && currentMatchTime <= 80) {
-            return (int)(currentMatchTime - 55);
+            return (int) (currentMatchTime - 55);
         } else if (currentMatchTime >= 30 && currentMatchTime <= 55) {
-            return (int)(currentMatchTime - 30);
+            return (int) (currentMatchTime - 30);
         } else {
-            return (int)currentMatchTime;
+            return (int) currentMatchTime;
         }
     }
 

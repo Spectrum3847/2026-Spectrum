@@ -10,21 +10,26 @@ public class IntakeExtensionStates {
     private static IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
 
     public static void setupDefaultCommand() {
-        intakeExtension.setDefaultCommand(log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
+        intakeExtension.setDefaultCommand(
+                log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
     // -------------------- State Commands --------------------
 
     public static void fullExtend() {
-        scheduleIfNotRunning(intakeExtension.move(() -> config.getMaxRotations()));
+        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getFullOut()));
     }
 
     public static void fullRetract() {
-        scheduleIfNotRunning(intakeExtension.move(() -> config.getMinRotations()));
+        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getHome()));
+    }
+
+    public static void neutral() {
+        scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
     }
 
     // --------------------------------------------------------
-    
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);
