@@ -20,6 +20,6 @@
     }
   },
   "resetOdom": false,
-  "folder": null,
+  "folder": "Neutral Zone Autos",
   "choreoAuto": false
 }

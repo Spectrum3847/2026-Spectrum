@@ -10,7 +10,9 @@
     "Neutral Zone - Right Start"
   ],
   "autoFolders": [
-    "Config Autos"
+    "Config Autos",
+    "Front Autos",
+    "Neutral Zone Autos"
   ],
   "defaultMaxVel": 4.5,
   "defaultMaxAccel": 4.5,
