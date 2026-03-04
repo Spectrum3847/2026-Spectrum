@@ -46,11 +46,13 @@ public class Operator extends Gamepad {
         Telemetry.print("Operator Subsystem Initialized: ");
     }
 
+    @Override
     public void setupStates() {
         // Left Blank so we can bind when the controller is connected
         OperatorStates.setStates();
     }
 
+    @Override
     public void setupDefaultCommand() {
         OperatorStates.setupDefaultCommand();
     }

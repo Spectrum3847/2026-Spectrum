@@ -2,10 +2,10 @@ package frc.robot.configs;
 
 import frc.robot.Robot.Config;
 
-public class FM2026 extends Config {
+public class PM2026 extends Config {
 
     // Final Machine
-    public FM2026() {
+    public PM2026() {
         super();
         swerve.configEncoderOffsets(0.289551, 0.394043, -0.203857, -0.039307);
 

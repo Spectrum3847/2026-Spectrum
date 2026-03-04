@@ -4,10 +4,12 @@ import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 
+import com.ctre.phoenix6.Utils;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
@@ -39,15 +41,15 @@ public class RobotSim {
 
     @Getter
     private static final IntakeSimulation intakeSimulation =
-            IntakeSimulation.OverTheBumperIntake(
-                    "Fuel",
-                    Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-                    Inches.of(29),
-                    Inches.of(12),
-                    IntakeSimulation.IntakeSide.FRONT,
-                    80);
-
-    ;
+            RobotBase.isSimulation()
+                    ? IntakeSimulation.OverTheBumperIntake(
+                            "Fuel",
+                            Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
+                            Inches.of(29),
+                            Inches.of(12),
+                            IntakeSimulation.IntakeSide.FRONT,
+                            80)
+                    : null;
 
     public static final Translation2d origin = new Translation2d(0.0, 0.0);
 
@@ -134,11 +136,14 @@ public class RobotSim {
         ll.setColor(edgeColor);
 
         MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
-        shooter.setColor(new Color8Bit((Color.kBlack)));
+        shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
     // Maple Sim Fuel Intaking
     public static Command mapleSimIntakeFuel() {
+        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+            return Commands.none();
+        }
         return new Command() {
             @Override
             public void initialize() {
@@ -146,60 +151,63 @@ public class RobotSim {
             }
 
             @Override
-            public void execute() {
-                SmartDashboard.putNumber(
-                        "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
-            }
-
-            @Override
             public void end(boolean interrupted) {
                 RobotSim.getIntakeSimulation().stopIntake();
             }
-        };
+        }.withName("RobotSim.mapleSimIntakeFuel");
     }
 
     // Maple Sim Fuel Projectile Creator
     public static Command mapleSimCreateFuelProjectile() {
+        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+            return Commands.none();
+        }
         return new InstantCommand(
-                () -> {
-                    var parameters = ShotCalculator.getInstance().getParameters();
-                    GamePieceProjectile fuelProjectile =
-                            new RebuiltFuelOnFly(
-                                            Robot.getSwerve().getRobotPose().getTranslation(),
-                                            new Translation2d(),
-                                            Robot.getSwerve().getCurrentRobotChassisSpeeds(),
-                                            parameters.turretAngle(),
-                                            Inches.of(29),
-                                            MetersPerSecond.of(parameters.flywheelSpeed() * 0.0325),
-                                            Degrees.of(65))
-                                    .withProjectileTrajectoryDisplayCallBack(
-                                            // Callback for when the fuel will eventually hit the
-                                            // target (if configured)
-                                            (pose3ds) ->
-                                                    DogLog.log(
-                                                            "SimShot/FuelProjectileSuccessfulShot",
-                                                            pose3ds.toArray(Pose3d[]::new)),
-                                            // Callback for when the fuel will eventually miss the
-                                            // target, or if no target
-                                            // is configured
-                                            (pose3ds) ->
-                                                    DogLog.log(
-                                                            "SimShot/FuelProjectileUnsuccessfulShot",
-                                                            pose3ds.toArray(Pose3d[]::new)));
-                    SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
-                    RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-                    SmartDashboard.putNumber(
-                            "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
-                });
+                        () -> {
+                            var parameters = ShotCalculator.getInstance().getParameters();
+                            GamePieceProjectile fuelProjectile =
+                                    new RebuiltFuelOnFly(
+                                                    Robot.getSwerve()
+                                                            .getRobotPose()
+                                                            .getTranslation(),
+                                                    new Translation2d(),
+                                                    Robot.getSwerve()
+                                                            .getCurrentRobotChassisSpeeds(),
+                                                    parameters.turretAngle(),
+                                                    Inches.of(29),
+                                                    MetersPerSecond.of(
+                                                            parameters.flywheelSpeed() * 0.0025),
+                                                    Degrees.of(65))
+                                            .withProjectileTrajectoryDisplayCallBack(
+                                                    (pose3ds) ->
+                                                            DogLog.log(
+                                                                    "SimShot/FuelProjectileSuccessfulShot",
+                                                                    pose3ds.toArray(Pose3d[]::new)),
+                                                    (pose3ds) ->
+                                                            DogLog.log(
+                                                                    "SimShot/FuelProjectileUnsuccessfulShot",
+                                                                    pose3ds.toArray(
+                                                                            Pose3d[]::new)));
+                            SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
+                            RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
+                        })
+                .withName("RobotSim.mapleSimCreateFuelProjectile");
     }
 
     public static Command mapleSimLaunchFuel() {
+        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+            return Commands.none();
+        }
         return Commands.defer(
                 () -> {
+                    if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
+                        return Commands.none();
+                    }
+
                     int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
                     SequentialCommandGroup group = new SequentialCommandGroup();
                     for (int i = 0; i < fuelCount; i++) {
-                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.125));
+                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.066));
                     }
                     return group.withName("RobotSim.mapleSimLaunchFuel");
                 },

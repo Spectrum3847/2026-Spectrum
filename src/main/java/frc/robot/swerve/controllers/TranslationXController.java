@@ -1,22 +1,21 @@
-package frc.robot.swerve;
+package frc.robot.swerve.controllers;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.swerve.SwerveConfig;
 
 /**
  * Uses a profiled PID Controller to quickly turn the robot to a specified angle. Once the robot is
  * within a certain tolerance of the goal angle, a PID controller is used to hold the robot at that
  * angle.
  */
-public class TranslationYController {
+public class TranslationXController {
     private final SwerveConfig config;
     private final ProfiledPIDController controller;
     private final double deadband = 1e-3;
 
-    double calculatedValue = 0;
-
-    public TranslationYController(SwerveConfig config) {
+    public TranslationXController(SwerveConfig config) {
         this.config = config;
         this.controller =
                 new ProfiledPIDController(
@@ -26,7 +25,7 @@ public class TranslationYController {
                         config.getTranslationConstraints());
 
         controller.setTolerance(config.getTranslationTolerance());
-        SmartDashboard.putData("PID Controllers/Y Controller", controller);
+        SmartDashboard.putData("PID Controllers/X Controller", controller);
     }
 
     public double calculate(double goalMeters, double currentMeters) {
@@ -46,10 +45,10 @@ public class TranslationYController {
                         -config.getTranslationConstraints().maxVelocity,
                         config.getTranslationConstraints().maxVelocity);
 
-        // SmartDashboard.putNumber("Y Controller Output", output);
-        // SmartDashboard.putBoolean("Y At Goal", controller.atGoal());
-        // SmartDashboard.putNumber("Y Position Error", controller.getPositionError());
-        // SmartDashboard.putNumber("Y Tolerance", controller.getPositionTolerance());
+        // SmartDashboard.putNumber("X Controller Output", output);
+        // SmartDashboard.putBoolean("X At Goal", controller.atGoal());
+        // SmartDashboard.putNumber("X Position Error", controller.getPositionError());
+        // SmartDashboard.putNumber("X Tolerance", controller.getPositionTolerance());
         return output;
     }
 

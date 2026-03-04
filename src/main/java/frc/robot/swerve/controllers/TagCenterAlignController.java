@@ -1,54 +1,62 @@
-package frc.robot.swerve;
+package frc.robot.swerve.controllers;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.Robot;
+import frc.robot.swerve.Swerve;
+import frc.robot.swerve.SwerveConfig;
 
 /**
  * Uses a profiled PID Controller to quickly turn the robot to a specified angle. Once the robot is
  * within a certain tolerance of the goal angle, a PID controller is used to hold the robot at that
  * angle.
  */
-public class TagDistanceAlignController {
+public class TagCenterAlignController {
     Swerve swerve;
     SwerveConfig config;
     PIDController controller;
     Constraints constraints;
 
     double calculatedValue = 0;
+    double maxVelocity;
 
-    public TagDistanceAlignController(SwerveConfig config) {
+    public TagCenterAlignController(SwerveConfig config) {
         this.config = config;
+        maxVelocity = Robot.getConfig().swerve.getSpeedAt12Volts().baseUnitMagnitude() * 0.5;
         controller =
                 new PIDController(
-                        config.getKPTagDistanceController(),
-                        config.getKITagDistanceController(),
-                        config.getKDTagDistanceController());
-
+                        config.getKPTagCenterController(),
+                        config.getKITagCenterController(),
+                        config.getKDTagCenterController());
         controller.setTolerance(0.0);
-        SmartDashboard.putData("PID Controllers/tagDistanceController", controller);
+
+        SmartDashboard.putData("PID Controllers/tagCenterController", controller);
     }
 
-    public double calculate(double goalArea, double currentArea) {
-        calculatedValue = controller.calculate(currentArea, goalArea);
+    public double calculate(double goalMeters, double currentMeters) {
+        calculatedValue = controller.calculate(currentMeters, goalMeters);
 
-        if (atGoal(currentArea)) {
+        if (atGoal(currentMeters)) {
             calculatedValue = 0;
             return calculatedValue;
         } else {
+            if (Math.abs(calculatedValue) > maxVelocity) {
+                calculatedValue = maxVelocity * Math.signum(calculatedValue);
+            }
             return calculatedValue + (config.getKSdrive() * Math.signum(calculatedValue));
         }
     }
 
     public boolean atGoal(double current) {
         double goal = controller.getSetpoint();
-        boolean atGoal = Math.abs(current - goal) < config.getTagDistanceTolerance();
+        boolean atGoal = Math.abs(current - goal) < config.getTagCenterTolerance();
         System.out.println("At Goal: " + atGoal + " Goal: " + goal + " Current: " + current);
         return atGoal;
     }
 
-    public void reset(double current) {
-        // controller.reset(current);
+    public boolean atSetpoint() {
+        return controller.atSetpoint();
     }
 
     public void updatePID(double kP, double kI, double kD) {

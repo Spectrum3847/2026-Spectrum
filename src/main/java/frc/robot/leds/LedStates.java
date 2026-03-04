@@ -62,7 +62,7 @@ public class LedStates {
     private static Trigger ledCommand(
             String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
         return trigger.and(sLed.checkPriority(priority))
-                .whileTrue((sLed.setPattern(pattern, priority).withName(name)));
+                .whileTrue(sLed.setPattern(pattern, priority).withName(name));
     }
 
     static void testPattern(Trigger trigger, int priority) {

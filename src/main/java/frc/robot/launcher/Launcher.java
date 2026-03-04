@@ -6,6 +6,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
@@ -26,12 +27,14 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
-        /* Intake config values */
-        @Getter private double currentLimit = 44;
-        @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 12;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 14;
+        /* Launcher config values */
+        @Getter private double currentLimit = 60;
+        @Getter private double torqueCurrentLimit = 80;
+        @Getter private double velocityKp = 10;
+        @Getter private double velocityKv = 0;
+        @Getter private double velocityKs = 10;
+
+        @Getter private double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
         @Getter private double launcherX = Units.inchesToMeters(50);
@@ -51,7 +54,7 @@ public class Launcher extends Mechanism {
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "LauncherFollower", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -123,10 +126,24 @@ public class Launcher extends Mechanism {
     }
 
     public Command trackTargetCommand() {
-        return run(
+        return run(() -> {
+                    var params = ShotCalculator.getInstance().getParameters();
+                    setVelocityTCFOCrpm(() -> params.flywheelSpeed());
+                })
+                .withName("Launcher.trackTargetCommand");
+    }
+
+    public Trigger aimingAtTarget() {
+        return new Trigger(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    runTorqueCurrentFoc(() -> params.flywheelSpeed());
+
+                    double targetRPM = params.flywheelSpeed();
+                    double currentRPM = getVelocityRPM();
+
+                    double errorRPM = currentRPM - targetRPM;
+
+                    return Math.abs(errorRPM) < config.getOnTargetToleranceRPM();
                 });
     }
 

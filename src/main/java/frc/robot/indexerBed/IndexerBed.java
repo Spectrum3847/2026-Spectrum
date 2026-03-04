@@ -1,47 +1,37 @@
-package frc.robot.fuelIntake;
+package frc.robot.indexerBed;
 
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Robot;
-import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
-/** The Fuel Intake subsystem. Responsible for intake and handling of fuel elements. */
-public class FuelIntake extends Mechanism {
+public class IndexerBed extends Mechanism {
 
-    public static class FuelIntakeConfig extends Config {
+    public static class IndexerBedConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double fuelIntakeVoltage = 9.0;
-        @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
-        @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
-        @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
+        @Getter @Setter private double indexerVoltageOut = 6;
+        @Getter @Setter private double indexerTorqueCurrent = 40;
 
         /* Intake config values */
-        @Getter private double currentLimit = 44;
-        @Getter private double torqueCurrentLimit = 200;
-        @Getter private double velocityKp = 5;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 2;
+        @Getter @Setter private double currentLimit = 50;
+        @Getter @Setter private double torqueCurrentLimit = 75;
+        @Getter @Setter private double velocityKp = 25;
+        @Getter @Setter private double velocityKv = 0.2;
+        @Getter @Setter private double velocityKs = 4;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(15);
-        @Getter private double intakeY = Units.inchesToMeters(23);
-        @Getter private double wheelDiameter = 6;
+        @Getter @Setter private double intakeX = Units.inchesToMeters(60);
+        @Getter @Setter private double intakeY = Units.inchesToMeters(75);
+        @Getter @Setter private double wheelDiameter = 12;
 
-        public FuelIntakeConfig() {
-            super("Intake", 5, Rio.CANIVORE);
+        public IndexerBedConfig() {
+            super("IndexerBed", 8, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -51,20 +41,17 @@ public class FuelIntake extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
-            setFollowerConfigs(
-                    new FollowerConfig(
-                            "Intake Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
-    private FuelIntakeConfig config;
-    private FuelIntakeSim sim;
+    // private IndexerBedConfig config;
+    // private IndexerSim sim;
 
-    public FuelIntake(FuelIntakeConfig config) {
+    public IndexerBed(IndexerBedConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
+        // simulationInit();
         telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -77,7 +64,7 @@ public class FuelIntake extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        FuelIntakeStates.setupDefaultCommand();
+        IndexerBedStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -127,31 +114,31 @@ public class FuelIntake extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+    //         // diameter
+    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
+    //     }
+    // }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class FuelIntakeSim extends RollerSim {
-        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY())
-                            .setMount(Robot.getIntakeExtension().getSim()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class IndexerSim extends RollerSim {
+    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }
