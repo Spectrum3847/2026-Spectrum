@@ -1,9 +1,10 @@
-package frc.robot.swerve;
+package frc.robot.swerve.controllers;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.swerve.SwerveConfig;
 
 public class RotationController {
     private final ProfiledPIDController motionController;
@@ -39,7 +40,7 @@ public class RotationController {
 
         holdController.enableContinuousInput(-Math.PI, Math.PI);
         holdController.setTolerance(config.getRotationTolerance() / 2.0);
-        SmartDashboard.putData("Hold Controller", holdController);
+        SmartDashboard.putData("PID Controllers/Hold Controller", holdController);
     }
 
     public double calculate(double goalRadians, double currentRadians, boolean useHold) {

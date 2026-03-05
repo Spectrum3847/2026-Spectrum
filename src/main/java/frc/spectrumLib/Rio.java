@@ -19,10 +19,18 @@ import java.util.Map;
  */
 
 public enum Rio {
-    PM_2025("032B4BB3", true), // 032B4BB3
-    FM_2024("032B1F69", true),
-    PHOTON_2025("0329AD07", true),
+
+    // 2026 Robots
+    XM_2026("032B4BB3", true),
+    // PM_2026("", true),
+    // FM_2026("", true),
+
+    // 2025 Robots
     FM_2025("0329F2D1", true),
+
+    // 2024 Robots
+    FM_2024("032B1F69", true),
+
     SIM("", true), // e.g. test default or simulation
     UNKNOWN(null, true);
 
