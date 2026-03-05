@@ -6,18 +6,18 @@ public class PHOTON2026 extends Config {
 
     // Photon Machine
     public PHOTON2026() {
-        
+
         super();
         // swerve.configEnconderOffsets();
 
+        // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
         fuelIntake.setAttached(true);
-        turret.setAttached(true);
         intakeExtension.setAttached(true);
-        indexer.setAttached(true);
+        turret.setAttached(true);
         launcher.setAttached(true);
-
+        indexerTower.setAttached(true);
+        indexerBed.setAttached(true);
     }
-
 }
