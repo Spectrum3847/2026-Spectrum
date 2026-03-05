@@ -1,5 +1,6 @@
 package frc.robot.indexerTower;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -46,6 +47,17 @@ public class IndexerTower extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            setFollowerConfigs(
+                    new FollowerConfig(
+                            "IndexerTower Follower 1",
+                            52,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Aligned),
+                    new FollowerConfig(
+                            "IndexerTower Follower 2",
+                            53,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Aligned));
         }
     }
 

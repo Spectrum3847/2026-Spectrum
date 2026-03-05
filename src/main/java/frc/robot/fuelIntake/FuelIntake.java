@@ -41,7 +41,7 @@ public class FuelIntake extends Mechanism {
         @Getter private double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
-            super("Intake", 5, Rio.CANIVORE);
+            super("Intake", 5, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -53,7 +53,7 @@ public class FuelIntake extends Mechanism {
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Intake Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Intake Right", 6, Rio.RIO_CANBUS, MotorAlignmentValue.Opposed));
         }
     }
 
