@@ -318,7 +318,9 @@ public class Robot extends SpectrumRobot {
                                                             new Rotation2d()))
                                     .collect(Collectors.toList()));
                 }
-                field2d.getObject("path").setPoses(poses);
+                field2d.getObject("Auto Routine").setPoses(poses);
+            } else {
+                field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
             }
         }
     }
