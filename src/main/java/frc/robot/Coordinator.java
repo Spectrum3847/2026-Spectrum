@@ -17,7 +17,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.neutral();
+                IntakeExtensionStates.fullExtend();
                 LauncherStates.neutral();
                 RotationalPivotStates.neutral();
             }
@@ -97,6 +97,14 @@ public class Coordinator {
             case L1_CLIMB_EXECUTE -> {}
             case L3_CLIMB_PREP -> {}
             case L3_CLIMB_EXECUTE -> {}
+            case CUSTOM_SPEED_TURRET_LAUNCH -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.fullExtend();
+                LauncherStates.customLaunchSpeed();
+                RotationalPivotStates.aimAtTarget();
+            }
             default -> {
                 // Handle other states or throw an error
             }

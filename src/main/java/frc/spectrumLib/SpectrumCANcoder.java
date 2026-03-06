@@ -40,7 +40,9 @@ public class SpectrumCANcoder {
             CANcoderConfiguration canCoderConfigs = new CANcoderConfiguration();
             canCoderConfigs.MagnetSensor.MagnetOffset = config.getOffset();
             canCoderConfigs.MagnetSensor.SensorDirection =
-                    SensorDirectionValue.CounterClockwise_Positive;
+                    config.isInverted()
+                            ? SensorDirectionValue.Clockwise_Positive
+                            : SensorDirectionValue.CounterClockwise_Positive;
             canCoderConfigs.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 0.5;
             if (canCoderResponseOK(canCoder.getConfigurator().apply(canCoderConfigs))) {
                 // Modify configuration to use remote CANcoder fused

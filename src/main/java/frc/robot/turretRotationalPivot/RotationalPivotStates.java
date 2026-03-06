@@ -18,6 +18,10 @@ public class RotationalPivotStates {
         return turretRotation.aimingAtTarget();
     }
 
+    public static void operatorResetTurretPosition() {
+        turretRotation.resetCurrentPositionToZero();
+    }
+
     // -------------------- State Commands --------------------
 
     public static void aimAtTarget() {

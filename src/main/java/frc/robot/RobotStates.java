@@ -53,6 +53,9 @@ public class RobotStates {
         pilot.LT.onTrue(applyState(State.TURRET_TRACK));
         pilot.LT.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
 
+        pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
+        pilot.startButton.onFalse(applyState(State.IDLE));
+
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
 

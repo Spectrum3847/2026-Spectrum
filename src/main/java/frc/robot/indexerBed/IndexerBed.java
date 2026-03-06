@@ -16,7 +16,7 @@ public class IndexerBed extends Mechanism {
     public static class IndexerBedConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 6;
+        @Getter @Setter private double indexerVoltageOut = 8;
         @Getter @Setter private double indexerTorqueCurrent = 40;
 
         /* Intake config values */

@@ -32,6 +32,7 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
+        @Getter private final double zeroOffsetFromRobotFront = 180;
         @Getter private final double presetPosition = 90;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
@@ -40,10 +41,10 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 50;
-        @Getter private final double positionKp = 10;
-        @Getter private final double positionKd = 0;
+        @Getter private final double currentLimit = 30;
+        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double positionKp = 800;
+        @Getter private final double positionKd = 25;
         @Getter private final double positionKv = 0;
         @Getter private final double positionKs = 2;
         @Getter private final double positionKa = 0;
@@ -67,6 +68,7 @@ public class RotationalPivot extends Mechanism {
 
         @Getter @Setter private double CANcoderOffset = -0.196533203125;
         @Getter @Setter private boolean CANcoderAttached = true;
+        @Getter @Setter private boolean isCANcoderInverted = false;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
@@ -84,15 +86,15 @@ public class RotationalPivot extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-0.25, 0.25);
+            configMinMaxRotations(-0.54, 0.50);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
 
-            turretConstraints = new TrapezoidProfile.Constraints(80, 160);
+            turretConstraints = new TrapezoidProfile.Constraints(60, 80);
         }
 
         public RotationalPivotConfig modifyMotorConfig(TalonFX motor) {
@@ -126,7 +128,8 @@ public class RotationalPivot extends Mechanism {
                                 config.getCANcoderRotorToSensorRatio(),
                                 config.getCANcoderSensorToMechanismRatio(),
                                 config.getCANcoderOffset(),
-                                config.isCANcoderAttached());
+                                config.isCANcoderAttached(),
+                                config.isCANcoderInverted());
                 canCoder =
                         new SpectrumCANcoder(
                                 44,
@@ -188,6 +191,10 @@ public class RotationalPivot extends Mechanism {
         }
     }
 
+    public void resetCurrentPositionToZero() {
+        motor.setPosition(degreesToRotations(() -> 0.0));
+    }
+
     public Command resetToInitialPos() {
         return run(this::setInitialPosition);
     }
@@ -228,7 +235,10 @@ public class RotationalPivot extends Mechanism {
     }
 
     public void aimFieldRelative(Rotation2d fieldAngleDegrees, double goalVelocityRotPerSec) {
-        double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+        // Rotated 180 degrees because turret zero is facing backwards relative to robot forward
+        double robotHeadingDeg =
+                Robot.getSwerve().getRobotPose().getRotation().getDegrees()
+                        + config.getZeroOffsetFromRobotFront();
         double robotAngularVelocityRotPerSec =
                 Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond
                         / (2 * Math.PI);

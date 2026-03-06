@@ -39,6 +39,10 @@ public class LauncherStates {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
+    public static void customLaunchSpeed() {
+        scheduleIfNotRunning(launcher.onTheFlyLaunch().withName("Launcher.onTheFlyLaunch"));
+    }
+
     // --------------------------------------------------------
 
     public static Command launchFuel() {

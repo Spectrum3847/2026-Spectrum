@@ -27,6 +27,8 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
+        @Getter @Setter private double onTheFlySpeed = 0;
+
         /* Launcher config values */
         @Getter private double currentLimit = 60;
         @Getter private double torqueCurrentLimit = 80;
@@ -94,6 +96,8 @@ public class Launcher extends Mechanism {
             builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
             builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
             builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
+            builder.addDoubleProperty(
+                    "onTheFlySpeedRPM", config::getOnTheFlySpeed, config::setOnTheFlySpeed);
         }
     }
 
@@ -131,6 +135,13 @@ public class Launcher extends Mechanism {
                     setVelocityTCFOCrpm(() -> params.flywheelSpeed());
                 })
                 .withName("Launcher.trackTargetCommand");
+    }
+
+    public Command onTheFlyLaunch() {
+        return run(() -> {
+                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed());
+                })
+                .withName("Launcher.onTheFlyLaunch");
     }
 
     public Trigger aimingAtTarget() {

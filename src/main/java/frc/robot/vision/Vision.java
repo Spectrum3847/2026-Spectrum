@@ -94,7 +94,7 @@ public class Vision implements NTSendable, Subsystem {
 
         @Getter
         final Translation2d turretCenterToCamera =
-                new Translation2d(Units.inchesToMeters(5.641455), 0);
+                new Translation2d(Units.inchesToMeters(-5.641455), 0);
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;

@@ -1,7 +1,11 @@
 package frc.robot.operator;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
+import frc.robot.intakeExtension.IntakeExtensionStates;
+import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.spectrumLib.Telemetry;
 
 /** This class should have any command calls that directly call the Operator */
@@ -23,6 +27,20 @@ public class OperatorStates {
                 Robot.getTurret().joystickMove(() -> operator.getClimberTriggerAxis(), () -> 1));
         operator.leftTriggerOnly.whileTrue(
                 Robot.getTurret().joystickMove(() -> -operator.getClimberTriggerAxis(), () -> -1));
+
+        operator.YButton.onTrue(
+                new InstantCommand(() -> IntakeExtensionStates.operatorResetIntakeExtension()));
+        operator.XButton.onTrue(
+                new InstantCommand(() -> RotationalPivotStates.operatorResetTurretPosition()));
+
+        operator.dpadDown.onTrue(
+                log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
+        operator.dpadUp.onTrue(
+                log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
+        operator.dpadRight.onTrue(
+                log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
+        operator.dpadLeft.onTrue(
+                log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
     }
 
     /** Command that can be used to rumble the operator controller */

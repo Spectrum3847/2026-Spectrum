@@ -9,15 +9,18 @@ public class SpectrumCANcoderConfig {
     @Getter private double sensorToMechanismRatio = 1;
     @Getter private double offset = 0;
     @Getter private boolean attached = false;
+    @Getter private boolean inverted = false;
 
     public SpectrumCANcoderConfig(
             double rotorToSensorRatio,
             double sensorToMechanismRatio,
             double offset,
-            boolean attached) {
+            boolean attached,
+            boolean inverted) {
         this.rotorToSensorRatio = rotorToSensorRatio;
         this.sensorToMechanismRatio = sensorToMechanismRatio;
         this.offset = offset;
         this.attached = attached;
+        this.inverted = inverted;
     }
 }
