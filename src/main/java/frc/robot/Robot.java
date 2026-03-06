@@ -22,6 +22,7 @@ import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
+import frc.robot.configs.PM2026;
 import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
@@ -116,9 +117,9 @@ public class Robot extends SpectrumRobot {
                 case XM_2026:
                     config = new XM2026();
                     break;
-                    // case PM_2026:
-                    //     config = new PM2026();
-                    //     break;
+                case PM_2026:
+                    config = new PM2026();
+                    break;
                     // case FM_2026:
                     //     config = new FM2026();
                     //     break;

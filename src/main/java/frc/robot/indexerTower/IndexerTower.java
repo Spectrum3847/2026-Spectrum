@@ -57,7 +57,7 @@ public class IndexerTower extends Mechanism {
                             "IndexerTower Follower 2",
                             53,
                             Rio.CANIVORE,
-                            MotorAlignmentValue.Aligned));
+                            MotorAlignmentValue.Opposed));
         }
     }
 
