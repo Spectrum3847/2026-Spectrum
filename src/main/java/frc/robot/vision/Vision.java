@@ -47,16 +47,16 @@ public class Vision implements NTSendable, Subsystem {
         @Getter
         final LimelightConfig frontConfig =
                 new LimelightConfig(frontLL)
-                        .withTranslation(0.215, 0, 0.188)
-                        .withRotation(0, Math.toRadians(28), 0);
+                        .withTranslation(-0.286201993, 0.2134100126, 0.7366)
+                        .withRotation(0, 0, 0);
 
         @Getter final String backLL = "limelight-back";
 
         @Getter
         final LimelightConfig backConfig =
                 new LimelightConfig(backLL)
-                        .withTranslation(-0.215, 0.0, 0.188)
-                        .withRotation(0, Math.toRadians(28), Math.toRadians(180));
+                        .withTranslation(-0.3084987734, 0.2134100126, 0.6502249886)
+                        .withRotation(0, 0, Math.toRadians(180));
 
         @Getter final String leftLL = "limelight-left";
 
@@ -64,17 +64,14 @@ public class Vision implements NTSendable, Subsystem {
         final LimelightConfig leftConfig =
                 new LimelightConfig(leftLL)
                         .withTranslation(0, 0.215, 0.188)
-                        .withRotation(0, Math.toRadians(28), Math.toRadians(90));
+                        .withRotation(0, 0, Math.toRadians(90));
 
         @Getter final String rightLL = "limelight-right";
 
         @Getter
         final LimelightConfig rightConfig =
                 new LimelightConfig(rightLL)
-                        .withTranslation(
-                                Units.inchesToMeters(-1.75),
-                                Units.inchesToMeters(12.232205),
-                                Units.inchesToMeters(28.099409))
+                        .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
                         .withRotation(0, 0, -90);
 
         // Turret must be ZEROED in LL-GUI to report a correct pose
@@ -93,7 +90,11 @@ public class Vision implements NTSendable, Subsystem {
 
         @Getter
         final Translation2d robotToTurretCenter =
-                new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0));
+                new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7));
+
+        @Getter
+        final Translation2d turretCenterToCamera =
+                new Translation2d(Units.inchesToMeters(5.641455), 0);
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
@@ -605,18 +606,8 @@ public class Vision implements NTSendable, Subsystem {
         double turretDegrees = turretRotationSupplier.getAsDouble();
         Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
 
-        // Robot->Camera at 0° turret
-        Translation2d robotToCamera0 =
-                new Translation2d(
-                        config.getTurretConfig().getForward(),
-                        config.getTurretConfig().getRight()
-                                * -1); // Negate because left is positive in WPI coordinate system
-
-        // Vector from turret center -> camera at zero turret
-        Translation2d turretToCamera0 = robotToCamera0.minus(config.getRobotToTurretCenter());
-
         // Rotate vector by turret angle
-        Translation2d turretToRotatedCamera = turretToCamera0.rotateBy(turretRotation);
+        Translation2d turretToRotatedCamera = config.turretCenterToCamera.rotateBy(turretRotation);
 
         // Add turret center offset to get full robot->camera vector
         Translation2d robotToRotatedCamera =
