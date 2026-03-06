@@ -31,7 +31,7 @@ public class RotationalPivot extends Mechanism {
     public static class RotationalPivotConfig extends Config {
         @Getter @Setter private boolean reversed = false;
 
-        @Getter private final double initPosition = 180;
+        @Getter private final double initPosition = 0;
         @Getter private final double presetPosition = 90;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
@@ -40,13 +40,13 @@ public class RotationalPivot extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double currentLimit = 30;
-        @Getter private final double torqueCurrentLimit = 60;
-        @Getter private final double positionKp = 800;
-        @Getter private final double positionKd = 5;
+        @Getter private final double currentLimit = 10;
+        @Getter private final double torqueCurrentLimit = 50;
+        @Getter private final double positionKp = 10;
+        @Getter private final double positionKd = 0;
         @Getter private final double positionKv = 0;
         @Getter private final double positionKs = 2;
-        @Getter private final double positionKa = 2;
+        @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 300;
@@ -84,7 +84,7 @@ public class RotationalPivot extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-0.560, 0.670); // 442.8° range
+            configMinMaxRotations(-0.25, 0.25);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
@@ -120,7 +120,6 @@ public class RotationalPivot extends Mechanism {
         this.config = config;
 
         if (isAttached()) {
-            setInitialPosition();
             if (config.isCANcoderAttached() && !Robot.isSimulation()) {
                 canCoderConfig =
                         new SpectrumCANcoderConfig(
@@ -136,6 +135,7 @@ public class RotationalPivot extends Mechanism {
                                 config,
                                 SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
             }
+            setInitialPosition();
         }
 
         profile = new TrapezoidProfile(config.turretConstraints);
@@ -177,13 +177,9 @@ public class RotationalPivot extends Mechanism {
             if (canCoder.isAttached()
                     && canCoder.canCoderResponseOK(
                             canCoder.getCanCoder().getAbsolutePosition().getStatus())) {
-                // Set the motor position to match the Cancoder's absolute position, adjusted by the
-                // sensor-to-mechanism ratio and an offset of 0.5 rotations to make initial position
-                // 180 degrees.
                 motor.setPosition(
                         (canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
-                                        / config.getCANcoderSensorToMechanismRatio())
-                                + 0.5);
+                                / config.getCANcoderSensorToMechanismRatio()));
             } else {
                 motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
             }
@@ -301,6 +297,14 @@ public class RotationalPivot extends Mechanism {
                 stop();
             }
         };
+    }
+
+    public Command joystickMove(DoubleSupplier joystickInput, DoubleSupplier maxSpeed) {
+        return run(() -> {
+                    double targetSpeed = joystickInput.getAsDouble() * maxSpeed.getAsDouble();
+                    setVoltageOutput(() -> targetSpeed);
+                })
+                .withName(getName() + ".joystickMove");
     }
 
     @Override

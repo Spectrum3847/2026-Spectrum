@@ -35,7 +35,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter @Setter private double maxRotations = 2.7;
+        @Getter @Setter private double maxRotations = 2.65;
         @Getter @Setter private double minRotations = 0.0;
 
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
@@ -54,7 +54,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
-        @Getter @Setter private double sensorToMechanismRatio = 1.7;
+        @Getter @Setter private double sensorToMechanismRatio = 3.6111;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */

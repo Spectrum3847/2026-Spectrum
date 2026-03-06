@@ -18,7 +18,12 @@ public class OperatorStates {
     }
 
     /** Set the states for the operator controller */
-    public static void setStates() {}
+    public static void setStates() {
+        operator.rightTriggerOnly.whileTrue(
+                Robot.getTurret().joystickMove(() -> operator.getClimberTriggerAxis(), () -> 1));
+        operator.leftTriggerOnly.whileTrue(
+                Robot.getTurret().joystickMove(() -> -operator.getClimberTriggerAxis(), () -> -1));
+    }
 
     /** Command that can be used to rumble the operator controller */
     public static Command rumble(double intensity, double durationSeconds) {

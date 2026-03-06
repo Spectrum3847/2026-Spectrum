@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
+import java.util.function.DoubleSupplier;
 
 public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
@@ -31,6 +32,13 @@ public class RotationalPivotStates {
 
     public static void neutral() {
         scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
+    }
+
+    public static Command manualControl(DoubleSupplier joystickInput, DoubleSupplier maxSpeed) {
+        return log(
+                turretRotation
+                        .joystickMove(joystickInput, maxSpeed)
+                        .withName("Turret.manualControl"));
     }
 
     // --------------------------------------------------------
