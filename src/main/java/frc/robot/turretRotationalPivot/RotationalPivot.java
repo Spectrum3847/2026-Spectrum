@@ -31,7 +31,7 @@ public class RotationalPivot extends Mechanism {
     public static class RotationalPivotConfig extends Config {
         @Getter @Setter private boolean reversed = false;
 
-        @Getter private final double initPosition = 0;
+        @Getter private final double initPosition = 180;
         @Getter private final double presetPosition = 90;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
@@ -177,9 +177,13 @@ public class RotationalPivot extends Mechanism {
             if (canCoder.isAttached()
                     && canCoder.canCoderResponseOK(
                             canCoder.getCanCoder().getAbsolutePosition().getStatus())) {
+                // Set the motor position to match the Cancoder's absolute position, adjusted by the
+                // sensor-to-mechanism ratio and an offset of 0.5 rotations to make initial position
+                // 180 degrees.
                 motor.setPosition(
-                        canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
-                                / config.getCANcoderSensorToMechanismRatio());
+                        (canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
+                                        / config.getCANcoderSensorToMechanismRatio())
+                                + 0.5);
             } else {
                 motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
             }
