@@ -7,25 +7,31 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Start to Depot"
+            "pathName": "Neutral Zone L 1"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Depot to Outpost"
+            "pathName": "Neutral Zone L 2"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 10.0
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Outpost to Climb"
+            "pathName": "Neutral Zone L End to Climb"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Front Autos",
+  "folder": "Neutral Zone Autos",
   "choreoAuto": false
 }

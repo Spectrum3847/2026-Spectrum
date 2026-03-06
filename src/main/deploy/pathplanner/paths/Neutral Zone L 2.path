@@ -54,6 +54,12 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
+      "name": "clearState",
+      "waypointRelativePos": 0.5677368833202773,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
       "name": "shotPrep",
       "waypointRelativePos": 1.7016444792482346,
       "endWaypointRelativePos": null,
@@ -79,7 +85,7 @@
     "rotation": -29.999999999999996
   },
   "reversed": false,
-  "folder": "Neutral Zone",
+  "folder": "Neutral Zone - Left Start",
   "idealStartingState": {
     "velocity": 0,
     "rotation": -90.0

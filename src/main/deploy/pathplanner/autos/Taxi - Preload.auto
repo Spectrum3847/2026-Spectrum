@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Drive Forward"
+            "pathName": "Taxi + Preload"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Config Autos",
+  "folder": null,
   "choreoAuto": false
 }
