@@ -56,19 +56,10 @@ public class RobotStates {
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
 
-        turretOnTarget.onTrue(
-                new InstantCommand(() -> Telemetry.log("LauncherPrep/TurretOnTarget", true)));
-        turretOnTarget.onFalse(
-                new InstantCommand(() -> Telemetry.log("LauncherPrep/TurretOnTarget", false)));
-        launcherOnTarget.onTrue(
-                new InstantCommand(() -> Telemetry.log("LauncherPrep/LauncherOnTarget", true)));
-        launcherOnTarget.onFalse(
-                new InstantCommand(() -> Telemetry.log("LauncherPrep/LauncherOnTarget", false)));
-        readyToLaunch.onTrue(
-                new InstantCommand(() -> Telemetry.log("LauncherPrep/ReadyToLaunch", true)));
-        readyToLaunch.onFalse(
-                new InstantCommand(() -> Telemetry.log("LauncherPrep/ReadyToLaunch", false)));
-        // robotInNeutralZone.or(robotInEnemyZone).whileTrue(applyState(State.TURRET_FEED_WITH_SPINUP));
+        // Telemetry bindings (keep logs in sync with trigger state)
+        bindTriggerTelemetry("LauncherPrep/TurretOnTarget", turretOnTarget);
+        bindTriggerTelemetry("LauncherPrep/LauncherOnTarget", launcherOnTarget);
+        bindTriggerTelemetry("LauncherPrep/ReadyToLaunch", readyToLaunch);
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
@@ -109,6 +100,11 @@ public class RobotStates {
 
         active.and(readyTrigger).onTrue(applyState(readyState));
         active.and(readyTrigger.not()).onTrue(applyState(aimingState));
+    }
+
+    private static void bindTriggerTelemetry(String name, Trigger trigger) {
+        trigger.onTrue(new InstantCommand(() -> Telemetry.log(name, true)));
+        trigger.onFalse(new InstantCommand(() -> Telemetry.log(name, false)));
     }
 
     public static Command applyState(State state) {
