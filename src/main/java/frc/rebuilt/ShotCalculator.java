@@ -1,5 +1,6 @@
 package frc.rebuilt;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -183,10 +184,12 @@ public class ShotCalculator {
         Rotation2d turretAngle = target.minus(compensatedTurretTranslation).getAngle();
         turretAngle = turretAngle.plus(Rotation2d.fromDegrees(TURRET_ANGLE_OFFSET_DEGREES));
 
-        // Turret angular velocity (rad/s) for your position controller feedforward
+        // Turret angular velocity (rot/s) for your position controller feedforward
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
-        double rawOmega =
-                turretAngle.minus(lastTurretAngle).getRotations() / loopPeriodSecs; // rad/s
+        double deltaRot =
+                MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
+
+        double rawOmega = deltaRot / loopPeriodSecs;
         double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
         lastTurretAngle = turretAngle;
 
