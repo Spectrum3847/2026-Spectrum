@@ -7,6 +7,8 @@ import frc.spectrumLib.Telemetry;
 public class IntakeExtensionStates {
     private static IntakeExtension intakeExtension = Robot.getIntakeExtension();
 
+    private static boolean sentOutByIntakeState = false;
+
     public static void setupDefaultCommand() {
         intakeExtension.setDefaultCommand(
                 log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
@@ -23,6 +25,7 @@ public class IntakeExtensionStates {
                 intakeExtension
                         .voltageOutPositive()
                         .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+        sentOutByIntakeState = true;
     }
 
     public static void fullRetract() {
@@ -30,6 +33,17 @@ public class IntakeExtensionStates {
                 intakeExtension
                         .voltageOutNegative()
                         .until(intakeExtension.atPercentage(() -> 0, () -> 5).debounce(0.5)));
+    }
+
+    public static void fullExtendConditional() {
+        if (sentOutByIntakeState) {
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .voltageOutPositive()
+                            .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+        } else {
+            scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+        }
     }
 
     public static void neutral() {

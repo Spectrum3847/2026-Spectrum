@@ -21,12 +21,6 @@
           "data": {
             "waitTime": 10.0
           }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Neutral Zone L End to Climb"
-          }
         }
       ]
     }

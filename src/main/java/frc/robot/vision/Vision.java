@@ -23,6 +23,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
+import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
 import frc.spectrumLib.util.Util;
@@ -86,7 +87,7 @@ public class Vision implements NTSendable, Subsystem {
                                 Units.inchesToMeters(0.430),
                                 Units.inchesToMeters(-5.06),
                                 Units.inchesToMeters(27))
-                        .withRotation(0, 10, 0);
+                        .withRotation(0, 10, 180);
 
         @Getter
         final Translation2d robotToTurretCenter =
@@ -299,7 +300,7 @@ public class Vision implements NTSendable, Subsystem {
     }
 
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean()) {
+        if (Util.teleop.getAsBoolean() || RobotStates.autoUpdatePose.getAsBoolean()) {
             for (Limelight limelight : allLimelights) {
                 limelight.setIMUmode(4);
             }

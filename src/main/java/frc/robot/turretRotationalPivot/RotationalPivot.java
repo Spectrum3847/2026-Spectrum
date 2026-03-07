@@ -32,10 +32,11 @@ public class RotationalPivot extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private final double zeroOffsetFromRobotFront = 180;
         @Getter private final double presetPosition = 90;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
+
+        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
@@ -237,8 +238,11 @@ public class RotationalPivot extends Mechanism {
     public void aimFieldRelative(Rotation2d fieldAngleDegrees, double goalVelocityRotPerSec) {
         // Rotated 180 degrees because turret zero is facing backwards relative to robot forward
         double robotHeadingDeg =
-                Robot.getSwerve().getRobotPose().getRotation().getDegrees()
-                        + config.getZeroOffsetFromRobotFront();
+                Robot.getSwerve()
+                        .getRobotPose()
+                        .getRotation()
+                        .plus(config.zeroOffsetFromRobotFront)
+                        .getDegrees();
         double robotAngularVelocityRotPerSec =
                 Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond
                         / (2 * Math.PI);

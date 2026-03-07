@@ -44,6 +44,8 @@ public class RobotStates {
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
     public static final Trigger readyToLaunch = turretOnTarget.and(launcherOnTarget);
 
+    public static final Trigger autoUpdatePose = Auton.autonPoseUpdate;
+
     // Setup any binding to set states
     public static void setupStates() {
         // Pilot Triggers

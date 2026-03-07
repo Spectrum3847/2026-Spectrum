@@ -27,6 +27,7 @@ public class Auton {
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
     public static final EventTrigger autonClearState = new EventTrigger("clearState");
+    public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 
     private final SendableChooser<Command> pathChooser = new SendableChooser<>();
     private boolean autoMessagePrinted = true;
@@ -40,12 +41,14 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
-        pathChooser.addOption(
-                "Neutral Zone | Left", SpectrumAuton("Neutral Zone - Left Start", false));
-        pathChooser.addOption(
-                "Neutral Zone | Right", SpectrumAuton("Neutral Zone - Right Start", false));
+        pathChooser.addOption("Over Bump Test", SpectrumAuton("Test", false));
 
-        pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
+        // pathChooser.addOption(
+        //         "Neutral Zone | Left", SpectrumAuton("Neutral Zone - Left Start", false));
+        // pathChooser.addOption(
+        //         "Neutral Zone | Right", SpectrumAuton("Neutral Zone - Right Start", false));
+
+        // pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

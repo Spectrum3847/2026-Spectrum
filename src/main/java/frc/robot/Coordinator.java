@@ -17,7 +17,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.neutral();
                 LauncherStates.neutral();
                 RotationalPivotStates.neutral();
             }
@@ -33,7 +33,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtTarget();
             }
@@ -41,7 +41,7 @@ public class Coordinator {
                 FuelIntakeStates.agitateFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtTarget();
             }
@@ -49,7 +49,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
@@ -57,7 +57,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
@@ -65,7 +65,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtTarget();
             }
@@ -73,7 +73,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtTarget();
             }
@@ -81,7 +81,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
@@ -89,7 +89,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtPresetPosition();
             }
@@ -101,7 +101,7 @@ public class Coordinator {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.customLaunchSpeed();
                 RotationalPivotStates.aimAtTarget();
             }
