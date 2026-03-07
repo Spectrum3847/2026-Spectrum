@@ -35,8 +35,22 @@ public class LauncherStates {
         scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
+    public static void slowLaunch() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed).withName("Launcher.slowLaunch"));
+    }
+
     public static void aimAtTarget() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
+    }
+
+    public static void customLaunchSpeed() {
+        scheduleIfNotRunning(launcher.onTheFlyLaunch().withName("Launcher.onTheFlyLaunch"));
+    }
+
+    public static void idlePrep() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRpm(config::getIdlingRPM).withName("Launcher.idlePrep"));
     }
 
     // --------------------------------------------------------

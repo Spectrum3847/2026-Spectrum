@@ -2,26 +2,56 @@ package frc.robot.intakeExtension;
 
 import edu.wpi.first.wpilibj2.command.*;
 import frc.robot.Robot;
-import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.spectrumLib.Telemetry;
 
 public class IntakeExtensionStates {
     private static IntakeExtension intakeExtension = Robot.getIntakeExtension();
-    private static IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
+
+    private static boolean sentOutByIntakeState = false;
 
     public static void setupDefaultCommand() {
         intakeExtension.setDefaultCommand(
                 log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
+    public static void operatorResetIntakeExtension() {
+        intakeExtension.resetCurrentPositionToMax();
+    }
+
     // -------------------- State Commands --------------------
 
     public static void fullExtend() {
-        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getFullOut()));
+        scheduleIfNotRunning(
+                intakeExtension
+                        .voltageOutPositive()
+                        .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+        sentOutByIntakeState = true;
     }
 
     public static void fullRetract() {
-        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getHome()));
+        scheduleIfNotRunning(
+                intakeExtension
+                        .voltageOutNegative()
+                        .until(intakeExtension.atPercentage(() -> 0, () -> 5).debounce(0.5)));
+    }
+
+    public static void fullExtendConditional() {
+        if (sentOutByIntakeState) {
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .voltageOutPositive()
+                            .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+        } else {
+            scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+        }
+    }
+
+    public static void coastMode() {
+        scheduleIfNotRunning(intakeExtension.coastMode());
+    }
+
+    public static void brakeMode() {   
+        scheduleIfNotRunning(intakeExtension.ensureBrakeMode());
     }
 
     public static void neutral() {

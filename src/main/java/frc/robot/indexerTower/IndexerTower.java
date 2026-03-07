@@ -1,5 +1,6 @@
 package frc.robot.indexerTower;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
@@ -20,15 +21,18 @@ public class IndexerTower extends Mechanism {
     public static class IndexerTowerConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 10;
-        @Getter @Setter private double indexerTorqueCurrent = 125;
+        @Getter @Setter private double indexVoltageOut = 10;
+        @Getter @Setter private double unjamVoltageOut = -6;
+        @Getter @Setter private double indexerTorqueCurrent = 80;
+        @Getter @Setter private double indexerVelocityRPM = 3000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
 
         /* Intake config values */
         @Getter private double currentLimit = 100;
         @Getter private double torqueCurrentLimit = 150;
-        @Getter private double velocityKp = 60;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 4;
+        @Getter private double velocityKp = 0.5;
+        @Getter private double velocityKv = 0.08;
+        @Getter private double velocityKs = 0.3;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(60);
@@ -46,6 +50,17 @@ public class IndexerTower extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            setFollowerConfigs(
+                    new FollowerConfig(
+                            "IndexerTower Follower 1",
+                            52,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Aligned),
+                    new FollowerConfig(
+                            "IndexerTower Follower 2",
+                            53,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Opposed));
         }
     }
 

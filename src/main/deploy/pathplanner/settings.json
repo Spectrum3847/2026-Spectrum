@@ -5,18 +5,21 @@
   "pathFolders": [
     "Config Paths",
     "Depot",
-    "Neutral Zone",
-    "Outpost"
+    "Neutral Zone - Left Start",
+    "Outpost",
+    "Neutral Zone - Right Start"
   ],
   "autoFolders": [
-    "Config Autos"
+    "Config Autos",
+    "Front Autos",
+    "Neutral Zone Autos"
   ],
-  "defaultMaxVel": 4.5,
+  "defaultMaxVel": 3.0,
   "defaultMaxAccel": 4.5,
   "defaultMaxAngVel": 540.0,
   "defaultMaxAngAccel": 720.0,
   "defaultNominalVoltage": 10.0,
-  "robotMass": 45.0,
+  "robotMass": 57.0,
   "robotMOI": 7.0,
   "robotTrackwidth": 0.546,
   "driveWheelRadius": 0.05,

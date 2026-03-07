@@ -7,8 +7,8 @@ import frc.spectrumLib.gamepads.Gamepad;
 
 public class Operator extends Gamepad {
 
-    private static double climberScalerDown = 0.15;
-    private static double climberScalerUp = 0.35;
+    private static double climberScalerDown = 0.5;
+    private static double climberScalerUp = 0.5;
 
     // Triggers, these would be robot states such as intake, visionAim, etc.
     // If triggers need any of the config values set them in the constructor
@@ -19,10 +19,30 @@ public class Operator extends Gamepad {
     public final Trigger noFn = fn.not();
     public final Trigger home_select = select.or(leftStickClick);
 
+    public final Trigger maunelOverride = enabled.and(rightStickX.or(rightStickY));
+
     public final Trigger AButton = A.and(teleop);
     public final Trigger BButton = B.and(teleop);
     public final Trigger XButton = X.and(teleop);
     public final Trigger YButton = Y.and(teleop);
+
+    public final Trigger testA = A.and(testMode);
+    public final Trigger testB = B.and(testMode);
+    public final Trigger testX = X.and(testMode);
+    public final Trigger testY = Y.and(testMode);
+
+    public final Trigger coastA = A.and(disabled);
+    public final Trigger brakeB = B.and(disabled);
+
+    public final Trigger resetIntakeExtensionPos = Y.and(disabled);
+    public final Trigger resetTurretPos = X.and(disabled);
+
+    public final Trigger dpadUp = upDpad.and(teleop);
+    public final Trigger dpadDown = downDpad.and(teleop);
+    public final Trigger dpadLeft = leftDpad.and(teleop);
+    public final Trigger dpadRight = rightDpad.and(teleop);
+
+    public final Trigger rightStickTrigger = rightStickX.or(rightStickY);
 
     // DISABLED TRIGGERS
     public final Trigger coastOn_dB = disabled.and(B);

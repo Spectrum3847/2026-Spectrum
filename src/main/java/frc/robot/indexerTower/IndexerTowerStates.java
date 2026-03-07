@@ -22,8 +22,19 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
+                        .runVelocity(config::getIndexerVelocityRPM)
                         .withName("IndexerTower.feedMax"));
+    }
+
+    public static void slowIndex() {
+        scheduleIfNotRunning(
+                indexerTower
+                        .runVelocity(config::getIndexerSlowVelocityRPM)
+                        .withName("IndexerTower.slowFeed"));
+    }
+
+    public static void unjam() {
+        scheduleIfNotRunning(indexerTower.runVoltage(config::getUnjamVoltageOut));
     }
 
     public static void indexIfReady() {

@@ -7,7 +7,9 @@ public class PM2026 extends Config {
     // Final Machine
     public PM2026() {
         super();
-        swerve.configEncoderOffsets(0.289551, 0.394043, -0.203857, -0.039307);
+        swerve.configEncoderOffsets(
+                -0.312744140625 + 0.5, -0.032470703125 + 0.5, 0.3544921875 - 0.5, -0.4765625 + 0.5);
+        turret.setCANcoderOffset(0.12158203125);
 
         // Attached Mechanisms
         pilot.setAttached(true);

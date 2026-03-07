@@ -23,12 +23,11 @@ import org.json.simple.parser.ParseException;
 
 public class Auton {
 
-    // TODO: Setup EventTriggers
-    // Should all be public static final
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
     public static final EventTrigger autonClearState = new EventTrigger("clearState");
+    public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 
     private final SendableChooser<Command> pathChooser = new SendableChooser<>();
     private boolean autoMessagePrinted = true;
@@ -42,13 +41,11 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
-        pathChooser.addOption("1 Meter", SpectrumAuton("1 Meter", false));
-        pathChooser.addOption("3 Meter", SpectrumAuton("3 Meter", false));
-        pathChooser.addOption("5 Meter", SpectrumAuton("5 Meter", false));
-
-        pathChooser.addOption("Neutral Zone Run", SpectrumAuton("Neutral Zone", false));
-
-        pathChooser.addOption("Drive Forward", SpectrumAuton("Drive Forward", false));
+        pathChooser.addOption(
+                "Neutral Zone - Left Start", SpectrumAuton("Neutral Zone - Left Start", false));
+        pathChooser.addOption(
+                "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
+        pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

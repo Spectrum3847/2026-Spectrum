@@ -1,5 +1,6 @@
 package frc.rebuilt;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -14,7 +15,6 @@ import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
-import frc.spectrumLib.util.Conversions;
 import java.text.DecimalFormat;
 
 public class ShotCalculator {
@@ -91,15 +91,17 @@ public class ShotCalculator {
         phaseDelay = 0.03;
 
         // Flywheel map
-        shotFlywheelSpeedMap.put(1.50, Conversions.RPStoRPM(37.5));
-        shotFlywheelSpeedMap.put(1.78, Conversions.RPStoRPM(38.0));
-        shotFlywheelSpeedMap.put(2.00, Conversions.RPStoRPM(41.0));
-        shotFlywheelSpeedMap.put(2.35, Conversions.RPStoRPM(43.0));
-        shotFlywheelSpeedMap.put(2.56, Conversions.RPStoRPM(44.5));
-        shotFlywheelSpeedMap.put(2.96, Conversions.RPStoRPM(46.0));
-        shotFlywheelSpeedMap.put(3.16, Conversions.RPStoRPM(48.0));
-        shotFlywheelSpeedMap.put(3.50, Conversions.RPStoRPM(53.0));
-        shotFlywheelSpeedMap.put(4.00, Conversions.RPStoRPM(55.0));
+        shotFlywheelSpeedMap.put(1.50, 2250.0);
+        shotFlywheelSpeedMap.put(1.78, 2300.0);
+        shotFlywheelSpeedMap.put(2.00, 2450.0);
+        shotFlywheelSpeedMap.put(2.35, 2600.0);
+        shotFlywheelSpeedMap.put(2.56, 2650.0);
+        shotFlywheelSpeedMap.put(2.96, 2750.0);
+        shotFlywheelSpeedMap.put(3.16, 2900.0);
+        shotFlywheelSpeedMap.put(3.50, 3200.0);
+        shotFlywheelSpeedMap.put(4.00, 3300.0);
+        shotFlywheelSpeedMap.put(4.20, 3650.0);
+        shotFlywheelSpeedMap.put(5.00, 4000.0);
 
         // TOF map
         timeOfFlightMap.put(3.41, 1.10);
@@ -183,10 +185,12 @@ public class ShotCalculator {
         Rotation2d turretAngle = target.minus(compensatedTurretTranslation).getAngle();
         turretAngle = turretAngle.plus(Rotation2d.fromDegrees(TURRET_ANGLE_OFFSET_DEGREES));
 
-        // Turret angular velocity (rad/s) for your position controller feedforward
+        // Turret angular velocity (rot/s) for your position controller feedforward
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
-        double rawOmega =
-                turretAngle.minus(lastTurretAngle).getRotations() / loopPeriodSecs; // rad/s
+        double deltaRot =
+                MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
+
+        double rawOmega = deltaRot / loopPeriodSecs;
         double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
         lastTurretAngle = turretAngle;
 

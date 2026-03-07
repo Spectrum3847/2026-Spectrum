@@ -46,10 +46,14 @@ public class ShiftHelpers {
     public static boolean currentShiftIsYours() {
         double currentMatchTime = DriverStation.getMatchTime();
         boolean isBlueShift = isCurrentShiftBlue(currentMatchTime);
-        if (Field.isBlue()) {
-            return isBlueShift;
+        if (currentMatchTime >= 30 && currentMatchTime <= 130) {
+            if (Field.isBlue()) {
+                return isBlueShift;
+            } else {
+                return !isBlueShift;
+            }
         } else {
-            return !isBlueShift;
+            return true;
         }
     }
 }
