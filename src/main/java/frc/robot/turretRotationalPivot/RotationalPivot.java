@@ -95,7 +95,7 @@ public class RotationalPivot extends Mechanism {
             configGravityType(false);
             configCounterClockwise_Positive();
 
-            turretConstraints = new TrapezoidProfile.Constraints(60, 80);
+            turretConstraints = new TrapezoidProfile.Constraints(30, 40);
         }
 
         public RotationalPivotConfig modifyMotorConfig(TalonFX motor) {

@@ -19,7 +19,9 @@ import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -246,30 +248,30 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     public Trigger inNeutralZone() {
-        final double fieldLengthMeters = Units.feetToMeters(54.0); // full field length
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width
+        final double fieldLengthMeters = Units.feetToMeters(54.0);
+        final double fieldWidthMeters = Units.feetToMeters(27.0);
 
-        final double neutralDepthMeters =
-                Units.inchesToMeters(283.0); // depth along field length (X)
-        final double neutralLengthMeters =
-                Units.inchesToMeters(317.7); // span across field width (Y)
+        final double neutralDepthMeters = Units.inchesToMeters(283.0);
+        final double neutralLengthMeters = Units.inchesToMeters(317.7);
 
         final double centerX = fieldLengthMeters / 2.0;
         final double centerY = fieldWidthMeters / 2.0;
 
-        final double minX = centerX - neutralDepthMeters / 2.0;
-        final double maxX = centerX + neutralDepthMeters / 2.0;
-        final double minY = centerY - neutralLengthMeters / 2.0;
-        final double maxY = centerY + neutralLengthMeters / 2.0;
+        Rectangle2d neutralZone =
+                new Rectangle2d(
+                        new Translation2d(
+                                (centerX - neutralDepthMeters / 2.0) + Units.inchesToMeters(24),
+                                centerY - neutralLengthMeters / 2.0),
+                        new Translation2d(
+                                centerX + neutralDepthMeters / 2.0,
+                                centerY + neutralLengthMeters / 2.0));
 
         return new Trigger(
                 () -> {
-                    double x =
-                            FieldHelpers.flipXifRed(
-                                    getRobotPose().getX()); // make alliance-agnostic
+                    double x = FieldHelpers.flipXifRed(getRobotPose().getX());
                     double y = getRobotPose().getY();
-                    return Util.inRange(() -> x, () -> minX, () -> maxX)
-                            && Util.inRange(() -> y, () -> minY, () -> maxY);
+
+                    return neutralZone.contains(new Translation2d(x, y));
                 });
     }
 
@@ -277,26 +279,24 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         final double fieldLengthMeters = Units.feetToMeters(54.0);
         final double fieldWidthMeters = Units.feetToMeters(27.0);
 
-        final double allianceDepthMeters =
-                Units.inchesToMeters(158.6); // X depth of an alliance zone
-        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span of an alliance zone
+        final double allianceDepthMeters = Units.inchesToMeters(158.6); // X depth
+        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span
 
-        final double minX =
-                fieldLengthMeters
-                        - allianceDepthMeters; // enemy side (far end) in alliance-agnostic coords
-        final double maxX = fieldLengthMeters;
-
+        final double minX = fieldLengthMeters - allianceDepthMeters;
         final double centerY = fieldWidthMeters / 2.0;
         final double minY = centerY - allianceSpanMeters / 2.0;
-        final double maxY = centerY + allianceSpanMeters / 2.0;
+
+        Rectangle2d enemyAllianceZone =
+                new Rectangle2d(
+                        new Translation2d(minX, minY),
+                        new Translation2d(allianceDepthMeters, allianceSpanMeters));
 
         return new Trigger(
                 () -> {
-                    double x =
-                            FieldHelpers.flipXifRed(getRobotPose().getX()); // alliance-agnostic X
+                    double x = FieldHelpers.flipXifRed(getRobotPose().getX());
                     double y = getRobotPose().getY();
-                    return Util.inRange(() -> x, () -> minX, () -> maxX)
-                            && Util.inRange(() -> y, () -> minY, () -> maxY);
+
+                    return enemyAllianceZone.contains(new Translation2d(x, y));
                 });
     }
 
