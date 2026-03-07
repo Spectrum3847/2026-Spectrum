@@ -28,7 +28,8 @@ public enum State {
     L3_CLIMB_PREP,
     L3_CLIMB_EXECUTE,
 
-    CUSTOM_SPEED_TURRET_LAUNCH;
+    CUSTOM_SPEED_TURRET_LAUNCH,
+    UNJAM;
 
     private State() {}
 

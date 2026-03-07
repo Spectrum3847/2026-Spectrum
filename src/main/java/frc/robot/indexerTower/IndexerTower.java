@@ -21,7 +21,8 @@ public class IndexerTower extends Mechanism {
     public static class IndexerTowerConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 12;
+        @Getter @Setter private double indexVoltageOut = 10;
+        @Getter @Setter private double unjamVoltageOut = -6;
         @Getter @Setter private double indexerTorqueCurrent = 80;
 
         /* Intake config values */

@@ -43,6 +43,11 @@ public class LauncherStates {
         scheduleIfNotRunning(launcher.onTheFlyLaunch().withName("Launcher.onTheFlyLaunch"));
     }
 
+    public static void idlePrep() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRpm(config::getIdlingRPM).withName("Launcher.idlePrep"));
+    }
+
     // --------------------------------------------------------
 
     public static Command launchFuel() {

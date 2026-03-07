@@ -52,11 +52,17 @@ public class RobotStates {
         pilot.RT.onTrue(applyState(State.INTAKE_FUEL));
         pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.LT.onTrue(applyState(State.TURRET_TRACK));
-        pilot.LT.onFalse(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.LT.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.LT.onFalse(applyState(State.IDLE));
 
         pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
+
+        pilot.YButton.onTrue(applyState(State.UNJAM));
+        pilot.YButton.onFalse(applyState(State.IDLE));
+
+        operator.YButton.onTrue(applyState(State.UNJAM));
+        operator.YButton.onTrue(applyState(State.IDLE));
 
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
@@ -77,35 +83,36 @@ public class RobotStates {
         throw new IllegalStateException("Utility class");
     }
 
-    private static void toggleToState(Trigger button, State toggledState) {
-        button.onTrue(
-                new InstantCommand(
-                        () -> {
-                            State next = (appliedState == toggledState) ? State.IDLE : toggledState;
-                            appliedState = next;
-                            coordinator.applyRobotState(next);
-                        }));
-    }
+    // private static void toggleToState(Trigger button, State toggledState) {
+    //     button.onTrue(
+    //             new InstantCommand(
+    //                     () -> {
+    //                         State next = (appliedState == toggledState) ? State.IDLE :
+    // toggledState;
+    //                         appliedState = next;
+    //                         coordinator.applyRobotState(next);
+    //                     }));
+    // }
 
-    private static void pressToState(Trigger button, State pressedState) {
-        button.onTrue(applyState(pressedState));
-        button.onFalse(applyState(State.IDLE));
-    }
+    // private static void pressToState(Trigger button, State pressedState) {
+    //     button.onTrue(applyState(pressedState));
+    //     button.onFalse(applyState(State.IDLE));
+    // }
 
-    private static void bindAimingWithReadyUpgrade(
-            Trigger button,
-            Trigger zone,
-            State aimingState,
-            Trigger readyTrigger,
-            State readyState) {
-        Trigger active = button.and(zone);
+    // private static void bindAimingWithReadyUpgrade(
+    //         Trigger button,
+    //         Trigger zone,
+    //         State aimingState,
+    //         Trigger readyTrigger,
+    //         State readyState) {
+    //     Trigger active = button.and(zone);
 
-        active.onTrue(applyState(aimingState));
-        active.onFalse(applyState(State.IDLE));
+    //     active.onTrue(applyState(aimingState));
+    //     active.onFalse(applyState(State.IDLE));
 
-        active.and(readyTrigger).onTrue(applyState(readyState));
-        active.and(readyTrigger.not()).onTrue(applyState(aimingState));
-    }
+    //     active.and(readyTrigger).onTrue(applyState(readyState));
+    //     active.and(readyTrigger.not()).onTrue(applyState(aimingState));
+    // }
 
     private static void bindTriggerTelemetry(String name, Trigger trigger) {
         trigger.onTrue(new InstantCommand(() -> Telemetry.log(name, true)));

@@ -7,48 +7,46 @@ import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
 
 public class IndexerTowerStates {
-    private static IndexerTower indexerTowerFront = Robot.getIndexerTower();
-    private static IndexerTower.IndexerTowerConfig frontConfig = Robot.getConfig().indexerTower;
+    private static IndexerTower indexerTower = Robot.getIndexerTower();
+    private static IndexerTower.IndexerTowerConfig config = Robot.getConfig().indexerTower;
 
     public static void setupDefaultCommand() {
-        indexerTowerFront.setDefaultCommand(
-                indexerTowerFront
-                        .stopMotor()
-                        .ignoringDisable(true)
-                        .withName("IndexerTower.default"));
+        indexerTower.setDefaultCommand(
+                indexerTower.stopMotor().ignoringDisable(true).withName("IndexerTower.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(
-                indexerTowerFront
-                        .runVoltage(() -> 0)
-                        .withName("IndexerTower.neutral"));
+        scheduleIfNotRunning(indexerTower.runVoltage(() -> 0).withName("IndexerTower.neutral"));
     }
 
     public static void indexMax() {
         scheduleIfNotRunning(
-                indexerTowerFront
-                        .runVoltage(frontConfig::getIndexerVoltageOut)
+                indexerTower
+                        .runVoltage(config::getIndexVoltageOut)
                         .withName("IndexerTower.feedMax"));
+    }
+
+    public static void unjam() {
+        scheduleIfNotRunning(indexerTower.runVoltage(config::getUnjamVoltageOut));
     }
 
     public static void indexIfReady() {
         scheduleIfNotRunning(
-                indexerTowerFront
+                indexerTower
                         .runTorqueCurrentFoc(
                                 () ->
                                         RobotStates.turretOnTarget.getAsBoolean()
-                                                ? frontConfig.getIndexerTorqueCurrent()
+                                                ? config.getIndexerTorqueCurrent()
                                                 : 0)
                         .withName("IndexerTower.feedIfReady"));
     }
 
     public static void coastMode() {
-        scheduleIfNotRunning(indexerTowerFront.coastMode());
+        scheduleIfNotRunning(indexerTower.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(indexerTowerFront.ensureBrakeMode());
+        scheduleIfNotRunning(indexerTower.ensureBrakeMode());
     }
 
     // Log Command
@@ -65,7 +63,7 @@ public class IndexerTowerStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(indexerTowerFront);
+        Command current = commandScheduler.requiring(indexerTower);
 
         // Only schedule if it's not already the same same command
         if (current != command) {

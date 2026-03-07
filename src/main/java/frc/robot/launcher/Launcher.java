@@ -27,6 +27,8 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
+        @Getter @Setter private double idlingRPM = 700;
+
         @Getter @Setter private double onTheFlySpeed = 0;
 
         /* Launcher config values */
