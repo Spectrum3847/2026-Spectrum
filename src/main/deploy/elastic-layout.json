@@ -63,7 +63,7 @@
             "x": 0.0,
             "y": 768.0,
             "width": 1280.0,
-            "height": 256.0,
+            "height": 128.0,
             "type": "Split Button Chooser",
             "properties": {
               "topic": "/SmartDashboard/Auto Chooser",
@@ -73,9 +73,9 @@
           {
             "title": "Alerts",
             "x": 1536.0,
-            "y": 512.0,
+            "y": 256.0,
             "width": 256.0,
-            "height": 512.0,
+            "height": 640.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
@@ -87,7 +87,7 @@
             "x": 1280.0,
             "y": 768.0,
             "width": 256.0,
-            "height": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Initialized",
@@ -98,6 +98,58 @@
               "true_icon": "None",
               "false_icon": "None"
             }
+          },
+          {
+            "title": "limelight-back",
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 256.0,
+            "type": "Camera Stream",
+            "properties": {
+              "topic": "/CameraPublisher/limelight-back",
+              "period": 0.06,
+              "rotation_turns": 0
+            }
+          },
+          {
+            "title": "limelight-front",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 256.0,
+            "type": "Camera Stream",
+            "properties": {
+              "topic": "/CameraPublisher/limelight-front",
+              "period": 0.06,
+              "rotation_turns": 0
+            }
+          },
+          {
+            "title": "limelight-right",
+            "x": 1536.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 256.0,
+            "type": "Camera Stream",
+            "properties": {
+              "topic": "/CameraPublisher/limelight-right",
+              "period": 0.06,
+              "rotation_turns": 0
+            }
+          },
+          {
+            "title": "limelight-turret",
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 256.0,
+            "height": 256.0,
+            "type": "Camera Stream",
+            "properties": {
+              "topic": "/CameraPublisher/limelight-turret",
+              "period": 0.06,
+              "rotation_turns": 0
+            }
           }
         ]
       }
@@ -105,31 +157,135 @@
     {
       "name": "Match",
       "grid_layout": {
-        "layouts": [],
+        "layouts": [
+          {
+            "title": "ShotCalc",
+            "x": 1408.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "DistanceMeters",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/DistanceMeters",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "TurretAngleDeg",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/TurretAngleDeg",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "FlywheelSpeedRPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/FlywheelSpeedRPM",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              }
+            ]
+          },
+          {
+            "title": "LauncherPrep",
+            "x": 1408.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "LauncherOnTarget",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Boolean Box",
+                "properties": {
+                  "topic": "/Robot/LauncherPrep/LauncherOnTarget",
+                  "period": 0.06,
+                  "data_type": "boolean",
+                  "true_color": 4283215696,
+                  "false_color": 4294198070,
+                  "true_icon": "None",
+                  "false_icon": "None"
+                }
+              },
+              {
+                "title": "ReadyToLaunch",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Boolean Box",
+                "properties": {
+                  "topic": "/Robot/LauncherPrep/ReadyToLaunch",
+                  "period": 0.06,
+                  "data_type": "boolean",
+                  "true_color": 4283215696,
+                  "false_color": 4294198070,
+                  "true_icon": "None",
+                  "false_icon": "None"
+                }
+              },
+              {
+                "title": "TurretOnTarget",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Boolean Box",
+                "properties": {
+                  "topic": "/Robot/LauncherPrep/TurretOnTarget",
+                  "period": 0.06,
+                  "data_type": "boolean",
+                  "true_color": 4283215696,
+                  "false_color": 4294198070,
+                  "true_icon": "None",
+                  "false_icon": "None"
+                }
+              }
+            ]
+          }
+        ],
         "containers": [
           {
             "title": "Scheduler",
             "x": 0.0,
             "y": 128.0,
             "width": 384.0,
-            "height": 896.0,
+            "height": 768.0,
             "type": "Scheduler",
             "properties": {
               "topic": "/SmartDashboard/Scheduler",
               "period": 0.06
-            }
-          },
-          {
-            "title": "Applied State",
-            "x": 0.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Large Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Applied State",
-              "period": 0.06,
-              "data_type": "string"
             }
           },
           {
@@ -242,6 +398,19 @@
               "robot_color": 4294198070,
               "trajectory_color": 4294967295,
               "show_robot_outside_widget": true
+            }
+          },
+          {
+            "title": "Applied State",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/Robot/Applied State",
+              "period": 0.06,
+              "data_type": "string"
             }
           }
         ]
@@ -617,7 +786,7 @@
           {
             "title": "Turret",
             "x": 384.0,
-            "y": 128.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 512.0,
             "type": "List Layout",
@@ -700,7 +869,7 @@
           {
             "title": "Launcher",
             "x": 640.0,
-            "y": 128.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 512.0,
             "type": "List Layout",
@@ -783,7 +952,7 @@
           {
             "title": "Swerve Pose",
             "x": 1152.0,
-            "y": 640.0,
+            "y": 512.0,
             "width": 256.0,
             "height": 384.0,
             "type": "List Layout",
@@ -835,7 +1004,7 @@
           {
             "title": "IndexerBed",
             "x": 384.0,
-            "y": 640.0,
+            "y": 512.0,
             "width": 256.0,
             "height": 384.0,
             "type": "List Layout",
@@ -918,7 +1087,7 @@
           {
             "title": "IndexerTower",
             "x": 640.0,
-            "y": 640.0,
+            "y": 512.0,
             "width": 256.0,
             "height": 384.0,
             "type": "List Layout",
@@ -999,9 +1168,9 @@
             ]
           },
           {
-            "title": "Intake Left",
+            "title": "Intake",
             "x": 896.0,
-            "y": 128.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 512.0,
             "type": "List Layout",
@@ -1017,7 +1186,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Intake Left/CurrentCommand",
+                  "topic": "/SmartDashboard/Intake/CurrentCommand",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
@@ -1031,7 +1200,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Intake Left/Motor Voltage",
+                  "topic": "/SmartDashboard/Intake/Motor Voltage",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -1045,7 +1214,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Intake Left/Rotations",
+                  "topic": "/SmartDashboard/Intake/Rotations",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -1059,7 +1228,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Intake Left/StatorCurrent",
+                  "topic": "/SmartDashboard/Intake/StatorCurrent",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -1073,7 +1242,173 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Intake Left/Velocity RPM",
+                  "topic": "/SmartDashboard/Intake/Velocity RPM",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "Intake Extension",
+            "x": 1152.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 512.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/Intake Extension/CurrentCommand",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Degrees",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/Intake Extension/Degrees",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Motor Voltage",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/Intake Extension/Motor Voltage",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Rotations",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/Intake Extension/Rotations",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/Intake Extension/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "IndexerTower Back",
+            "x": 896.0,
+            "y": 512.0,
+            "width": 256.0,
+            "height": 384.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/IndexerTower Back/CurrentCommand",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Motor Voltage",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/IndexerTower Back/Motor Voltage",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Rotations",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/IndexerTower Back/Rotations",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/IndexerTower Back/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Velocity RPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/IndexerTower Back/Velocity RPM",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -1088,7 +1423,7 @@
             "x": 0.0,
             "y": 0.0,
             "width": 384.0,
-            "height": 1024.0,
+            "height": 896.0,
             "type": "Scheduler",
             "properties": {
               "topic": "/SmartDashboard/Scheduler",
@@ -1100,7 +1435,7 @@
             "x": 1408.0,
             "y": 128.0,
             "width": 384.0,
-            "height": 512.0,
+            "height": 384.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
@@ -1110,7 +1445,7 @@
           {
             "title": "Swerve Drive",
             "x": 1408.0,
-            "y": 640.0,
+            "y": 512.0,
             "width": 384.0,
             "height": 384.0,
             "type": "SwerveDrive",
@@ -1132,36 +1467,6 @@
               "topic": "/SmartDashboard/Applied State",
               "period": 0.06,
               "data_type": "string"
-            }
-          },
-          {
-            "title": "FMSInfo",
-            "x": 384.0,
-            "y": 0.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "FMSInfo",
-            "properties": {
-              "topic": "/FMSInfo",
-              "period": 0.06
-            }
-          },
-          {
-            "title": "BatteryVoltage",
-            "x": 896.0,
-            "y": 0.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Voltage View",
-            "properties": {
-              "topic": "/Robot/BatteryVoltage",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 10.0,
-              "max_value": 13.0,
-              "divisions": 7,
-              "inverted": false,
-              "orientation": "horizontal"
             }
           }
         ]
