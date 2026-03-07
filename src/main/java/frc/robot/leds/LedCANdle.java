@@ -46,7 +46,7 @@ public class LedCANdle {
 
         CANdleConfiguration ledConfig = new CANdleConfiguration();
         ledConfig.LED.StripType = StripTypeValue.RGB;
-        ledConfig.LED.BrightnessScalar = 1.0;
+        ledConfig.LED.BrightnessScalar = 0.5;
 
         candle.getConfigurator().apply(ledConfig);
 
