@@ -1,5 +1,6 @@
 package frc.robot.leds;
 
+import frc.robot.RobotSim;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.controls.*;
@@ -40,7 +41,7 @@ public class LedCANdle {
     public final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
     public final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
 
-    private CANdleSim sim;
+    private CANdleSimState sim;
 
     public LedCANdle() {
 
@@ -131,21 +132,13 @@ public class LedCANdle {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public class CANdleSim extends LedStates {
+    public void simulationInit() {
+        sim.getCANdleSimState();
+    }
 
-        private final CANdle candleSim = new CANdle(0);
+    class LEDSim extends CANdleSimState {
+        public LEDSim(CANdleSimState) {
 
-        @Override
-        public void robotInit() {
-            CANdleConfiguration config = new CANdleConfiguration();
-            config.stripType = LEDStripType.RGB; // Or RGB
-            config.brightnessScalar = 0.5; // 50% brightness
-            candleSim.configAllSettings(config);
-        }
-
-        @Override
-        public void teleopPeriodic() {
-            candleSim.animate(new RainbowAnimation(1, 0.5, 64)); // Speed, Brightness, NumLEDs
         }
     }
 }
