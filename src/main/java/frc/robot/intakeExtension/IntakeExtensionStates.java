@@ -50,7 +50,7 @@ public class IntakeExtensionStates {
         scheduleIfNotRunning(intakeExtension.coastMode());
     }
 
-    public static void brakeMode() {   
+    public static void brakeMode() {
         scheduleIfNotRunning(intakeExtension.ensureBrakeMode());
     }
 

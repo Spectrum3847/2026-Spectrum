@@ -37,7 +37,8 @@ public class LauncherStates {
 
     public static void slowLaunch() {
         scheduleIfNotRunning(
-                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed).withName("Launcher.slowLaunch"));
+                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed)
+                        .withName("Launcher.slowLaunch"));
     }
 
     public static void aimAtTarget() {
