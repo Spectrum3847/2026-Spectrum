@@ -22,7 +22,7 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVoltage(config::getIndexVoltageOut)
+                        .runVelocity(config::getIndexerVelocityRPM)
                         .withName("IndexerTower.feedMax"));
     }
 

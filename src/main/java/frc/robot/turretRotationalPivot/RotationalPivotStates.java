@@ -34,6 +34,10 @@ public class RotationalPivotStates {
                         .withName("Turret.aimAtPreset"));
     }
 
+    public static void home() {
+        scheduleIfNotRunning(turretRotation.moveToDegrees(() -> 0));
+    }
+
     public static void neutral() {
         scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
     }

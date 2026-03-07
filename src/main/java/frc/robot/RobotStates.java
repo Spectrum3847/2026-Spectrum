@@ -62,7 +62,10 @@ public class RobotStates {
         pilot.YButton.onFalse(applyState(State.IDLE));
 
         operator.YButton.onTrue(applyState(State.UNJAM));
-        operator.YButton.onTrue(applyState(State.IDLE));
+        operator.YButton.onFalse(applyState(State.IDLE));
+
+        pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));
+        pilot.home_select.and(pilot.fn).onFalse(applyState(State.IDLE));
 
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup

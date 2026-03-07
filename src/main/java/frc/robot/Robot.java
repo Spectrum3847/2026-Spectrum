@@ -256,7 +256,6 @@ public class Robot extends SpectrumRobot {
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();
-            ShotCalculator.getInstance().getParameters();
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);

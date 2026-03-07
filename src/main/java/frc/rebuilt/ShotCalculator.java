@@ -100,6 +100,8 @@ public class ShotCalculator {
         shotFlywheelSpeedMap.put(3.16, 2900.0);
         shotFlywheelSpeedMap.put(3.50, 3200.0);
         shotFlywheelSpeedMap.put(4.00, 3300.0);
+        shotFlywheelSpeedMap.put(4.20, 3650.0);
+        shotFlywheelSpeedMap.put(5.00, 4000.0);
 
         // TOF map
         timeOfFlightMap.put(3.41, 1.10);

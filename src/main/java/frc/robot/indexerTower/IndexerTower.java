@@ -24,13 +24,14 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double indexVoltageOut = 10;
         @Getter @Setter private double unjamVoltageOut = -6;
         @Getter @Setter private double indexerTorqueCurrent = 80;
+        @Getter @Setter private double indexerVelocityRPM = 3000;
 
         /* Intake config values */
         @Getter private double currentLimit = 100;
         @Getter private double torqueCurrentLimit = 150;
-        @Getter private double velocityKp = 60;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 4;
+        @Getter private double velocityKp = 0.5;
+        @Getter private double velocityKv = 0.08;
+        @Getter private double velocityKs = 0.3;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(60);

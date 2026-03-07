@@ -45,58 +45,6 @@ public class Coordinator {
                 LauncherStates.aimAtTarget();
                 RotationalPivotStates.aimAtTarget();
             }
-            case TURRET_WITHOUT_TRACK -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtendConditional();
-                LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtPresetPosition();
-            }
-            case TURRET_WITHOUT_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.indexMax();
-                IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtendConditional();
-                LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtPresetPosition();
-            }
-            case TURRET_FEED_WITH_AIMING -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtendConditional();
-                LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtTarget();
-            }
-            case TURRET_FEED_WITH_LAUNCH -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.indexMax();
-                IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtendConditional();
-                LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtTarget();
-            }
-            case TURRET_FEED_WITHOUT_AIMING -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtendConditional();
-                LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtPresetPosition();
-            }
-            case TURRET_FEED_WITHOUT_AIMING_WITH_LAUNCH -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.indexMax();
-                IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtendConditional();
-                LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtPresetPosition();
-            }
-            case L1_CLIMB_PREP -> {}
-            case L1_CLIMB_EXECUTE -> {}
-            case L3_CLIMB_PREP -> {}
-            case L3_CLIMB_EXECUTE -> {}
             case UNJAM -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.unjam();
@@ -104,6 +52,14 @@ public class Coordinator {
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.neutral();
                 RotationalPivotStates.neutral();
+            }
+            case FORCE_HOME -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullRetract();
+                LauncherStates.neutral();
+                RotationalPivotStates.home();
             }
             case CUSTOM_SPEED_TURRET_LAUNCH -> {
                 FuelIntakeStates.stop();

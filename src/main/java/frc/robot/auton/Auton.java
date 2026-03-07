@@ -41,14 +41,11 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
-        pathChooser.addOption("Over Bump Test", SpectrumAuton("Test", false));
-
-        // pathChooser.addOption(
-        //         "Neutral Zone | Left", SpectrumAuton("Neutral Zone - Left Start", false));
-        // pathChooser.addOption(
-        //         "Neutral Zone | Right", SpectrumAuton("Neutral Zone - Right Start", false));
-
-        // pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
+        pathChooser.addOption(
+                "Neutral Zone - Left Start", SpectrumAuton("Neutral Zone - Left Start", false));
+        pathChooser.addOption(
+                "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
+        pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
