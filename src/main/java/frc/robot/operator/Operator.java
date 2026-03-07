@@ -26,6 +26,14 @@ public class Operator extends Gamepad {
     public final Trigger XButton = X.and(teleop);
     public final Trigger YButton = Y.and(teleop);
 
+    public final Trigger testA = A.and(testMode);
+    public final Trigger testB = B.and(testMode);
+    public final Trigger testX = X.and(testMode);
+    public final Trigger testY = Y.and(testMode);
+
+    public final Trigger coastA = A.and(disabled);
+    public final Trigger brakeB = B.and(disabled);
+
     public final Trigger resetIntakeExtensionPos = Y.and(disabled);
     public final Trigger resetTurretPos = X.and(disabled);
 

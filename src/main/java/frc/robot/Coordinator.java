@@ -69,6 +69,28 @@ public class Coordinator {
                 LauncherStates.customLaunchSpeed();
                 RotationalPivotStates.aimAtTarget();
             }
+            case TEST_INFINITE_LAUNCH -> {
+                FuelIntakeStates.slowIntakeFuel();
+                IndexerTowerStates.slowIndex();
+                IndexerBedStates.slowIndex();
+                LauncherStates.slowLaunch();
+                RotationalPivotStates.aimAt180();
+            }
+            case TEST_IDLE -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                LauncherStates.neutral();
+                RotationalPivotStates.home();
+            }
+            case COAST -> {
+                IntakeExtensionStates.coastMode();
+               RotationalPivotStates.coastMode();
+            }
+            case BRAKE -> {
+                IntakeExtensionStates.brakeMode();
+                RotationalPivotStates.brakeMode();
+            }
             default -> {
                 // Handle other states or throw an error
             }

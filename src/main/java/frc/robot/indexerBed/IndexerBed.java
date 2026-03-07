@@ -17,6 +17,7 @@ public class IndexerBed extends Mechanism {
 
         // Intake Voltages and Current
         @Getter @Setter private double indexerVoltageOut = 8;
+        @Getter @Setter private double indexerSlowVoltageOut = 4;
         @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 40;
 

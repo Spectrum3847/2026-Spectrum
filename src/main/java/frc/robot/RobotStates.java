@@ -4,6 +4,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
+import frc.robot.intakeExtension.IntakeExtension;
+import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
@@ -69,6 +71,18 @@ public class RobotStates {
 
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
+
+        pilot.coastA.onTrue(applyState(State.COAST));
+        pilot.brakeB.onTrue(applyState(State.BRAKE));
+
+        operator.coastA.onTrue(applyState(State.COAST));
+        operator.brakeB.onTrue(applyState(State.BRAKE));
+
+        operator.testA.onTrue(new InstantCommand(IntakeExtensionStates::fullExtend));
+        operator.testB.onTrue(new InstantCommand(IntakeExtensionStates::fullRetract));
+
+        operator.testX.onTrue(applyState(State.TEST_INFINITE_LAUNCH));
+        operator.testX.onFalse(applyState(State.TEST_IDLE));
 
         // Telemetry bindings (keep logs in sync with trigger state)
         bindTriggerTelemetry("LauncherPrep/TurretOnTarget", turretOnTarget);

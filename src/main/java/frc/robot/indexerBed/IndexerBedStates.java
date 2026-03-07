@@ -24,6 +24,12 @@ public class IndexerBedStates {
                 indexerBed.runVoltage(config::getIndexerVoltageOut).withName("IndexerBed.feedMax"));
     }
 
+    public static void slowIndex() {
+        scheduleIfNotRunning(
+                indexerBed.runVoltage(config::getIndexerSlowVoltageOut)
+                        .withName("IndexerBed.slowFeed"));
+    }
+
     public static void unjam() {
         scheduleIfNotRunning(indexerBed.runVoltage(config::getUnjamVoltageOut));
     }

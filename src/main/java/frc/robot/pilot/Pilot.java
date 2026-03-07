@@ -27,6 +27,9 @@ public class Pilot extends Gamepad {
     public final Trigger XButton = X.and(teleop);
     public final Trigger YButton = Y.and(teleop);
 
+    public final Trigger coastA = A.and(disabled);
+    public final Trigger brakeB = B.and(disabled);
+
     public final Trigger startButton = start.and(noFn, teleop);
 
     public final Trigger RB = rightBumper.and(teleop);

@@ -30,6 +30,7 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double idlingRPM = 700;
 
         @Getter @Setter private double onTheFlySpeed = 0;
+        @Getter @Setter private double slowLaunchSpeed = 200;
 
         /* Launcher config values */
         @Getter private double currentLimit = 60;

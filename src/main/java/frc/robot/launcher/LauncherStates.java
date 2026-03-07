@@ -35,6 +35,11 @@ public class LauncherStates {
         scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
+    public static void slowLaunch() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed).withName("Launcher.slowLaunch"));
+    }
+
     public static void aimAtTarget() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }

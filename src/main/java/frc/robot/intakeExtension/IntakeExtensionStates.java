@@ -46,6 +46,14 @@ public class IntakeExtensionStates {
         }
     }
 
+    public static void coastMode() {
+        scheduleIfNotRunning(intakeExtension.coastMode());
+    }
+
+    public static void brakeMode() {   
+        scheduleIfNotRunning(intakeExtension.ensureBrakeMode());
+    }
+
     public static void neutral() {
         scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
     }

@@ -34,6 +34,10 @@ public class RotationalPivotStates {
                         .withName("Turret.aimAtPreset"));
     }
 
+    public static void aimAt180() {
+        scheduleIfNotRunning(turretRotation.moveToDegrees(() -> 180));
+    }
+
     public static void home() {
         scheduleIfNotRunning(turretRotation.moveToDegrees(() -> 0));
     }
@@ -47,6 +51,14 @@ public class RotationalPivotStates {
                 turretRotation
                         .joystickMove(joystickInput, maxSpeed)
                         .withName("Turret.manualControl"));
+    }
+
+    public static void coastMode() {
+        scheduleIfNotRunning(turretRotation.coastMode());
+    }
+
+    public static void brakeMode() {   
+        scheduleIfNotRunning(turretRotation.ensureBrakeMode());
     }
 
     // --------------------------------------------------------

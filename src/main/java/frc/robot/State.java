@@ -30,7 +30,12 @@ public enum State {
 
     CUSTOM_SPEED_TURRET_LAUNCH,
     UNJAM,
-    FORCE_HOME;
+    FORCE_HOME,
+
+    COAST,
+    BRAKE,
+    TEST_INFINITE_LAUNCH,
+    TEST_IDLE;
 
     private State() {}
 

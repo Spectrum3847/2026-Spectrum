@@ -26,6 +26,13 @@ public class IndexerTowerStates {
                         .withName("IndexerTower.feedMax"));
     }
 
+    public static void slowIndex() {
+        scheduleIfNotRunning(
+                indexerTower
+                        .runVelocity(config::getIndexerSlowVelocityRPM)
+                        .withName("IndexerTower.slowFeed"));
+    }
+
     public static void unjam() {
         scheduleIfNotRunning(indexerTower.runVoltage(config::getUnjamVoltageOut));
     }
