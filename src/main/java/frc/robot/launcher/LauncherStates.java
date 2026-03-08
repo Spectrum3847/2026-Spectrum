@@ -13,8 +13,6 @@ public class LauncherStates {
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
                 launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
-        launcher.setDefaultCommand(
-                launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
     }
 
     public static Trigger aimingAtTarget() {

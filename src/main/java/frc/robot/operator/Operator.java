@@ -20,6 +20,9 @@ public class Operator extends Gamepad {
     public final Trigger home_select = select.or(leftStickClick);
     public final Trigger startButton = start;
 
+    public final Trigger RT = rightTrigger;
+    public final Trigger LT = leftTrigger;
+
     public final Trigger maunelOverride = enabled.and(rightStickX.or(rightStickY));
 
     public final Trigger AButton = A.and(teleop);
