@@ -2,11 +2,11 @@ package frc.robot.leds;
 
 import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.signals.*;
-import com.ctre.phoenix6.sim.*;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.robot.Robot;
@@ -56,7 +56,7 @@ public class LedStates extends LedCANdle {
                                         ? new RGBWColor(0, 0, 255)
                                         : new RGBWColor(255, 0, 0));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(shiftAnimationRight)));
         SingleFadeAnimation shiftAnimationLeft =
                 new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx)
@@ -66,7 +66,7 @@ public class LedStates extends LedCANdle {
                                         ? new RGBWColor(0, 0, 255)
                                         : new RGBWColor(255, 0, 0));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(shiftAnimationLeft)));
     }
 
@@ -76,14 +76,14 @@ public class LedStates extends LedCANdle {
                         .withSlot(0)
                         .withColor(new RGBWColor(255, 0, 0));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(redAllianceShiftRight)));
         SingleFadeAnimation redAllianceShiftLeft =
                 new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx)
                         .withSlot(1)
                         .withColor(new RGBWColor(255, 0, 0));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(redAllianceShiftLeft)));
     }
 
@@ -93,14 +93,14 @@ public class LedStates extends LedCANdle {
                         .withSlot(0)
                         .withColor(new RGBWColor(0, 0, 255));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(blueAllianceShiftRight)));
         SingleFadeAnimation blueAllianceShiftLeft =
                 new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx)
                         .withSlot(1)
                         .withColor(new RGBWColor(0, 0, 255));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(blueAllianceShiftLeft)));
     }
 
@@ -114,7 +114,7 @@ public class LedStates extends LedCANdle {
                                         ? new RGBWColor(0, 0, 255)
                                         : new RGBWColor(255, 0, 0));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(aboutToShiftRight)));
         StrobeAnimation aboutToShiftLeft =
                 new StrobeAnimation(kSlot1StartIdx, kSlot1EndIdx)
@@ -124,7 +124,7 @@ public class LedStates extends LedCANdle {
                                         ? new RGBWColor(0, 0, 255)
                                         : new RGBWColor(255, 0, 0));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(aboutToShiftLeft)));
     }
 
@@ -134,14 +134,14 @@ public class LedStates extends LedCANdle {
                         .withSlot(0)
                         .withColor(new RGBWColor(207, 255, 4));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(endgameAnimationRight)));
         SingleFadeAnimation endgameAnimationLeft =
                 new SingleFadeAnimation(kSlot1StartIdx, kSlot1EndIdx)
                         .withSlot(1)
                         .withColor(new RGBWColor(207, 255, 4));
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(endgameAnimationLeft)));
     }
 
@@ -164,7 +164,7 @@ public class LedStates extends LedCANdle {
     static void betterDisabledPattern(Trigger trigger, int priority) {
         FireAnimation disabledFire = new FireAnimation(kSlot0StartIdx, kSlot0EndIdx).withSlot(0);
         trigger.onTrue(
-                new edu.wpi.first.wpilibj2.command.InstantCommand(
+                new InstantCommand(
                         () -> candle.setControl(disabledFire)));
     }
 

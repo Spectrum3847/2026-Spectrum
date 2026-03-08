@@ -1,13 +1,11 @@
 package frc.robot.leds;
 
-import frc.robot.RobotSim;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.hardware.CANdle;
 import com.ctre.phoenix6.signals.AnimationDirectionValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
-import com.ctre.phoenix6.sim.*;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.spectrumLib.Rio;
@@ -40,8 +38,6 @@ public class LedCANdle {
 
     public final SendableChooser<AnimationType> animChooser0 = new SendableChooser<AnimationType>();
     public final SendableChooser<AnimationType> animChooser1 = new SendableChooser<AnimationType>();
-
-    private CANdleSimState sim;
 
     public LedCANdle() {
 
@@ -126,19 +122,6 @@ public class LedCANdle {
                                     .withSparking(0.5));
                     break;
             }
-        }
-    }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        sim.getCANdleSimState();
-    }
-
-    class LEDSim extends CANdleSimState {
-        public LEDSim(CANdleSimState) {
-
         }
     }
 }

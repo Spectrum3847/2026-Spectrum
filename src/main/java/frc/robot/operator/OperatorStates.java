@@ -36,7 +36,8 @@ public class OperatorStates {
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
 
-        operator.rightBumperOnly.onTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
+        operator.rightBumperOnly.onTrue(
+                new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
 
         operator.testA.whileTrue(IntakeExtensionStates.fullExtendTest());
         operator.testB.whileTrue(IntakeExtensionStates.fullRetractTest());
