@@ -24,7 +24,7 @@ public class IntakeExtensionStates {
         scheduleIfNotRunning(
                 intakeExtension
                         .voltageOutPositive()
-                        .until(intakeExtension.atPercentage(() -> 90, () -> 5).debounce(0.5)));
+                        .until(intakeExtension.atPercentage(() -> 100, () -> 10).debounce(0.5)));
         sentOutByIntakeState = true;
     }
 
@@ -32,7 +32,7 @@ public class IntakeExtensionStates {
         return log(
                 intakeExtension
                         .voltageOutPositive()
-                        .until(intakeExtension.atPercentage(() -> 90, () -> 5).debounce(0.5))
+                        .until(intakeExtension.atPercentage(() -> 100, () -> 10).debounce(0.5))
                         .withName("IntakeExtension.fullExtendCommand"));
     }
 

@@ -52,6 +52,7 @@ public class FuelIntake extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            configNeutralBrakeMode(false);
             setFollowerConfigs(
                     new FollowerConfig(
                             "Intake Right", 6, Rio.RIO_CANBUS, MotorAlignmentValue.Opposed));

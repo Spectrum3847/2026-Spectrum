@@ -93,6 +93,7 @@ public class SwerveStates {
     protected static void setStates() {
         // Force back to manual steering when we steer
         pilot.steer.whileTrue(swerve.getDefaultCommand());
+        operator.steer.whileTrue(swerve.getDefaultCommand());
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
 

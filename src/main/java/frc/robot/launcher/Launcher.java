@@ -57,6 +57,7 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            configNeutralBrakeMode(false);
             setFollowerConfigs(
                     new FollowerConfig(
                             "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));

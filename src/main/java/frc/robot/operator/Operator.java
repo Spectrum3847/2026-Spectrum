@@ -35,6 +35,9 @@ public class Operator extends Gamepad {
     public final Trigger testX = X.and(testMode);
     public final Trigger testY = Y.and(testMode);
 
+    public final Trigger driving = testMode.and(leftStickX.or(leftStickY));
+    public final Trigger steer = testMode.and(rightStickX.or(rightStickY));
+
     public final Trigger coastA = A.and(disabled);
     public final Trigger brakeB = B.and(disabled);
 

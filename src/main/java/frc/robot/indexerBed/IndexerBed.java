@@ -44,6 +44,7 @@ public class IndexerBed extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            configNeutralBrakeMode(false);
             setFollowerConfigs(
                     new FollowerConfig(
                             "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned));

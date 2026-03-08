@@ -22,7 +22,7 @@ public class IndexerTower extends Mechanism {
 
         // Intake Voltages and Current
         @Getter @Setter private double indexVoltageOut = 10;
-        @Getter @Setter private double unjamVoltageOut = -6;
+        @Getter @Setter private double unjamVoltageOut = -10;
         @Getter @Setter private double indexerTorqueCurrent = 80;
         @Getter @Setter private double indexerVelocityRPM = 3000;
         @Getter @Setter private double indexerSlowVelocityRPM = 2000;
@@ -50,6 +50,7 @@ public class IndexerTower extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            configNeutralBrakeMode(false);
             setFollowerConfigs(
                     new FollowerConfig(
                             "IndexerTower Follower 1",

@@ -207,11 +207,11 @@ public class IntakeExtension extends Mechanism {
     }
 
     public Command voltageOutPositive() {
-        return run(() -> setVoltageOutput(() -> 8));
+        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
     }
 
     public Command voltageOutNegative() {
-        return run(() -> setVoltageOutput(() -> -8));
+        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
     }
 
     // --------------------------------------------------------------------------------

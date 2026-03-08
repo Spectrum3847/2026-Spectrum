@@ -37,7 +37,6 @@ import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
 import frc.robot.launcher.Launcher.LauncherConfig;
-import frc.robot.leds.CANdleLeds;
 import frc.robot.operator.Operator;
 import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
@@ -97,7 +96,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
     @Getter private static IndexerBed indexerBed;
-    @Getter private static CANdleLeds leds;
+    // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
@@ -137,7 +136,7 @@ public class Robot extends SpectrumRobot {
              */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
-            leds = new CANdleLeds();
+            // leds = new CANdleLeds();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
