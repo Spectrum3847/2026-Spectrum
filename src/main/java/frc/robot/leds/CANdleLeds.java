@@ -4,68 +4,44 @@ package frc.robot.leds;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.configs.CANdleConfiguration;
+import com.ctre.phoenix6.configs.LEDConfigs;
 import com.ctre.phoenix6.controls.SingleFadeAnimation;
-import com.ctre.phoenix6.controls.SolidColor;
-import com.ctre.phoenix6.controls.StrobeAnimation;
 import com.ctre.phoenix6.hardware.CANdle;
+import com.ctre.phoenix6.signals.LossOfSignalBehaviorValue;
 import com.ctre.phoenix6.signals.RGBWColor;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import com.ctre.phoenix6.signals.StripTypeValue;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Robot;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumSubsystem;
+import frc.spectrumLib.Telemetry;
+import lombok.Getter;
 
 /** Subsystem that controls an addressable LED strip using a CANdle. */
 public class CANdleLeds extends SubsystemBase implements SpectrumSubsystem {
-    private final CANdle CANdle = new CANdle(0, new CANBus(Rio.CANIVORE));
+    @Getter private final CANdle CANdle;
+    @Getter private final CANdleConfiguration CANdleConfig;
 
-    private final SingleFadeAnimation disabledPattern =
-            new SingleFadeAnimation(0, 20)
-                    .withColor(new RGBWColor(156, 11, 255, 0))
-                    .withFrameRate(Hertz.of(100));
+    @Getter private final int numLeds = 20;
 
-    private final SolidColor redAllianceInShift =
-            new SolidColor(0, 20).withColor(new RGBWColor(255, 0, 0));
-
-    private final SolidColor blueAllianceInShift =
-            new SolidColor(0, 20).withColor(new RGBWColor(0, 0, 255));
-
-    private final StrobeAnimation redShiftEnding =
-            new StrobeAnimation(0, 20).withColor(new RGBWColor(255, 0, 0)).withFrameRate(Hertz.of(200));
-
-    private final StrobeAnimation blueShiftEnding =
-            new StrobeAnimation(0, 20).withColor(new RGBWColor(0, 0, 255)).withFrameRate(Hertz.of(200));
-
-    public CANdleLeds() {}
-
-    /**
-     * Updates the animations and LEDs of the CANdle.
-     *
-     * @return Command to run
-     */
-    public Command disabledPattern() {
-        return new InstantCommand(() -> CANdle.setControl(disabledPattern))
-                .withName("CANdle.disabledPattern");
-    }
-
-    public Command redInShiftPattern() {
-        return new InstantCommand(() -> CANdle.setControl(redAllianceInShift))
-                .withName("CANdle.redInShiftPattern");
-    }
-
-    public Command blueInShiftPattern() {
-        return new InstantCommand(() -> CANdle.setControl(blueAllianceInShift))
-                .withName("CANdle.blueInShiftPattern");
-    }
-
-    public Command blueShiftEnding() {
-        return new InstantCommand(() -> CANdle.setControl(blueShiftEnding))
-                .withName("CANdle.blueShiftEnding");
-    }
-
-    public Command redShiftEnding() {
-        return new InstantCommand(() -> CANdle.setControl(redShiftEnding))
-                .withName("CANdle.redShiftEnding");
+    public CANdleLeds() {
+        CANdle = new CANdle(1, new CANBus(Rio.CANIVORE));
+        CANdleConfig =
+                new CANdleConfiguration()
+                        .withLED(
+                                new LEDConfigs()
+                                        .withStripType(StripTypeValue.RGB)
+                                        .withBrightnessScalar(0.5)
+                                        .withLossOfSignalBehavior(
+                                                LossOfSignalBehaviorValue.DisableLEDs));
+        CANdle.getConfigurator().apply(CANdleConfig);
+        CANdle.setControl(
+                new SingleFadeAnimation(0, 20)
+                        .withColor(new RGBWColor(156, 11, 255, 0))
+                        .withFrameRate(Hertz.of(100)));
+        Robot.add(this);
+        Telemetry.print("LED Subsystem Initialized: ");
     }
 
     @Override
@@ -75,6 +51,6 @@ public class CANdleLeds extends SubsystemBase implements SpectrumSubsystem {
 
     @Override
     public void setupStates() {
-        LedStates.setupStates();
+        LedStates.bindTriggers();
     }
 }

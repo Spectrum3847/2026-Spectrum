@@ -14,11 +14,11 @@ public class PM2026 extends Config {
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(true);
-        intakeExtension.setAttached(true);
-        turret.setAttached(true);
-        launcher.setAttached(true);
-        indexerTower.setAttached(true);
-        indexerBed.setAttached(true);
+        fuelIntake.setAttached(false);
+        intakeExtension.setAttached(false);
+        turret.setAttached(false);
+        launcher.setAttached(false);
+        indexerTower.setAttached(false);
+        indexerBed.setAttached(false);
     }
 }
