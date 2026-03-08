@@ -14,8 +14,8 @@ public class IntakeExtensionStates {
                 log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
-    public static void operatorResetIntakeExtension() {
-        intakeExtension.resetCurrentPositionToMax();
+    public static Command operatorResetIntakeExtension() {
+        return new InstantCommand(() -> intakeExtension.resetCurrentPositionToMax());
     }
 
     // -------------------- State Commands --------------------
@@ -24,15 +24,31 @@ public class IntakeExtensionStates {
         scheduleIfNotRunning(
                 intakeExtension
                         .voltageOutPositive()
-                        .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+                        .until(intakeExtension.atPercentage(() -> 90, () -> 5).debounce(0.5)));
         sentOutByIntakeState = true;
+    }
+
+    public static Command fullExtendTest() {
+        return log(
+                intakeExtension
+                        .voltageOutPositive()
+                        .until(intakeExtension.atPercentage(() -> 90, () -> 5).debounce(0.5))
+                        .withName("IntakeExtension.fullExtendCommand"));
     }
 
     public static void fullRetract() {
         scheduleIfNotRunning(
                 intakeExtension
                         .voltageOutNegative()
-                        .until(intakeExtension.atPercentage(() -> 0, () -> 5).debounce(0.5)));
+                        .until(intakeExtension.atPercentage(() -> 10, () -> 5).debounce(0.5)));
+    }
+
+    public static Command fullRetractTest() {
+        return log(
+                intakeExtension
+                        .voltageOutNegative()
+                        .until(intakeExtension.atPercentage(() -> 10, () -> 5).debounce(0.5))
+                        .withName("IntakeExtension.fullRetractCommand"));
     }
 
     public static void fullExtendConditional() {
@@ -46,12 +62,12 @@ public class IntakeExtensionStates {
         }
     }
 
-    public static void coastMode() {
-        scheduleIfNotRunning(intakeExtension.coastMode());
+    public static Command coastMode() {
+        return log(intakeExtension.coastMode().withName("IntakeExtension.coastMode"));
     }
 
-    public static void brakeMode() {
-        scheduleIfNotRunning(intakeExtension.ensureBrakeMode());
+    public static Command brakeMode() {
+        return log(intakeExtension.ensureBrakeMode().withName("IntakeExtension.brakeMode"));
     }
 
     public static void neutral() {

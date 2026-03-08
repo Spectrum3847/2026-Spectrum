@@ -98,6 +98,7 @@ public class SwerveStates {
 
         inSnakeDrive.whileTrue(log(snakeDrive()));
         inScoreOrFeed.and(Robot.getPilot().fn).whileTrue(log(tweakOut()));
+        inScoreOrFeed.and(Robot.getPilot().RB).whileTrue(log(xBrake()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));

@@ -25,7 +25,7 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double unjamVoltageOut = -6;
         @Getter @Setter private double indexerTorqueCurrent = 80;
         @Getter @Setter private double indexerVelocityRPM = 3000;
-        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 2000;
 
         /* Intake config values */
         @Getter private double currentLimit = 100;

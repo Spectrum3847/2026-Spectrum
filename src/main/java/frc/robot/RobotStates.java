@@ -59,25 +59,17 @@ public class RobotStates {
         pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
 
-        pilot.YButton.onTrue(applyState(State.UNJAM));
-        pilot.YButton.onFalse(applyState(State.IDLE));
+        pilot.AButton.onTrue(applyState(State.UNJAM));
+        pilot.AButton.onFalse(applyState(State.IDLE));
 
-        operator.YButton.onTrue(applyState(State.UNJAM));
-        operator.YButton.onFalse(applyState(State.IDLE));
+        operator.AButton.onTrue(applyState(State.UNJAM));
+        operator.AButton.onFalse(applyState(State.IDLE));
 
         pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));
         pilot.home_select.and(pilot.fn).onFalse(applyState(State.IDLE));
 
-        pilot.coastA.onTrue(applyState(State.COAST));
-        pilot.brakeB.onTrue(applyState(State.BRAKE));
-
-        operator.coastA.onTrue(applyState(State.COAST));
-        operator.brakeB.onTrue(applyState(State.BRAKE));
-
         operator.testX.onTrue(applyState(State.TEST_INFINITE_LAUNCH));
         operator.testX.onFalse(applyState(State.TEST_IDLE));
-        operator.testA.onTrue(new InstantCommand(IntakeExtensionStates::fullExtend));
-        operator.testB.onTrue(new InstantCommand(IntakeExtensionStates::fullRetract));
 
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup

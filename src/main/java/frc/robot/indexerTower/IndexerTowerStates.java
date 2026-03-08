@@ -56,6 +56,10 @@ public class IndexerTowerStates {
         scheduleIfNotRunning(indexerTower.ensureBrakeMode());
     }
 
+    public static Command unjamCommand() {
+        return indexerTower.runVelocity(config::getUnjamVoltageOut);
+    }
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);

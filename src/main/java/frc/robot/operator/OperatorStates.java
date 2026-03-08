@@ -4,6 +4,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
+import frc.robot.indexerBed.IndexerBedStates;
+import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.spectrumLib.Telemetry;
@@ -24,14 +26,25 @@ public class OperatorStates {
     /** Set the states for the operator controller */
     public static void setStates() {
         operator.rightTriggerOnly.whileTrue(
-                Robot.getTurret().joystickMove(() -> operator.getClimberTriggerAxis(), () -> 1));
+                Robot.getTurret().joystickMove(() -> operator.getTriggerAxis(), () -> 4));
         operator.leftTriggerOnly.whileTrue(
-                Robot.getTurret().joystickMove(() -> -operator.getClimberTriggerAxis(), () -> -1));
+                Robot.getTurret().joystickMove(() -> -operator.getTriggerAxis(), () -> -4));
 
-        operator.YButton.onTrue(
-                new InstantCommand(() -> IntakeExtensionStates.operatorResetIntakeExtension()));
-        operator.XButton.onTrue(
-                new InstantCommand(() -> RotationalPivotStates.operatorResetTurretPosition()));
+        operator.YButton.onTrue(IntakeExtensionStates.operatorResetIntakeExtension());
+        operator.resetTurretPos.onTrue(RotationalPivotStates.operatorResetTurretPosition());
+
+        operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
+        operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
+
+        operator.rightBumperOnly.onTrue(new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
+
+        operator.testA.whileTrue(IntakeExtensionStates.fullExtendTest());
+        operator.testB.whileTrue(IntakeExtensionStates.fullRetractTest());
+
+        operator.coastA.onTrue(
+                RotationalPivotStates.coastMode(), IntakeExtensionStates.coastMode());
+        operator.brakeB.onTrue(
+                RotationalPivotStates.brakeMode(), IntakeExtensionStates.brakeMode());
 
         operator.dpadDown.onTrue(
                 log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));

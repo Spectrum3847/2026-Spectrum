@@ -54,6 +54,10 @@ public class IndexerBedStates {
         scheduleIfNotRunning(indexerBed.ensureBrakeMode());
     }
 
+    public static Command unjamCommand() {
+        return indexerBed.runVelocity(config::getUnjamVoltageOut);
+    }
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);
