@@ -1,6 +1,5 @@
 package frc.robot.indexerBed;
 
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -16,7 +15,7 @@ public class IndexerBed extends Mechanism {
     public static class IndexerBedConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 8;
+        @Getter @Setter private double indexerVoltageOut = 6;
         @Getter @Setter private double indexerSlowVoltageOut = 4;
         @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 40;
@@ -42,12 +41,12 @@ public class IndexerBed extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
             configNeutralBrakeMode(false);
-            setFollowerConfigs(
-                    new FollowerConfig(
-                            "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned));
+            configCounterClockwise_Positive();
+            // setFollowerConfigs(
+            //         new FollowerConfig(
+            //                 "IndexerBed Follower 1", 9, Rio.CANIVORE,
+            // MotorAlignmentValue.Aligned));
         }
     }
 

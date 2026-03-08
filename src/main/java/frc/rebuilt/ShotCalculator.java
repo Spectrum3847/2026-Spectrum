@@ -91,17 +91,17 @@ public class ShotCalculator {
         phaseDelay = 0.03;
 
         // Flywheel map
-        shotFlywheelSpeedMap.put(1.50, 2250.0);
-        shotFlywheelSpeedMap.put(1.78, 2300.0);
-        shotFlywheelSpeedMap.put(2.00, 2450.0);
-        shotFlywheelSpeedMap.put(2.35, 2600.0);
-        shotFlywheelSpeedMap.put(2.56, 2650.0);
-        shotFlywheelSpeedMap.put(2.96, 2750.0);
-        shotFlywheelSpeedMap.put(3.16, 2900.0);
-        shotFlywheelSpeedMap.put(3.50, 3200.0);
-        shotFlywheelSpeedMap.put(4.00, 3300.0);
-        shotFlywheelSpeedMap.put(4.20, 3650.0);
-        shotFlywheelSpeedMap.put(5.00, 4000.0);
+        shotFlywheelSpeedMap.put(1.50, 2250.0 + 100);
+        shotFlywheelSpeedMap.put(1.78, 2300.0 + 100);
+        shotFlywheelSpeedMap.put(2.00, 2450.0 + 100);
+        shotFlywheelSpeedMap.put(2.35, 2600.0 + 100);
+        shotFlywheelSpeedMap.put(2.56, 2650.0 + 100);
+        shotFlywheelSpeedMap.put(2.96, 2750.0 + 100);
+        shotFlywheelSpeedMap.put(3.16, 2900.0 + 100);
+        shotFlywheelSpeedMap.put(3.50, 3200.0 + 100);
+        shotFlywheelSpeedMap.put(4.00, 3300.0 + 100);
+        shotFlywheelSpeedMap.put(4.20, 3650.0 + 100);
+        shotFlywheelSpeedMap.put(5.00, 4000.0 + 100);
 
         // TOF map
         timeOfFlightMap.put(3.41, 1.10);

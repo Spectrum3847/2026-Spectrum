@@ -44,8 +44,8 @@ public class OperatorStates {
         operator.rightBumperOnly.onTrue(
                 new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
 
-        operator.testA.whileTrue(IntakeExtensionStates.fullExtendTest());
-        operator.testB.whileTrue(IntakeExtensionStates.fullRetractTest());
+        operator.testA.whileTrue(IntakeExtensionStates.fullExtendCommand());
+        operator.testB.whileTrue(IntakeExtensionStates.fullRetractCommand());
 
         operator.coastA.onTrue(
                 RotationalPivotStates.coastMode(), IntakeExtensionStates.coastMode());

@@ -887,6 +887,14 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
             talonConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
         }
 
+        public void configForwardVoltageLimit(double voltageLimit) {
+            talonConfig.Voltage.PeakForwardVoltage = voltageLimit;
+        }
+
+        public void configReverseVoltageLimit(double voltageLimit) {
+            talonConfig.Voltage.PeakReverseVoltage = voltageLimit;
+        }
+
         public void configSupplyCurrentLimit(double supplyLimit, boolean enabled) {
             if (supplyLimit < 0) {
                 supplyLimit = -supplyLimit;

@@ -2,6 +2,7 @@ package frc.robot.indexerTower;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
@@ -31,6 +32,13 @@ public class IndexerTowerStates {
                 indexerTower
                         .runVelocity(config::getIndexerSlowVelocityRPM)
                         .withName("IndexerTower.slowFeed"));
+    }
+
+    public static void quickReverseThenIndex() {
+        scheduleIfNotRunning(
+                Commands.sequence(
+                        indexerTower.runVoltage(config::getUnjamVoltageOut).withTimeout(1),
+                        indexerTower.runVelocity(config::getIndexerVelocityRPM)));
     }
 
     public static void unjam() {

@@ -35,6 +35,7 @@ public class Launcher extends Mechanism {
         /* Launcher config values */
         @Getter private double currentLimit = 60;
         @Getter private double torqueCurrentLimit = 80;
+        @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
         @Getter private double velocityKs = 10;
@@ -55,9 +56,10 @@ public class Launcher extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
             configNeutralBrakeMode(false);
+            configForwardVoltageLimit(nominalVoltage);
+            configReverseVoltageLimit(nominalVoltage);
+            configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
                             "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));

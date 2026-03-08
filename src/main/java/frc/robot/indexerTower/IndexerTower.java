@@ -48,9 +48,8 @@ public class IndexerTower extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
             configNeutralBrakeMode(false);
+            configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
                             "IndexerTower Follower 1",

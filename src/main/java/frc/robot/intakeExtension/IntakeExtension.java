@@ -37,6 +37,7 @@ public class IntakeExtension extends Mechanism {
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
         @Getter private double home = 0;
         @Getter private double fullOut = 100;
+        @Getter private double atPoseTolerance = 10;
 
         @Getter private final double currentLimit = 80;
         @Getter private final double torqueCurrentLimit = 180;
