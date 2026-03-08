@@ -25,12 +25,17 @@ public class OperatorStates {
 
     /** Set the states for the operator controller */
     public static void setStates() {
-        operator.rightTriggerOnly.whileTrue(
-                Robot.getTurret().joystickMove(() -> operator.getTriggerAxis(), () -> 4));
-        operator.leftTriggerOnly.whileTrue(
-                Robot.getTurret().joystickMove(() -> -operator.getTriggerAxis(), () -> -4));
+        operator.RT
+                .and(operator.fn)
+                .whileTrue(
+                        Robot.getTurret().joystickMove(() -> operator.getTriggerAxis(), () -> 4));
+        operator.LT
+                .and(operator.fn)
+                .whileTrue(
+                        Robot.getTurret().joystickMove(() -> -operator.getTriggerAxis(), () -> -4));
 
-        operator.YButton.onTrue(IntakeExtensionStates.operatorResetIntakeExtension());
+        operator.YButton.and(operator.fn)
+                .onTrue(IntakeExtensionStates.operatorResetIntakeExtension());
         operator.resetTurretPos.onTrue(RotationalPivotStates.operatorResetTurretPosition());
 
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());

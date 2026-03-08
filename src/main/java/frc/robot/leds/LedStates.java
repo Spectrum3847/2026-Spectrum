@@ -23,7 +23,7 @@ public class LedStates {
             new Trigger(
                             () -> {
                                 double t = DriverStation.getMatchTime();
-                                return (t <= 140 && t >= 130);
+                                return (t <= 140 && t > 133);
                             })
                     .and(Util.teleop);
 
@@ -35,11 +35,18 @@ public class LedStates {
             new Trigger(
                             () -> {
                                 double t = DriverStation.getMatchTime();
-                                return (t <= 133 && t >= 130)
-                                        || (t <= 108 && t >= 105)
+                                return (t <= 108 && t >= 105)
                                         || (t <= 83 && t >= 80)
                                         || (t <= 58 && t >= 55)
                                         || (t <= 33 && t >= 30);
+                            })
+                    .and(Util.teleop);
+
+    public static final Trigger transitionAboutToEnd =
+            new Trigger(
+                            () -> {
+                                double t = DriverStation.getMatchTime();
+                                return (t <= 133 && t > 130);
                             })
                     .and(Util.teleop);
 
@@ -57,35 +64,27 @@ public class LedStates {
     static void bindTriggers() {
 
         // Match time related patterns
-        redAlliance(
-                Util.teleop.and(
-                        () -> ShiftHelpers.isCurrentShiftRed(DriverStation.getMatchTime()),
-                        bothInShift.not()),
-                10);
-        blueAlliance(
-                Util.teleop.and(
-                        () -> ShiftHelpers.isCurrentShiftBlue(DriverStation.getMatchTime()),
-                        bothInShift.not()),
-                10);
-        shiftSwitchBlink(
-                Util.teleop.and(
-                        () -> {
-                            double t = DriverStation.getMatchTime();
-                            return (t <= 108 && t >= 105)
-                                    || (t <= 83 && t >= 80)
-                                    || (t <= 58 && t >= 55);
-                        }),
-                25);
-        shift(
-                Util.teleop.and(
-                        () ->
-                                DriverStation.getMatchTime() <= 140
-                                        && DriverStation.getMatchTime() >= 130),
-                15);
-        endgame(Util.teleop.and(() -> DriverStation.getMatchTime() <= 30), 20);
+        autoShift(auto, 15);
+        afterAutoTransition(transitionShift, 15);
+        transitionAboutToEnd(transitionAboutToEnd, 25);
+        redAlliance(redShift.and(bothInShift.not()), 10);
+        shiftAboutToEnd(aboutToChangeShift, 25);
+        blueAlliance(blueShift.and(bothInShift.not()), 10);
+        endgame(endgame, 20);
     }
 
-    static void shift(Trigger trigger, int priority) {
+    static void autoShift(Trigger trigger, int priority) {
+        SingleFadeAnimation shiftAnimation =
+                new SingleFadeAnimation(0, 20)
+                        .withSlot(0)
+                        .withColor(
+                                Field.isBlue()
+                                        ? new RGBWColor(0, 0, 255)
+                                        : new RGBWColor(255, 0, 0));
+        trigger.onTrue(new InstantCommand(() -> candle.setControl(shiftAnimation)));
+    }
+
+    static void afterAutoTransition(Trigger trigger, int priority) {
         SingleFadeAnimation shiftAnimation =
                 new SingleFadeAnimation(0, 20)
                         .withSlot(0)
@@ -108,11 +107,25 @@ public class LedStates {
         trigger.onTrue(new InstantCommand(() -> candle.setControl(blueAllianceShift)));
     }
 
-    static void shiftSwitchBlink(Trigger trigger, int priority) {
+    static void shiftAboutToEnd(Trigger trigger, int priority) {
         StrobeAnimation aboutToShift =
                 new StrobeAnimation(0, 20)
                         .withSlot(0)
-                        .withColor(new RGBWColor(225, 0, 255));
+                        .withColor(
+                                ShiftHelpers.isCurrentShiftBlue(DriverStation.getMatchTime())
+                                        ? new RGBWColor(0, 0, 255)
+                                        : new RGBWColor(255, 0, 0));
+        trigger.onTrue(new InstantCommand(() -> candle.setControl(aboutToShift)));
+    }
+
+    static void transitionAboutToEnd(Trigger trigger, int priority) {
+        StrobeAnimation aboutToShift =
+                new StrobeAnimation(0, 20)
+                        .withSlot(0)
+                        .withColor(
+                                Field.isBlue()
+                                        ? new RGBWColor(0, 0, 255)
+                                        : new RGBWColor(255, 0, 0));
         trigger.onTrue(new InstantCommand(() -> candle.setControl(aboutToShift)));
     }
 
