@@ -85,7 +85,7 @@ public class Coordinator {
             }
             case COAST -> {
                 IntakeExtensionStates.coastMode();
-               RotationalPivotStates.coastMode();
+                RotationalPivotStates.coastMode();
             }
             case BRAKE -> {
                 IntakeExtensionStates.brakeMode();

@@ -156,6 +156,9 @@ javadoc {
 
 // Create version file
 project.compileJava.dependsOn(createVersionFile)
+tasks.named("createVersionFile") {
+    notCompatibleWithConfigurationCache("gversion createVersionFile task captures project state")
+}
 gversion {
     srcDir       = "src/main/java/"
     classPackage = "frc.robot"
