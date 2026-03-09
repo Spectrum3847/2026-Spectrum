@@ -33,6 +33,8 @@ import frc.robot.indexerBed.IndexerBed;
 import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.indexerTower.IndexerTower;
 import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
+import frc.robot.indexerTower.IndexerTowerBack;
+import frc.robot.indexerTower.IndexerTowerBack.IndexerTowerBackConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
@@ -85,6 +87,7 @@ public class Robot extends SpectrumRobot {
         public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
+        public IndexerTowerBackConfig indexerTowerBack = new IndexerTowerBackConfig();
         public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
@@ -95,6 +98,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
+    @Getter private static IndexerTowerBack indexerTowerBack;
     @Getter private static IndexerBed indexerBed;
     // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
@@ -153,6 +157,8 @@ public class Robot extends SpectrumRobot {
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
             indexerTower = new IndexerTower(config.indexerTower);
+            Timer.delay(canInitDelay);
+            indexerTowerBack = new IndexerTowerBack(config.indexerTowerBack);
             Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();

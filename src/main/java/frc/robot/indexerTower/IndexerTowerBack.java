@@ -1,39 +1,45 @@
-package frc.robot.indexerBed;
+package frc.robot.indexerTower;
 
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
-public class IndexerBed extends Mechanism {
+public class IndexerTowerBack extends Mechanism {
 
-    public static class IndexerBedConfig extends Config {
+    public static class IndexerTowerBackConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 8;
-        @Getter @Setter private double indexerSlowVoltageOut = 4;
-        @Getter @Setter private double unjamVoltageOut = -4;
-        @Getter @Setter private double indexerTorqueCurrent = 40;
+        @Getter @Setter private double indexVoltageOut = 10;
+        @Getter @Setter private double unjamVoltageOut = -10;
+        @Getter @Setter private double indexerTorqueCurrent = 80;
+        @Getter @Setter private double indexerVelocityRPM = 3000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 2250;
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 50;
-        @Getter @Setter private double torqueCurrentLimit = 75;
-        @Getter @Setter private double velocityKp = 25;
-        @Getter @Setter private double velocityKv = 0.2;
-        @Getter @Setter private double velocityKs = 4;
+        @Getter private double currentLimit = 70;
+        @Getter private double torqueCurrentLimit = 100;
+        @Getter private double velocityKp = 0.5;
+        @Getter private double velocityKv = 0.08;
+        @Getter private double velocityKs = 0.3;
 
         /* Sim Configs */
-        @Getter @Setter private double intakeX = Units.inchesToMeters(60);
-        @Getter @Setter private double intakeY = Units.inchesToMeters(75);
-        @Getter @Setter private double wheelDiameter = 12;
+        @Getter private double intakeX = Units.inchesToMeters(60);
+        @Getter private double intakeY = Units.inchesToMeters(75);
+        @Getter private double wheelDiameter = 12;
 
-        public IndexerBedConfig() {
-            super("IndexerBed", 8, Rio.CANIVORE);
+        public IndexerTowerBackConfig() {
+            super("IndexerTowerBack", 53, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -42,22 +48,18 @@ public class IndexerBed extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(false);
-            configCounterClockwise_Positive();
-            // setFollowerConfigs(
-            //         new FollowerConfig(
-            //                 "IndexerBed Follower 1", 9, Rio.CANIVORE,
-            // MotorAlignmentValue.Aligned));
+            configClockwise_Positive();
         }
     }
 
-    // private IndexerBedConfig config;
-    // private IndexerSim sim;
+    private IndexerTowerBackConfig config;
+    private IndexerSim sim;
 
-    public IndexerBed(IndexerBedConfig config) {
+    public IndexerTowerBack(IndexerTowerBackConfig config) {
         super(config);
         this.config = config;
 
-        // simulationInit();
+        simulationInit();
         telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -70,7 +72,7 @@ public class IndexerBed extends Mechanism {
 
     @Override
     public void setupDefaultCommand() {
-        IndexerBedStates.setupDefaultCommand();
+        IndexerTowerStates.setupDefaultCommand();
     }
 
     /*-------------------
@@ -120,31 +122,30 @@ public class IndexerBed extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    // public void simulationInit() {
-    //     if (isAttached()) {
-    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-    //         // diameter
-    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
-    //     }
-    // }
+    public void simulationInit() {
+        if (isAttached()) {
+            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
+            sim = new IndexerSim(RobotSim.topView, motor.getSimState());
+        }
+    }
 
-    // // Must be called to enable the simulation
-    // // if roller position changes configure x and y to set position.
-    // @Override
-    // public void simulationPeriodic() {
-    //     if (isAttached()) {
-    //         sim.simulationPeriodic();
-    //     }
-    // }
+    // Must be called to enable the simulation
+    // if roller position changes configure x and y to set position.
+    @Override
+    public void simulationPeriodic() {
+        if (isAttached()) {
+            sim.simulationPeriodic();
+        }
+    }
 
-    // class IndexerSim extends RollerSim {
-    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-    //         super(
-    //                 new RollerConfig(config.getWheelDiameter())
-    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
-    //                 mech,
-    //                 rollerMotorSim,
-    //                 config.getName());
-    //     }
-    // }
+    class IndexerSim extends RollerSim {
+        public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+            super(
+                    new RollerConfig(config.getWheelDiameter())
+                            .setPosition(config.getIntakeX(), config.getIntakeY()),
+                    mech,
+                    rollerMotorSim,
+                    config.getName());
+        }
+    }
 }
