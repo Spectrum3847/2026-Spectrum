@@ -57,7 +57,7 @@ public class RotationalPivotStates {
         scheduleIfNotRunning(turretRotation.coastMode());
     }
 
-    public static void brakeMode() {   
+    public static void brakeMode() {
         scheduleIfNotRunning(turretRotation.ensureBrakeMode());
     }
 

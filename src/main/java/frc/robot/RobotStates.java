@@ -4,7 +4,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
-import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;

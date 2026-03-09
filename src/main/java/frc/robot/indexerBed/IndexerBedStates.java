@@ -26,7 +26,8 @@ public class IndexerBedStates {
 
     public static void slowIndex() {
         scheduleIfNotRunning(
-                indexerBed.runVoltage(config::getIndexerSlowVoltageOut)
+                indexerBed
+                        .runVoltage(config::getIndexerSlowVoltageOut)
                         .withName("IndexerBed.slowFeed"));
     }
 
