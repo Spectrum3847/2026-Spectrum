@@ -1,5 +1,6 @@
 package frc.robot;
 
+import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -8,9 +9,11 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.WebServer;
+import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -21,7 +24,8 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.PHOTON2026;
+import frc.robot.configs.FM2026;
+import frc.robot.configs.PM2026;
 import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
@@ -29,12 +33,12 @@ import frc.robot.indexerBed.IndexerBed;
 import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.indexerTower.IndexerTower;
 import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
+import frc.robot.indexerTower.IndexerTowerBack;
+import frc.robot.indexerTower.IndexerTowerBack.IndexerTowerBackConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
 import frc.robot.launcher.Launcher.LauncherConfig;
-import frc.robot.leds.LedFull;
-import frc.robot.leds.LedFull.LedFullConfig;
 import frc.robot.operator.Operator;
 import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
@@ -62,7 +66,8 @@ import org.json.simple.parser.ParseException;
 
 /**
  * The main robot class. This class is the entry point for the robot code and manages all subsystems
- * and their configurations.
+ * and their configurations. The main robot class. This class is the entry point for the robot code
+ * and manages all subsystems and their configurations.
  */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
@@ -79,10 +84,10 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
-        public LedFullConfig leds = new LedFullConfig();
         public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
+        public IndexerTowerBackConfig indexerTowerBack = new IndexerTowerBackConfig();
         public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
@@ -93,8 +98,9 @@ public class Robot extends SpectrumRobot {
     @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
+    @Getter private static IndexerTowerBack indexerTowerBack;
     @Getter private static IndexerBed indexerBed;
-    @Getter private static LedFull leds;
+    // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
@@ -116,14 +122,14 @@ public class Robot extends SpectrumRobot {
                 case XM_2026:
                     config = new XM2026();
                     break;
-                    // case PM_2026:
-                    //     config = new PM2026();
-                    //     break;
+                case PM_2026:
+                    config = new PM2026();
+                    break;
                     // case FM_2026:
                     //     config = new FM2026();
                     //     break;
                 default: // SIM and UNKNOWN
-                    config = new PHOTON2026();
+                    config = new FM2026();
                     break;
             }
 
@@ -134,7 +140,7 @@ public class Robot extends SpectrumRobot {
              */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
-            leds = new LedFull(config.leds);
+            // leds = new CANdleLeds();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
@@ -152,11 +158,15 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);
+            indexerTowerBack = new IndexerTowerBack(config.indexerTowerBack);
+            Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             coordinator = new Coordinator();
 
-            robotSim = new RobotSim();
+            if (Utils.isSimulation()) {
+                robotSim = new RobotSim();
+            }
 
             // Setup Default Commands for all subsystems
             setupDefaultCommands();
@@ -168,6 +178,8 @@ public class Robot extends SpectrumRobot {
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
+
+        RobotController.setBrownoutVoltage(Units.Volts.of(4.6));
 
         Telemetry.log("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
         Telemetry.log("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
@@ -248,7 +260,6 @@ public class Robot extends SpectrumRobot {
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();
-            ShotCalculator.getInstance().getParameters();
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
@@ -315,7 +326,9 @@ public class Robot extends SpectrumRobot {
                                                             new Rotation2d()))
                                     .collect(Collectors.toList()));
                 }
-                field2d.getObject("path").setPoses(poses);
+                field2d.getObject("Auto Routine").setPoses(poses);
+            } else {
+                field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
             }
         }
     }
@@ -335,6 +348,9 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
+        if (Utils.isSimulation()) {
+            SimulatedArena.getInstance().resetFieldForAuto();
+        }
         try {
             auton.init();
         } catch (Throwable t) {

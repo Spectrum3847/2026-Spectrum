@@ -7,13 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Start to Outpost"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Outpost to Climb"
+            "pathName": "Taxi + Preload"
           }
         }
       ]

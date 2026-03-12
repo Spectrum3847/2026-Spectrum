@@ -26,7 +26,9 @@ public class FuelIntake extends Mechanism {
         @Getter @Setter private double fuelIntakeVoltage = 9.0;
         @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
         @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
+        @Getter @Setter private double fuelSlowIntakeTorqueCurrent = 45.0;
         @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
+        @Getter @Setter private double ejectTorqueCurrent = -50;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -41,7 +43,7 @@ public class FuelIntake extends Mechanism {
         @Getter private double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
-            super("Intake", 5, Rio.CANIVORE);
+            super("Intake", 5, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -49,11 +51,11 @@ public class FuelIntake extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
+            configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Intake Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Intake Right", 6, Rio.RIO_CANBUS, MotorAlignmentValue.Opposed));
         }
     }
 

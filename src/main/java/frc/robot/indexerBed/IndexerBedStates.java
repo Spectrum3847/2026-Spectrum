@@ -21,9 +21,18 @@ public class IndexerBedStates {
 
     public static void indexMax() {
         scheduleIfNotRunning(
+                indexerBed.runVoltage(config::getIndexerVoltageOut).withName("IndexerBed.feedMax"));
+    }
+
+    public static void slowIndex() {
+        scheduleIfNotRunning(
                 indexerBed
-                        .runTorqueCurrentFoc(config::getIndexerTorqueCurrent)
-                        .withName("IndexerBed.feedMax"));
+                        .runVoltage(config::getIndexerSlowVoltageOut)
+                        .withName("IndexerBed.slowFeed"));
+    }
+
+    public static void unjam() {
+        scheduleIfNotRunning(indexerBed.runVoltage(config::getUnjamVoltageOut));
     }
 
     public static void indexIfReady() {
@@ -43,6 +52,10 @@ public class IndexerBedStates {
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(indexerBed.ensureBrakeMode());
+    }
+
+    public static Command unjamCommand() {
+        return indexerBed.runVelocity(config::getUnjamVoltageOut);
     }
 
     // Log Command

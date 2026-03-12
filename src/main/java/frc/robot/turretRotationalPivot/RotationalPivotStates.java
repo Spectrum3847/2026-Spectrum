@@ -4,6 +4,7 @@ import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
+import java.util.function.DoubleSupplier;
 
 public class RotationalPivotStates {
     private static RotationalPivot turretRotation = Robot.getTurret();
@@ -15,6 +16,10 @@ public class RotationalPivotStates {
 
     public static Trigger aimingAtTarget() {
         return turretRotation.aimingAtTarget();
+    }
+
+    public static Command operatorResetTurretPosition() {
+        return new InstantCommand(() -> turretRotation.resetToInitialPos());
     }
 
     // -------------------- State Commands --------------------
@@ -29,8 +34,31 @@ public class RotationalPivotStates {
                         .withName("Turret.aimAtPreset"));
     }
 
+    public static void aimAt180() {
+        scheduleIfNotRunning(turretRotation.moveToDegrees(() -> 180));
+    }
+
+    public static void home() {
+        scheduleIfNotRunning(turretRotation.moveToDegrees(() -> 0));
+    }
+
     public static void neutral() {
         scheduleIfNotRunning(turretRotation.runVoltage(() -> 0).withName("Turret.neutral"));
+    }
+
+    public static Command manualControl(DoubleSupplier joystickInput, DoubleSupplier maxSpeed) {
+        return log(
+                turretRotation
+                        .joystickMove(joystickInput, maxSpeed)
+                        .withName("Turret.manualControl"));
+    }
+
+    public static Command coastMode() {
+        return log(turretRotation.coastMode().withName("Turret.coastMode"));
+    }
+
+    public static Command brakeMode() {
+        return log(turretRotation.ensureBrakeMode().withName("Turret.brakeMode"));
     }
 
     // --------------------------------------------------------

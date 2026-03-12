@@ -27,9 +27,15 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
+        @Getter @Setter private double idlingRPM = 700;
+
+        @Getter @Setter private double onTheFlySpeed = 0;
+        @Getter @Setter private double slowLaunchSpeed = 400;
+
         /* Launcher config values */
         @Getter private double currentLimit = 60;
         @Getter private double torqueCurrentLimit = 80;
+        @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
         @Getter private double velocityKs = 10;
@@ -50,7 +56,9 @@ public class Launcher extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
+            configNeutralBrakeMode(false);
+            configForwardVoltageLimit(nominalVoltage);
+            configReverseVoltageLimit(nominalVoltage);
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
@@ -94,6 +102,8 @@ public class Launcher extends Mechanism {
             builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
             builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
             builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
+            builder.addDoubleProperty(
+                    "onTheFlySpeedRPM", config::getOnTheFlySpeed, config::setOnTheFlySpeed);
         }
     }
 
@@ -131,6 +141,13 @@ public class Launcher extends Mechanism {
                     setVelocityTCFOCrpm(() -> params.flywheelSpeed());
                 })
                 .withName("Launcher.trackTargetCommand");
+    }
+
+    public Command onTheFlyLaunch() {
+        return run(() -> {
+                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed());
+                })
+                .withName("Launcher.onTheFlyLaunch");
     }
 
     public Trigger aimingAtTarget() {

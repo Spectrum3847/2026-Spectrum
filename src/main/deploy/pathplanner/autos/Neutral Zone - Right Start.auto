@@ -7,25 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Start to Outpost"
+            "pathName": "Neutral Zone R 1"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Outpost to Depot"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Depot to Climb"
+            "pathName": "Neutral Zone R 2"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
-  "folder": null,
+  "resetOdom": false,
+  "folder": "Neutral Zone Autos",
   "choreoAuto": false
 }

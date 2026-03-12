@@ -16,13 +16,13 @@ public class ShiftHelpers {
     public static int timeLeftInShiftSeconds(double currentMatchTime) {
         if (currentMatchTime >= 130) {
             return (int) (currentMatchTime - 130);
-        } else if (currentMatchTime >= 105 && currentMatchTime <= 130) {
+        } else if (currentMatchTime >= 105 && currentMatchTime < 130) {
             return (int) (currentMatchTime - 105);
-        } else if (currentMatchTime >= 80 && currentMatchTime <= 105) {
+        } else if (currentMatchTime >= 80 && currentMatchTime < 105) {
             return (int) (currentMatchTime - 80);
-        } else if (currentMatchTime >= 55 && currentMatchTime <= 80) {
+        } else if (currentMatchTime >= 55 && currentMatchTime < 80) {
             return (int) (currentMatchTime - 55);
-        } else if (currentMatchTime >= 30 && currentMatchTime <= 55) {
+        } else if (currentMatchTime >= 30 && currentMatchTime < 55) {
             return (int) (currentMatchTime - 30);
         } else {
             return (int) currentMatchTime;
@@ -30,14 +30,28 @@ public class ShiftHelpers {
     }
 
     public static boolean isCurrentShiftBlue(double currentMatchTime) {
-        if (currentMatchTime >= 105 && currentMatchTime <= 130) {
+        if (currentMatchTime >= 105 && currentMatchTime < 130) {
             return blueWonAuto() ? false : true;
-        } else if (currentMatchTime >= 80 && currentMatchTime <= 105) {
+        } else if (currentMatchTime >= 80 && currentMatchTime < 105) {
             return blueWonAuto() ? true : false;
-        } else if (currentMatchTime >= 55 && currentMatchTime <= 80) {
+        } else if (currentMatchTime >= 55 && currentMatchTime < 80) {
             return blueWonAuto() ? false : true;
-        } else if (currentMatchTime >= 30 && currentMatchTime <= 55) {
+        } else if (currentMatchTime >= 30 && currentMatchTime < 55) {
             return blueWonAuto() ? true : false;
+        } else {
+            return true;
+        }
+    }
+
+    public static boolean isCurrentShiftRed(double currentMatchTime) {
+        if (currentMatchTime >= 105 && currentMatchTime < 130) {
+            return blueWonAuto() ? true : false;
+        } else if (currentMatchTime >= 80 && currentMatchTime < 105) {
+            return blueWonAuto() ? false : true;
+        } else if (currentMatchTime >= 55 && currentMatchTime < 80) {
+            return blueWonAuto() ? true : false;
+        } else if (currentMatchTime >= 30 && currentMatchTime < 55) {
+            return blueWonAuto() ? false : true;
         } else {
             return true;
         }
@@ -45,11 +59,10 @@ public class ShiftHelpers {
 
     public static boolean currentShiftIsYours() {
         double currentMatchTime = DriverStation.getMatchTime();
-        boolean isBlueShift = isCurrentShiftBlue(currentMatchTime);
         if (Field.isBlue()) {
-            return isBlueShift;
+            return isCurrentShiftBlue(currentMatchTime);
         } else {
-            return !isBlueShift;
+            return isCurrentShiftRed(currentMatchTime);
         }
     }
 }

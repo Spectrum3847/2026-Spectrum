@@ -1,31 +1,96 @@
 package frc.robot.intakeExtension;
 
 import edu.wpi.first.wpilibj2.command.*;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.spectrumLib.Telemetry;
 
 public class IntakeExtensionStates {
     private static IntakeExtension intakeExtension = Robot.getIntakeExtension();
-    private static IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
+    private static IntakeExtension.IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
+
+    private static boolean sentOutByIntakeState = false;
 
     public static void setupDefaultCommand() {
         intakeExtension.setDefaultCommand(
                 log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
+    public static final Trigger fullOut =
+            intakeExtension.atPercentage(config::getFullOut, config::getAtPoseTolerance);
+    public static final Trigger home =
+            intakeExtension.atPercentage(config::getHome, config::getAtPoseTolerance);
+
+    public static Command operatorResetIntakeExtension() {
+        return new InstantCommand(() -> intakeExtension.resetCurrentPositionToMax());
+    }
+
     // -------------------- State Commands --------------------
 
     public static void fullExtend() {
-        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getFullOut()));
+        scheduleIfNotRunning(
+                intakeExtension
+                        .voltageOutPositive()
+                        .until(fullOut.debounce(0.5))
+                        .withName("IntakeExtension.fullExtend"));
+        sentOutByIntakeState = true;
     }
 
     public static void fullRetract() {
-        scheduleIfNotRunning(intakeExtension.moveToPercentage(() -> config.getHome()));
+        scheduleIfNotRunning(
+                intakeExtension
+                        .voltageOutNegative()
+                        .until(home.debounce(0.5))
+                        .withName("IntakeExtension.fullRetract"));
+    }
+
+    public static void fullExtendConditional() {
+        if (sentOutByIntakeState) {
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .voltageOutPositive()
+                            .until(fullOut.debounce(0.5))
+                            .withName("IntakeExtension.fullExtendConditional"));
+        } else {
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .runVoltage(() -> 0)
+                            .withName("IntakeExtension.fullExtendConditional"));
+        }
+    }
+
+    public static Command fullExtendCommand() {
+        return log(
+                intakeExtension
+                        .voltageOutPositive()
+                        .until(fullOut.debounce(0.5))
+                        .withName("IntakeExtension.fullExtendCommand"));
+    }
+
+    public static Command fullRetractCommand() {
+        return log(
+                intakeExtension
+                        .voltageOutNegative()
+                        .until(home.debounce(0.5))
+                        .withName("IntakeExtension.fullRetractCommand"));
+    }
+
+    public static Command slowIntakeCloseCommand() {
+        return log(intakeExtension.slowIntakeClose().until(home.debounce(0.5)))
+                .withName("IntakeExtension.slowIntakeClose");
+    }
+
+    public static Command coastMode() {
+        return log(intakeExtension.coastMode().withName("IntakeExtension.coastMode"));
+    }
+
+    public static Command brakeMode() {
+        return log(intakeExtension.ensureBrakeMode().withName("IntakeExtension.brakeMode"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+        scheduleIfNotRunning(
+                intakeExtension.runVoltage(() -> 0).withName("IntakeExtension.neutral"));
     }
 
     // --------------------------------------------------------

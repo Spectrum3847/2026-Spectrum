@@ -24,10 +24,20 @@ public class FuelIntakeStates {
                         .withName("Intake.intakeFuel"));
     }
 
+    public static void slowIntakeFuel() {
+        scheduleIfNotRunning(
+                intake.runTorqueFOC(config::getFuelSlowIntakeTorqueCurrent)
+                        .withName("Intake.slowIntakeFuel"));
+    }
+
     public static void agitateFuel() {
         scheduleIfNotRunning(
                 intake.runTorqueFOC(config::getFuelAgitationTorqueCurrent)
                         .withName("Intake.agitate"));
+    }
+
+    public static Command ejectCommand() {
+        return intake.runTorqueCurrentFoc(config::getEjectTorqueCurrent).withName("Intake.eject");
     }
 
     public static void stop() {

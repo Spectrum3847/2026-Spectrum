@@ -15,7 +15,9 @@ public class IndexerBed extends Mechanism {
     public static class IndexerBedConfig extends Config {
 
         // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 6;
+        @Getter @Setter private double indexerVoltageOut = 8;
+        @Getter @Setter private double indexerSlowVoltageOut = 4;
+        @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 40;
 
         /* Intake config values */
@@ -39,8 +41,12 @@ public class IndexerBed extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
+            configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
+            // setFollowerConfigs(
+            //         new FollowerConfig(
+            //                 "IndexerBed Follower 1", 9, Rio.CANIVORE,
+            // MotorAlignmentValue.Aligned));
         }
     }
 
