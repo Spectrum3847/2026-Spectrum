@@ -49,19 +49,22 @@ public class RobotStates {
     // Setup any binding to set states
     public static void setupStates() {
         // Pilot Triggers
-        pilot.RT.onTrue(applyState(State.INTAKE_FUEL));
+        pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
         pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.LT.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.XButton.whileTrue(applyState(State.TURRET_TRACK));
+        pilot.XButton.onFalse(applyState(State.IDLE));
+
+        pilot.LT.whileTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
         pilot.LT.onFalse(applyState(State.IDLE));
 
-        pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
+        pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
 
-        pilot.AButton.onTrue(applyState(State.UNJAM));
+        pilot.AButton.whileTrue(applyState(State.UNJAM));
         pilot.AButton.onFalse(applyState(State.IDLE));
 
-        operator.AButton.onTrue(applyState(State.UNJAM));
+        operator.AButton.whileTrue(applyState(State.UNJAM));
         operator.AButton.onFalse(applyState(State.IDLE));
 
         pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));

@@ -61,7 +61,7 @@ public class SwerveStates {
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
                     .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.MotionMagicExpo)
-                    .withMaxAbsRotationalRate(config.getMaxAngularRate() * 0.15)
+                    .withMaxAbsRotationalRate(config.getMaxAngularRate())
                     .withHeadingPID(
                             config.getKPRotationController(),
                             config.getKIRotationController(),
@@ -74,7 +74,7 @@ public class SwerveStates {
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
                     .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.MotionMagicExpo)
-                    .withMaxAbsRotationalRate(config.getMaxAngularRate() * 0.15)
+                    .withMaxAbsRotationalRate(config.getMaxAngularRate())
                     .withHeadingPID(
                             config.getKPRotationController(),
                             config.getKIRotationController(),
@@ -83,11 +83,15 @@ public class SwerveStates {
     // ------------------------------------------------------------------------
     // Triggers
     // ------------------------------------------------------------------------
+    @SuppressWarnings("unused")
     private static final Trigger snakeDrive =
             new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
 
     private static final Trigger launching =
             new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
+
+    private static final Trigger launchPreping =
+            new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_TRACK);
 
     public static Trigger robotInNeutralZone() {
         return swerve.inNeutralZone();
@@ -117,10 +121,9 @@ public class SwerveStates {
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
 
-        snakeDrive.whileTrue(log(snakeDrive()));
-
-        launching.and(Robot.getPilot().fn).whileTrue(log(tweakOut()));
-        launching.and(Robot.getPilot().RB).whileTrue(log(xBrake()));
+        launching.or(launchPreping).whileTrue(log(pilotAimAtTarget()));
+        // launching.and(Robot.getPilot().fn).whileTrue(log(tweakOut()));
+        // launching.and(Robot.getPilot().RB).whileTrue(log(xBrake()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));
@@ -153,14 +156,15 @@ public class SwerveStates {
      *     translation control with the left stick
      */
     protected static Command pilotAimAtTarget() {
-        final double targetRadians =
-                ShotCalculator.getInstance().getParameters().fieldAngle().getRadians();
-
         return aimDrive(
                         pilot::getDriveFwdPositive,
                         pilot::getDriveLeftPositive,
-                        () -> targetRadians)
-                .withName("Swerve.PilotAimAtTarget");
+                        () ->
+                                ShotCalculator.getInstance()
+                                        .getParameters()
+                                        .fieldAngle()
+                                        .getRadians())
+                .withName("Swerve.pilotAimAtTarget");
     }
 
     /**

@@ -236,30 +236,33 @@ public class RotationalPivot extends Mechanism {
     }
 
     public void aimFieldRelative(Rotation2d fieldAngleDegrees, double goalVelocityRotPerSec) {
-        // Rotated 180 degrees because turret zero is facing backwards relative to robot forward
-        double robotHeadingDeg =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getRotation()
-                        .plus(config.zeroOffsetFromRobotFront)
-                        .getDegrees();
-        double robotAngularVelocityRotPerSec =
-                Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond
-                        / (2 * Math.PI);
-        double turretGoalDeg = fieldAngleDegrees.getDegrees() - robotHeadingDeg;
-        double wrappedGoalDeg = wrapDegreesToSoftLimits(turretGoalDeg);
-        double goalRotations = degreesToRotations(() -> wrappedGoalDeg);
-        double robotRelativeGoalVelocity = goalVelocityRotPerSec - robotAngularVelocityRotPerSec;
+        if (isAttached()) {
+            // Rotated 180 degrees because turret zero is facing backwards relative to robot forward
+            double robotHeadingDeg =
+                    Robot.getSwerve()
+                            .getRobotPose()
+                            .getRotation()
+                            .plus(config.zeroOffsetFromRobotFront)
+                            .getDegrees();
+            double robotAngularVelocityRotPerSec =
+                    Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond
+                            / (2 * Math.PI);
+            double turretGoalDeg = fieldAngleDegrees.getDegrees() - robotHeadingDeg;
+            double wrappedGoalDeg = wrapDegreesToSoftLimits(turretGoalDeg);
+            double goalRotations = degreesToRotations(() -> wrappedGoalDeg);
+            double robotRelativeGoalVelocity =
+                    goalVelocityRotPerSec - robotAngularVelocityRotPerSec;
 
-        TrapezoidProfile.State currentState =
-                new TrapezoidProfile.State(getPositionRotations(), getVelocityRPM() / 60.0);
-        TrapezoidProfile.State goalState =
-                new TrapezoidProfile.State(goalRotations, robotRelativeGoalVelocity);
-        turretSetpoint = profile.calculate(0.02, currentState, goalState);
+            TrapezoidProfile.State currentState =
+                    new TrapezoidProfile.State(getPositionRotations(), getVelocityRPM() / 60.0);
+            TrapezoidProfile.State goalState =
+                    new TrapezoidProfile.State(goalRotations, robotRelativeGoalVelocity);
+            turretSetpoint = profile.calculate(0.02, currentState, goalState);
 
-        turretRequest.Position = turretSetpoint.position;
-        turretRequest.Velocity = turretSetpoint.velocity;
-        motor.setControl(turretRequest);
+            turretRequest.Position = turretSetpoint.position;
+            turretRequest.Velocity = turretSetpoint.velocity;
+            motor.setControl(turretRequest);
+        }
     }
 
     public Command trackTargetCommand() {
