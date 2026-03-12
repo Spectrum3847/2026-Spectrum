@@ -28,7 +28,8 @@ public class IndexerTowerBack extends Mechanism {
 
         /* Intake config values */
         @Getter private double currentLimit = 70;
-        @Getter private double torqueCurrentLimit = 100;
+        @Getter private double lowerCurrentLimit = 40;
+        @Getter private double torqueCurrentLimit = 140;
         @Getter private double velocityKp = 0.5;
         @Getter private double velocityKv = 0.08;
         @Getter private double velocityKs = 0.3;
@@ -47,6 +48,8 @@ public class IndexerTowerBack extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(2);
             configNeutralBrakeMode(false);
             configClockwise_Positive();
         }

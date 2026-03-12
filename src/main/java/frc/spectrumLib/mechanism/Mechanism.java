@@ -925,6 +925,14 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
             talonConfig.TorqueCurrent.PeakReverseTorqueCurrent = currentLimit;
         }
 
+        public void configLowerSupplyCurrentLimit(double currentLimit) {
+            talonConfig.CurrentLimits.SupplyCurrentLowerLimit = currentLimit;
+        }
+
+        public void configLowerSupplyCurrentTime(double time) {
+            talonConfig.CurrentLimits.SupplyCurrentLowerTime = time;
+        }
+
         public void configNeutralDeadband(double deadband) {
             talonConfig.MotorOutput.DutyCycleNeutralDeadband = deadband;
         }

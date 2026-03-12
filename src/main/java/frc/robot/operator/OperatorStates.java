@@ -25,24 +25,20 @@ public class OperatorStates {
 
     /** Set the states for the operator controller */
     public static void setStates() {
-        operator.RT
-                .and(operator.fn)
-                .whileTrue(
-                        Robot.getTurret().joystickMove(() -> operator.getTriggerAxis(), () -> 4));
-        operator.LT
-                .and(operator.fn)
-                .whileTrue(
-                        Robot.getTurret().joystickMove(() -> -operator.getTriggerAxis(), () -> -4));
+        operator.moveTurretLeft.whileTrue(
+                Robot.getTurret().joystickMove(() -> operator.getTriggerAxis(), () -> 4));
+        operator.moveTurretRight.whileTrue(
+                Robot.getTurret().joystickMove(() -> -operator.getTriggerAxis(), () -> -4));
 
-        operator.YButton.and(operator.fn)
-                .onTrue(IntakeExtensionStates.operatorResetIntakeExtension());
+        operator.resetIntakeExtensionPos.onTrue(
+                IntakeExtensionStates.operatorResetIntakeExtension());
         operator.resetTurretPos.onTrue(RotationalPivotStates.operatorResetTurretPosition());
 
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
 
-        operator.rightBumperOnly.onTrue(
-                new InstantCommand(() -> IntakeExtensionStates.fullRetract()));
+        operator.rightBumperOnly.whileTrue(IntakeExtensionStates.fullRetractCommand());
+        operator.rightTriggerOnly.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
 
         operator.testA.whileTrue(IntakeExtensionStates.fullExtendCommand());
         operator.testB.whileTrue(IntakeExtensionStates.fullRetractCommand());

@@ -36,6 +36,10 @@ public class FuelIntakeStates {
                         .withName("Intake.agitate"));
     }
 
+    public static Command ejectCommand() {
+        return intake.runTorqueCurrentFoc(config::getEjectTorqueCurrent).withName("Intake.eject");
+    }
+
     public static void stop() {
         scheduleIfNotRunning(intake.stopMotor().withName("Intake.stop"));
     }

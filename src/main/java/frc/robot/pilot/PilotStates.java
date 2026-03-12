@@ -10,6 +10,7 @@ import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.robot.RobotStates;
 import frc.robot.State;
+import frc.robot.fuelIntake.FuelIntakeStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.robot.vision.VisionStates;
@@ -50,6 +51,8 @@ public class PilotStates {
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
         pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
         pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimLaunchFuel());
+
+        pilot.rightTriggerOnly.and(pilot.fn).whileTrue(FuelIntakeStates.ejectCommand());
 
         pilot.coastA.onTrue(RotationalPivotStates.coastMode(), IntakeExtensionStates.coastMode());
         pilot.brakeB.onTrue(RotationalPivotStates.brakeMode(), IntakeExtensionStates.brakeMode());

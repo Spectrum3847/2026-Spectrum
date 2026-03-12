@@ -215,6 +215,10 @@ public class IntakeExtension extends Mechanism {
         return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
     }
 
+    public Command slowIntakeClose() {
+        return run(() -> setVoltageOutput(() -> -2));
+    }
+
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------

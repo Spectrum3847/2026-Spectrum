@@ -28,19 +28,34 @@ public class IntakeExtensionStates {
     // -------------------- State Commands --------------------
 
     public static void fullExtend() {
-        scheduleIfNotRunning(intakeExtension.voltageOutPositive().until(fullOut.debounce(0.5)));
+        scheduleIfNotRunning(
+                intakeExtension
+                        .voltageOutPositive()
+                        .until(fullOut.debounce(0.5))
+                        .withName("IntakeExtension.fullExtend"));
         sentOutByIntakeState = true;
     }
 
     public static void fullRetract() {
-        scheduleIfNotRunning(intakeExtension.voltageOutNegative().until(home.debounce(0.5)));
+        scheduleIfNotRunning(
+                intakeExtension
+                        .voltageOutNegative()
+                        .until(home.debounce(0.5))
+                        .withName("IntakeExtension.fullRetract"));
     }
 
     public static void fullExtendConditional() {
         if (sentOutByIntakeState) {
-            scheduleIfNotRunning(intakeExtension.voltageOutPositive().until(fullOut.debounce(0.5)));
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .voltageOutPositive()
+                            .until(fullOut.debounce(0.5))
+                            .withName("IntakeExtension.fullExtendConditional"));
         } else {
-            scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .runVoltage(() -> 0)
+                            .withName("IntakeExtension.fullExtendConditional"));
         }
     }
 
@@ -60,6 +75,11 @@ public class IntakeExtensionStates {
                         .withName("IntakeExtension.fullRetractCommand"));
     }
 
+    public static Command slowIntakeCloseCommand() {
+        return log(intakeExtension.slowIntakeClose().until(home.debounce(0.5)))
+                .withName("IntakeExtension.slowIntakeClose");
+    }
+
     public static Command coastMode() {
         return log(intakeExtension.coastMode().withName("IntakeExtension.coastMode"));
     }
@@ -69,7 +89,8 @@ public class IntakeExtensionStates {
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+        scheduleIfNotRunning(
+                intakeExtension.runVoltage(() -> 0).withName("IntakeExtension.neutral"));
     }
 
     // --------------------------------------------------------
