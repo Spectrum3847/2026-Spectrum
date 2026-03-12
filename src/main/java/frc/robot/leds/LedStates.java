@@ -1,73 +1,137 @@
-package frc.robot.leds;
+// package frc.robot.leds;
 
-import edu.wpi.first.wpilibj.LEDPattern;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.robot.Robot;
-import frc.robot.pilot.PilotStates;
-import frc.spectrumLib.leds.SpectrumLEDs;
-import frc.spectrumLib.util.Util;
+// import com.ctre.phoenix6.controls.SingleFadeAnimation;
+// import com.ctre.phoenix6.controls.StrobeAnimation;
+// import com.ctre.phoenix6.hardware.CANdle;
+// import com.ctre.phoenix6.signals.RGBWColor;
+// import edu.wpi.first.wpilibj.DriverStation;
+// import edu.wpi.first.wpilibj2.command.InstantCommand;
+// import edu.wpi.first.wpilibj2.command.button.Trigger;
+// import frc.rebuilt.Field;
+// import frc.rebuilt.ShiftHelpers;
+// import frc.robot.Robot;
+// import frc.spectrumLib.util.Util;
 
-public class LedStates {
-    private static LedFull leds = Robot.getLeds();
-    private static LedRight right = leds.getRight();
-    private static LedLeft left = leds.getLeft();
+// public class LedStates {
+//     private static CANdleLeds leds = Robot.getLeds();
+//     private static CANdle candle = leds.getCANdle();
 
-    static void bindTriggers() {
-        disabledPattern(Util.disabled.and(Util.dsAttached));
-        teleopPattern(Util.teleop.and(Util.dsAttached));
-        autoPattern(Util.autoMode.and(Util.dsAttached));
-        testModePattern(Util.testMode.and(Util.dsAttached));
+//     public static final Trigger auto = Util.autoMode;
 
-        // General Led Commands
-        testPattern(PilotStates.buttonAPress.and(Util.teleop), 5);
-    }
+//     // period between end of auto and first alliance shift
+//     public static final Trigger transitionShift =
+//             new Trigger(
+//                             () -> {
+//                                 double t = DriverStation.getMatchTime();
+//                                 return (t <= 140 && t > 133);
+//                             })
+//                     .and(Util.teleop);
 
-    /** Default LED commands for each mode */
-    private static Trigger ledDefaultCommand(
-            String name, SpectrumLEDs sLeds, LEDPattern pattern, Trigger trigger) {
-        int priority = -1;
-        return trigger.and(sLeds.checkPriority(priority), sLeds.defaultTrigger)
-                // .onTrue(sLeds.setPattern(pattern, priority).withName(name));
-                .onTrue(sLeds.setPattern(pattern, priority));
-    }
+//     public static final Trigger endgame =
+//             new Trigger(() -> DriverStation.getMatchTime() <= 30).and(Util.teleop);
 
-    static void disabledPattern(Trigger trigger) {
-        ledDefaultCommand(
-                "right.disabledPattern", right, right.ombre(right.purple, right.white), trigger);
-        ledDefaultCommand(
-                "left.disabledPattern", left, left.ombre(left.purple, left.white), trigger);
-    }
+//     // 3 seconds before the end of each shift
+//     public static final Trigger aboutToChangeShift =
+//             new Trigger(
+//                             () -> {
+//                                 double t = DriverStation.getMatchTime();
+//                                 return (t <= 108 && t >= 105)
+//                                         || (t <= 83 && t >= 80)
+//                                         || (t <= 58 && t >= 55)
+//                                         || (t <= 33 && t >= 30);
+//                             })
+//                     .and(Util.teleop);
 
-    static void teleopPattern(Trigger trigger) {
-        ledDefaultCommand("right.teleopPattern", right, right.bounce(right.purple, 3), trigger);
-        ledDefaultCommand("left.teleopPattern", left, left.bounce(left.purple, 3), trigger);
-    }
+//     public static final Trigger transitionAboutToEnd =
+//             new Trigger(
+//                             () -> {
+//                                 double t = DriverStation.getMatchTime();
+//                                 return (t <= 133 && t > 130);
+//                             })
+//                     .and(Util.teleop);
 
-    static void autoPattern(Trigger trigger) {
-        ledDefaultCommand(
-                "right.autoPattern", right, right.countdown(Timer::getFPGATimestamp, 15), trigger);
+//     public static final Trigger blueShift =
+//             new Trigger(() -> ShiftHelpers.isCurrentShiftBlue(DriverStation.getMatchTime()))
+//                     .and(Util.teleop);
+//     public static final Trigger redShift =
+//             new Trigger(() -> ShiftHelpers.isCurrentShiftRed(DriverStation.getMatchTime()))
+//                     .and(Util.teleop);
 
-        ledDefaultCommand(
-                "left.autoPattern", left, left.countdown(Timer::getFPGATimestamp, 15), trigger);
-    }
+//     public static Trigger bothInShift = auto.or(transitionShift, endgame);
 
-    static void testModePattern(Trigger trigger) {
-        ledDefaultCommand("right.testModePattern", right, right.chase(Color.kRed, 0.2, 1), trigger);
-        ledDefaultCommand("left.testModePattern", left, left.chase(Color.kRed, 0.2, 1), trigger);
-    }
+//     public static void setDefaultCommand() {}
 
-    /** LED non-default Commands, set the priority value to see which command takes precedence */
-    private static Trigger ledCommand(
-            String name, SpectrumLEDs sLed, LEDPattern pattern, int priority, Trigger trigger) {
-        return trigger.and(sLed.checkPriority(priority))
-                .whileTrue(sLed.setPattern(pattern, priority).withName(name));
-    }
+//     static void bindTriggers() {
 
-    static void testPattern(Trigger trigger, int priority) {
-        ledCommand(
-                "right.testPattern", right, right.switchCountdown(Color.kBlue), priority, trigger);
-        ledCommand("left.testPattern", left, left.switchCountdown(Color.kBlue), priority, trigger);
-    }
-}
+//         // Match time related patterns
+//         autoShift(auto, 15);
+//         afterAutoTransition(transitionShift, 15);
+//         transitionAboutToEnd(transitionAboutToEnd, 25);
+//         redAlliance(redShift.and(bothInShift.not()), 10);
+//         shiftAboutToEnd(aboutToChangeShift, 25);
+//         blueAlliance(blueShift.and(bothInShift.not()), 10);
+//         endgame(endgame, 20);
+//     }
+
+//     static void autoShift(Trigger trigger, int priority) {
+//         SingleFadeAnimation shiftAnimation =
+//                 new SingleFadeAnimation(0, 20)
+//                         .withSlot(0)
+//                         .withColor(
+//                                 Field.isBlue()
+//                                         ? new RGBWColor(0, 0, 255)
+//                                         : new RGBWColor(255, 0, 0));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(shiftAnimation)));
+//     }
+
+//     static void afterAutoTransition(Trigger trigger, int priority) {
+//         SingleFadeAnimation shiftAnimation =
+//                 new SingleFadeAnimation(0, 20)
+//                         .withSlot(0)
+//                         .withColor(
+//                                 Field.isBlue()
+//                                         ? new RGBWColor(0, 0, 255)
+//                                         : new RGBWColor(255, 0, 0));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(shiftAnimation)));
+//     }
+
+//     static void redAlliance(Trigger trigger, int priority) {
+//         SingleFadeAnimation redAllianceShift =
+//                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(255, 0, 0));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(redAllianceShift)));
+//     }
+
+//     static void blueAlliance(Trigger trigger, int priority) {
+//         SingleFadeAnimation blueAllianceShift =
+//                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(0, 0, 255));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(blueAllianceShift)));
+//     }
+
+//     static void shiftAboutToEnd(Trigger trigger, int priority) {
+//         StrobeAnimation aboutToShift =
+//                 new StrobeAnimation(0, 20)
+//                         .withSlot(0)
+//                         .withColor(
+//                                 ShiftHelpers.isCurrentShiftBlue(DriverStation.getMatchTime())
+//                                         ? new RGBWColor(0, 0, 255)
+//                                         : new RGBWColor(255, 0, 0));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(aboutToShift)));
+//     }
+
+//     static void transitionAboutToEnd(Trigger trigger, int priority) {
+//         StrobeAnimation aboutToShift =
+//                 new StrobeAnimation(0, 20)
+//                         .withSlot(0)
+//                         .withColor(
+//                                 Field.isBlue()
+//                                         ? new RGBWColor(0, 0, 255)
+//                                         : new RGBWColor(255, 0, 0));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(aboutToShift)));
+//     }
+
+//     static void endgame(Trigger trigger, int priority) {
+//         SingleFadeAnimation endgameAnimation =
+//                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(207, 255, 4));
+//         trigger.onTrue(new InstantCommand(() -> candle.setControl(endgameAnimation)));
+//     }
+// }

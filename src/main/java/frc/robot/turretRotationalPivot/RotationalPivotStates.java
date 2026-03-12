@@ -18,8 +18,8 @@ public class RotationalPivotStates {
         return turretRotation.aimingAtTarget();
     }
 
-    public static void operatorResetTurretPosition() {
-        turretRotation.resetCurrentPositionToZero();
+    public static Command operatorResetTurretPosition() {
+        return new InstantCommand(() -> turretRotation.resetToInitialPos());
     }
 
     // -------------------- State Commands --------------------
@@ -53,12 +53,12 @@ public class RotationalPivotStates {
                         .withName("Turret.manualControl"));
     }
 
-    public static void coastMode() {
-        scheduleIfNotRunning(turretRotation.coastMode());
+    public static Command coastMode() {
+        return log(turretRotation.coastMode().withName("Turret.coastMode"));
     }
 
-    public static void brakeMode() {   
-        scheduleIfNotRunning(turretRotation.ensureBrakeMode());
+    public static Command brakeMode() {
+        return log(turretRotation.ensureBrakeMode().withName("Turret.brakeMode"));
     }
 
     // --------------------------------------------------------

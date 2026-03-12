@@ -26,8 +26,9 @@ public class FuelIntake extends Mechanism {
         @Getter @Setter private double fuelIntakeVoltage = 9.0;
         @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
         @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
-        @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
         @Getter @Setter private double fuelSlowIntakeTorqueCurrent = 45.0;
+        @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
+        @Getter @Setter private double ejectTorqueCurrent = -50;
 
         /* Intake config values */
         @Getter private double currentLimit = 44;
@@ -50,7 +51,7 @@ public class FuelIntake extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(true);
+            configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(

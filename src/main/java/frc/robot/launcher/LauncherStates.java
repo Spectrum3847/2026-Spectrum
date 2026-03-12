@@ -13,8 +13,6 @@ public class LauncherStates {
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
                 launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
-        launcher.setDefaultCommand(
-                launcher.stopMotor().ignoringDisable(true).withName("Launcher.default"));
     }
 
     public static Trigger aimingAtTarget() {
@@ -37,7 +35,8 @@ public class LauncherStates {
 
     public static void slowLaunch() {
         scheduleIfNotRunning(
-                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed).withName("Launcher.slowLaunch"));
+                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed)
+                        .withName("Launcher.slowLaunch"));
     }
 
     public static void aimAtTarget() {

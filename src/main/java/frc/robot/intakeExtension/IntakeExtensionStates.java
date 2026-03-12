@@ -1,11 +1,13 @@
 package frc.robot.intakeExtension;
 
 import edu.wpi.first.wpilibj2.command.*;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class IntakeExtensionStates {
     private static IntakeExtension intakeExtension = Robot.getIntakeExtension();
+    private static IntakeExtension.IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
 
     private static boolean sentOutByIntakeState = false;
 
@@ -14,8 +16,13 @@ public class IntakeExtensionStates {
                 log(intakeExtension.runHoldIntakeExtension().withName("IntakeExtension.default")));
     }
 
-    public static void operatorResetIntakeExtension() {
-        intakeExtension.resetCurrentPositionToMax();
+    public static final Trigger fullOut =
+            intakeExtension.atPercentage(config::getFullOut, config::getAtPoseTolerance);
+    public static final Trigger home =
+            intakeExtension.atPercentage(config::getHome, config::getAtPoseTolerance);
+
+    public static Command operatorResetIntakeExtension() {
+        return new InstantCommand(() -> intakeExtension.resetCurrentPositionToMax());
     }
 
     // -------------------- State Commands --------------------
@@ -24,7 +31,8 @@ public class IntakeExtensionStates {
         scheduleIfNotRunning(
                 intakeExtension
                         .voltageOutPositive()
-                        .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+                        .until(fullOut.debounce(0.5))
+                        .withName("IntakeExtension.fullExtend"));
         sentOutByIntakeState = true;
     }
 
@@ -32,7 +40,8 @@ public class IntakeExtensionStates {
         scheduleIfNotRunning(
                 intakeExtension
                         .voltageOutNegative()
-                        .until(intakeExtension.atPercentage(() -> 0, () -> 5).debounce(0.5)));
+                        .until(home.debounce(0.5))
+                        .withName("IntakeExtension.fullRetract"));
     }
 
     public static void fullExtendConditional() {
@@ -40,22 +49,48 @@ public class IntakeExtensionStates {
             scheduleIfNotRunning(
                     intakeExtension
                             .voltageOutPositive()
-                            .until(intakeExtension.atPercentage(() -> 100, () -> 5).debounce(0.5)));
+                            .until(fullOut.debounce(0.5))
+                            .withName("IntakeExtension.fullExtendConditional"));
         } else {
-            scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+            scheduleIfNotRunning(
+                    intakeExtension
+                            .runVoltage(() -> 0)
+                            .withName("IntakeExtension.fullExtendConditional"));
         }
     }
 
-    public static void coastMode() {
-        scheduleIfNotRunning(intakeExtension.coastMode());
+    public static Command fullExtendCommand() {
+        return log(
+                intakeExtension
+                        .voltageOutPositive()
+                        .until(fullOut.debounce(0.5))
+                        .withName("IntakeExtension.fullExtendCommand"));
     }
 
-    public static void brakeMode() {   
-        scheduleIfNotRunning(intakeExtension.ensureBrakeMode());
+    public static Command fullRetractCommand() {
+        return log(
+                intakeExtension
+                        .voltageOutNegative()
+                        .until(home.debounce(0.5))
+                        .withName("IntakeExtension.fullRetractCommand"));
+    }
+
+    public static Command slowIntakeCloseCommand() {
+        return log(intakeExtension.slowIntakeClose().until(home.debounce(0.5)))
+                .withName("IntakeExtension.slowIntakeClose");
+    }
+
+    public static Command coastMode() {
+        return log(intakeExtension.coastMode().withName("IntakeExtension.coastMode"));
+    }
+
+    public static Command brakeMode() {
+        return log(intakeExtension.ensureBrakeMode().withName("IntakeExtension.brakeMode"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(intakeExtension.runVoltage(() -> 0));
+        scheduleIfNotRunning(
+                intakeExtension.runVoltage(() -> 0).withName("IntakeExtension.neutral"));
     }
 
     // --------------------------------------------------------

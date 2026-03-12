@@ -26,7 +26,8 @@ public class IndexerBedStates {
 
     public static void slowIndex() {
         scheduleIfNotRunning(
-                indexerBed.runVoltage(config::getIndexerSlowVoltageOut)
+                indexerBed
+                        .runVoltage(config::getIndexerSlowVoltageOut)
                         .withName("IndexerBed.slowFeed"));
     }
 
@@ -51,6 +52,10 @@ public class IndexerBedStates {
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(indexerBed.ensureBrakeMode());
+    }
+
+    public static Command unjamCommand() {
+        return indexerBed.runVelocity(config::getUnjamVoltageOut);
     }
 
     // Log Command

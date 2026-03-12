@@ -37,9 +37,10 @@ public class IntakeExtension extends Mechanism {
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
         @Getter private double home = 0;
         @Getter private double fullOut = 100;
+        @Getter private double atPoseTolerance = 10;
 
-        @Getter private final double currentLimit = 60;
-        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double currentLimit = 80;
+        @Getter private final double torqueCurrentLimit = 180;
         @Getter private final double positionKp = 250;
         @Getter private final double positionKd = 15;
         @Getter private final double positionKv = 0.75;
@@ -207,11 +208,15 @@ public class IntakeExtension extends Mechanism {
     }
 
     public Command voltageOutPositive() {
-        return run(() -> setVoltageOutput(() -> 8));
+        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
     }
 
     public Command voltageOutNegative() {
-        return run(() -> setVoltageOutput(() -> -8));
+        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
+    }
+
+    public Command slowIntakeClose() {
+        return run(() -> setVoltageOutput(() -> -2));
     }
 
     // --------------------------------------------------------------------------------

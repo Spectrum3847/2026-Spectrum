@@ -4,8 +4,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
-import frc.robot.intakeExtension.IntakeExtension;
-import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
@@ -60,29 +58,20 @@ public class RobotStates {
         pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
 
-        pilot.YButton.onTrue(applyState(State.UNJAM));
-        pilot.YButton.onFalse(applyState(State.IDLE));
+        pilot.AButton.onTrue(applyState(State.UNJAM));
+        pilot.AButton.onFalse(applyState(State.IDLE));
 
-        operator.YButton.onTrue(applyState(State.UNJAM));
-        operator.YButton.onFalse(applyState(State.IDLE));
+        operator.AButton.onTrue(applyState(State.UNJAM));
+        operator.AButton.onFalse(applyState(State.IDLE));
 
         pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));
         pilot.home_select.and(pilot.fn).onFalse(applyState(State.IDLE));
 
-        pilot.home_select.onTrue(clearState());
-        pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
-
-        pilot.coastA.onTrue(applyState(State.COAST));
-        pilot.brakeB.onTrue(applyState(State.BRAKE));
-
-        operator.coastA.onTrue(applyState(State.COAST));
-        operator.brakeB.onTrue(applyState(State.BRAKE));
-
-        operator.testA.onTrue(new InstantCommand(IntakeExtensionStates::fullExtend));
-        operator.testB.onTrue(new InstantCommand(IntakeExtensionStates::fullRetract));
-
         operator.testX.onTrue(applyState(State.TEST_INFINITE_LAUNCH));
         operator.testX.onFalse(applyState(State.TEST_IDLE));
+
+        pilot.home_select.onTrue(clearState());
+        pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
 
         // Telemetry bindings (keep logs in sync with trigger state)
         bindTriggerTelemetry("LauncherPrep/TurretOnTarget", turretOnTarget);

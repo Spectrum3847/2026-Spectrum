@@ -38,7 +38,7 @@ public class Coordinator {
                 RotationalPivotStates.aimAtTarget();
             }
             case TURRET_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.agitateFuel();
+                FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtendConditional();
@@ -85,7 +85,7 @@ public class Coordinator {
             }
             case COAST -> {
                 IntakeExtensionStates.coastMode();
-               RotationalPivotStates.coastMode();
+                RotationalPivotStates.coastMode();
             }
             case BRAKE -> {
                 IntakeExtensionStates.brakeMode();
