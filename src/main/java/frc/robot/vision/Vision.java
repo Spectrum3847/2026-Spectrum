@@ -140,6 +140,17 @@ public class Vision implements NTSendable, Subsystem {
 
     private VisionConfig config;
 
+    // -----------------------------------------------------------------------
+    // "Set once" / change-detection state
+    // -----------------------------------------------------------------------
+
+    /** Last yaw we pushed to limelights (degrees). NaN means "never pushed". */
+    private double lastYawDeg = Double.NaN;
+
+    /** The last IMU mode we set on each limelight. null means "unknown/not set". */
+    private final java.util.IdentityHashMap<Limelight, Integer> lastImuModeByLL =
+            new java.util.IdentityHashMap<>();
+
     public Vision(VisionConfig config) {
         this.config = config;
 
@@ -152,14 +163,14 @@ public class Vision implements NTSendable, Subsystem {
         swerveLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
         allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL, turretLL};
 
-        /* Configure Limelight Settings Here */
+        /* Configure Limelight Settings Here (initial set) */
         for (Limelight limelight : swerveLimelights) {
             limelight.setLEDMode(false);
-            limelight.setIMUmode(1);
+            setImuModeIfChanged(limelight, 1);
         }
 
         turretLL.setLEDMode(false);
-        turretLL.setIMUmode(2); // Different IMU mode for turret
+        setImuModeIfChanged(turretLL, 2); // Different IMU mode for turret
 
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
@@ -258,8 +269,24 @@ public class Vision implements NTSendable, Subsystem {
         builder.addDoubleProperty("TurretTagID", turretLL::getClosestTagID, null);
     }
 
+    private void setImuModeIfChanged(Limelight limelight, int desiredMode) {
+        Integer lastMode = lastImuModeByLL.get(limelight);
+        if (lastMode == null || lastMode.intValue() != desiredMode) {
+            limelight.setIMUmode(desiredMode);
+            lastImuModeByLL.put(limelight, desiredMode);
+        }
+    }
+
     private void setLimeLightOrientation() {
+        // Yaw used by LL is generally robot yaw in degrees.
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+
+        // Only push if it actually changed (prevents 50Hz/disabled spam).
+        // 0.5 degrees is a reasonable deadband; adjust if you want more precision.
+        if (!Double.isNaN(lastYawDeg) && Math.abs(yaw - lastYawDeg) < 0.5) {
+            return;
+        }
+        lastYawDeg = yaw;
 
         for (Limelight limelight : allLimelights) {
             limelight.setRobotOrientation(yaw);
@@ -269,7 +296,7 @@ public class Vision implements NTSendable, Subsystem {
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             for (Limelight limelight : allLimelights) {
-                limelight.setIMUmode(1);
+                setImuModeIfChanged(limelight, 1);
             }
             // MegaTag1 estimates (3D) for each swerve camera
             VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, true);
@@ -289,7 +316,7 @@ public class Vision implements NTSendable, Subsystem {
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || RobotStates.autoUpdatePose.getAsBoolean()) {
             for (Limelight limelight : allLimelights) {
-                limelight.setIMUmode(4);
+                setImuModeIfChanged(limelight, 4);
             }
             // MegaTag1 estimates (3D) for each swerve camera
             VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, false);
