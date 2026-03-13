@@ -39,9 +39,6 @@ public class Pilot extends Gamepad {
     public final Trigger dpadLeft = leftDpad.and(teleop);
     public final Trigger dpadRight = rightDpad.and(teleop);
 
-    // Vision Triggers
-    public final Trigger tagsInView = new Trigger(() -> Robot.getVision().tagsInView());
-
     // Drive Triggers
     public final Trigger upReorient = upDpad.and(fn, teleop);
     public final Trigger leftReorient = leftDpad.and(fn, teleop);

@@ -114,7 +114,7 @@ public class IntakeExtension extends Mechanism {
         }
 
         simulationInit();
-        telemetryInit();
+        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 

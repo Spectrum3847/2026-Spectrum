@@ -164,7 +164,7 @@ public class Vision implements NTSendable, Subsystem {
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
         this.register();
-        telemetryInit();
+        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -178,12 +178,6 @@ public class Vision implements NTSendable, Subsystem {
     public void telemetryInit() {
         SendableRegistry.add(this, getName());
         SmartDashboard.putData(this);
-
-        Robot.getField2d().getObject(frontLL.getCameraName());
-        Robot.getField2d().getObject(backLL.getCameraName());
-        Robot.getField2d().getObject(leftLL.getCameraName());
-        Robot.getField2d().getObject(rightLL.getCameraName());
-        Robot.getField2d().getObject(turretLL.getCameraName());
     }
 
     @Override
@@ -191,12 +185,6 @@ public class Vision implements NTSendable, Subsystem {
         setLimeLightOrientation();
         disabledLimelightUpdates();
         enabledLimelightUpdates();
-
-        Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
-        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
-        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
-        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -251,7 +239,6 @@ public class Vision implements NTSendable, Subsystem {
     initSendable
     Use # to denote items that are settable
     ------------*/
-
     @Override
     public void initSendable(NTSendableBuilder builder) {
         builder.addDoubleProperty("FrontTX", frontLL::getTagTx, null);

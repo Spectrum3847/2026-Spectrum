@@ -18,7 +18,7 @@ public class OperatorStates {
     public static void setupDefaultCommand() {
         operator.setDefaultCommand(
                 log(
-                        rumble(0, 1000000000)
+                        rumble(0, 1)
                                 .withName(
                                         "Operator.noRumble"))); // .repeatedly().withName("Operator.default"));
     }

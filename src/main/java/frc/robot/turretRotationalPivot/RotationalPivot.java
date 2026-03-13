@@ -146,7 +146,7 @@ public class RotationalPivot extends Mechanism {
         turretSetpoint = new TrapezoidProfile.State();
 
         simulationInit();
-        telemetryInit();
+        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 

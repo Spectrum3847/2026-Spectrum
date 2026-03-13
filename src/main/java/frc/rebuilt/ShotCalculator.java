@@ -15,7 +15,6 @@ import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
-import java.text.DecimalFormat;
 
 public class ShotCalculator {
     private static ShotCalculator instance;
@@ -38,8 +37,6 @@ public class ShotCalculator {
             double flywheelSpeed) {}
 
     private ShootingParameters latestParameters = null;
-
-    private static final DecimalFormat df = new DecimalFormat("0.00");
 
     public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0; // percent
     public static double FLYWHEEL_SPEED_OFFSET = STARTING_FLYWHEEL_SPEED_OFFSET;
@@ -204,15 +201,9 @@ public class ShotCalculator {
                 new ShootingParameters(
                         isValid, fieldAngle, turretAngularVelocityRotPerSec, flywheelSpeed);
 
-        Telemetry.log("ShotCalc/IsValid", isValid);
-        Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadDistance));
-        Telemetry.log("ShotCalc/FieldAngleDeg", df.format(fieldAngle.getDegrees()));
-        Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRotPerSec));
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
-        Telemetry.log("ShotCalc/TurretPose", turretPose);
-        Telemetry.log("ShotCalc/LookaheadPose", compensatedTurretTranslation);
-        Telemetry.log(
-                "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
+        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance);
+        Telemetry.log("ShotCalc/FieldAngleDeg", fieldAngle.getDegrees());
+        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed);
         Telemetry.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
         Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", FIELD_ANGLE_OFFSET_DEGREES);
 
