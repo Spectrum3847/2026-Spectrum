@@ -281,8 +281,6 @@ public class Vision implements NTSendable, Subsystem {
         // Yaw used by LL is generally robot yaw in degrees.
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
 
-        // Only push if it actually changed (prevents 50Hz/disabled spam).
-        // 0.5 degrees is a reasonable deadband; adjust if you want more precision.
         if (!Double.isNaN(lastYawDeg) && Math.abs(yaw - lastYawDeg) < 0.5) {
             return;
         }

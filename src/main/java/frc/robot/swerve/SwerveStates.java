@@ -163,6 +163,7 @@ public class SwerveStates {
                                 ShotCalculator.getInstance()
                                         .getParameters()
                                         .fieldAngle()
+                                        .plus(Rotation2d.k180deg)
                                         .getRadians())
                 .withName("Swerve.pilotAimAtTarget");
     }

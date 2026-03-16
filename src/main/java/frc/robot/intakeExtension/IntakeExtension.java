@@ -36,19 +36,19 @@ public class IntakeExtension extends Mechanism {
 
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
         @Getter private double home = 0;
+        @Getter private double squeeze = 60;
         @Getter private double fullOut = 100;
-        @Getter private double atPoseTolerance = 10;
 
         @Getter private final double currentLimit = 80;
         @Getter private final double torqueCurrentLimit = 180;
-        @Getter private final double positionKp = 250;
-        @Getter private final double positionKd = 15;
-        @Getter private final double positionKv = 0.75;
-        @Getter private final double positionKs = 1.8;
+        @Getter private final double positionKp = 1;
+        @Getter private final double positionKd = 0;
+        @Getter private final double positionKv = 0.3;
+        @Getter private final double positionKs = 1.5;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 300;
+        @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
 
         @Getter @Setter private double sensorToMechanismRatio = 3.6111;
@@ -207,16 +207,15 @@ public class IntakeExtension extends Mechanism {
         return run(() -> setVoltageOutput(rotations));
     }
 
-    public Command voltageOutPositive() {
-        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
+    public Command motionMagicPercentMove(DoubleSupplier percent) {
+        return run(() -> setMMPosition(() -> percentToRotations(percent)));
     }
 
-    public Command voltageOutNegative() {
-        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
-    }
-
-    public Command slowIntakeClose() {
-        return run(() -> setVoltageOutput(() -> -2));
+    public Command slowMoveToPercent(DoubleSupplier percent) {
+        return run(
+                () ->
+                        setDynMMPositionVoltage(
+                                () -> percentToRotations(percent), () -> 2, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

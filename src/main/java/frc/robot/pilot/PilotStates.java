@@ -42,6 +42,8 @@ public class PilotStates {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
+        pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
+
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
         pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
         pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimLaunchFuel());
