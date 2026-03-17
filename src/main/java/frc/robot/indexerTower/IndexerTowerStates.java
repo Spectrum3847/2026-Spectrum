@@ -33,10 +33,10 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTowerFront
-                        .runVelocity(frontConfig::getIndexerVelocityRPM)
+                        .runVoltage(frontConfig::getIndexVoltageOut)
                         .alongWith(
                                 indexerTowerBack
-                                        .runVelocity(backConfig::getIndexerSlowVelocityRPM)
+                                        .runVoltage(backConfig::getIndexVoltageOut)
                                         .withName("IndexerTower.feedMax")));
     }
 
