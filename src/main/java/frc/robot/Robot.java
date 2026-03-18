@@ -251,10 +251,10 @@ public class Robot extends SpectrumRobot {
             CommandScheduler.getInstance().run();
 
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
-            Telemetry.log("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
             Telemetry.log(
                     "Match Data/TimeLeftInShift",
-                    ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+                    ShiftHelpers.getOfficialShiftInfo().remainingTime());
             Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
 
             field2d.setRobotPose(swerve.getRobotPose());

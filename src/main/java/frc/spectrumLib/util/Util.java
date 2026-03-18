@@ -1,6 +1,7 @@
 package frc.spectrumLib.util;
 
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.List;
 import java.util.function.DoubleSupplier;
@@ -71,11 +72,28 @@ public class Util {
         return result;
     }
 
-    public static final Trigger teleop = new Trigger(DriverStation::isTeleopEnabled);
-    public static final Trigger autoMode =
-            new Trigger(DriverStation::isAutonomousEnabled)
-                    .or(new Trigger(DriverStation::isAutonomous));
-    public static final Trigger testMode = new Trigger(DriverStation::isTestEnabled);
-    public static final Trigger disabled = new Trigger(DriverStation::isDisabled);
+    /**   
+     * Trigger that is true when the robot is enabled in teleop mode.
+     */
+    public static final Trigger teleop = RobotModeTriggers.teleop();
+
+    /** 
+     * Trigger that is true when the robot is enabled in autonomous mode.
+     */
+    public static final Trigger autoMode = RobotModeTriggers.autonomous();
+
+    /** 
+     * Trigger that is true when the robot is enabled in test mode.
+     */
+    public static final Trigger testMode = RobotModeTriggers.test();
+    
+    /** 
+     * Trigger that is true when the robot is disabled.
+     */
+    public static final Trigger disabled = RobotModeTriggers.disabled();
+
+    /** 
+     * Trigger that is true when the DriverStation is attached.
+     */
     public static final Trigger dsAttached = new Trigger(DriverStation::isDSAttached);
 }
