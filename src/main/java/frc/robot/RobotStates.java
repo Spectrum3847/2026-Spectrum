@@ -8,7 +8,6 @@ import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.robot.swerve.Swerve;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
@@ -40,9 +39,7 @@ public class RobotStates {
 
     public static final Trigger forceScore = operator.AButton;
 
-    public static final Trigger turretOnTarget = RotationalPivotStates.aimingAtTarget();
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
-    public static final Trigger readyToLaunch = turretOnTarget.and(launcherOnTarget);
 
     public static final Trigger autoUpdatePose = Auton.autonPoseUpdate;
 

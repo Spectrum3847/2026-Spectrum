@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
 public class Vision implements NTSendable, Subsystem {
@@ -129,9 +128,6 @@ public class Vision implements NTSendable, Subsystem {
 
     public final Limelight[] allLimelights;
     public final Limelight[] swerveLimelights; // Non-turret cameras
-
-    @Getter
-    private DoubleSupplier turretRotationSupplier = () -> Robot.getTurret().getPositionDegrees();
 
     int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
     int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
@@ -302,12 +298,6 @@ public class Vision implements NTSendable, Subsystem {
             VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, true);
             VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, true);
             integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
-
-            // Turret estimate
-            if (Robot.getTurret().isAttached()) {
-                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true, true);
-                integrateSingleEstimate(turretMT1);
-            }
         }
     }
 
@@ -329,12 +319,6 @@ public class Vision implements NTSendable, Subsystem {
             VisionFieldPoseEstimate leftMT2 = getMT2VisionEstimate(leftLL);
             VisionFieldPoseEstimate rightMT2 = getMT2VisionEstimate(rightLL);
             integrateMultipleEstimates(frontMT2, backMT2, leftMT2, rightMT2);
-
-            // Turret estimate
-            if (Robot.getTurret().isAttached()) {
-                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true, false);
-                integrateSingleEstimate(turretMT1);
-            }
         }
     }
 
@@ -512,133 +496,6 @@ public class Vision implements NTSendable, Subsystem {
                 Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp()),
                 VecBuilder.fill(xyStds, xyStds, degStds),
                 (int) ll.getTagCountInView());
-    }
-
-    private VisionFieldPoseEstimate getMT1TurretEstimate(
-            Limelight ll, boolean integrateXY, boolean forceIntegration) {
-        if (!ll.targetInView()) {
-            ll.setTagStatus("No Targets in View");
-            ll.sendInvalidStatus("No Targets in View Rejection");
-            return null;
-        }
-
-        boolean multiTags = ll.multipleTagsInView();
-        double targetSize = ll.getTargetSize();
-        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-        Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
-        RawFiducial[] tags = ll.getRawFiducial();
-
-        double highestAmbiguity = 0.0;
-        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
-
-        double mt1PoseDifference =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getTranslation()
-                        .getDistance(megaTag1Pose2d.getTranslation());
-
-        /* ---------------- Rejections ---------------- */
-        ll.setTagStatus("");
-        for (RawFiducial tag : tags) {
-            highestAmbiguity = Math.max(highestAmbiguity, tag.ambiguity);
-
-            if (tag.ambiguity > 0.9) {
-                ll.sendInvalidStatus("High Ambiguity Rejection");
-                return null;
-            }
-        }
-
-        if (rejectionCheck(megaTag1Pose2d, targetSize)) {
-            ll.sendInvalidStatus("Generic Rejection");
-            return null;
-        }
-
-        // Roll / pitch rejection
-        if (Math.abs(Math.toDegrees(megaTag1Pose3d.getRotation().getX())) > 5
-                || Math.abs(Math.toDegrees(megaTag1Pose3d.getRotation().getY())) > 5) {
-            ll.sendInvalidStatus("Roll/Pitch Rejection");
-            return null;
-        }
-
-        /* ---------------- Integration tuning ---------------- */
-        double xyStds;
-        double degStds;
-
-        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
-            ll.sendValidStatus("Stationary close integration");
-            xyStds = 0.1;
-            degStds = 0.1;
-        } else if (multiTags && targetSize > 2) {
-            ll.sendValidStatus("Strong multi integration");
-            xyStds = 0.1;
-            degStds = 0.1;
-        } else if (multiTags && targetSize > 0.2) {
-            ll.sendValidStatus("Multi integration");
-            xyStds = 0.25;
-            degStds = 8.0;
-        } else if (targetSize > 2 && mt1PoseDifference < 0.5) {
-            ll.sendValidStatus("Close integration");
-            xyStds = 0.5;
-            degStds = config.getKLargeVariance();
-        } else if (targetSize > 1 && mt1PoseDifference < 0.25) {
-            ll.sendValidStatus("Proximity integration");
-            xyStds = 1.0;
-            degStds = config.getKLargeVariance();
-        } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
-            ll.sendValidStatus("Stable integration");
-            xyStds = 1.5;
-            degStds = config.getKLargeVariance();
-        } else {
-            ll.sendInvalidStatus("Confidence too low");
-            return null;
-        }
-
-        /* ---------------- MT1-specific tightening ---------------- */
-        // MT1 rotation is weak — trust it even less when ambiguity rises
-        if (highestAmbiguity > 0.5) {
-            degStds = Math.max(degStds, 50.0);
-        }
-
-        if (Math.abs(robotSpeed.omegaRadiansPerSecond) >= 0.5) {
-            degStds = Math.max(degStds, 75.0);
-        }
-
-        if (!integrateXY) {
-            xyStds = config.getKLargeVariance();
-        }
-
-        // If we're forcing integration, use very tight stds
-        if (forceIntegration) {
-            xyStds = 0.01;
-            degStds = 0.01;
-        }
-
-        /* ---------------- Turret adjustment ---------------- */
-        double turretDegrees = turretRotationSupplier.getAsDouble();
-        Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
-
-        // Rotate vector by turret angle
-        Translation2d turretToRotatedCamera = config.turretCenterToCamera.rotateBy(turretRotation);
-
-        // Add turret center offset to get full robot->camera vector
-        Translation2d robotToRotatedCamera =
-                config.getRobotToTurretCenter().plus(turretToRotatedCamera);
-
-        Translation2d robotToCameraField =
-                robotToRotatedCamera.rotateBy(Robot.getSwerve().getRobotPose().getRotation());
-
-        Translation2d robotTranslation = megaTag1Pose2d.getTranslation().minus(robotToCameraField);
-        Rotation2d robotRotation = megaTag1Pose2d.getRotation().minus(turretRotation);
-
-        Pose2d integratedPose = new Pose2d(robotTranslation, robotRotation);
-
-        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
-        int numTags = tags.length;
-
-        return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
 
     /** Helper to integrate a single estimate */

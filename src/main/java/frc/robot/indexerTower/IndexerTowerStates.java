@@ -68,17 +68,6 @@ public class IndexerTowerStates {
                         .alongWith(indexerTowerBack.runVoltage(backConfig::getUnjamVoltageOut)));
     }
 
-    // public static void indexIfReady() {
-    //     scheduleIfNotRunning(
-    //             indexerTowerFront
-    //                     .runTorqueCurrentFoc(
-    //                             () ->
-    //                                     RobotStates.turretOnTarget.getAsBoolean()
-    //                                             ? frontConfig.getIndexerTorqueCurrent()
-    //                                             : 0)
-    //                     .withName("IndexerTower.feedIfReady"));
-    // }
-
     public static void coastMode() {
         scheduleIfNotRunning(indexerTowerFront.coastMode());
     }
