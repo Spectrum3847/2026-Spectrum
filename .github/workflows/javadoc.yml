@@ -20,9 +20,16 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          cache: 'gradle'
+
+      - name: Build project
+        run: ./gradlew build
 
       - name: Generate JavaDoc
         run: ./gradlew javadoc
+
+      - name: Copy reports
+        run: cp -r build/reports build/docs/javadoc/reports
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
