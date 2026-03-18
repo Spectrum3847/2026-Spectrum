@@ -66,8 +66,8 @@
       "rotationDegrees": 150.0
     },
     {
-      "waypointRelativePos": 1.9949135300101697,
-      "rotationDegrees": 150.0
+      "waypointRelativePos": 2.930824008138339,
+      "rotationDegrees": 180.0
     }
   ],
   "constraintZones": [
@@ -111,7 +111,18 @@
       }
     }
   ],
-  "pointTowardsZones": [],
+  "pointTowardsZones": [
+    {
+      "fieldPosition": {
+        "x": 4.62,
+        "y": 4.04
+      },
+      "rotationOffset": 180.0,
+      "minWaypointRelativePos": 1.8711824588880168,
+      "maxWaypointRelativePos": 2.8390759592795645,
+      "name": "Point Towards Zone"
+    }
+  ],
   "eventMarkers": [
     {
       "name": "poseUpdate",
