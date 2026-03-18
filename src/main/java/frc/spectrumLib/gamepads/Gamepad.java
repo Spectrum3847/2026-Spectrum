@@ -8,7 +8,8 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.spectrumLib.SpectrumSubsystem;
@@ -163,10 +164,6 @@ public abstract class Gamepad implements SpectrumSubsystem {
                     xboxController
                             .povRight()
                             .or(xboxController.povDownRight(), xboxController.povUpRight());
-            leftStickY = leftYTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
-            leftStickX = leftXTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
-            rightStickY = rightYTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);
-            rightStickX = rightXTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);
             leftStickY = leftYTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
             leftStickX = leftXTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
             rightStickY = rightYTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);
@@ -394,19 +391,38 @@ public abstract class Gamepad implements SpectrumSubsystem {
         ABS_GREATER;
     }
 
-    private void rumble(double leftIntensity, double rightIntensity) {
-        rumbleController(leftIntensity, rightIntensity);
-    }
-
-    /** Command that can be used to rumble the pilot controller */
+    /**
+     * Command that can be used to rumble the pilot controller. The intensity should be a value
+     * between 0 and 1, where 0 is no rumble and 1 is full rumble. The duration of the rumble is
+     * specified in seconds.
+     *
+     * @param leftIntensity the intensity of the left rumble motor (0 to 1)
+     * @param rightIntensity the intensity of the right rumble motor (0 to 1)
+     * @param durationSeconds the duration of the rumble in seconds
+     * @return a Command object that can be used to rumble the controller with the specified
+     *     intensities and duration
+     */
     public Command rumbleCommand(
             double leftIntensity, double rightIntensity, double durationSeconds) {
-        return new RunCommand(() -> rumble(leftIntensity, rightIntensity), this)
-                .withTimeout(durationSeconds)
+        return Commands.sequence(
+                        new InstantCommand(
+                                () -> rumbleController(leftIntensity, rightIntensity), this),
+                        Commands.waitSeconds(durationSeconds),
+                        new InstantCommand(() -> rumbleController(0, 0), this))
                 .ignoringDisable(true)
                 .withName("Gamepad.Rumble");
     }
 
+    /**
+     * Overloaded method for rumbleCommand that allows for the same intensity on both rumble motors.
+     * The duration of the rumble is specified in seconds. The intensity should be a value between 0
+     * and 1, where 0 is no rumble and 1 is full rumble.
+     *
+     * @param intensity the intensity of the rumble (0 to 1)
+     * @param durationSeconds the duration of the rumble in seconds
+     * @return a Command object that can be used to rumble the controller with the specified
+     *     intensity and duration
+     */
     public Command rumbleCommand(double intensity, double durationSeconds) {
         return rumbleCommand(intensity, intensity, durationSeconds);
     }

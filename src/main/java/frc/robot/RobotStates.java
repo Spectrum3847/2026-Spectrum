@@ -49,19 +49,22 @@ public class RobotStates {
     // Setup any binding to set states
     public static void setupStates() {
         // Pilot Triggers
-        pilot.RT.onTrue(applyState(State.INTAKE_FUEL));
+        pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
         pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.LT.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.XButton.whileTrue(applyState(State.TURRET_TRACK));
+        pilot.XButton.onFalse(applyState(State.IDLE));
+
+        pilot.LT.whileTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
         pilot.LT.onFalse(applyState(State.IDLE));
 
-        pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
+        pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
 
-        pilot.AButton.onTrue(applyState(State.UNJAM));
+        pilot.AButton.whileTrue(applyState(State.UNJAM));
         pilot.AButton.onFalse(applyState(State.IDLE));
 
-        operator.AButton.onTrue(applyState(State.UNJAM));
+        operator.AButton.whileTrue(applyState(State.UNJAM));
         operator.AButton.onFalse(applyState(State.IDLE));
 
         pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));
@@ -72,11 +75,6 @@ public class RobotStates {
 
         pilot.home_select.onTrue(clearState());
         pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
-
-        // Telemetry bindings (keep logs in sync with trigger state)
-        bindTriggerTelemetry("LauncherPrep/TurretOnTarget", turretOnTarget);
-        bindTriggerTelemetry("LauncherPrep/LauncherOnTarget", launcherOnTarget);
-        bindTriggerTelemetry("LauncherPrep/ReadyToLaunch", readyToLaunch);
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
@@ -119,11 +117,6 @@ public class RobotStates {
     //     active.and(readyTrigger).onTrue(applyState(readyState));
     //     active.and(readyTrigger.not()).onTrue(applyState(aimingState));
     // }
-
-    private static void bindTriggerTelemetry(String name, Trigger trigger) {
-        trigger.onTrue(new InstantCommand(() -> Telemetry.log(name, true)));
-        trigger.onFalse(new InstantCommand(() -> Telemetry.log(name, false)));
-    }
 
     public static Command applyState(State state) {
         return new InstantCommand(

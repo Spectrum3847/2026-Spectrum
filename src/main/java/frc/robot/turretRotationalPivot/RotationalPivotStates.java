@@ -11,7 +11,8 @@ public class RotationalPivotStates {
     private static RotationalPivot.RotationalPivotConfig config = turretRotation.getConfig();
 
     public static void setupDefaultCommand() {
-        turretRotation.setDefaultCommand(log(turretRotation.runStop().withName("Turret.default")));
+        turretRotation.setDefaultCommand(
+                log(turretRotation.runStop().ignoringDisable(true).withName("Turret.default")));
     }
 
     public static Trigger aimingAtTarget() {

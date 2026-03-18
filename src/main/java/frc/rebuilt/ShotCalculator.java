@@ -15,7 +15,6 @@ import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
-import java.text.DecimalFormat;
 
 public class ShotCalculator {
     private static ShotCalculator instance;
@@ -33,19 +32,17 @@ public class ShotCalculator {
 
     public record ShootingParameters(
             boolean isValid,
-            Rotation2d turretAngle,
+            Rotation2d fieldAngle,
             double turretAngularVelocityRotPerSec,
             double flywheelSpeed) {}
 
     private ShootingParameters latestParameters = null;
 
-    private static final DecimalFormat df = new DecimalFormat("0.00");
-
     public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0; // percent
     public static double FLYWHEEL_SPEED_OFFSET = STARTING_FLYWHEEL_SPEED_OFFSET;
 
-    public static final double STARTING_TURRET_ANGLE_OFFSET_DEGREES = 0;
-    public static double TURRET_ANGLE_OFFSET_DEGREES = STARTING_TURRET_ANGLE_OFFSET_DEGREES;
+    public static final double STARTING_FIELD_ANGLE_OFFSET_DEGREES = 0;
+    public static double FIELD_ANGLE_OFFSET_DEGREES = STARTING_FIELD_ANGLE_OFFSET_DEGREES;
 
     public static void increaseFlywheelSpeedOffset() {
         FLYWHEEL_SPEED_OFFSET += 1;
@@ -56,11 +53,11 @@ public class ShotCalculator {
     }
 
     public static void increaseTurretAngleOffsetDegrees() {
-        TURRET_ANGLE_OFFSET_DEGREES += 1;
+        FIELD_ANGLE_OFFSET_DEGREES += 1;
     }
 
     public static void decreaseTurretAngleOffsetDegrees() {
-        TURRET_ANGLE_OFFSET_DEGREES -= 1;
+        FIELD_ANGLE_OFFSET_DEGREES -= 1;
     }
 
     // ===== Config / maps =====
@@ -182,17 +179,17 @@ public class ShotCalculator {
                                         turretVelocityX * tofFinal, turretVelocityY * tofFinal));
 
         // Commanded turret angle (with preference offset)
-        Rotation2d turretAngle = target.minus(compensatedTurretTranslation).getAngle();
-        turretAngle = turretAngle.plus(Rotation2d.fromDegrees(TURRET_ANGLE_OFFSET_DEGREES));
+        Rotation2d fieldAngle = target.minus(compensatedTurretTranslation).getAngle();
+        fieldAngle = fieldAngle.plus(Rotation2d.fromDegrees(FIELD_ANGLE_OFFSET_DEGREES));
 
         // Turret angular velocity (rot/s) for your position controller feedforward
-        if (lastTurretAngle == null) lastTurretAngle = turretAngle;
+        if (lastTurretAngle == null) lastTurretAngle = fieldAngle;
         double deltaRot =
-                MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
+                MathUtil.inputModulus(fieldAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
 
         double rawOmega = deltaRot / loopPeriodSecs;
         double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
-        lastTurretAngle = turretAngle;
+        lastTurretAngle = fieldAngle;
 
         // Flywheel from map + preference offset (%)
         double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadDistance);
@@ -202,19 +199,13 @@ public class ShotCalculator {
 
         latestParameters =
                 new ShootingParameters(
-                        isValid, turretAngle, turretAngularVelocityRotPerSec, flywheelSpeed);
+                        isValid, fieldAngle, turretAngularVelocityRotPerSec, flywheelSpeed);
 
-        Telemetry.log("ShotCalc/IsValid", isValid);
-        Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadDistance));
-        Telemetry.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
-        Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRotPerSec));
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
-        Telemetry.log("ShotCalc/TurretPose", turretPose);
-        Telemetry.log("ShotCalc/LookaheadPose", compensatedTurretTranslation);
-        Telemetry.log(
-                "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
+        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance);
+        Telemetry.log("ShotCalc/FieldAngleDeg", fieldAngle.getDegrees());
+        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed);
         Telemetry.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
-        Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
+        Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", FIELD_ANGLE_OFFSET_DEGREES);
 
         return latestParameters;
     }

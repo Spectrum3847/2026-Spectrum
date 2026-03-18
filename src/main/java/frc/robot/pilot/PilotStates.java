@@ -35,13 +35,7 @@ public class PilotStates {
                             RobotStates.getAppliedState() == State.SNAKE_INTAKE
                                     || RobotStates.getAppliedState() == State.INTAKE_FUEL);
     private static final Trigger launching =
-            new Trigger(
-                    () ->
-                            RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH
-                                    || RobotStates.getAppliedState()
-                                            == State.TURRET_FEED_WITH_LAUNCH
-                                    || RobotStates.getAppliedState()
-                                            == State.TURRET_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
 
     /** Set the states for the pilot controller */
     public static void setStates() {

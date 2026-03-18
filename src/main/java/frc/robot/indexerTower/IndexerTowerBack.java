@@ -63,7 +63,7 @@ public class IndexerTowerBack extends Mechanism {
         this.config = config;
 
         simulationInit();
-        telemetryInit();
+        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 

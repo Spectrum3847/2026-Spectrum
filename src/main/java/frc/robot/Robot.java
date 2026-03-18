@@ -146,7 +146,6 @@ public class Robot extends SpectrumRobot {
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
-            visionSystem = new VisionSystem(swerve::getRobotPose);
             Timer.delay(canInitDelay);
             turret = new RotationalPivot(config.turret);
             Timer.delay(canInitDelay);
