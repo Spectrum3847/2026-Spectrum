@@ -22,7 +22,7 @@ public class ShotCalculator {
     // Offset from robot center to turret center (leave zero if turret is centered)
     private static final Transform2d robotToTurret =
             new Transform2d(
-                    new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0)),
+                    new Translation2d(Units.inchesToMeters(0), Units.inchesToMeters(0)),
                     new Rotation2d());
 
     public static ShotCalculator getInstance() {
@@ -88,17 +88,15 @@ public class ShotCalculator {
         phaseDelay = 0.03;
 
         // Flywheel map
-        shotFlywheelSpeedMap.put(1.50, 2250.0 - 800);
-        shotFlywheelSpeedMap.put(1.78, 2300.0 - 800);
-        shotFlywheelSpeedMap.put(2.00, 2450.0 - 800);
-        shotFlywheelSpeedMap.put(2.35, 2600.0 - 800);
-        shotFlywheelSpeedMap.put(2.56, 2650.0 - 800);
-        shotFlywheelSpeedMap.put(2.96, 2750.0 - 800);
-        shotFlywheelSpeedMap.put(3.16, 2900.0 - 800);
-        shotFlywheelSpeedMap.put(3.50, 3200.0 - 800);
-        shotFlywheelSpeedMap.put(4.00, 3300.0 - 800);
-        shotFlywheelSpeedMap.put(4.20, 3650.0 - 800);
-        shotFlywheelSpeedMap.put(5.00, 4000.0 - 800);
+        shotFlywheelSpeedMap.put(2.00, 1700.0);
+        shotFlywheelSpeedMap.put(2.35, 1800.0);
+        shotFlywheelSpeedMap.put(2.65, 1800.0);
+        shotFlywheelSpeedMap.put(2.96, 1850.0);
+        shotFlywheelSpeedMap.put(3.23, 1900.0);
+        shotFlywheelSpeedMap.put(3.65, 2000.0);
+        shotFlywheelSpeedMap.put(4.00, 2100.0);
+        shotFlywheelSpeedMap.put(4.20, 2175.0);
+        shotFlywheelSpeedMap.put(4.50, 2300.0);
 
         // TOF map
         timeOfFlightMap.put(3.41, 1.10);

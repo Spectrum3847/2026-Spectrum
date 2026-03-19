@@ -62,14 +62,16 @@ public class IntakeExtensionStates {
     public static Command fullExtendCommand() {
         return log(
                 intakeExtension
-                        .motionMagicPercentMove(config::getFullOut)
+                        .voltageOutPositive()
+                        .until(fullOut.debounce(0.5))
                         .withName("IntakeExtension.fullExtendCommand"));
     }
 
     public static Command fullRetractCommand() {
         return log(
                 intakeExtension
-                        .motionMagicPercentMove(config::getHome)
+                        .voltageOutNegative()
+                        .until(home.debounce(0.5))
                         .withName("IntakeExtension.fullRetractCommand"));
     }
 
