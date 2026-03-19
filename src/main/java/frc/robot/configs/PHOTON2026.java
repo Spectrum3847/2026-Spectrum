@@ -7,9 +7,7 @@ public class PHOTON2026 extends Config {
     // Photon Machine
     public PHOTON2026() {
         super();
-        // TODO: set values
-        // swerve.configEnconderOffsets();
-        // turret.setCANcoderOffset();
+        swerve.configEncoderOffsets(0.127197265625, -0.260009765625, 0.1171875, -0.3427734375);
 
         // Attached Mechanisms
         pilot.setAttached(true);

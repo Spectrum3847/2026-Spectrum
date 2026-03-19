@@ -25,8 +25,8 @@ import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
+import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
-import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.indexerBed.IndexerBed;
@@ -111,8 +111,8 @@ public class Robot extends SpectrumRobot {
 
             // Set up the config
             switch (Rio.id) {
-                case XM_2026:
-                    config = new XM2026();
+                case PHOTON2026:
+                    config = new PHOTON2026();
                     break;
                 case PM_2026:
                     config = new PM2026();
