@@ -38,6 +38,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private double home = 0;
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
+        @Getter private double atPoseTolerance = 10;
 
         @Getter private final double currentLimit = 80;
         @Getter private final double torqueCurrentLimit = 180;
@@ -205,6 +206,14 @@ public class IntakeExtension extends Mechanism {
 
     public Command move(DoubleSupplier rotations) {
         return run(() -> setVoltageOutput(rotations));
+    }
+
+    public Command voltageOutPositive() {
+        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
+    }
+
+    public Command voltageOutNegative() {
+        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
     }
 
     public Command motionMagicPercentMove(DoubleSupplier percent) {

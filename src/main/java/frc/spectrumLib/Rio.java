@@ -21,7 +21,7 @@ import java.util.Map;
 public enum Rio {
 
     // 2026 Robots
-    XM_2026("032B4BB3", true),
+    PHOTON2026("032B4BB3", true),
     PM_2026("0329AD07", true),
     // FM_2026("", true),
 

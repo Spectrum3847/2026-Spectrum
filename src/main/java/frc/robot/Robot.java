@@ -25,16 +25,14 @@ import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
+import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
-import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.indexerBed.IndexerBed;
 import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.indexerTower.IndexerTower;
 import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
-import frc.robot.indexerTower.IndexerTowerBack;
-import frc.robot.indexerTower.IndexerTowerBack.IndexerTowerBackConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
@@ -45,8 +43,6 @@ import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.swerve.Swerve;
 import frc.robot.swerve.SwerveConfig;
-import frc.robot.turretRotationalPivot.RotationalPivot;
-import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
 import frc.robot.vision.VisionSystem;
@@ -84,10 +80,8 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
-        public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
-        public IndexerTowerBackConfig indexerTowerBack = new IndexerTowerBackConfig();
         public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
         public VisionConfig vision = new VisionConfig();
@@ -95,10 +89,8 @@ public class Robot extends SpectrumRobot {
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
-    @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
-    @Getter private static IndexerTowerBack indexerTowerBack;
     @Getter private static IndexerBed indexerBed;
     // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
@@ -117,10 +109,10 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            /** Set up the config */
+            // Set up the config
             switch (Rio.id) {
-                case XM_2026:
-                    config = new XM2026();
+                case PHOTON2026:
+                    config = new PHOTON2026();
                     break;
                 case PM_2026:
                     config = new PM2026();
@@ -146,9 +138,6 @@ public class Robot extends SpectrumRobot {
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
-            visionSystem = new VisionSystem(swerve::getRobotPose);
-            Timer.delay(canInitDelay);
-            turret = new RotationalPivot(config.turret);
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
@@ -157,8 +146,6 @@ public class Robot extends SpectrumRobot {
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
             indexerTower = new IndexerTower(config.indexerTower);
-            Timer.delay(canInitDelay);
-            indexerTowerBack = new IndexerTowerBack(config.indexerTowerBack);
             Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();

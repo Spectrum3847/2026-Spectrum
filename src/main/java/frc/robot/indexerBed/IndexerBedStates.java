@@ -3,7 +3,6 @@ package frc.robot.indexerBed;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
-import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
 
 public class IndexerBedStates {
@@ -33,17 +32,6 @@ public class IndexerBedStates {
 
     public static void unjam() {
         scheduleIfNotRunning(indexerBed.runVoltage(config::getUnjamVoltageOut));
-    }
-
-    public static void indexIfReady() {
-        scheduleIfNotRunning(
-                indexerBed
-                        .runTorqueCurrentFoc(
-                                () ->
-                                        RobotStates.turretOnTarget.getAsBoolean()
-                                                ? config.getIndexerTorqueCurrent()
-                                                : 0)
-                        .withName("IndexerBed.feedIfReady"));
     }
 
     public static void coastMode() {

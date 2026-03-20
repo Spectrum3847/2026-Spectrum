@@ -173,7 +173,7 @@ public class RobotSim {
                                                     new Translation2d(),
                                                     Robot.getSwerve()
                                                             .getCurrentRobotChassisSpeeds(),
-                                                    parameters.turretAngle(),
+                                                    parameters.fieldAngle(),
                                                     Inches.of(29),
                                                     MetersPerSecond.of(
                                                             parameters.flywheelSpeed() * 0.0025),
