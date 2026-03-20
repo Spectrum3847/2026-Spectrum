@@ -157,7 +157,10 @@ javadoc {
         "https://codedocs.revrobotics.com/java",
         "https://api.ctr-electronics.com/phoenix/latest/java",
         "https://api.ctr-electronics.com/phoenix6/latest/java",
-        "https://pathplanner.dev/api/java"
+        "https://pathplanner.dev/api/java",
+        "https://javadoc.doglog.dev/",
+        "https://shenzhen-robotics-alliance.github.io/maple-sim/javadocs/",
+        "https://javadocs.photonvision.org/release/"
     ])
 }
 
