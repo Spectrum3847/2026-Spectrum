@@ -22,14 +22,14 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Build project
-        run: ./gradlew build
-
-      - name: Generate JavaDoc
-        run: ./gradlew javadoc
+      - name: Build project and generate javadoc
+        run: ./gradlew build javadoc
 
       - name: Copy reports
-        run: cp -r build/reports build/docs/javadoc/reports
+        run: |
+           rm -rf build/docs/javadoc/reports
+           mkdir -p build/docs/javadoc/reports
+           cp -r build/reports/. build/docs/javadoc/reports/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
