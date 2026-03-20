@@ -30,8 +30,7 @@ public class IntakeExtensionStates {
     public static void fullExtend() {
         scheduleIfNotRunning(
                 intakeExtension
-                        .voltageOutPositive()
-                        .until(fullOut.debounce(0.5))
+                        .motionMagicPercentMove(config::getFullOut)
                         .withName("IntakeExtension.fullExtend"));
         sentOutByIntakeState = true;
     }
@@ -39,8 +38,7 @@ public class IntakeExtensionStates {
     public static void fullRetract() {
         scheduleIfNotRunning(
                 intakeExtension
-                        .voltageOutNegative()
-                        .until(home.debounce(0.5))
+                        .motionMagicPercentMove(config::getHome)
                         .withName("IntakeExtension.fullRetract"));
     }
 
@@ -48,30 +46,24 @@ public class IntakeExtensionStates {
         if (sentOutByIntakeState) {
             scheduleIfNotRunning(
                     intakeExtension
-                            .voltageOutPositive()
-                            .until(fullOut.debounce(0.5))
+                            .motionMagicPercentMove(config::getFullOut)
                             .withName("IntakeExtension.fullExtendConditional"));
         } else {
-            scheduleIfNotRunning(
-                    intakeExtension
-                            .runVoltage(() -> 0)
-                            .withName("IntakeExtension.fullExtendConditional"));
+            neutral();
         }
     }
 
     public static Command fullExtendCommand() {
         return log(
                 intakeExtension
-                        .voltageOutPositive()
-                        .until(fullOut.debounce(0.5))
+                        .motionMagicPercentMove(config::getFullOut)
                         .withName("IntakeExtension.fullExtendCommand"));
     }
 
     public static Command fullRetractCommand() {
         return log(
                 intakeExtension
-                        .voltageOutNegative()
-                        .until(home.debounce(0.5))
+                        .motionMagicPercentMove(config::getHome)
                         .withName("IntakeExtension.fullRetractCommand"));
     }
 
