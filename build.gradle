@@ -147,11 +147,18 @@ tasks.spotbugsMain {
     }
 }
 
-//Javadoc Gradle task configuation
+// Javadoc Gradle task configuation
 javadoc {
     options.addStringOption('Xdoclint:none', '-quiet')
     failOnError = false
     exclude '**/*.md'
+    options.setLinks([
+        "https://github.wpilib.org/allwpilib/docs/release/java",
+        "https://codedocs.revrobotics.com/java",
+        "https://api.ctr-electronics.com/phoenix/latest/java",
+        "https://api.ctr-electronics.com/phoenix6/latest/java",
+        "https://pathplanner.dev/api/java"
+    ])
 }
 
 // Create version file
