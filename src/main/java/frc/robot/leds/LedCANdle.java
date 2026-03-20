@@ -1,5 +1,6 @@
 package frc.robot.leds;
 
+import frc.robot.Robot;
 import frc.robot.RobotSim;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
@@ -8,9 +9,13 @@ import com.ctre.phoenix6.hardware.CANdle;
 import com.ctre.phoenix6.signals.AnimationDirectionValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
 import com.ctre.phoenix6.sim.*;
+
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.spectrumLib.Rio;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
 
 public class LedCANdle {
 
@@ -133,12 +138,22 @@ public class LedCANdle {
     // Simulation
     // --------------------------------------------------------------------------------
     public void simulationInit() {
-        sim.getCANdleSimState();
+        if (candle.isConnected()) {
+            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
+            sim = new CANdleSimState(candle);
+        }
     }
 
-    class LEDSim extends CANdleSimState {
-        public LEDSim(CANdleSimState) {
+    // Must be called to enable the simulation
+    public void simulationPeriodic() {
+        if (candle.isConnected()) {
+            sim.simulationPeriodic();
+        }
+    }
 
+    class CANdleSim {
+        public CANdleSim(Mechanism2d mech) {
+            super();
         }
     }
 }
