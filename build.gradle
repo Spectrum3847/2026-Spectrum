@@ -170,6 +170,7 @@ gversion {
 // Configure Spotless to apply on every build
 compileJava.dependsOn spotlessApply
 spotless {
+    lineEndings 'GIT_ATTRIBUTES'
     java {
         target fileTree('.') {
             include '**/*.java'
