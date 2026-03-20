@@ -177,6 +177,7 @@ gversion {
 // Configure Spotless to apply on every build
 compileJava.dependsOn spotlessApply
 spotless {
+    lineEndings 'UNIX'
     java {
         target fileTree('.') {
             include '**/*.java'
