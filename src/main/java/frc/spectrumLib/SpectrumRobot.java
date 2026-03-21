@@ -1,14 +1,14 @@
 package frc.spectrumLib;
 
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.TimedRobot;
 import java.util.ArrayList;
+import org.littletonrobotics.junction.LoggedRobot;
 
 /**
  * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and manages a collection of
  * SpectrumSubsystems.
  */
-public class SpectrumRobot extends TimedRobot {
+public class SpectrumRobot extends LoggedRobot {
 
     /** Create a single static instance of all of your subsystems */
     private static final ArrayList<SpectrumSubsystem> subsystems = new ArrayList<>();

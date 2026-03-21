@@ -97,6 +97,9 @@ dependencies {
     implementation 'com.google.guava:guava:32.1.2-jre'
 
     errorprone "com.google.errorprone:error_prone_core:2.37.0"
+
+    def akitJson = new groovy.json.JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
+    annotationProcessor "org.littletonrobotics.akit:akit-autolog:$akitJson.version"
 }
 
 test {
@@ -222,4 +225,10 @@ spotless {
         indentWithSpaces(2)
         endWithNewline()
     }
+}
+
+// Advantage Kit
+task(replayWatch, type: JavaExec) {
+    mainClass = "org.littletonrobotics.junction.ReplayWatch"
+    classpath = sourceSets.main.runtimeClasspath
 }

@@ -63,6 +63,11 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
+import org.littletonrobotics.junction.LogFileUtil;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 /**
  * The main robot class. This class is the entry point for the robot code and manages all subsystems
@@ -113,6 +118,27 @@ public class Robot extends SpectrumRobot {
     public Robot() {
         super();
         Telemetry.start(true, true, PrintPriority.NORMAL);
+
+        Logger.recordMetadata("Spectrum3847", "Photon 2026"); // Set a metadata value
+
+        if (isReal()) {
+            Logger.addDataReceiver(new WPILOGWriter()); // Log to a USB stick ("/U/logs")
+            Logger.addDataReceiver(new NT4Publisher()); // Publish data to NetworkTables
+        } else {
+            setUseTiming(false); // Run as fast as possible
+            String logPath =
+                    LogFileUtil
+                            .findReplayLog(); // Pull the replay log from AdvantageScope (or prompt
+            // the user)
+            Logger.setReplaySource(new WPILOGReader(logPath)); // Read replay log
+            Logger.addDataReceiver(
+                    new WPILOGWriter(
+                            LogFileUtil.addPathSuffix(
+                                    logPath, "_sim"))); // Save outputs to a new log
+        }
+
+        Logger.start(); // Start logging! No more data receivers, replay sources, or metadata
+        // values may be added.
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
