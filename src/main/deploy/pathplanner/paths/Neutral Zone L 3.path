@@ -66,7 +66,7 @@
       "rotationDegrees": 150.0
     },
     {
-      "waypointRelativePos": 2.930824008138339,
+      "waypointRelativePos": 2.8535096642929876,
       "rotationDegrees": 180.0
     }
   ],
@@ -86,8 +86,8 @@
     },
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 1.9886452623335846,
-      "maxWaypointRelativePos": 2.275254502740805,
+      "minWaypointRelativePos": 1.8664839467502041,
+      "maxWaypointRelativePos": 2.6370399373531495,
       "constraints": {
         "maxVelocity": 0.1,
         "maxAcceleration": 4.0,
@@ -99,7 +99,7 @@
     },
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 2.294048551292089,
+      "minWaypointRelativePos": 2.759201252936575,
       "maxWaypointRelativePos": 3.0,
       "constraints": {
         "maxVelocity": 0.5,
@@ -145,6 +145,18 @@
     {
       "name": "shoot",
       "waypointRelativePos": 2.0,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
+      "name": "clearState",
+      "waypointRelativePos": 2.6887235708692057,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
+      "name": "intake",
+      "waypointRelativePos": 2.8061863743147883,
       "endWaypointRelativePos": null,
       "command": null
     }

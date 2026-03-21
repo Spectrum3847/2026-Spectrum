@@ -20,6 +20,7 @@ import frc.robot.State;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.util.Util;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Set;
@@ -93,6 +94,8 @@ public class SwerveStates {
     private static final Trigger launchPreping =
             new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_TRACK);
 
+    private static final Trigger isRed = new Trigger(() -> Field.isRed());
+
     public static Trigger robotInNeutralZone() {
         return swerve.inNeutralZone();
     }
@@ -121,9 +124,14 @@ public class SwerveStates {
 
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
 
-        launching.or(launchPreping).whileTrue(log(pilotAimAtTarget()));
+        (launching.or(launchPreping))
+                .and(isRed, Util.autoMode.not())
+                .whileTrue(log(pilotAimAtTargetRed()));
+        (launching.or(launchPreping))
+                .and(isRed.not(), Util.autoMode.not())
+                .whileTrue(log(pilotAimAtTargetBlue()));
         // launching.and(Robot.getPilot().fn).whileTrue(log(tweakOut()));
-        // launching.and(Robot.getPilot().RB).whileTrue(log(xBrake()));
+        launching.and(Robot.getPilot().RB).whileTrue(log(xBrake()));
 
         pilot.upReorient.onTrue(log(reorientForward()));
         pilot.leftReorient.onTrue(log(reorientLeft()));
@@ -155,7 +163,19 @@ public class SwerveStates {
      * @return A command that drives the robot to match the angle to the target while allowing
      *     translation control with the left stick
      */
-    protected static Command pilotAimAtTarget() {
+    protected static Command pilotAimAtTargetRed() {
+        return aimDrive(
+                        pilot::getDriveFwdPositive,
+                        pilot::getDriveLeftPositive,
+                        () ->
+                                ShotCalculator.getInstance()
+                                        .getParameters()
+                                        .fieldAngle()
+                                        .getRadians())
+                .withName("Swerve.pilotAimAtTarget");
+    }
+
+    protected static Command pilotAimAtTargetBlue() {
         return aimDrive(
                         pilot::getDriveFwdPositive,
                         pilot::getDriveLeftPositive,
