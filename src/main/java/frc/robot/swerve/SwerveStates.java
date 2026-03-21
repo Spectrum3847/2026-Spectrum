@@ -397,7 +397,6 @@ public class SwerveStates {
             positions[i] =
                     swerve.getModule(i).getCachedPosition().distanceMeters / wheelRadiusGuess;
         }
-
         return positions;
     }
 
@@ -449,14 +448,12 @@ public class SwerveStates {
                                         () -> {
                                             double[] positions =
                                                     getWheelRadiusCharacterizationPositions();
-
                                             double wheelDelta = 0.0;
                                             for (int i = 0; i < 4; i++) {
                                                 wheelDelta +=
                                                         Math.abs(positions[i] - state.positions[i])
                                                                 / 4.0;
                                             }
-
                                             double wheelRadius =
                                                     (state.gyroDelta
                                                                     * config

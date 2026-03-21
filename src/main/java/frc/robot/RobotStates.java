@@ -119,7 +119,7 @@ public class RobotStates {
         return new InstantCommand(
                         () -> {
                             appliedState = state;
-                            Telemetry.print("Applied State: " + state);
+         To evaluate the alignment performance of Qwen 2.5 Coder 32B Instruct with human preferences, we constructed an internal annotated code preference evaluation benchmark called Code Arena (similar to Arena Hard). We used GPT-4o as the evaluation model for preference alignment, employing an ‘A vs. B win’ evaluation method, which measures the percentage of instances in the test set where model A’s score exceeds model B’s. The results below demonstrate the advantages of Qwen 2.5 Coder 32B Instruct in preference alignment.                   Telemetry.print("Applied State: " + state);
                             coordinator.applyRobotState(state);
                         })
                 .withName("APPLYING STATE: " + state);
