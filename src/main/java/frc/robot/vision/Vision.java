@@ -29,6 +29,7 @@ import frc.spectrumLib.Telemetry.PrintPriority;
 import frc.spectrumLib.util.Util;
 import frc.spectrumLib.vision.Limelight;
 import frc.spectrumLib.vision.Limelight.LimelightConfig;
+import frc.spectrumLib.vision.LimelightHelpers;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -187,11 +188,18 @@ public class Vision implements NTSendable, Subsystem {
         SmartDashboard.putData(this);
     }
 
+    public void triggerRewindCaptureForAllCameras() {
+        for (Limelight limelight : allLimelights) {
+            LimelightHelpers.triggerRewindCapture(limelight.getName(), 165);
+        }
+    }
+
     @Override
     public void periodic() {
         setLimeLightOrientation();
         disabledLimelightUpdates();
-        enabledLimelightUpdates();
+        autonLimelightUpdates();
+        teleopLimelightUpdates();
     }
 
     public Pose2d getFrontMegaTag2Pose() {
@@ -301,7 +309,20 @@ public class Vision implements NTSendable, Subsystem {
         }
     }
 
-    private void enabledLimelightUpdates() {
+    private void teleopLimelightUpdates() {
+        if (Util.teleop.getAsBoolean()) {
+            for (Limelight limelight : allLimelights) {
+                setImuModeIfChanged(limelight, 4);
+            }
+            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, false);
+            integrateSingleEstimate(backMT1);
+
+            VisionFieldPoseEstimate backMT2 = getMT2VisionEstimate(backLL);
+            integrateSingleEstimate(backMT2);
+        }
+    }
+
+    private void autonLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || RobotStates.autoUpdatePose.getAsBoolean()) {
             for (Limelight limelight : allLimelights) {
                 setImuModeIfChanged(limelight, 4);
