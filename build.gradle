@@ -161,7 +161,9 @@ javadoc {
         "https://pathplanner.dev/api/java",
         "https://javadoc.doglog.dev",
         "https://shenzhen-robotics-alliance.github.io/maple-sim/javadocs",
-        "https://docs.oracle.com/en/java/javase/17/docs/api"
+        "https://javadocs.photonvision.org/release",
+        "https://docs.oracle.com/en/java/javase/17/docs/api",
+        "https://docs.advantagekit.org/javadoc/"
     ])
 }
 
