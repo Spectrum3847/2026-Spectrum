@@ -116,6 +116,11 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation 'com.google.guava:guava:33.7.1-jre'
+
+    errorprone "com.google.errorprone:error_prone_core:2.37.0"
+
+    def akitJson = new groovy.json.JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
+    annotationProcessor "org.littletonrobotics.akit:akit-autolog:$akitJson.version"
 }
 
 test {
@@ -302,4 +307,10 @@ tasks.register('robotApp', Exec) {
     } else {
         commandLine 'npm', 'start'
     }
+}
+
+// Advantage Kit
+task(replayWatch, type: JavaExec) {
+    mainClass = "org.littletonrobotics.junction.ReplayWatch"
+    classpath = sourceSets.main.runtimeClasspath
 }
