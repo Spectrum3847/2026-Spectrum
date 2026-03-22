@@ -2,7 +2,6 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.robot.auton.Auton;
@@ -97,44 +96,13 @@ public class RobotStates {
         throw new IllegalStateException("Utility class");
     }
 
-    // private static void toggleToState(Trigger button, State toggledState) {
-    //     button.onTrue(
-    //             new InstantCommand(
-    //                     () -> {
-    //                         State next = (appliedState == toggledState) ? State.IDLE :
-    // toggledState;
-    //                         appliedState = next;
-    //                         coordinator.applyRobotState(next);
-    //                     }));
-    // }
-
-    // private static void pressToState(Trigger button, State pressedState) {
-    //     button.onTrue(applyState(pressedState));
-    //     button.onFalse(applyState(State.IDLE));
-    // }
-
-    // private static void bindAimingWithReadyUpgrade(
-    //         Trigger button,
-    //         Trigger zone,
-    //         State aimingState,
-    //         Trigger readyTrigger,
-    //         State readyState) {
-    //     Trigger active = button.and(zone);
-
-    //     active.onTrue(applyState(aimingState));
-    //     active.onFalse(applyState(State.IDLE));
-
-    //     active.and(readyTrigger).onTrue(applyState(readyState));
-    //     active.and(readyTrigger.not()).onTrue(applyState(aimingState));
-    // }
-
     private static void bindTriggerTelemetry(String name, Trigger trigger) {
-        trigger.onTrue(new InstantCommand(() -> Telemetry.log(name, true)));
-        trigger.onFalse(new InstantCommand(() -> Telemetry.log(name, false)));
+        trigger.onTrue(Commands.runOnce(() -> Telemetry.log(name, true)));
+        trigger.onFalse(Commands.runOnce(() -> Telemetry.log(name, false)));
     }
 
     public static Command applyState(State state) {
-        return new InstantCommand(
+        return Commands.runOnce(
                         () -> {
                             appliedState = state;
                             Telemetry.print("Applied State: " + state);
@@ -144,7 +112,7 @@ public class RobotStates {
     }
 
     public static Command clearState() {
-        return new InstantCommand(
+        return Commands.runOnce(
                         () -> {
                             appliedState = State.IDLE;
                             coordinator.applyRobotState(State.IDLE);

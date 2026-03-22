@@ -20,7 +20,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
@@ -282,7 +281,7 @@ public class Robot extends SpectrumRobot {
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    new InstantCommand(() -> Telemetry.log("Initialized", true)))
+                                    Commands.runOnce(() -> Telemetry.log("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
@@ -327,7 +326,7 @@ public class Robot extends SpectrumRobot {
                                                     new Pose2d(
                                                             point.position.getX(),
                                                             point.position.getY(),
-                                                            new Rotation2d()))
+                                                            Rotation2d.kZero))
                                     .collect(Collectors.toList()));
                 }
                 field2d.getObject("Auto Routine").setPoses(poses);

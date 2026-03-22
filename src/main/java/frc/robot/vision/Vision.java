@@ -14,11 +14,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendable;
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
@@ -37,7 +33,7 @@ import java.util.List;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
-public class Vision implements NTSendable, Subsystem {
+public class Vision implements Subsystem {
 
     public static class VisionConfig {
         @Getter final String name = "Vision";
@@ -164,7 +160,6 @@ public class Vision implements NTSendable, Subsystem {
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
         this.register();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -173,25 +168,16 @@ public class Vision implements NTSendable, Subsystem {
         return config.getName();
     }
 
-    // Setup the telemetry values, has to be called at the end of the implemented mechanism
-    // constructor
-    public void telemetryInit() {
-        SendableRegistry.add(this, getName());
-        SmartDashboard.putData(this);
-
-        Robot.getField2d().getObject(frontLL.getCameraName());
-        Robot.getField2d().getObject(backLL.getCameraName());
-        Robot.getField2d().getObject(leftLL.getCameraName());
-        Robot.getField2d().getObject(rightLL.getCameraName());
-        Robot.getField2d().getObject(turretLL.getCameraName());
-    }
-
     @Override
     public void periodic() {
         setLimeLightOrientation();
         disabledLimelightUpdates();
         enabledLimelightUpdates();
 
+        logTelemetry();
+    }
+
+    public void logTelemetry() {
         Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
         Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
@@ -204,7 +190,7 @@ public class Vision implements NTSendable, Subsystem {
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
     public Pose2d getBackMegaTag2Pose() {
@@ -212,7 +198,7 @@ public class Vision implements NTSendable, Subsystem {
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
     public Pose2d getLeftMegaTag2Pose() {
@@ -220,7 +206,7 @@ public class Vision implements NTSendable, Subsystem {
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
     public Pose2d getRightMegaTag2Pose() {
@@ -228,7 +214,7 @@ public class Vision implements NTSendable, Subsystem {
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
     public Pose2d getTurretMegaTag2Pose() {
@@ -236,7 +222,7 @@ public class Vision implements NTSendable, Subsystem {
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
     public Pose2d getTurretMegaTag1Pose() {
@@ -244,31 +230,7 @@ public class Vision implements NTSendable, Subsystem {
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        builder.addDoubleProperty("FrontTX", frontLL::getTagTx, null);
-        builder.addDoubleProperty("FrontTA", frontLL::getTagTA, null);
-        builder.addDoubleProperty("FrontTagID", frontLL::getClosestTagID, null);
-        builder.addDoubleProperty("BackTX", backLL::getTagTx, null);
-        builder.addDoubleProperty("BackTA", backLL::getTagTA, null);
-        builder.addDoubleProperty("BackTagID", backLL::getClosestTagID, null);
-        builder.addDoubleProperty("LeftTX", leftLL::getTagTx, null);
-        builder.addDoubleProperty("LeftTA", leftLL::getTagTA, null);
-        builder.addDoubleProperty("LeftTagID", leftLL::getClosestTagID, null);
-        builder.addDoubleProperty("RightTX", rightLL::getTagTx, null);
-        builder.addDoubleProperty("RightTA", rightLL::getTagTA, null);
-        builder.addDoubleProperty("RightTagID", rightLL::getClosestTagID, null);
-        builder.addDoubleProperty("TurretTX", turretLL::getTagTx, null);
-        builder.addDoubleProperty("TurretTA", turretLL::getTagTA, null);
-        builder.addDoubleProperty("TurretTagID", turretLL::getClosestTagID, null);
+        return Pose2d.kZero;
     }
 
     private void setLimeLightOrientation() {

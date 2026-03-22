@@ -3,7 +3,6 @@ package frc.robot.indexerTower;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotSim;
@@ -67,12 +66,16 @@ public class IndexerTower extends Mechanism {
         this.config = config;
 
         simulationInit();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        Telemetry.log("IndexerTower/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("IndexerTower/Voltage", getVoltage());
+        Telemetry.log("IndexerTower/Current", getStatorCurrent());
+        Telemetry.log("IndexerTower/RPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -80,22 +83,6 @@ public class IndexerTower extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         IndexerTowerStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     // --------------------------------------------------------------------------------
