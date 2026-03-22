@@ -2,7 +2,6 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.robot.auton.Auton;
@@ -78,6 +77,7 @@ public class RobotStates {
 
         // Telemetry bindings (keep logs in sync with trigger state)
         bindTriggerTelemetry("LauncherPrep/LauncherOnTarget", launcherOnTarget);
+        
         // Reset hub shift timer when enabling
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));

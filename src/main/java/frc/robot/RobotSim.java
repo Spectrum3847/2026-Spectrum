@@ -7,6 +7,7 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 import com.ctre.phoenix6.Utils;
 import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
@@ -172,7 +173,7 @@ public class RobotSim {
                                                     new Translation2d(),
                                                     Robot.getSwerve()
                                                             .getCurrentRobotChassisSpeeds(),
-                                                    parameters.turretAngle(),
+                                                    Rotation2d.kZero,
                                                     Inches.of(29),
                                                     MetersPerSecond.of(
                                                             parameters.flywheelSpeed() * 0.0025),

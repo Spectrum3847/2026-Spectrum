@@ -193,6 +193,12 @@ public class Vision implements Subsystem {
         Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
     }
 
+    public void triggerRewindCaptureForAllCameras() {
+        for (Limelight limelight : allLimelights) {
+            LimelightHelpers.triggerRewindCapture(limelight.getName(), 165);
+        }
+    }
+
     public Pose2d getFrontMegaTag2Pose() {
         Pose2d pose = frontLL.getMegaTag2_Pose2d();
         if (pose != null) {
@@ -277,20 +283,7 @@ public class Vision implements Subsystem {
         }
     }
 
-    private void teleopLimelightUpdates() {
-        if (Util.teleop.getAsBoolean()) {
-            for (Limelight limelight : allLimelights) {
-                setImuModeIfChanged(limelight, 4);
-            }
-            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, false);
-            integrateSingleEstimate(backMT1);
-
-            VisionFieldPoseEstimate backMT2 = getMT2VisionEstimate(backLL);
-            integrateSingleEstimate(backMT2);
-        }
-    }
-
-    private void autonLimelightUpdates() {
+    private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || RobotStates.autoUpdatePose.getAsBoolean()) {
             for (Limelight limelight : allLimelights) {
                 setImuModeIfChanged(limelight, 4);

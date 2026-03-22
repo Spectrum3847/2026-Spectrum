@@ -379,7 +379,9 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void teleopExit() {
-        vision.triggerRewindCaptureForAllCameras();
+        if (DriverStation.isFMSAttached()) {
+            vision.triggerRewindCaptureForAllCameras();
+        }
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 
