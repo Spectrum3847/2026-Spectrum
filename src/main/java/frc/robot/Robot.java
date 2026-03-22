@@ -376,6 +376,7 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void teleopExit() {
+        vision.triggerRewindCaptureForAllCameras();
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 

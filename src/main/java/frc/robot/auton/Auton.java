@@ -46,6 +46,12 @@ public class Auton {
         pathChooser.addOption(
                 "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
+        pathChooser.addOption(
+                "Playoff Neutral Zone - Left Start",
+                SpectrumAuton("Playoff Neutral Zone - Left Start", false));
+        pathChooser.addOption(
+                "Playoff Neutral Zone - Right Start",
+                SpectrumAuton("Playoff Neutral Zone - Left Start", true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

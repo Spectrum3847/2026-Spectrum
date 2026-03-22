@@ -3,13 +3,29 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 7.9,
-        "y": 4.52
+        "x": 8.74,
+        "y": 4.54
       },
       "prevControl": null,
       "nextControl": {
-        "x": 7.543473782771536,
-        "y": 4.864372659176031
+        "x": 7.94,
+        "y": 4.54
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 7.407780898876405,
+        "y": 5.841554307116105
+      },
+      "prevControl": {
+        "x": 7.8070648274524785,
+        "y": 5.841554307116105
+      },
+      "nextControl": {
+        "x": 7.0084969703003335,
+        "y": 5.841554307116105
       },
       "isLocked": false,
       "linkedName": null
@@ -62,11 +78,15 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.9528415961305936,
+      "waypointRelativePos": 0.3757205832485549,
+      "rotationDegrees": 130.0
+    },
+    {
+      "waypointRelativePos": 1.9,
       "rotationDegrees": 150.0
     },
     {
-      "waypointRelativePos": 2.8535096642929876,
+      "waypointRelativePos": 3.8535096642929876,
       "rotationDegrees": 180.0
     }
   ],
@@ -74,7 +94,7 @@
     {
       "name": "Constraints Zone",
       "minWaypointRelativePos": 0.0,
-      "maxWaypointRelativePos": 1.3382928739232518,
+      "maxWaypointRelativePos": 2.338292873923252,
       "constraints": {
         "maxVelocity": 2.0,
         "maxAcceleration": 2.0,
@@ -86,8 +106,8 @@
     },
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 2.054424432263103,
-      "maxWaypointRelativePos": 3.0,
+      "minWaypointRelativePos": 2.866483946750204,
+      "maxWaypointRelativePos": 4.0,
       "constraints": {
         "maxVelocity": 0.1,
         "maxAcceleration": 4.0,
@@ -105,8 +125,8 @@
         "y": 4.04
       },
       "rotationOffset": 180.0,
-      "minWaypointRelativePos": 1.8711824588880168,
-      "maxWaypointRelativePos": 2.8390759592795645,
+      "minWaypointRelativePos": 2.8711824588880166,
+      "maxWaypointRelativePos": 3.8390759592795645,
       "name": "Point Towards Zone"
     }
   ],
@@ -119,19 +139,19 @@
     },
     {
       "name": "poseUpdate",
-      "waypointRelativePos": 1.8112764291307746,
+      "waypointRelativePos": 2.811276429130775,
       "endWaypointRelativePos": 3.0,
       "command": null
     },
     {
       "name": "shoot",
-      "waypointRelativePos": 2.106108065779166,
+      "waypointRelativePos": 2.93343774471418,
       "endWaypointRelativePos": null,
       "command": null
     },
     {
       "name": "intake",
-      "waypointRelativePos": 2.8061863743147883,
+      "waypointRelativePos": 3.8061863743147883,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -152,7 +172,7 @@
   "folder": "Neutral Zone - Left Start",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": -130.0
+    "rotation": -150.0
   },
   "useDefaultConstraints": true
 }
