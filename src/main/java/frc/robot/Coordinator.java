@@ -5,7 +5,6 @@ import frc.robot.indexerBed.IndexerBedStates;
 import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 
 public class Coordinator {
 
@@ -19,7 +18,6 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.neutral();
                 LauncherStates.idlePrep();
-                RotationalPivotStates.aimAtTarget();
             }
             case INTAKE_FUEL -> {
                 FuelIntakeStates.intakeFuel();
@@ -27,7 +25,6 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.idlePrep();
-                RotationalPivotStates.aimAtTarget();
             }
             case TURRET_TRACK -> {
                 FuelIntakeStates.stop();
@@ -35,7 +32,6 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtTarget();
             }
             case TURRET_TRACK_WITH_LAUNCH -> {
                 FuelIntakeStates.slowIntakeFuel();
@@ -43,7 +39,6 @@ public class Coordinator {
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtTarget();
             }
             case UNJAM -> {
                 FuelIntakeStates.stop();
@@ -51,7 +46,6 @@ public class Coordinator {
                 IndexerBedStates.unjam();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.neutral();
-                RotationalPivotStates.neutral();
             }
             case FORCE_HOME -> {
                 FuelIntakeStates.stop();
@@ -59,7 +53,6 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullRetract();
                 LauncherStates.neutral();
-                RotationalPivotStates.home();
             }
             case CUSTOM_SPEED_TURRET_LAUNCH -> {
                 FuelIntakeStates.stop();
@@ -67,29 +60,24 @@ public class Coordinator {
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.customLaunchSpeed();
-                RotationalPivotStates.aimAtTarget();
             }
             case TEST_INFINITE_LAUNCH -> {
                 FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.slowIndex();
                 IndexerBedStates.slowIndex();
                 LauncherStates.slowLaunch();
-                RotationalPivotStates.aimAt180();
             }
             case TEST_IDLE -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 LauncherStates.neutral();
-                RotationalPivotStates.home();
             }
             case COAST -> {
                 IntakeExtensionStates.coastMode();
-                RotationalPivotStates.coastMode();
             }
             case BRAKE -> {
                 IntakeExtensionStates.brakeMode();
-                RotationalPivotStates.brakeMode();
             }
             default -> {
                 // Handle other states or throw an error

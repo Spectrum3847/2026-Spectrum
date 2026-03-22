@@ -1,12 +1,18 @@
 package frc.robot.intakeExtension;
 
 import edu.wpi.first.wpilibj2.command.*;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class IntakeExtensionStates {
     private static IntakeExtension intakeExtension = Robot.getIntakeExtension();
     private static IntakeExtension.IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
+
+    public static final Trigger fullOut =
+            intakeExtension.atPercentage(config::getFullOut, config::getAtPoseTolerance);
+    public static final Trigger home =
+            intakeExtension.atPercentage(config::getHome, config::getAtPoseTolerance);
 
     private static boolean sentOutByIntakeState = false;
 

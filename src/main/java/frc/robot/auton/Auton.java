@@ -27,6 +27,7 @@ public class Auton {
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
     public static final EventTrigger autonClearState = new EventTrigger("clearState");
+    public static final EventTrigger autonUnjam = new EventTrigger("unjam");
     public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 
     private final SendableChooser<Command> pathChooser = new SendableChooser<>();
@@ -45,7 +46,15 @@ public class Auton {
                 "Neutral Zone - Left Start", SpectrumAuton("Neutral Zone - Left Start", false));
         pathChooser.addOption(
                 "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
+
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
+
+        pathChooser.addOption(
+                "Playoff Neutral Zone - Left Start",
+                SpectrumAuton("Playoff Neutral Zone - Left Start", false));
+        pathChooser.addOption(
+                "Playoff Neutral Zone - Right Start",
+                SpectrumAuton("Playoff Neutral Zone - Left Start", true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

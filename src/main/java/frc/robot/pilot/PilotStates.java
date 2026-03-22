@@ -11,7 +11,6 @@ import frc.robot.RobotStates;
 import frc.robot.State;
 import frc.robot.fuelIntake.FuelIntakeStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -34,13 +33,7 @@ public class PilotStates {
                             RobotStates.getAppliedState() == State.SNAKE_INTAKE
                                     || RobotStates.getAppliedState() == State.INTAKE_FUEL);
     private static final Trigger launching =
-            new Trigger(
-                    () ->
-                            RobotStates.getAppliedState() == State.TURRET_WITHOUT_TRACK_WITH_LAUNCH
-                                    || RobotStates.getAppliedState()
-                                            == State.TURRET_FEED_WITH_LAUNCH
-                                    || RobotStates.getAppliedState()
-                                            == State.TURRET_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.TURRET_TRACK_WITH_LAUNCH);
 
     /** Set the states for the pilot controller */
     public static void setStates() {
@@ -55,8 +48,8 @@ public class PilotStates {
 
         pilot.rightTriggerOnly.and(pilot.fn).whileTrue(FuelIntakeStates.ejectCommand());
 
-        pilot.coastA.onTrue(RotationalPivotStates.coastMode(), IntakeExtensionStates.coastMode());
-        pilot.brakeB.onTrue(RotationalPivotStates.brakeMode(), IntakeExtensionStates.brakeMode());
+        pilot.coastA.onTrue(IntakeExtensionStates.coastMode());
+        pilot.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
         pilot.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
         pilot.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
