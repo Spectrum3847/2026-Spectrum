@@ -1,6 +1,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.auton.Auton;
@@ -76,6 +77,11 @@ public class RobotStates {
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
         Auton.autonShotPrep.onTrue(applyState(State.TURRET_TRACK));
         Auton.autonShoot.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        Auton.autonUnjam.onTrue(
+                Commands.sequence(
+                        applyState(State.UNJAM),
+                        Commands.waitSeconds(1),
+                        applyState(State.TURRET_TRACK_WITH_LAUNCH)));
         Auton.autonClearState.onTrue(clearState());
     }
 
