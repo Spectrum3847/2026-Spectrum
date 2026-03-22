@@ -128,7 +128,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         // Report to battery logger
         Robot.getBatteryLogger()
-                .reportCurrentUsage("Mechanism/" + config.id, motorCurrent + followersCurrent);
+                .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
     }
 
     @Override

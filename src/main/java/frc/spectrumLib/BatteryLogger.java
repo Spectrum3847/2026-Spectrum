@@ -65,21 +65,21 @@ public class BatteryLogger {
         reportCurrentUsage("Controls/Radio", 0.5);
 
         // Log total and subsystem energy usage
-        Telemetry.log("EnergyLogger/Current", totalCurrent);
-        Telemetry.log("EnergyLogger/Power", totalPower);
-        Telemetry.log("EnergyLogger/Energy", joulesToWattHours(totalEnergy));
+        Telemetry.log("BatteryLogger/Current", totalCurrent);
+        Telemetry.log("BatteryLogger/Power", totalPower);
+        Telemetry.log("BatteryLogger/Energy", joulesToWattHours(totalEnergy));
 
         for (var entry : subsytemCurrents.entrySet()) {
-            Telemetry.log("EnergyLogger/Current/" + entry.getKey(), entry.getValue());
+            Telemetry.log("BatteryLogger/Current/" + entry.getKey(), entry.getValue());
             subsytemCurrents.put(entry.getKey(), 0.0);
         }
         for (var entry : subsytemPowers.entrySet()) {
-            Telemetry.log("EnergyLogger/Power/" + entry.getKey(), entry.getValue());
+            Telemetry.log("BatteryLogger/Power/" + entry.getKey(), entry.getValue());
             subsytemPowers.put(entry.getKey(), 0.0);
         }
         for (var entry : subsytemEnergies.entrySet()) {
             Telemetry.log(
-                    "EnergyLogger/Energy/" + entry.getKey(), joulesToWattHours(entry.getValue()));
+                    "BatteryLogger/Energy/" + entry.getKey(), joulesToWattHours(entry.getValue()));
         }
 
         // Reset power and curren totals, before next loop
