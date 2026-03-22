@@ -50,6 +50,7 @@ import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
 import frc.robot.vision.VisionSystem;
+import frc.spectrumLib.BatteryLogger;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumRobot;
 import frc.spectrumLib.Telemetry;
@@ -108,6 +109,8 @@ public class Robot extends SpectrumRobot {
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
+    @Getter private static BatteryLogger batteryLogger;
+
     public static boolean commandInit = false;
 
     public Robot() {
@@ -162,6 +165,7 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
+            batteryLogger = new BatteryLogger();
             coordinator = new Coordinator();
 
             if (Utils.isSimulation()) {
@@ -256,7 +260,7 @@ public class Robot extends SpectrumRobot {
                     "Match Data/TimeLeftInShift",
                     ShiftHelpers.getOfficialShiftInfo().remainingTime());
             Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
-
+            batteryLogger.logPower();
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();

@@ -72,28 +72,18 @@ public class Util {
         return result;
     }
 
-    /**   
-     * Trigger that is true when the robot is enabled in teleop mode.
-     */
+    /** Trigger that is true when the robot is enabled in teleop mode. */
     public static final Trigger teleop = RobotModeTriggers.teleop();
 
-    /** 
-     * Trigger that is true when the robot is enabled in autonomous mode.
-     */
+    /** Trigger that is true when the robot is enabled in autonomous mode. */
     public static final Trigger autoMode = RobotModeTriggers.autonomous();
 
-    /** 
-     * Trigger that is true when the robot is enabled in test mode.
-     */
+    /** Trigger that is true when the robot is enabled in test mode. */
     public static final Trigger testMode = RobotModeTriggers.test();
-    
-    /** 
-     * Trigger that is true when the robot is disabled.
-     */
+
+    /** Trigger that is true when the robot is disabled. */
     public static final Trigger disabled = RobotModeTriggers.disabled();
 
-    /** 
-     * Trigger that is true when the DriverStation is attached.
-     */
+    /** Trigger that is true when the DriverStation is attached. */
     public static final Trigger dsAttached = new Trigger(DriverStation::isDSAttached);
 }

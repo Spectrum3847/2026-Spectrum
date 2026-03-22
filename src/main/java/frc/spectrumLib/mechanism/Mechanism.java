@@ -29,6 +29,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Robot;
 import frc.spectrumLib.CachedDouble;
 import frc.spectrumLib.SpectrumRobot;
 import frc.spectrumLib.SpectrumSubsystem;
@@ -102,7 +103,18 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        // Get all motor currents
+        double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
+        double followersCurrent = 0;
+        for (TalonFX follower : followerMotors) {
+            followersCurrent += follower.getStatorCurrent().getValueAsDouble();
+        }
+
+        // Report to battery logger
+        Robot.getBatteryLogger()
+                .reportCurrentUsage("Mechanism/" + config.id, motorCurrent + followersCurrent);
+    }
 
     @Override
     public void simulationPeriodic() {}
