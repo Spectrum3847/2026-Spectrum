@@ -8,7 +8,6 @@ import static edu.wpi.first.units.Units.Seconds;
 
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
@@ -36,6 +35,7 @@ import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -69,6 +69,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private RotationController rotationController;
     private TranslationXController xController;
     private TranslationYController yController;
+
+    private Alert pigeonAlert;
 
     @Getter
     protected SwerveModuleState[] setpoints =
@@ -221,13 +223,13 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return getState().Pose;
     }
 
+    
     private void isPigeonConnected() {
-        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+        if ( getPigeon2() == null || !getPigeon2().isConnected()) {
             DriverStation.reportError(
                     "Pigeon IMU is not connected! Check connections and CAN IDs.", false);
-            SmartDashboard.putBoolean("Pigeon Connected", false);
-        } else {
-            SmartDashboard.putBoolean("Pigeon Connected", true);
+            pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
+            SmartDashboard.putData("Pigeon Alert", (Sendable) pigeonAlert);
         }
     }
 
