@@ -39,6 +39,7 @@ import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -110,6 +111,25 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/MeasuredSpeeds", state.Speeds);
     }
 
+    protected void logBatteryUsage() {
+        double steerMotorCurrent = getDriveMotorCurrents();
+        double driveMotorCurrent = getSteerMotorCurrents();
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveSteer", steerMotorCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveDrive", driveMotorCurrent);
+    }
+
+    protected double getDriveMotorCurrents() {
+        return Arrays.stream(getModules())
+                .mapToDouble(module -> module.getDriveMotor().getStatorCurrent().getValueAsDouble())
+                .sum();
+    }
+
+    protected double getSteerMotorCurrents() {
+        return Arrays.stream(getModules())
+                .mapToDouble(module -> module.getSteerMotor().getStatorCurrent().getValueAsDouble())
+                .sum();
+    }
+
     /**
      * This method is called periodically and is used to update the pilot's perspective. It ensures
      * that the swerve drive system is aligned correctly based on the pilot's view.
@@ -117,6 +137,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     @Override
     public void periodic() {
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
+        logBatteryUsage();
         setPilotPerspective();
     }
 
