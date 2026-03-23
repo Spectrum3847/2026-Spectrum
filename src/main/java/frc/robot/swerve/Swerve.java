@@ -8,6 +8,7 @@ import static edu.wpi.first.units.Units.Seconds;
 
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
@@ -152,6 +153,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
         // Store current pose in history buffer every periodic cycle
         poseHistory.addSample(Utils.getCurrentTimeSeconds(), this.getState().Pose);
+        isPigeonConnected();
     }
 
     @Override
@@ -217,6 +219,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
         return getState().Pose;
+    }
+
+    private void isPigeonConnected() {
+        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+            DriverStation.reportError(
+                    "Pigeon IMU is not connected! Check connections and CAN IDs.", false);
+            SmartDashboard.putBoolean("Pigeon Connected", false);
+        } else {
+            SmartDashboard.putBoolean("Pigeon Connected", true);
+        }
     }
 
     /**
