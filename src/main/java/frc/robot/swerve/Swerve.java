@@ -70,7 +70,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private TranslationXController xController;
     private TranslationYController yController;
 
-    private Alert pigeonAlert;
+    private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
 
     @Getter
     protected SwerveModuleState[] setpoints =
@@ -225,11 +225,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     
     private void isPigeonConnected() {
-        if ( getPigeon2() == null || !getPigeon2().isConnected()) {
-            DriverStation.reportError(
-                    "Pigeon IMU is not connected! Check connections and CAN IDs.", false);
-            pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
-            SmartDashboard.putData("Pigeon Alert", (Sendable) pigeonAlert);
+        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+            DriverStation.reportError("Pigeon IMU is not connected!...", false);
+            pigeonAlert.set(true); 
+        } else {
+            pigeonAlert.set(false);
         }
     }
 
