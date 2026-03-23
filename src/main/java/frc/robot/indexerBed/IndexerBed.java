@@ -62,6 +62,7 @@ public class IndexerBed extends Mechanism {
 
     @Override
     public void periodic() {
+        logBatteryUsage();
         Telemetry.log("IndexerBed/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IndexerBed/Voltage", getVoltage());
         Telemetry.log("IndexerBed/Current", getStatorCurrent());

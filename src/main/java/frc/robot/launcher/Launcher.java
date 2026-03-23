@@ -61,7 +61,7 @@ public class Launcher extends Mechanism {
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
                             "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
@@ -81,6 +81,7 @@ public class Launcher extends Mechanism {
 
     @Override
     public void periodic() {
+        logBatteryUsage();
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Launcher/Voltage", getVoltage());
         Telemetry.log("Launcher/Current", getStatorCurrent());

@@ -71,6 +71,7 @@ public class IndexerTower extends Mechanism {
 
     @Override
     public void periodic() {
+        logBatteryUsage();
         Telemetry.log("IndexerTower/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IndexerTower/Voltage", getVoltage());
         Telemetry.log("IndexerTower/Current", getStatorCurrent());

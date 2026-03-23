@@ -77,7 +77,7 @@ public class RobotStates {
 
         // Telemetry bindings (keep logs in sync with trigger state)
         bindTriggerTelemetry("LauncherPrep/LauncherOnTarget", launcherOnTarget);
-        
+
         // Reset hub shift timer when enabling
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));

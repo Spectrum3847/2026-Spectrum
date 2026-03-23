@@ -119,6 +119,7 @@ public class IntakeExtension extends Mechanism {
 
     @Override
     public void periodic() {
+        logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IntakeExtension/Voltage", getVoltage());
         Telemetry.log("IntakeExtension/Current", getStatorCurrent());
