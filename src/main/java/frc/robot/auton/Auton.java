@@ -43,18 +43,17 @@ public class Auton {
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
         pathChooser.addOption(
-                "Neutral Zone - Left Start", SpectrumAuton("Neutral Zone - Left Start", false));
+                "Neutral Zone - Left Bump Start",
+                SpectrumAuton("Neutral Zone - Left Bump Start", false));
         pathChooser.addOption(
-                "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
+                "Neutral Zone - Right Bump Start",
+                SpectrumAuton("Neutral Zone - Left Bump Start", true));
+
+        pathChooser.addOption(
+                "Neutral Zone - Left Trench Start",
+                SpectrumAuton("Neutral Zone - Left Trench Start", false));
 
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
-
-        pathChooser.addOption(
-                "Playoff Neutral Zone - Left Start",
-                SpectrumAuton("Playoff Neutral Zone - Left Start", false));
-        pathChooser.addOption(
-                "Playoff Neutral Zone - Right Start",
-                SpectrumAuton("Playoff Neutral Zone - Left Start", true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

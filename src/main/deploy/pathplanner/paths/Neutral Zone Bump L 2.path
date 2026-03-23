@@ -3,44 +3,39 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 6.39,
-        "y": 5.54
+        "x": 6.6,
+        "y": 6.6
       },
       "prevControl": null,
       "nextControl": {
-        "x": 6.639999999999999,
-        "y": 5.54
+        "x": 7.7497427709015065,
+        "y": 6.6
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 8.74,
-        "y": 4.54
+        "x": 7.9,
+        "y": 4.52
       },
       "prevControl": {
-        "x": 9.405140449438203,
-        "y": 6.535421348314608
+        "x": 8.192191011235956,
+        "y": 5.734803370786517
       },
       "nextControl": null,
       "isLocked": false,
       "linkedName": null
     }
   ],
-  "rotationTargets": [
-    {
-      "waypointRelativePos": 0.32858596134282897,
-      "rotationDegrees": -30.29110610510729
-    }
-  ],
+  "rotationTargets": [],
   "constraintZones": [
     {
       "name": "Bump Slow Mode",
       "minWaypointRelativePos": 0.0,
       "maxWaypointRelativePos": 1.0,
       "constraints": {
-        "maxVelocity": 2.0,
+        "maxVelocity": 1.5,
         "maxAcceleration": 2.0,
         "maxAngularVelocity": 540.0,
         "maxAngularAcceleration": 720.0,
@@ -53,25 +48,25 @@
   "eventMarkers": [
     {
       "name": "poseUpdate",
-      "waypointRelativePos": 0.0,
+      "waypointRelativePos": 0,
       "endWaypointRelativePos": 1.0,
       "command": null
     }
   ],
   "globalConstraints": {
     "maxVelocity": 3.0,
-    "maxAcceleration": 4.5,
-    "maxAngularVelocity": 540.0,
-    "maxAngularAcceleration": 720.0,
+    "maxAcceleration": 5.0,
+    "maxAngularVelocity": 360.0,
+    "maxAngularAcceleration": 540.0,
     "nominalVoltage": 10.0,
     "unlimited": false
   },
   "goalEndState": {
     "velocity": 0.0,
-    "rotation": -150.0
+    "rotation": -130.0
   },
   "reversed": false,
-  "folder": "Neutral Zone - Left Start",
+  "folder": "Neutral Zone - Left Bump Start",
   "idealStartingState": {
     "velocity": 0,
     "rotation": -45.0

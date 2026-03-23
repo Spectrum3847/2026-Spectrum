@@ -43,12 +43,12 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double torqueCurrentLimit = 180;
         @Getter private final double positionKp = 5;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 0.3;
-        @Getter private final double positionKs = 1.5;
+        @Getter private final double positionKv = 0.5;
+        @Getter private final double positionKs = 1.85;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
+        @Getter private final double mmCruiseVelocity = 75;
+        @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
         @Getter @Setter private double sensorToMechanismRatio = 3.6111;
@@ -214,7 +214,7 @@ public class IntakeExtension extends Mechanism {
         return run(
                 () ->
                         setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 2, () -> 20, () -> 1000));
+                                () -> percentToRotations(percent), () -> 5, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

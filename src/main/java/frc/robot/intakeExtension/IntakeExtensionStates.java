@@ -53,6 +53,14 @@ public class IntakeExtensionStates {
         }
     }
 
+    public static void slowIntakeClose() {
+        scheduleIfNotRunning(
+                Commands.sequence(
+                                Commands.waitSeconds(1),
+                                intakeExtension.slowMoveToPercent(config::getHome))
+                        .withName("IntakeExtension.slowIntakeClose"));
+    }
+
     public static Command fullExtendCommand() {
         return log(
                 intakeExtension
