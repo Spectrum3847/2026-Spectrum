@@ -429,7 +429,7 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        SmartDashboard.putNumber(
-                "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+        RobotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        Telemetry.log("FieldSimulation/Fuel", RobotSim.getBallSim().getTotalIntaked());
     }
 }

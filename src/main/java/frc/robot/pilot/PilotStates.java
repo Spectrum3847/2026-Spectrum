@@ -43,9 +43,8 @@ public class PilotStates {
 
         pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
 
-        // Simulation Only: Map RT and LT to intake and launch fuel for testing
-        pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimLaunchFuel());
+        // Simulation Only: Map LT to launch fuel
+        pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.ballSimLaunchFuel());
 
         pilot.rightTriggerOnly.and(pilot.fn).whileTrue(FuelIntakeStates.ejectCommand());
 

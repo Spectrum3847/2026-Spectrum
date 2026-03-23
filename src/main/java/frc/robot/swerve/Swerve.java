@@ -45,7 +45,6 @@ import frc.spectrumLib.util.Util;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import lombok.Getter;
-import org.ironmaple.simulation.SimulatedArena;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
@@ -132,9 +131,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     public void periodic() {
         setPilotPerspective();
         if (Utils.isSimulation()) {
-            Telemetry.log(
-                    "FieldSimulation/Fuel",
-                    SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+            Telemetry.log("Drive/Pose", getRobotPose());
         }
     }
 
