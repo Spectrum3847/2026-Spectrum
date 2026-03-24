@@ -155,7 +155,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
         // Store current pose in history buffer every periodic cycle
         poseHistory.addSample(Utils.getCurrentTimeSeconds(), this.getState().Pose);
-        isPigeonConnected();
+        checkPigeonConnection();
     }
 
     @Override
@@ -223,7 +223,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return getState().Pose;
     }
 
-    private void isPigeonConnected() {
+    private void checkPigeonConnection() {
         if (getPigeon2() == null || !getPigeon2().isConnected()) {
             pigeonAlert.set(true);
         } else {
