@@ -7,6 +7,7 @@ import edu.wpi.first.math.interpolation.Interpolator;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.util.Units;
 import frc.rebuilt.Field;
+import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 
 public class HubTargetFactory {
@@ -29,7 +30,7 @@ public class HubTargetFactory {
     static Double kXDistanceOffset = Units.inchesToMeters(0);
 
     public static Translation3d generate() {
-        Translation3d hubPose = Field.isRed() ? Field.getRedHubCenter() : Field.getBlueHubCenter();
+        Translation3d hubPose = FieldHelpers.flipIfRed(Field.Hub.topCenterPoint);
 
         double distance =
                 new Translation2d(hubPose.getX(), hubPose.getY())

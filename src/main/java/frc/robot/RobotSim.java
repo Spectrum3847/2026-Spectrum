@@ -17,8 +17,9 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
+import frc.rebuilt.simUtil.BumpPhysicsSim;
+import frc.rebuilt.simUtil.FuelPhysicsSim;
 import frc.spectrumLib.sim.Circle;
 import java.util.Set;
 import lombok.Getter;
@@ -42,8 +43,10 @@ public class RobotSim {
             new Mechanism2d(
                     Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
 
-    @Getter private static FuelPhysicsSim ballSim;
+    @Getter private static double simRobotWidth = Units.inchesToMeters(33);
+    @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
+    @Getter private static FuelPhysicsSim ballSim;
     private static int singleLaneBPS = 8;
     private static double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
     private static double launcherWidth = 24;
@@ -53,6 +56,8 @@ public class RobotSim {
     private static double lane2 = -1 * laneWidth / 2;
     private static double lane3 = 1 * laneWidth / 2;
     private static double lane4 = 2 * laneWidth / 2;
+
+    @Getter private static BumpPhysicsSim bumpSim;
 
     public RobotSim() {
         SmartDashboard.putData("Sim/TopView", RobotSim.topView);
@@ -65,6 +70,8 @@ public class RobotSim {
         ballSim.enable();
         ballSim.placeFieldBalls(); // spawns all the game pieces
         configBallSimRobot();
+
+        bumpSim = new BumpPhysicsSim();
     }
 
     public void drawRobot() {
@@ -137,20 +144,16 @@ public class RobotSim {
     }
 
     private void configBallSimRobot() {
-        double robotWidth = Units.inchesToMeters(33);
-        double robotLength = Units.inchesToMeters(32.75);
         double bumperHeight = Units.inchesToMeters(4.56);
-
         double intakeWidth = Units.inchesToMeters(10);
         double intakeLength = Units.inchesToMeters(28.5);
-
         double intakeXMin = Units.inchesToMeters(0);
-        double intakeXMax = robotWidth / 2 + intakeWidth;
+        double intakeXMax = simRobotWidth / 2 + intakeWidth;
         double intakeYMin = -intakeLength / 2;
         double intakeYMax = intakeLength / 2;
         ballSim.configureRobot(
-                robotWidth,
-                robotLength,
+                simRobotWidth,
+                simRobotLength,
                 bumperHeight,
                 () -> Robot.getSwerve().getRobotPose(),
                 () -> Robot.getSwerve().getCurrentRobotChassisSpeeds());

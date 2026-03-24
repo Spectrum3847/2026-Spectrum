@@ -2,7 +2,7 @@
 // https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
 package frc.robot.swerve;
 
-import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Seconds;
 
@@ -33,6 +33,7 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
+import frc.robot.RobotSim;
 import frc.robot.swerve.controllers.RotationController;
 import frc.robot.swerve.controllers.TranslationXController;
 import frc.robot.swerve.controllers.TranslationYController;
@@ -139,10 +140,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
         setPilotPerspective();
-
-        if (Utils.isSimulation()) {
-            Telemetry.log("Swerve/SimPose", getRobotPose());
-        }
     }
 
     // -----------------------------------------------------------------------
@@ -532,7 +529,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     private void configurePathPlanner() {
         // Seed robot to mid field at start (Paths will change this starting position)
-        resetPose(Field.getCenterField());
+        resetPose(new Pose2d(Field.fieldCenter, Rotation2d.kZero));
 
         try {
             var config = RobotConfig.fromGUISettings();
@@ -579,8 +576,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 new MapleSimSwerveDrivetrain(
                         Seconds.of(config.getSimLoopPeriod()),
                         Pounds.of(115), // robot weight
-                        Inches.of(30), // bumper length
-                        Inches.of(30), // bumper width
+                        Meters.of(RobotSim.getSimRobotLength()), // bumper length
+                        Meters.of(RobotSim.getSimRobotWidth()), // bumper width
                         DCMotor.getKrakenX60Foc(1), // drive motor type
                         DCMotor.getKrakenX60Foc(1), // steer motor type
                         1.2, // wheel COF

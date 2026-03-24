@@ -8,7 +8,7 @@ public class Zones {
 
     private static final Swerve swerve = Robot.getSwerve();
 
-    public static final Trigger blueFieldSide = swerve.inXzone(0, Field.getHalfLength());
+    public static final Trigger blueFieldSide = swerve.inXzone(0, Field.fieldLength / 2);
     public static final Trigger opponentFieldSide =
             new Trigger(() -> blueFieldSide.getAsBoolean() != Field.isBlue());
 }
