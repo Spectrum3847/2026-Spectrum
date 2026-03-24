@@ -96,12 +96,12 @@
     },
     {
       "anchor": {
-        "x": 3.7043445692883896,
-        "y": 7.3442790262172295
+        "x": 3.38,
+        "y": 7.24
       },
       "prevControl": {
-        "x": 5.70434456928839,
-        "y": 7.3442790262172295
+        "x": 5.38,
+        "y": 7.24
       },
       "nextControl": null,
       "isLocked": false,
@@ -132,7 +132,20 @@
   ],
   "constraintZones": [],
   "pointTowardsZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "intake",
+      "waypointRelativePos": 0.10344827586206896,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
+      "name": "shoot",
+      "waypointRelativePos": 5.97,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 3.0,
     "maxAcceleration": 5.0,
@@ -143,7 +156,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 107.0
+    "rotation": 115.0
   },
   "reversed": false,
   "folder": "Neutral Zone - Left Trench Start",
