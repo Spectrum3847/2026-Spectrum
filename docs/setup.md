@@ -25,6 +25,8 @@ Open the `2026-Spectrum` in WPILib VSCode (or whatever you prefer, really). To u
 
 If you are on Unix (MacOS/Linux), I strongly recommend using [SDKMAN](https://sdkman.io) for managing java installations. To set it up Java 17 (required for the robot code), run `sdk install java 17.0.18-tem` (or whatever the latest Java 17 is). Then if you want to switch to it, run `sdk use java 17.0.18-tem`.
 
+Also, for this robot project Java 17 is required: you cannot use a higher version, as WPILib 2026 does not support it.
+
 ## WPILib notes:
 
-Download the latest stable WPILib installer from [GitHub releases](https://github.com/wpilibsuite/allwpilib/releases/).
+Download the latest stable WPILib installer from [GitHub releases](https://github.com/wpilibsuite/allwpilib/releases/). If your feeling extra adventurous, you can download the latest version of WPILib installer from the GitHub actions artifats from the [WPILibInstaller-Avalonia repository](https://github.com/wpilibsuite/WPILibInstaller-Avalonia), if thats daunting, check out this [frontend](https://project516.dev/wpilib-nightly-installers). Make sure your downloading the 2026 version of WPILib, as 2027 should have breaking changes and be incompatible with 2026.
