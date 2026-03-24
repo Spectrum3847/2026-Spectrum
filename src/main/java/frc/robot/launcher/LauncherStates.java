@@ -1,9 +1,13 @@
 package frc.robot.launcher;
 
+import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
+import frc.robot.RobotSim;
+import frc.robot.RobotStates;
+import frc.robot.State;
 import frc.spectrumLib.Telemetry;
 
 public class LauncherStates {
@@ -17,6 +21,18 @@ public class LauncherStates {
 
     public static Trigger aimingAtTarget() {
         return launcher.aimingAtTarget();
+    }
+
+    public static Trigger simLaunching() {
+        return new Trigger(
+                () ->
+                        Utils.isSimulation()
+                                && RobotStates.getAppliedState()
+                                        .equals(State.LAUNCHER_TRACK_WITH_LAUNCH));
+    }
+
+    public static void setupStates() {
+        simLaunching().whileTrue(RobotSim.ballSimLaunchFuel());
     }
 
     // -------------------- State Commands --------------------

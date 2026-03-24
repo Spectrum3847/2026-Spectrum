@@ -139,6 +139,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
         setPilotPerspective();
+
+        if (Utils.isSimulation()) {
+            Telemetry.log("Swerve/SimPose", getRobotPose());
+        }
     }
 
     // -----------------------------------------------------------------------

@@ -154,7 +154,12 @@ public class RobotSim {
                 bumperHeight,
                 () -> Robot.getSwerve().getRobotPose(),
                 () -> Robot.getSwerve().getCurrentRobotChassisSpeeds());
-        ballSim.addIntakeZone(intakeXMin, intakeXMax, intakeYMin, intakeYMax, Robot.getPilot().RT);
+        ballSim.addIntakeZone(
+                intakeXMin,
+                intakeXMax,
+                intakeYMin,
+                intakeYMax,
+                () -> RobotStates.getAppliedState() == State.INTAKE_FUEL);
     }
 
     private static Command createSimBallLaunch(double laneOffset) {
@@ -163,7 +168,9 @@ public class RobotSim {
                     var params = ShotCalculator.getInstance().getParameters();
                     double launchSpeed = params.flywheelSpeed() * 0.004;
                     double launchAngle = Math.toRadians(65);
-                    double launchYaw = Robot.getSwerve().getRobotPose().getRotation().getRadians() + Math.toRadians(180);
+                    double launchYaw =
+                            Robot.getSwerve().getRobotPose().getRotation().getRadians()
+                                    + Math.toRadians(180);
                     Rotation3d launchRotation = new Rotation3d(0, -launchAngle, launchYaw);
                     Translation3d launchVelocity = new Translation3d(launchSpeed, launchRotation);
 

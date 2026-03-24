@@ -26,14 +26,14 @@ public class Coordinator {
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.idlePrep();
             }
-            case TURRET_TRACK -> {
+            case LAUNCHER_TRACK -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
             }
-            case TURRET_TRACK_WITH_LAUNCH -> {
+            case LAUNCHER_TRACK_WITH_LAUNCH -> {
                 FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();

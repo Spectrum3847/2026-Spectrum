@@ -5,7 +5,7 @@
       "DockNode          ID=0x00000002 Pos=995,825 Size=1237,566 Split=X",
       "DockNode        ID=0x00000003 Parent=0x00000002 SizeRef=625,413 Selected=0xFA2A8FFA",
       "DockNode        ID=0x00000004 Parent=0x00000002 SizeRef=610,413 Selected=0xA6A62DF3",
-      "DockNode          ID=0x00000005 Pos=2,21 Size=2242,790 Split=X",
+      "DockNode          ID=0x00000005 Pos=7,20 Size=2242,790 Split=X",
       "DockNode        ID=0x00000011 Parent=0x00000005 SizeRef=1872,784 Split=X",
       "DockNode      ID=0x00000008 Parent=0x00000011 SizeRef=322,445 Split=Y Selected=0x39AD1970",
       "DockNode    ID=0x0000000A Parent=0x00000008 SizeRef=187,370 Split=Y Selected=0x39AD1970",
@@ -49,25 +49,25 @@
     "###/SmartDashboard/Alerts": {
       "Collapsed": "0",
       "DockId": "0x00000013,0",
-      "Pos": "1876,21",
+      "Pos": "1881,20",
       "Size": "368,183"
     },
     "###/SmartDashboard/Auto Chooser": {
       "Collapsed": "0",
       "DockId": "0x0000000E,0",
-      "Pos": "2,414",
+      "Pos": "7,413",
       "Size": "322,78"
     },
     "###/SmartDashboard/Field2d": {
       "Collapsed": "0",
       "DockId": "0x00000009,0",
-      "Pos": "326,21",
+      "Pos": "331,20",
       "Size": "1548,790"
     },
     "###/SmartDashboard/Scheduler": {
       "Collapsed": "0",
       "DockId": "0x00000014,0",
-      "Pos": "1876,206",
+      "Pos": "1881,205",
       "Size": "368,605"
     },
     "###/SmartDashboard/Sim/LeftView": {
@@ -95,7 +95,7 @@
     "###FMS": {
       "Collapsed": "0",
       "DockId": "0x0000000C,0",
-      "Pos": "2,21",
+      "Pos": "7,20",
       "Size": "322,230"
     },
     "###Joysticks": {
@@ -134,7 +134,7 @@
     "###Timing": {
       "Collapsed": "0",
       "DockId": "0x0000000F,0",
-      "Pos": "2,494",
+      "Pos": "7,493",
       "Size": "322,317"
     },
     "Debug##Default": {
@@ -145,7 +145,7 @@
     "Robot State": {
       "Collapsed": "0",
       "DockId": "0x0000000D,0",
-      "Pos": "2,253",
+      "Pos": "7,252",
       "Size": "322,159"
     }
   }

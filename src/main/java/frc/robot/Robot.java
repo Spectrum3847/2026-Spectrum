@@ -339,7 +339,8 @@ public class Robot extends SpectrumRobot {
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
         if (Utils.isSimulation()) {
-            SimulatedArena.getInstance().resetFieldForAuto();
+            RobotSim.getBallSim().clearBalls();
+            RobotSim.getBallSim().placeFieldBalls();
         }
         try {
             auton.init();
