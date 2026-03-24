@@ -1229,7 +1229,7 @@ public class LimelightHelpers {
     }
 
     /**
-     * T2D is an array that contains several targeting metrcis
+     * T2D is an array that contains several targeting metrics
      *
      * @param limelightName Name of the Limelight camera
      * @return Array containing [targetValid, targetCount, targetLatency, captureLatency, tx, ty,

@@ -71,7 +71,7 @@ public class RobotStates {
         operator.testX.onFalse(applyState(State.TEST_IDLE));
 
         pilot.home_select.onTrue(clearState());
-        pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
+        pilot.home_select.onFalse(clearState()); // forces initial state to be cleared on startup
 
         // Telemetry bindings (keep logs in sync with trigger state)
         bindTriggerTelemetry("LauncherPrep/TurretOnTarget", turretOnTarget);
