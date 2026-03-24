@@ -20,7 +20,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
@@ -46,6 +45,7 @@ import frc.robot.swerve.SwerveConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
 import frc.robot.vision.VisionSystem;
+import frc.spectrumLib.BatteryLogger;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumRobot;
 import frc.spectrumLib.Telemetry;
@@ -100,6 +100,8 @@ public class Robot extends SpectrumRobot {
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
+    @Getter private static BatteryLogger batteryLogger;
+
     public static boolean commandInit = false;
 
     public Robot() {
@@ -149,6 +151,7 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
+            batteryLogger = new BatteryLogger();
             coordinator = new Coordinator();
 
             if (Utils.isSimulation()) {
@@ -238,12 +241,12 @@ public class Robot extends SpectrumRobot {
             CommandScheduler.getInstance().run();
 
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
-            Telemetry.log("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
             Telemetry.log(
                     "Match Data/TimeLeftInShift",
-                    ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+                    ShiftHelpers.getOfficialShiftInfo().remainingTime());
             Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
-
+            batteryLogger.logPower();
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();
@@ -265,7 +268,7 @@ public class Robot extends SpectrumRobot {
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    new InstantCommand(() -> Telemetry.log("Initialized", true)))
+                                    Commands.runOnce(() -> Telemetry.log("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
@@ -310,7 +313,7 @@ public class Robot extends SpectrumRobot {
                                                     new Pose2d(
                                                             point.position.getX(),
                                                             point.position.getY(),
-                                                            new Rotation2d()))
+                                                            Rotation2d.kZero))
                                     .collect(Collectors.toList()));
                 }
                 field2d.getObject("Auto Routine").setPoses(poses);
@@ -376,7 +379,9 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void teleopExit() {
-        vision.triggerRewindCaptureForAllCameras();
+        if (DriverStation.isFMSAttached()) {
+            vision.triggerRewindCaptureForAllCameras();
+        }
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 

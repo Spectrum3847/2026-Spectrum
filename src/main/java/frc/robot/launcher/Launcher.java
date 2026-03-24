@@ -3,7 +3,7 @@ package frc.robot.launcher;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -28,9 +28,11 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
         @Getter @Setter private double idlingRPM = 700;
-
-        @Getter @Setter private double onTheFlySpeed = 0;
         @Getter @Setter private double slowLaunchSpeed = 400;
+
+        @Getter
+        private final DoubleSubscriber onTheFlySpeed =
+                Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
         @Getter private double currentLimit = 60;
@@ -74,12 +76,17 @@ public class Launcher extends Mechanism {
         this.config = config;
 
         simulationInit();
-        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("Launcher/Voltage", getVoltage());
+        Telemetry.log("Launcher/Current", getStatorCurrent());
+        Telemetry.log("Launcher/RPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -87,24 +94,6 @@ public class Launcher extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         LauncherStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-            builder.addDoubleProperty(
-                    "onTheFlySpeedRPM", config::getOnTheFlySpeed, config::setOnTheFlySpeed);
-        }
     }
 
     // --------------------------------------------------------------------------------
@@ -145,7 +134,7 @@ public class Launcher extends Mechanism {
 
     public Command onTheFlyLaunch() {
         return run(() -> {
-                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed());
+                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed().get());
                 })
                 .withName("Launcher.onTheFlyLaunch");
     }

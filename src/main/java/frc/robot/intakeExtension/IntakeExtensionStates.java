@@ -22,7 +22,7 @@ public class IntakeExtensionStates {
     }
 
     public static Command operatorResetIntakeExtension() {
-        return new InstantCommand(() -> intakeExtension.resetCurrentPositionToMax());
+        return Commands.runOnce(() -> intakeExtension.resetCurrentPositionToMax());
     }
 
     // -------------------- State Commands --------------------

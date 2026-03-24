@@ -5,7 +5,6 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
@@ -115,12 +114,18 @@ public class IntakeExtension extends Mechanism {
         }
 
         simulationInit();
-        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage());
+        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
+        Telemetry.log("IntakeExtension/Position", getPositionRotations());
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -128,21 +133,6 @@ public class IntakeExtension extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         IntakeExtensionStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Degrees", this::getPositionDegrees, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     private void setInitialPosition() {

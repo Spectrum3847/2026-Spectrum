@@ -199,11 +199,11 @@ public class Limelight {
      */
     public Pose3d getMegaTag1_Pose3d() {
         if (!isAttached()) {
-            return new Pose3d();
+            return Pose3d.kZero;
         }
         Pose3d pose3d = LimelightHelpers.getBotPose3d_wpiBlue(config.name);
         if (pose3d == null) {
-            return new Pose3d();
+            return Pose3d.kZero;
         }
         return pose3d;
     }
@@ -215,12 +215,12 @@ public class Limelight {
      */
     public Pose2d getMegaTag2_Pose2d() {
         if (!isAttached()) {
-            return new Pose2d();
+            return Pose2d.kZero;
         }
         PoseEstimate poseEstimate =
                 LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
         if (poseEstimate == null) {
-            return new Pose2d();
+            return Pose2d.kZero;
         }
         return poseEstimate.pose;
     }
