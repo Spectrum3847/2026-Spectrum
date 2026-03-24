@@ -47,7 +47,7 @@ public class SwerveStates {
                     .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
                     .withDriveRequestType(DriveRequestType.Velocity);
 
-    private static final SwerveRequest.SwerveDriveBrake swerveXBreak =
+    private static final SwerveRequest.SwerveDriveBrake swerveXBrake =
             new SwerveRequest.SwerveDriveBrake();
 
     private static final SwerveRequest.FieldCentricFacingAngle fieldCentricFacingAngle =
@@ -202,7 +202,7 @@ public class SwerveStates {
 
     /** Turn the swerve wheels to an X to prevent the robot from moving. */
     protected static Command xBrake() {
-        return swerve.applyRequest(() -> swerveXBreak).withName("Swerve.Xbrake");
+        return swerve.applyRequest(() -> swerveXBrake).withName("Swerve.Xbrake");
     }
 
     /**
