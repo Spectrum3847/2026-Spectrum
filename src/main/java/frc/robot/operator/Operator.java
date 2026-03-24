@@ -23,7 +23,7 @@ public class Operator extends Gamepad {
     public final Trigger RT = rightTrigger;
     public final Trigger LT = leftTrigger;
 
-    public final Trigger maunelOverride = enabled.and(rightStickX.or(rightStickY));
+    public final Trigger manualOverride = enabled.and(rightStickX.or(rightStickY));
 
     public final Trigger AButton = A.and(teleop);
     public final Trigger BButton = B.and(teleop);
