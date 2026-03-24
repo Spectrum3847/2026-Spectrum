@@ -37,7 +37,7 @@ public class Coordinator {
                 FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtendConditional();
+                IntakeExtensionStates.slowIntakeClose();
                 LauncherStates.aimAtTarget();
             }
             case UNJAM -> {
