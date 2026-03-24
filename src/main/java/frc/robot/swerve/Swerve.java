@@ -225,7 +225,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
     private void isPigeonConnected() {
         if (getPigeon2() == null || !getPigeon2().isConnected()) {
-            DriverStation.reportError("Pigeon IMU is not connected!...", false);
             pigeonAlert.set(true);
         } else {
             pigeonAlert.set(false);
