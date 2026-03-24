@@ -2,7 +2,7 @@
 
 You will need the following:
 
-* WPILib (2026)
+* [WPILib](setup.md#wpilib-notes) (2026)
 * JDK 17 ([Eclipse Temurin](https://adoptium.net/temurin/releases?version=17) is recommended)
 * [PathPlanner](https://pathplanner.dev) (for autons)
 * [Git](https://git-scm.com/)
@@ -16,3 +16,15 @@ cd 2026-Spectrum
 ```
 
 This will clone (copy) the git repository (git is a version control system we programmers like to use - yes we may seen unorganized (and yeah we are), but we organize some things...) locally to your computer.
+
+## VSCode
+
+Open the `2026-Spectrum` in WPILib VSCode (or whatever you prefer, really). To use the WPILib sim, press ctrl shift p, and type `sim`. Click WPILib: Simulate Robot Code. Then gradle will build the project. Once it's done, it will ask you to either run in GUI Sim, or use a real driver station. Press `GUI Sim`, it will launch Glass with the sim.
+
+## Java notes:
+
+If you are on Unix (MacOS/Linux), I strongly recommend using [SDKMAN](https://sdkman.io) for managing java installations. To set it up Java 17 (required for the robot code), run `sdk install java 17.0.18-tem` (or whatever the latest Java 17 is). Then if you want to switch to it, run `sdk use java 17.0.18-tem`.
+
+## WPILib notes:
+
+Download the latest stable WPILib installer from [GitHub releases](https://github.com/wpilibsuite/allwpilib/releases/).
