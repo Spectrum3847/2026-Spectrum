@@ -341,8 +341,8 @@ public class Robot extends SpectrumRobot {
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
         if (Utils.isSimulation()) {
-            RobotSim.getBallSim().clearBalls();
-            RobotSim.getBallSim().placeFieldBalls();
+            robotSim.getBallSim().clearBalls();
+            robotSim.getBallSim().placeFieldBalls();
         }
         try {
             auton.init();
@@ -437,16 +437,17 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        RobotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        robotSim.updateArticulatedMechanisms();
         Pose3d simPose =
-                RobotSim.getBumpSim()
+                robotSim.getBumpSim()
                         .update(
                                 swerve.getRobotPose(),
                                 ChassisSpeeds.fromRobotRelativeSpeeds(
                                         swerve.getCurrentRobotChassisSpeeds(),
                                         swerve.getRobotPose().getRotation()),
                                 kDefaultPeriod);
-        Telemetry.log("FieldSimulation/Fuel", RobotSim.getBallSim().getTotalIntaked());
+        Telemetry.log("FieldSimulation/Fuel", robotSim.getBallSim().getTotalIntaked());
         Telemetry.log("FieldSimulation/SimRobotPoseWithBump", simPose);
         Telemetry.log("FieldSimulation/SimRobotPose", swerve.getRobotPose());
     }

@@ -2,9 +2,11 @@ package frc.robot;
 
 import com.ctre.phoenix6.Utils;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
@@ -20,6 +22,8 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.rebuilt.ShotCalculator;
 import frc.rebuilt.simUtil.BumpPhysicsSim;
 import frc.rebuilt.simUtil.FuelPhysicsSim;
+import frc.robot.intakeExtension.IntakeExtension;
+import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.sim.Circle;
 import java.util.Set;
 import lombok.Getter;
@@ -46,18 +50,21 @@ public class RobotSim {
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
-    @Getter private static FuelPhysicsSim ballSim;
-    private static int singleLaneBPS = 8;
-    private static double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
-    private static double launcherWidth = 24;
-    private static int numOfLanes = 4;
-    private static double laneWidth = launcherWidth / numOfLanes;
-    private static double lane1 = -2 * laneWidth / 2;
-    private static double lane2 = -1 * laneWidth / 2;
-    private static double lane3 = 1 * laneWidth / 2;
-    private static double lane4 = 2 * laneWidth / 2;
+    @Getter private FuelPhysicsSim ballSim;
+    private int singleLaneBPS = 8;
+    private double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
+    private double launcherWidth = 24;
+    private int numOfLanes = 4;
+    private double laneWidth = launcherWidth / numOfLanes;
+    private double lane1 = -2 * laneWidth / 2;
+    private double lane2 = -1 * laneWidth / 2;
+    private double lane3 = 1 * laneWidth / 2;
+    private double lane4 = 2 * laneWidth / 2;
 
-    @Getter private static BumpPhysicsSim bumpSim;
+    @Getter private BumpPhysicsSim bumpSim;
+
+    private IntakeExtension intakeExtension;
+    private double intakeExtensionLength = Units.inchesToMeters(12);
 
     public RobotSim() {
         SmartDashboard.putData("Sim/TopView", RobotSim.topView);
@@ -66,12 +73,27 @@ public class RobotSim {
         leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
         drawRobot();
 
+        intakeExtension = Robot.getIntakeExtension();
+
         ballSim = new FuelPhysicsSim("Sim/Fuel");
         ballSim.enable();
         ballSim.placeFieldBalls(); // spawns all the game pieces
         configBallSimRobot();
 
         bumpSim = new BumpPhysicsSim();
+    }
+
+    public void updateArticulatedMechanisms() {
+        double intakeExtensionPose =
+                intakeExtensionLength * intakeExtension.getPositionPercentage();
+        var intakePose3d =
+                Pose3d.kZero.plus(
+                        new Transform3d(
+                                new Translation3d(intakeExtensionPose, 0, 0), Rotation3d.kZero));
+
+        Pose3d[] mechanismPoses = {Pose3d.kZero, intakePose3d};
+
+        Telemetry.log("Sim/Components", mechanismPoses);
     }
 
     public void drawRobot() {
@@ -165,7 +187,7 @@ public class RobotSim {
                 () -> RobotStates.getAppliedState() == State.INTAKE_FUEL);
     }
 
-    private static Command createSimBallLaunch(double laneOffset) {
+    private Command createSimBallLaunch(double laneOffset) {
         return Commands.runOnce(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
@@ -192,7 +214,7 @@ public class RobotSim {
                 });
     }
 
-    public static Command ballSimLaunchFuel() {
+    public Command ballSimLaunchFuel() {
         if (!Utils.isSimulation()) {
             return Commands.none();
         }

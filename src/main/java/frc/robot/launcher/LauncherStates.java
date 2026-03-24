@@ -5,7 +5,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.robot.RobotSim;
 import frc.robot.RobotStates;
 import frc.robot.State;
 import frc.spectrumLib.Telemetry;
@@ -32,7 +31,7 @@ public class LauncherStates {
     }
 
     public static void setupStates() {
-        simLaunching().whileTrue(RobotSim.ballSimLaunchFuel());
+        simLaunching().whileTrue(Robot.getRobotSim().ballSimLaunchFuel());
     }
 
     // -------------------- State Commands --------------------
