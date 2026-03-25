@@ -9,13 +9,13 @@ You will need the following:
 
 ## Clone the repository
 
-In a place you won't forget, open the terminal (oh no, scary) and type:
+In a place you won't forget, open the terminal and type:
 ```
 git clone https://github.com/spectrum3847/2026-Spectrum.git
 cd 2026-Spectrum
 ```
 
-This will clone (copy) the git repository (git is a version control system we programmers like to use - yes we may seen unorganized (and yeah we are), but we organize some things...) locally to your computer.
+This will clone (copy) the git repository locally to your computer. **Note:** If you perfer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. If you are on Linux, there [is a Flatpak](https://flathub.org/en/apps/io.github.shiftey.Desktop) avalable. 
 
 ## VSCode
 
