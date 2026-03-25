@@ -15,7 +15,7 @@ git clone https://github.com/spectrum3847/2026-Spectrum.git
 cd 2026-Spectrum
 ```
 
-This will clone (copy) the git repository locally to your computer. **Note:** If you perfer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. If you are on Linux, there [is a Flatpak](https://flathub.org/en/apps/io.github.shiftey.Desktop) avalable. 
+This will clone (copy) the git repository locally to your computer. **Note:** If you perfer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. If you are on Linux, there [is a Flatpak](https://flathub.org/en/apps/io.github.shiftey.Desktop) avalable.
 
 ## VSCode
 

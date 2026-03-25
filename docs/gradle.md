@@ -1,8 +1,8 @@
 # Gradle Quick Guide
 
-[Gradle](https://gradle.org) is a Java build tool used to speed up development and automate repetative tasks. 
+[Gradle](https://gradle.org) is a Java build tool used to speed up development and automate repetative tasks.
 
-To build the project, run `./gradlew build `. 
+To build the project, run `./gradlew build `.
 
 To clean the build directory, run `./gradlew clean`.
 
