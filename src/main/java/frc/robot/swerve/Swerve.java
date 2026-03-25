@@ -35,6 +35,7 @@ import edu.wpi.first.networktables.StructPublisher;
 import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.util.sendable.SendableBuilder;
 import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -68,6 +69,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private RotationController rotationController;
     private TranslationXController xController;
     private TranslationYController yController;
+
+    private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
 
     @Getter
     protected SwerveModuleState[] setpoints =
@@ -152,6 +155,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
         // Store current pose in history buffer every periodic cycle
         poseHistory.addSample(Utils.getCurrentTimeSeconds(), this.getState().Pose);
+        checkPigeonConnection();
     }
 
     @Override
@@ -217,6 +221,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
         return getState().Pose;
+    }
+
+    private void checkPigeonConnection() {
+        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+            pigeonAlert.set(true);
+        } else {
+            pigeonAlert.set(false);
+        }
     }
 
     /**
