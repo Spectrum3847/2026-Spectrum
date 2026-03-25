@@ -141,7 +141,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         setPilotPerspective();
 
         if (Utils.isSimulation()) {
-            Telemetry.log("Swerve/SimPose", getRobotPose());
+            Telemetry.log("Sim/SimPose", getRobotPose());
         }
     }
 
@@ -531,8 +531,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
 
     private void configurePathPlanner() {
-        // Seed robot to mid field at start (Paths will change this starting position)
-        resetPose(Field.getCenterField());
+        // Seed robot to in front of blue hub (Paths will change this starting position)
+        resetPose(
+                new Pose2d(
+                        Field.getBlueHubCenter().getX() - 2,
+                        Field.getBlueHubCenter().getY(),
+                        Rotation2d.fromDegrees(0)));
 
         try {
             var config = RobotConfig.fromGUISettings();

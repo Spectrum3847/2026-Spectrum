@@ -1,5 +1,6 @@
 package frc.robot.intakeExtension;
 
+import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -89,7 +90,11 @@ public class IntakeExtension extends Mechanism {
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            if (Utils.isSimulation()) {
+                configCounterClockwise_Positive();
+            } else {
+                configClockwise_Positive();
+            }
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {

@@ -74,7 +74,7 @@ public class RobotSim {
 
     public void updateArticulatedMechanisms() {
         double intakeExtensionPose =
-                Units.inchesToMeters(12) * Robot.getIntakeExtension().getPositionPercentage();
+                Units.inchesToMeters(12) * Robot.getIntakeExtension().getPositionPercentage() / 100;
         var intakePose3d =
                 Pose3d.kZero.plus(
                         new Transform3d(
@@ -180,7 +180,7 @@ public class RobotSim {
         return Commands.runOnce(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    double launchSpeed = params.flywheelSpeed() * 0.004;
+                    double launchSpeed = params.flywheelSpeed() * 0.00375;
                     double launchAngle = Math.toRadians(65);
                     double launchYaw =
                             Robot.getSwerve().getRobotPose().getRotation().getRadians()
@@ -192,7 +192,7 @@ public class RobotSim {
                     Transform2d robotToLauncher =
                             new Transform2d(
                                     new Translation2d(
-                                            Units.inchesToMeters(16),
+                                            Units.inchesToMeters(-12),
                                             Units.inchesToMeters(laneOffset)),
                                     Rotation2d.k180deg);
                     Translation3d launcherPose =
