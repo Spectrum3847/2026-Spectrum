@@ -7,9 +7,7 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.commands.PathfindingCommand;
 import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.net.WebServer;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -437,18 +435,7 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
-        robotSim.updateArticulatedMechanisms();
-        Pose3d simPose =
-                robotSim.getBumpSim()
-                        .update(
-                                swerve.getRobotPose(),
-                                ChassisSpeeds.fromRobotRelativeSpeeds(
-                                        swerve.getCurrentRobotChassisSpeeds(),
-                                        swerve.getRobotPose().getRotation()),
-                                kDefaultPeriod);
-        Telemetry.log("FieldSimulation/Fuel", robotSim.getBallSim().getTotalIntaked());
-        Telemetry.log("FieldSimulation/SimRobotPoseWithBump", simPose);
-        Telemetry.log("FieldSimulation/SimRobotPose", swerve.getRobotPose());
+        RobotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        Telemetry.log("FieldSimulation/Fuel", RobotSim.getBallSim().getTotalIntaked());
     }
 }

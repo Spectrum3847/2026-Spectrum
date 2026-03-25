@@ -19,10 +19,8 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
-import frc.rebuilt.simUtil.BumpPhysicsSim;
-import frc.rebuilt.simUtil.FuelPhysicsSim;
-import frc.robot.intakeExtension.IntakeExtension;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.sim.Circle;
 import java.util.Set;
@@ -61,11 +59,6 @@ public class RobotSim {
     private double lane3 = 1 * laneWidth / 2;
     private double lane4 = 2 * laneWidth / 2;
 
-    @Getter private BumpPhysicsSim bumpSim;
-
-    private IntakeExtension intakeExtension;
-    private double intakeExtensionLength = Units.inchesToMeters(12);
-
     public RobotSim() {
         SmartDashboard.putData("Sim/TopView", RobotSim.topView);
         SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
@@ -73,19 +66,15 @@ public class RobotSim {
         leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
         drawRobot();
 
-        intakeExtension = Robot.getIntakeExtension();
-
         ballSim = new FuelPhysicsSim("Sim/Fuel");
         ballSim.enable();
         ballSim.placeFieldBalls(); // spawns all the game pieces
         configBallSimRobot();
-
-        bumpSim = new BumpPhysicsSim();
     }
 
     public void updateArticulatedMechanisms() {
         double intakeExtensionPose =
-                intakeExtensionLength * intakeExtension.getPositionPercentage();
+                Units.inchesToMeters(12) * Robot.getIntakeExtension().getPositionPercentage();
         var intakePose3d =
                 Pose3d.kZero.plus(
                         new Transform3d(
