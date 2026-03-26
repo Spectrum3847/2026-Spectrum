@@ -22,7 +22,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.rebuilt.ShotCalculator;
-import frc.spectrumLib.sim.Circle;
 import java.util.Set;
 import lombok.Getter;
 import org.ironmaple.simulation.IntakeSimulation;
@@ -53,62 +52,19 @@ public class RobotSim {
 
     public static final Translation2d origin = new Translation2d(0.0, 0.0);
 
-    public static final Mechanism2d topView =
-            new Mechanism2d(
-                    Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
-
     public static final Mechanism2d leftView =
             new Mechanism2d(
                     Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
 
     public RobotSim() {
-        SmartDashboard.putData("Sim/TopView", RobotSim.topView);
         SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
-        topView.setBackgroundColor(new Color8Bit(Color.kLightGray));
         leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
 
         drawRobot();
     }
 
     public void drawRobot() {
-        drawTopRobot();
         drawSideRobot();
-        drawTurretCircle();
-    }
-
-    @SuppressWarnings("unused")
-    public void drawTurretCircle() {
-        MechanismRoot2d circleRoot =
-                topView.getRoot(
-                        "Turret Circle Root",
-                        Units.inchesToMeters(topViewHeight / 2 + 30),
-                        Units.inchesToMeters(topViewWidth / 2));
-        Circle circle = new Circle(50, 30, "Turret Circle", circleRoot, topView);
-    }
-
-    public void drawTopRobot() {
-        MechanismRoot2d robotRoot =
-                topView.getRoot(
-                        "Top Robot Root",
-                        Units.inchesToMeters(topViewWidth / 2.0 + 50),
-                        Units.inchesToMeters(topViewHeight / 2.0 - 25));
-
-        double rectWidthIn = 50.0;
-        double rectHeightIn = 80.0;
-        double rectWidthM = Units.inchesToMeters(rectWidthIn);
-        double rectHeightM = Units.inchesToMeters(rectHeightIn);
-
-        MechanismLigament2d tr =
-                robotRoot.append(new MechanismLigament2d("TopEdge", rectHeightM, 180.0));
-        MechanismLigament2d br = tr.append(new MechanismLigament2d("RightEdge", rectWidthM, 270.0));
-        MechanismLigament2d bl = br.append(new MechanismLigament2d("BottomEdge", rectHeightM, 270));
-        MechanismLigament2d ll = bl.append(new MechanismLigament2d("LeftEdge", rectWidthM, 270.0));
-
-        Color8Bit edgeColor = new Color8Bit(Color.kPurple);
-        tr.setColor(edgeColor);
-        br.setColor(edgeColor);
-        bl.setColor(edgeColor);
-        ll.setColor(edgeColor);
     }
 
     public void drawSideRobot() {
@@ -134,9 +90,6 @@ public class RobotSim {
         br.setColor(edgeColor);
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
-
-        MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
-        shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
     // Maple Sim Fuel Intaking

@@ -1,15 +1,10 @@
 package frc.robot.indexerTower;
 
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,14 +49,14 @@ public class IndexerTowerBack extends Mechanism {
         }
     }
 
-    private IndexerTowerBackConfig config;
-    private IndexerSim sim;
+    // private IndexerTowerBackConfig config;
+    // private IndexerSim sim;
 
     public IndexerTowerBack(IndexerTowerBackConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
+        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -113,30 +108,31 @@ public class IndexerTowerBack extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new IndexerSim(RobotSim.topView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+    // diameter
+    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
+    //     }
+    // }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class IndexerSim extends RollerSim {
-        public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class IndexerSim extends RollerSim {
+    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }

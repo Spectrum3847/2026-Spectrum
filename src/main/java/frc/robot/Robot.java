@@ -149,9 +149,9 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
-            launcher = new Launcher(config.launcher);
-            Timer.delay(canInitDelay);
             hood = new Hood(config.hood);
+            Timer.delay(canInitDelay);
+            launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
             indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);

@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
@@ -45,8 +46,8 @@ public class Launcher extends Mechanism {
         @Getter private double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
-        @Getter private double launcherX = Units.inchesToMeters(50);
-        @Getter private double launcherY = Units.inchesToMeters(63);
+        @Getter private double launcherX = Units.inchesToMeters(62.5);
+        @Getter private double launcherY = Units.inchesToMeters(60);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
@@ -175,7 +176,8 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY())
+                            .setMount(Robot.getHood().getSim()),
                     mech,
                     rollerMotorSim,
                     config.getName());
