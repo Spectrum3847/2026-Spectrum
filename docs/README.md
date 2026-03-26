@@ -1,1 +1,1 @@
-View the [Table of Contents](docs/index.md).
+View the [Table of Contents](index.md).
