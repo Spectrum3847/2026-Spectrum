@@ -51,12 +51,10 @@ public class PilotStates {
         pilot.coastA.onTrue(IntakeExtensionStates.coastMode());
         pilot.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        pilot.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        pilot.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
-        pilot.dpadRight.onTrue(
-                log(Commands.runOnce(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        pilot.dpadLeft.onTrue(
-                log(Commands.runOnce(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+        pilot.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseHoodAngleOffset)));
+        pilot.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseHoodAngleOffset)));
+        pilot.dpadRight.onTrue(log(Commands.runOnce(ShotCalculator::decreaseDriveAngleOffset)));
+        pilot.dpadLeft.onTrue(log(Commands.runOnce(ShotCalculator::increaseDriveAngleOffset)));
 
         // Slow mode when driver is intaking or launching fuel
         intaking.whileTrue(slowMode());

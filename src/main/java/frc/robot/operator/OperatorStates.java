@@ -39,13 +39,10 @@ public class OperatorStates {
         operator.coastA.onTrue(IntakeExtensionStates.coastMode());
         operator.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        operator.dpadDown.onTrue(
-                log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        operator.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
-        operator.dpadRight.onTrue(
-                log(Commands.runOnce(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        operator.dpadLeft.onTrue(
-                log(Commands.runOnce(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+        operator.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseHoodAngleOffset)));
+        operator.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseHoodAngleOffset)));
+        operator.dpadRight.onTrue(log(Commands.runOnce(ShotCalculator::decreaseDriveAngleOffset)));
+        operator.dpadLeft.onTrue(log(Commands.runOnce(ShotCalculator::increaseDriveAngleOffset)));
     }
 
     /** Command that can be used to rumble the operator controller */

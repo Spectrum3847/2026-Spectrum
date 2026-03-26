@@ -170,7 +170,7 @@ public class SwerveStates {
                         () ->
                                 ShotCalculator.getInstance()
                                         .getParameters()
-                                        .fieldAngle()
+                                        .driveAngle()
                                         .getRadians())
                 .withName("Swerve.pilotAimAtTarget");
     }
@@ -182,7 +182,7 @@ public class SwerveStates {
                         () ->
                                 ShotCalculator.getInstance()
                                         .getParameters()
-                                        .fieldAngle()
+                                        .driveAngle()
                                         .plus(Rotation2d.k180deg)
                                         .getRadians())
                 .withName("Swerve.pilotAimAtTarget");
