@@ -1,7 +1,7 @@
 package frc.robot.operator;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.indexerBed.IndexerBedStates;
@@ -49,13 +49,12 @@ public class OperatorStates {
                 RotationalPivotStates.brakeMode(), IntakeExtensionStates.brakeMode());
 
         operator.dpadDown.onTrue(
-                log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        operator.dpadUp.onTrue(
-                log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
+                log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
+        operator.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
         operator.dpadRight.onTrue(
-                log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
+                log(Commands.runOnce(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
         operator.dpadLeft.onTrue(
-                log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+                log(Commands.runOnce(ShotCalculator::increaseTurretAngleOffsetDegrees)));
     }
 
     /** Command that can be used to rumble the operator controller */

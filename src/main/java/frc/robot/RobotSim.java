@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.rebuilt.ShotCalculator;
@@ -162,7 +161,7 @@ public class RobotSim {
         if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
             return Commands.none();
         }
-        return new InstantCommand(
+        return Commands.runOnce(
                         () -> {
                             var parameters = ShotCalculator.getInstance().getParameters();
                             GamePieceProjectile fuelProjectile =

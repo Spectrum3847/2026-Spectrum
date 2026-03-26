@@ -4,8 +4,7 @@ plugins {
     id 'com.diffplug.spotless' version '6.12.0'
     id "com.peterabeles.gversion" version "1.10"
     id "io.freefair.lombok" version "9.1.0"
-    id("com.github.spotbugs") version "6.0.24"
-    id "net.ltgt.errorprone" version "4.4.0"
+    id "com.github.spotbugs" version "6.0.24"
 }
 
 java {
@@ -95,8 +94,6 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation 'com.google.guava:guava:32.1.2-jre'
-
-    errorprone "com.google.errorprone:error_prone_core:2.37.0"
 }
 
 test {
@@ -147,22 +144,11 @@ tasks.spotbugsMain {
     }
 }
 
-// Javadoc Gradle task configuration
+//Javadoc Gradle task configuation
 javadoc {
     options.addStringOption('Xdoclint:none', '-quiet')
     failOnError = false
     exclude '**/*.md'
-    options.setLinks([
-        "https://github.wpilib.org/allwpilib/docs/release/java",
-        "https://codedocs.revrobotics.com/java",
-        "https://api.ctr-electronics.com/phoenix/latest/java",
-        "https://api.ctr-electronics.com/phoenix6/latest/java",
-        "https://pathplanner.dev/api/java",
-        "https://javadoc.doglog.dev",
-        "https://shenzhen-robotics-alliance.github.io/maple-sim/javadocs",
-        "https://javadocs.photonvision.org/release",
-        "https://docs.oracle.com/en/java/javase/17/docs/api"
-    ])
 }
 
 // Create version file

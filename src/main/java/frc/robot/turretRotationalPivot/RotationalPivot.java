@@ -9,7 +9,6 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -146,12 +145,18 @@ public class RotationalPivot extends Mechanism {
         turretSetpoint = new TrapezoidProfile.State();
 
         simulationInit();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("Turret/Voltage", getVoltage());
+        Telemetry.log("Turret/Current", getStatorCurrent());
+        Telemetry.log("Turret/PositionDegrees", getPositionDegrees());
+        Telemetry.log("Turret/PositionRotations", getPositionRotations());
+        Telemetry.log("Turret/VelocityRPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -159,21 +164,6 @@ public class RotationalPivot extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         RotationalPivotStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Degrees", this::getPositionDegrees, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     private void setInitialPosition() {

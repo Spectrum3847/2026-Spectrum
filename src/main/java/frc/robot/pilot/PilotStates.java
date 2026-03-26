@@ -3,7 +3,6 @@ package frc.robot.pilot;
 import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
@@ -59,12 +58,12 @@ public class PilotStates {
         pilot.coastA.onTrue(RotationalPivotStates.coastMode(), IntakeExtensionStates.coastMode());
         pilot.brakeB.onTrue(RotationalPivotStates.brakeMode(), IntakeExtensionStates.brakeMode());
 
-        pilot.dpadDown.onTrue(log(new InstantCommand(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        pilot.dpadUp.onTrue(log(new InstantCommand(ShotCalculator::increaseFlywheelSpeedOffset)));
+        pilot.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
+        pilot.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
         pilot.dpadRight.onTrue(
-                log(new InstantCommand(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
+                log(Commands.runOnce(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
         pilot.dpadLeft.onTrue(
-                log(new InstantCommand(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+                log(Commands.runOnce(ShotCalculator::increaseTurretAngleOffsetDegrees)));
 
         // Slow mode when driver is intaking or launching fuel
         intaking.whileTrue(slowMode());

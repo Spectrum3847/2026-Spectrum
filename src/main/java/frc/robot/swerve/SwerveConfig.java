@@ -82,9 +82,9 @@ public class SwerveConfig {
     @Getter private double tagDistanceTolerance = 0.3; // Area
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
-    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
+    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.kZero;
     /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
-    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
+    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.k180deg;
 
     // Both sets of gains need to be tuned to your individual robot.
     @Getter
