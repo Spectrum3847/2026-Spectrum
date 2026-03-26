@@ -29,7 +29,7 @@ Also, for this robot project Java 17 is required: you cannot use a higher versio
 
 ## WPILib notes:
 
-Download the latest stable WPILib installer from [GitHub releases](https://github.com/wpilibsuite/allwpilib/releases/). If your feeling extra adventurous, you can download the latest version of WPILib installer from the GitHub actions artifats from the [WPILibInstaller-Avalonia repository](https://github.com/wpilibsuite/WPILibInstaller-Avalonia), if that sounds daunting, check out this [frontend](https://project516.dev/wpilib-nightly-installers). Make sure your downloading the 2026 version of WPILib, as 2027 should have breaking changes and be incompatible with 2026.
+Download the latest stable WPILib installer from [GitHub releases](https://github.com/wpilibsuite/allwpilib/releases/). If you're feeling extra adventurous, you can download the latest version of WPILib installer from the GitHub actions artifacts from the [WPILibInstaller-Avalonia repository](https://github.com/wpilibsuite/WPILibInstaller-Avalonia), if that sounds daunting, check out this [frontend](https://project516.dev/wpilib-nightly-installers). Make sure you're downloading the 2026 version of WPILib, as 2027 should have breaking changes and be incompatible with 2026.
 
 ## Next Steps:
 

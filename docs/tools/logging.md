@@ -83,4 +83,3 @@ Integrating `Telemetry` for logging into your code is straightforward and crucia
 *   **Log Categories**: Use clear, hierarchical names for your log entries (e.g., `"Subsystem/ValueName"`) to organize data in logging tools like `AdvantageScope`.
 *   **`Telemetry.print()`**: Use `Telemetry.print()` for messages intended for the DriverStation console, especially for significant events like mode transitions.
 *   **`PrintPriority`**: For `Telemetry.print()`, you can specify a `PrintPriority` (e.g., `NORMAL`, `HIGH`, `CRITICAL`) to filter messages if needed.
-

@@ -39,4 +39,3 @@ Building design review slides effectively relies heavily on clear and accessible
 *   **Behavioral Details**: Method-level JavaDocs and descriptions of state transitions (e.g., in `Coordinator.java` or `RobotStates.java`) provide the necessary detail to explain how specific functionalities work.
 *   **Debugging/Testing Insights**: Documentation around potential edge cases, known bugs (TODOs), or testing procedures can inform discussions about system robustness during reviews.
 *   **Consistency**: Adhering to code style and documentation standards ensures that when you pull information from the codebase for slides, it is presented clearly and consistently.
-

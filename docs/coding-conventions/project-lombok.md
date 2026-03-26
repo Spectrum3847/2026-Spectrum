@@ -54,20 +54,38 @@ Lombok automatically generates the `getName()`, `setName()`, `getId()`, and `set
 
 ## Builder Pattern
 
-Our Lombok settings are configured such that all `@Setter` methods return the object itself (`this`). This enables them to work effectively as part of a **Builder Pattern**.
+By default, Lombok's `@Setter` methods are generated as `void` methods and do not return `this`. To make setters chainable (fluent setters that return the object), annotate the class or fields with `@Accessors(chain = true)` or enable chaining project-wide via a `lombok.config` file.
 
-A Builder Pattern is useful for constructing complex objects step-by-step, especially when an object can have many optional parameters.
-
-### Example (Conceptual with our Lombok setup)
+Chaining example using `@Accessors`:
 
 ```java
-// Assuming MyClass has @Setter and returns 'this' from setters
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+
+@Getter
+@Setter
+@Accessors(chain = true)
+public class MyClass {
+    private String name;
+    private int id;
+}
+```
+
+Now you can chain setters:
+
+```java
 MyClass obj = new MyClass()
     .setName("New Name")
     .setId(123);
 ```
 
-This chaining of setter calls makes object creation more readable and less error-prone compared to constructors with many arguments.
+Our codebase uses `@Accessors(chain = true)` in places (for example, [src/main/java/frc/spectrumLib/vision/Limelight.java](src/main/java/frc/spectrumLib/vision/Limelight.java#L20)) to enable chained setters. If you prefer chaining across the whole repository, add a `lombok.config` file at the project root with:
+
+```
+lombok.accessors.chain = true
+```
+This makes chained setters the default without annotating every class.
 
 ## Understanding Lombok
 

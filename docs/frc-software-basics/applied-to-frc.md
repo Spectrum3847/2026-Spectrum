@@ -10,7 +10,7 @@ We often use WPILib's command-based programming structure, which allows for conc
 
 **We write:**
 ```java
-stationIntaking.whileTrue(coral.toggleToTrue(), algae.setFalse());
+stationIntaking.whileTrue(coral.toggleToTrue().alongWith(algae.setFalse()));
 ```
 
 **Instead of:**

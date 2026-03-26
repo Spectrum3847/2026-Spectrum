@@ -11,7 +11,7 @@ Efficient use of your Integrated Development Environment (IDE) and version contr
 *   **`Ctrl + Click`** or **`F12`**: Go to Definition – navigate directly to the definition of a symbol (variable, method, class).
 *   **`Alt + Shift + F12`**: Find All References – find all places where a symbol is used.
 *   **`Ctrl + p`**: Command Bar – quickly search for and open files, run commands, or navigate to symbols.
-*   **`Ctrl + ``**: Toggle terminal visibility (show/hide the integrated terminal).
+*   **<kbd>Ctrl</kbd> + <kbd>`</kbd>**: Toggle terminal visibility (show/hide the integrated terminal).
 *   **`Ctrl + Shift + V`**: Preview Markdown – useful for seeing how your `README.md` or other Markdown files will render.
 *   **`Ctrl + Alt + Left Arrow`**: Split editor screen (e.g., to view two files side-by-side).
 *   **`Shift + Alt + Down`**: Duplicate a line or selected block of code.

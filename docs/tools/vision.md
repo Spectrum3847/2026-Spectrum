@@ -15,14 +15,14 @@ Vision systems on an FRC robot typically involve cameras and specialized softwar
     *   Turning to score.
     *   Detecting game pieces.
 
-## Limelight Configuration (LimeLight Configs)
+## LimeLight Configuration (LimeLight Configs)
 
-Limelights are popular FRC cameras. Each Limelight has its own pipeline configuration.
+LimeLights are popular FRC cameras. Each LimeLight has its own pipeline configuration.
 
 ### Software (Main) Configs:
 
 *   **AprilTags**: Used in relation to vision for robot localization.
-    *   Current field map needs to be uploaded to the Limelight.
+    *   Current field map needs to be uploaded to the LimeLight.
 *   **Color Detection**: Used to detect different game pieces (e.g., notes in 2024).
 *   **TA (Target Area)**: Defines the AprilTag's area seen by a camera.
 *   **Exposure**: Camera exposure settings.
@@ -32,20 +32,20 @@ Limelights are popular FRC cameras. Each Limelight has its own pipeline configur
 
 *   Based on the camera's physical position on the robot, which depends on the CAD design.
 
-## Vision (Limelight)
+## Vision (LimeLight)
 
 ### Setting Physical Configuration
 
-Two primary options for setting the physical configuration of the Limelight:
+Two primary options for setting the physical configuration of the LimeLight:
 
-1.  **Download your physical config onto the Limelight**: Directly configure the camera via its web interface.
+1.  **Download your physical config onto the LimeLight**: Directly configure the camera via its web interface.
 2.  **Setting the config in a software file**: Define the configuration parameters within the robot code.
 
-### Limelight Software Configs - Values
+### LimeLight Software Configs - Values
 
 *   **MegaPose**: A class dedicated to storing pose values.
     *   **MegaTag1**: Represents raw rotational data, often more ambiguous.
-    *   **MegaTag2**: With LL4 (Limelight 4), cameras include their own gyros for more precise positional rotation.
+    *   **MegaTag2**: With LL4 (LimeLight 4), cameras include their own gyros for more precise positional rotation.
 *   **Exposure** and **Sensor Gain**: Control the image quality and brightness from the camera.
 
 ## Vision Alignment
@@ -62,14 +62,14 @@ Pose alignment methods in vision systems involve using camera data (e.g., AprilT
 *   **Method**: By comparing the robot's current estimated pose with its pose as determined by vision targets, the system can calculate an error and adjust the robot's pose estimate.
 *   **Integration**: Our `VisionSystem` takes `swerve::getRobotPose`, indicating that vision measurements are integrated into the swerve drive's odometry for continuous pose correction.
 
-## MegaTags (Limelights)
+## MegaTags (LimeLights)
 
 *   **MegaTag 1 (MT1)**: Rotations are generally more ambiguous as it's a more "raw data" value compared to MT2.
-*   **MegaTag 2 (MT2)**: With LL4 (Limelight 4), cameras have their own gyros that provide their own positional rotation, leading to more accurate pose estimates.
+*   **MegaTag 2 (MT2)**: With LL4 (LimeLight 4), cameras have their own gyros that provide their own positional rotation, leading to more accurate pose estimates.
 
 ## QuestNav Pose
 
-QuestNav Pose refers to the robot's estimated position and orientation as determined by the QuestNav system. It aims to provide a highly accurate and robust pose estimate by potentially fusing data from multiple sensors beyond just Limelight.
+QuestNav Pose refers to the robot's estimated position and orientation as determined by the QuestNav system. It aims to provide a highly accurate and robust pose estimate by potentially fusing data from multiple sensors beyond just LimeLight.
 
 ## Pose Alignment (Vision) - Adding Vision Measurements
 

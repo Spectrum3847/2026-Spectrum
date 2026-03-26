@@ -10,9 +10,9 @@ a = 3;
 
 **Things that Don’t:**
 ```java
-a = “Java”; // Type mismatch
+a = "Java"; // Type mismatch
 a = 3    // Missing semicolon
-String a = “Java”; // Already declared
+String a = "Java"; // Already declared
 int a = 3;   // Already declared
 ```
 
@@ -21,7 +21,7 @@ Python is dynamically typed and does not use semicolons.
 **Things that Work:**
 ```python
 a = 5
-a = “Hello”
+a = "Hello"
 ```
 
 **Things that Don’t Work:**
