@@ -211,14 +211,14 @@ public class ShotCalculator {
         lastDriveAngle = driveAngle;
 
         // Hood angle from map with offset
-        double hoodAngle = Units.degreesToRadians(hoodAngleMap.get(lookaheadDistance));
+        double hoodAngle = hoodAngleMap.get(lookaheadDistance);
         if (Double.isNaN(lastHoodAngle)) lastHoodAngle = hoodAngle;
         double hoodVelocity =
                 hoodAngleFilter.calculate((hoodAngle - lastHoodAngle) / loopPeriodSecs);
         lastHoodAngle = hoodAngle;
 
         // Apply hood angle offset
-        hoodAngle += Units.degreesToRadians(HOOD_ANGLE_OFFSET);
+        hoodAngle += HOOD_ANGLE_OFFSET;
 
         // Flywheel from map + preference offset (%)
         double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadDistance);
@@ -239,7 +239,7 @@ public class ShotCalculator {
 
         Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance);
         Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees());
-        Telemetry.log("ShotCalc/HoodAngleDeg", Units.radiansToDegrees(hoodAngle));
+        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle);
         Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed);
         Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET);
         Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET);
