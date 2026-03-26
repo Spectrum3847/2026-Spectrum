@@ -28,19 +28,19 @@ Arrays are useful in storing multiple variables at once.
 
 *   The array can be created and initialized with its length.
 *   They can only store the same initialized data type within each array.
-*   There are no arrays with “negative” length/size.
-*   Each stored value is at an “index” value.
-*   The first index value—or the start of the list—is at “0”.
+*   There are no arrays with "negative" length/size.
+*   Each stored value is at an "index" value.
+*   The first index value—or the start of the list—is at "0".
 
 ```java
 // Main.java
 public static void main(String [] args) {
     int [] x;
 
-    // initializes the array to length “4”
+    // initializes the array to length "4"
     x = new int[4];
 
-    // stores the value 4 at index “0”
+    // stores the value 4 at index "0"
     x[0] = 4;
 }
 ```

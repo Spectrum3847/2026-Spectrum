@@ -76,7 +76,7 @@ QuestNav Pose refers to the robot's estimated position and orientation as determ
 *   **Purpose**: Using a given MegaTag value to create a position that acts as a constant for a robot pose.
 *   **Implementation**: Must be done using `Periodic` methods (e.g., in a subsystem's `periodic()` method).
 *   **WPILib Command (2026)**: `addVisionMeasurement(PoseMeters, timestampSeconds, visionMeasurementStdDevs)`
-    *   `PoseMeters`: Defines the Vision’s pose estimation.
+    *   `PoseMeters`: Defines the Vision's pose estimation.
     *   `timestampSeconds`: When the measurement was taken.
     *   `visionMeasurementStdDevs`: Standard deviations for the vision measurement, reflecting confidence in the measurement.
 

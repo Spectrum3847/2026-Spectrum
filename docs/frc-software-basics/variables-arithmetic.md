@@ -8,7 +8,7 @@ int a = 5;
 a = 3;
 ```
 
-**Things that Don’t:**
+**Things that Don't:**
 ```java
 a = "Java"; // Type mismatch
 a = 3    // Missing semicolon
@@ -24,7 +24,7 @@ a = 5
 a = "Hello"
 ```
 
-**Things that Don’t Work:**
+**Things that Don't Work:**
 ```python
 a = 5; # Semicolon not used in Python
 ```
@@ -52,7 +52,7 @@ a = 5; # Semicolon not used in Python
 
 **Other keywords we use:**
 *   `implements`
-*   `final`: means the variable’s value cannot be changed.
+*   `final`: means the variable's value cannot be changed.
 *   `static`
 
 ## Arithmetic (Binary) Operators

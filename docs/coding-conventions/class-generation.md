@@ -27,6 +27,6 @@ While Java allows multiple constructors (overloading) with different parameter l
 
 ## Document Your Code
 
-Even if you completely understand what you’re building, it is crucial to document your code to help others (and your future self) understand it.
+Even if you completely understand what you're building, it is crucial to document your code to help others (and your future self) understand it.
 
 (Further details on commenting and documentation practices are covered in the [Documentation and Comments](documentation-and-comments.md) section.)

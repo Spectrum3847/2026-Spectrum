@@ -20,7 +20,7 @@ scope returnType methodName(parameters) {
 }
 ```
 
-You don’t need to call the class/object name for the method if the method is in the same scope where it is being called.
+You don't need to call the class/object name for the method if the method is in the same scope where it is being called.
 
 ### Lambdas
 
