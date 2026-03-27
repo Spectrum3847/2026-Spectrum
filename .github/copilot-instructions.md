@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is **FRC Team Spectrum 3847's robot code for the 2026 season** (REEFSCAPE game).
+This is **FRC Team Spectrum 3847's robot code for the 2026 season** (REBUILT game).
 It is a **Java 17** project built with **GradleRIO 2026.2.1** and **WPILib 2026**.
 The robot is a swerve-drive robot with a fuel launcher, turret, indexer, intake, vision, LEDs, and climb.
 
@@ -159,6 +159,8 @@ Four physical robots are supported via config classes in `frc/robot/configs/`:
 The correct config is selected automatically at runtime based on the **RoboRIO serial number**
 mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs differ per robot.
 
+**NOTE** There is a Photon Machine, only present in the photon branch.
+
 ### 4. Telemetry / Logging
 
 - Use **DogLog** (`frc.spectrumLib.Telemetry`) for all telemetry.
@@ -255,3 +257,6 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
    `XM2026.java`, etc. — not hardcoded in subsystem files.
 7. **Line endings must be LF (UNIX)**. Windows users: ensure Git is configured with
    `core.autocrlf=false` or `core.autocrlf=input`.
+8. **When you discover or are told new repository information, update this file** — Agents should
+  append concise, factual notes here recording what was learned, the source (e.g., command output,
+  log, or user message), and the date. Do not add secrets, credentials, or sensitive data.
