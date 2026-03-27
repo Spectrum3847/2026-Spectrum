@@ -38,8 +38,8 @@ public class IntakeExtension extends Mechanism {
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
 
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 180;
+        @Getter private final double currentLimit = 60;
+        @Getter private final double torqueCurrentLimit = 120;
         @Getter private final double positionKp = 1;
         @Getter private final double positionKd = 0;
         @Getter private final double positionKv = 0.3;
