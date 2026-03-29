@@ -19,14 +19,18 @@ public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
 
+        @Getter private final double initPosition = 9;
+
         /* Hood Voltages and Current */
         @Getter @Setter private double hoodVoltageOut = 6;
         @Getter @Setter private double hoodTorqueCurrent = 30;
 
+        @Getter @Setter private double maxRotations = 0.137;
+        @Getter @Setter private double minRotations = 0.024;
+
         /* Hood config values */
-        @Getter private final double gearRatio = 5;
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 180;
+        @Getter private final double currentLimit = 10;
+        @Getter private final double torqueCurrentLimit = 20;
         @Getter private final double positionKp = 500;
         @Getter private final double positionKd = 120;
         @Getter private final double positionKv = 0;
@@ -37,6 +41,7 @@ public class Hood extends Mechanism {
         @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
         @Getter private final double holdMaxSpeedRPM = 18;
+
         /* Sim Configs */
         @Getter private double hoodX = Units.inchesToMeters(62.5);
         @Getter private double hoodY = Units.inchesToMeters(50);
@@ -48,13 +53,13 @@ public class Hood extends Mechanism {
             configPIDGains(0, positionKp, 0, positionKd);
             configFeedForwardGains(positionKs, positionKv, 0, 0);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configGearRatio(gearRatio);
+            configGearRatio(51.667);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
     }
 
@@ -72,7 +77,9 @@ public class Hood extends Mechanism {
     }
 
     private void setInitialPosition() {
-        motor.setPosition(degreesToRotations(() -> 0));
+        if (isAttached()) {
+            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+        }
     }
 
     @Override

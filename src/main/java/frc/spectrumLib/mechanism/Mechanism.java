@@ -133,16 +133,18 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     public void logBatteryUsage() {
-        // Get all motor currents
-        double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
-        double followersCurrent = 0;
-        for (TalonFX follower : followerMotors) {
-            followersCurrent += follower.getStatorCurrent().getValueAsDouble();
-        }
+        if (isAttached()) {
+            // Get all motor currents
+            double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
+            double followersCurrent = 0;
+            for (TalonFX follower : followerMotors) {
+                followersCurrent += follower.getStatorCurrent().getValueAsDouble();
+            }
 
-        // Report to battery logger
-        Robot.getBatteryLogger()
-                .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+            // Report to battery logger
+            Robot.getBatteryLogger()
+                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+        }
     }
 
     protected String getCurrentCommandName() {

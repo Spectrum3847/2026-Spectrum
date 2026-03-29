@@ -1,5 +1,6 @@
 package frc.robot.indexerBed;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.spectrumLib.Rio;
@@ -20,8 +21,8 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double indexerTorqueCurrent = 40;
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 50;
-        @Getter @Setter private double torqueCurrentLimit = 75;
+        @Getter @Setter private double currentLimit = 10;
+        @Getter @Setter private double torqueCurrentLimit = 20;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
@@ -42,10 +43,9 @@ public class IndexerBed extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
-            // setFollowerConfigs(
-            //         new FollowerConfig(
-            //                 "IndexerBed Follower 1", 9, Rio.CANIVORE,
-            // MotorAlignmentValue.Aligned));
+            setFollowerConfigs(
+                    new FollowerConfig(
+                            "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 

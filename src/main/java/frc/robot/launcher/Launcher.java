@@ -36,8 +36,8 @@ public class Launcher extends Mechanism {
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double currentLimit = 60;
-        @Getter private double torqueCurrentLimit = 80;
+        @Getter private double currentLimit = 10;
+        @Getter private double torqueCurrentLimit = 20;
         @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
@@ -51,7 +51,7 @@ public class Launcher extends Mechanism {
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher", 48, Rio.CANIVORE);
+            super("Launcher Top Left", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -65,7 +65,14 @@ public class Launcher extends Mechanism {
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
+                    new FollowerConfig(
+                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
+                    new FollowerConfig(
+                            "Launcher Bottom Right",
+                            49,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Opposed));
         }
     }
 

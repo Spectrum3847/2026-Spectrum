@@ -61,7 +61,7 @@ public class Auton {
 
     public Auton() {
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
-        Telemetry.print("Auton Subsystem Initialized: ");
+        Telemetry.print("Auton Subsystem Initialized");
     }
 
     public void init() {

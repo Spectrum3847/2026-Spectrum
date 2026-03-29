@@ -22,8 +22,8 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double indexerSlowVelocityRPM = 2000;
 
         /* Intake config values */
-        @Getter private double currentLimit = 70;
-        @Getter private double torqueCurrentLimit = 150;
+        @Getter private double currentLimit = 10;
+        @Getter private double torqueCurrentLimit = 20;
         @Getter private double velocityKp = 0.5;
         @Getter private double velocityKv = 0.08;
         @Getter private double velocityKs = 0.3;
@@ -46,7 +46,7 @@ public class IndexerTower extends Mechanism {
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "IndexerTower Follower 1",
+                            "IndexerTower Follower",
                             52,
                             Rio.CANIVORE,
                             MotorAlignmentValue.Aligned));
