@@ -80,7 +80,7 @@ MyClass obj = new MyClass()
     .setId(123);
 ```
 
-Our codebase uses `@Accessors(chain = true)` in places (for example, [src/main/java/frc/spectrumLib/vision/Limelight.java](src/main/java/frc/spectrumLib/vision/Limelight.java#L20)) to enable chained setters. If you prefer chaining across the whole repository, add a `lombok.config` file at the project root with:
+Our codebase uses `@Accessors(chain = true)` in places (for example, [src/main/java/frc/spectrumLib/vision/Limelight.java](../../src/main/java/frc/spectrumLib/vision/Limelight.java#L20)) to enable chained setters. If you prefer chaining across the whole repository, add a `lombok.config` file at the project root with:
 
 ```
 lombok.accessors.chain = true

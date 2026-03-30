@@ -49,7 +49,7 @@ else:
 
 ### Java
 *   `// single line comment`
-*   `/** Javadoc comments stores comments across several lines of code */`
+*   `/** Javadoc comments store comments across several lines of code */`
 
 ### Python
 *   `# single line comments`

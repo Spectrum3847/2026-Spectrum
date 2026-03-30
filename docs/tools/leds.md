@@ -4,7 +4,7 @@
 
 The `SpectrumLEDs.java` class, located in our `SpectrumLib`, is where we implement and manage new LED animations for the robot.
 
-*   **Subsystem**: It functions as a subsystem and has its own configuration file (`config.java`).
+*   **Subsystem**: It functions as a subsystem and uses an inner `SpectrumLEDs.Config` class for its configuration.
 *   **Multiple Instances**: It allows for the creation of multiple instances, each with an `LEDBufferView`. This enables commanding specific parts of an LED strip independently.
 
 ## Default Command

@@ -31,7 +31,7 @@ DogLog is a logging library that we extend through our `Telemetry` class.
 
 ### Telemetry (Our Custom Logging Class)
 
-`Telemetry` is our abstract class that extends DogLog, providing customized methods for logging.
+`Telemetry` is our custom class that extends DogLog, providing customized methods for logging.
 
 *   **General Usage**: Used for recording data from robot initializations, hard-coded checks, and robot failures (both at start-up and during runtime).
 *   **Values Stored**:
