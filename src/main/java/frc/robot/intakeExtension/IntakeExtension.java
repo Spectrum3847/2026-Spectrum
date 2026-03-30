@@ -30,7 +30,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter @Setter private double maxRotations = 2.6;
+        @Getter @Setter private double maxRotations = 2.779053;
         @Getter @Setter private double minRotations = 0.0;
 
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
@@ -39,19 +39,21 @@ public class IntakeExtension extends Mechanism {
         @Getter private double fullOut = 100;
         @Getter private double atPoseTolerance = 10;
 
-        @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 20;
-        @Getter private final double positionKp = 5;
+        @Getter private final double currentLimit = 40;
+        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double positionKp = 10;
+        @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 0.3;
+        @Getter private final double positionKv = 0.5;
         @Getter private final double positionKs = 1.5;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
+        @Getter private final double gearRatio = 11.25;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
 
-        @Getter @Setter private double sensorToMechanismRatio = 3.6111;
+        @Getter @Setter private double sensorToMechanismRatio = 11.25;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
@@ -78,18 +80,18 @@ public class IntakeExtension extends Mechanism {
         public IntakeExtensionConfig() {
             super("Intake Extension", 7, Rio.CANIVORE); // Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
-            configPIDGains(0, positionKp, 0, positionKd);
+            configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
-            configGearRatio(3.6111);
+            configGearRatio(gearRatio);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {

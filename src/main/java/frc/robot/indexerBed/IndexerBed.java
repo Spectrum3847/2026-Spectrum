@@ -19,10 +19,12 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double indexerSlowVoltageOut = 4;
         @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 40;
+        @Getter @Setter private double indexerVelocityRPM = 3000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 2000;
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 10;
-        @Getter @Setter private double torqueCurrentLimit = 20;
+        @Getter @Setter private double currentLimit = 60;
+        @Getter @Setter private double torqueCurrentLimit = 80;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
@@ -42,7 +44,7 @@ public class IndexerBed extends Mechanism {
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configNeutralBrakeMode(false);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
                             "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));

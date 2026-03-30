@@ -30,8 +30,8 @@ public class FuelIntake extends Mechanism {
         @Getter @Setter private double ejectTorqueCurrent = -50;
 
         /* Intake config values */
-        @Getter private double currentLimit = 10;
-        @Getter private double torqueCurrentLimit = 20;
+        @Getter private double currentLimit = 60;
+        @Getter private double torqueCurrentLimit = 80;
         @Getter private double velocityKp = 5;
         @Getter private double velocityKv = 0.2;
         @Getter private double velocityKs = 2;

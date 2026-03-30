@@ -29,14 +29,16 @@ public class Hood extends Mechanism {
         @Getter @Setter private double minRotations = 0.024;
 
         /* Hood config values */
-        @Getter private final double currentLimit = 10;
-        @Getter private final double torqueCurrentLimit = 20;
-        @Getter private final double positionKp = 500;
-        @Getter private final double positionKd = 120;
+        @Getter private final double currentLimit = 40;
+        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double positionKp = 2200;
+        @Getter private final double positionKi = 0;
+        @Getter private final double positionKd = 300;
         @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 1;
+        @Getter private final double positionKs = 120;
         @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = 0;
+        @Getter private final double positionKg = 23;
+        @Getter private final double gearRatio = 51.667;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
@@ -50,14 +52,17 @@ public class Hood extends Mechanism {
 
         public HoodConfig() {
             super("Hood", 15, Rio.CANIVORE);
-            configPIDGains(0, positionKp, 0, positionKd);
-            configFeedForwardGains(positionKs, positionKv, 0, 0);
+            configMinMaxRotations(minRotations, maxRotations);
+            configPIDGains(0, positionKp, positionKi, positionKd);
+            configFeedForwardGains(positionKs, positionKa, positionKa, positionKv);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configGearRatio(51.667);
+            configGearRatio(gearRatio);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
+            configForwardSoftLimit(maxRotations, true);
+            configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
             configClockwise_Positive();
         }

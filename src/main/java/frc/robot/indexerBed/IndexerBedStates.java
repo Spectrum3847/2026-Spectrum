@@ -19,8 +19,7 @@ public class IndexerBedStates {
     }
 
     public static void indexMax() {
-        scheduleIfNotRunning(
-                indexerBed.runVoltage(config::getIndexerVoltageOut).withName("IndexerBed.feedMax"));
+        scheduleIfNotRunning(indexerBed.runPercentage(() -> 0.6).withName("IndexerBed.feedMax"));
     }
 
     public static void slowIndex() {

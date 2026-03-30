@@ -7,12 +7,12 @@ import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class IndexerTowerStates {
-    private static IndexerTower indexerTowerFront = Robot.getIndexerTower();
-    private static IndexerTower.IndexerTowerConfig frontConfig = Robot.getConfig().indexerTower;
+    private static IndexerTower indexerTower = Robot.getIndexerTower();
+    private static IndexerTower.IndexerTowerConfig config = Robot.getConfig().indexerTower;
 
     public static void setupDefaultCommand() {
-        indexerTowerFront.setDefaultCommand(
-                indexerTowerFront
+        indexerTower.setDefaultCommand(
+                indexerTower
                         .stopMotor()
                         .ignoringDisable(true)
                         .withName("IndexerTower.default"));
@@ -20,46 +20,46 @@ public class IndexerTowerStates {
 
     public static void neutral() {
         scheduleIfNotRunning(
-                indexerTowerFront.runVoltage(() -> 0).withName("IndexerTower.neutral"));
+                indexerTower.runVoltage(() -> 0).withName("IndexerTower.neutral"));
     }
 
     public static void indexMax() {
         scheduleIfNotRunning(
-                indexerTowerFront
-                        .runVoltage(frontConfig::getIndexVoltageOut)
+                indexerTower
+                        .runVoltage(config::getIndexVoltageOut)
                         .withName("IndexerTower.feedMax"));
     }
 
     public static void slowIndex() {
         scheduleIfNotRunning(
-                indexerTowerFront
-                        .runVelocity(frontConfig::getIndexerSlowVelocityRPM)
+                indexerTower
+                        .runVoltage(() -> config.getIndexVoltageOut() * 0.5)
                         .withName("IndexerTower.slowFeed"));
     }
 
     public static void quickReverseThenIndex() {
         scheduleIfNotRunning(
                 Commands.sequence(
-                        indexerTowerFront
-                                .runVoltage(frontConfig::getUnjamVoltageOut)
+                        indexerTower
+                                .runVoltage(config::getUnjamVoltageOut)
                                 .withTimeout(1),
-                        indexerTowerFront.runVelocity(frontConfig::getIndexerVelocityRPM)));
+                        indexerTower.runVoltage(config::getIndexVoltageOut)));
     }
 
     public static void unjam() {
-        scheduleIfNotRunning(indexerTowerFront.runVoltage(frontConfig::getUnjamVoltageOut));
+        scheduleIfNotRunning(indexerTower.runVoltage(config::getUnjamVoltageOut));
     }
 
     public static void coastMode() {
-        scheduleIfNotRunning(indexerTowerFront.coastMode());
+        scheduleIfNotRunning(indexerTower.coastMode());
     }
 
     public static void ensureBrakeMode() {
-        scheduleIfNotRunning(indexerTowerFront.ensureBrakeMode());
+        scheduleIfNotRunning(indexerTower.ensureBrakeMode());
     }
 
     public static Command unjamCommand() {
-        return indexerTowerFront.runVelocity(frontConfig::getUnjamVoltageOut);
+        return indexerTower.runVoltage(config::getUnjamVoltageOut);
     }
 
     // Log Command
@@ -76,7 +76,7 @@ public class IndexerTowerStates {
         CommandScheduler commandScheduler = CommandScheduler.getInstance();
 
         // Check what command is currently requiring this subsystem
-        Command current = commandScheduler.requiring(indexerTowerFront);
+        Command current = commandScheduler.requiring(indexerTower);
 
         // Only schedule if it's not already the same same command
         if (current != command) {
