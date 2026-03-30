@@ -144,7 +144,7 @@ tasks.spotbugsMain {
     }
 }
 
-//Javadoc Gradle task configuation
+// Javadoc Gradle task configuration
 javadoc {
     options.addStringOption('Xdoclint:none', '-quiet')
     failOnError = false
