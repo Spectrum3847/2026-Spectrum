@@ -6,7 +6,7 @@ This section covers various tips and best practices that can help improve your J
 
 If you are encountering strange Java errors that you suspect are not genuine code issues, sometimes cleaning and reloading the Java Workspace can resolve them.
 
-*   **How to Clean**: In VS Code, open the Command Palette (`Ctrl + p`) and type `>java Clean` to initiate the cleaning process. This rebuilds the Java language server's cache.
+*   **How to Clean**: In VS Code, open the Command Palette (`Ctrl + p`) and type `>java Clean` or run `./gradlew clean` in the terminal to initiate the cleaning process. This rebuilds the Java language server's cache.
 
 ## Coordinate Systems
 
@@ -56,3 +56,5 @@ Our development goals for the 2026 season code include:
 *   **CTRE & PathPlanner**: Integrate CTRE 2026 Swerve and PathPlanner (possibly Choreo too).
 *   **LEDs**: Move to 2026 WPILib LED and `LEDBuffer`.
 *   **Logging**: Improve logging (DogLog).
+
+Feel free to open a pull request with any changes!

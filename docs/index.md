@@ -37,7 +37,6 @@ Welcome to the documentation for Spectrum's 2026 robot code, developed for the F
 *   [Photon Guide to Programming](other-guides/photon-guide-to-programming.md)
 *   [Programming Tips and Best Practices](other-guides/tips.md)
 *   [Setup Guide](setup.md)
-*   [Gradle Guide](gradle.md)
 
 ### 2026 Season Specific
 *   [2026 Season Specific Documentation](other-guides/2026-season-specific.md)

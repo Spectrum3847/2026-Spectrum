@@ -1,5 +1,9 @@
 # Build Tools and Other Development Utilities
 
+## Gradle
+
+See the dedicated [gradle page](gradle.md).
+
 ## Spotless
 
 We started using Spotless to automatically format our code. This ensures consistent code style across the team, regardless of who writes the code. Spotless applies a standardized style whenever the project is built.

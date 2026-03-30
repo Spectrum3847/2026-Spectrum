@@ -1,4 +1,4 @@
-# Gradle Quick Guide
+# Gradle
 
 [Gradle](https://gradle.org) is a Java build tool used to speed up development and automate repetitive tasks.
 
