@@ -16,6 +16,10 @@ public class HoodStates {
         scheduleIfNotRunning(hood.runVoltage(() -> 0).withName("Hood.neutral"));
     }
 
+    public static void home() {
+        scheduleIfNotRunning(hood.moveToDegrees(9).withName("Hood.home"));
+    }
+
     public static void aimAtTarget() {
         scheduleIfNotRunning(hood.trackTargetCommand().withName("Hood.aimAtHub"));
     }

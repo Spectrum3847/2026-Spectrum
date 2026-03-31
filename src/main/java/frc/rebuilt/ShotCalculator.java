@@ -9,21 +9,19 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.util.Units;
+import frc.rebuilt.launchingMaps.HomeMap;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
+import lombok.Getter;
 
 public class ShotCalculator {
     private static ShotCalculator instance;
 
     // Offset from robot center to launcher center (leave zero if launcher is centered)
-    private static final Transform2d robotToLauncher =
-            new Transform2d(
-                    new Translation2d(Units.inchesToMeters(0), Units.inchesToMeters(0)),
-                    new Rotation2d());
+    private static final Transform2d robotToLauncher = Transform2d.kZero;
 
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
@@ -70,13 +68,14 @@ public class ShotCalculator {
     private static double maxDistance;
     private static double phaseDelay;
 
-    private static final InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
+    @Getter
+    private static InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
 
-    private static final InterpolatingDoubleTreeMap shotFlywheelSpeedMap =
-            new InterpolatingDoubleTreeMap();
+    @Getter
+    private static InterpolatingDoubleTreeMap launcherSpeedMap = new InterpolatingDoubleTreeMap();
 
-    private static final InterpolatingDoubleTreeMap timeOfFlightMap =
-            new InterpolatingDoubleTreeMap();
+    @Getter
+    private static InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
 
     // ===== Velocity and angle calculation =====
     private static final double loopPeriodSecs = 0.02;
@@ -95,28 +94,11 @@ public class ShotCalculator {
         maxDistance = 5.60;
         phaseDelay = 0.03;
 
-        // Hood angle map (in degrees)
-        hoodAngleMap.put(1.34, 15.0);
-        hoodAngleMap.put(2.00, 18.0);
-        hoodAngleMap.put(2.35, 20.0);
-        hoodAngleMap.put(2.65, 22.0);
-        hoodAngleMap.put(2.96, 24.0);
-        hoodAngleMap.put(3.23, 26.0);
-        hoodAngleMap.put(3.65, 28.0);
-        hoodAngleMap.put(4.00, 30.0);
-        hoodAngleMap.put(4.20, 32.0);
-        hoodAngleMap.put(4.50, 34.0);
-        hoodAngleMap.put(5.60, 36.0);
+        /* Hood angle map (in degrees from horizontal) */
+        hoodAngleMap = HomeMap.getHoodAngleMap();
 
-        // Flywheel map (in RPM)
-
-        // Into hub shots
-        shotFlywheelSpeedMap.put(0.00, 1800.0);
-        shotFlywheelSpeedMap.put(4.50, 1800.0);
-
-        // Feeding shots
-        shotFlywheelSpeedMap.put(4.51, 2300.0);
-        shotFlywheelSpeedMap.put(6.00, 2400.0);
+        /* Flywheel map (in RPM) */
+        launcherSpeedMap = HomeMap.getLauncherSpeedMap();
 
         // TOF map (in seconds)
         timeOfFlightMap.put(5.68, 1.16);
@@ -221,7 +203,7 @@ public class ShotCalculator {
         hoodAngle += HOOD_ANGLE_OFFSET;
 
         // Flywheel from map + preference offset (%)
-        double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadDistance);
+        double flywheelSpeed = launcherSpeedMap.get(lookaheadDistance);
 
         boolean isValid = lookaheadDistance >= minDistance && lookaheadDistance <= maxDistance;
 

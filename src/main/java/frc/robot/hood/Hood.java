@@ -2,6 +2,7 @@ package frc.robot.hood;
 
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.rebuilt.ShotCalculator;
@@ -28,16 +29,20 @@ public class Hood extends Mechanism {
         @Getter @Setter private double maxRotations = 0.137;
         @Getter @Setter private double minRotations = 0.024;
 
+        @Getter
+        private final DoubleSubscriber onTheFlyAngle = Telemetry.tunable("Hood/OnTheFlyAngle", 9.0);
+
         /* Hood config values */
         @Getter private final double currentLimit = 40;
         @Getter private final double torqueCurrentLimit = 60;
-        @Getter private final double positionKp = 2200;
+        @Getter private final double positionKp = 900;
         @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 300;
+        @Getter private final double positionKd = 115;
         @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 120;
+        @Getter private final double positionKs = 15;
         @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = 23;
+        @Getter private final double positionKg = 0;
+
         @Getter private final double gearRatio = 51.667;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 200;
@@ -54,7 +59,7 @@ public class Hood extends Mechanism {
             super("Hood", 15, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, positionKi, positionKd);
-            configFeedForwardGains(positionKs, positionKa, positionKa, positionKv);
+            configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configGearRatio(gearRatio);
             configSupplyCurrentLimit(currentLimit, true);
@@ -135,6 +140,17 @@ public class Hood extends Mechanism {
                     setMMPositionFoc(() -> degreesToRotations(() -> params.hoodAngle()));
                 })
                 .withName("Hood.trackTargetCommand");
+    }
+
+    public Command moveToDegrees(double degrees) {
+        return run(() -> setMMPositionFoc(() -> degreesToRotations(() -> degrees)));
+    }
+
+    public Command onTheFlyLaunch() {
+        return run(() -> {
+                    setMMPositionFoc(() -> config.getOnTheFlyAngle().get());
+                })
+                .withName("Launcher.onTheFlyLaunch");
     }
 
     /** Holds the position of the Hood. */

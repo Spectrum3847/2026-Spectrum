@@ -19,17 +19,17 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.neutral();
                 LauncherStates.idlePrep();
-                HoodStates.neutral();
+                HoodStates.home();
             }
             case INTAKE_FUEL -> {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
+                IndexerBedStates.slowIndex();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.idlePrep();
                 HoodStates.neutral();
             }
-            case TURRET_TRACK -> {
+            case LAUNCHER_TRACK -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
@@ -37,11 +37,11 @@ public class Coordinator {
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }
-            case TURRET_TRACK_WITH_LAUNCH -> {
+            case LAUNCER_TRACK_WITH_LAUNCH -> {
                 FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtendConditional();
+                IntakeExtensionStates.slowIntakeClose();
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }

@@ -12,15 +12,11 @@ public class IndexerTowerStates {
 
     public static void setupDefaultCommand() {
         indexerTower.setDefaultCommand(
-                indexerTower
-                        .stopMotor()
-                        .ignoringDisable(true)
-                        .withName("IndexerTower.default"));
+                indexerTower.stopMotor().ignoringDisable(true).withName("IndexerTower.default"));
     }
 
     public static void neutral() {
-        scheduleIfNotRunning(
-                indexerTower.runVoltage(() -> 0).withName("IndexerTower.neutral"));
+        scheduleIfNotRunning(indexerTower.runVoltage(() -> 0).withName("IndexerTower.neutral"));
     }
 
     public static void indexMax() {
@@ -40,9 +36,7 @@ public class IndexerTowerStates {
     public static void quickReverseThenIndex() {
         scheduleIfNotRunning(
                 Commands.sequence(
-                        indexerTower
-                                .runVoltage(config::getUnjamVoltageOut)
-                                .withTimeout(1),
+                        indexerTower.runVoltage(config::getUnjamVoltageOut).withTimeout(1),
                         indexerTower.runVoltage(config::getIndexVoltageOut)));
     }
 

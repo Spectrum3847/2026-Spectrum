@@ -39,14 +39,6 @@ public class Vision implements Subsystem {
         @Getter final String name = "Vision";
 
         /* Limelight Configuration */
-        @Getter final String frontLL = "limelight-front";
-
-        @Getter
-        final LimelightConfig frontConfig =
-                new LimelightConfig(frontLL)
-                        .withTranslation(-0.286201993, 0.2134100126, 0.7366)
-                        .withRotation(0, 0, 0);
-
         @Getter final String backLL = "limelight-back";
 
         @Getter
@@ -103,7 +95,6 @@ public class Vision implements Subsystem {
     }
 
     /* Limelights */
-    @Getter public final Limelight frontLL;
     @Getter public final Limelight backLL;
     @Getter public final Limelight leftLL;
     @Getter public final Limelight rightLL;
@@ -131,12 +122,11 @@ public class Vision implements Subsystem {
     public Vision(VisionConfig config) {
         this.config = config;
 
-        frontLL = new Limelight(config.frontLL, config.frontTagPipeline, config.frontConfig);
         backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
         leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
         rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
 
-        allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
+        allLimelights = new Limelight[] {backLL, leftLL, rightLL};
 
         /* Configure Limelight Settings Here (initial set) */
         for (Limelight limelight : allLimelights) {
@@ -165,10 +155,9 @@ public class Vision implements Subsystem {
     }
 
     public void logTelemetry() {
-        Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
-        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
-        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
-        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
+        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
+        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
+        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
     }
 
     public void triggerRewindCaptureForAllCameras() {
@@ -177,32 +166,24 @@ public class Vision implements Subsystem {
         }
     }
 
-    public Pose2d getFrontMegaTag2Pose() {
-        Pose2d pose = frontLL.getMegaTag2_Pose2d();
+    public Pose2d getBackMegaTag1Pose() {
+        Pose2d pose = backLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
         return Pose2d.kZero;
     }
 
-    public Pose2d getBackMegaTag2Pose() {
-        Pose2d pose = backLL.getMegaTag2_Pose2d();
+    public Pose2d getLeftMegaTag1Pose() {
+        Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
         return Pose2d.kZero;
     }
 
-    public Pose2d getLeftMegaTag2Pose() {
-        Pose2d pose = leftLL.getMegaTag2_Pose2d();
-        if (pose != null) {
-            return pose;
-        }
-        return Pose2d.kZero;
-    }
-
-    public Pose2d getRightMegaTag2Pose() {
-        Pose2d pose = rightLL.getMegaTag2_Pose2d();
+    public Pose2d getRightMegaTag1Pose() {
+        Pose2d pose = rightLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
@@ -430,6 +411,7 @@ public class Vision implements Subsystem {
     }
 
     /** Helper to integrate multiple estimates close in time by fusing them together first */
+    @SuppressWarnings("unused")
     private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
         // Collect non-null estimates
         List<VisionFieldPoseEstimate> list = new ArrayList<>();
@@ -483,7 +465,7 @@ public class Vision implements Subsystem {
      * @return the best limelight
      */
     public Limelight getBestLimelight() {
-        Limelight bestLimelight = frontLL;
+        Limelight bestLimelight = backLL;
         double bestScore = 0;
         for (Limelight limelight : allLimelights) {
             double score = 0;

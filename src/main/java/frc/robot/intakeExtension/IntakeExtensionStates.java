@@ -22,7 +22,8 @@ public class IntakeExtensionStates {
     }
 
     public static Command operatorResetIntakeExtension() {
-        return Commands.runOnce(() -> intakeExtension.resetCurrentPositionToMax());
+        return Commands.runOnce(() -> intakeExtension.resetCurrentPositionToMax())
+                .ignoringDisable(true);
     }
 
     // -------------------- State Commands --------------------
@@ -51,6 +52,14 @@ public class IntakeExtensionStates {
         } else {
             neutral();
         }
+    }
+
+    public static void slowIntakeClose() {
+        scheduleIfNotRunning(
+                Commands.sequence(
+                                Commands.waitSeconds(2),
+                                intakeExtension.slowMoveToPercent(config::getSqueeze))
+                        .withName("IntakeExtension.slowIntakeClose"));
     }
 
     public static Command fullExtendCommand() {

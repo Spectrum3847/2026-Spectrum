@@ -25,7 +25,7 @@ public class OperatorStates {
     /** Set the states for the operator controller */
     public static void setStates() {
         operator.resetIntakeExtensionPos.onTrue(
-                IntakeExtensionStates.operatorResetIntakeExtension());
+                IntakeExtensionStates.operatorResetIntakeExtension(), rumble(1, 0.5));
 
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
