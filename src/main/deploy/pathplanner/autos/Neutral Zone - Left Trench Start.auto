@@ -7,19 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone L 1"
+            "pathName": "FUDGE - Neutral Zone Trench L 1"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 3.0
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone L 2"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Neutral Zone L 3"
+            "pathName": "FUDGE - Neutral Zone Trench L 2"
           }
         }
       ]
