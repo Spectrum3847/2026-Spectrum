@@ -68,11 +68,10 @@ public class ShotCalculator {
     private static double maxDistance;
     private static double phaseDelay;
 
-    @Getter
-    private static InterpolatingDoubleTreeMap hoodAngleMap = new InterpolatingDoubleTreeMap();
+    @Getter private static InterpolatingDoubleTreeMap hoodAngleMap = HomeMap.getHoodAngleMap();
 
     @Getter
-    private static InterpolatingDoubleTreeMap launcherSpeedMap = new InterpolatingDoubleTreeMap();
+    private static InterpolatingDoubleTreeMap launcherSpeedMap = HomeMap.getLauncherSpeedMap();
 
     @Getter
     private static InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
@@ -93,12 +92,6 @@ public class ShotCalculator {
         minDistance = 1.34;
         maxDistance = 5.60;
         phaseDelay = 0.03;
-
-        /* Hood angle map (in degrees from horizontal) */
-        hoodAngleMap = HomeMap.getHoodAngleMap();
-
-        /* Flywheel map (in RPM) */
-        launcherSpeedMap = HomeMap.getLauncherSpeedMap();
 
         // TOF map (in seconds)
         timeOfFlightMap.put(5.68, 1.16);

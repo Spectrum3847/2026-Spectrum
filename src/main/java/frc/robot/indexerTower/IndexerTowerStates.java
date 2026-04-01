@@ -22,26 +22,26 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVoltage(config::getIndexVoltageOut)
+                        .runVelocityTcFocRpm(config::getIndexerVelocityRPM)
                         .withName("IndexerTower.feedMax"));
     }
 
     public static void slowIndex() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVoltage(() -> config.getIndexVoltageOut() * 0.5)
+                        .runVelocityTcFocRpm(config::getIndexerSlowVelocityRPM)
                         .withName("IndexerTower.slowFeed"));
     }
 
     public static void quickReverseThenIndex() {
         scheduleIfNotRunning(
                 Commands.sequence(
-                        indexerTower.runVoltage(config::getUnjamVoltageOut).withTimeout(1),
-                        indexerTower.runVoltage(config::getIndexVoltageOut)));
+                        indexerTower.runVelocityTcFocRpm(config::getIndexerUnjamRPM).withTimeout(1),
+                        indexerTower.runVelocityTcFocRpm(config::getIndexerVelocityRPM)));
     }
 
     public static void unjam() {
-        scheduleIfNotRunning(indexerTower.runVoltage(config::getUnjamVoltageOut));
+        scheduleIfNotRunning(indexerTower.runVelocityTcFocRpm(config::getIndexerUnjamRPM));
     }
 
     public static void coastMode() {
@@ -53,7 +53,7 @@ public class IndexerTowerStates {
     }
 
     public static Command unjamCommand() {
-        return indexerTower.runVoltage(config::getUnjamVoltageOut);
+        return indexerTower.runVelocityTcFocRpm(config::getIndexerUnjamRPM);
     }
 
     // Log Command

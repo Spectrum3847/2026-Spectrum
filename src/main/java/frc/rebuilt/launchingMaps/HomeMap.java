@@ -12,7 +12,7 @@ public class HomeMap {
     private static final InterpolatingDoubleTreeMap launcherSpeedMap =
             new InterpolatingDoubleTreeMap();
 
-    public HomeMap() {
+    static {
 
         /* Hood angle map (in degrees from horizontal) */
         hoodAngleMap.put(1.34, 16.0);
@@ -21,23 +21,23 @@ public class HomeMap {
         hoodAngleMap.put(2.65, 21.0);
         hoodAngleMap.put(2.96, 23.0);
         hoodAngleMap.put(3.23, 25.0);
-        hoodAngleMap.put(3.65, 27.0);
-        hoodAngleMap.put(4.00, 29.0);
-        hoodAngleMap.put(4.20, 31.0);
-        hoodAngleMap.put(4.50, 33.0);
-        hoodAngleMap.put(5.60, 34.0);
+        hoodAngleMap.put(3.65, 26.0);
+        hoodAngleMap.put(4.00, 28.0);
+        hoodAngleMap.put(4.20, 30.0);
+        hoodAngleMap.put(4.50, 32.0);
+        hoodAngleMap.put(5.60, 33.0);
 
         /* Flywheel map (in RPM) */
         // Near Trench
         launcherSpeedMap.put(0.00, 1800.0);
-        launcherSpeedMap.put(3.50, 1800.0);
+        launcherSpeedMap.put(3.30, 1800.0);
 
         // Near Tower
-        launcherSpeedMap.put(3.51, 1900.0);
-        launcherSpeedMap.put(4.50, 1900.0);
+        launcherSpeedMap.put(3.31, 2100.0);
+        launcherSpeedMap.put(5.00, 2100.0);
 
         // Feeding shots
-        launcherSpeedMap.put(4.51, 2300.0);
+        launcherSpeedMap.put(5.01, 2300.0);
         launcherSpeedMap.put(6.00, 2400.0);
     }
 }

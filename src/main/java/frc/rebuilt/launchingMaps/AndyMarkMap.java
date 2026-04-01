@@ -12,7 +12,7 @@ public class AndyMarkMap {
     private static final InterpolatingDoubleTreeMap launcherSpeedMap =
             new InterpolatingDoubleTreeMap();
 
-    public AndyMarkMap() {
+    static {
 
         /* Hood angle map (in degrees from horizontal) */
         hoodAngleMap.put(1.34, 16.0);
