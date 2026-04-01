@@ -242,6 +242,22 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 
 ---
 
+## Subagents & Subagent Templates
+
+Subagents are small, focused prompt templates used by Copilot-run subagents (or via `runSubagent`) to perform repeatable repository tasks (searches, scaffolding, small patches, audits). We keep templates as separate Markdown files so they are discoverable and easily updated.
+
+- Location: `.github/subagents/` (templates: `.github/subagents/templates/`).
+- Usage: When a user request maps to an existing template, prefer invoking that subagent. If no template exists for a recurring task, propose creating one and ask before applying any changes.
+- Adding a new subagent template:
+  1. Add the new Markdown template to `.github/subagents/templates/` with YAML frontmatter including `name` and `description`.
+  2. Add a one-line entry to `.github/subagents/README.md` describing the template and example usage.
+  3. Update this file (`.github/copilot-instructions.md`) with a short bullet referencing the new template (path + purpose).
+  4. Use `apply_patch` for edits and include a one-line rationale for each patch hunk. Do not edit generated files like `src/main/java/frc/robot/BuildConstants.java`.
+- Permissions & behavior:
+  - Copilot is allowed to create and edit subagent template files and to update `copilot-instructions.md` when new agents are added, but must never add secrets or sensitive data.
+  - For code changes produced by subagents, produce `apply_patch` patches and do not automatically commit without human review.
+  - Keep subagent templates minimal, with clear inputs/outputs and explicit instructions for `apply_patch` output when code changes are expected.
+
 ## Important Notes for Agents
 
 1. **Always run `./gradlew build` after making Java changes** — Spotless will auto-format, and
