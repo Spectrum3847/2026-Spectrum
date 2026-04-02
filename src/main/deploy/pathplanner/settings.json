@@ -5,7 +5,6 @@
   "pathFolders": [
     "Config Paths",
     "Depot",
-    "Neutral Zone - Left Bump Start",
     "Neutral Zone - Left Trench Start",
     "Outpost"
   ],
@@ -14,7 +13,7 @@
     "Neutral Zone Autos"
   ],
   "defaultMaxVel": 3.0,
-  "defaultMaxAccel": 5.0,
+  "defaultMaxAccel": 4.0,
   "defaultMaxAngVel": 360.0,
   "defaultMaxAngAccel": 540.0,
   "defaultNominalVoltage": 10.0,

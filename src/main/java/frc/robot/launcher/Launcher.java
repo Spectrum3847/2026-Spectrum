@@ -36,12 +36,12 @@ public class Launcher extends Mechanism {
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double currentLimit = 60;
-        @Getter private double torqueCurrentLimit = 80;
+        @Getter private double currentLimit = 100;
+        @Getter private double torqueCurrentLimit = 200;
         @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 10;
+        @Getter private double velocityKs = 20;
 
         @Getter private double onTargetToleranceRPM = 100;
 

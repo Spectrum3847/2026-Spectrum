@@ -30,7 +30,7 @@ public class IndexerBedStates {
     }
 
     public static void unjam() {
-        scheduleIfNotRunning(indexerBed.runVoltage(config::getUnjamVoltageOut));
+        scheduleIfNotRunning(indexerBed.runVelocityTcFocRpm(config::getIndexerUnjamRPM));
     }
 
     public static void coastMode() {

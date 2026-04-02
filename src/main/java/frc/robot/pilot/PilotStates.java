@@ -41,6 +41,7 @@ public class PilotStates {
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
         pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
+        pilot.YButton.whileTrue(Robot.getAuton().prepThanLaunch());
 
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
         pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());

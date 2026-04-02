@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
+import frc.robot.auton.Auton;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
 import frc.spectrumLib.util.Util;
@@ -220,7 +221,9 @@ public class Vision implements Subsystem {
     }
 
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean() || RobotStates.autoUpdatePose.getAsBoolean()) {
+        if (Util.teleop.getAsBoolean()
+                || RobotStates.autoUpdatePose.getAsBoolean()
+                || Auton.autonLaunching.getAsBoolean()) {
             Limelight besLimelight = getBestLimelight();
             integrateSingleEstimate(getMT1VisionEstimate(besLimelight, false));
         }

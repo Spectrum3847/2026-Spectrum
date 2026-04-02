@@ -7,25 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone Bump L 1"
+            "pathName": "FUDGE - Neutral Zone Trench L 1"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone Bump L 2"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Neutral Zone Bump L 3"
+            "pathName": "FUDGE - Neutral Zone Trench L 2"
           }
         }
       ]
     }
   },
-  "resetOdom": false,
+  "resetOdom": true,
   "folder": "Neutral Zone Autos",
   "choreoAuto": false
 }

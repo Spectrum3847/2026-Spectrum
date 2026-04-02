@@ -40,7 +40,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private double atPoseTolerance = 10;
 
         @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double torqueCurrentLimit = 120;
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
@@ -216,7 +216,7 @@ public class IntakeExtension extends Mechanism {
         return run(
                 () ->
                         setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 2, () -> 20, () -> 1000));
+                                () -> percentToRotations(percent), () -> 3, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

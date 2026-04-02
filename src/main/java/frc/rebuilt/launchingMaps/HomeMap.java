@@ -33,8 +33,8 @@ public class HomeMap {
         launcherSpeedMap.put(3.30, 1800.0);
 
         // Near Tower
-        launcherSpeedMap.put(3.31, 2100.0);
-        launcherSpeedMap.put(5.00, 2100.0);
+        launcherSpeedMap.put(3.31, 2000.0);
+        launcherSpeedMap.put(5.00, 2000.0);
 
         // Feeding shots
         launcherSpeedMap.put(5.01, 2300.0);

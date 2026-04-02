@@ -139,6 +139,7 @@ public class Robot extends SpectrumRobot {
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
             // leds = new CANdleLeds();
+            coordinator = new Coordinator();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
@@ -158,7 +159,6 @@ public class Robot extends SpectrumRobot {
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             batteryLogger = new BatteryLogger();
-            coordinator = new Coordinator();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();

@@ -18,13 +18,13 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double indexVoltageOut = 10;
         @Getter @Setter private double unjamVoltageOut = -10;
         @Getter @Setter private double indexerTorqueCurrent = 80;
-        @Getter @Setter private double indexerVelocityRPM = 1500;
+        @Getter @Setter private double indexerVelocityRPM = 2500;
         @Getter @Setter private double indexerSlowVelocityRPM = 1000;
         @Getter @Setter private double indexerUnjamRPM = -1500;
 
         /* Intake config values */
         @Getter @Setter private double currentLimit = 60;
-        @Getter @Setter private double torqueCurrentLimit = 80;
+        @Getter @Setter private double torqueCurrentLimit = 160;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
