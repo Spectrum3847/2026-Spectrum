@@ -59,7 +59,7 @@ public class IndexerTowerStates {
     }
 
     public static Command unjamCommand() {
-        return indexerTowerFront.runVelocity(frontConfig::getUnjamVoltageOut);
+        return indexerTowerFront.runVoltage(frontConfig::getUnjamVoltageOut);
     }
 
     // Log Command
