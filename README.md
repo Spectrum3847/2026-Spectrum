@@ -6,12 +6,6 @@ Robot code for Spectrum 3847's FRC 2026 season.
 
 This is the working code base for our robots in the 2026 REBUILT FRC Competition. The code is constantly being worked on, so watch out for bugs and issues.
 
-### Structure
-
-* Robot = In season robot code, we have configuration files to be able to run our code base on multiple robots at once. Heavily uses WPILib commands and triggers.
-* [`SpectrumLib`](src/main/java/frc/spectrumLib) = Code that we try to reuse year to year.
-* Our goal is to make our software easy for multiple people to contribute too. Each subsystem should be able to be modified on it's own without needing to understand the rest of the robot code.
-
 ### Features
 
 * Mechanism class wraps all the FalconFX configurations and control mode calls so they are easier to use.
@@ -38,6 +32,11 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 * PhotonLib (For vision simulation)
 
 ## Project Structure
+
+* Robot = In season robot code, we have configuration files to be able to run our code base on multiple robots at once. Heavily uses WPILib commands and triggers.
+* [`SpectrumLib`](src/main/java/frc/spectrumLib) = Code that we try to reuse year to year.
+* Our goal is to make our software easy for multiple people to contribute too. Each subsystem should be able to be modified on it's own without needing to understand the rest of the robot code.
+
 ```text
 ├── src/
 │   └── main/
@@ -57,3 +56,5 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 ├── vendordeps/                         # vendor dependency JSONs
 └── build.gradle                        # GradleRIO project config
 ```
+
+#### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).
