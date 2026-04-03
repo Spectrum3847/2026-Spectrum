@@ -52,7 +52,7 @@ Two primary options for setting the physical configuration of the Limelight:
 
 Types of Alignment:
 *   **Tag Area**: Alignment based on the detected area and relative position of AprilTags, primarily used for coarse or direct alignment to a tag.
-*   **QuestNav**: This likely refers to an alignment strategy leveraging QuestNav's advanced pose estimation for more precise or global field alignment.
+*   **QuestNav**: An alignment strategy leveraging QuestNav's advanced pose estimation for more precise or global field alignment. Note: QuestNav is not currently implemented in this codebase and is planned for future work.
 
 ### Pose Alignment
 
@@ -75,7 +75,7 @@ QuestNav Pose refers to the robot's estimated position and orientation as determ
 
 *   **Purpose**: Using a given MegaTag value to create a position that acts as a constant for a robot pose.
 *   **Implementation**: Must be done using `Periodic` methods (e.g., in a subsystem's `periodic()` method).
-*   **WPILib Command (2026)**: `addVisionMeasurement(Pose2d pose, double timestampSeconds, Matrix<N3, N1> visionMeasurementStdDevs)`
+*   **WPILib pose estimator API**: `addVisionMeasurement(Pose2d pose, double timestampSeconds, Matrix<N3, N1> visionMeasurementStdDevs)`
     *   `Pose2d pose`: The robot pose estimated by vision.
     *   `double timestampSeconds`: When the measurement was taken (seconds).
     *   `Matrix<N3, N1> visionMeasurementStdDevs`: Standard deviations for x, y, and theta confidence.

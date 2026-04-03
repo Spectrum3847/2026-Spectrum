@@ -7,7 +7,7 @@ Phoenix Tuner X is a powerful diagnostic and configuration tool provided by CTRE
 When configuring motor controllers (e.g., Talon FX) using Phoenix Tuner X, consider the following:
 
 *   **License**: Ensure the license is set to the current season under the team's CTRE account.
-*   **Motor ID**: Each motor controller needs a unique CAN ID. Avoid duplicate IDs unless shared between a CANcoder and a motor ID (which requires careful management).
+*   **Motor ID**: Each device on a CAN bus must use a unique CAN ID across all device types on that bus (including Talon FX, CANcoder, Pigeon, etc.). Do not reuse IDs on the same CAN bus.
 *   **Name**: Assign a name that matches the corresponding subsystem in the robot code for easy identification.
 *   **Absolute Position/Rotation**: Monitor and reset these values as needed.
 *   **Data**: View real-time data from the motor controller.
@@ -30,6 +30,6 @@ Correcting swerve wheel alignment is critical, especially during Systems Check.
 
 *   Ensure that the encoders are properly licensed for the current year using Phoenix Tuner X. This applies to devices like CANcoders or built-in encoders on motor controllers.
 
-## Flashing SD Card
+## Updating Firmware
 
-Phoenix Tuner X can also be used for flashing the SD card of devices like the `CANivore` or `Pigeon 2.0` with the latest firmware. This is essential for compatibility and optimal performance.
+Phoenix Tuner X can also be used to update the firmware of devices like the `CANivore` or `Pigeon 2.0`. Keeping device firmware up to date is essential for compatibility and optimal performance.
