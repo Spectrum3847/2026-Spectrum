@@ -1,29 +1,29 @@
 # Setup Guide
 
-You will need the following:
+To setup the project, you will need the following:
 
-* [WPILib](setup.md#wpilib-notes) (2026)
+* [WPILib](#wpilib-notes) 2026
 * JDK 17 ([Eclipse Temurin](https://adoptium.net/temurin/releases?version=17) is recommended)
-* [PathPlanner](https://pathplanner.dev) (for autons)
+* [PathPlanner](https://pathplanner.dev)
 * [Git](https://git-scm.com/)
 
 ## Clone the repository
 
-In a place you won't forget, open the terminal and type:
+In a place you will not forget, open the terminal and type:
 ```
 git clone https://github.com/spectrum3847/2026-Spectrum.git
 cd 2026-Spectrum
 ```
 
-This will clone (copy) the git repository locally to your computer. **Note:** If you prefer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. If you are on Linux, there [is a Flatpak](https://flathub.org/en/apps/io.github.shiftey.Desktop) available.
+This will clone (copy) the git repository locally to your computer. **Note:** If you prefer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. If you are on Linux, there [is a Flatpak](https://flathub.org/en/apps/io.github.shiftey.Desktop) version available.
 
 ## VSCode
 
-Open the `2026-Spectrum` in WPILib VSCode (or whatever you prefer, really). To use the WPILib sim, press ctrl shift p, and type `sim`. Click WPILib: Simulate Robot Code. Then gradle will build the project. Once it's done, it will ask you to either run in GUI Sim, or use a real driver station. Press `GUI Sim`, it will launch Glass with the sim.
+Open the `2026-Spectrum` folder in WPILib VSCode (or whatever editor/ide you prefer). To use the WPILib sim, press ctrl shift p, and type `sim`. Click WPILib: Simulate Robot Code. Then gradle will build the project. Once it's done, it will ask you to either run in GUI Sim, or use a real driver station. Press `GUI Sim`, it will launch Glass.
 
 ## Java notes:
 
-If you are on Unix (MacOS/Linux), I strongly recommend using [SDKMAN](https://sdkman.io) for managing java installations. To set it up Java 17 (required for the robot code), run `sdk install java 17.0.18-tem` (or whatever the latest Java 17 is). Then if you want to switch to it, run `sdk use java 17.0.18-tem`.
+If you are on Unix (MacOS/Linux), I strongly recommend using [SDKMAN](https://sdkman.io) for managing java installations. To set it up Java 17 (required for the robot code), run `sdk install java 17.0.18-tem`. Then if you want to switch to it, run `sdk use java 17.0.18-tem`.
 
 Also, for this robot project Java 17 is required: you cannot use a higher version, as WPILib 2026 does not support it.
 
