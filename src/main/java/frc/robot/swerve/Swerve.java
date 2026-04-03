@@ -31,7 +31,6 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -158,12 +157,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         // Comment these out for photon (@A2A1x)
 
-        //DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
-        //DogLog.log("Drive/OdometryPose", getState().Pose);
-        //DogLog.log("Drive/TargetStates", getState().ModuleTargets);
-        //DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
-        //DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
-        
+        // DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
+        // DogLog.log("Drive/OdometryPose", getState().Pose);
+        // DogLog.log("Drive/TargetStates", getState().ModuleTargets);
+        // DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
+        // DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
+
         if (Utils.isSimulation()) {
             DogLog.log(
                     "FieldSimulation/Fuel",
