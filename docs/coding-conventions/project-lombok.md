@@ -52,11 +52,11 @@ public class MyClass {
 
 Lombok automatically generates the `getName()`, `setName()`, `getId()`, and `setId()` methods during compilation.
 
-## Builder Pattern
+## Chained Setters with `@Accessors(chain = true)`
 
-By default, Lombok's `@Setter` methods are generated as `void` methods and do not return `this`. To make setters chainable (fluent setters that return the object), annotate the class or fields with `@Accessors(chain = true)` or enable chaining project-wide via a `lombok.config` file.
+By default, Lombok's `@Setter` methods are generated as `void` methods and do **not** return `this`. Setter chaining is **not** available unless you explicitly annotate the class with `@Accessors(chain = true)`.
 
-Chaining example using `@Accessors`:
+Chaining example using `@Accessors(chain = true)`:
 
 ```java
 import lombok.Getter;
@@ -72,7 +72,7 @@ public class MyClass {
 }
 ```
 
-Now you can chain setters:
+With `@Accessors(chain = true)`, setters return `this` so they can be chained:
 
 ```java
 MyClass obj = new MyClass()
@@ -80,12 +80,7 @@ MyClass obj = new MyClass()
     .setId(123);
 ```
 
-Our codebase uses `@Accessors(chain = true)` in places (for example, [src/main/java/frc/spectrumLib/vision/Limelight.java](../../src/main/java/frc/spectrumLib/vision/Limelight.java#L20)) to enable chained setters. If you prefer chaining across the whole repository, add a `lombok.config` file at the project root with:
-
-```
-lombok.accessors.chain = true
-```
-This makes chained setters the default without annotating every class.
+Our codebase only uses chained setters in classes that are explicitly annotated with `@Accessors(chain = true)` (for example, [src/main/java/frc/spectrumLib/vision/Limelight.java](../../src/main/java/frc/spectrumLib/vision/Limelight.java#L20)). Always add `@Accessors(chain = true)` to the class when you need chaining — do not assume it is available by default.
 
 ## Understanding Lombok
 
