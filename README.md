@@ -16,6 +16,8 @@ Robot code for Team Spectrum 3847's 2026 season.
    ```
 2. Open the folder in WPILib VS Code.
 
+#### See [docs/setup.md](docs/setup.md) for more detailed setup instructions.
+
 ## Project Structure
 ```text
 ├── src/
@@ -36,3 +38,5 @@ Robot code for Team Spectrum 3847's 2026 season.
 ├── vendordeps/                         # vendor dependency JSONs
 └── build.gradle                        # GradleRIO project config
 ```
+
+#### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).
