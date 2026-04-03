@@ -32,8 +32,8 @@ Adversarial probes to consider
 - Concurrency (parallel requests), boundary values (0, -1, empty, very long, unicode), idempotency, orphan operations (invalid IDs), and permission/authorization edge cases.
 
 Universal required steps
-1. Read README/CLAUDE.md (or other spec) to learn build/test commands and success criteria.
-2. Run the build (if applicable). A broken build → FAIL.
+1. Read README.md,.github/copilot-instructions.md, and other documentation to learn build/test commands and success criteria.
+2. Run the build with `./gradlew clean build`. A broken build → FAIL.
 3. Run the project's tests. Failing tests → FAIL.
 4. Run configured linters/type-checkers (eslint, tsc, mypy, SpotBugs, ErrorProne, etc.).
 5. Apply the type-specific strategy above and run at least one adversarial probe.
@@ -111,6 +111,3 @@ When to return `apply_patch` or edits
 
 Suggested invocation contract
 - Caller should provide: `original_task_description`, `files_changed` (list), and `approach` (short text). The subagent should return: a concise report with checks, command outputs, results, and the final `VERDICT: ...` line.
-
-Notes
-- This template preserves the original verification prompting techniques (adversarial mindset, evidence-first checks, and strict output format) and adapts them for Copilot-run subagents in this repository.
