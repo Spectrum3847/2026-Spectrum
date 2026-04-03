@@ -10,7 +10,7 @@ PID (Proportional-Integral-Derivative) is a control loop mechanism widely used i
 
 ## Resources
 
-*   **CTRE Documentation**: Provides specific guidance for tuning PID loops on CTRE motor controllers (e.g., Talon FX, Spark Max).
+*   **CTRE Documentation**: Provides specific guidance for tuning PID loops on CTRE motor controllers (e.g., Talon FX, Spark SRX).
 *   **WPILib Documentation**: Offers general information and best practices for implementing and tuning PID controllers in FRC.
 
 ## Closed-Loop System

@@ -41,7 +41,7 @@ move(config::getPercent);
 
 `() -> config.getPercent()` is equivalent to defining an anonymous method:
 ```java
-public void someName() {
+public double someName() {
     return config.getPercent();
 }
 ```
@@ -49,11 +49,12 @@ Lambdas are especially useful for returning config values of a mechanism when us
 
 ## Scope
 
-`private` and `public` keywords are added to variables and methods to control access.
+Access modifiers are added to variables and methods to control access.  
 
-*   `private`: Restricts variable/method access to only the file they are written in.
-*   `public`: Variables/methods can be accessed outside of the files they are written in.
-*   Other scope-related keywords like `protected`, `abstract`, etc., are also used.
+*   `private`: Restricts variable/method access to the declaring class.  
+*   `public`: Variables/methods can be accessed from anywhere.  
+*   No modifier (package-private): Variables/methods can be accessed only within the same package.  
+*   Other access modifiers like `protected` are also used.  
 
 We typically keep variables `private` and most methods `public`.
 
