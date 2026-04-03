@@ -155,11 +155,15 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
         setPilotPerspective();
-        DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
-        DogLog.log("Drive/OdometryPose", getState().Pose);
-        DogLog.log("Drive/TargetStates", getState().ModuleTargets);
-        DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
-        DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
+
+        // Comment these out for photon (@A2A1x)
+
+        //DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
+        //DogLog.log("Drive/OdometryPose", getState().Pose);
+        //DogLog.log("Drive/TargetStates", getState().ModuleTargets);
+        //DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
+        //DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
+        
         if (Utils.isSimulation()) {
             DogLog.log(
                     "FieldSimulation/Fuel",
