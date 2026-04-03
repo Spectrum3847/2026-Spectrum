@@ -17,16 +17,21 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -44,6 +49,7 @@ import java.util.Optional;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import lombok.Getter;
+import org.ironmaple.simulation.SimulatedArena;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
@@ -56,6 +62,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private RotationController rotationController;
     private TranslationXController xController;
     private TranslationYController yController;
+
+    private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
+
+    @Getter
+    protected SwerveModuleState[] setpoints =
+            new SwerveModuleState[] {}; // This currently doesn't do anything
+
+    // Buffer stores 1.5 seconds of pose history
+    private final TimeInterpolatableBuffer<Pose2d> poseHistory =
+            TimeInterpolatableBuffer.createBuffer(1.5);
 
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
@@ -139,6 +155,19 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
         setPilotPerspective();
+        DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
+        DogLog.log("Drive/OdometryPose", getState().Pose);
+        DogLog.log("Drive/TargetStates", getState().ModuleTargets);
+        DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
+        DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
+        if (Utils.isSimulation()) {
+            DogLog.log(
+                    "FieldSimulation/Fuel",
+                    SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
+        }
+        // Store current pose in history buffer every periodic cycle
+        poseHistory.addSample(Utils.getCurrentTimeSeconds(), this.getState().Pose);
+        checkPigeonConnection();
     }
 
     @Override
@@ -176,6 +205,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
         return getState().Pose;
+    }
+
+    private void checkPigeonConnection() {
+        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+            pigeonAlert.set(true);
+        } else {
+            pigeonAlert.set(false);
+        }
     }
 
     /**
