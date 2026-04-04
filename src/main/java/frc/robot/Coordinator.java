@@ -45,6 +45,22 @@ public class Coordinator {
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }
+            case AUTON_LAUNCHER_TRACK -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case AUTON_LAUNCHER_TRACK_WITH_LAUNCH -> {
+                FuelIntakeStates.slowIntakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeClose();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.aimAtTarget();
+            }
             case UNJAM -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.unjam();

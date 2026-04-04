@@ -395,7 +395,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * @param velocityRPM
      * @return
      */
-    public Command runVelocityTcFocRpm(DoubleSupplier velocityRPM) {
+    public Command runVelocityTcFocRPM(DoubleSupplier velocityRPM) {
         return run(() -> setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM)))
                 .withName(getName() + ".runVelocityFOCrpm");
     }
@@ -904,11 +904,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         @Getter private TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0);
 
-        @Getter
-        private DutyCycleOut percentOutput =
-                new DutyCycleOut(
-                        0); // Percent Output control using percentage of supply voltage //Should
-        // normally use VoltageOut
+        // Percent Output control using percentage of supply voltage. Should normally use VoltageOut
+        @Getter private DutyCycleOut percentOutput = new DutyCycleOut(0);
 
         public Config(String name, int id, String canbus) {
             this.name = name;

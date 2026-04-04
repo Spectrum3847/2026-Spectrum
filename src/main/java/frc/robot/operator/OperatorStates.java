@@ -1,7 +1,6 @@
 package frc.robot.operator;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.indexerBed.IndexerBedStates;
@@ -39,10 +38,10 @@ public class OperatorStates {
         operator.coastA.onTrue(IntakeExtensionStates.coastMode());
         operator.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        operator.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseHoodAngleOffset)));
-        operator.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseHoodAngleOffset)));
-        operator.dpadRight.onTrue(log(Commands.runOnce(ShotCalculator::decreaseDriveAngleOffset)));
-        operator.dpadLeft.onTrue(log(Commands.runOnce(ShotCalculator::increaseDriveAngleOffset)));
+        operator.dpadDown.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
+        operator.dpadUp.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        operator.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
+        operator.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
     }
 
     /** Command that can be used to rumble the operator controller */

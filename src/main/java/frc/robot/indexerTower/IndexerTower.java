@@ -24,7 +24,9 @@ public class IndexerTower extends Mechanism {
 
         /* Intake config values */
         @Getter @Setter private double currentLimit = 60;
-        @Getter @Setter private double torqueCurrentLimit = 160;
+        @Getter @Setter private double torqueCurrentLimit = 140;
+        @Getter @Setter private double lowerCurrentLimit = 40;
+        @Getter @Setter private double timeUntilLowerCurrent = 1;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
@@ -43,6 +45,8 @@ public class IndexerTower extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configNeutralBrakeMode(false);
             configClockwise_Positive();
             setFollowerConfigs(

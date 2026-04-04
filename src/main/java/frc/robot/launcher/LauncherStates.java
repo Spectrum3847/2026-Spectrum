@@ -35,12 +35,18 @@ public class LauncherStates {
 
     public static void slowLaunch() {
         scheduleIfNotRunning(
-                launcher.runVelocityTcFocRpm(config::getSlowLaunchSpeed)
+                launcher.runVelocityTcFocRPM(config::getSlowLaunchSpeed)
                         .withName("Launcher.slowLaunch"));
     }
 
     public static void aimAtTarget() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
+    }
+
+    public static void autonAimAtTarget() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRPM(config::getAutoTrenchLaunch)
+                        .withName("Launcher.autonAimAtTarget"));
     }
 
     public static void customLaunchSpeed() {
@@ -49,7 +55,7 @@ public class LauncherStates {
 
     public static void idlePrep() {
         scheduleIfNotRunning(
-                launcher.runVelocityTcFocRpm(config::getIdlingRPM).withName("Launcher.idlePrep"));
+                launcher.runVelocityTcFocRPM(config::getIdlingRPM).withName("Launcher.idlePrep"));
     }
 
     // --------------------------------------------------------

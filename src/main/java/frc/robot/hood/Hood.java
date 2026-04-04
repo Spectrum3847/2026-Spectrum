@@ -29,6 +29,8 @@ public class Hood extends Mechanism {
         @Getter @Setter private double maxRotations = 0.137;
         @Getter @Setter private double minRotations = 0.024;
 
+        @Getter @Setter private double autoTrenchShot = 25.0;
+
         @Getter
         private final DoubleSubscriber onTheFlyAngle = Telemetry.tunable("Hood/OnTheFlyAngle", 9.0);
 

@@ -48,6 +48,7 @@ public class Auton {
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
         pathChooser.addOption("Neutral Zone - Left Trench Start", trenchStart(false));
+        pathChooser.addOption("Neutral Zone - Right Trench Start", trenchStart(true));
 
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
@@ -77,9 +78,9 @@ public class Auton {
     public Command prepThanLaunch() {
         return Commands.sequence(
                 autonLaunching.setTrue(),
-                RobotStates.applyState(State.LAUNCHER_TRACK),
+                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK),
                 Commands.waitSeconds(0.25),
-                RobotStates.applyState(State.LAUNCER_TRACK_WITH_LAUNCH),
+                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK_WITH_LAUNCH),
                 Commands.waitSeconds(2.5),
                 RobotStates.applyState(State.IDLE),
                 autonLaunching.setFalse());

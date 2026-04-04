@@ -30,14 +30,17 @@ public class Launcher extends Mechanism {
 
         @Getter @Setter private double idlingRPM = 700;
         @Getter @Setter private double slowLaunchSpeed = 400;
+        @Getter @Setter private double autoTrenchLaunch = 1800;
 
         @Getter
         private final DoubleSubscriber onTheFlySpeed =
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double currentLimit = 100;
-        @Getter private double torqueCurrentLimit = 200;
+        @Getter private double currentLimit = 80;
+        @Getter private double torqueCurrentLimit = 160;
+        @Getter private double lowerCurrentLimit = 60;
+        @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
@@ -55,6 +58,8 @@ public class Launcher extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);

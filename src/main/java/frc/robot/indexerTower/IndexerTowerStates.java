@@ -22,26 +22,26 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVelocityTcFocRpm(config::getIndexerVelocityRPM)
+                        .runVelocityTcFocRPM(config::getIndexerVelocityRPM)
                         .withName("IndexerTower.feedMax"));
     }
 
     public static void slowIndex() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVelocityTcFocRpm(config::getIndexerSlowVelocityRPM)
+                        .runVelocityTcFocRPM(config::getIndexerSlowVelocityRPM)
                         .withName("IndexerTower.slowFeed"));
     }
 
     public static void quickReverseThenIndex() {
         scheduleIfNotRunning(
                 Commands.sequence(
-                        indexerTower.runVelocityTcFocRpm(config::getIndexerUnjamRPM).withTimeout(1),
-                        indexerTower.runVelocityTcFocRpm(config::getIndexerVelocityRPM)));
+                        indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM).withTimeout(1),
+                        indexerTower.runVelocityTcFocRPM(config::getIndexerVelocityRPM)));
     }
 
     public static void unjam() {
-        scheduleIfNotRunning(indexerTower.runVelocityTcFocRpm(config::getIndexerUnjamRPM));
+        scheduleIfNotRunning(indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM));
     }
 
     public static void coastMode() {
@@ -53,7 +53,7 @@ public class IndexerTowerStates {
     }
 
     public static Command unjamCommand() {
-        return indexerTower.runVelocityTcFocRpm(config::getIndexerUnjamRPM);
+        return indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM);
     }
 
     // Log Command

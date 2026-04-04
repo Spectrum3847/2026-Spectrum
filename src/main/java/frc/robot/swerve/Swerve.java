@@ -263,12 +263,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                                 (centerX - neutralDepthMeters / 2.0) + Units.inchesToMeters(24),
                                 centerY - neutralLengthMeters / 2.0),
                         new Translation2d(
-                                centerX + neutralDepthMeters / 2.0,
+                                (centerX + neutralDepthMeters / 2.0) - Units.inchesToMeters(24),
                                 centerY + neutralLengthMeters / 2.0));
 
         return new Trigger(
                 () -> {
-                    double x = FieldHelpers.flipXifRed(getRobotPose().getX());
+                    double x = getRobotPose().getX();
                     double y = getRobotPose().getY();
 
                     return neutralZone.contains(new Translation2d(x, y));

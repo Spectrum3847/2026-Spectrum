@@ -7,6 +7,7 @@ import frc.spectrumLib.Telemetry;
 
 public class HoodStates {
     private static Hood hood = Robot.getHood();
+    private static Hood.HoodConfig config = Robot.getConfig().hood;
 
     public static void setupDefaultCommand() {
         hood.setDefaultCommand(hood.runHoldHood().ignoringDisable(true).withName("Hood.default"));
@@ -17,11 +18,16 @@ public class HoodStates {
     }
 
     public static void home() {
-        scheduleIfNotRunning(hood.moveToDegrees(9).withName("Hood.home"));
+        scheduleIfNotRunning(hood.moveToDegrees(config::getInitPosition).withName("Hood.home"));
     }
 
     public static void aimAtTarget() {
         scheduleIfNotRunning(hood.trackTargetCommand().withName("Hood.aimAtHub"));
+    }
+
+    public static void autonAimAtTarget() {
+        scheduleIfNotRunning(
+                hood.moveToDegrees(config::getAutoTrenchShot).withName("Hood.autonAimAtTarget"));
     }
 
     public static void coastMode() {
