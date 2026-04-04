@@ -48,7 +48,7 @@ a = 5; # Semicolon not used in Python
 *   `boolean`: either `true` or `false`
 *   `String`: represents text or sequences of characters. Enclosed in double quotes.
     *   *Disclaimer: not a primitive type but very common.*
-*   `byte`: signed 8-bit integer. Values can be `-128` to `127`.  
+*   `byte`: signed 8-bit integer. Values can be `-128` to `127`.
 
 **Other keywords we use:**
 *   `implements`
