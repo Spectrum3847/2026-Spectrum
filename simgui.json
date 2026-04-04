@@ -153,11 +153,7 @@
       "Robot": {
         "FieldSimulation": {
           "open": true
-        },
-        "Match Data": {
-          "open": true
-        },
-        "open": true
+        }
       },
       "SmartDashboard": {
         "MapleSim": {
