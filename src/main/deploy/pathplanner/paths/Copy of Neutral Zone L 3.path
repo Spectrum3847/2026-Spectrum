@@ -55,22 +55,6 @@
         "x": 3.3330056179775283,
         "y": 5.43
       },
-      "nextControl": {
-        "x": 2.0830056179775283,
-        "y": 5.43
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 1.4133052434456927,
-        "y": 5.43
-      },
-      "prevControl": {
-        "x": 1.9133052434456927,
-        "y": 5.43
-      },
       "nextControl": null,
       "isLocked": false,
       "linkedName": null
@@ -107,7 +91,7 @@
     {
       "name": "Constraints Zone",
       "minWaypointRelativePos": 2.866483946750204,
-      "maxWaypointRelativePos": 4.0,
+      "maxWaypointRelativePos": 3.5,
       "constraints": {
         "maxVelocity": 0.1,
         "maxAcceleration": 4.0,
@@ -126,7 +110,7 @@
       },
       "rotationOffset": 180.0,
       "minWaypointRelativePos": 2.8711824588880166,
-      "maxWaypointRelativePos": 4.0,
+      "maxWaypointRelativePos": 3.5,
       "name": "Point Towards Zone"
     }
   ],
@@ -151,13 +135,13 @@
     },
     {
       "name": "unjam",
-      "waypointRelativePos": 3.1965544244322484,
+      "waypointRelativePos": 3,
       "endWaypointRelativePos": null,
       "command": null
     },
     {
       "name": "unjam",
-      "waypointRelativePos": 3.6664056382145476,
+      "waypointRelativePos": 3,
       "endWaypointRelativePos": null,
       "command": null
     }
