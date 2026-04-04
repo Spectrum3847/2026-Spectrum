@@ -38,23 +38,41 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 * Our goal is to make our software easy for multiple people to contribute too. Each subsystem should be able to be modified on it's own without needing to understand the rest of the robot code.
 
 ```text
-├── src/
-│   └── main/
-│       ├── java/
-│       │   └── frc/
-│       │       ├── robot/              # main robot application code
-│       │       │   ├── auton/          # autonomous routines and commands
-│       │       │   ├── configs/        # robot config selection/constants
-│       │       │   ├── swerve/
-│       │       │   ├── vision/
-│       │       │   ├── launcher/
-│       │       │   └── ...             # other subsystems
-│       │       ├── spectrumLib/        # shared Spectrum utilities
-│       │       └── rebuilt/            # field/targeting helper logic
-│       └── deploy/                     # files copied to RoboRIO
-│           └── pathplanner/
-├── vendordeps/                         # vendor dependency JSONs
-└── build.gradle                        # GradleRIO project config
+src/
+├── main/                               # Main source code
+│   ├── java/                           # Java source files
+│   │   └── frc/                        # All FRC application code
+│   │       ├── robot/                  # Main robot application and subsystems
+│   │       │   ├── auton/              # Autonomous routines and PathPlanner integration
+│   │       │   ├── configs/            # Robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026)
+│   │       │   ├── swerve/             # Swerve drive subsystem and controllers
+│   │       │   ├── vision/             # PhotonVision and Limelight vision subsystem
+│   │       │   ├── launcher/           # Fuel launcher mechanism
+│   │       │   ├── indexerTower/       # Vertical fuel indexer mechanism
+│   │       │   ├── indexerBed/         # Horizontal fuel indexer mechanism
+│   │       │   ├── fuelIntake/         # Ground intake mechanism
+│   │       │   ├── intakeExtension/    # Intake arm extension mechanism
+│   │       │   ├── turretRotationalPivot/ # Turret rotation mechanism
+│   │       │   ├── leds/               # CANdle LED control and animation
+│   │       │   ├── pilot/              # Pilot gamepad bindings and commands
+│   │       │   └── operator/           # Operator gamepad bindings and commands
+│   │       ├── spectrumLib/            # Reusable Spectrum team utilities (year-to-year code)
+│   │       │   ├── gamepads/           # Gamepad abstraction layer
+│   │       │   ├── leds/               # LED management utilities
+│   │       │   ├── mechanism/          # Motor and mechanism base classes
+│   │       │   ├── sim/                # Physics simulation helpers
+│   │       │   ├── talonFX/            # TalonFX motor factory and wrappers
+│   │       │   ├── util/               # Utility classes (conversions, CAN IDs, crash tracking)
+│   │       │   │   └── exceptions/     # Custom exception classes
+│   │       │   └── vision/             # Vision utilities (Limelight helpers)
+│   │       └── rebuilt/                # 2026 game-specific field and targeting helpers
+│   │           ├── offsets/            # Home offsets and calibration data
+│   │           └── targetFactories/    # Target factory implementations
+│   └── deploy/                         # Files deployed to RoboRIO
+│       └── pathplanner/                # PathPlanner autonomous paths and settings
+│           ├── paths/                  # Individual path trajectory files
+│           └── autos/                  # Autonomous routine configurations
+└── vendordeps/                         # Vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
 ```
 
 #### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).
