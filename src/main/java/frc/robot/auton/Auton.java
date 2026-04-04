@@ -50,11 +50,19 @@ public class Auton {
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
         pathChooser.addOption(
-                "Playoff Neutral Zone - Left Start",
-                SpectrumAuton("Playoff Neutral Zone - Left Start", false));
+                "SC2 Neutral Zone - Left Start",
+                SpectrumAuton("SC2 Neutral Zone - Left Start", false));
+
         pathChooser.addOption(
-                "Playoff Neutral Zone - Right Start",
-                SpectrumAuton("Playoff Neutral Zone - Left Start", true));
+                "SC2 Neutral Zone - Right Start",
+                SpectrumAuton("SC2 Neutral Zone - Left Start", true));
+
+        // pathChooser.addOption(
+        //         "Playoff Neutral Zone - Left Start",
+        //         SpectrumAuton("Playoff Neutral Zone - Left Start", false));
+        // pathChooser.addOption(
+        //         "Playoff Neutral Zone - Right Start",
+        //         SpectrumAuton("Playoff Neutral Zone - Left Start", true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
