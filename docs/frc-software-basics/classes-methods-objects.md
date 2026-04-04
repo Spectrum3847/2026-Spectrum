@@ -49,12 +49,12 @@ Lambdas are especially useful for returning config values of a mechanism when us
 
 ## Scope
 
-Access modifiers are added to variables and methods to control access.  
+Access modifiers are added to variables and methods to control access.
 
-*   `private`: Restricts variable/method access to the declaring class.  
-*   `public`: Variables/methods can be accessed from anywhere.  
-*   No modifier (package-private): Variables/methods can be accessed only within the same package.  
-*   Other access modifiers like `protected` are also used.  
+*   `private`: Restricts variable/method access to the declaring class.
+*   `public`: Variables/methods can be accessed from anywhere.
+*   No modifier (package-private): Variables/methods can be accessed only within the same package.
+*   Other access modifiers like `protected` are also used.
 
 We typically keep variables `private` and most methods `public`.
 
