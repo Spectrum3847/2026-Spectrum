@@ -38,8 +38,8 @@ public class OperatorStates {
         operator.coastA.onTrue(IntakeExtensionStates.coastMode());
         operator.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        operator.dpadDown.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
-        operator.dpadUp.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        operator.dpadDown.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        operator.dpadUp.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
         operator.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
         operator.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
     }

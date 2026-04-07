@@ -24,10 +24,10 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double indexerUnjamRPM = -2000;
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 30;
+        @Getter @Setter private double currentLimit = 40;
         @Getter @Setter private double torqueCurrentLimit = 60;
         @Getter @Setter private double lowerCurrentLimit = 15;
-        @Getter @Setter private double timeUntilLowerCurrent = 0.5;
+        @Getter @Setter private double timeUntilLowerCurrent = 0;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;

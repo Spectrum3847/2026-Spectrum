@@ -52,8 +52,8 @@ public class PilotStates {
         pilot.coastA.onTrue(IntakeExtensionStates.coastMode());
         pilot.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        pilot.dpadDown.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
-        pilot.dpadUp.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        pilot.dpadDown.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        pilot.dpadUp.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
         pilot.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
         pilot.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
 
