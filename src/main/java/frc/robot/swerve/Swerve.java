@@ -24,6 +24,15 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NTSendable;
+import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructArrayPublisher;
+import edu.wpi.first.networktables.StructPublisher;
+import edu.wpi.first.util.sendable.Sendable;
+import edu.wpi.first.util.sendable.SendableBuilder;
+import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -56,6 +65,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     private RotationController rotationController;
     private TranslationXController xController;
     private TranslationYController yController;
+
+    private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
 
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
@@ -176,6 +187,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
         return getState().Pose;
+    }
+
+    private void checkPigeonConnection() {
+        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+            pigeonAlert.set(true);
+        } else {
+            pigeonAlert.set(false);
+        }
     }
 
     /**
