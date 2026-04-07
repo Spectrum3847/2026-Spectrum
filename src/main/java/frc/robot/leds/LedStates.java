@@ -81,7 +81,7 @@
 //                                 Field.isBlue()
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(shiftAnimation)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(shiftAnimation)));
 //     }
 
 //     static void afterAutoTransition(Trigger trigger, int priority) {
@@ -92,19 +92,19 @@
 //                                 Field.isBlue()
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(shiftAnimation)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(shiftAnimation)));
 //     }
 
 //     static void redAlliance(Trigger trigger, int priority) {
 //         SingleFadeAnimation redAllianceShift =
 //                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(255, 0, 0));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(redAllianceShift)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(redAllianceShift)));
 //     }
 
 //     static void blueAlliance(Trigger trigger, int priority) {
 //         SingleFadeAnimation blueAllianceShift =
 //                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(0, 0, 255));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(blueAllianceShift)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(blueAllianceShift)));
 //     }
 
 //     static void shiftAboutToEnd(Trigger trigger, int priority) {
@@ -115,7 +115,7 @@
 //                                 ShiftHelpers.isCurrentShiftBlue(DriverStation.getMatchTime())
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(aboutToShift)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(aboutToShift)));
 //     }
 
 //     static void transitionAboutToEnd(Trigger trigger, int priority) {
@@ -126,12 +126,12 @@
 //                                 Field.isBlue()
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(aboutToShift)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(aboutToShift)));
 //     }
 
 //     static void endgame(Trigger trigger, int priority) {
 //         SingleFadeAnimation endgameAnimation =
 //                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(207, 255, 4));
-//         trigger.onTrue(new InstantCommand(() -> candle.setControl(endgameAnimation)));
+//         trigger.onTrue(Commands.runOnce() -> candle.setControl(endgameAnimation)));
 //     }
 // }

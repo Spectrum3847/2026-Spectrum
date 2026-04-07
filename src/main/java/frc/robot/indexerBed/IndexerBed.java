@@ -1,7 +1,7 @@
 package frc.robot.indexerBed;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
@@ -19,10 +19,15 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double indexerSlowVoltageOut = 4;
         @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 40;
+        @Getter @Setter private double indexerVelocityRPM = 2000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
+        @Getter @Setter private double indexerUnjamRPM = -2000;
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 50;
-        @Getter @Setter private double torqueCurrentLimit = 75;
+        @Getter @Setter private double currentLimit = 40;
+        @Getter @Setter private double torqueCurrentLimit = 60;
+        @Getter @Setter private double lowerCurrentLimit = 15;
+        @Getter @Setter private double timeUntilLowerCurrent = 0;
         @Getter @Setter private double velocityKp = 25;
         @Getter @Setter private double velocityKv = 0.2;
         @Getter @Setter private double velocityKs = 4;
@@ -41,12 +46,13 @@ public class IndexerBed extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configNeutralBrakeMode(false);
-            configCounterClockwise_Positive();
-            // setFollowerConfigs(
-            //         new FollowerConfig(
-            //                 "IndexerBed Follower 1", 9, Rio.CANIVORE,
-            // MotorAlignmentValue.Aligned));
+            configClockwise_Positive();
+            setFollowerConfigs(
+                    new FollowerConfig(
+                            "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -58,12 +64,17 @@ public class IndexerBed extends Mechanism {
         this.config = config;
 
         // simulationInit();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("IndexerBed/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("IndexerBed/Voltage", getVoltage());
+        Telemetry.log("IndexerBed/Current", getStatorCurrent());
+        Telemetry.log("IndexerBed/RPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -71,22 +82,6 @@ public class IndexerBed extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         IndexerBedStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     // --------------------------------------------------------------------------------

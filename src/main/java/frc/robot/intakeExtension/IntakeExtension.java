@@ -5,7 +5,6 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
@@ -31,27 +30,30 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter @Setter private double maxRotations = 2.6;
+        @Getter @Setter private double maxRotations = 2.779053;
         @Getter @Setter private double minRotations = 0.0;
 
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
         @Getter private double home = 0;
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
+        @Getter private double atPoseTolerance = 10;
 
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 180;
-        @Getter private final double positionKp = 1;
+        @Getter private final double currentLimit = 40;
+        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double positionKp = 10;
+        @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 0.3;
+        @Getter private final double positionKv = 0.5;
         @Getter private final double positionKs = 1.5;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
+        @Getter private final double gearRatio = 11.25;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
 
-        @Getter @Setter private double sensorToMechanismRatio = 3.6111;
+        @Getter @Setter private double sensorToMechanismRatio = 11.25;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
@@ -78,18 +80,18 @@ public class IntakeExtension extends Mechanism {
         public IntakeExtensionConfig() {
             super("Intake Extension", 7, Rio.CANIVORE); // Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
-            configPIDGains(0, positionKp, 0, positionKd);
+            configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
-            configGearRatio(3.6111);
+            configGearRatio(gearRatio);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
@@ -114,12 +116,18 @@ public class IntakeExtension extends Mechanism {
         }
 
         simulationInit();
-        // telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage());
+        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
+        Telemetry.log("IntakeExtension/Position", getPositionRotations());
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -127,21 +135,6 @@ public class IntakeExtension extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         IntakeExtensionStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Degrees", this::getPositionDegrees, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     private void setInitialPosition() {
@@ -207,6 +200,14 @@ public class IntakeExtension extends Mechanism {
         return run(() -> setVoltageOutput(rotations));
     }
 
+    public Command voltageOutPositive() {
+        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
+    }
+
+    public Command voltageOutNegative() {
+        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
+    }
+
     public Command motionMagicPercentMove(DoubleSupplier percent) {
         return run(() -> setMMPosition(() -> percentToRotations(percent)));
     }
@@ -215,7 +216,7 @@ public class IntakeExtension extends Mechanism {
         return run(
                 () ->
                         setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 2, () -> 20, () -> 1000));
+                                () -> percentToRotations(percent), () -> 3, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

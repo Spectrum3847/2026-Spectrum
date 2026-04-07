@@ -1,36 +1,31 @@
 package frc.spectrumLib;
 
-import edu.wpi.first.wpilibj2.command.Subsystem;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
 
 /**
- * CachedDouble allows for a value to only be checked once per periodic loop if it is called by
- * multiple methods. Periodic is run first, so the value will be updated before it is used in any
- * Triggers or Command
+ * Caches a DoubleSupplier value so it is computed at most once per scheduler iteration. Note:
+ * Subsystem periodic() is typically called after triggers are polled each iteration.
  */
-public class CachedDouble implements DoubleSupplier, Subsystem {
-
-    private boolean isCached;
+public class CachedDouble extends SubsystemBase implements DoubleSupplier {
+    private boolean cached = false;
     private double value;
-    private DoubleSupplier canCall;
+    private final DoubleSupplier source;
 
-    public CachedDouble(DoubleSupplier canCall) {
-        this.canCall = canCall;
-        value = canCall.getAsDouble();
-        isCached = true;
-        this.register();
+    public CachedDouble(DoubleSupplier source) {
+        this.source = source;
     }
 
     @Override
     public void periodic() {
-        isCached = false;
+        cached = false;
     }
 
     @Override
     public double getAsDouble() {
-        if (!isCached) {
-            value = canCall.getAsDouble();
-            isCached = true;
+        if (!cached) {
+            value = source.getAsDouble();
+            cached = true;
         }
         return value;
     }

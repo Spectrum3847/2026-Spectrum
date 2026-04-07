@@ -28,8 +28,9 @@ public class SwerveConfig {
     @Getter @Setter private double robotWidth = Units.inchesToMeters(25);
     @Getter @Setter private double robotLength = Units.inchesToMeters(29);
 
-    @Getter @Setter private double maxAngularRate = 2 * Math.PI; // rad/s
+    @Getter @Setter private double maxAngularRate = 3 * Math.PI; // rad/s
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
+    @Getter @Setter private double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
     @Getter @Setter private double driveGearRatio = 7.03;
     @Getter @Setter private double steerGearRatio = 26.09;
@@ -50,9 +51,9 @@ public class SwerveConfig {
     @Getter private double maxAngularVelocity = 1.5 * Math.PI; // rad/s
     @Getter private double maxAngularAcceleration = 2 * Math.PI; // rad/s^2
 
-    @Getter private double kPRotationController = 5; // 4.5 // 6.5 // 8.0;
+    @Getter private double kPRotationController = 6.0;
     @Getter private double kIRotationController = 0.0;
-    @Getter private double kDRotationController = 0.0; // 0.2
+    @Getter private double kDRotationController = 0.0;
     @Getter private double rotationTolerance = Units.degreesToRadians(1); // rads
     @Getter private double rotationVelocityTolerance = Units.degreesToRadians(3); // rads/s
 
@@ -82,9 +83,9 @@ public class SwerveConfig {
     @Getter private double tagDistanceTolerance = 0.3; // Area
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
-    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
+    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.kZero;
     /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
-    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
+    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.k180deg;
 
     // Both sets of gains need to be tuned to your individual robot.
     @Getter
