@@ -2,6 +2,7 @@ package frc.robot.fuelIntake;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
@@ -20,8 +21,7 @@ public class FuelIntakeStates {
 
     public static void intakeFuel() {
         scheduleIfNotRunning(
-                intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
-                        .withName("Intake.intakeFuel"));
+                intake.runTorqueFOC(config.getIntakeTorqueCurrent()).withName("Intake.intakeFuel"));
     }
 
     public static void slowIntakeFuel() {
@@ -32,7 +32,9 @@ public class FuelIntakeStates {
 
     public static void agitateFuel() {
         scheduleIfNotRunning(
-                intake.runTorqueFOC(config::getFuelAgitationTorqueCurrent)
+                Commands.repeatingSequence(
+                                intake.runTorqueFOC(config::getFuelAgitationTorqueCurrent),
+                                Commands.waitSeconds(0.5))
                         .withName("Intake.agitate"));
     }
 

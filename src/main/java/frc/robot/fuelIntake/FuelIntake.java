@@ -3,6 +3,7 @@ package frc.robot.fuelIntake;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Robot;
@@ -28,6 +29,10 @@ public class FuelIntake extends Mechanism {
         @Getter @Setter private double fuelSlowIntakeTorqueCurrent = 45.0;
         @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
         @Getter @Setter private double ejectTorqueCurrent = -50;
+
+        @Getter
+        private final DoubleSubscriber intakeTorqueCurrent =
+                Telemetry.tunable("Tunable/IntakeTorqueCurrent", fuelIntakeTorqueCurrent);
 
         /* Intake config values */
         @Getter private double currentLimit = 70;

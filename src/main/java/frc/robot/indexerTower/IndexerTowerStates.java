@@ -22,7 +22,7 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runVelocityTcFocRPM(config::getIndexerVelocityRPM)
+                        .runVelocityTcFocRPM(config.getIndexerTowerFeedRPM())
                         .withName("IndexerTower.feedMax"));
     }
 
@@ -37,11 +37,14 @@ public class IndexerTowerStates {
         scheduleIfNotRunning(
                 Commands.sequence(
                         indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM).withTimeout(1),
-                        indexerTower.runVelocityTcFocRPM(config::getIndexerVelocityRPM)));
+                        indexerTower.runVelocityTcFocRPM(config.getIndexerTowerFeedRPM())));
     }
 
     public static void unjam() {
-        scheduleIfNotRunning(indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM));
+        scheduleIfNotRunning(
+                indexerTower
+                        .runVelocityTcFocRPM(config::getIndexerUnjamRPM)
+                        .withName("IndexerTower.unjam"));
     }
 
     public static void coastMode() {
