@@ -11,9 +11,10 @@
 // import frc.rebuilt.ShiftHelpers;
 // import frc.robot.Robot;
 // import frc.spectrumLib.util.Util;
+// import edu.wpi.first.wpilibj2.command.Commands;
 
 // public class LedStates {
-//     private static CANdleLeds leds = Robot.getLeds();
+//     private static CANdle leds = Robot.getLeds();
 //     private static CANdle candle = leds.getCANdle();
 
 //     public static final Trigger auto = Util.autoMode;
@@ -62,7 +63,6 @@
 //     public static void setDefaultCommand() {}
 
 //     static void bindTriggers() {
-
 //         // Match time related patterns
 //         autoShift(auto, 15);
 //         afterAutoTransition(transitionShift, 15);
@@ -73,6 +73,11 @@
 //         endgame(endgame, 20);
 //     }
 
+//     /**
+//      * 
+//      * @param trigger
+//      * @param priority
+//      */
 //     static void autoShift(Trigger trigger, int priority) {
 //         SingleFadeAnimation shiftAnimation =
 //                 new SingleFadeAnimation(0, 20)
@@ -81,7 +86,7 @@
 //                                 Field.isBlue()
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(shiftAnimation)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(shiftAnimation)));
 //     }
 
 //     static void afterAutoTransition(Trigger trigger, int priority) {
@@ -92,19 +97,19 @@
 //                                 Field.isBlue()
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(shiftAnimation)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(shiftAnimation)));
 //     }
 
 //     static void redAlliance(Trigger trigger, int priority) {
 //         SingleFadeAnimation redAllianceShift =
 //                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(255, 0, 0));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(redAllianceShift)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(redAllianceShift)));
 //     }
 
 //     static void blueAlliance(Trigger trigger, int priority) {
 //         SingleFadeAnimation blueAllianceShift =
 //                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(0, 0, 255));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(blueAllianceShift)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(blueAllianceShift)));
 //     }
 
 //     static void shiftAboutToEnd(Trigger trigger, int priority) {
@@ -115,7 +120,7 @@
 //                                 ShiftHelpers.isCurrentShiftBlue(DriverStation.getMatchTime())
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(aboutToShift)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(aboutToShift)));
 //     }
 
 //     static void transitionAboutToEnd(Trigger trigger, int priority) {
@@ -126,12 +131,12 @@
 //                                 Field.isBlue()
 //                                         ? new RGBWColor(0, 0, 255)
 //                                         : new RGBWColor(255, 0, 0));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(aboutToShift)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(aboutToShift)));
 //     }
 
 //     static void endgame(Trigger trigger, int priority) {
 //         SingleFadeAnimation endgameAnimation =
 //                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(207, 255, 4));
-//         trigger.onTrue(Commands.runOnce() -> candle.setControl(endgameAnimation)));
+//         trigger.onTrue(Commands.runOnce(() -> candle.setControl(endgameAnimation)));
 //     }
 // }
