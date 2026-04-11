@@ -50,11 +50,11 @@ public class ShotCalculator {
     public static double DRIVE_ANGLE_OFFSET = STARTING_DRIVE_ANGLE_OFFSET;
 
     public static Command increaseHoodAngleOffset() {
-        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 1).ignoringDisable(true);
+        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
     }
 
     public static Command decreaseHoodAngleOffset() {
-        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= 1).ignoringDisable(true);
+        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= 0.1).ignoringDisable(true);
     }
 
     public static Command increaseDriveAngleOffset() {

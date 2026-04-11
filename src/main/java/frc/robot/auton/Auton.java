@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.RobotStates;
 import frc.robot.State;
+import frc.robot.swerve.SwerveStates;
 import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import java.io.IOException;
@@ -76,14 +77,16 @@ public class Auton {
     }
 
     public Command prepThanLaunch() {
-        return Commands.sequence(
-                autonLaunching.setTrue(),
-                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK),
-                Commands.waitSeconds(0.25),
-                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK_WITH_LAUNCH),
-                Commands.waitSeconds(2.5),
-                RobotStates.applyState(State.IDLE),
-                autonLaunching.setFalse());
+        return Commands.deadline(
+                Commands.sequence(
+                        autonLaunching.setTrue(),
+                        RobotStates.applyState(State.LAUNCHER_TRACK),
+                        Commands.waitSeconds(0.5),
+                        RobotStates.applyState(State.LAUNCER_TRACK_WITH_LAUNCH),
+                        Commands.waitSeconds(2.5),
+                        RobotStates.applyState(State.IDLE),
+                        autonLaunching.setFalse()),
+                SwerveStates.autonAimAtTarget());
     }
 
     public Command trenchStart(boolean mirrored) {
@@ -91,7 +94,8 @@ public class Auton {
                         SpectrumAuton("Trench 1", mirrored),
                         prepThanLaunch(),
                         SpectrumAuton("Trench 2", mirrored),
-                        prepThanLaunch())
+                        prepThanLaunch(),
+                        SpectrumAuton("Trench 3", mirrored))
                 .withName("Trench Full");
     }
 

@@ -7,25 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone Trench L 1"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Neutral Zone Trench L 2"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
             "pathName": "Neutral Zone Trench L 3"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
+  "resetOdom": false,
   "folder": "Neutral Zone Autos",
   "choreoAuto": false
 }

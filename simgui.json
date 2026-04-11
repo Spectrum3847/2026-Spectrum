@@ -179,6 +179,9 @@
     "Clients": {
       "open": true
     },
+    "Elastic@2": {
+      "open": true
+    },
     "visible": true
   }
 }
