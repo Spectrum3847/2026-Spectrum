@@ -26,7 +26,7 @@ public class PilotStates {
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
     private static final Trigger launching =
-            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK_WITH_LAUNCH);
 
     /** Set the states for the pilot controller */
     public static void setStates() {

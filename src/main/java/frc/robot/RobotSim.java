@@ -22,7 +22,6 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
 import frc.spectrumLib.Telemetry;
-import frc.spectrumLib.sim.Circle;
 import java.util.Set;
 import lombok.Getter;
 

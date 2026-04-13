@@ -91,7 +91,7 @@ public class SwerveStates {
             new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
 
     private static final Trigger launching =
-            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK_WITH_LAUNCH);
 
     private static final Trigger launchPreping =
             new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK);

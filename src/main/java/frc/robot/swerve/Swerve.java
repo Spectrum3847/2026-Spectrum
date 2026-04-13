@@ -142,12 +142,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     public void periodic() {
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
+        checkPigeonConnection();
         setPilotPerspective();
 
         if (Utils.isSimulation()) {
             Telemetry.log("Sim/SimPose", getRobotPose());
         }
-        checkPigeonConnection();
     }
 
     // -----------------------------------------------------------------------
