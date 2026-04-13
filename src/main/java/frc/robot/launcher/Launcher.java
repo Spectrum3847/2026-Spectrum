@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
@@ -29,31 +30,36 @@ public class Launcher extends Mechanism {
 
         @Getter @Setter private double idlingRPM = 700;
         @Getter @Setter private double slowLaunchSpeed = 400;
+        @Getter @Setter private double autoTrenchLaunch = 1800;
 
         @Getter
         private final DoubleSubscriber onTheFlySpeed =
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double currentLimit = 60;
-        @Getter private double torqueCurrentLimit = 80;
+        @Getter private double currentLimit = 80;
+        @Getter private double torqueCurrentLimit = 160;
+        @Getter private double lowerCurrentLimit = 60;
+        @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 10;
+        @Getter private double velocityKs = 20;
 
         @Getter private double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
-        @Getter private double launcherX = Units.inchesToMeters(50);
-        @Getter private double launcherY = Units.inchesToMeters(63);
+        @Getter private double launcherX = Units.inchesToMeters(62.5);
+        @Getter private double launcherY = Units.inchesToMeters(60);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher", 48, Rio.CANIVORE);
+            super("Launcher Top Left", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
@@ -64,7 +70,14 @@ public class Launcher extends Mechanism {
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
+                    new FollowerConfig(
+                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
+                    new FollowerConfig(
+                            "Launcher Bottom Right",
+                            49,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Opposed));
         }
     }
 
@@ -177,7 +190,8 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY())
+                            .setMount(Robot.getHood().getSim()),
                     mech,
                     rollerMotorSim,
                     config.getName());

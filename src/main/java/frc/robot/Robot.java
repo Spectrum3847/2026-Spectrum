@@ -28,6 +28,8 @@ import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.hood.Hood;
+import frc.robot.hood.Hood.HoodConfig;
 import frc.robot.indexerBed.IndexerBed;
 import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.indexerTower.IndexerTower;
@@ -84,6 +86,7 @@ public class Robot extends SpectrumRobot {
         public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
         public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
+        public HoodConfig hood = new HoodConfig();
         public VisionConfig vision = new VisionConfig();
     }
 
@@ -97,6 +100,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
     @Getter private static Launcher launcher;
+    @Getter private static Hood hood;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
@@ -135,6 +139,7 @@ public class Robot extends SpectrumRobot {
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
             // leds = new CANdleLeds();
+            coordinator = new Coordinator();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
@@ -145,6 +150,8 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
+            hood = new Hood(config.hood);
+            Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
             indexerTower = new IndexerTower(config.indexerTower);
@@ -152,7 +159,6 @@ public class Robot extends SpectrumRobot {
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             batteryLogger = new BatteryLogger();
-            coordinator = new Coordinator();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();

@@ -23,7 +23,7 @@ public class Operator extends Gamepad {
     public final Trigger RT = rightTrigger;
     public final Trigger LT = leftTrigger;
 
-    public final Trigger maunelOverride = enabled.and(rightStickX.or(rightStickY));
+    public final Trigger manualOverride = enabled.and(rightStickX.or(rightStickY));
 
     public final Trigger AButton = A.and(teleop);
     public final Trigger BButton = B.and(teleop);
@@ -41,7 +41,7 @@ public class Operator extends Gamepad {
     public final Trigger coastA = A.and(disabled);
     public final Trigger brakeB = B.and(disabled);
 
-    public final Trigger resetIntakeExtensionPos = Y.and(disabled.or(fn));
+    public final Trigger resetIntakeExtensionPos = Y.and(fn);
     public final Trigger resetTurretPos = start.and(fn);
 
     public final Trigger moveTurretLeft = LT.and(fn);

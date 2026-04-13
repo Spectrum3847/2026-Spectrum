@@ -49,15 +49,15 @@
     {
       "anchor": {
         "x": 7.801938202247191,
-        "y": 4.650870786516855
+        "y": 4.05
       },
       "prevControl": {
         "x": 7.806044007490637,
-        "y": 5.207735469242675
+        "y": 4.606864682725821
       },
       "nextControl": {
         "x": 7.797832397003745,
-        "y": 4.094006103791034
+        "y": 3.493135317274179
       },
       "isLocked": false,
       "linkedName": null
@@ -65,15 +65,15 @@
     {
       "anchor": {
         "x": 6.73,
-        "y": 4.650870786516855
+        "y": 4.05
       },
       "prevControl": {
         "x": 6.73,
-        "y": 4.150870786516855
+        "y": 3.55
       },
       "nextControl": {
         "x": 6.73,
-        "y": 5.150870786516855
+        "y": 4.55
       },
       "isLocked": false,
       "linkedName": null
@@ -110,10 +110,6 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.6,
-      "rotationDegrees": 0.0
-    },
-    {
       "waypointRelativePos": 1.8,
       "rotationDegrees": -90.0
     },
@@ -131,19 +127,6 @@
     }
   ],
   "constraintZones": [
-    {
-      "name": "Constraints Zone",
-      "minWaypointRelativePos": 5.875489428347681,
-      "maxWaypointRelativePos": 6.0,
-      "constraints": {
-        "maxVelocity": 0.5,
-        "maxAcceleration": 5.0,
-        "maxAngularVelocity": 360.0,
-        "maxAngularAcceleration": 540.0,
-        "nominalVoltage": 10.0,
-        "unlimited": false
-      }
-    },
     {
       "name": "Constraints Zone",
       "minWaypointRelativePos": 4.804228660924045,
@@ -171,17 +154,11 @@
       "waypointRelativePos": 3.789350039154284,
       "endWaypointRelativePos": 6.0,
       "command": null
-    },
-    {
-      "name": "shoot",
-      "waypointRelativePos": 5.97,
-      "endWaypointRelativePos": null,
-      "command": null
     }
   ],
   "globalConstraints": {
     "maxVelocity": 3.0,
-    "maxAcceleration": 5.0,
+    "maxAcceleration": 4.0,
     "maxAngularVelocity": 360.0,
     "maxAngularAcceleration": 540.0,
     "nominalVoltage": 10.0,
@@ -195,7 +172,7 @@
   "folder": "Neutral Zone - Left Trench Start",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": -90.0
   },
-  "useDefaultConstraints": false
+  "useDefaultConstraints": true
 }

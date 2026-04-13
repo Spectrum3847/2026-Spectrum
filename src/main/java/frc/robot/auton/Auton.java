@@ -17,11 +17,17 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import frc.robot.RobotStates;
+import frc.robot.State;
+import frc.robot.swerve.SwerveStates;
+import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
 public class Auton {
+
+    public static final SpectrumState autonLaunching = new SpectrumState("AutonLaunching");
 
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
@@ -42,16 +48,8 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
-        pathChooser.addOption(
-                "Neutral Zone - Left Bump Start",
-                SpectrumAuton("Neutral Zone - Left Bump Start", false));
-        pathChooser.addOption(
-                "Neutral Zone - Right Bump Start",
-                SpectrumAuton("Neutral Zone - Left Bump Start", true));
-
-        pathChooser.addOption(
-                "Neutral Zone - Left Trench Start",
-                SpectrumAuton("Neutral Zone - Left Trench Start", false));
+        pathChooser.addOption("Neutral Zone - Left Trench Start", trenchStart(false));
+        pathChooser.addOption("Neutral Zone - Right Trench Start", trenchStart(true));
 
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
@@ -60,7 +58,7 @@ public class Auton {
 
     public Auton() {
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
-        Telemetry.print("Auton Subsystem Initialized: ");
+        Telemetry.print("Auton Subsystem Initialized");
     }
 
     public void init() {
@@ -78,7 +76,29 @@ public class Auton {
         printAutoDuration();
     }
 
-    //
+    public Command prepThanLaunch() {
+        return Commands.deadline(
+                Commands.sequence(
+                        autonLaunching.setTrue(),
+                        RobotStates.applyState(State.LAUNCHER_TRACK),
+                        Commands.waitSeconds(0.5),
+                        RobotStates.applyState(State.LAUNCER_TRACK_WITH_LAUNCH),
+                        Commands.waitSeconds(2.5),
+                        RobotStates.applyState(State.IDLE),
+                        autonLaunching.setFalse()),
+                SwerveStates.autonAimAtTarget());
+    }
+
+    public Command trenchStart(boolean mirrored) {
+        return Commands.sequence(
+                        SpectrumAuton("Trench-Bump 1", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("Trench-Bump 2", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("Trench-Bump 3", mirrored))
+                .withName("Trench-Bump Full");
+    }
+
     /**
      * Creates a SpectrumAuton command sequence.
      *

@@ -1,6 +1,7 @@
 package frc.robot;
 
 import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.hood.HoodStates;
 import frc.robot.indexerBed.IndexerBedStates;
 import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
@@ -18,13 +19,15 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.neutral();
                 LauncherStates.idlePrep();
+                HoodStates.home();
             }
             case INTAKE_FUEL -> {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
+                IndexerBedStates.slowIndex();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.idlePrep();
+                HoodStates.neutral();
             }
             case LAUNCHER_TRACK -> {
                 FuelIntakeStates.stop();
@@ -32,13 +35,31 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
             }
-            case LAUNCHER_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.slowIntakeFuel();
+            case LAUNCER_TRACK_WITH_LAUNCH -> {
+                FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.slowIntakeClose();
                 LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case AUTON_LAUNCHER_TRACK -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.autonAimAtTarget();
+            }
+            case AUTON_LAUNCHER_TRACK_WITH_LAUNCH -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeClose();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.autonAimAtTarget();
             }
             case UNJAM -> {
                 FuelIntakeStates.stop();
@@ -46,6 +67,7 @@ public class Coordinator {
                 IndexerBedStates.unjam();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.neutral();
+                HoodStates.neutral();
             }
             case FORCE_HOME -> {
                 FuelIntakeStates.stop();
@@ -53,6 +75,7 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullRetract();
                 LauncherStates.neutral();
+                HoodStates.neutral();
             }
             case CUSTOM_SPEED_TURRET_LAUNCH -> {
                 FuelIntakeStates.stop();
@@ -60,24 +83,29 @@ public class Coordinator {
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.customLaunchSpeed();
+                HoodStates.aimAtTarget();
             }
             case TEST_INFINITE_LAUNCH -> {
                 FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.slowIndex();
                 IndexerBedStates.slowIndex();
                 LauncherStates.slowLaunch();
+                HoodStates.neutral();
             }
             case TEST_IDLE -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 LauncherStates.neutral();
+                HoodStates.neutral();
             }
             case COAST -> {
                 IntakeExtensionStates.coastMode();
+                HoodStates.coastMode();
             }
             case BRAKE -> {
                 IntakeExtensionStates.brakeMode();
+                HoodStates.ensureBrakeMode();
             }
             default -> {
                 // Handle other states or throw an error

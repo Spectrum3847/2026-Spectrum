@@ -20,18 +20,20 @@ public class IndexerBedStates {
 
     public static void indexMax() {
         scheduleIfNotRunning(
-                indexerBed.runVoltage(config::getIndexerVoltageOut).withName("IndexerBed.feedMax"));
+                indexerBed
+                        .runVelocityTcFocRPM(config.getIndexerBedFeedRPM())
+                        .withName("IndexerBed.feedMax"));
     }
 
     public static void slowIndex() {
         scheduleIfNotRunning(
                 indexerBed
-                        .runVoltage(config::getIndexerSlowVoltageOut)
+                        .runVelocityTcFocRPM(config::getIndexerSlowVelocityRPM)
                         .withName("IndexerBed.slowFeed"));
     }
 
     public static void unjam() {
-        scheduleIfNotRunning(indexerBed.runVoltage(config::getUnjamVoltageOut));
+        scheduleIfNotRunning(indexerBed.runVelocityTcFocRPM(config::getIndexerUnjamRPM));
     }
 
     public static void coastMode() {
@@ -43,7 +45,7 @@ public class IndexerBedStates {
     }
 
     public static Command unjamCommand() {
-        return indexerBed.runVelocity(config::getUnjamVoltageOut);
+        return indexerBed.runVelocityTcFocRPM(config::getIndexerUnjamRPM);
     }
 
     // Log Command

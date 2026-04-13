@@ -39,7 +39,7 @@ public class RobotStates {
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
 
-    public static final Trigger forceScore = operator.AButton;
+    // public static final Trigger forceScore = operator.AButton;
 
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
 
@@ -54,7 +54,7 @@ public class RobotStates {
         pilot.XButton.whileTrue(applyState(State.LAUNCHER_TRACK));
         pilot.XButton.onFalse(applyState(State.IDLE));
 
-        pilot.LT.whileTrue(applyState(State.LAUNCHER_TRACK_WITH_LAUNCH));
+        pilot.LT.whileTrue(applyState(State.LAUNCER_TRACK_WITH_LAUNCH));
         pilot.LT.onFalse(applyState(State.IDLE));
 
         pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
@@ -73,7 +73,7 @@ public class RobotStates {
         operator.testX.onFalse(applyState(State.TEST_IDLE));
 
         pilot.home_select.onTrue(clearState());
-        pilot.home_select.onFalse(clearState()); // forces inital state to be cleared on startup
+        pilot.home_select.onFalse(clearState()); // forces initial state to be cleared on startup
 
         // Telemetry bindings (keep logs in sync with trigger state)
         bindTriggerTelemetry("LauncherPrep/LauncherOnTarget", launcherOnTarget);
@@ -86,12 +86,12 @@ public class RobotStates {
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
         Auton.autonShotPrep.onTrue(applyState(State.LAUNCHER_TRACK));
-        Auton.autonShoot.onTrue(applyState(State.LAUNCHER_TRACK_WITH_LAUNCH));
+        Auton.autonShoot.onTrue(applyState(State.LAUNCER_TRACK_WITH_LAUNCH));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         applyState(State.UNJAM),
                         Commands.waitSeconds(1),
-                        applyState(State.LAUNCHER_TRACK_WITH_LAUNCH)));
+                        applyState(State.LAUNCER_TRACK_WITH_LAUNCH)));
         Auton.autonClearState.onTrue(clearState());
     }
 

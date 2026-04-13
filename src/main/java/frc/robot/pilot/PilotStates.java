@@ -25,13 +25,8 @@ public class PilotStates {
     private static Trigger reorientButton =
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
-    private static final Trigger intaking =
-            new Trigger(
-                    () ->
-                            RobotStates.getAppliedState() == State.SNAKE_INTAKE
-                                    || RobotStates.getAppliedState() == State.INTAKE_FUEL);
     private static final Trigger launching =
-            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
 
     /** Set the states for the pilot controller */
     public static void setStates() {
@@ -39,21 +34,19 @@ public class PilotStates {
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
         pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
+        pilot.YButton.whileTrue(Robot.getAuton().prepThanLaunch());
 
         pilot.rightTriggerOnly.and(pilot.fn).whileTrue(FuelIntakeStates.ejectCommand());
 
         pilot.coastA.onTrue(IntakeExtensionStates.coastMode());
         pilot.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        pilot.dpadDown.onTrue(log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        pilot.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
-        pilot.dpadRight.onTrue(
-                log(Commands.runOnce(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        pilot.dpadLeft.onTrue(
-                log(Commands.runOnce(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+        pilot.dpadDown.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        pilot.dpadUp.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
+        pilot.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
+        pilot.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
 
-        // Slow mode when driver is intaking or launching fuel
-        intaking.whileTrue(slowMode());
+        // Slow mode when driver is launching fuel
         launching.whileTrue(slowMode());
 
         // Rumble whenever we reorient

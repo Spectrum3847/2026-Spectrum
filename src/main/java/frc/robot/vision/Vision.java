@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
+import frc.robot.auton.Auton;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
 import frc.spectrumLib.util.Util;
@@ -39,14 +40,6 @@ public class Vision implements Subsystem {
         @Getter final String name = "Vision";
 
         /* Limelight Configuration */
-        @Getter final String frontLL = "limelight-front";
-
-        @Getter
-        final LimelightConfig frontConfig =
-                new LimelightConfig(frontLL)
-                        .withTranslation(-0.286201993, 0.2134100126, 0.7366)
-                        .withRotation(0, 0, 0);
-
         @Getter final String backLL = "limelight-back";
 
         @Getter
@@ -70,20 +63,6 @@ public class Vision implements Subsystem {
                 new LimelightConfig(rightLL)
                         .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
                         .withRotation(0, 0, -90);
-
-        // Turret must be ZEROED in LL-GUI to report a correct pose
-        // Dynamic translation and rotation will be applied in code based on turret and robot
-        // rotation
-        @Getter final String turretLL = "limelight-turret";
-
-        @Getter
-        final LimelightConfig turretConfig =
-                new LimelightConfig(turretLL)
-                        .withTranslation(
-                                Units.inchesToMeters(0.430),
-                                Units.inchesToMeters(-5.06),
-                                Units.inchesToMeters(27))
-                        .withRotation(0, 10, 180);
 
         @Getter
         final Translation2d robotToTurretCenter =
@@ -117,14 +96,11 @@ public class Vision implements Subsystem {
     }
 
     /* Limelights */
-    @Getter public final Limelight frontLL;
     @Getter public final Limelight backLL;
     @Getter public final Limelight leftLL;
     @Getter public final Limelight rightLL;
-    @Getter public final Limelight turretLL;
 
     public final Limelight[] allLimelights;
-    public final Limelight[] swerveLimelights; // Non-turret cameras
 
     int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
     int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
@@ -147,23 +123,17 @@ public class Vision implements Subsystem {
     public Vision(VisionConfig config) {
         this.config = config;
 
-        frontLL = new Limelight(config.frontLL, config.frontTagPipeline, config.frontConfig);
         backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
         leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
         rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
-        turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
 
-        swerveLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
-        allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL, turretLL};
+        allLimelights = new Limelight[] {backLL, leftLL, rightLL};
 
         /* Configure Limelight Settings Here (initial set) */
-        for (Limelight limelight : swerveLimelights) {
+        for (Limelight limelight : allLimelights) {
             limelight.setLEDMode(false);
             setImuModeIfChanged(limelight, 1);
         }
-
-        turretLL.setLEDMode(false);
-        setImuModeIfChanged(turretLL, 2); // Different IMU mode for turret
 
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
@@ -186,11 +156,9 @@ public class Vision implements Subsystem {
     }
 
     public void logTelemetry() {
-        Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
-        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
-        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
-        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
+        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
+        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
+        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
     }
 
     public void triggerRewindCaptureForAllCameras() {
@@ -199,48 +167,24 @@ public class Vision implements Subsystem {
         }
     }
 
-    public Pose2d getFrontMegaTag2Pose() {
-        Pose2d pose = frontLL.getMegaTag2_Pose2d();
+    public Pose2d getBackMegaTag1Pose() {
+        Pose2d pose = backLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
         return Pose2d.kZero;
     }
 
-    public Pose2d getBackMegaTag2Pose() {
-        Pose2d pose = backLL.getMegaTag2_Pose2d();
+    public Pose2d getLeftMegaTag1Pose() {
+        Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
         return Pose2d.kZero;
     }
 
-    public Pose2d getLeftMegaTag2Pose() {
-        Pose2d pose = leftLL.getMegaTag2_Pose2d();
-        if (pose != null) {
-            return pose;
-        }
-        return Pose2d.kZero;
-    }
-
-    public Pose2d getRightMegaTag2Pose() {
-        Pose2d pose = rightLL.getMegaTag2_Pose2d();
-        if (pose != null) {
-            return pose;
-        }
-        return Pose2d.kZero;
-    }
-
-    public Pose2d getTurretMegaTag2Pose() {
-        Pose2d pose = turretLL.getMegaTag2_Pose2d();
-        if (pose != null) {
-            return pose;
-        }
-        return Pose2d.kZero;
-    }
-
-    public Pose2d getTurretMegaTag1Pose() {
-        Pose2d pose = turretLL.getMegaTag1_Pose3d().toPose2d();
+    public Pose2d getRightMegaTag1Pose() {
+        Pose2d pose = rightLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
@@ -271,40 +215,21 @@ public class Vision implements Subsystem {
 
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
-            for (Limelight limelight : allLimelights) {
-                setImuModeIfChanged(limelight, 1);
-            }
-            // MegaTag1 estimates (3D) for each swerve camera
-            VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, true);
-            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, true);
-            VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, true);
-            VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, true);
-            integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
+            Limelight besLimelight = getBestLimelight();
+            integrateSingleEstimate(getMT1VisionEstimate(besLimelight, true));
         }
     }
 
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean() || RobotStates.autoUpdatePose.getAsBoolean()) {
-            for (Limelight limelight : allLimelights) {
-                setImuModeIfChanged(limelight, 4);
-            }
-            // MegaTag1 estimates (3D) for each swerve camera
-            VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, false);
-            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, false);
-            VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, false);
-            VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, false);
-            integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
-
-            // MegaTag2 estimates (2D) for each swerve camera
-            VisionFieldPoseEstimate frontMT2 = getMT2VisionEstimate(frontLL);
-            VisionFieldPoseEstimate backMT2 = getMT2VisionEstimate(backLL);
-            VisionFieldPoseEstimate leftMT2 = getMT2VisionEstimate(leftLL);
-            VisionFieldPoseEstimate rightMT2 = getMT2VisionEstimate(rightLL);
-            integrateMultipleEstimates(frontMT2, backMT2, leftMT2, rightMT2);
+        if (Util.teleop.getAsBoolean()
+                || RobotStates.autoUpdatePose.getAsBoolean()
+                || Auton.autonLaunching.getAsBoolean()) {
+            Limelight besLimelight = getBestLimelight();
+            integrateSingleEstimate(getMT1VisionEstimate(besLimelight, false));
         }
     }
 
-    private VisionFieldPoseEstimate getMT1VisionEstimate(Limelight ll, boolean integrateXY) {
+    private VisionFieldPoseEstimate getMT1VisionEstimate(Limelight ll, boolean forceIntegrateXY) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
@@ -397,12 +322,8 @@ public class Vision implements Subsystem {
             degStds = 50;
         }
 
-        if (!integrateXY) {
-            xyStds = 999999;
-        }
-
         // If we're forcing integration (e.g., for testing), use very tight stds
-        if (integrateXY) {
+        if (forceIntegrateXY) {
             xyStds = 0.01;
             degStds = 0.01;
         }
@@ -417,6 +338,7 @@ public class Vision implements Subsystem {
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
 
+    @SuppressWarnings("unused")
     private VisionFieldPoseEstimate getMT2VisionEstimate(Limelight ll) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
@@ -492,6 +414,7 @@ public class Vision implements Subsystem {
     }
 
     /** Helper to integrate multiple estimates close in time by fusing them together first */
+    @SuppressWarnings("unused")
     private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
         // Collect non-null estimates
         List<VisionFieldPoseEstimate> list = new ArrayList<>();
@@ -545,7 +468,7 @@ public class Vision implements Subsystem {
      * @return the best limelight
      */
     public Limelight getBestLimelight() {
-        Limelight bestLimelight = frontLL;
+        Limelight bestLimelight = backLL;
         double bestScore = 0;
         for (Limelight limelight : allLimelights) {
             double score = 0;
@@ -643,10 +566,6 @@ public class Vision implements Subsystem {
         for (Limelight limelight : allLimelights) {
             limelight.setLimelightPipeline(pipeline);
         }
-    }
-
-    public boolean isTurretSeeingTag() {
-        return turretLL.targetInView() && turretLL.getTagTA() >= 2;
     }
 
     public boolean tagsInView() {

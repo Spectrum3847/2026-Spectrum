@@ -58,10 +58,11 @@ public class SwerveStates {
     private static final SwerveRequest.FieldCentricFacingAngle FIELD_CENTRIC_FACING_ANGLE =
             new SwerveRequest.FieldCentricFacingAngle()
                     .withDeadband(
-                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+                            config.getSpeedAt12Volts().in(MetersPerSecond)
+                                    * config.getAimDeadband())
+                    .withRotationalDeadband(config.getMaxAngularRate() * config.getAimDeadband())
                     .withDriveRequestType(DriveRequestType.Velocity)
-                    .withSteerRequestType(SteerRequestType.MotionMagicExpo)
+                    .withSteerRequestType(SteerRequestType.Position)
                     .withMaxAbsRotationalRate(config.getMaxAngularRate())
                     .withHeadingPID(
                             config.getKPRotationController(),
@@ -71,10 +72,11 @@ public class SwerveStates {
     private static final SwerveRequest.RobotCentricFacingAngle ROBOT_CENTRIC_FACING_ANGLE =
             new SwerveRequest.RobotCentricFacingAngle()
                     .withDeadband(
-                            config.getSpeedAt12Volts().in(MetersPerSecond) * config.getDeadband())
-                    .withRotationalDeadband(config.getMaxAngularRate() * config.getDeadband())
+                            config.getSpeedAt12Volts().in(MetersPerSecond)
+                                    * config.getAimDeadband())
+                    .withRotationalDeadband(config.getMaxAngularRate() * config.getAimDeadband())
                     .withDriveRequestType(DriveRequestType.Velocity)
-                    .withSteerRequestType(SteerRequestType.MotionMagicExpo)
+                    .withSteerRequestType(SteerRequestType.Position)
                     .withMaxAbsRotationalRate(config.getMaxAngularRate())
                     .withHeadingPID(
                             config.getKPRotationController(),
@@ -89,7 +91,7 @@ public class SwerveStates {
             new Trigger(() -> RobotStates.getAppliedState() == State.SNAKE_INTAKE);
 
     private static final Trigger launching =
-            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
 
     private static final Trigger launchPreping =
             new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK);
@@ -170,7 +172,7 @@ public class SwerveStates {
                         () ->
                                 ShotCalculator.getInstance()
                                         .getParameters()
-                                        .fieldAngle()
+                                        .driveAngle()
                                         .getRadians())
                 .withName("Swerve.pilotAimAtTarget");
     }
@@ -182,10 +184,31 @@ public class SwerveStates {
                         () ->
                                 ShotCalculator.getInstance()
                                         .getParameters()
-                                        .fieldAngle()
+                                        .driveAngle()
                                         .plus(Rotation2d.k180deg)
                                         .getRadians())
                 .withName("Swerve.pilotAimAtTarget");
+    }
+
+    public static Command autonAimAtTarget() {
+        return aimDrive(
+                        () -> 0, // No translation control in auton
+                        () -> 0,
+                        () -> {
+                            if (Field.isBlue()) {
+                                return ShotCalculator.getInstance()
+                                        .getParameters()
+                                        .driveAngle()
+                                        .plus(Rotation2d.k180deg)
+                                        .getRadians();
+                            } else {
+                                return ShotCalculator.getInstance()
+                                        .getParameters()
+                                        .driveAngle()
+                                        .getRadians();
+                            }
+                        })
+                .withName("Swerve.autonAimAtTarget");
     }
 
     /**

@@ -1,5 +1,6 @@
 package frc.spectrumLib.mechanism;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -90,6 +91,16 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                    100,
+                    motor.getDutyCycle(),
+                    motor.getMotorVoltage(),
+                    motor.getTorqueCurrent(),
+                    motor.getStatorCurrent(),
+                    motor.getSupplyCurrent(),
+                    motor.getPosition(),
+                    motor.getVelocity());
+            motor.optimizeBusUtilization();
 
             followerMotors = new TalonFX[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
@@ -98,6 +109,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
+                followerMotors[i].optimizeBusUtilization();
             }
         }
 
@@ -133,16 +145,18 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     public void logBatteryUsage() {
-        // Get all motor currents
-        double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
-        double followersCurrent = 0;
-        for (TalonFX follower : followerMotors) {
-            followersCurrent += follower.getStatorCurrent().getValueAsDouble();
-        }
+        if (isAttached()) {
+            // Get all motor currents
+            double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
+            double followersCurrent = 0;
+            for (TalonFX follower : followerMotors) {
+                followersCurrent += follower.getStatorCurrent().getValueAsDouble();
+            }
 
-        // Report to battery logger
-        Robot.getBatteryLogger()
-                .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+            // Report to battery logger
+            Robot.getBatteryLogger()
+                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+        }
     }
 
     protected String getCurrentCommandName() {
@@ -393,7 +407,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * @param velocityRPM
      * @return
      */
-    public Command runVelocityTcFocRpm(DoubleSupplier velocityRPM) {
+    public Command runVelocityTcFocRPM(DoubleSupplier velocityRPM) {
         return run(() -> setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM)))
                 .withName(getName() + ".runVelocityFOCrpm");
     }
@@ -902,11 +916,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         @Getter private TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0);
 
-        @Getter
-        private DutyCycleOut percentOutput =
-                new DutyCycleOut(
-                        0); // Percent Output control using percentage of supply voltage //Should
-        // normally use VoltageOut
+        // Percent Output control using percentage of supply voltage. Should normally use VoltageOut
+        @Getter private DutyCycleOut percentOutput = new DutyCycleOut(0);
 
         public Config(String name, int id, String canbus) {
             this.name = name;

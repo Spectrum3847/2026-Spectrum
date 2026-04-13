@@ -1,7 +1,6 @@
 package frc.robot.operator;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.indexerBed.IndexerBedStates;
@@ -25,7 +24,7 @@ public class OperatorStates {
     /** Set the states for the operator controller */
     public static void setStates() {
         operator.resetIntakeExtensionPos.onTrue(
-                IntakeExtensionStates.operatorResetIntakeExtension());
+                IntakeExtensionStates.operatorResetIntakeExtension(), rumble(1, 0.5));
 
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
@@ -39,13 +38,10 @@ public class OperatorStates {
         operator.coastA.onTrue(IntakeExtensionStates.coastMode());
         operator.brakeB.onTrue(IntakeExtensionStates.brakeMode());
 
-        operator.dpadDown.onTrue(
-                log(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset)));
-        operator.dpadUp.onTrue(log(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset)));
-        operator.dpadRight.onTrue(
-                log(Commands.runOnce(ShotCalculator::decreaseTurretAngleOffsetDegrees)));
-        operator.dpadLeft.onTrue(
-                log(Commands.runOnce(ShotCalculator::increaseTurretAngleOffsetDegrees)));
+        operator.dpadDown.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        operator.dpadUp.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
+        operator.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
+        operator.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
     }
 
     /** Command that can be used to rumble the operator controller */
