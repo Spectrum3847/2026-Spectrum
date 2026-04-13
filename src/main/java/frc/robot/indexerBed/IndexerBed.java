@@ -29,8 +29,8 @@ public class IndexerBed extends Mechanism {
                 Telemetry.tunable("Tunable/IndexerBedFeedRPM", indexerVelocityRPM);
 
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 80;
-        @Getter @Setter private double torqueCurrentLimit = 180;
+        @Getter @Setter private double currentLimit = 40;
+        @Getter @Setter private double torqueCurrentLimit = 80;
         @Getter @Setter private double lowerCurrentLimit = 50;
         @Getter @Setter private double timeUntilLowerCurrent = 0;
         @Getter @Setter private double velocityKp = 30;

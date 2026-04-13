@@ -272,10 +272,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Rectangle2d neutralZone =
                 new Rectangle2d(
                         new Translation2d(
-                                (centerX - neutralDepthMeters / 2.0) + Units.inchesToMeters(24),
+                                (centerX - neutralDepthMeters / 2.0),
                                 centerY - neutralLengthMeters / 2.0),
                         new Translation2d(
-                                (centerX + neutralDepthMeters / 2.0) - Units.inchesToMeters(24),
+                                (centerX + neutralDepthMeters / 2.0),
                                 centerY + neutralLengthMeters / 2.0));
 
         return new Trigger(
@@ -291,17 +291,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         final double fieldLengthMeters = Units.feetToMeters(54.0);
         final double fieldWidthMeters = Units.feetToMeters(27.0);
 
-        final double allianceDepthMeters = Units.inchesToMeters(158.6); // X depth
-        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span
+        final double allianceDepthMeters = Units.inchesToMeters(180.0); // X depth
+        final double allianceSpanMeters = fieldWidthMeters; // Y span
 
         final double minX = fieldLengthMeters - allianceDepthMeters;
-        final double centerY = fieldWidthMeters / 2.0;
-        final double minY = centerY - allianceSpanMeters / 2.0;
+        final double minY = 0;
 
         Rectangle2d enemyAllianceZone =
                 new Rectangle2d(
                         new Translation2d(minX, minY),
-                        new Translation2d(allianceDepthMeters, allianceSpanMeters));
+                        new Translation2d(fieldLengthMeters, allianceSpanMeters));
 
         return new Trigger(
                 () -> {

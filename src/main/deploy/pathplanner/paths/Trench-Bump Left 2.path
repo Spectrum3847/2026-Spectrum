@@ -3,88 +3,88 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.4516011235955055,
-        "y": 7.483876404494382
+        "x": 2.26,
+        "y": 5.5
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.4516011235955055,
-        "y": 7.483876404494382
+        "x": 2.26,
+        "y": 7.0
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 8.08,
-        "y": 7.12
+        "x": 4.139559925093633,
+        "y": 7.56
       },
       "prevControl": {
-        "x": 7.271707141744269,
-        "y": 7.708780651255436
+        "x": 3.139559925093633,
+        "y": 7.56
       },
       "nextControl": {
-        "x": 8.719044943820226,
-        "y": 6.654503745318354
+        "x": 5.139559925093633,
+        "y": 7.56
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 8.08,
-        "y": 4.5
+        "x": 6.611254681647939,
+        "y": 7.516722846441949
       },
       "prevControl": {
-        "x": 8.362156840249181,
-        "y": 4.927440201022645
+        "x": 5.744008458525067,
+        "y": 7.516722846441949
       },
       "nextControl": {
-        "x": 7.881460674157303,
-        "y": 4.199232209737828
+        "x": 7.478500904770811,
+        "y": 7.516722846441949
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.24,
-        "y": 4.72
+        "x": 7.818361423220972,
+        "y": 4.314194756554308
       },
       "prevControl": {
-        "x": 7.782696629213483,
-        "y": 4.404903072238929
+        "x": 7.818361423220972,
+        "y": 4.870751080013502
       },
       "nextControl": {
-        "x": 6.697303370786518,
-        "y": 5.035096927761071
+        "x": 7.818361423220972,
+        "y": 3.7576384330951136
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.87,
+        "x": 6.332059925093634,
+        "y": 4.166385767790263
+      },
+      "prevControl": {
+        "x": 6.332059925093634,
+        "y": 3.607346897624585
+      },
+      "nextControl": {
+        "x": 6.332059925093634,
+        "y": 6.3663857677902636
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.26,
         "y": 5.5
       },
       "prevControl": {
-        "x": 6.5512881574152395,
-        "y": 5.5
-      },
-      "nextControl": {
-        "x": 5.188711842584761,
-        "y": 5.5
-      },
-      "isLocked": false,
-      "linkedName": null
-    },
-    {
-      "anchor": {
-        "x": 2.68,
-        "y": 5.5
-      },
-      "prevControl": {
-        "x": 3.632828888523462,
+        "x": 3.934915670769929,
         "y": 5.5
       },
       "nextControl": null,
@@ -94,15 +94,23 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.9715157680569463,
-      "rotationDegrees": -119.99999999999999
+      "waypointRelativePos": 0.7653441844693103,
+      "rotationDegrees": 0.0
     },
     {
-      "waypointRelativePos": 3.073923363852141,
-      "rotationDegrees": 140.0
+      "waypointRelativePos": 1.7717870464564243,
+      "rotationDegrees": 0.0
     },
     {
-      "waypointRelativePos": 3.779247202441513,
+      "waypointRelativePos": 2.3001017293998016,
+      "rotationDegrees": -65.0
+    },
+    {
+      "waypointRelativePos": 2.6737877246524255,
+      "rotationDegrees": -90.0
+    },
+    {
+      "waypointRelativePos": 3.9148864021702394,
       "rotationDegrees": 135.0
     }
   ],
@@ -110,20 +118,26 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
+      "name": "clearState",
+      "waypointRelativePos": 0.07243539545810583,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
       "name": "intake",
-      "waypointRelativePos": 0.2916992952231814,
+      "waypointRelativePos": 0.19772905246672173,
       "endWaypointRelativePos": null,
       "command": null
     },
     {
       "name": "poseUpdate",
-      "waypointRelativePos": 0.3935003915426721,
-      "endWaypointRelativePos": 3.04032889584964,
+      "waypointRelativePos": 0.2760375880971009,
+      "endWaypointRelativePos": 3.9017227877838483,
       "command": null
     },
     {
       "name": "poseUpdate",
-      "waypointRelativePos": 4.731793265465937,
+      "waypointRelativePos": 4.778778386844155,
       "endWaypointRelativePos": 5.0,
       "command": null
     }
@@ -144,7 +158,7 @@
   "folder": "Neutral Zone - Left Trench Start",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": -90.0
+    "rotation": 130.0
   },
   "useDefaultConstraints": true
 }

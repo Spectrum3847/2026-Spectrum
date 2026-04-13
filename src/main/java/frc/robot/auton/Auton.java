@@ -91,12 +91,12 @@ public class Auton {
 
     public Command trenchStart(boolean mirrored) {
         return Commands.sequence(
-                        SpectrumAuton("Trench 1", mirrored),
+                        SpectrumAuton("Trench-Bump 1", mirrored),
                         prepThanLaunch(),
-                        SpectrumAuton("Trench 2", mirrored),
+                        SpectrumAuton("Trench-Bump 2", mirrored),
                         prepThanLaunch(),
-                        SpectrumAuton("Trench 3", mirrored))
-                .withName("Trench Full");
+                        SpectrumAuton("Trench-Bump 3", mirrored))
+                .withName("Trench-Bump Full");
     }
 
     /**

@@ -95,19 +95,6 @@
             }
           },
           {
-            "title": "limelight-front",
-            "x": 1280.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 256.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-front",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
-          },
-          {
             "title": "limelight-right",
             "x": 1536.0,
             "y": 0.0,
@@ -116,19 +103,6 @@
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight-right",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
-          },
-          {
-            "title": "limelight-turret",
-            "x": 1280.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 256.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-turret",
               "period": 0.06,
               "rotation_turns": 0
             }
@@ -149,6 +123,19 @@
               "divisions": 5,
               "inverted": false,
               "orientation": "horizontal"
+            }
+          },
+          {
+            "title": "limelight-left",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 256.0,
+            "type": "Camera Stream",
+            "properties": {
+              "topic": "/CameraPublisher/limelight-left",
+              "period": 0.2,
+              "rotation_turns": 0
             }
           }
         ]
@@ -179,20 +166,20 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/DistanceMeters",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
                 }
               },
               {
-                "title": "TurretAngleDeg",
+                "title": "HoodAngleDeg",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Large Text Display",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/TurretAngleDeg",
-                  "period": 0.06,
-                  "data_type": "string"
+                  "topic": "/Robot/ShotCalc/HoodAngleDeg",
+                  "period": 0.2,
+                  "data_type": "double"
                 }
               },
               {
@@ -205,7 +192,7 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/FlywheelSpeedRPM",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
                 }
               }
             ]
@@ -222,48 +209,6 @@
             "properties": {
               "topic": "/SmartDashboard/Scheduler",
               "period": 0.06
-            }
-          },
-          {
-            "title": "FlywheelSpeedOffset",
-            "x": 384.0,
-            "y": 384.0,
-            "width": 384.0,
-            "height": 384.0,
-            "type": "Radial Gauge",
-            "properties": {
-              "topic": "/Robot/ShotCalc/FlywheelSpeedOffset",
-              "period": 0.033,
-              "data_type": "double",
-              "start_angle": -140.0,
-              "end_angle": 140.0,
-              "min_value": -10.0,
-              "max_value": 10.0,
-              "number_of_labels": 8,
-              "wrap_value": false,
-              "show_pointer": true,
-              "show_ticks": false
-            }
-          },
-          {
-            "title": "TurretAngleOffsetDegrees",
-            "x": 1024.0,
-            "y": 384.0,
-            "width": 384.0,
-            "height": 384.0,
-            "type": "Radial Gauge",
-            "properties": {
-              "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
-              "period": 0.06,
-              "data_type": "double",
-              "start_angle": -140.0,
-              "end_angle": 140.0,
-              "min_value": -15.0,
-              "max_value": 15.0,
-              "number_of_labels": 8,
-              "wrap_value": false,
-              "show_pointer": true,
-              "show_ticks": false
             }
           },
           {
@@ -348,6 +293,48 @@
               "true_icon": "None",
               "false_icon": "None"
             }
+          },
+          {
+            "title": "DriveAngleOffsetDegrees",
+            "x": 384.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/Robot/ShotCalc/DriveAngleOffsetDegrees",
+              "period": 0.2,
+              "data_type": "double",
+              "start_angle": -140.0,
+              "end_angle": 140.0,
+              "min_value": -15.0,
+              "max_value": 15.0,
+              "number_of_labels": 10,
+              "wrap_value": false,
+              "show_pointer": true,
+              "show_ticks": true
+            }
+          },
+          {
+            "title": "HoodAngleOffsetDegrees",
+            "x": 1024.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/Robot/ShotCalc/HoodAngleOffsetDegrees",
+              "period": 0.2,
+              "data_type": "double",
+              "start_angle": -140.0,
+              "end_angle": 140.0,
+              "min_value": -5.0,
+              "max_value": 5.0,
+              "number_of_labels": 10,
+              "wrap_value": false,
+              "show_pointer": true,
+              "show_ticks": true
+            }
           }
         ]
       }
@@ -377,20 +364,20 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/DistanceMeters",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
                 }
               },
               {
-                "title": "TurretAngleDeg",
+                "title": "HoodAngleDeg",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Large Text Display",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/TurretAngleDeg",
-                  "period": 0.06,
-                  "data_type": "string"
+                  "topic": "/Robot/ShotCalc/HoodAngleDeg",
+                  "period": 0.2,
+                  "data_type": "double"
                 }
               },
               {
@@ -403,39 +390,39 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/FlywheelSpeedRPM",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
                 }
               },
               {
-                "title": "TurretAngleOffsetDegrees",
+                "title": "DriveAngleOffsetDegrees",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Number Slider",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "min_value": -15.0,
-                  "max_value": 15.0,
-                  "divisions": 6,
-                  "update_continuously": false
-                }
-              },
-              {
-                "title": "FlywheelSpeedOffset",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Number Slider",
-                "properties": {
-                  "topic": "/Robot/ShotCalc/FlywheelSpeedOffset",
-                  "period": 0.06,
+                  "topic": "/Robot/ShotCalc/DriveAngleOffsetDegrees",
+                  "period": 0.2,
                   "data_type": "double",
                   "min_value": -10.0,
                   "max_value": 10.0,
+                  "divisions": 5,
+                  "update_continuously": false
+                }
+              },
+              {
+                "title": "HoodAngleOffsetDegrees",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Number Slider",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/HoodAngleOffsetDegrees",
+                  "period": 0.2,
+                  "data_type": "double",
+                  "min_value": -5.0,
+                  "max_value": 5.0,
                   "divisions": 6,
                   "update_continuously": false
                 }
@@ -443,71 +430,7 @@
             ]
           },
           {
-            "title": "LauncherPrep",
-            "x": 512.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 384.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
-              {
-                "title": "LauncherOnTarget",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Boolean Box",
-                "properties": {
-                  "topic": "/Robot/LauncherPrep/LauncherOnTarget",
-                  "period": 0.06,
-                  "data_type": "boolean",
-                  "true_color": 4283215696,
-                  "false_color": 4294198070,
-                  "true_icon": "None",
-                  "false_icon": "None"
-                }
-              },
-              {
-                "title": "TurretOnTarget",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Boolean Box",
-                "properties": {
-                  "topic": "/Robot/LauncherPrep/TurretOnTarget",
-                  "period": 0.06,
-                  "data_type": "boolean",
-                  "true_color": 4283215696,
-                  "false_color": 4294198070,
-                  "true_icon": "None",
-                  "false_icon": "None"
-                }
-              },
-              {
-                "title": "ReadyToLaunch",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Boolean Box",
-                "properties": {
-                  "topic": "/Robot/LauncherPrep/ReadyToLaunch",
-                  "period": 0.06,
-                  "data_type": "boolean",
-                  "true_color": 4283215696,
-                  "false_color": 4294198070,
-                  "true_icon": "None",
-                  "false_icon": "None"
-                }
-              }
-            ]
-          },
-          {
-            "title": "Turret",
+            "title": "Hood",
             "x": 1024.0,
             "y": 0.0,
             "width": 256.0,
@@ -518,20 +441,6 @@
             },
             "children": [
               {
-                "title": "CurrentCommand",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/CurrentCommand",
-                  "period": 0.06,
-                  "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
                 "title": "Current",
                 "x": 0.0,
                 "y": 0.0,
@@ -539,9 +448,23 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/Current",
-                  "period": 0.06,
+                  "topic": "/Robot/Hood/Current",
+                  "period": 0.2,
                   "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/CurrentCommand",
+                  "period": 0.2,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -553,36 +476,22 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/PositionDegrees",
-                  "period": 0.06,
+                  "topic": "/Robot/Hood/PositionDegrees",
+                  "period": 0.2,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "PositionRotations",
+                "title": "RPM",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/PositionRotations",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "VelocityRPM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/VelocityRPM",
-                  "period": 0.06,
+                  "topic": "/Robot/Hood/RPM",
+                  "period": 0.2,
                   "data_type": "double",
                   "show_submit_button": false
                 }
@@ -595,8 +504,22 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/Voltage",
-                  "period": 0.06,
+                  "topic": "/Robot/Hood/Voltage",
+                  "period": 0.2,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "OnTheFlyAngle",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Tunable/Hood/OnTheFlyAngle",
+                  "period": 0.2,
                   "data_type": "double",
                   "show_submit_button": false
                 }
@@ -615,20 +538,6 @@
             },
             "children": [
               {
-                "title": "CurrentCommand",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Launcher/CurrentCommand",
-                  "period": 0.06,
-                  "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
                 "title": "Current",
                 "x": 0.0,
                 "y": 0.0,
@@ -637,8 +546,22 @@
                 "type": "Text Display",
                 "properties": {
                   "topic": "/Robot/Launcher/Current",
-                  "period": 0.06,
+                  "period": 0.2,
                   "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/CurrentCommand",
+                  "period": 0.2,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -651,7 +574,7 @@
                 "type": "Text Display",
                 "properties": {
                   "topic": "/Robot/Launcher/RPM",
-                  "period": 0.06,
+                  "period": 0.2,
                   "data_type": "double",
                   "show_submit_button": false
                 }
@@ -665,7 +588,7 @@
                 "type": "Text Display",
                 "properties": {
                   "topic": "/Robot/Launcher/Voltage",
-                  "period": 0.06,
+                  "period": 0.2,
                   "data_type": "double",
                   "show_submit_button": false
                 }
@@ -679,7 +602,7 @@
                 "type": "Text Display",
                 "properties": {
                   "topic": "/Tunable/Launcher/OnTheFlySpeed",
-                  "period": 0.06,
+                  "period": 0.2,
                   "data_type": "double",
                   "show_submit_button": false
                 }
@@ -710,15 +633,15 @@
             }
           },
           {
-            "title": "limelight-turret",
-            "x": 768.0,
+            "title": "limelight-back",
+            "x": 512.0,
             "y": 512.0,
             "width": 384.0,
             "height": 384.0,
             "type": "Camera Stream",
             "properties": {
-              "topic": "/CameraPublisher/limelight-turret",
-              "period": 0.06,
+              "topic": "/CameraPublisher/limelight-back",
+              "period": 0.2,
               "rotation_turns": 0
             }
           }
@@ -937,75 +860,6 @@
             ]
           },
           {
-            "title": "IndexerTowerBack",
-            "x": 1152.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
-              {
-                "title": "CurrentCommand",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/CurrentCommand",
-                  "period": 0.06,
-                  "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Current",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/Current",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "RPM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/RPM",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Voltage",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/Voltage",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              }
-            ]
-          },
-          {
             "title": "IntakeExtension",
             "x": 640.0,
             "y": 0.0,
@@ -1172,106 +1026,9 @@
             ]
           },
           {
-            "title": "Turret",
-            "x": 384.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
-              {
-                "title": "CurrentCommand",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/CurrentCommand",
-                  "period": 0.06,
-                  "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Current",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/Current",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "PositionDegrees",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/PositionDegrees",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "PositionRotations",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/PositionRotations",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "VelocityRPM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/VelocityRPM",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Voltage",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/Turret/Voltage",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              }
-            ]
-          },
-          {
             "title": "Swerve",
             "x": 1152.0,
-            "y": 512.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 384.0,
             "type": "List Layout",
@@ -1290,6 +1047,89 @@
                   "topic": "/Robot/Swerve/CurrentCommand",
                   "period": 0.06,
                   "data_type": "string",
+                  "show_submit_button": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "Hood",
+            "x": 384.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 512.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "Current",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/Current",
+                  "period": 0.2,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/CurrentCommand",
+                  "period": 0.2,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "PositionDegrees",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/PositionDegrees",
+                  "period": 0.2,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "RPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/RPM",
+                  "period": 0.2,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Voltage",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/Voltage",
+                  "period": 0.2,
+                  "data_type": "double",
                   "show_submit_button": false
                 }
               }
