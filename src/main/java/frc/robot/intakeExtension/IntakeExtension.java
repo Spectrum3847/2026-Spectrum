@@ -42,7 +42,7 @@ public class IntakeExtension extends Mechanism {
 
         @Getter
         private final DoubleSubscriber timeUntilIntakeSqueeze =
-                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.4);
+                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.5);
 
         @Getter private final double currentLimit = 40;
         @Getter private final double torqueCurrentLimit = 100;
