@@ -78,9 +78,9 @@ public class FuelIntake extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("FuelIntake/Voltage", getVoltage());
-        Telemetry.log("FuelIntake/Current", getStatorCurrent());
-        Telemetry.log("FuelIntake/RPM", getVelocityRPM());
+        Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
+        Telemetry.log("FuelIntake/Current", getStatorCurrent(), "amps");
+        Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
     }
 
     @Override

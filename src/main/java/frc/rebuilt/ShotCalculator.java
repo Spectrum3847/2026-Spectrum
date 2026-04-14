@@ -11,7 +11,7 @@ import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.rebuilt.launchingMaps.AndyMarkMap;
+import frc.rebuilt.launchingMaps.HomeMap;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
@@ -70,10 +70,11 @@ public class ShotCalculator {
     private static double maxDistance;
     private static double phaseDelay;
 
-    @Getter private static InterpolatingDoubleTreeMap hoodAngleMap = AndyMarkMap.getHoodAngleMap();
+    // TODO: change when at States
+    @Getter private static InterpolatingDoubleTreeMap hoodAngleMap = HomeMap.getHoodAngleMap();
 
     @Getter
-    private static InterpolatingDoubleTreeMap launcherSpeedMap = AndyMarkMap.getLauncherSpeedMap();
+    private static InterpolatingDoubleTreeMap launcherSpeedMap = HomeMap.getLauncherSpeedMap();
 
     @Getter
     private static InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
@@ -212,12 +213,12 @@ public class ShotCalculator {
                         distanceNoLookahead,
                         tofFinal);
 
-        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance);
-        Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees());
-        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle);
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed);
-        Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET);
-        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET);
+        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance, "meters");
+        Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees(), "degrees");
+        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
+        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
+        Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Target", target);
 
         return latestParameters;

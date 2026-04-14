@@ -110,7 +110,7 @@ public class Robot extends SpectrumRobot {
 
     public Robot() {
         super();
-        Telemetry.start(true, true, PrintPriority.NORMAL);
+        Telemetry.start(true, false, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
@@ -164,8 +164,8 @@ public class Robot extends SpectrumRobot {
                 robotSim = new RobotSim();
             }
 
-            // Setup Default Commands for all subsystems
             setupDefaultCommands();
+            batteryLogger.setEnabled(true);
 
             Telemetry.print("--- Robot Init Complete ---");
 
@@ -222,7 +222,7 @@ public class Robot extends SpectrumRobot {
         SmartDashboard.putData("Field2d", field2d);
     }
 
-    @Override // Deprecated
+    @Override
     public void robotInit() {
         setupSmartDashboardData();
         WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
@@ -246,11 +246,12 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
+            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
             Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
             Telemetry.log(
                     "Match Data/TimeLeftInShift",
-                    ShiftHelpers.getOfficialShiftInfo().remainingTime());
+                    ShiftHelpers.getOfficialShiftInfo().remainingTime(),
+                    "seconds");
             Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
             batteryLogger.logPower();
             field2d.setRobotPose(swerve.getRobotPose());

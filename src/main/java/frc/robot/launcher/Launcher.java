@@ -96,9 +96,9 @@ public class Launcher extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Launcher/Voltage", getVoltage());
-        Telemetry.log("Launcher/Current", getStatorCurrent());
-        Telemetry.log("Launcher/RPM", getVelocityRPM());
+        Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
+        Telemetry.log("Launcher/Current", getStatorCurrent(), "amps");
+        Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
     }
 
     @Override

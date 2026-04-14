@@ -128,10 +128,10 @@ public class IntakeExtension extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IntakeExtension/Voltage", getVoltage());
-        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
-        Telemetry.log("IntakeExtension/Position", getPositionRotations());
-        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
+        Telemetry.log("IntakeExtension/Current", getStatorCurrent(), "amps");
+        Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
     }
 
     @Override
