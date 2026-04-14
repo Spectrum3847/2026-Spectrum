@@ -96,7 +96,10 @@ public class Auton {
                         SpectrumAuton("Trench-Bump 2", mirrored),
                         prepThanLaunch(),
                         SpectrumAuton("Trench-Bump 3", mirrored))
-                .withName("Trench-Bump Full");
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("Trench-Bump Full - " + (mirrored ? "Right" : "Left"));
     }
 
     /**

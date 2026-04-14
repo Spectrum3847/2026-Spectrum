@@ -39,6 +39,8 @@ public class Launcher extends Mechanism {
         /* Launcher config values */
         @Getter private double currentLimit = 80;
         @Getter private double torqueCurrentLimit = 160;
+        @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
+        @Getter private double reverseTorqueCurrentLimit = -20;
         @Getter private double lowerCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
@@ -62,8 +64,8 @@ public class Launcher extends Mechanism {
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
+            configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);

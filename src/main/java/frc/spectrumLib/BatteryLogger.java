@@ -73,6 +73,7 @@ public class BatteryLogger {
             Telemetry.log("BatteryLogger/Current", totalCurrent, "amps");
             Telemetry.log("BatteryLogger/Power", totalPower, "watts");
             Telemetry.log("BatteryLogger/Energy", joulesToWattHours(totalEnergy), "wh");
+            Telemetry.log("BatteryLogger/BatteryVoltage", batteryVoltage, "volts");
 
             for (var entry : subsytemCurrents.entrySet()) {
                 Telemetry.log("BatteryLogger/Current/" + entry.getKey(), entry.getValue(), "amps");
