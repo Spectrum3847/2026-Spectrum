@@ -138,6 +138,11 @@ $RECYCLE.BIN/
 ### Gradle ###
 .gradle
 /build/
+build/*
+bin/*
+ctre_sim/*
+.gradle/buildOutputCleanup/*
+.gradle/file-system.probe
 
 # Ignore Gradle GUI config
 gradle-app.setting
@@ -170,8 +175,6 @@ out/
 
 # Simulation GUI and other tools window save file
 networktables.json
-simgui-ds.json
-simgui-window.json
 
 # Simulation data log directory
 logs/
@@ -186,5 +189,5 @@ compile_commands.json
 # Eclipse generated file for annotation processors
 .factorypath
 
-# Build constants file
+# Version file
 src/main/java/frc/robot/BuildConstants.java

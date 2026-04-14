@@ -4,6 +4,7 @@ import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.DynamicMotionMagicTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.DynamicMotionMagicVoltage;
 import com.ctre.phoenix6.controls.MotionMagicTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
@@ -18,16 +19,13 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.networktables.NTSendable;
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.Robot;
 import frc.spectrumLib.CachedDouble;
 import frc.spectrumLib.SpectrumRobot;
 import frc.spectrumLib.SpectrumSubsystem;
@@ -38,15 +36,41 @@ import java.util.function.DoubleSupplier;
 import lombok.*;
 
 /**
- * Base class for a motor-driven mechanism. Handles common tasks like telemetry, current limits, and
- * various control modes using TalonFX.
+ * Abstract base class representing a CTRE TalonFX-driven robot mechanism with common control modes,
+ * telemetry, and convenience {@link edu.wpi.first.wpilibj2.command.Command} factories.
  *
- * <p>Control Modes Docs:
- * https://pro.docs.ctr-electronics.com/en/latest/docs/migration/migration-guide/control-requests-guide.html
- * Closed-loop and Motion Magic Docs:
- * https://pro.docs.ctr-electronics.com/en/latest/docs/migration/migration-guide/closed-loop-guide.html
+ * <p>This class centralizes:
+ *
+ * <ul>
+ *   <li>Motor creation/configuration (leader + optional followers) via the provided {@link Config}
+ *   <li>Cached sensor readings (position, velocity, voltage, current) for efficient access
+ *   <li>Common unit conversions (rotations/percent/degrees; RPS/RPM)
+ *   <li>Standard closed-loop and open-loop control helpers (Motion Magic, velocity, voltage,
+ *       percent, torque current)
+ *   <li>Convenience {@link edu.wpi.first.wpilibj2.command.button.Trigger} factories (at/above/below
+ *       thresholds)
+ *   <li>Basic periodic current reporting to a battery/current logger
+ * </ul>
+ *
+ * <h2>Attachment semantics</h2>
+ *
+ * If {@link Config#isAttached()} is {@code false}, the mechanism will not attempt to construct or
+ * command hardware and will return safe default sensor values (typically {@code 0}).
+ *
+ * <h2>Target tracking</h2>
+ *
+ * The {@code target} field tracks the last commanded closed-loop setpoint sent by this class. It is
+ * used by helper triggers such as {@code atTargetPosition(...)}.
+ *
+ * <h2>Extending</h2>
+ *
+ * Concrete mechanisms should provide a {@link Config} describing motor IDs, Talon configuration,
+ * follower configuration, and mechanism-specific min/max rotation bounds as needed.
+ *
+ * <p><b>Note:</b> This class assumes CTRE Phoenix 6 units (rotations, rotations/sec, etc.) and uses
+ * {@code Config.talonConfig.Feedback.SensorToMechanismRatio} as the mechanism gearing ratio.
  */
-public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
+public abstract class Mechanism implements SpectrumSubsystem {
     @Getter protected TalonFX motor;
     @Getter protected TalonFX[] followerMotors;
     public Config config;
@@ -93,13 +117,6 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         config.attached = attached;
     }
 
-    // Setup the telemetry values, has to be called at the end of the implemented mechanism
-    // constructor
-    public void telemetryInit() {
-        SendableRegistry.add(this, getName());
-        SmartDashboard.putData(this);
-    }
-
     @Override
     public void periodic() {}
 
@@ -115,9 +132,19 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
         return config.isAttached();
     }
 
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        builder.setSmartDashboardType(getName());
+    public void logBatteryUsage() {
+        if (isAttached()) {
+            // Get all motor currents
+            double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
+            double followersCurrent = 0;
+            for (TalonFX follower : followerMotors) {
+                followersCurrent += follower.getStatorCurrent().getValueAsDouble();
+            }
+
+            // Report to battery logger
+            Robot.getBatteryLogger()
+                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+        }
     }
 
     protected String getCurrentCommandName() {
@@ -368,7 +395,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
      * @param velocityRPM
      * @return
      */
-    public Command runVelocityTcFocRpm(DoubleSupplier velocityRPM) {
+    public Command runVelocityTcFocRPM(DoubleSupplier velocityRPM) {
         return run(() -> setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM)))
                 .withName(getName() + ".runVelocityFOCrpm");
     }
@@ -451,7 +478,7 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
     }
 
     protected Command runCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
-        return new InstantCommand(() -> setCurrentLimits(supplyLimit, statorLimit));
+        return Commands.runOnce(() -> setCurrentLimits(supplyLimit, statorLimit));
     }
 
     protected void setCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
@@ -567,6 +594,32 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
             target = rotations.getAsDouble();
             DynamicMotionMagicTorqueCurrentFOC mm =
                     config.dynamicMMPositionFOC
+                            .withPosition(target)
+                            .withVelocity(velocity.getAsDouble())
+                            .withAcceleration(acceleration.getAsDouble())
+                            .withJerk(jerk.getAsDouble());
+            motor.setControl(mm);
+        }
+    }
+
+    /**
+     * Closed-loop Position Motion Magic with voltage control. Dynamic allows you to set velocity,
+     * acceleration, and jerk during the command.
+     *
+     * @param rotations The target position in rotations.
+     * @param velocity The maximum velocity in rotations per second.
+     * @param acceleration The maximum acceleration in rotations per second squared.
+     * @param jerk The maximum jerk in rotations per second cubed.
+     */
+    protected void setDynMMPositionVoltage(
+            DoubleSupplier rotations,
+            DoubleSupplier velocity,
+            DoubleSupplier acceleration,
+            DoubleSupplier jerk) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            DynamicMotionMagicVoltage mm =
+                    config.dynamicMotionMagicVoltage
                             .withPosition(target)
                             .withVelocity(velocity.getAsDouble())
                             .withAcceleration(acceleration.getAsDouble())
@@ -832,6 +885,10 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
                 new DynamicMotionMagicTorqueCurrentFOC(0, 0, 0);
 
         @Getter
+        private DynamicMotionMagicVoltage dynamicMotionMagicVoltage =
+                new DynamicMotionMagicVoltage(0, 0, 0);
+
+        @Getter
         private MotionMagicVelocityVoltage mmVelocityVoltage = new MotionMagicVelocityVoltage(0);
 
         @Getter private MotionMagicVoltage mmPositionVoltage = new MotionMagicVoltage(0);
@@ -847,11 +904,8 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
 
         @Getter private TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0);
 
-        @Getter
-        private DutyCycleOut percentOutput =
-                new DutyCycleOut(
-                        0); // Percent Output control using percentage of supply voltage //Should
-        // normally use VoltageOut
+        // Percent Output control using percentage of supply voltage. Should normally use VoltageOut
+        @Getter private DutyCycleOut percentOutput = new DutyCycleOut(0);
 
         public Config(String name, int id, String canbus) {
             this.name = name;
@@ -887,6 +941,14 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
             talonConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
         }
 
+        public void configForwardVoltageLimit(double voltageLimit) {
+            talonConfig.Voltage.PeakForwardVoltage = voltageLimit;
+        }
+
+        public void configReverseVoltageLimit(double voltageLimit) {
+            talonConfig.Voltage.PeakReverseVoltage = voltageLimit;
+        }
+
         public void configSupplyCurrentLimit(double supplyLimit, boolean enabled) {
             if (supplyLimit < 0) {
                 supplyLimit = -supplyLimit;
@@ -915,6 +977,14 @@ public abstract class Mechanism implements NTSendable, SpectrumSubsystem {
                 currentLimit = -currentLimit;
             }
             talonConfig.TorqueCurrent.PeakReverseTorqueCurrent = currentLimit;
+        }
+
+        public void configLowerSupplyCurrentLimit(double currentLimit) {
+            talonConfig.CurrentLimits.SupplyCurrentLowerLimit = currentLimit;
+        }
+
+        public void configLowerSupplyCurrentTime(double time) {
+            talonConfig.CurrentLimits.SupplyCurrentLowerTime = time;
         }
 
         public void configNeutralDeadband(double deadband) {

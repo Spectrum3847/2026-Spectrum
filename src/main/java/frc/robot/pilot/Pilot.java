@@ -2,7 +2,6 @@ package frc.robot.pilot;
 
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.gamepads.Gamepad;
@@ -15,19 +14,21 @@ public class Pilot extends Gamepad {
     // If triggers need any of the config values set them in the constructor
     /*  A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
     public final Trigger enabled = teleop.or(testMode); // works for both teleop and testMode
-    private final Trigger photon = new Trigger(() -> Rio.id == Rio.PHOTON_2025);
     public final Trigger fn = leftBumper;
     public final Trigger noFn = fn.not();
     public final Trigger home_select = select;
 
     public final Trigger LT = leftTrigger.and(noFn, teleop);
-    public final Trigger RT = rightTrigger.and(noFn, teleop, photon.not());
-    public final Trigger LB_LT = leftTrigger.and(fn, teleop, photon.not());
+    public final Trigger RT = rightTrigger.and(noFn, teleop);
+    public final Trigger LB_LT = leftTrigger.and(fn, teleop);
 
     public final Trigger AButton = A.and(teleop);
     public final Trigger BButton = B.and(teleop);
     public final Trigger XButton = X.and(teleop);
     public final Trigger YButton = Y.and(teleop);
+
+    public final Trigger coastA = A.and(disabled);
+    public final Trigger brakeB = B.and(disabled);
 
     public final Trigger startButton = start.and(noFn, teleop);
 
@@ -37,9 +38,6 @@ public class Pilot extends Gamepad {
     public final Trigger dpadDown = downDpad.and(teleop);
     public final Trigger dpadLeft = leftDpad.and(teleop);
     public final Trigger dpadRight = rightDpad.and(teleop);
-
-    // Vision Triggers
-    public final Trigger tagsInView = new Trigger(() -> Robot.getVision().tagsInView());
 
     // Drive Triggers
     public final Trigger upReorient = upDpad.and(fn, teleop);
@@ -99,7 +97,7 @@ public class Pilot extends Gamepad {
     private PilotConfig config;
 
     private @Getter @Setter SpectrumState slowMode = new SpectrumState("SlowMode");
-    @Getter @Setter SpectrumState turboMode = new SpectrumState("TurboMode");
+    private @Getter @Setter SpectrumState turboMode = new SpectrumState("TurboMode");
 
     /** Create a new Pilot with the default name and port. */
     public Pilot(PilotConfig config) {

@@ -1,11 +1,11 @@
 package frc.robot;
 
 import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.hood.HoodStates;
 import frc.robot.indexerBed.IndexerBedStates;
 import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 
 public class Coordinator {
 
@@ -18,53 +18,95 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.neutral();
-                LauncherStates.neutral();
-                RotationalPivotStates.neutral();
+                LauncherStates.idlePrep();
+                HoodStates.home();
             }
             case INTAKE_FUEL -> {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
+                IndexerBedStates.slowIndex();
                 IntakeExtensionStates.fullExtend();
+                LauncherStates.idlePrep();
+                HoodStates.neutral();
+            }
+            case LAUNCHER_TRACK -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCER_TRACK_WITH_LAUNCH -> {
+                FuelIntakeStates.slowIntakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeClose();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case AUTON_LAUNCHER_TRACK -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case AUTON_LAUNCHER_TRACK_WITH_LAUNCH -> {
+                FuelIntakeStates.slowIntakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeClose();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case UNJAM -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.unjam();
+                IndexerBedStates.unjam();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.neutral();
-                RotationalPivotStates.neutral();
+                HoodStates.neutral();
             }
-            case TURRET_TRACK_WITH_SPINUP -> {
+            case FORCE_HOME -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
-                LauncherStates.aimAtHub();
-                RotationalPivotStates.aimAtHub();
+                IntakeExtensionStates.fullRetract();
+                LauncherStates.neutral();
+                HoodStates.neutral();
             }
-            case TURRET_TRACK_WITH_LAUNCH -> {
+            case CUSTOM_SPEED_TURRET_LAUNCH -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
-                LauncherStates.aimAtHub();
-                RotationalPivotStates.aimAtHub();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.customLaunchSpeed();
+                HoodStates.aimAtTarget();
             }
-            case TURRET_FEED_WITH_SPINUP -> {
+            case TEST_INFINITE_LAUNCH -> {
+                FuelIntakeStates.slowIntakeFuel();
+                IndexerTowerStates.slowIndex();
+                IndexerBedStates.slowIndex();
+                LauncherStates.slowLaunch();
+                HoodStates.neutral();
+            }
+            case TEST_IDLE -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
-                IntakeExtensionStates.fullExtend();
-                LauncherStates.aimAtHub();
-                RotationalPivotStates.aimAtHub();
+                LauncherStates.neutral();
+                HoodStates.neutral();
             }
-            case TURRET_FEED_WITH_LAUNCH -> {
-                FuelIntakeStates.stop();
-                IndexerTowerStates.indexMax();
-                IndexerBedStates.indexMax();
-                IntakeExtensionStates.fullExtend();
-                LauncherStates.aimAtHub();
-                RotationalPivotStates.aimAtHub();
+            case COAST -> {
+                IntakeExtensionStates.coastMode();
+                HoodStates.coastMode();
             }
-            case L1_CLIMB_PREP -> {}
-            case L1_CLIMB_EXECUTE -> {}
-            case L3_CLIMB_PREP -> {}
-            case L3_CLIMB_EXECUTE -> {}
+            case BRAKE -> {
+                IntakeExtensionStates.brakeMode();
+                HoodStates.ensureBrakeMode();
+            }
             default -> {
                 // Handle other states or throw an error
             }

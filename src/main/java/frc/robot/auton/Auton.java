@@ -17,18 +17,23 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import frc.robot.RobotStates;
+import frc.robot.State;
+import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
 public class Auton {
 
-    // TODO: Setup EventTriggers
-    // Should all be public static final
+    public static final SpectrumState autonLaunching = new SpectrumState("AutonLaunching");
+
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
     public static final EventTrigger autonClearState = new EventTrigger("clearState");
+    public static final EventTrigger autonUnjam = new EventTrigger("unjam");
+    public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 
     private final SendableChooser<Command> pathChooser = new SendableChooser<>();
     private boolean autoMessagePrinted = true;
@@ -42,20 +47,17 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", Commands.print("Do Nothing Auto ran"));
 
-        pathChooser.addOption("1 Meter", SpectrumAuton("1 Meter", false));
-        pathChooser.addOption("3 Meter", SpectrumAuton("3 Meter", false));
-        pathChooser.addOption("5 Meter", SpectrumAuton("5 Meter", false));
+        pathChooser.addOption("Neutral Zone - Left Trench Start", trenchStart(false));
+        pathChooser.addOption("Neutral Zone - Right Trench Start", trenchStart(true));
 
-        pathChooser.addOption("Neutral Zone Run", SpectrumAuton("Neutral Zone", false));
-
-        pathChooser.addOption("Drive Forward", SpectrumAuton("Drive Forward", false));
+        pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
     public Auton() {
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
-        Telemetry.print("Auton Subsystem Initialized: ");
+        Telemetry.print("Auton Subsystem Initialized");
     }
 
     public void init() {
@@ -73,7 +75,26 @@ public class Auton {
         printAutoDuration();
     }
 
-    //
+    public Command prepThanLaunch() {
+        return Commands.sequence(
+                autonLaunching.setTrue(),
+                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK),
+                Commands.waitSeconds(0.25),
+                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK_WITH_LAUNCH),
+                Commands.waitSeconds(2.5),
+                RobotStates.applyState(State.IDLE),
+                autonLaunching.setFalse());
+    }
+
+    public Command trenchStart(boolean mirrored) {
+        return Commands.sequence(
+                        SpectrumAuton("Trench 1", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("Trench 2", mirrored),
+                        prepThanLaunch())
+                .withName("Trench Full");
+    }
+
     /**
      * Creates a SpectrumAuton command sequence.
      *

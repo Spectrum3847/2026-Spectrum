@@ -4,8 +4,13 @@ import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
+import frc.robot.RobotStates;
+import frc.robot.State;
+import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.vision.VisionStates;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -22,14 +27,39 @@ public class PilotStates {
     private static Trigger reorientButton =
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
+    private static final Trigger intaking =
+            new Trigger(
+                    () ->
+                            RobotStates.getAppliedState() == State.SNAKE_INTAKE
+                                    || RobotStates.getAppliedState() == State.INTAKE_FUEL);
+    private static final Trigger launching =
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
+
     /** Set the states for the pilot controller */
     public static void setStates() {
         // Reset vision pose with Left Bumper and Select
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
-        // Simulation Only: Map A and Y to intake and launch fuel for testing
-        pilot.AButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.YButton.and(() -> Utils.isSimulation()).whileTrue(RobotSim.mapleSimLaunchFuel());
+        pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
+        pilot.YButton.whileTrue(Robot.getAuton().prepThanLaunch());
+
+        // Simulation Only: Map RT and LT to intake and launch fuel for testing
+        pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
+        pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimLaunchFuel());
+
+        pilot.rightTriggerOnly.and(pilot.fn).whileTrue(FuelIntakeStates.ejectCommand());
+
+        pilot.coastA.onTrue(IntakeExtensionStates.coastMode());
+        pilot.brakeB.onTrue(IntakeExtensionStates.brakeMode());
+
+        pilot.dpadDown.onTrue(log(ShotCalculator.decreaseHoodAngleOffset()));
+        pilot.dpadUp.onTrue(log(ShotCalculator.increaseHoodAngleOffset()));
+        pilot.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
+        pilot.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
+
+        // Slow mode when driver is intaking or launching fuel
+        intaking.whileTrue(slowMode());
+        launching.whileTrue(slowMode());
 
         // Rumble whenever we reorient
         reorientButton.onTrue(log(rumble(1, 0.5).withName("Pilot.reorientRumble")));

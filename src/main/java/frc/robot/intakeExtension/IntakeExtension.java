@@ -3,19 +3,14 @@ package frc.robot.intakeExtension;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
-import frc.spectrumLib.SpectrumCANcoder;
-import frc.spectrumLib.SpectrumCANcoderConfig;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
@@ -35,22 +30,30 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter @Setter private double maxRotations = 2.65;
+        @Getter @Setter private double maxRotations = 2.779053;
         @Getter @Setter private double minRotations = 0.0;
 
-        @Getter private final double currentLimit = 60;
+        /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
+        @Getter private double home = 0;
+        @Getter private double squeeze = 25;
+        @Getter private double fullOut = 100;
+        @Getter private double atPoseTolerance = 10;
+
+        @Getter private final double currentLimit = 40;
         @Getter private final double torqueCurrentLimit = 100;
-        @Getter private final double positionKp = 250;
-        @Getter private final double positionKd = 15;
-        @Getter private final double positionKv = 0.75;
-        @Getter private final double positionKs = 1.8;
+        @Getter private final double positionKp = 10;
+        @Getter private final double positionKi = 0;
+        @Getter private final double positionKd = 0;
+        @Getter private final double positionKv = 0.5;
+        @Getter private final double positionKs = 1.5;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
+        @Getter private final double gearRatio = 11.25;
         @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 300;
+        @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
 
-        @Getter @Setter private double sensorToMechanismRatio = 1.7;
+        @Getter @Setter private double sensorToMechanismRatio = 11.25;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
@@ -75,20 +78,20 @@ public class IntakeExtension extends Mechanism {
         @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
-            super("IntakeExtension", 7, Rio.CANIVORE); // Rio.CANIVORE);
+            super("Intake Extension", 7, Rio.CANIVORE); // Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
-            configPIDGains(0, positionKp, 0, positionKd);
+            configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
-            configGearRatio(3.6111);
+            configGearRatio(gearRatio);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
@@ -103,41 +106,28 @@ public class IntakeExtension extends Mechanism {
 
     @Getter private IntakeExtensionConfig config;
     @Getter private IntakeExtensionSim sim;
-    private SpectrumCANcoder canCoder;
-    private SpectrumCANcoderConfig canCoderConfig;
-    CANcoderSimState canCoderSim;
 
     public IntakeExtension(IntakeExtensionConfig config) {
         super(config);
         this.config = config;
 
         if (isAttached()) {
-            if (config.isCANcoderAttached() && !Robot.isSimulation()) {
-                canCoderConfig =
-                        new SpectrumCANcoderConfig(
-                                config.getCANcoderRotorToSensorRatio(),
-                                config.getCANcoderSensorToMechanismRatio(),
-                                config.getCANcoderOffset(),
-                                config.isCANcoderAttached());
-                canCoder =
-                        new SpectrumCANcoder(
-                                45,
-                                canCoderConfig,
-                                motor,
-                                config,
-                                SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
-            }
-
             setInitialPosition();
         }
 
         simulationInit();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage());
+        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
+        Telemetry.log("IntakeExtension/Position", getPositionRotations());
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+    }
 
     @Override
     public void setupStates() {}
@@ -147,35 +137,12 @@ public class IntakeExtension extends Mechanism {
         IntakeExtensionStates.setupDefaultCommand();
     }
 
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Degrees", this::getPositionDegrees, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
+    private void setInitialPosition() {
+        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
     }
 
-    private void setInitialPosition() {
-        if (canCoder != null) {
-            if (canCoder.isAttached()
-                    && canCoder.canCoderResponseOK(
-                            canCoder.getCanCoder().getAbsolutePosition().getStatus())) {
-                motor.setPosition(
-                        canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
-                                / config.getCANcoderSensorToMechanismRatio());
-            } else {
-                motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-            }
-        } else {
-            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-        }
+    public void resetCurrentPositionToMax() {
+        motor.setPosition(config.getMaxRotations());
     }
 
     public Command resetToInitialPos() {
@@ -230,7 +197,26 @@ public class IntakeExtension extends Mechanism {
     }
 
     public Command move(DoubleSupplier rotations) {
-        return run(() -> setMMPositionFoc(rotations));
+        return run(() -> setVoltageOutput(rotations));
+    }
+
+    public Command voltageOutPositive() {
+        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
+    }
+
+    public Command voltageOutNegative() {
+        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
+    }
+
+    public Command motionMagicPercentMove(DoubleSupplier percent) {
+        return run(() -> setMMPosition(() -> percentToRotations(percent)));
+    }
+
+    public Command slowMoveToPercent(DoubleSupplier percent) {
+        return run(
+                () ->
+                        setDynMMPositionVoltage(
+                                () -> percentToRotations(percent), () -> 3, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

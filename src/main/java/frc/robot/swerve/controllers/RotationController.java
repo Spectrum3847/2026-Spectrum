@@ -40,7 +40,7 @@ public class RotationController {
 
         holdController.enableContinuousInput(-Math.PI, Math.PI);
         holdController.setTolerance(config.getRotationTolerance() / 2.0);
-        SmartDashboard.putData("Hold Controller", holdController);
+        SmartDashboard.putData("PID Controllers/Hold Controller", holdController);
     }
 
     public double calculate(double goalRadians, double currentRadians, boolean useHold) {

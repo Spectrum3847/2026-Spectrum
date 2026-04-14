@@ -14,50 +14,39 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendable;
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
+import frc.robot.RobotStates;
+import frc.robot.auton.Auton;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.Telemetry.PrintPriority;
 import frc.spectrumLib.util.Util;
 import frc.spectrumLib.vision.Limelight;
 import frc.spectrumLib.vision.Limelight.LimelightConfig;
+import frc.spectrumLib.vision.LimelightHelpers;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
-public class Vision implements NTSendable, Subsystem {
+public class Vision implements Subsystem {
 
     public static class VisionConfig {
         @Getter final String name = "Vision";
 
         /* Limelight Configuration */
-        @Getter final String frontLL = "limelight-front";
-
-        @Getter
-        final LimelightConfig frontConfig =
-                new LimelightConfig(frontLL)
-                        .withTranslation(0.215, 0, 0.188)
-                        .withRotation(0, Math.toRadians(28), 0);
-
         @Getter final String backLL = "limelight-back";
 
         @Getter
         final LimelightConfig backConfig =
                 new LimelightConfig(backLL)
-                        .withTranslation(-0.215, 0.0, 0.188)
-                        .withRotation(0, Math.toRadians(28), Math.toRadians(180));
+                        .withTranslation(-0.3084987734, 0.2134100126, 0.6502249886)
+                        .withRotation(0, 0, Math.toRadians(180));
 
         @Getter final String leftLL = "limelight-left";
 
@@ -65,33 +54,23 @@ public class Vision implements NTSendable, Subsystem {
         final LimelightConfig leftConfig =
                 new LimelightConfig(leftLL)
                         .withTranslation(0, 0.215, 0.188)
-                        .withRotation(0, Math.toRadians(28), Math.toRadians(90));
+                        .withRotation(0, 0, Math.toRadians(90));
 
         @Getter final String rightLL = "limelight-right";
 
         @Getter
         final LimelightConfig rightConfig =
                 new LimelightConfig(rightLL)
-                        .withTranslation(0, -0.215, 0.188)
-                        .withRotation(0, Math.toRadians(28), Math.toRadians(-90));
-
-        // Turret must be ZEROED in LL-GUI to report a correct pose
-        // Dynamic translation and rotation will be applied in code based on turret and robot
-        // rotation
-        @Getter final String turretLL = "limelight-turret";
-
-        @Getter
-        final LimelightConfig turretConfig =
-                new LimelightConfig(turretLL)
-                        .withTranslation(
-                                Units.inchesToMeters(0.467),
-                                Units.inchesToMeters(5.5),
-                                Units.inchesToMeters(27))
-                        .withRotation(0, Math.toRadians(10), 0);
+                        .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
+                        .withRotation(0, 0, -90);
 
         @Getter
         final Translation2d robotToTurretCenter =
-                new Translation2d(Units.inchesToMeters(-5.0), Units.inchesToMeters(-5.5));
+                new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7));
+
+        @Getter
+        final Translation2d turretCenterToCamera =
+                new Translation2d(Units.inchesToMeters(-5.641455), 0);
 
         /* Pipeline configs */
         @Getter final int frontTagPipeline = 0;
@@ -99,6 +78,7 @@ public class Vision implements NTSendable, Subsystem {
         @Getter final int leftTagPipeline = 0;
         @Getter final int rightTagPipeline = 0;
         @Getter final int turretTagPipeline = 0;
+        @Getter final int staticTagPipeline = 0;
 
         /* Pose Estimation Constants */
         @Getter double visionStdDevX = 0.5;
@@ -116,21 +96,11 @@ public class Vision implements NTSendable, Subsystem {
     }
 
     /* Limelights */
-    @Getter public final Limelight frontLL;
     @Getter public final Limelight backLL;
     @Getter public final Limelight leftLL;
     @Getter public final Limelight rightLL;
-    @Getter public final Limelight turretLL;
 
     public final Limelight[] allLimelights;
-    public final Limelight[] swerveLimelights; // Non-turret cameras
-
-    private final DecimalFormat df = new DecimalFormat();
-
-    @Getter private boolean isAiming = false;
-
-    @Getter
-    private DoubleSupplier turretRotationSupplier = () -> Robot.getTurret().getPositionDegrees();
 
     int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
     int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
@@ -139,34 +109,35 @@ public class Vision implements NTSendable, Subsystem {
 
     private VisionConfig config;
 
+    // -----------------------------------------------------------------------
+    // "Set once" / change-detection state
+    // -----------------------------------------------------------------------
+
+    /** Last yaw we pushed to limelights (degrees). NaN means "never pushed". */
+    private double lastYawDeg = Double.NaN;
+
+    /** The last IMU mode we set on each limelight. null means "unknown/not set". */
+    private final java.util.IdentityHashMap<Limelight, Integer> lastImuModeByLL =
+            new java.util.IdentityHashMap<>();
+
     public Vision(VisionConfig config) {
         this.config = config;
 
-        frontLL = new Limelight(config.frontLL, config.frontTagPipeline, config.frontConfig);
         backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
         leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
         rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
-        turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
 
-        swerveLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL};
-        allLimelights = new Limelight[] {frontLL, backLL, leftLL, rightLL, turretLL};
+        allLimelights = new Limelight[] {backLL, leftLL, rightLL};
 
-        // logging
-        df.setMaximumFractionDigits(2);
-
-        /* Configure Limelight Settings Here */
-        for (Limelight limelight : swerveLimelights) {
+        /* Configure Limelight Settings Here (initial set) */
+        for (Limelight limelight : allLimelights) {
             limelight.setLEDMode(false);
-            limelight.setIMUmode(1);
+            setImuModeIfChanged(limelight, 1);
         }
-
-        turretLL.setLEDMode(false);
-        turretLL.setIMUmode(2); // Different IMU mode for turret
 
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
         this.register();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -175,106 +146,67 @@ public class Vision implements NTSendable, Subsystem {
         return config.getName();
     }
 
-    // Setup the telemetry values, has to be called at the end of the implemented mechanism
-    // constructor
-    public void telemetryInit() {
-        SendableRegistry.add(this, getName());
-        SmartDashboard.putData(this);
-
-        Robot.getField2d().getObject(frontLL.getCameraName());
-        Robot.getField2d().getObject(backLL.getCameraName());
-        Robot.getField2d().getObject(leftLL.getCameraName());
-        Robot.getField2d().getObject(rightLL.getCameraName());
-        Robot.getField2d().getObject(turretLL.getCameraName());
-    }
-
     @Override
     public void periodic() {
         setLimeLightOrientation();
         disabledLimelightUpdates();
         enabledLimelightUpdates();
 
-        Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag2Pose());
-        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag2Pose());
-        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag2Pose());
-        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag2Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretMegaTag1Pose());
+        logTelemetry();
     }
 
-    public Pose2d getFrontMegaTag2Pose() {
-        Pose2d pose = frontLL.getMegaTag2_Pose2d();
+    public void logTelemetry() {
+        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
+        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
+        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
+    }
+
+    public void triggerRewindCaptureForAllCameras() {
+        for (Limelight limelight : allLimelights) {
+            LimelightHelpers.triggerRewindCapture(limelight.getName(), 165);
+        }
+    }
+
+    public Pose2d getBackMegaTag1Pose() {
+        Pose2d pose = backLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
-    public Pose2d getBackMegaTag2Pose() {
-        Pose2d pose = backLL.getMegaTag2_Pose2d();
+    public Pose2d getLeftMegaTag1Pose() {
+        Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
-    public Pose2d getLeftMegaTag2Pose() {
-        Pose2d pose = leftLL.getMegaTag2_Pose2d();
+    public Pose2d getRightMegaTag1Pose() {
+        Pose2d pose = rightLL.getMegaTag1_Pose3d().toPose2d();
         if (pose != null) {
             return pose;
         }
-        return new Pose2d();
+        return Pose2d.kZero;
     }
 
-    public Pose2d getRightMegaTag2Pose() {
-        Pose2d pose = rightLL.getMegaTag2_Pose2d();
-        if (pose != null) {
-            return pose;
+    private void setImuModeIfChanged(Limelight limelight, int desiredMode) {
+        Integer lastMode = lastImuModeByLL.get(limelight);
+        if (lastMode == null || lastMode.intValue() != desiredMode) {
+            limelight.setIMUmode(desiredMode);
+            lastImuModeByLL.put(limelight, desiredMode);
         }
-        return new Pose2d();
-    }
-
-    public Pose2d getTurretMegaTag2Pose() {
-        Pose2d pose = turretLL.getMegaTag2_Pose2d();
-        if (pose != null) {
-            return pose;
-        }
-        return new Pose2d();
-    }
-
-    public Pose2d getTurretMegaTag1Pose() {
-        Pose2d pose = turretLL.getMegaTag1_Pose3d().toPose2d();
-        if (pose != null) {
-            return pose;
-        }
-        return new Pose2d();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        builder.addDoubleProperty("FrontTX", frontLL::getTagTx, null);
-        builder.addDoubleProperty("FrontTA", frontLL::getTagTA, null);
-        builder.addDoubleProperty("FrontTagID", frontLL::getClosestTagID, null);
-        builder.addDoubleProperty("BackTX", backLL::getTagTx, null);
-        builder.addDoubleProperty("BackTA", backLL::getTagTA, null);
-        builder.addDoubleProperty("BackTagID", backLL::getClosestTagID, null);
-        builder.addDoubleProperty("LeftTX", leftLL::getTagTx, null);
-        builder.addDoubleProperty("LeftTA", leftLL::getTagTA, null);
-        builder.addDoubleProperty("LeftTagID", leftLL::getClosestTagID, null);
-        builder.addDoubleProperty("RightTX", rightLL::getTagTx, null);
-        builder.addDoubleProperty("RightTA", rightLL::getTagTA, null);
-        builder.addDoubleProperty("RightTagID", rightLL::getClosestTagID, null);
-        builder.addDoubleProperty("TurretTX", turretLL::getTagTx, null);
-        builder.addDoubleProperty("TurretTA", turretLL::getTagTA, null);
-        builder.addDoubleProperty("TurretTagID", turretLL::getClosestTagID, null);
     }
 
     private void setLimeLightOrientation() {
+        // Yaw used by LL is generally robot yaw in degrees.
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+
+        if (!Double.isNaN(lastYawDeg) && Math.abs(yaw - lastYawDeg) < 0.5) {
+            return;
+        }
+        lastYawDeg = yaw;
 
         for (Limelight limelight : allLimelights) {
             limelight.setRobotOrientation(yaw);
@@ -283,52 +215,21 @@ public class Vision implements NTSendable, Subsystem {
 
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
-            for (Limelight limelight : allLimelights) {
-                limelight.setIMUmode(1);
-            }
-            // MegaTag1 estimates (3D) for each swerve camera
-            VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, true);
-            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, true);
-            VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, true);
-            VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, true);
-            integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
-
-            // Turret estimate
-            if (Robot.getTurret().isAttached()) {
-                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true, true);
-                integrateSingleEstimate(turretMT1);
-            }
+            Limelight besLimelight = getBestLimelight();
+            integrateSingleEstimate(getMT1VisionEstimate(besLimelight, true));
         }
     }
 
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean()) {
-            for (Limelight limelight : allLimelights) {
-                limelight.setIMUmode(4);
-            }
-            // MegaTag1 estimates (3D) for each swerve camera
-            VisionFieldPoseEstimate frontMT1 = getMT1VisionEstimate(frontLL, false);
-            VisionFieldPoseEstimate backMT1 = getMT1VisionEstimate(backLL, false);
-            VisionFieldPoseEstimate leftMT1 = getMT1VisionEstimate(leftLL, false);
-            VisionFieldPoseEstimate rightMT1 = getMT1VisionEstimate(rightLL, false);
-            integrateMultipleEstimates(frontMT1, backMT1, leftMT1, rightMT1);
-
-            // MegaTag2 estimates (2D) for each swerve camera
-            VisionFieldPoseEstimate frontMT2 = getMT2VisionEstimate(frontLL);
-            VisionFieldPoseEstimate backMT2 = getMT2VisionEstimate(backLL);
-            VisionFieldPoseEstimate leftMT2 = getMT2VisionEstimate(leftLL);
-            VisionFieldPoseEstimate rightMT2 = getMT2VisionEstimate(rightLL);
-            integrateMultipleEstimates(frontMT2, backMT2, leftMT2, rightMT2);
-
-            // Turret estimate
-            if (Robot.getTurret().isAttached()) {
-                VisionFieldPoseEstimate turretMT1 = getMT1TurretEstimate(turretLL, true, false);
-                integrateSingleEstimate(turretMT1);
-            }
+        if (Util.teleop.getAsBoolean()
+                || RobotStates.autoUpdatePose.getAsBoolean()
+                || Auton.autonLaunching.getAsBoolean()) {
+            Limelight besLimelight = getBestLimelight();
+            integrateSingleEstimate(getMT1VisionEstimate(besLimelight, false));
         }
     }
 
-    private VisionFieldPoseEstimate getMT1VisionEstimate(Limelight ll, boolean integrateXY) {
+    private VisionFieldPoseEstimate getMT1VisionEstimate(Limelight ll, boolean forceIntegrateXY) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
@@ -421,12 +322,8 @@ public class Vision implements NTSendable, Subsystem {
             degStds = 50;
         }
 
-        if (!integrateXY) {
-            xyStds = 999999;
-        }
-
         // If we're forcing integration (e.g., for testing), use very tight stds
-        if (integrateXY) {
+        if (forceIntegrateXY) {
             xyStds = 0.01;
             degStds = 0.01;
         }
@@ -441,6 +338,7 @@ public class Vision implements NTSendable, Subsystem {
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
 
+    @SuppressWarnings("unused")
     private VisionFieldPoseEstimate getMT2VisionEstimate(Limelight ll) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
@@ -504,142 +402,6 @@ public class Vision implements NTSendable, Subsystem {
                 (int) ll.getTagCountInView());
     }
 
-    private VisionFieldPoseEstimate getMT1TurretEstimate(
-            Limelight ll, boolean integrateXY, boolean forceIntegration) {
-        if (!ll.targetInView()) {
-            ll.setTagStatus("No Targets in View");
-            ll.sendInvalidStatus("No Targets in View Rejection");
-            return null;
-        }
-
-        boolean multiTags = ll.multipleTagsInView();
-        double targetSize = ll.getTargetSize();
-        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-        Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
-        RawFiducial[] tags = ll.getRawFiducial();
-
-        double highestAmbiguity = 0.0;
-        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
-
-        double mt1PoseDifference =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getTranslation()
-                        .getDistance(megaTag1Pose2d.getTranslation());
-
-        /* ---------------- Rejections ---------------- */
-        ll.setTagStatus("");
-        for (RawFiducial tag : tags) {
-            highestAmbiguity = Math.max(highestAmbiguity, tag.ambiguity);
-
-            if (tag.ambiguity > 0.9) {
-                ll.sendInvalidStatus("High Ambiguity Rejection");
-                return null;
-            }
-        }
-
-        if (rejectionCheck(megaTag1Pose2d, targetSize)) {
-            ll.sendInvalidStatus("Generic Rejection");
-            return null;
-        }
-
-        // Roll / pitch rejection
-        if (Math.abs(Math.toDegrees(megaTag1Pose3d.getRotation().getX())) > 5
-                || Math.abs(Math.toDegrees(megaTag1Pose3d.getRotation().getY())) > 5) {
-            ll.sendInvalidStatus("Roll/Pitch Rejection");
-            return null;
-        }
-
-        /* ---------------- Integration tuning ---------------- */
-        double xyStds;
-        double degStds;
-
-        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
-            ll.sendValidStatus("Stationary close integration");
-            xyStds = 0.1;
-            degStds = 0.1;
-        } else if (multiTags && targetSize > 2) {
-            ll.sendValidStatus("Strong multi integration");
-            xyStds = 0.1;
-            degStds = 0.1;
-        } else if (multiTags && targetSize > 0.2) {
-            ll.sendValidStatus("Multi integration");
-            xyStds = 0.25;
-            degStds = 8.0;
-        } else if (targetSize > 2 && mt1PoseDifference < 0.5) {
-            ll.sendValidStatus("Close integration");
-            xyStds = 0.5;
-            degStds = config.getKLargeVariance();
-        } else if (targetSize > 1 && mt1PoseDifference < 0.25) {
-            ll.sendValidStatus("Proximity integration");
-            xyStds = 1.0;
-            degStds = config.getKLargeVariance();
-        } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
-            ll.sendValidStatus("Stable integration");
-            xyStds = 1.5;
-            degStds = config.getKLargeVariance();
-        } else {
-            ll.sendInvalidStatus("Confidence too low");
-            return null;
-        }
-
-        /* ---------------- MT1-specific tightening ---------------- */
-        // MT1 rotation is weak — trust it even less when ambiguity rises
-        if (highestAmbiguity > 0.5) {
-            degStds = Math.max(degStds, 50.0);
-        }
-
-        if (Math.abs(robotSpeed.omegaRadiansPerSecond) >= 0.5) {
-            degStds = Math.max(degStds, 75.0);
-        }
-
-        if (!integrateXY) {
-            xyStds = config.getKLargeVariance();
-        }
-
-        // If we're forcing integration, use very tight stds
-        if (forceIntegration) {
-            xyStds = 0.01;
-            degStds = 0.01;
-        }
-
-        /* ---------------- Turret adjustment ---------------- */
-        double turretDegrees = turretRotationSupplier.getAsDouble();
-        Rotation2d turretRotation = Rotation2d.fromDegrees(turretDegrees);
-
-        // Robot->Camera at 0° turret
-        Translation2d robotToCamera0 =
-                new Translation2d(
-                        config.getTurretConfig().getForward(),
-                        config.getTurretConfig().getRight()
-                                * -1); // Negate because left is positive in WPI coordinate system
-
-        // Vector from turret center -> camera at zero turret
-        Translation2d turretToCamera0 = robotToCamera0.minus(config.getRobotToTurretCenter());
-
-        // Rotate vector by turret angle
-        Translation2d turretToRotatedCamera = turretToCamera0.rotateBy(turretRotation);
-
-        // Add turret center offset to get full robot->camera vector
-        Translation2d robotToRotatedCamera =
-                config.getRobotToTurretCenter().plus(turretToRotatedCamera);
-
-        // Compute robot pose
-        Translation2d robotTranslation =
-                megaTag1Pose2d.getTranslation().minus(robotToRotatedCamera);
-        Rotation2d robotRotation = megaTag1Pose2d.getRotation().minus(turretRotation);
-
-        Pose2d integratedPose = new Pose2d(robotTranslation, robotRotation);
-
-        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
-        int numTags = tags == null ? 1 : tags.length;
-
-        return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
-    }
-
     /** Helper to integrate a single estimate */
     private void integrateSingleEstimate(VisionFieldPoseEstimate estimate) {
         if (estimate != null) {
@@ -652,6 +414,7 @@ public class Vision implements NTSendable, Subsystem {
     }
 
     /** Helper to integrate multiple estimates close in time by fusing them together first */
+    @SuppressWarnings("unused")
     private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
         // Collect non-null estimates
         List<VisionFieldPoseEstimate> list = new ArrayList<>();
@@ -705,7 +468,7 @@ public class Vision implements NTSendable, Subsystem {
      * @return the best limelight
      */
     public Limelight getBestLimelight() {
-        Limelight bestLimelight = frontLL;
+        Limelight bestLimelight = backLL;
         double bestScore = 0;
         for (Limelight limelight : allLimelights) {
             double score = 0;
@@ -803,10 +566,6 @@ public class Vision implements NTSendable, Subsystem {
         for (Limelight limelight : allLimelights) {
             limelight.setLimelightPipeline(pipeline);
         }
-    }
-
-    public boolean isTurretSeeingTag() {
-        return turretLL.targetInView() && turretLL.getTagTA() >= 2;
     }
 
     public boolean tagsInView() {

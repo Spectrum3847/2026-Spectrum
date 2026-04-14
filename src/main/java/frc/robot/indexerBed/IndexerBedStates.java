@@ -21,8 +21,19 @@ public class IndexerBedStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerBed
-                        .runTorqueFOC(config::getIndexerTorqueCurrent)
+                        .runVelocityTcFocRPM(config::getIndexerVelocityRPM)
                         .withName("IndexerBed.feedMax"));
+    }
+
+    public static void slowIndex() {
+        scheduleIfNotRunning(
+                indexerBed
+                        .runVelocityTcFocRPM(config::getIndexerSlowVelocityRPM)
+                        .withName("IndexerBed.slowFeed"));
+    }
+
+    public static void unjam() {
+        scheduleIfNotRunning(indexerBed.runVelocityTcFocRPM(config::getIndexerUnjamRPM));
     }
 
     public static void coastMode() {
@@ -31,6 +42,10 @@ public class IndexerBedStates {
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(indexerBed.ensureBrakeMode());
+    }
+
+    public static Command unjamCommand() {
+        return indexerBed.runVelocityTcFocRPM(config::getIndexerUnjamRPM);
     }
 
     // Log Command

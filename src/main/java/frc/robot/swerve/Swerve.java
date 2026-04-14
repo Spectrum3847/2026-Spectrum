@@ -17,28 +17,18 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
-import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendable;
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.networktables.StructArrayPublisher;
-import edu.wpi.first.networktables.StructPublisher;
-import edu.wpi.first.util.sendable.Sendable;
-import edu.wpi.first.util.sendable.SendableBuilder;
-import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
-import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
@@ -50,30 +40,25 @@ import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.util.Util;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import lombok.Getter;
-import org.ironmaple.simulation.SimulatedArena;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
  * in command-based projects easily.
  */
 public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
-        implements SpectrumSubsystem, NTSendable {
+        implements SpectrumSubsystem {
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
     private RotationController rotationController;
     private TranslationXController xController;
     private TranslationYController yController;
 
-    @Getter
-    protected SwerveModuleState[] setpoints =
-            new SwerveModuleState[] {}; // This currently doesn't do anything
-
-    // Buffer stores 1.5 seconds of pose history
-    private final TimeInterpolatableBuffer<Pose2d> poseHistory =
-            TimeInterpolatableBuffer.createBuffer(1.5);
+    private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
 
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean hasAppliedPilotPerspective = false;
@@ -83,14 +68,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.Position)
                     .withDesaturateWheelSpeeds(true);
-
-    // Logging publisher
-    StructArrayPublisher<SwerveModuleState> moduleStatePublisher =
-            NetworkTableInstance.getDefault()
-                    .getStructArrayTopic("SwerveStates", SwerveModuleState.struct)
-                    .publish();
-    StructPublisher<Pose2d> posePublisher =
-            NetworkTableInstance.getDefault().getStructTopic("SwervePose", Pose2d.struct).publish();
 
     /**
      * Constructs a new Swerve drive subsystem.
@@ -105,7 +82,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 CANcoder::new,
                 config.getDrivetrainConstants(),
                 MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(config.getModules()));
-        // this.robotConfig = robotConfig;
+
         this.config = config;
 
         rotationController = new RotationController(config);
@@ -118,16 +95,42 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         configurePathPlanner();
 
-        SendableRegistry.add(this, "Swerve");
-        SmartDashboard.putData(this);
         Robot.add(this);
         this.register();
+
         registerTelemetry(this::log);
+
         Telemetry.print(getName() + " Subsystem Initialized: ");
     }
 
+    // --------------------------------------------------------------------------------
+    // Periodic and Setup Methods
+    // --------------------------------------------------------------------------------
+
     protected void log(SwerveDriveState state) {
-        moduleStatePublisher.set(state.ModuleStates);
+        Telemetry.log("Swerve/Pose", state.Pose);
+        Telemetry.log("Swerve/TargetStates", state.ModuleTargets);
+        Telemetry.log("Swerve/MeasuredStates", state.ModuleStates);
+        Telemetry.log("Swerve/MeasuredSpeeds", state.Speeds);
+    }
+
+    protected void logBatteryUsage() {
+        double steerMotorCurrent = getDriveMotorCurrents();
+        double driveMotorCurrent = getSteerMotorCurrents();
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveSteer", steerMotorCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveDrive", driveMotorCurrent);
+    }
+
+    protected double getDriveMotorCurrents() {
+        return Arrays.stream(getModules())
+                .mapToDouble(module -> module.getDriveMotor().getStatorCurrent().getValueAsDouble())
+                .sum();
+    }
+
+    protected double getSteerMotorCurrents() {
+        return Arrays.stream(getModules())
+                .mapToDouble(module -> module.getSteerMotor().getStatorCurrent().getValueAsDouble())
+                .sum();
     }
 
     /**
@@ -136,20 +139,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      */
     @Override
     public void periodic() {
-        posePublisher.set(getRobotPose());
+        Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
+        logBatteryUsage();
         setPilotPerspective();
-        DogLog.log("BatteryVoltage", RobotController.getBatteryVoltage());
-        DogLog.log("Drive/OdometryPose", getState().Pose);
-        DogLog.log("Drive/TargetStates", getState().ModuleTargets);
-        DogLog.log("Drive/MeasuredStates", getState().ModuleStates);
-        DogLog.log("Drive/MeasuredSpeeds", getState().Speeds);
-        if (Utils.isSimulation()) {
-            DogLog.log(
-                    "FieldSimulation/Fuel",
-                    SimulatedArena.getInstance().getGamePiecesArrayByType("Fuel"));
-        }
-        // Store current pose in history buffer every periodic cycle
-        poseHistory.addSample(Utils.getCurrentTimeSeconds(), this.getState().Pose);
+        checkPigeonConnection();
     }
 
     @Override
@@ -162,46 +155,18 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         SwerveStates.setupDefaultCommand();
     }
 
-    /**
-     * The `initSendable` function sets up properties for a SmartDashboard type "SwerveDrive" with
-     * position and velocity double values.
-     *
-     * @param builder The `builder` parameter is an instance of the `NTSendableBuilder` class
-     */
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        builder.addDoubleProperty("Pose X", () -> getRobotPose().getX(), null);
-        builder.addDoubleProperty("Pose Y", () -> getRobotPose().getY(), null);
-        builder.addDoubleProperty(
-                "Pose Rotation Degrees", () -> getRobotPose().getRotation().getDegrees(), null);
+    protected String getCurrentCommandName() {
+        Command currentCommand = this.getCurrentCommand();
+        if (currentCommand != null) {
+            return currentCommand.getName();
+        }
 
-        SmartDashboard.putData(
-                "Swerve Drive",
-                new Sendable() {
-                    @Override
-                    public void initSendable(SendableBuilder builder) {
-                        builder.setSmartDashboardType("SwerveDrive");
-
-                        addModuleProperties(builder, "Front Left", 0);
-                        addModuleProperties(builder, "Front Right", 1);
-                        addModuleProperties(builder, "Back Left", 2);
-                        addModuleProperties(builder, "Back Right", 3);
-
-                        builder.addDoubleProperty("Robot Angle", () -> getRotationRadians(), null);
-                    }
-                });
+        return "none";
     }
 
-    private void addModuleProperties(SendableBuilder builder, String moduleName, int moduleNumber) {
-        builder.addDoubleProperty(
-                moduleName + " Angle",
-                () -> getModule(moduleNumber).getCurrentState().angle.getRadians(),
-                null);
-        builder.addDoubleProperty(
-                moduleName + " Velocity",
-                () -> getModule(moduleNumber).getCurrentState().speedMetersPerSecond,
-                null);
-    }
+    // --------------------------------------------------------------------------------
+    // Pose Methods
+    // --------------------------------------------------------------------------------
 
     /**
      * The function `getRobotPose` returns the robot's pose after checking and updating it.
@@ -218,22 +183,41 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     /**
+     * Checks the connection status of the Pigeon IMU.
+     * If it is not connected, an alert will show up in Elastic
+     */
+    private void checkPigeonConnection() {
+        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+            pigeonAlert.set(true);
+        } else {
+            pigeonAlert.set(false);
+        }
+    }
+
+    /**
      * Get the robot's pose at a specific timestamp using interpolation
      *
      * @param timestampSeconds The timestamp to sample at
      * @return The interpolated pose, or current pose if timestamp not in buffer
      */
     public Pose2d getPoseAtTimestamp(double timestampSeconds) {
-        return poseHistory.getSample(timestampSeconds).orElse(this.getState().Pose);
+        Optional<Pose2d> sampled = super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
+
+        return sampled.orElse(getRobotPose());
     }
 
     @Override
     public void resetPose(Pose2d pose) {
-        if (this.mapleSimSwerveDrivetrain != null)
+        if (this.mapleSimSwerveDrivetrain != null) {
             mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
-        Timer.delay(0.05); // Wait for simulation to update
+            Timer.delay(0.05); // Wait for simulation to update
+        }
         super.resetPose(pose);
     }
+
+    // --------------------------------------------------------------------------------
+    // Zone Triggers
+    // --------------------------------------------------------------------------------
 
     public Trigger inXzone(double minXmeter, double maxXmeter) {
         return new Trigger(
@@ -245,84 +229,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 () -> Util.inRange(() -> getRobotPose().getY(), () -> minYmeter, () -> maxYmeter));
     }
 
-    public Trigger inNeutralZone() {
-        final double fieldLengthMeters = Units.feetToMeters(54.0); // full field length
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width
-
-        final double neutralDepthMeters =
-                Units.inchesToMeters(283.0); // depth along field length (X)
-        final double neutralLengthMeters =
-                Units.inchesToMeters(317.7); // span across field width (Y)
-
-        final double centerX = fieldLengthMeters / 2.0;
-        final double centerY = fieldWidthMeters / 2.0;
-
-        final double minX = centerX - neutralDepthMeters / 2.0;
-        final double maxX = centerX + neutralDepthMeters / 2.0;
-        final double minY = centerY - neutralLengthMeters / 2.0;
-        final double maxY = centerY + neutralLengthMeters / 2.0;
-
-        return new Trigger(
-                () -> {
-                    double x =
-                            FieldHelpers.flipXifRed(
-                                    getRobotPose().getX()); // make alliance-agnostic
-                    double y = getRobotPose().getY();
-                    return Util.inRange(() -> x, () -> minX, () -> maxX)
-                            && Util.inRange(() -> y, () -> minY, () -> maxY);
-                });
-    }
-
-    public Trigger inEnemyAllianceZone() {
-        final double fieldLengthMeters = Units.feetToMeters(54.0);
-        final double fieldWidthMeters = Units.feetToMeters(27.0);
-
-        final double allianceDepthMeters =
-                Units.inchesToMeters(158.6); // X depth of an alliance zone
-        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span of an alliance zone
-
-        final double minX =
-                fieldLengthMeters
-                        - allianceDepthMeters; // enemy side (far end) in alliance-agnostic coords
-        final double maxX = fieldLengthMeters;
-
-        final double centerY = fieldWidthMeters / 2.0;
-        final double minY = centerY - allianceSpanMeters / 2.0;
-        final double maxY = centerY + allianceSpanMeters / 2.0;
-
-        return new Trigger(
-                () -> {
-                    double x =
-                            FieldHelpers.flipXifRed(getRobotPose().getX()); // alliance-agnostic X
-                    double y = getRobotPose().getY();
-                    return Util.inRange(() -> x, () -> minX, () -> maxX)
-                            && Util.inRange(() -> y, () -> minY, () -> maxY);
-                });
-    }
-
-    public Trigger inFieldRight() {
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
-        final double halfWidth = fieldWidthMeters / 2.0;
-
-        return new Trigger(() -> getRobotPose().getY() < halfWidth);
-    }
-
-    public Trigger inFieldLeft() {
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
-        final double halfWidth = fieldWidthMeters / 2.0;
-
-        return new Trigger(() -> getRobotPose().getY() >= halfWidth);
-    }
-
-    public boolean isGoingTooFast(double thresholdSpeed) {
-        ChassisSpeeds speeds = getCurrentRobotChassisSpeeds();
-        double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-        return linearSpeed > thresholdSpeed;
-    }
-
-    public Trigger overSpeedTrigger(double thresholdSpeed) {
-        return new Trigger(() -> isGoingTooFast(thresholdSpeed));
-    }
     /**
      * This method is used to check if the robot is in the X zone of the field flips the values if
      * Red Alliance
@@ -357,15 +263,94 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                                 maxYmeter));
     }
 
-    // Used to set a control request to the swerve module, ignores disable so commands are
-    // continuous.
-    Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
-        return run(() -> this.setControl(requestSupplier.get())).ignoringDisable(true);
+    public Trigger inNeutralZone() {
+        final double fieldLengthMeters = Units.feetToMeters(54.0);
+        final double fieldWidthMeters = Units.feetToMeters(27.0);
+
+        final double neutralDepthMeters = Units.inchesToMeters(283.0);
+        final double neutralLengthMeters = Units.inchesToMeters(317.7);
+
+        final double centerX = fieldLengthMeters / 2.0;
+        final double centerY = fieldWidthMeters / 2.0;
+
+        Rectangle2d neutralZone =
+                new Rectangle2d(
+                        new Translation2d(
+                                (centerX - neutralDepthMeters / 2.0) + Units.inchesToMeters(24),
+                                centerY - neutralLengthMeters / 2.0),
+                        new Translation2d(
+                                (centerX + neutralDepthMeters / 2.0) - Units.inchesToMeters(24),
+                                centerY + neutralLengthMeters / 2.0));
+
+        return new Trigger(
+                () -> {
+                    double x = getRobotPose().getX();
+                    double y = getRobotPose().getY();
+
+                    return neutralZone.contains(new Translation2d(x, y));
+                });
+    }
+
+    public Trigger inEnemyAllianceZone() {
+        final double fieldLengthMeters = Units.feetToMeters(54.0);
+        final double fieldWidthMeters = Units.feetToMeters(27.0);
+
+        final double allianceDepthMeters = Units.inchesToMeters(158.6); // X depth
+        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span
+
+        final double minX = fieldLengthMeters - allianceDepthMeters;
+        final double centerY = fieldWidthMeters / 2.0;
+        final double minY = centerY - allianceSpanMeters / 2.0;
+
+        Rectangle2d enemyAllianceZone =
+                new Rectangle2d(
+                        new Translation2d(minX, minY),
+                        new Translation2d(allianceDepthMeters, allianceSpanMeters));
+
+        return new Trigger(
+                () -> {
+                    double x = FieldHelpers.flipXifRed(getRobotPose().getX());
+                    double y = getRobotPose().getY();
+
+                    return enemyAllianceZone.contains(new Translation2d(x, y));
+                });
+    }
+
+    public Trigger inFieldRight() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() < halfWidth);
+    }
+
+    public Trigger inFieldLeft() {
+        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
+        final double halfWidth = fieldWidthMeters / 2.0;
+
+        return new Trigger(() -> getRobotPose().getY() >= halfWidth);
+    }
+
+    // --------------------------------------------------------------------------------
+    // Speed Checks
+    // --------------------------------------------------------------------------------
+
+    public boolean isGoingTooFast(double thresholdSpeed) {
+        ChassisSpeeds speeds = getCurrentRobotChassisSpeeds();
+        double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
+        return linearSpeed > thresholdSpeed;
+    }
+
+    public Trigger overSpeedTrigger(double thresholdSpeed) {
+        return new Trigger(() -> isGoingTooFast(thresholdSpeed));
     }
 
     public ChassisSpeeds getCurrentRobotChassisSpeeds() {
         return getKinematics().toChassisSpeeds(getState().ModuleStates);
     }
+
+    // --------------------------------------------------------------------------------
+    // Pilot Perspective
+    // --------------------------------------------------------------------------------
 
     private void setPilotPerspective() {
         /* Periodically try to apply the operator perspective */
@@ -386,6 +371,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
     }
 
+    // --------------------------------------------------------------------------------
+    // Reorientation Methods
+    // --------------------------------------------------------------------------------
+
     protected void reorient(double angleDegrees) {
         resetPose(
                 new Pose2d(
@@ -397,8 +386,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     protected Command reorientPilotAngle(double angleDegrees) {
         return runOnce(
                 () -> {
-                    double output;
-                    output = FieldHelpers.flipAngleIfRed(angleDegrees);
+                    double output = FieldHelpers.flipAngleIfRed(angleDegrees);
                     reorient(output);
                 });
     }
@@ -490,6 +478,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Rotation Controller
     // --------------------------------------------------------------------------------
+
     double getRotationControl(double goalRadians) {
         return rotationController.calculate(goalRadians, getRotationRadians());
     }
@@ -514,6 +503,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Translation X Controller
     // --------------------------------------------------------------------------------
+
     void resetXController() {
         xController.reset(getRobotPose().getX());
     }
@@ -525,6 +515,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
     // Translation Y Controller
     // --------------------------------------------------------------------------------
+
     void resetYController() {
         yController.reset(getRobotPose().getY());
     }
@@ -534,8 +525,19 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     // --------------------------------------------------------------------------------
-    // Path Planner
+    // Request Methods
     // --------------------------------------------------------------------------------
+
+    // Used to set a control request to the swerve module, ignores disable so commands are
+    // continuous.
+    Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
+        return run(() -> this.setControl(requestSupplier.get())).ignoringDisable(true);
+    }
+
+    // --------------------------------------------------------------------------------
+    // Path Planner Configuration
+    // --------------------------------------------------------------------------------
+
     private void configurePathPlanner() {
         // Seed robot to mid field at start (Paths will change this starting position)
         resetPose(Field.getCenterField());

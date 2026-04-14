@@ -10,33 +10,27 @@ public enum State {
     INTAKE_FUEL,
     SNAKE_INTAKE,
 
-    TURRET_TRACK,
-    TURRET_TRACK_WITH_LAUNCH,
+    LAUNCHER_TRACK,
+    LAUNCER_TRACK_WITH_LAUNCH,
 
-    TURRET_TRACK_WITH_SPINUP,
-    TURRET_FEED_WITH_SPINUP,
+    AUTON_LAUNCHER_TRACK,
+    AUTON_LAUNCHER_TRACK_WITH_LAUNCH,
 
-    TURRET_WITHOUT_TRACK,
-    TURRET_WITHOUT_TRACK_WITH_LAUNCH,
+    CUSTOM_SPEED_TURRET_LAUNCH,
+    UNJAM,
+    FORCE_HOME,
 
-    TURRET_FEED_WITH_AIMING,
-    TURRET_FEED_WITH_LAUNCH,
-
-    TURRET_FEED_WITHOUT_AIMING,
-    TURRET_FEED_WITHOUT_AIMING_WITH_LAUNCH,
-
-    L1_CLIMB_PREP,
-    L1_CLIMB_EXECUTE,
-
-    L3_CLIMB_PREP,
-    L3_CLIMB_EXECUTE;
+    COAST,
+    BRAKE,
+    TEST_INFINITE_LAUNCH,
+    TEST_IDLE;
 
     private State() {}
 
     // Define the scoring sequence map, the 2nd state is the next state after the
     // current one
     private static final ImmutableMap<State, State> scoreSequence =
-            ImmutableMap.ofEntries(Map.entry(TURRET_TRACK, TURRET_TRACK_WITH_LAUNCH));
+            ImmutableMap.ofEntries(Map.entry(LAUNCHER_TRACK, LAUNCER_TRACK_WITH_LAUNCH));
 
     // ------ STATE ATTRIBUTES ------//
 
@@ -47,7 +41,7 @@ public enum State {
     private static BooleanSupplier isReadyState(State state) {
         return () ->
                 switch (state) {
-                    case TURRET_TRACK -> true;
+                    case LAUNCHER_TRACK -> true;
                     default -> false;
                 };
     }

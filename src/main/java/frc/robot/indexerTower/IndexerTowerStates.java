@@ -2,6 +2,7 @@ package frc.robot.indexerTower;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
@@ -21,8 +22,26 @@ public class IndexerTowerStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerTower
-                        .runTorqueFOC(config::getIndexerTorqueCurrent)
+                        .runVelocityTcFocRPM(config::getIndexerVelocityRPM)
                         .withName("IndexerTower.feedMax"));
+    }
+
+    public static void slowIndex() {
+        scheduleIfNotRunning(
+                indexerTower
+                        .runVelocityTcFocRPM(config::getIndexerSlowVelocityRPM)
+                        .withName("IndexerTower.slowFeed"));
+    }
+
+    public static void quickReverseThenIndex() {
+        scheduleIfNotRunning(
+                Commands.sequence(
+                        indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM).withTimeout(1),
+                        indexerTower.runVelocityTcFocRPM(config::getIndexerVelocityRPM)));
+    }
+
+    public static void unjam() {
+        scheduleIfNotRunning(indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM));
     }
 
     public static void coastMode() {
@@ -31,6 +50,10 @@ public class IndexerTowerStates {
 
     public static void ensureBrakeMode() {
         scheduleIfNotRunning(indexerTower.ensureBrakeMode());
+    }
+
+    public static Command unjamCommand() {
+        return indexerTower.runVelocityTcFocRPM(config::getIndexerUnjamRPM);
     }
 
     // Log Command

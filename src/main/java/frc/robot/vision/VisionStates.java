@@ -8,7 +8,6 @@ public class VisionStates {
 
     private static Vision vision = Robot.getVision();
 
-    public static final Trigger turretSeeingTag = new Trigger(vision::isTurretSeeingTag);
     public static final Trigger seeingTag = new Trigger(vision::tagsInView);
 
     public static void setupDefaultCommand() {

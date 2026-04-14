@@ -1,5 +1,6 @@
 package frc.robot;
 
+import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -8,22 +9,27 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.WebServer;
+import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.XM2026;
+import frc.robot.configs.FM2026;
+import frc.robot.configs.PHOTON2026;
+import frc.robot.configs.PM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.hood.Hood;
+import frc.robot.hood.Hood.HoodConfig;
 import frc.robot.indexerBed.IndexerBed;
 import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.indexerTower.IndexerTower;
@@ -32,19 +38,16 @@ import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
 import frc.robot.launcher.Launcher.LauncherConfig;
-import frc.robot.leds.LedFull;
-import frc.robot.leds.LedFull.LedFullConfig;
 import frc.robot.operator.Operator;
 import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.swerve.Swerve;
 import frc.robot.swerve.SwerveConfig;
-import frc.robot.turretRotationalPivot.RotationalPivot;
-import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
 import frc.robot.vision.VisionSystem;
+import frc.spectrumLib.BatteryLogger;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumRobot;
 import frc.spectrumLib.Telemetry;
@@ -61,7 +64,8 @@ import org.json.simple.parser.ParseException;
 
 /**
  * The main robot class. This class is the entry point for the robot code and manages all subsystems
- * and their configurations.
+ * and their configurations. The main robot class. This class is the entry point for the robot code
+ * and manages all subsystems and their configurations.
  */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
@@ -78,29 +82,30 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
-        public LedFullConfig leds = new LedFullConfig();
-        public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
         public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
+        public HoodConfig hood = new HoodConfig();
         public VisionConfig vision = new VisionConfig();
     }
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
-    @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
     @Getter private static IndexerBed indexerBed;
-    @Getter private static LedFull leds;
+    // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
     @Getter private static Launcher launcher;
+    @Getter private static Hood hood;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
+    @Getter private static BatteryLogger batteryLogger;
+
     public static boolean commandInit = false;
 
     public Robot() {
@@ -110,11 +115,21 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            /* Set up the config */
-            config =
-                    switch (Rio.id) {
-                        default -> new XM2026();
-                    };
+            // Set up the config
+            switch (Rio.id) {
+                case PHOTON2026:
+                    config = new PHOTON2026();
+                    break;
+                case PM_2026:
+                    config = new PM2026();
+                    break;
+                    // case FM_2026:
+                    //     config = new FM2026();
+                    //     break;
+                default: // SIM and UNKNOWN
+                    config = new FM2026();
+                    break;
+            }
 
             /*
              * Initialize the Subsystems of the robot. Subsystems are how we divide up the robot
@@ -123,19 +138,19 @@ public class Robot extends SpectrumRobot {
              */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
-            leds = new LedFull(config.leds);
+            // leds = new CANdleLeds();
+            coordinator = new Coordinator();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
-            visionSystem = new VisionSystem(swerve::getRobotPose);
-            Timer.delay(canInitDelay);
-            turret = new RotationalPivot(config.turret);
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake(config.fuelIntake);
+            Timer.delay(canInitDelay);
+            hood = new Hood(config.hood);
             Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
@@ -143,9 +158,11 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
-            coordinator = new Coordinator();
+            batteryLogger = new BatteryLogger();
 
-            robotSim = new RobotSim();
+            if (Utils.isSimulation()) {
+                robotSim = new RobotSim();
+            }
 
             // Setup Default Commands for all subsystems
             setupDefaultCommands();
@@ -157,6 +174,21 @@ public class Robot extends SpectrumRobot {
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
+
+        RobotController.setBrownoutVoltage(Units.Volts.of(4.6));
+
+        Telemetry.log("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
+        Telemetry.log("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
+        Telemetry.log("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
+        Telemetry.log("BuildConstants/GitDate", BuildConstants.GIT_DATE);
+        Telemetry.log("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
+        Telemetry.log(
+                "BuildConstants/GitDirty",
+                switch (BuildConstants.DIRTY) {
+                    case 0 -> "All changes committed";
+                    case 1 -> "Uncommitted changes";
+                    default -> "Unknown";
+                });
     }
 
     /**
@@ -214,15 +246,16 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            SmartDashboard.putNumber("Match Data/MatchTime", DriverStation.getMatchTime());
-            SmartDashboard.putBoolean("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
-            SmartDashboard.putNumber(
+            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
+            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
+            Telemetry.log(
                     "Match Data/TimeLeftInShift",
-                    ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
-            SmartDashboard.putString("Applied State", RobotStates.getAppliedState().toString());
+                    ShiftHelpers.getOfficialShiftInfo().remainingTime());
+            Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
+            batteryLogger.logPower();
             field2d.setRobotPose(swerve.getRobotPose());
+
             ShotCalculator.getInstance().clearShootingParameters();
-            ShotCalculator.getInstance().getParameters();
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
@@ -241,8 +274,7 @@ public class Robot extends SpectrumRobot {
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    new InstantCommand(
-                                            () -> SmartDashboard.putBoolean("Initialized", true)))
+                                    Commands.runOnce(() -> Telemetry.log("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
@@ -287,10 +319,12 @@ public class Robot extends SpectrumRobot {
                                                     new Pose2d(
                                                             point.position.getX(),
                                                             point.position.getY(),
-                                                            new Rotation2d()))
+                                                            Rotation2d.kZero))
                                     .collect(Collectors.toList()));
                 }
-                field2d.getObject("path").setPoses(poses);
+                field2d.getObject("Auto Routine").setPoses(poses);
+            } else {
+                field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
             }
         }
     }
@@ -310,6 +344,9 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
+        if (Utils.isSimulation()) {
+            SimulatedArena.getInstance().resetFieldForAuto();
+        }
         try {
             auton.init();
         } catch (Throwable t) {
@@ -348,6 +385,9 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void teleopExit() {
+        if (DriverStation.isFMSAttached()) {
+            vision.triggerRewindCaptureForAllCameras();
+        }
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 
@@ -399,5 +439,8 @@ public class Robot extends SpectrumRobot {
 
     /** This method is called periodically during simulation. */
     @Override
-    public void simulationPeriodic() {}
+    public void simulationPeriodic() {
+        SmartDashboard.putNumber(
+                "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+    }
 }

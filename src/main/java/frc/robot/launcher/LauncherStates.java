@@ -8,6 +8,7 @@ import frc.spectrumLib.Telemetry;
 
 public class LauncherStates {
     private static Launcher launcher = Robot.getLauncher();
+    private static Launcher.LauncherConfig config = Robot.getConfig().launcher;
 
     public static void setupDefaultCommand() {
         launcher.setDefaultCommand(
@@ -32,11 +33,37 @@ public class LauncherStates {
         scheduleIfNotRunning(launcher.ensureBrakeMode());
     }
 
-    public static void aimAtHub() {
+    public static void slowLaunch() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRPM(config::getSlowLaunchSpeed)
+                        .withName("Launcher.slowLaunch"));
+    }
+
+    public static void aimAtTarget() {
         scheduleIfNotRunning(launcher.trackTargetCommand().withName("Launcher.aimAtHub"));
     }
 
+    public static void autonAimAtTarget() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRPM(config::getAutoTrenchLaunch)
+                        .withName("Launcher.autonAimAtTarget"));
+    }
+
+    public static void customLaunchSpeed() {
+        scheduleIfNotRunning(launcher.onTheFlyLaunch().withName("Launcher.onTheFlyLaunch"));
+    }
+
+    public static void idlePrep() {
+        scheduleIfNotRunning(
+                launcher.runVelocityTcFocRPM(config::getIdlingRPM).withName("Launcher.idlePrep"));
+    }
+
     // --------------------------------------------------------
+
+    public static Command launchFuel() {
+        return launcher.runTorqueFOC(config::getLauncherTorqueCurrent)
+                .withName("Launcher.launchFuelCommand");
+    }
 
     // Log Command
     protected static Command log(Command cmd) {
