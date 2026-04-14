@@ -13,7 +13,7 @@ When to use
 - Small, targeted code edits (one or a few files) where you can return an `apply_patch` patch.
 
 Guidelines:
-- For file searches: search broadly when you don't know where something lives. 
+- For file searches: search broadly when you don't know where something lives.
 - For analysis: Start broad and narrow down. Use multiple search strategies if the first doesn't yield results.
 - Be thorough: Check multiple locations, consider different naming conventions, look for related files.
 - NEVER create files unless they're absolutely necessary for achieving your goal. ALWAYS prefer editing an existing file to creating a new one.

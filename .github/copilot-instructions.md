@@ -59,8 +59,7 @@ and runs any unit tests.
 
 ### CI
 
-GitHub Actions (`.github/workflows/main.yml`) runs `./gradlew build` on every push/PR to `main`
-or `photon` using the `wpilib/roborio-cross-ubuntu:2025-24.04` Docker container.
+GitHub Actions (`.github/workflows/main.yml`) runs `./gradlew build` on every push/PR to `main` using the `wpilib/roborio-cross-ubuntu:2025-24.04` Docker container.
 
 ---
 
@@ -159,8 +158,6 @@ Four physical robots are supported via config classes in `frc/robot/configs/`:
 The correct config is selected automatically at runtime based on the **RoboRIO serial number**
 mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs differ per robot.
 
-**NOTE** There is a Photon Machine, only present in the photon branch.
-
 ### 4. Telemetry / Logging
 
 - Use **DogLog** (`frc.spectrumLib.Telemetry`) for all telemetry.
@@ -242,15 +239,15 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 
 ---
 
-## Subagents & Subagent Templates
+## Subagents
 
 Subagents are small, focused prompt templates used by Copilot-run subagents (or via `runSubagent`) to perform repeatable repository tasks (searches, scaffolding, small patches, audits). We keep templates as separate Markdown files so they are discoverable and easily updated.
 
-- Location: `.github/subagents/` (templates: `.github/subagents/templates/`).
-- Usage: When a user request maps to an existing template, prefer invoking that subagent. If no template exists for a recurring task, propose creating one and ask before applying any changes.
+- Location: `.github/agents/`.
+- Usage: When a user request maps to an existing template, prefer invoking that subagent. If no agent exists for a recurring task, propose creating one and ask before applying any changes.
 - Adding a new subagent template:
-  1. Add the new Markdown template to `.github/subagents/templates/` with YAML frontmatter including `name` and `description`.
-  2. Add a one-line entry to `.github/subagents/README.md` describing the template and example usage.
+  1. Add the new Markdown template to `.github/agents/` with YAML frontmatter including `name` and `description`.
+  2. Add a one-line entry to `.github/agents/README.md` describing the template and example usage.
   3. Update this file (`.github/copilot-instructions.md`) with a short bullet referencing the new template (path + purpose).
   4. Use `apply_patch` for edits and include a one-line rationale for each patch hunk. Do not edit generated files like `src/main/java/frc/robot/BuildConstants.java`.
 - Permissions & behavior:
