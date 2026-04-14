@@ -20,21 +20,20 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
+import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
-import frc.robot.configs.XM2026;
 import frc.robot.fuelIntake.FuelIntake;
 import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.hood.Hood;
+import frc.robot.hood.Hood.HoodConfig;
 import frc.robot.indexerBed.IndexerBed;
 import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.indexerTower.IndexerTower;
 import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
-import frc.robot.indexerTower.IndexerTowerBack;
-import frc.robot.indexerTower.IndexerTowerBack.IndexerTowerBackConfig;
 import frc.robot.intakeExtension.IntakeExtension;
 import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.launcher.Launcher;
@@ -45,11 +44,10 @@ import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.swerve.Swerve;
 import frc.robot.swerve.SwerveConfig;
-import frc.robot.turretRotationalPivot.RotationalPivot;
-import frc.robot.turretRotationalPivot.RotationalPivot.RotationalPivotConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
 import frc.robot.vision.VisionSystem;
+import frc.spectrumLib.BatteryLogger;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumRobot;
 import frc.spectrumLib.Telemetry;
@@ -84,30 +82,30 @@ public class Robot extends SpectrumRobot {
         public PilotConfig pilot = new PilotConfig();
         public OperatorConfig operator = new OperatorConfig();
         public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
-        public RotationalPivotConfig turret = new RotationalPivotConfig();
         public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
-        public IndexerTowerBackConfig indexerTowerBack = new IndexerTowerBackConfig();
         public IndexerBedConfig indexerBed = new IndexerBedConfig();
         public LauncherConfig launcher = new LauncherConfig();
+        public HoodConfig hood = new HoodConfig();
         public VisionConfig vision = new VisionConfig();
     }
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
-    @Getter private static RotationalPivot turret;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
-    @Getter private static IndexerTowerBack indexerTowerBack;
     @Getter private static IndexerBed indexerBed;
     // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
     @Getter private static Launcher launcher;
+    @Getter private static Hood hood;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
+    @Getter private static BatteryLogger batteryLogger;
+
     public static boolean commandInit = false;
 
     public Robot() {
@@ -117,10 +115,10 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            /** Set up the config */
+            // Set up the config
             switch (Rio.id) {
-                case XM_2026:
-                    config = new XM2026();
+                case PHOTON2026:
+                    config = new PHOTON2026();
                     break;
                 case PM_2026:
                     config = new PM2026();
@@ -141,28 +139,26 @@ public class Robot extends SpectrumRobot {
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
             // leds = new CANdleLeds();
+            coordinator = new Coordinator();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
             vision = new Vision(config.vision);
-            visionSystem = new VisionSystem(swerve::getRobotPose);
-            Timer.delay(canInitDelay);
-            turret = new RotationalPivot(config.turret);
             Timer.delay(canInitDelay);
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
+            hood = new Hood(config.hood);
+            Timer.delay(canInitDelay);
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
             indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);
-            indexerTowerBack = new IndexerTowerBack(config.indexerTowerBack);
-            Timer.delay(canInitDelay);
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
-            coordinator = new Coordinator();
+            batteryLogger = new BatteryLogger();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();
@@ -251,12 +247,12 @@ public class Robot extends SpectrumRobot {
             CommandScheduler.getInstance().run();
 
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
-            Telemetry.log("Match Data/InShift", ShiftHelpers.currentShiftIsYours());
+            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
             Telemetry.log(
                     "Match Data/TimeLeftInShift",
-                    ShiftHelpers.timeLeftInShiftSeconds(DriverStation.getMatchTime()));
+                    ShiftHelpers.getOfficialShiftInfo().remainingTime());
             Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
-
+            batteryLogger.logPower();
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();
@@ -278,7 +274,7 @@ public class Robot extends SpectrumRobot {
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    new InstantCommand(() -> Telemetry.log("Initialized", true)))
+                                    Commands.runOnce(() -> Telemetry.log("Initialized", true)))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
             commandInit = true;
@@ -323,7 +319,7 @@ public class Robot extends SpectrumRobot {
                                                     new Pose2d(
                                                             point.position.getX(),
                                                             point.position.getY(),
-                                                            new Rotation2d()))
+                                                            Rotation2d.kZero))
                                     .collect(Collectors.toList()));
                 }
                 field2d.getObject("Auto Routine").setPoses(poses);
@@ -389,6 +385,9 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void teleopExit() {
+        if (DriverStation.isFMSAttached()) {
+            vision.triggerRewindCaptureForAllCameras();
+        }
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 

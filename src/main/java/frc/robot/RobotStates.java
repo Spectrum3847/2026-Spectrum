@@ -1,15 +1,16 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShiftHelpers;
 import frc.robot.auton.Auton;
 import frc.robot.launcher.LauncherStates;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
 import frc.robot.swerve.Swerve;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.util.Util;
 import lombok.Getter;
 
 /**
@@ -38,30 +39,31 @@ public class RobotStates {
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
 
-    public static final Trigger forceScore = operator.AButton;
+    // public static final Trigger forceScore = operator.AButton;
 
-    public static final Trigger turretOnTarget = RotationalPivotStates.aimingAtTarget();
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
-    public static final Trigger readyToLaunch = turretOnTarget.and(launcherOnTarget);
 
     public static final Trigger autoUpdatePose = Auton.autonPoseUpdate;
 
     // Setup any binding to set states
     public static void setupStates() {
         // Pilot Triggers
-        pilot.RT.onTrue(applyState(State.INTAKE_FUEL));
+        pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
         pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.LT.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        pilot.XButton.whileTrue(applyState(State.LAUNCHER_TRACK));
+        pilot.XButton.onFalse(applyState(State.IDLE));
+
+        pilot.LT.whileTrue(applyState(State.LAUNCER_TRACK_WITH_LAUNCH));
         pilot.LT.onFalse(applyState(State.IDLE));
 
-        pilot.startButton.onTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
+        pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
 
-        pilot.AButton.onTrue(applyState(State.UNJAM));
+        pilot.AButton.whileTrue(applyState(State.UNJAM));
         pilot.AButton.onFalse(applyState(State.IDLE));
 
-        operator.AButton.onTrue(applyState(State.UNJAM));
+        operator.AButton.whileTrue(applyState(State.UNJAM));
         operator.AButton.onFalse(applyState(State.IDLE));
 
         pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));
@@ -74,14 +76,22 @@ public class RobotStates {
         pilot.home_select.onFalse(clearState()); // forces initial state to be cleared on startup
 
         // Telemetry bindings (keep logs in sync with trigger state)
-        bindTriggerTelemetry("LauncherPrep/TurretOnTarget", turretOnTarget);
         bindTriggerTelemetry("LauncherPrep/LauncherOnTarget", launcherOnTarget);
-        bindTriggerTelemetry("LauncherPrep/ReadyToLaunch", readyToLaunch);
+
+        // Reset hub shift timer when enabling
+        Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
+        Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
+        Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
-        Auton.autonShotPrep.onTrue(applyState(State.TURRET_TRACK));
-        Auton.autonShoot.onTrue(applyState(State.TURRET_TRACK_WITH_LAUNCH));
+        Auton.autonShotPrep.onTrue(applyState(State.LAUNCHER_TRACK));
+        Auton.autonShoot.onTrue(applyState(State.LAUNCER_TRACK_WITH_LAUNCH));
+        Auton.autonUnjam.onTrue(
+                Commands.sequence(
+                        applyState(State.UNJAM),
+                        Commands.waitSeconds(1),
+                        applyState(State.LAUNCER_TRACK_WITH_LAUNCH)));
         Auton.autonClearState.onTrue(clearState());
     }
 
@@ -89,54 +99,22 @@ public class RobotStates {
         throw new IllegalStateException("Utility class");
     }
 
-    // private static void toggleToState(Trigger button, State toggledState) {
-    //     button.onTrue(
-    //             new InstantCommand(
-    //                     () -> {
-    //                         State next = (appliedState == toggledState) ? State.IDLE :
-    // toggledState;
-    //                         appliedState = next;
-    //                         coordinator.applyRobotState(next);
-    //                     }));
-    // }
-
-    // private static void pressToState(Trigger button, State pressedState) {
-    //     button.onTrue(applyState(pressedState));
-    //     button.onFalse(applyState(State.IDLE));
-    // }
-
-    // private static void bindAimingWithReadyUpgrade(
-    //         Trigger button,
-    //         Trigger zone,
-    //         State aimingState,
-    //         Trigger readyTrigger,
-    //         State readyState) {
-    //     Trigger active = button.and(zone);
-
-    //     active.onTrue(applyState(aimingState));
-    //     active.onFalse(applyState(State.IDLE));
-
-    //     active.and(readyTrigger).onTrue(applyState(readyState));
-    //     active.and(readyTrigger.not()).onTrue(applyState(aimingState));
-    // }
-
     private static void bindTriggerTelemetry(String name, Trigger trigger) {
-        trigger.onTrue(new InstantCommand(() -> Telemetry.log(name, true)));
-        trigger.onFalse(new InstantCommand(() -> Telemetry.log(name, false)));
+        trigger.onTrue(Commands.runOnce(() -> Telemetry.log(name, true)));
+        trigger.onFalse(Commands.runOnce(() -> Telemetry.log(name, false)));
     }
 
     public static Command applyState(State state) {
-        return new InstantCommand(
+        return Commands.runOnce(
                         () -> {
                             appliedState = state;
-                            Telemetry.print("Applied State: " + state);
                             coordinator.applyRobotState(state);
                         })
                 .withName("APPLYING STATE: " + state);
     }
 
     public static Command clearState() {
-        return new InstantCommand(
+        return Commands.runOnce(
                         () -> {
                             appliedState = State.IDLE;
                             coordinator.applyRobotState(State.IDLE);
