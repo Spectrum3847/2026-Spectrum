@@ -183,8 +183,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     }
 
     /**
-     * Checks the connection status of the Pigeon IMU.
-     * If it is not connected, an alert will show up in Elastic
+     * Checks the connection status of the Pigeon IMU. If it is not connected, an alert will show up
+     * in Elastic
      */
     private void checkPigeonConnection() {
         if (getPigeon2() == null || !getPigeon2().isConnected()) {
