@@ -84,7 +84,7 @@ src/main/java/frc/
 │   ├── indexerBed/     # Horizontal fuel indexer
 │   ├── fuelIntake/     # Ground intake
 │   ├── intakeExtension/# Intake arm extension
-│   ├── turretRotationalPivot/  # Turret rotation mechanism
+│   ├── hood/           # Hood mechanism
 │   ├── leds/           # CANdle LED control
 │   ├── pilot/          # Pilot gamepad bindings
 │   └── operator/       # Operator gamepad bindings
@@ -121,8 +121,8 @@ src/main/deploy/
 
 ### 1. Robot State Machine
 
-The entire robot is controlled through a **high-level `State` enum** (`State.java`) with 21 states
-(e.g., `IDLE`, `INTAKE_FUEL`, `TURRET_TRACK`, `TURRET_TRACK_WITH_LAUNCH`, `L1_CLIMB_PREP`, `UNJAM`,
+The entire robot is controlled through a **high-level `State` enum** (`State.java`) with 16 states
+e.g., `IDLE`, `INTAKE_FUEL`, `LAUNCHER_TRACK`, `LAUNCER_TRACK_WITH_LAUNCH`, `UNJAM`,
 `FORCE_HOME`, etc.).
 
 - **`RobotStates.java`**: Sets up WPILib `Trigger`s that fire when the active robot state changes.
@@ -174,8 +174,8 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 
 - Autonomous routines use **PathPlanner** (paths and autos in `src/main/deploy/pathplanner/`).
 - `Auton.java` registers named commands with PathPlanner and manages routine selection.
-- Available autos: `Depot`, `Taxi - Preload`, `Neutral Zone - Left Start`,
-  `Neutral Zone - Right Start`, `1 Meter`, `3 Meter`, `5 Meter`.
+- Available autos: `Do Nothing`, `Neutral Zone - Left Trench Start`,
+  `Neutral Zone - Right Trench Start`, `Taxi + Preload`.
 
 ### 7. Vision
 
@@ -198,7 +198,7 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 |---------|---------|
 | `WPILibNewCommands.json` | WPILib command-based framework (vendored copy with Spectrum patches) |
 | `PathplannerLib-2026.1.2.json` | Path following & autonomous |
-| `Phoenix6-26.1.1.json` | CTR Talon FX motor controllers & CTRE Swerve |
+| `Phoenix6-26.1.3.json` | CTR Talon FX motor controllers & CTRE Swerve |
 | `maple-sim.json` | Physics-based swerve simulation |
 | `DogLog.json` | Telemetry and logging |
 | `photonlib.json` | PhotonVision camera integration |
@@ -214,7 +214,7 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 - **Java 17** with `var` usage where it improves readability.
 - **Google Java Format AOSP** (4-space indent) — enforced by Spotless on every build.
 - **Lombok** (`@Getter`, `@Setter`, etc.) is available via `io.freefair.lombok`.
-- Use descriptive state names in `State.java` — prefer `TURRET_TRACK_WITH_LAUNCH` over abbreviations.
+- Use descriptive state names in `State.java` — prefer `LAUNCER_TRACK_WITH_LAUNCH` over abbreviations.
 - Configuration constants belong in the subsystem's inner `Config` class, not in a global constants file.
 - CAN device IDs are managed via `frc.spectrumLib.util.CanDeviceId`.
 - Unit conversions go through `frc.spectrumLib.util.Conversions`.
@@ -250,6 +250,8 @@ Subagents are small, focused prompt templates used by Copilot-run subagents (or 
   2. Add a one-line entry to `.github/agents/README.md` describing the template and example usage.
   3. Update this file (`.github/copilot-instructions.md`) with a short bullet referencing the new template (path + purpose).
   4. Use `apply_patch` for edits and include a one-line rationale for each patch hunk. Do not edit generated files like `src/main/java/frc/robot/BuildConstants.java`.
+  5. Keep `.github/agents/README.md` in sync with new templates when they are added.
+- Example agent template: `.github/agents/add_robot_state.md` — Add a new high-level robot state and wire it into `State.java`, `RobotStates.java`, and `Coordinator.java`.
 - Permissions & behavior:
   - Copilot is allowed to create and edit subagent template files and to update `copilot-instructions.md` when new agents are added, but must never add secrets or sensitive data.
   - For code changes produced by subagents, produce `apply_patch` patches and do not automatically commit without human review.

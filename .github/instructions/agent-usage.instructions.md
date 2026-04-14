@@ -8,7 +8,7 @@ Usage
 Example (assistant-side):
 
 ```
-const prompt = fs.readFileSync('.github/subagents/templates/create_subsystem.md', 'utf8')
+const prompt = fs.readFileSync('.github/agents/create_subsystem.md', 'utf8')
 runSubagent({ prompt, description: 'Create subsystem (template)' })
 ```
 
@@ -20,6 +20,11 @@ Agents included
  - `fix_spotless.md` — Run Spotless & Gradle and produce a fix plan / patches
  - `run_gradle_build.md` — Run a Gradle build and summarize results (tests, SpotBugs, ErrorProne)
  - `address_pr_comments.md` — Address PR review comments with focused patches
+ - `add_robot_state.md` — Add a new high-level robot state and wire it into the state machine
+ - `verification_copilot.md` — Verify changes with build/test evidence and a PASS/FAIL verdict
+ - `general_purpose_copilot.md` — General repo search, small patch, and analysis guidance
+
+See `.github/agents/README.md` for the current list of templates and usage examples.
 
 Notes
  - Each agent contains placeholders like `{{SUBSYSTEM_NAME}}` or `{{TARGET_CLASS}}`. Replace them or pass them to the subagent as parameters in your prompt.

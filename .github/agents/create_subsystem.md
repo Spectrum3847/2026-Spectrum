@@ -4,7 +4,7 @@ description: "Create a new Java subsystem skeleton following repository conventi
 ---
 
 Purpose
-Create a minimal, buildable skeleton for a new subsystem named `{{SUBSYSTEM_NAME}}` in `frc.robot`. Follow existing project conventions (mechanism class extending `frc.spectrumLib.mechanism.Mechanism`, an accompanying `*States` class, and wiring in `Robot.java`/`Coordinator.java` if requested).
+Create a minimal, buildable skeleton for a new subsystem named `{{SUBSYSTEM_NAME}}` in `frc.robot`. Follow existing project conventions (mechanism class extending `frc.spectrumLib.Mechanism`, an accompanying `*States` class, and wiring in `Robot.java`/`Coordinator.java` if requested).
 
 Inputs (replace or provide when invoking):
 - `SUBSYSTEM_NAME` (CamelCase, e.g., `MyArm`)
@@ -21,7 +21,7 @@ Output format (required): Produce an `apply_patch`-style patch only. The patch m
 
 Skeleton requirements (follow style in repo):
 - Use package `frc.robot.<packageFolder>`.
-- Class extends `frc.spectrumLib.mechanism.Mechanism` (or `Mechanism`) and includes a public static `Config` inner class with tunable fields.
+- Class extends `frc.spectrumLib.Mechanism` (or `Mechanism`) and includes a public static `Config` inner class with tunable fields.
 - Add a minimal constructor and a `periodic()` override (if appropriate).
 
 Example instruction (caller):
