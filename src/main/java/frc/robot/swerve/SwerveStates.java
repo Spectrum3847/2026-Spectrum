@@ -190,6 +190,27 @@ public class SwerveStates {
                 .withName("Swerve.pilotAimAtTarget");
     }
 
+    public static Command autonAimAtTarget() {
+        return aimDrive(
+                        () -> 0, // No translation control in auton
+                        () -> 0,
+                        () -> {
+                            if (Field.isBlue()) {
+                                return ShotCalculator.getInstance()
+                                        .getParameters()
+                                        .driveAngle()
+                                        .plus(Rotation2d.k180deg)
+                                        .getRadians();
+                            } else {
+                                return ShotCalculator.getInstance()
+                                        .getParameters()
+                                        .driveAngle()
+                                        .getRadians();
+                            }
+                        })
+                .withName("Swerve.autonAimAtTarget");
+    }
+
     /**
      * Drive the robot with its front bumper as the forward direction.
      *

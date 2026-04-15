@@ -13,29 +13,35 @@ public class AndyMarkMap {
             new InterpolatingDoubleTreeMap();
 
     static {
-        hoodAngleMap.put(1.34, 16.0);
-        hoodAngleMap.put(2.00, 17.0);
-        hoodAngleMap.put(2.35, 19.0);
-        hoodAngleMap.put(2.65, 20.0);
-        hoodAngleMap.put(2.96, 22.0);
-        hoodAngleMap.put(3.23, 24.0);
-        hoodAngleMap.put(3.65, 25.0);
-        hoodAngleMap.put(4.00, 27.0);
-        hoodAngleMap.put(4.20, 29.0);
-        hoodAngleMap.put(4.50, 31.0);
-        hoodAngleMap.put(5.60, 32.0);
+        hoodAngleMap.put(1.85, 10.0);
+        hoodAngleMap.put(2.00, 10.5);
+        hoodAngleMap.put(2.35, 11.7);
+        hoodAngleMap.put(2.55, 13.8);
+        hoodAngleMap.put(2.65, 14.5);
+        hoodAngleMap.put(2.96, 17.0);
+        hoodAngleMap.put(3.30, 19.5);
+
+        hoodAngleMap.put(3.31, 19.6);
+        hoodAngleMap.put(3.65, 22.3);
+        hoodAngleMap.put(4.00, 24.0);
+
+        hoodAngleMap.put(4.01, 20.5);
+        hoodAngleMap.put(4.20, 22.0);
+        hoodAngleMap.put(4.50, 22.0);
+
+        hoodAngleMap.put(5.2, 30.0);
+        hoodAngleMap.put(5.60, 45.0);
 
         /* Flywheel map (in RPM) */
         // Near Trench
-        launcherSpeedMap.put(0.00, 1800.0);
-        launcherSpeedMap.put(3.30, 1800.0);
+        launcherSpeedMap.put(0.00, 2000.0);
+        launcherSpeedMap.put(3.30, 2000.0);
 
         // Near Tower
-        launcherSpeedMap.put(3.31, 1900.0);
-        launcherSpeedMap.put(5.00, 1900.0);
+        launcherSpeedMap.put(3.31, 2000.0);
+        launcherSpeedMap.put(4.00, 2000.0);
 
-        // Feeding shots
-        launcherSpeedMap.put(5.01, 2400.0);
+        launcherSpeedMap.put(4.01, 2400.0);
         launcherSpeedMap.put(6.00, 2400.0);
     }
 }

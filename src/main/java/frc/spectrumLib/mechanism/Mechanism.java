@@ -1,5 +1,6 @@
 package frc.spectrumLib.mechanism;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -90,6 +91,16 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                    100,
+                    motor.getDutyCycle(),
+                    motor.getMotorVoltage(),
+                    motor.getTorqueCurrent(),
+                    motor.getStatorCurrent(),
+                    motor.getSupplyCurrent(),
+                    motor.getPosition(),
+                    motor.getVelocity());
+            motor.optimizeBusUtilization();
 
             followerMotors = new TalonFX[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
@@ -98,6 +109,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
+                followerMotors[i].optimizeBusUtilization();
             }
         }
 

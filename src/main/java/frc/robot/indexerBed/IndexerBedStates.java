@@ -21,7 +21,7 @@ public class IndexerBedStates {
     public static void indexMax() {
         scheduleIfNotRunning(
                 indexerBed
-                        .runVelocityTcFocRPM(config::getIndexerVelocityRPM)
+                        .runVelocityTcFocRPM(config.getIndexerBedFeedRPM())
                         .withName("IndexerBed.feedMax"));
     }
 

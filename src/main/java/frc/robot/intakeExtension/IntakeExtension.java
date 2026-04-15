@@ -5,6 +5,7 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
@@ -38,6 +39,10 @@ public class IntakeExtension extends Mechanism {
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
         @Getter private double atPoseTolerance = 10;
+
+        @Getter
+        private final DoubleSubscriber timeUntilIntakeSqueeze =
+                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.5);
 
         @Getter private final double currentLimit = 40;
         @Getter private final double torqueCurrentLimit = 100;
@@ -123,10 +128,10 @@ public class IntakeExtension extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IntakeExtension/Voltage", getVoltage());
-        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
-        Telemetry.log("IntakeExtension/Position", getPositionRotations());
-        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
+        Telemetry.log("IntakeExtension/Current", getStatorCurrent(), "amps");
+        Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
     }
 
     @Override
@@ -216,7 +221,7 @@ public class IntakeExtension extends Mechanism {
         return run(
                 () ->
                         setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 3, () -> 20, () -> 1000));
+                                () -> percentToRotations(percent), () -> 5, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

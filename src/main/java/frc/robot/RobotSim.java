@@ -5,7 +5,6 @@ import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import com.ctre.phoenix6.Utils;
-import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -22,6 +21,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import frc.rebuilt.ShotCalculator;
+import frc.spectrumLib.Telemetry;
 import java.util.Set;
 import lombok.Getter;
 import org.ironmaple.simulation.IntakeSimulation;
@@ -133,11 +133,11 @@ public class RobotSim {
                                                     Degrees.of(65))
                                             .withProjectileTrajectoryDisplayCallBack(
                                                     (pose3ds) ->
-                                                            DogLog.log(
+                                                            Telemetry.log(
                                                                     "SimShot/FuelProjectileSuccessfulShot",
                                                                     pose3ds.toArray(Pose3d[]::new)),
                                                     (pose3ds) ->
-                                                            DogLog.log(
+                                                            Telemetry.log(
                                                                     "SimShot/FuelProjectileUnsuccessfulShot",
                                                                     pose3ds.toArray(
                                                                             Pose3d[]::new)));

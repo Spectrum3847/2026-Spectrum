@@ -39,6 +39,7 @@ import frc.robot.swerve.controllers.TranslationXController;
 import frc.robot.swerve.controllers.TranslationYController;
 import frc.spectrumLib.SpectrumSubsystem;
 import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.swerve.MapleSimSwerveDrivetrain;
 import frc.spectrumLib.util.Util;
 import java.util.Arrays;
 import java.util.Optional;
@@ -117,8 +118,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     protected void logBatteryUsage() {
         double steerMotorCurrent = getDriveMotorCurrents();
         double driveMotorCurrent = getSteerMotorCurrents();
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveSteer", steerMotorCurrent);
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveDrive", driveMotorCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
     }
 
     protected double getDriveMotorCurrents() {
@@ -276,10 +277,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Rectangle2d neutralZone =
                 new Rectangle2d(
                         new Translation2d(
-                                (centerX - neutralDepthMeters / 2.0) + Units.inchesToMeters(24),
+                                (centerX - neutralDepthMeters / 2.0),
                                 centerY - neutralLengthMeters / 2.0),
                         new Translation2d(
-                                (centerX + neutralDepthMeters / 2.0) - Units.inchesToMeters(24),
+                                (centerX + neutralDepthMeters / 2.0),
                                 centerY + neutralLengthMeters / 2.0));
 
         return new Trigger(
@@ -295,17 +296,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         final double fieldLengthMeters = Units.feetToMeters(54.0);
         final double fieldWidthMeters = Units.feetToMeters(27.0);
 
-        final double allianceDepthMeters = Units.inchesToMeters(158.6); // X depth
-        final double allianceSpanMeters = Units.inchesToMeters(317.7); // Y span
+        final double allianceDepthMeters = Units.inchesToMeters(180.0); // X depth
+        final double allianceSpanMeters = fieldWidthMeters; // Y span
 
         final double minX = fieldLengthMeters - allianceDepthMeters;
-        final double centerY = fieldWidthMeters / 2.0;
-        final double minY = centerY - allianceSpanMeters / 2.0;
+        final double minY = 0;
 
         Rectangle2d enemyAllianceZone =
                 new Rectangle2d(
                         new Translation2d(minX, minY),
-                        new Translation2d(allianceDepthMeters, allianceSpanMeters));
+                        new Translation2d(fieldLengthMeters, allianceSpanMeters));
 
         return new Trigger(
                 () -> {
@@ -559,9 +559,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     },
                     new PPHolonomicDriveController(
                             // PID constants for translation
-                            new PIDConstants(4.5, 0, 0),
+                            new PIDConstants(4, 0, 0),
                             // PID constants for rotation
-                            new PIDConstants(7, 0, 0)),
+                            new PIDConstants(6, 0, 0)),
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case

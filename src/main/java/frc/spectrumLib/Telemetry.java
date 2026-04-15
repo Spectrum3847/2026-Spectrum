@@ -2,7 +2,6 @@ package frc.spectrumLib;
 
 import dev.doglog.DogLog;
 import dev.doglog.DogLogOptions;
-import edu.wpi.first.hal.HALUtil;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.Timer;
@@ -55,17 +54,27 @@ public class Telemetry extends DogLog implements Subsystem {
      *
      * @param ntPublish Whether to publish to NetworkTables.
      * @param captureNt Whether to capture NetworkTables entries in the log.
+     * @param captureDs Whether to capture SmartDashboard entries in the log.
+     * @param captureConsole Whether to capture console output in the log.
+     * @param logExtras Whether to log extra data, like PDH currents, CAN usage, radio connection
+     *     status, etc.
      * @param priority The minimum priority level for console output.
      */
-    public static void start(boolean ntPublish, boolean captureNt, PrintPriority priority) {
+    public static void start(
+            boolean ntPublish,
+            boolean captureDs,
+            boolean captureNt,
+            boolean captureConsole,
+            boolean logExtras,
+            PrintPriority priority) {
         setPriority(priority);
         Telemetry.setOptions(
                 new DogLogOptions()
                         .withNtPublish(ntPublish)
-                        .withCaptureDs(true)
+                        .withCaptureDs(captureDs)
                         .withCaptureNt(captureNt)
-                        .withCaptureConsole(false)
-                        .withLogExtras(false));
+                        .withCaptureConsole(captureConsole)
+                        .withLogExtras(logExtras));
         Telemetry.setPdh(new PowerDistribution());
         /* Display the currently running commands on SmartDashboard*/
         SmartDashboard.putData(CommandScheduler.getInstance());
@@ -82,23 +91,6 @@ public class Telemetry extends DogLog implements Subsystem {
                                 () -> log("Commands", "End: " + cmd.getName())))
                 .ignoringDisable(cmd.runsWhenDisabled())
                 .withName(cmd.getName());
-    }
-
-    // Boolean logger
-    public static void log(String key, Boolean value) {
-        var now = HALUtil.getFPGATime();
-        logger.log(now, key, false, value);
-    }
-
-    // double logger
-    public static void log(String key, double value) {
-        var now = HALUtil.getFPGATime();
-        logger.log(now, key, false, value);
-    }
-
-    public static void log(String key, double[] value) {
-        var now = HALUtil.getFPGATime();
-        logger.log(now, key, false, value);
     }
 
     /** Print a statement if they are enabled */

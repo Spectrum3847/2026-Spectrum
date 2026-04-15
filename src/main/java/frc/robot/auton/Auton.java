@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.RobotStates;
 import frc.robot.State;
+import frc.robot.swerve.SwerveStates;
 import frc.spectrumLib.SpectrumState;
 import frc.spectrumLib.Telemetry;
 import java.io.IOException;
@@ -76,23 +77,29 @@ public class Auton {
     }
 
     public Command prepThanLaunch() {
-        return Commands.sequence(
-                autonLaunching.setTrue(),
-                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK),
-                Commands.waitSeconds(0.25),
-                RobotStates.applyState(State.AUTON_LAUNCHER_TRACK_WITH_LAUNCH),
-                Commands.waitSeconds(2.5),
-                RobotStates.applyState(State.IDLE),
-                autonLaunching.setFalse());
+        return Commands.deadline(
+                Commands.sequence(
+                        autonLaunching.setTrue(),
+                        RobotStates.applyState(State.LAUNCHER_TRACK),
+                        Commands.waitSeconds(0.5),
+                        RobotStates.applyState(State.LAUNCER_TRACK_WITH_LAUNCH),
+                        Commands.waitSeconds(2.5),
+                        RobotStates.applyState(State.IDLE),
+                        autonLaunching.setFalse()),
+                SwerveStates.autonAimAtTarget());
     }
 
     public Command trenchStart(boolean mirrored) {
         return Commands.sequence(
-                        SpectrumAuton("Trench 1", mirrored),
+                        SpectrumAuton("Trench-Bump 1", mirrored),
                         prepThanLaunch(),
-                        SpectrumAuton("Trench 2", mirrored),
-                        prepThanLaunch())
-                .withName("Trench Full");
+                        SpectrumAuton("Trench-Bump 2", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("Trench-Bump 3", mirrored))
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("Trench-Bump Full - " + (mirrored ? "Right" : "Left"));
     }
 
     /**

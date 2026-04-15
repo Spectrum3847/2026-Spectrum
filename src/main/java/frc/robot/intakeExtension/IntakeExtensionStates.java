@@ -57,7 +57,8 @@ public class IntakeExtensionStates {
     public static void slowIntakeClose() {
         scheduleIfNotRunning(
                 Commands.sequence(
-                                Commands.waitSeconds(0.5),
+                                Commands.waitSeconds(
+                                        config.getTimeUntilIntakeSqueeze().getAsDouble()),
                                 intakeExtension.slowMoveToPercent(config::getSqueeze))
                         .withName("IntakeExtension.slowIntakeClose"));
     }

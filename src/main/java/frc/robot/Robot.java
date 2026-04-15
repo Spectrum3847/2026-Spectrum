@@ -70,12 +70,9 @@ import org.json.simple.parser.ParseException;
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
     @Getter private static Config config;
-    static Telemetry telemetry = new Telemetry();
     @Getter private static final Field2d field2d = new Field2d();
-
-    public enum RobotFault {
-        OVERCURRENT,
-    }
+    public static Telemetry telemetry = new Telemetry();
+    public static boolean autonWarmedUp = false;
 
     public static class Config {
         public SwerveConfig swerve = new SwerveConfig();
@@ -95,7 +92,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
     @Getter private static IndexerBed indexerBed;
-    // @Getter private static CANdleLeds leds;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static VisionSystem visionSystem;
@@ -106,11 +102,9 @@ public class Robot extends SpectrumRobot {
     @Getter private static Coordinator coordinator;
     @Getter private static BatteryLogger batteryLogger;
 
-    public static boolean commandInit = false;
-
     public Robot() {
         super();
-        Telemetry.start(true, true, PrintPriority.NORMAL);
+        Telemetry.start(true, true, false, true, false, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
@@ -138,7 +132,6 @@ public class Robot extends SpectrumRobot {
              */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
 
-            // leds = new CANdleLeds();
             coordinator = new Coordinator();
             operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
@@ -164,8 +157,8 @@ public class Robot extends SpectrumRobot {
                 robotSim = new RobotSim();
             }
 
-            // Setup Default Commands for all subsystems
             setupDefaultCommands();
+            batteryLogger.setEnabled(true);
 
             Telemetry.print("--- Robot Init Complete ---");
 
@@ -193,8 +186,13 @@ public class Robot extends SpectrumRobot {
 
     /**
      * This method cancels all commands and returns subsystems to their default commands and the
-     * gamepad configs are reset so that new bindings can be assigned based on mode This method
-     * should be called when each mode is initialized
+     * gamepad configs are reset so that new bindings can be assigned based on mode. This method
+     * should be called when each mode is initialized.
+     *
+     * <p><b>Warning:</b> This method will cause a very large loop overrun, as it rebinds all states
+     * to their triggers. Be careful when you call this as it will cause delays in the robot code.
+     * It is recommended to call this method at the end of disabledInit and teleopInit, as those are
+     * the most common places to need to reset commands and bindings.
      */
     public void resetCommandsAndButtons() {
         CommandScheduler.getInstance().cancelAll(); // Disable any currently running commands
@@ -209,6 +207,15 @@ public class Robot extends SpectrumRobot {
         RobotStates.setupStates();
     }
 
+    /**
+     * This method cancels all commands and returns subsystems to their default commands. This
+     * method should be called when each mode is initialized.
+     *
+     * <p><b>Warning:</b> This method will cause a very large loop overrun, as it rebinds all states
+     * to their triggers. Be careful when you call this as it will cause delays in the robot code.
+     * It is recommended to call this method at the end of disabledInit and teleopInit, as those are
+     * the most common places to need to reset commands and bindings.
+     */
     public void clearCommandsAndButtons() {
         CommandScheduler.getInstance().cancelAll(); // Disable any currently running commands
         CommandScheduler.getInstance().getActiveButtonLoop().clear();
@@ -218,11 +225,12 @@ public class Robot extends SpectrumRobot {
         RobotStates.setupStates();
     }
 
+    /** Sets up the SmartDashboard data for visualization. */
     public void setupSmartDashboardData() {
         SmartDashboard.putData("Field2d", field2d);
     }
 
-    @Override // Deprecated
+    @Override
     public void robotInit() {
         setupSmartDashboardData();
         WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
@@ -238,6 +246,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void robotPeriodic() {
         try {
+            Telemetry.time("Scheduler/robotPeriodic");
             /*
              * Runs the Scheduler. This is responsible for polling buttons, adding newly-scheduled
              * commands, running already-scheduled commands, removing finished or interrupted
@@ -246,16 +255,22 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime());
+            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
             Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
             Telemetry.log(
                     "Match Data/TimeLeftInShift",
-                    ShiftHelpers.getOfficialShiftInfo().remainingTime());
+                    ShiftHelpers.getOfficialShiftInfo().remainingTime(),
+                    "seconds");
             Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
+
+            batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
+            batteryLogger.setRioCurrent(RobotController.getInputCurrent());
             batteryLogger.logPower();
+
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();
+            Telemetry.timeEnd("Scheduler/robotPeriodic");
         } catch (Throwable t) {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
@@ -269,15 +284,18 @@ public class Robot extends SpectrumRobot {
         clearCommandsAndButtons();
         resetCommandsAndButtons();
 
-        if (!commandInit) {
+        if (!autonWarmedUp) {
             Command autonStartCommand =
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    Commands.runOnce(() -> Telemetry.log("Initialized", true)))
+                                    Commands.runOnce(
+                                            () -> {
+                                                Telemetry.log("Initialized", true);
+                                                autonWarmedUp = true;
+                                            }))
                             .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
-            commandInit = true;
         }
 
         Telemetry.print("### Disabled Init Complete ### ");
@@ -287,8 +305,15 @@ public class Robot extends SpectrumRobot {
     public void disabledPeriodic() {
         String autoName = "";
         String newAutoName;
+        boolean leftStart = true;
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();
         newAutoName = auton.getAutonomousCommand().getName();
+        leftStart = !newAutoName.endsWith(" - Right");
+
+        // Remove " - Left" or " - Right" suffix if present
+        if (newAutoName.endsWith(" - Left") || newAutoName.endsWith(" - Right")) {
+            newAutoName = newAutoName.substring(0, newAutoName.lastIndexOf(" - "));
+        }
 
         if (!autoName.equals(newAutoName)) {
             autoName = newAutoName;
@@ -306,6 +331,14 @@ public class Robot extends SpectrumRobot {
                     pathPlannerPaths =
                             pathPlannerPaths.stream()
                                     .map(PathPlannerPath::flipPath)
+                                    .collect(Collectors.toList());
+                }
+
+                // Mirror the paths if starting on the right
+                if (!leftStart) {
+                    pathPlannerPaths =
+                            pathPlannerPaths.stream()
+                                    .map(PathPlannerPath::mirrorPath)
                                     .collect(Collectors.toList());
                 }
 

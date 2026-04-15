@@ -27,11 +27,6 @@ public class PilotStates {
     private static Trigger reorientButton =
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
-    private static final Trigger intaking =
-            new Trigger(
-                    () ->
-                            RobotStates.getAppliedState() == State.SNAKE_INTAKE
-                                    || RobotStates.getAppliedState() == State.INTAKE_FUEL);
     private static final Trigger launching =
             new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
 
@@ -57,8 +52,7 @@ public class PilotStates {
         pilot.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
         pilot.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
 
-        // Slow mode when driver is intaking or launching fuel
-        intaking.whileTrue(slowMode());
+        // Slow mode when driver is launching fuel
         launching.whileTrue(slowMode());
 
         // Rumble whenever we reorient

@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone Trench L 1"
+            "pathName": "Trench-Bump Left 1"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "Neutral Zone Trench L 2"
+            "pathName": "Trench-Bump Left 2"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Trench-Bump Left 3"
           }
         }
       ]

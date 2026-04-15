@@ -1,8 +1,7 @@
-package frc.robot.vision;
+package frc.spectrumLib.vision;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import frc.spectrumLib.Telemetry;
-import frc.spectrumLib.vision.Limelight;
 import lombok.Getter;
 
 public class VisionLogger {

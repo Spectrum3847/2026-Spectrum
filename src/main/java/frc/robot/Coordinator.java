@@ -38,7 +38,7 @@ public class Coordinator {
                 HoodStates.aimAtTarget();
             }
             case LAUNCER_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.slowIntakeFuel();
+                FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.slowIntakeClose();
@@ -51,15 +51,15 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.autonAimAtTarget();
-                HoodStates.aimAtTarget();
+                HoodStates.autonAimAtTarget();
             }
             case AUTON_LAUNCHER_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.slowIntakeFuel();
+                FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.slowIntakeClose();
                 LauncherStates.autonAimAtTarget();
-                HoodStates.aimAtTarget();
+                HoodStates.autonAimAtTarget();
             }
             case UNJAM -> {
                 FuelIntakeStates.stop();
