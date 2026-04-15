@@ -1,5 +1,6 @@
 package frc.robot;
 
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
@@ -101,6 +102,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
     @Getter private static BatteryLogger batteryLogger;
+    @Getter private static CANBus mainCANBus;
 
     public Robot() {
         super();
@@ -131,6 +133,7 @@ public class Robot extends SpectrumRobot {
              * subsystem Something that don't have an output are also subsystems.
              */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
+            mainCANBus = new CANBus("*"); // Use the first CANivore bus found
 
             coordinator = new Coordinator();
             operator = new Operator(config.operator);
@@ -266,6 +269,13 @@ public class Robot extends SpectrumRobot {
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
             batteryLogger.logPower();
+
+            var canInfo = mainCANBus.getStatus();
+            Telemetry.log("CANivore/BusUtilization", canInfo.BusUtilization * 100, "%");
+            Telemetry.log("CANivore/BusOffCount", canInfo.BusOffCount);
+            Telemetry.log("CANivore/TxFullCount", canInfo.TxFullCount);
+            Telemetry.log("CANivore/ReceiveErrorCounter", canInfo.REC);
+            Telemetry.log("CANivore/TransmitErrorCounter", canInfo.TEC);
 
             field2d.setRobotPose(swerve.getRobotPose());
 
