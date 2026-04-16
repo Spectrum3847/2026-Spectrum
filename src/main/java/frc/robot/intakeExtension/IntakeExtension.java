@@ -45,7 +45,7 @@ public class IntakeExtension extends Mechanism {
                 Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.5);
 
         @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double torqueCurrentLimit = 80;
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;

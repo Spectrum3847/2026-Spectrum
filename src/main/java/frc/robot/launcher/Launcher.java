@@ -40,7 +40,7 @@ public class Launcher extends Mechanism {
         @Getter private double currentLimit = 80;
         @Getter private double torqueCurrentLimit = 160;
         @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
-        @Getter private double reverseTorqueCurrentLimit = -20;
+        @Getter private double reverseTorqueCurrentLimit = -10;
         @Getter private double lowerCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;

@@ -118,6 +118,12 @@
   "pointTowardsZones": [],
   "eventMarkers": [
     {
+      "name": "poseUpdate",
+      "waypointRelativePos": 0.0,
+      "endWaypointRelativePos": 4.348081440877048,
+      "command": null
+    },
+    {
       "name": "clearState",
       "waypointRelativePos": 0.07243539545810583,
       "endWaypointRelativePos": null,
@@ -127,12 +133,6 @@
       "name": "intake",
       "waypointRelativePos": 0.19772905246672173,
       "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
-      "name": "poseUpdate",
-      "waypointRelativePos": 0.2760375880971009,
-      "endWaypointRelativePos": 3.9017227877838483,
       "command": null
     },
     {
