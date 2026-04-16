@@ -102,6 +102,7 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/Current", getStatorCurrent(), "amps");
         Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "degrees");
         Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
     }
 
     @Override

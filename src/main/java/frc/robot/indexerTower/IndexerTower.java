@@ -81,6 +81,7 @@ public class IndexerTower extends Mechanism {
         Telemetry.log("IndexerTower/Voltage", getVoltage(), "volts");
         Telemetry.log("IndexerTower/Current", getStatorCurrent(), "amps");
         Telemetry.log("IndexerTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IndexerTower/Temp", getTemp(), "deg_C");
     }
 
     @Override

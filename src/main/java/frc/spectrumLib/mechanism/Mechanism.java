@@ -85,6 +85,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
     private final CachedDouble cachedDegrees;
     private final CachedDouble cachedVelocity;
     private final CachedDouble cachedCurrent;
+    private final CachedDouble cachedTemp;
 
     protected Mechanism(Config config) {
         this.config = config;
@@ -119,6 +120,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
         cachedPercentage = new CachedDouble(this::updatePositionPercentage);
         cachedDegrees = new CachedDouble(this::updatePositionDegrees);
         cachedVelocity = new CachedDouble(this::updateVelocityRPM);
+        cachedTemp = new CachedDouble(this::updateTemp);
 
         SpectrumRobot.add(this);
         this.register();
@@ -297,6 +299,17 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
     public double getVoltage() {
         return cachedVoltage.getAsDouble();
+    }
+
+    public double updateTemp() {
+         if (config.attached) {
+            return motor.getDeviceTemp().getValueAsDouble();
+        }
+        return 0;
+    }
+
+    public double getTemp() {
+        return cachedTemp.getAsDouble();
     }
 
     /**

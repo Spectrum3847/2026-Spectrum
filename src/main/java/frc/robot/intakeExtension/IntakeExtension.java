@@ -132,6 +132,7 @@ public class IntakeExtension extends Mechanism {
         Telemetry.log("IntakeExtension/Current", getStatorCurrent(), "amps");
         Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
         Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
     }
 
     @Override

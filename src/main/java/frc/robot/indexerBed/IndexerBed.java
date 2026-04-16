@@ -79,6 +79,7 @@ public class IndexerBed extends Mechanism {
         Telemetry.log("IndexerBed/Voltage", getVoltage(), "volts");
         Telemetry.log("IndexerBed/Current", getStatorCurrent(), "amps");
         Telemetry.log("IndexerBed/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IndexerBed/Temp", getTemp(), "deg_C");
     }
 
     @Override

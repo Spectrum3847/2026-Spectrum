@@ -101,6 +101,7 @@ public class Launcher extends Mechanism {
         Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
         Telemetry.log("Launcher/Current", getStatorCurrent(), "amps");
         Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
     }
 
     @Override
