@@ -115,7 +115,7 @@ public class SwerveConfig {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    @Getter @Setter private Current slipCurrent = Amps.of(75);
+    @Getter @Setter private Current slipCurrent = Amps.of(90);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -124,9 +124,7 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(100))
-                                    .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(70))
+                                    .withSupplyCurrentLimit(Amps.of(40))
                                     .withSupplyCurrentLimitEnable(true));
 
     // Swerve azimuth does not require much torque output, so we can set a
@@ -170,8 +168,8 @@ public class SwerveConfig {
                     TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             constantCreator;
 
-    private final double wheelBaseInches = 19.75;
-    private final double trackWidthInches = 23.75;
+    private final double wheelBaseInches = 21.75;
+    private final double trackWidthInches = 21.75;
 
     // Distance from robot center to each module (drivebase "radius") in inches
     @Getter

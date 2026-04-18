@@ -82,6 +82,20 @@ public class IntakeExtensionStates {
                 .withName("IntakeExtension.slowIntakeClose");
     }
 
+    public static Command positiveVoltageOut() {
+        return log(
+                intakeExtension
+                        .runVoltageNoSoftLimit(config::getPositiveVoltageOut)
+                        .withName("IntakeExtension.positiveVoltageOut"));
+    }
+
+    public static Command negativeVoltageOut() {
+        return log(
+                intakeExtension
+                        .runVoltage(config::getNegativeVoltageOut)
+                        .withName("IntakeExtension.negativeVoltageOut"));
+    }
+
     public static Command coastMode() {
         return log(intakeExtension.coastMode().withName("IntakeExtension.coastMode"));
     }

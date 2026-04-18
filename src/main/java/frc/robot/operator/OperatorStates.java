@@ -30,7 +30,9 @@ public class OperatorStates {
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
 
         operator.rightBumperOnly.whileTrue(IntakeExtensionStates.fullRetractCommand());
-        operator.rightTriggerOnly.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
+
+        operator.RT.whileTrue(IntakeExtensionStates.positiveVoltageOut());
+        operator.LT.whileTrue(IntakeExtensionStates.negativeVoltageOut());
 
         operator.testA.whileTrue(IntakeExtensionStates.fullExtendCommand());
         operator.testB.whileTrue(IntakeExtensionStates.fullRetractCommand());

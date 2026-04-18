@@ -16,32 +16,32 @@
     },
     {
       "anchor": {
-        "x": 4.139559925093633,
-        "y": 7.56
+        "x": 4.12313670411985,
+        "y": 7.713801498127342
       },
       "prevControl": {
-        "x": 3.139559925093633,
-        "y": 7.56
+        "x": 3.12313670411985,
+        "y": 7.713801498127342
       },
       "nextControl": {
-        "x": 5.139559925093633,
-        "y": 7.56
+        "x": 5.12313670411985,
+        "y": 7.713801498127342
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.611254681647939,
-        "y": 7.516722846441949
+        "x": 6.578408239700375,
+        "y": 7.713801498127342
       },
       "prevControl": {
-        "x": 5.744008458525067,
-        "y": 7.516722846441949
+        "x": 5.711162016577503,
+        "y": 7.713801498127342
       },
       "nextControl": {
-        "x": 7.478500904770811,
-        "y": 7.516722846441949
+        "x": 7.445654462823247,
+        "y": 7.713801498127342
       },
       "isLocked": false,
       "linkedName": null
@@ -65,27 +65,59 @@
     {
       "anchor": {
         "x": 6.332059925093634,
-        "y": 4.166385767790263
+        "y": 4.314194756554308
       },
       "prevControl": {
         "x": 6.332059925093634,
-        "y": 3.607346897624585
+        "y": 3.7551558863886303
       },
       "nextControl": {
         "x": 6.332059925093634,
-        "y": 6.3663857677902636
+        "y": 5.915985100294571
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 2.26,
-        "y": 5.5
+        "x": 6.332059925093634,
+        "y": 6.7201966292134845
       },
       "prevControl": {
-        "x": 3.934915670769929,
-        "y": 5.5
+        "x": 6.332059925093634,
+        "y": 6.190393603276948
+      },
+      "nextControl": {
+        "x": 6.332059925093634,
+        "y": 7.7201966292134845
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 4.12313670411985,
+        "y": 7.713801498127342
+      },
+      "prevControl": {
+        "x": 5.798052374889781,
+        "y": 7.713801498127342
+      },
+      "nextControl": {
+        "x": 3.62313670411985,
+        "y": 7.713801498127342
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.94,
+        "y": 6.4
+      },
+      "prevControl": {
+        "x": 2.9235767790262166,
+        "y": 6.93375468164794
       },
       "nextControl": null,
       "isLocked": false,
@@ -94,7 +126,7 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.7653441844693103,
+      "waypointRelativePos": 0.6005425567989139,
       "rotationDegrees": 0.0
     },
     {
@@ -112,6 +144,14 @@
     {
       "waypointRelativePos": 3.9148864021702394,
       "rotationDegrees": 135.0
+    },
+    {
+      "waypointRelativePos": 4.65,
+      "rotationDegrees": 180.0
+    },
+    {
+      "waypointRelativePos": 6.392336385215319,
+      "rotationDegrees": 180.0
     }
   ],
   "constraintZones": [],
@@ -120,25 +160,13 @@
     {
       "name": "poseUpdate",
       "waypointRelativePos": 0.0,
-      "endWaypointRelativePos": 4.348081440877048,
-      "command": null
-    },
-    {
-      "name": "clearState",
-      "waypointRelativePos": 0.07243539545810583,
-      "endWaypointRelativePos": null,
+      "endWaypointRelativePos": 7.0,
       "command": null
     },
     {
       "name": "intake",
-      "waypointRelativePos": 0.19772905246672173,
+      "waypointRelativePos": 0.10375880971025973,
       "endWaypointRelativePos": null,
-      "command": null
-    },
-    {
-      "name": "poseUpdate",
-      "waypointRelativePos": 4.778778386844155,
-      "endWaypointRelativePos": 5.0,
       "command": null
     }
   ],
@@ -147,12 +175,12 @@
     "maxAcceleration": 4.0,
     "maxAngularVelocity": 360.0,
     "maxAngularAcceleration": 540.0,
-    "nominalVoltage": 10.0,
+    "nominalVoltage": 9.0,
     "unlimited": false
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 135.0
+    "rotation": 125.00000000000001
   },
   "reversed": false,
   "folder": "Neutral Zone - Left Trench Start",

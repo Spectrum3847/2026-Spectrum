@@ -7,7 +7,7 @@ public class FM2026 extends Config {
     // Final Machine
     public FM2026() {
         super();
-        swerve.configEncoderOffsets(-0.1484375, 0.25439453125, 0.2666015625, -0.3017578125);
+        swerve.configEncoderOffsets(-0.163818359375, 0.22021484375, 0.2724609375, -0.31005859375);
 
         // Attached Mechanisms
         pilot.setAttached(true);

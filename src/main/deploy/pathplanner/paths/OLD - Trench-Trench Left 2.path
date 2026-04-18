@@ -4,28 +4,28 @@
     {
       "anchor": {
         "x": 3.38,
-        "y": 6.29
+        "y": 7.32
       },
       "prevControl": null,
       "nextControl": {
         "x": 5.380000000000001,
-        "y": 6.29
+        "y": 7.32
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 5.749035580524344,
-        "y": 6.29
+        "x": 5.93,
+        "y": 7.32
       },
       "prevControl": {
-        "x": 5.249035580524344,
-        "y": 6.29
+        "x": 5.43,
+        "y": 7.32
       },
       "nextControl": {
-        "x": 6.349035580524344,
-        "y": 6.29
+        "x": 6.529999999999999,
+        "y": 7.32
       },
       "isLocked": false,
       "linkedName": null
@@ -48,15 +48,15 @@
     },
     {
       "anchor": {
-        "x": 7.44062734082397,
+        "x": 7.6623408239700375,
         "y": 4.03
       },
       "prevControl": {
-        "x": 7.44062734082397,
+        "x": 7.6623408239700375,
         "y": 3.5300000000000002
       },
       "nextControl": {
-        "x": 7.44062734082397,
+        "x": 7.6623408239700375,
         "y": 4.529999999999995
       },
       "isLocked": false,
@@ -64,16 +64,16 @@
     },
     {
       "anchor": {
-        "x": 6.96435393258427,
-        "y": 6.408155430711611
+        "x": 7.013623595505618,
+        "y": 7.138988764044944
       },
       "prevControl": {
-        "x": 7.76435393258427,
-        "y": 6.408155430711611
+        "x": 7.7653776921343445,
+        "y": 6.865372649384409
       },
       "nextControl": {
-        "x": 6.31735393258427,
-        "y": 6.408155430711611
+        "x": 6.405642469857136,
+        "y": 7.3602757967766514
       },
       "isLocked": false,
       "linkedName": null
@@ -81,11 +81,11 @@
     {
       "anchor": {
         "x": 3.38,
-        "y": 6.29
+        "y": 7.32
       },
       "prevControl": {
         "x": 5.379999999999999,
-        "y": 6.29
+        "y": 7.32
       },
       "nextControl": null,
       "isLocked": false,
@@ -147,7 +147,7 @@
     },
     {
       "name": "intake",
-      "waypointRelativePos": 0.44831636648397183,
+      "waypointRelativePos": 0.18206734534065672,
       "endWaypointRelativePos": null,
       "command": null
     },
@@ -168,13 +168,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 115.0
+    "rotation": 110.0
   },
   "reversed": false,
   "folder": "Neutral Zone - Left Trench Start",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 115.0
+    "rotation": 110.0
   },
   "useDefaultConstraints": true
 }

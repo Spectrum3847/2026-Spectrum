@@ -77,7 +77,8 @@ public class IndexerBed extends Mechanism {
         logBatteryUsage();
         Telemetry.log("IndexerBed/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IndexerBed/Voltage", getVoltage(), "volts");
-        Telemetry.log("IndexerBed/Current", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerBed/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerBed/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("IndexerBed/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("IndexerBed/Temp", getTemp(), "deg_C");
     }

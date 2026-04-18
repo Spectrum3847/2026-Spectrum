@@ -79,7 +79,8 @@ public class IndexerTower extends Mechanism {
         logBatteryUsage();
         Telemetry.log("IndexerTower/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IndexerTower/Voltage", getVoltage(), "volts");
-        Telemetry.log("IndexerTower/Current", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerTower/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerTower/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("IndexerTower/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("IndexerTower/Temp", getTemp(), "deg_C");
     }

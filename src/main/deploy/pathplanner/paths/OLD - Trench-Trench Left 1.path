@@ -3,13 +3,13 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.38,
-        "y": 6.470000000000001
+        "x": 4.46,
+        "y": 7.49
       },
       "prevControl": null,
       "nextControl": {
-        "x": 5.38,
-        "y": 6.470000000000001
+        "x": 5.46,
+        "y": 7.49
       },
       "isLocked": false,
       "linkedName": null
@@ -17,15 +17,15 @@
     {
       "anchor": {
         "x": 6.890449438202247,
-        "y": 6.470000000000001
+        "y": 7.49
       },
       "prevControl": {
         "x": 5.890449438202247,
-        "y": 6.470000000000001
+        "y": 7.49
       },
       "nextControl": {
         "x": 7.890449438202247,
-        "y": 6.470000000000001
+        "y": 7.49
       },
       "isLocked": false,
       "linkedName": null
@@ -49,15 +49,15 @@
     {
       "anchor": {
         "x": 7.801938202247191,
-        "y": 4.05
+        "y": 5.05
       },
       "prevControl": {
-        "x": 7.806044007490637,
-        "y": 4.606864682725821
+        "x": 7.801938202247191,
+        "y": 5.606879818725751
       },
       "nextControl": {
-        "x": 7.797832397003745,
-        "y": 3.493135317274179
+        "x": 7.801938202247191,
+        "y": 4.35
       },
       "isLocked": false,
       "linkedName": null
@@ -65,15 +65,15 @@
     {
       "anchor": {
         "x": 6.73,
-        "y": 4.05
+        "y": 5.05
       },
       "prevControl": {
         "x": 6.73,
-        "y": 3.55
+        "y": 4.35
       },
       "nextControl": {
         "x": 6.73,
-        "y": 4.55
+        "y": 5.55
       },
       "isLocked": false,
       "linkedName": null
@@ -81,15 +81,15 @@
     {
       "anchor": {
         "x": 6.73,
-        "y": 5.96
+        "y": 7.11435393258427
       },
       "prevControl": {
         "x": 6.73,
-        "y": 5.46
+        "y": 6.61435393258427
       },
       "nextControl": {
         "x": 6.73,
-        "y": 6.46
+        "y": 7.61435393258427
       },
       "isLocked": false,
       "linkedName": null
@@ -97,11 +97,11 @@
     {
       "anchor": {
         "x": 3.38,
-        "y": 6.29
+        "y": 7.32
       },
       "prevControl": {
         "x": 5.38,
-        "y": 6.29
+        "y": 7.32
       },
       "nextControl": null,
       "isLocked": false,
@@ -129,7 +129,7 @@
   "constraintZones": [
     {
       "name": "Constraints Zone",
-      "minWaypointRelativePos": 4.804228660924045,
+      "minWaypointRelativePos": 4.400156617071261,
       "maxWaypointRelativePos": 6.0,
       "constraints": {
         "maxVelocity": 2.0,
@@ -166,7 +166,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 115.0
+    "rotation": 110.0
   },
   "reversed": false,
   "folder": "Neutral Zone - Left Trench Start",
