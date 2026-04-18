@@ -3,41 +3,41 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 2.94,
-        "y": 6.4
+        "x": 2.8,
+        "y": 6.05
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.4643913857677906,
-        "y": 7.516722846441949
+        "x": 2.8,
+        "y": 6.580647344865603
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 4.640468164794007,
-        "y": 7.516722846441949
+        "x": 3.4005149812734086,
+        "y": 7.590627340823971
       },
       "prevControl": {
-        "x": 3.640468164794007,
-        "y": 7.516722846441949
+        "x": 2.4005149812734086,
+        "y": 7.590627340823971
       },
       "nextControl": {
-        "x": 5.640468164794007,
-        "y": 7.516722846441949
+        "x": 4.400514981273409,
+        "y": 7.590627340823971
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 7.539166666666667,
-        "y": 6.826947565543071
+        "x": 6.5045037453183525,
+        "y": 7.582415730337079
       },
       "prevControl": {
-        "x": 7.342088014981273,
-        "y": 7.52493445692884
+        "x": 5.4525093632958805,
+        "y": 7.586521535580525
       },
       "nextControl": null,
       "isLocked": false,
@@ -46,12 +46,8 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.4862665310274657,
-      "rotationDegrees": 180.0
-    },
-    {
-      "waypointRelativePos": 1.4004747371990516,
-      "rotationDegrees": 180.0
+      "waypointRelativePos": 0.8118006103763955,
+      "rotationDegrees": 0.0
     }
   ],
   "constraintZones": [],
@@ -59,7 +55,7 @@
   "eventMarkers": [
     {
       "name": "intake",
-      "waypointRelativePos": 0.6303837118245805,
+      "waypointRelativePos": 0.16366483946750765,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -74,7 +70,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -75.69972255081416
+    "rotation": 0.0
   },
   "reversed": false,
   "folder": "Neutral Zone - Left Trench Start",

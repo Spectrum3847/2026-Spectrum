@@ -85,7 +85,7 @@ public class IntakeExtensionStates {
     public static Command positiveVoltageOut() {
         return log(
                 intakeExtension
-                        .runVoltageNoSoftLimit(config::getPositiveVoltageOut)
+                        .runVoltage(config::getPositiveVoltageOut)
                         .withName("IntakeExtension.positiveVoltageOut"));
     }
 

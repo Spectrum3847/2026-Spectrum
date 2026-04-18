@@ -82,6 +82,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 TalonFX::new,
                 CANcoder::new,
                 config.getDrivetrainConstants(),
+                250.0,
                 MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(config.getModules()));
 
         this.config = config;
