@@ -99,9 +99,11 @@ public class Hood extends Mechanism {
         logBatteryUsage();
         Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Hood/Voltage", getVoltage(), "volts");
-        Telemetry.log("Hood/Current", getStatorCurrent(), "amps");
+        Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "degrees");
         Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
     }
 
     @Override

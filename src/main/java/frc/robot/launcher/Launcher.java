@@ -38,9 +38,9 @@ public class Launcher extends Mechanism {
 
         /* Launcher config values */
         @Getter private double currentLimit = 80;
-        @Getter private double torqueCurrentLimit = 160;
+        @Getter private double torqueCurrentLimit = 100;
         @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
-        @Getter private double reverseTorqueCurrentLimit = -20;
+        @Getter private double reverseTorqueCurrentLimit = -10;
         @Getter private double lowerCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
@@ -99,8 +99,10 @@ public class Launcher extends Mechanism {
         logBatteryUsage();
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
-        Telemetry.log("Launcher/Current", getStatorCurrent(), "amps");
+        Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
     }
 
     @Override

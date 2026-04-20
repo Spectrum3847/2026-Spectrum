@@ -54,6 +54,10 @@
         }
       },
       "/SmartDashboard/Field2d": {
+        "Auto Routine": {
+          "arrows": false,
+          "style": "Line"
+        },
         "Robot": {
           "arrowColor": [
             1.0,

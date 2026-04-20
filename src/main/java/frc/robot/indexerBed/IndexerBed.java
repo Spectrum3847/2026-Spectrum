@@ -30,7 +30,7 @@ public class IndexerBed extends Mechanism {
 
         /* Indexer config values */
         @Getter @Setter private double currentLimit = 60;
-        @Getter @Setter private double torqueCurrentLimit = 150;
+        @Getter @Setter private double torqueCurrentLimit = 80;
         @Getter @Setter private double lowerCurrentLimit = 50;
         @Getter @Setter private double timeUntilLowerCurrent = 0;
         @Getter @Setter private double velocityKp = 30;
@@ -77,8 +77,10 @@ public class IndexerBed extends Mechanism {
         logBatteryUsage();
         Telemetry.log("IndexerBed/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IndexerBed/Voltage", getVoltage(), "volts");
-        Telemetry.log("IndexerBed/Current", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerBed/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerBed/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("IndexerBed/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IndexerBed/Temp", getTemp(), "deg_C");
     }
 
     @Override

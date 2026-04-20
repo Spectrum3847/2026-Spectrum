@@ -6,6 +6,7 @@ import frc.robot.Robot;
 import frc.robot.indexerBed.IndexerBedStates;
 import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
+import frc.robot.launcher.LauncherStates;
 import frc.spectrumLib.Telemetry;
 
 /** This class should have any command calls that directly call the Operator */
@@ -28,9 +29,12 @@ public class OperatorStates {
 
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
+        operator.AButton.whileTrue(LauncherStates.aimAtTargetCommand());
 
         operator.rightBumperOnly.whileTrue(IntakeExtensionStates.fullRetractCommand());
-        operator.rightTriggerOnly.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
+
+        operator.RT.whileTrue(IntakeExtensionStates.positiveVoltageOut());
+        operator.LT.whileTrue(IntakeExtensionStates.negativeVoltageOut());
 
         operator.testA.whileTrue(IntakeExtensionStates.fullExtendCommand());
         operator.testB.whileTrue(IntakeExtensionStates.fullRetractCommand());

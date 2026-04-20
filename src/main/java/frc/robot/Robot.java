@@ -284,11 +284,18 @@ public class Robot extends SpectrumRobot {
         clearCommandsAndButtons();
         resetCommandsAndButtons();
 
+        Command leftStart = new PathPlannerAuto("Trench-Bump 1").ignoringDisable(true);
+        Command rightStart = new PathPlannerAuto("Trench-Bump 1", true).ignoringDisable(true);
+
         if (!autonWarmedUp) {
             Command autonStartCommand =
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
+                                    leftStart,
+                                    Commands.print("!! Left Path Warmed Up !!"),
+                                    rightStart,
+                                    Commands.print("!! Right Path Warmed Up !!"),
                                     Commands.runOnce(
                                             () -> {
                                                 Telemetry.log("Initialized", true);
@@ -403,7 +410,7 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
             resetCommandsAndButtons();
-            field2d.getObject("path").setPoses(new ArrayList<>()); // clears auto visualizer
+            field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
         } catch (Throwable t) {

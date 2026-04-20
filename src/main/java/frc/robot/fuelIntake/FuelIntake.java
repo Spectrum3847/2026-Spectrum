@@ -79,8 +79,10 @@ public class FuelIntake extends Mechanism {
         logBatteryUsage();
         Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
         Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
-        Telemetry.log("FuelIntake/Current", getStatorCurrent(), "amps");
+        Telemetry.log("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
     }
 
     @Override
