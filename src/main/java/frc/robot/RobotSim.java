@@ -73,7 +73,7 @@ public class RobotSim {
                         new Transform3d(
                                 new Translation3d(intakeExtensionPose, 0, 0), Rotation3d.kZero));
 
-        Pose3d[] mechanismPoses = {Pose3d.kZero, intakePose3d};
+        Pose3d[] mechanismPoses = {intakePose3d};
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }
@@ -122,6 +122,7 @@ public class RobotSim {
                 simRobotWidth,
                 simRobotLength,
                 bumperHeight,
+                50,
                 () -> Robot.getSwerve().getRobotPose(),
                 () -> Robot.getSwerve().getCurrentRobotChassisSpeeds());
         ballSim.addIntakeZone(
@@ -137,7 +138,7 @@ public class RobotSim {
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
                     double launchSpeed = params.flywheelSpeed() * 0.00375;
-                    double launchAngle = Math.toRadians(65);
+                    double launchAngle = Math.toRadians(90 - params.hoodAngle());
                     double launchYaw =
                             Robot.getSwerve().getRobotPose().getRotation().getRadians()
                                     + Math.toRadians(180);
@@ -168,28 +169,28 @@ public class RobotSim {
                     int fuelCount = ballSim.getTotalIntaked();
                     int numToLaunchPerLane = fuelCount / numOfLanes;
                     SequentialCommandGroup group1 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 1));
+                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
                     for (int i = 0; i < numToLaunchPerLane; i++) {
                         group1.addCommands(
                                 createSimBallLaunch(lane1),
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
                     SequentialCommandGroup group2 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 1));
+                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
                     for (int i = 0; i < numToLaunchPerLane; i++) {
                         group2.addCommands(
                                 createSimBallLaunch(lane2),
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
                     SequentialCommandGroup group3 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 1));
+                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
                     for (int i = 0; i < numToLaunchPerLane; i++) {
                         group3.addCommands(
                                 createSimBallLaunch(lane3),
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
                     SequentialCommandGroup group4 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 1));
+                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
                     for (int i = 0; i < numToLaunchPerLane; i++) {
                         group4.addCommands(
                                 createSimBallLaunch(lane4),

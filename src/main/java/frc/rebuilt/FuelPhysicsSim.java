@@ -768,6 +768,7 @@ public class FuelPhysicsSim {
     private double robotWidth;
     private double robotLength;
     private double bumperHeight;
+    private double intakeSize;
 
     // Intakes
     private final List<IntakeZone> intakes = new ArrayList<>();
@@ -903,11 +904,13 @@ public class FuelPhysicsSim {
             double width,
             double length,
             double bumperHeight,
+            double intakeSize,
             Supplier<Pose2d> poseSupplier,
             Supplier<ChassisSpeeds> speedsSupplier) {
         this.robotWidth = width;
         this.robotLength = length;
         this.bumperHeight = bumperHeight;
+        this.intakeSize = intakeSize;
         this.robotPoseSupplier = poseSupplier;
         this.robotSpeedsSupplier = speedsSupplier;
     }
@@ -2106,7 +2109,8 @@ public class FuelPhysicsSim {
 
     private void handleIntakePickup(SimBall ball, Pose2d robotPose) {
         for (IntakeZone intake : intakes) {
-            if (intake.shouldIntake(ball, robotPose, bumperHeight)) {
+            if (intake.shouldIntake(ball, robotPose, bumperHeight)
+                    && getTotalIntaked() <= intakeSize) {
                 ball.intaked = true;
                 totalIntaked++;
                 return;
