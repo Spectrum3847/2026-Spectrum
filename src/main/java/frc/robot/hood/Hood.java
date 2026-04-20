@@ -98,10 +98,12 @@ public class Hood extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Hood/Voltage", getVoltage());
-        Telemetry.log("Hood/Current", getStatorCurrent());
-        Telemetry.log("Hood/PositionDegrees", getPositionDegrees());
-        Telemetry.log("Hood/RPM", getVelocityRPM());
+        Telemetry.log("Hood/Voltage", getVoltage(), "volts");
+        Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "degrees");
+        Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
     }
 
     @Override

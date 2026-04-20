@@ -3,41 +3,41 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 2.68,
-        "y": 5.5
+        "x": 2.8,
+        "y": 6.05
       },
       "prevControl": null,
       "nextControl": {
-        "x": 3.68,
-        "y": 5.5
+        "x": 2.8,
+        "y": 6.580647344865603
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.19246254681648,
-        "y": 5.5
+        "x": 3.4005149812734086,
+        "y": 7.590627340823971
       },
       "prevControl": {
-        "x": 5.19246254681648,
-        "y": 5.5
+        "x": 2.4005149812734086,
+        "y": 7.590627340823971
       },
       "nextControl": {
-        "x": 6.44246254681648,
-        "y": 5.5
+        "x": 4.400514981273409,
+        "y": 7.590627340823971
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.759063670411986,
-        "y": 5.5213014981273405
+        "x": 6.5045037453183525,
+        "y": 7.582415730337079
       },
       "prevControl": {
-        "x": 6.509063670411986,
-        "y": 5.5213014981273405
+        "x": 5.4525093632958805,
+        "y": 7.586521535580525
       },
       "nextControl": null,
       "isLocked": false,
@@ -46,8 +46,8 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.9637165140725635,
-      "rotationDegrees": 135.0
+      "waypointRelativePos": 0.8118006103763955,
+      "rotationDegrees": 0.0
     }
   ],
   "constraintZones": [],
@@ -55,7 +55,7 @@
   "eventMarkers": [
     {
       "name": "intake",
-      "waypointRelativePos": 0.6303837118245805,
+      "waypointRelativePos": 0.16366483946750765,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -65,18 +65,18 @@
     "maxAcceleration": 4.0,
     "maxAngularVelocity": 360.0,
     "maxAngularAcceleration": 540.0,
-    "nominalVoltage": 10.0,
+    "nominalVoltage": 9.0,
     "unlimited": false
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -0.0
+    "rotation": 0.0
   },
   "reversed": false,
   "folder": "Neutral Zone - Left Trench Start",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 135.0
+    "rotation": 125.00000000000001
   },
   "useDefaultConstraints": true
 }

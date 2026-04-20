@@ -19,7 +19,7 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double indexerVoltageOut = 8;
         @Getter @Setter private double indexerSlowVoltageOut = 4;
         @Getter @Setter private double unjamVoltageOut = -4;
-        @Getter @Setter private double indexerTorqueCurrent = 40;
+        @Getter @Setter private double indexerTorqueCurrent = 120;
         @Getter @Setter private double indexerVelocityRPM = 5000;
         @Getter @Setter private double indexerSlowVelocityRPM = 2000;
         @Getter @Setter private double indexerUnjamRPM = -2000;
@@ -28,8 +28,8 @@ public class IndexerBed extends Mechanism {
         private final DoubleSubscriber indexerBedFeedRPM =
                 Telemetry.tunable("Tunable/IndexerBedFeedRPM", indexerVelocityRPM);
 
-        /* Intake config values */
-        @Getter @Setter private double currentLimit = 40;
+        /* Indexer config values */
+        @Getter @Setter private double currentLimit = 60;
         @Getter @Setter private double torqueCurrentLimit = 80;
         @Getter @Setter private double lowerCurrentLimit = 50;
         @Getter @Setter private double timeUntilLowerCurrent = 0;
@@ -76,9 +76,11 @@ public class IndexerBed extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("IndexerBed/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IndexerBed/Voltage", getVoltage());
-        Telemetry.log("IndexerBed/Current", getStatorCurrent());
-        Telemetry.log("IndexerBed/RPM", getVelocityRPM());
+        Telemetry.log("IndexerBed/Voltage", getVoltage(), "volts");
+        Telemetry.log("IndexerBed/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerBed/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("IndexerBed/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IndexerBed/Temp", getTemp(), "deg_C");
     }
 
     @Override

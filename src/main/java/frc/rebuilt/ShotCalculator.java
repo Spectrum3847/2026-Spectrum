@@ -212,12 +212,12 @@ public class ShotCalculator {
                         distanceNoLookahead,
                         tofFinal);
 
-        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance);
-        Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees());
-        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle);
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed);
-        Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET);
-        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET);
+        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance, "meters");
+        Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees(), "degrees");
+        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
+        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
+        Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Target", target);
 
         return latestParameters;

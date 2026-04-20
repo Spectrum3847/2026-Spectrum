@@ -82,6 +82,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 TalonFX::new,
                 CANcoder::new,
                 config.getDrivetrainConstants(),
+                250.0,
                 MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(config.getModules()));
 
         this.config = config;
@@ -113,24 +114,40 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/MeasuredStates", state.ModuleStates);
         Telemetry.log("Swerve/MeasuredSpeeds", state.Speeds);
+        Telemetry.log("Swerve/DriveStatorCurrent", getDriveMotorStatorCurrents());
+        Telemetry.log("Swerve/SteerStatorCurrent", getSteerMotorStatorCurrents());
+        Telemetry.log("Swerve/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
+        Telemetry.log("Swerve/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
     }
 
     protected void logBatteryUsage() {
-        double steerMotorCurrent = getDriveMotorCurrents();
-        double driveMotorCurrent = getSteerMotorCurrents();
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveSteer", steerMotorCurrent);
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanism/SwerveDrive", driveMotorCurrent);
+        double steerMotorCurrent = getSteerMotorSupplyCurrents();
+        double driveMotorCurrent = getDriveMotorSupplyCurrents();
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
     }
 
-    protected double getDriveMotorCurrents() {
+    protected double getDriveMotorStatorCurrents() {
         return Arrays.stream(getModules())
                 .mapToDouble(module -> module.getDriveMotor().getStatorCurrent().getValueAsDouble())
                 .sum();
     }
 
-    protected double getSteerMotorCurrents() {
+    protected double getSteerMotorStatorCurrents() {
         return Arrays.stream(getModules())
                 .mapToDouble(module -> module.getSteerMotor().getStatorCurrent().getValueAsDouble())
+                .sum();
+    }
+
+    protected double getDriveMotorSupplyCurrents() {
+        return Arrays.stream(getModules())
+                .mapToDouble(module -> module.getDriveMotor().getSupplyCurrent().getValueAsDouble())
+                .sum();
+    }
+
+    protected double getSteerMotorSupplyCurrents() {
+        return Arrays.stream(getModules())
+                .mapToDouble(module -> module.getSteerMotor().getSupplyCurrent().getValueAsDouble())
                 .sum();
     }
 
@@ -191,6 +208,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         return getState().Pose;
     }
 
+    /**
+     * Checks the connection status of the Pigeon IMU. If it is not connected, an alert will show up
+     * in Elastic
+     */
     private void checkPigeonConnection() {
         if (getPigeon2() == null || !getPigeon2().isConnected()) {
             pigeonAlert.set(true);

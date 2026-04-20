@@ -41,17 +41,20 @@ public class IntakeExtension extends Mechanism {
         @Getter private double fullOut = 100;
         @Getter private double atPoseTolerance = 10;
 
+        @Getter private double positiveVoltageOut = 10;
+        @Getter private double negativeVoltageOut = -10;
+
         @Getter
         private final DoubleSubscriber timeUntilIntakeSqueeze =
-                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.4);
+                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.5);
 
         @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double torqueCurrentLimit = 80;
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
         @Getter private final double positionKv = 0.5;
-        @Getter private final double positionKs = 1.5;
+        @Getter private final double positionKs = 2.0;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double gearRatio = 11.25;
@@ -133,10 +136,12 @@ public class IntakeExtension extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IntakeExtension/Voltage", getVoltage());
-        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
-        Telemetry.log("IntakeExtension/Position", getPositionRotations());
-        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
+        Telemetry.log("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IntakeExtension/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
     }
 
     @Override
@@ -208,14 +213,6 @@ public class IntakeExtension extends Mechanism {
 
     public Command move(DoubleSupplier rotations) {
         return run(() -> setVoltageOutput(rotations));
-    }
-
-    public Command voltageOutPositive() {
-        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
-    }
-
-    public Command voltageOutNegative() {
-        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
     }
 
     public Command motionMagicPercentMove(DoubleSupplier percent) {

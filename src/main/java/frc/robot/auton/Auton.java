@@ -89,6 +89,19 @@ public class Auton {
                 SwerveStates.autonAimAtTarget());
     }
 
+    public Command prepThanLaunch2() {
+        return Commands.deadline(
+                Commands.sequence(
+                        autonLaunching.setTrue(),
+                        RobotStates.applyState(State.LAUNCHER_TRACK),
+                        Commands.waitSeconds(1.0),
+                        RobotStates.applyState(State.LAUNCHER_TRACK_WITH_LAUNCH),
+                        Commands.waitSeconds(2.5),
+                        RobotStates.applyState(State.IDLE),
+                        autonLaunching.setFalse()),
+                SwerveStates.autonAimAtTarget());
+    }
+
     public Command trenchStart(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("Trench-Bump 1", mirrored),
@@ -96,7 +109,10 @@ public class Auton {
                         SpectrumAuton("Trench-Bump 2", mirrored),
                         prepThanLaunch(),
                         SpectrumAuton("Trench-Bump 3", mirrored))
-                .withName("Trench-Bump Full");
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("Trench-Bump Full - " + (mirrored ? "Right" : "Left"));
     }
 
     /**
