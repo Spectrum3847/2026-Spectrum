@@ -11,7 +11,7 @@ public enum State {
     SNAKE_INTAKE,
 
     LAUNCHER_TRACK,
-    LAUNCER_TRACK_WITH_LAUNCH,
+    LAUNCHER_TRACK_WITH_LAUNCH,
 
     AUTON_LAUNCHER_TRACK,
     AUTON_LAUNCHER_TRACK_WITH_LAUNCH,
@@ -30,7 +30,7 @@ public enum State {
     // Define the scoring sequence map, the 2nd state is the next state after the
     // current one
     private static final ImmutableMap<State, State> scoreSequence =
-            ImmutableMap.ofEntries(Map.entry(LAUNCHER_TRACK, LAUNCER_TRACK_WITH_LAUNCH));
+            ImmutableMap.ofEntries(Map.entry(LAUNCHER_TRACK, LAUNCHER_TRACK_WITH_LAUNCH));
 
     // ------ STATE ATTRIBUTES ------//
 

@@ -37,7 +37,7 @@ public class Coordinator {
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }
-            case LAUNCER_TRACK_WITH_LAUNCH -> {
+            case LAUNCHER_TRACK_WITH_LAUNCH -> {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
