@@ -39,6 +39,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
         @Getter private double atPoseTolerance = 10;
+        @Getter private double springyPoseTolerance = 5;
 
         @Getter private double positiveVoltageOut = 10;
         @Getter private double negativeVoltageOut = -10;
@@ -47,8 +48,11 @@ public class IntakeExtension extends Mechanism {
         private final DoubleSubscriber timeUntilIntakeSqueeze =
                 Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.5);
 
-        @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 80;
+        @Getter private final double normalCurrentLimit = 40;
+        @Getter private final double normalTorqueCurrentLimit = 80;
+        @Getter private final double springyModeStatorCurrentLimit = 20;
+        @Getter private final double springyModeSupplyCurrentLimit = 5;
+
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
@@ -91,11 +95,11 @@ public class IntakeExtension extends Mechanism {
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
+            configSupplyCurrentLimit(normalCurrentLimit, true);
+            configStatorCurrentLimit(normalTorqueCurrentLimit, true);
             configGearRatio(gearRatio);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
+            configForwardTorqueCurrentLimit(normalTorqueCurrentLimit);
+            configReverseTorqueCurrentLimit(-1 * normalTorqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
@@ -115,6 +119,8 @@ public class IntakeExtension extends Mechanism {
     @Getter private IntakeExtensionConfig config;
     @Getter private IntakeExtensionSim sim;
 
+    @Getter @Setter private boolean inSpringyMode = false;
+
     public IntakeExtension(IntakeExtensionConfig config) {
         super(config);
         this.config = config;
@@ -129,6 +135,8 @@ public class IntakeExtension extends Mechanism {
 
     @Override
     public void periodic() {
+        updateSpringyMode();
+
         logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
@@ -137,6 +145,7 @@ public class IntakeExtension extends Mechanism {
         Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
         Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
+        Telemetry.log("IntakeExtension/InSpringyMode", inSpringyMode);
     }
 
     @Override
@@ -157,6 +166,27 @@ public class IntakeExtension extends Mechanism {
 
     public Command resetToInitialPos() {
         return run(this::setInitialPosition);
+    }
+
+    public void setSpringyMode(boolean enabled) {
+        if (enabled && !inSpringyMode) {
+            // Enter springy mode - LOW current limits create soft spring effect
+            setCurrentLimits(
+                    config::getSpringyModeSupplyCurrentLimit,
+                    config::getSpringyModeStatorCurrentLimit);
+            inSpringyMode = true;
+        } else if (!enabled && inSpringyMode) {
+            // Exit springy mode - restore normal limits
+            setCurrentLimits(config::getNormalCurrentLimit, config::getNormalCurrentLimit);
+            inSpringyMode = false;
+        }
+    }
+
+    public void updateSpringyMode() {
+        boolean shouldBeSpringy =
+                atPercentage(config::getFullOut, config::getSpringyPoseTolerance).getAsBoolean();
+
+        setSpringyMode(shouldBeSpringy);
     }
 
     // --------------------------------------------------------------------------------
