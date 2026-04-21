@@ -284,8 +284,10 @@ public class Robot extends SpectrumRobot {
         clearCommandsAndButtons();
         resetCommandsAndButtons();
 
-        Command leftStart = new PathPlannerAuto("Trench-Bump 1").ignoringDisable(true);
-        Command rightStart = new PathPlannerAuto("Trench-Bump 1", true).ignoringDisable(true);
+        Command leftStart =
+                new PathPlannerAuto("Trench-Bump 1").withTimeout(0.1).ignoringDisable(true);
+        Command rightStart =
+                new PathPlannerAuto("Trench-Bump 1", true).withTimeout(0.1).ignoringDisable(true);
 
         if (!autonWarmedUp) {
             Command autonStartCommand =
