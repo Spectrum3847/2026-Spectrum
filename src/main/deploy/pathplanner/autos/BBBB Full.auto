@@ -1,0 +1,25 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "BBBB 1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "BBBB 2"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": "BBBB",
+  "choreoAuto": false
+}
