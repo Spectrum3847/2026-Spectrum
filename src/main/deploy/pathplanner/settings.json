@@ -5,14 +5,18 @@
   "pathFolders": [
     "1st Man - TBTB",
     "2nd Man - TBTB",
+    "BBBB",
     "Config Paths",
+    "2nd Man - BBD",
     "TBTT",
     "TTTT"
   ],
   "autoFolders": [
-    "2nd Man TBTB",
-    "Config Autos",
     "1st Man TBTB",
+    "2nd Man TBTB",
+    "BBBB",
+    "Config Autos",
+    "2nd Man BBD",
     "TBTT",
     "TTTT"
   ],
