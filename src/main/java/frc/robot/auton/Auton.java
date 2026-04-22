@@ -57,6 +57,9 @@ public class Auton {
         pathChooser.addOption("TTTT Left", TTTT(false));
         pathChooser.addOption("TTTT Right", TTTT(true));
 
+        pathChooser.addOption("BBBB Left", BBBB(false));
+        pathChooser.addOption("BBBB Right", BBBB(true));
+
         pathChooser.addOption("2nd Man - TBTB Left", secondMan_TBTB(false));
         pathChooser.addOption("2nd Man - TBTB Right", secondMan_TBTB(true));
 
@@ -126,7 +129,7 @@ public class Auton {
 
     public Command secondMan_BBD(boolean mirrored) {
         return Commands.sequence(
-                        Commands.waitSeconds(2.0),
+                        Commands.waitSeconds(1.0),
                         SpectrumAuton("2nd-BBD 1", mirrored),
                         prepThanLaunch(),
                         SpectrumAuton("2nd-BBD 2", mirrored))
@@ -159,6 +162,18 @@ public class Auton {
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
                 .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
+    }
+
+    public Command BBBB(boolean mirrored) {
+        return Commands.sequence(
+                        SpectrumAuton("BBBB 1", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("BBBB 2", mirrored),
+                        prepThanLaunch())
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
     }
 
     /**
