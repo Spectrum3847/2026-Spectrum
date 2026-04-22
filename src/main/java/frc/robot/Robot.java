@@ -349,6 +349,10 @@ public class Robot extends SpectrumRobot {
                                     .collect(Collectors.toList());
                 }
 
+                // Set the robot pose to the starting pose of the first path
+                swerve.resetPose(pathPlannerPaths.get(0).getStartingHolonomicPose()
+                    .orElse(new Pose2d()));
+
                 // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
                 for (PathPlannerPath path : pathPlannerPaths) {
