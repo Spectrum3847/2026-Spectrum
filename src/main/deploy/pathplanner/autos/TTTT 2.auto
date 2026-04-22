@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Trench-Bump Left 2"
+            "pathName": "TTTT 2"
           }
         }
       ]
     }
   },
   "resetOdom": false,
-  "folder": "Neutral Zone Autos",
+  "folder": "TTTT",
   "choreoAuto": false
 }

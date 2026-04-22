@@ -7,13 +7,19 @@
         {
           "type": "path",
           "data": {
-            "pathName": "OLD - Trench-Trench Left 1"
+            "pathName": "1st-TBTB 1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "1st-TBTB 2"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Neutral Zone Autos",
+  "folder": "1st Man TBTB",
   "choreoAuto": false
 }
