@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Trench-Bump Left 3"
+            "pathName": "2nd-TBTB 1"
           }
         }
       ]
     }
   },
-  "resetOdom": false,
-  "folder": "Neutral Zone Autos",
+  "resetOdom": true,
+  "folder": "2nd Man TBTB",
   "choreoAuto": false
 }
