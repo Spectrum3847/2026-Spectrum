@@ -32,7 +32,7 @@ public class SwerveConfig {
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
     @Getter @Setter private double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
-    @Getter @Setter private double driveGearRatio = 7.03;
+    @Getter @Setter private double driveGearRatio = 6.03;
     @Getter @Setter private double steerGearRatio = 26.09;
 
     @Getter @Setter
