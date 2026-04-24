@@ -11,6 +11,8 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotSim;
+import frc.robot.RobotStates;
+import frc.robot.State;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -39,7 +41,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
         @Getter private double atPoseTolerance = 10;
-        @Getter private double springyPoseTolerance = 5;
+        @Getter private double springyPoseTolerance = 20;
 
         @Getter private double positiveVoltageOut = 10;
         @Getter private double negativeVoltageOut = -10;
@@ -183,10 +185,14 @@ public class IntakeExtension extends Mechanism {
     }
 
     public void updateSpringyMode() {
-        boolean shouldBeSpringy =
+        State currentState = RobotStates.getAppliedState();
+        boolean isLaunching =
+                currentState == State.AUTON_LAUNCHER_TRACK_WITH_LAUNCH
+                        || currentState == State.LAUNCHER_TRACK_WITH_LAUNCH;
+        boolean atFullOut =
                 atPercentage(config::getFullOut, config::getSpringyPoseTolerance).getAsBoolean();
 
-        setSpringyMode(shouldBeSpringy);
+        setSpringyMode(!isLaunching && atFullOut);
     }
 
     // --------------------------------------------------------------------------------
