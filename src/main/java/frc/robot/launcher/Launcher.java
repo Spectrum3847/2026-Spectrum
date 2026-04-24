@@ -56,7 +56,7 @@ public class Launcher extends Mechanism {
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher Top Left", 46, Rio.CANIVORE);
+            super("Launcher", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);

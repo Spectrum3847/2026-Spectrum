@@ -121,7 +121,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         double driveMotorCurrent = getDriveMotorSupplyCurrents();
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
-        
+
         Telemetry.log("Swerve/DriveStatorCurrent", getDriveMotorStatorCurrents());
         Telemetry.log("Swerve/SteerStatorCurrent", getSteerMotorStatorCurrents());
         Telemetry.log("Swerve/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
