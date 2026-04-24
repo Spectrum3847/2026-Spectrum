@@ -284,18 +284,11 @@ public class Robot extends SpectrumRobot {
         clearCommandsAndButtons();
         resetCommandsAndButtons();
 
-        Command leftStart = new PathPlannerAuto("Trench-Bump 1").ignoringDisable(true);
-        Command rightStart = new PathPlannerAuto("Trench-Bump 1", true).ignoringDisable(true);
-
         if (!autonWarmedUp) {
             Command autonStartCommand =
                     Commands.sequence(
                                     FollowPathCommand.warmupCommand(),
                                     PathfindingCommand.warmupCommand(),
-                                    leftStart,
-                                    Commands.print("!! Left Path Warmed Up !!"),
-                                    rightStart,
-                                    Commands.print("!! Right Path Warmed Up !!"),
                                     Commands.runOnce(
                                             () -> {
                                                 Telemetry.log("Initialized", true);
@@ -308,14 +301,21 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("### Disabled Init Complete ### ");
     }
 
+    String autoName = "";
+
     @Override
     public void disabledPeriodic() {
-        String autoName = "";
         String newAutoName;
         boolean leftStart = true;
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();
         newAutoName = auton.getAutonomousCommand().getName();
         leftStart = !newAutoName.endsWith(" - Right");
+
+        if (newAutoName.equals("Do Nothing")) {
+            field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
+            autoName = newAutoName;
+            return;
+        }
 
         // Remove " - Left" or " - Right" suffix if present
         if (newAutoName.endsWith(" - Left") || newAutoName.endsWith(" - Right")) {
@@ -324,6 +324,7 @@ public class Robot extends SpectrumRobot {
 
         if (!autoName.equals(newAutoName)) {
             autoName = newAutoName;
+            Telemetry.log("Auton Warmed Up", false);
 
             if (AutoBuilder.getAllAutoNames().contains(autoName)) {
                 try {
@@ -350,8 +351,22 @@ public class Robot extends SpectrumRobot {
                 }
 
                 // Set the robot pose to the starting pose of the first path
-                swerve.resetPose(pathPlannerPaths.get(0).getStartingHolonomicPose()
-                    .orElse(new Pose2d()));
+                swerve.resetPose(
+                        pathPlannerPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+
+                // Warm up the starting path
+                Command warmUpPath =
+                        Commands.sequence(
+                                        AutoBuilder.followPath(pathPlannerPaths.get(0))
+                                                .withTimeout(0.5),
+                                        Commands.runOnce(
+                                                () -> {
+                                                    Telemetry.print(
+                                                            "Auton Warmed Up", PrintPriority.HIGH);
+                                                    Telemetry.log("Auton Warmed Up", true);
+                                                }))
+                                .ignoringDisable(true);
+                CommandScheduler.getInstance().schedule(warmUpPath);
 
                 // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
