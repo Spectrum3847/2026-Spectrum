@@ -48,7 +48,7 @@ public class IntakeExtension extends Mechanism {
 
         @Getter
         private final DoubleSubscriber timeUntilIntakeSqueeze =
-                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.5);
+                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.6);
 
         @Getter private final double normalCurrentLimit = 40;
         @Getter private final double normalTorqueCurrentLimit = 80;
@@ -252,7 +252,7 @@ public class IntakeExtension extends Mechanism {
         return run(
                 () ->
                         setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 5, () -> 20, () -> 1000));
+                                () -> percentToRotations(percent), () -> 4, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

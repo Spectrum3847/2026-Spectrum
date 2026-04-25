@@ -21,7 +21,7 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 120;
         @Getter @Setter private double indexerVelocityRPM = 5000;
-        @Getter @Setter private double indexerSlowVelocityRPM = 2000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
         @Getter @Setter private double indexerUnjamRPM = -2000;
 
         @Getter
