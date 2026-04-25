@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "OLD - Trench-Trench Left 2"
+            "pathName": "Option BBB 2"
           }
         }
       ]
     }
   },
   "resetOdom": false,
-  "folder": "Neutral Zone Autos",
+  "folder": "Option BBB",
   "choreoAuto": false
 }

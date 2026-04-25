@@ -62,10 +62,10 @@
   ],
   "globalConstraints": {
     "maxVelocity": 3.0,
-    "maxAcceleration": 4.0,
+    "maxAcceleration": 5.0,
     "maxAngularVelocity": 360.0,
-    "maxAngularAcceleration": 540.0,
-    "nominalVoltage": 9.0,
+    "maxAngularAcceleration": 360.0,
+    "nominalVoltage": 10.0,
     "unlimited": false
   },
   "goalEndState": {
@@ -73,7 +73,7 @@
     "rotation": 0.0
   },
   "reversed": false,
-  "folder": "Neutral Zone - Left Trench Start",
+  "folder": "TBTT",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 125.00000000000001

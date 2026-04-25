@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.6,
-        "y": 1.75
+        "x": 3.6140168539325845,
+        "y": 4.035
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.720032303943375,
-        "y": 1.1174708885191877
+        "x": 2.6140168539325845,
+        "y": 4.035
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 0.43,
-        "y": 0.67
+        "x": 2.7,
+        "y": 5.5
       },
       "prevControl": {
-        "x": 1.5692354124917347,
-        "y": 1.0615243485770516
+        "x": 2.7,
+        "y": 4.5
       },
       "nextControl": null,
       "isLocked": false,
@@ -31,21 +31,28 @@
   "rotationTargets": [],
   "constraintZones": [],
   "pointTowardsZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "poseUpdate",
+      "waypointRelativePos": 0,
+      "endWaypointRelativePos": 1.0,
+      "command": null
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 3.0,
-    "maxAcceleration": 4.0,
+    "maxAcceleration": 5.0,
     "maxAngularVelocity": 360.0,
-    "maxAngularAcceleration": 540.0,
-    "nominalVoltage": 9.0,
+    "maxAngularAcceleration": 360.0,
+    "nominalVoltage": 10.0,
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 0.0,
+    "velocity": 0,
     "rotation": 0.0
   },
   "reversed": false,
-  "folder": "Outpost",
+  "folder": "2nd Man - Optional",
   "idealStartingState": {
     "velocity": 0,
     "rotation": 0.0

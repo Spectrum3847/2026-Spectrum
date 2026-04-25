@@ -7,19 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "OLD - Trench-Trench Left 1"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "OLD - Trench-Trench Left 2"
+            "pathName": "TTTT 1"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "Neutral Zone Autos",
+  "folder": "TTTT",
   "choreoAuto": false
 }

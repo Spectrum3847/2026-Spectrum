@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Trench-Bump Left 1"
+            "pathName": "Option TBT 3"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
-  "folder": "Neutral Zone Autos",
+  "resetOdom": false,
+  "folder": "Option TBT",
   "choreoAuto": false
 }
