@@ -52,8 +52,8 @@ public class IntakeExtension extends Mechanism {
 
         @Getter private final double normalCurrentLimit = 40;
         @Getter private final double normalTorqueCurrentLimit = 80;
-        @Getter private final double springyModeStatorCurrentLimit = 20;
         @Getter private final double springyModeSupplyCurrentLimit = 5;
+        @Getter private final double springyModeStatorCurrentLimit = 20;
 
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
@@ -172,14 +172,12 @@ public class IntakeExtension extends Mechanism {
 
     public void setSpringyMode(boolean enabled) {
         if (enabled && !inSpringyMode) {
-            // Enter springy mode - LOW current limits create soft spring effect
             setCurrentLimits(
                     config::getSpringyModeSupplyCurrentLimit,
                     config::getSpringyModeStatorCurrentLimit);
             inSpringyMode = true;
         } else if (!enabled && inSpringyMode) {
-            // Exit springy mode - restore normal limits
-            setCurrentLimits(config::getNormalCurrentLimit, config::getNormalCurrentLimit);
+            setCurrentLimits(config::getNormalCurrentLimit, config::getNormalTorqueCurrentLimit);
             inSpringyMode = false;
         }
     }
