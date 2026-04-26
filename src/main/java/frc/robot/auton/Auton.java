@@ -9,6 +9,7 @@ import com.pathplanner.lib.util.FileVersionException;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -40,8 +41,9 @@ public class Auton {
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 
-    private final double SECOND_MAN_DELAY = 2.0;
-    private final double OPTIONAL_DELAY = 1.0;
+    private final DoubleSubscriber SECOND_MAN_DELAY =
+            Telemetry.tunable("Auton/SecondManDelay", 2.0);
+    private final DoubleSubscriber OPTIONAL_DELAY = Telemetry.tunable("Auton/OptionalDelay", 1.0);
 
     /**
      * This method configures the available autonomous routines that can be selected from the
@@ -102,13 +104,11 @@ public class Auton {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
     }
 
-    public Command prepThanLaunch() {
+    public Command launch() {
         return Commands.deadline(
                 Commands.sequence(
                         autonLaunching.setTrue(),
-                        RobotStates.applyState(State.LAUNCHER_TRACK),
-                        Commands.waitSeconds(0.5),
-                        RobotStates.applyState(State.LAUNCHER_TRACK_WITH_LAUNCH),
+                        RobotStates.applyState(State.LAUNCH_WITH_SQUEEZE),
                         Commands.waitSeconds(2.5),
                         RobotStates.applyState(State.IDLE),
                         autonLaunching.setFalse()),
@@ -117,9 +117,9 @@ public class Auton {
 
     public Command secondMan_TBTB(boolean mirrored) {
         return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
+                        Commands.waitSeconds(SECOND_MAN_DELAY.get()),
                         SpectrumAuton("2nd-TBTB 1", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("2nd-TBTB 2", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
@@ -129,9 +129,9 @@ public class Auton {
 
     public Command secondMan_BBD(boolean mirrored) {
         return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
+                        Commands.waitSeconds(SECOND_MAN_DELAY.get()),
                         SpectrumAuton("2nd-BBD 1", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("2nd-BBD 2", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
@@ -142,9 +142,9 @@ public class Auton {
     public Command optional_TBT(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("Option TBT 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
+                        Commands.waitSeconds(OPTIONAL_DELAY.get()),
                         SpectrumAuton("Option TBT 2", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("Option TBT 3", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
@@ -155,9 +155,9 @@ public class Auton {
     public Command optional_BBB(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("Option BBB 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
+                        Commands.waitSeconds(OPTIONAL_DELAY.get()),
                         SpectrumAuton("Option BBB 2", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("Option BBB 3", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
@@ -168,9 +168,9 @@ public class Auton {
     public Command TBTB(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("TBTB 1", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("TBTB 2", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("TBTB 3", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
@@ -181,9 +181,9 @@ public class Auton {
     public Command TBTT(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("TBTT 1", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("TBTT 2", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("TBTT 3", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
@@ -194,9 +194,10 @@ public class Auton {
     public Command TTTT(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("TTTT 1", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("TTTT 2", mirrored),
-                        prepThanLaunch())
+                        launch(),
+                        SpectrumAuton("TTTT 3", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
@@ -206,9 +207,9 @@ public class Auton {
     public Command BBBB(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("BBBB 1", mirrored),
-                        prepThanLaunch(),
+                        launch(),
                         SpectrumAuton("BBBB 2", mirrored),
-                        prepThanLaunch())
+                        launch())
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses

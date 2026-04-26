@@ -18,6 +18,7 @@ import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
 import frc.spectrumLib.sim.LinearSim;
+import frc.spectrumLib.util.Util;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,7 +49,7 @@ public class IntakeExtension extends Mechanism {
 
         @Getter
         private final DoubleSubscriber timeUntilIntakeSqueeze =
-                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 0.6);
+                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 1.0);
 
         @Getter private final double normalCurrentLimit = 40;
         @Getter private final double normalTorqueCurrentLimit = 80;
@@ -58,13 +59,13 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 0.5;
+        @Getter private final double positionKv = 1.0;
         @Getter private final double positionKs = 2.0;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double gearRatio = 11.25;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
+        @Getter private final double mmCruiseVelocity = 100;
+        @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
         @Getter @Setter private double sensorToMechanismRatio = 11.25;
@@ -185,12 +186,14 @@ public class IntakeExtension extends Mechanism {
     public void updateSpringyMode() {
         State currentState = RobotStates.getAppliedState();
         boolean isLaunching =
-                currentState == State.AUTON_LAUNCHER_TRACK_WITH_LAUNCH
-                        || currentState == State.LAUNCHER_TRACK_WITH_LAUNCH;
+                currentState == State.AUTON_LAUNCH_WITH_SQUEEZE
+                        || currentState == State.LAUNCH_WITH_SQUEEZE;
         boolean atFullOut =
                 atPercentage(config::getFullOut, config::getSpringyPoseTolerance).getAsBoolean();
 
-        setSpringyMode(!isLaunching && atFullOut);
+        boolean inAuto = Util.autoMode.getAsBoolean();
+
+        setSpringyMode(!isLaunching && atFullOut && !inAuto);
     }
 
     // --------------------------------------------------------------------------------

@@ -39,8 +39,8 @@ public class SwerveConfig {
     // Estimated at first, then fudge-factored to make odom match record
     private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
-    // Theoretical free speed (m/s) at 12v applied output;
-    @Getter @Setter private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
+    // Theoretical free speed (ft/s) at 12v applied output;
+    @Getter @Setter private LinearVelocity speedAt12Volts = FeetPerSecond.of(16.8);
 
     @Getter private double kSdrive = 0.10; // 0.13
     @Getter private double kSsteer = 0.25; // 0.2

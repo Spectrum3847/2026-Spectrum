@@ -51,10 +51,10 @@ public class RobotStates {
         pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
         pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.XButton.whileTrue(applyState(State.LAUNCHER_TRACK));
+        pilot.XButton.whileTrue(applyState(State.TRACK_TARGET));
         pilot.XButton.onFalse(applyState(State.IDLE));
 
-        pilot.LT.whileTrue(applyState(State.LAUNCHER_TRACK_WITH_LAUNCH));
+        pilot.LT.whileTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
         pilot.LT.onFalse(applyState(State.IDLE));
 
         pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
@@ -85,13 +85,13 @@ public class RobotStates {
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
-        Auton.autonShotPrep.onTrue(applyState(State.LAUNCHER_TRACK));
-        Auton.autonShoot.onTrue(applyState(State.LAUNCHER_TRACK_WITH_LAUNCH));
+        Auton.autonShotPrep.onTrue(applyState(State.TRACK_TARGET_WITH_NO_SWERVE));
+        Auton.autonShoot.onTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         applyState(State.UNJAM),
                         Commands.waitSeconds(1),
-                        applyState(State.LAUNCHER_TRACK_WITH_LAUNCH)));
+                        applyState(State.LAUNCH_WITH_SQUEEZE)));
         Auton.autonClearState.onTrue(clearState());
     }
 

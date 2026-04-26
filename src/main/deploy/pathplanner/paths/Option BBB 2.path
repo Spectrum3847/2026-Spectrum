@@ -153,7 +153,7 @@
   "eventMarkers": [
     {
       "name": "intake",
-      "waypointRelativePos": 0.9044635865309376,
+      "waypointRelativePos": 0.6977290524667301,
       "endWaypointRelativePos": null,
       "command": null
     },
@@ -164,6 +164,12 @@
       "command": null
     },
     {
+      "name": "shotPrep",
+      "waypointRelativePos": 5.71574001566169,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
       "name": "poseUpdate",
       "waypointRelativePos": 5.790916209866869,
       "endWaypointRelativePos": 6.0,
@@ -171,7 +177,7 @@
     }
   ],
   "globalConstraints": {
-    "maxVelocity": 3.0,
+    "maxVelocity": 3.5,
     "maxAcceleration": 5.0,
     "maxAngularVelocity": 360.0,
     "maxAngularAcceleration": 360.0,

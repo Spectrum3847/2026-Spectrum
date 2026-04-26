@@ -36,12 +36,12 @@ public class Hood extends Mechanism {
 
         /* Hood config values */
         @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 60;
+        @Getter private final double torqueCurrentLimit = 80;
         @Getter private final double positionKp = 3000;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 220;
         @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 15;
+        @Getter private final double positionKs = 25;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
 

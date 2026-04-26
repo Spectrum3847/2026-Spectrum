@@ -20,7 +20,7 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double unjamVoltageOut = -10;
         @Getter @Setter private double indexerTorqueCurrent = 80;
 
-        @Getter @Setter private double indexerVelocityRPM = 3000;
+        @Getter @Setter private double indexerVelocityRPM = 2000;
         @Getter @Setter private double indexerSlowVelocityRPM = 1000;
         @Getter @Setter private double indexerUnjamRPM = -1500;
 
@@ -33,9 +33,9 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double torqueCurrentLimit = 140;
         @Getter @Setter private double lowerCurrentLimit = 60;
         @Getter @Setter private double timeUntilLowerCurrent = 1;
-        @Getter @Setter private double velocityKp = 30;
+        @Getter @Setter private double velocityKp = 50;
         @Getter @Setter private double velocityKv = 0;
-        @Getter @Setter private double velocityKs = 20;
+        @Getter @Setter private double velocityKs = 40;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(60);
@@ -53,7 +53,7 @@ public class IndexerTower extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configLowerSupplyCurrentLimit(lowerCurrentLimit);
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
-            configNeutralBrakeMode(false);
+            configNeutralBrakeMode(true);
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(

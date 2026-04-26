@@ -428,7 +428,7 @@ public class Robot extends SpectrumRobot {
     public void teleopInit() {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
-            resetCommandsAndButtons();
+            RobotStates.clearState();
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");

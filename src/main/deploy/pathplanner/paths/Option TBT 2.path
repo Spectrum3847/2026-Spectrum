@@ -4,12 +4,12 @@
     {
       "anchor": {
         "x": 5.05,
-        "y": 7.64
+        "y": 7.54
       },
       "prevControl": null,
       "nextControl": {
         "x": 6.05,
-        "y": 7.64
+        "y": 7.54
       },
       "isLocked": false,
       "linkedName": null
@@ -65,15 +65,15 @@
     {
       "anchor": {
         "x": 6.356694756554307,
-        "y": 5.5
+        "y": 5.8
       },
       "prevControl": {
         "x": 6.830697480068666,
-        "y": 5.5
+        "y": 5.8
       },
       "nextControl": {
         "x": 5.872494141012963,
-        "y": 5.5
+        "y": 5.8
       },
       "isLocked": false,
       "linkedName": null
@@ -81,11 +81,11 @@
     {
       "anchor": {
         "x": 2.26,
-        "y": 5.5
+        "y": 5.8
       },
       "prevControl": {
         "x": 3.7606921977722685,
-        "y": 5.5
+        "y": 5.8
       },
       "nextControl": null,
       "isLocked": false,
@@ -94,7 +94,11 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.9579518480840882,
+      "waypointRelativePos": 0.6188538487622905,
+      "rotationDegrees": -90.0
+    },
+    {
+      "waypointRelativePos": 1.9888097660224215,
       "rotationDegrees": -90.0
     },
     {
@@ -140,6 +144,12 @@
       "command": null
     },
     {
+      "name": "shotPrep",
+      "waypointRelativePos": 4.629992169146458,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
       "name": "poseUpdate",
       "waypointRelativePos": 4.75528582615505,
       "endWaypointRelativePos": 5.0,
@@ -147,7 +157,7 @@
     }
   ],
   "globalConstraints": {
-    "maxVelocity": 3.0,
+    "maxVelocity": 3.5,
     "maxAcceleration": 5.0,
     "maxAngularVelocity": 360.0,
     "maxAngularAcceleration": 360.0,
