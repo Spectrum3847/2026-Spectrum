@@ -58,6 +58,7 @@ public class Telemetry extends DogLog implements Subsystem {
      * @param captureConsole Whether to capture console output in the log.
      * @param logExtras Whether to log extra data, like PDH currents, CAN usage, radio connection
      *     status, etc.
+     * @param tunableOnFMS Whether tunable values should be read from NetworkTables.
      * @param priority The minimum priority level for console output.
      */
     public static void start(
@@ -66,6 +67,7 @@ public class Telemetry extends DogLog implements Subsystem {
             boolean captureNt,
             boolean captureConsole,
             boolean logExtras,
+            boolean tunableOnFMS,
             PrintPriority priority) {
         setPriority(priority);
         Telemetry.setOptions(
@@ -74,6 +76,7 @@ public class Telemetry extends DogLog implements Subsystem {
                         .withCaptureDs(captureDs)
                         .withCaptureNt(captureNt)
                         .withCaptureConsole(captureConsole)
+                        .withNtTunables(tunableOnFMS)
                         .withLogExtras(logExtras));
         Telemetry.setPdh(new PowerDistribution());
         /* Display the currently running commands on SmartDashboard*/
