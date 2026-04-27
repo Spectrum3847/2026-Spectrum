@@ -187,7 +187,8 @@ public class IntakeExtension extends Mechanism {
         State currentState = RobotStates.getAppliedState();
         boolean isLaunching =
                 currentState == State.AUTON_LAUNCH_WITH_SQUEEZE
-                        || currentState == State.LAUNCH_WITH_SQUEEZE;
+                        || currentState == State.LAUNCH_WITH_SQUEEZE
+                        || currentState == State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
         boolean atFullOut =
                 atPercentage(config::getFullOut, config::getSpringyPoseTolerance).getAsBoolean();
 

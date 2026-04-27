@@ -38,24 +38,33 @@ public class RobotStates {
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
-
-    // public static final Trigger forceScore = operator.AButton;
-
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
 
     public static final Trigger autoUpdatePose = Auton.autonPoseUpdate;
 
     // Setup any binding to set states
     public static void setupStates() {
+
         // Pilot Triggers
-        pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
-        pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.LT.whileTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
-        pilot.LT.onFalse(applyState(State.IDLE));
+        pilot.RT.onTrue(
+                Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.LT.negate()));
 
-        pilot.LT.and(pilot.RT).whileTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
-        pilot.LT.and(pilot.RT).onFalse(applyState(State.IDLE));
+        pilot.LT.onTrue(
+                Commands.either(
+                        applyState(State.LAUNCH_WITH_SQUEEZE), Commands.none(), pilot.RT.negate()));
+
+        pilot.LT.and(pilot.RT).onTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
+
+        pilot.RT.onFalse(
+                Commands.either(
+                        applyState(State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
+                        Commands.none(),
+                        pilot.LT));
+
+        pilot.LT.onFalse(Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.RT));
+
+        pilot.LT.or(pilot.RT).onFalse(applyState(State.IDLE));
 
         pilot.XButton.whileTrue(applyState(State.TRACK_TARGET));
         pilot.XButton.onFalse(applyState(State.IDLE));

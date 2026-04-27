@@ -49,7 +49,15 @@ public class Coordinator {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.slowIntakeClose();
+                IntakeExtensionStates.slowIntakeCloseWithDelay();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeCloseWithoutDelay();
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }
@@ -73,7 +81,7 @@ public class Coordinator {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.slowIntakeClose();
+                IntakeExtensionStates.slowIntakeCloseWithDelay();
                 LauncherStates.autonAimAtTarget();
                 HoodStates.autonAimAtTarget();
             }
