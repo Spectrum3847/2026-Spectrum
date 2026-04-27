@@ -7,19 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "TTTT 1"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "TTTT 2"
+            "pathName": "Option BBB 3"
           }
         }
       ]
     }
   },
   "resetOdom": false,
-  "folder": "TTTT",
+  "folder": "Option BBB",
   "choreoAuto": false
 }

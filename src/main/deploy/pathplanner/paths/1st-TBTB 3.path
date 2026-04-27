@@ -3,41 +3,57 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 2.8,
-        "y": 6.05
+        "x": 2.26,
+        "y": 5.8
       },
       "prevControl": null,
       "nextControl": {
-        "x": 2.8,
-        "y": 6.580647344865603
+        "x": 2.3083707865168543,
+        "y": 6.408155430711611
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 3.4005149812734086,
-        "y": 7.590627340823971
+        "x": 3.71255617977528,
+        "y": 7.451029962546817
       },
       "prevControl": {
-        "x": 2.4005149812734086,
-        "y": 7.590627340823971
+        "x": 2.71255617977528,
+        "y": 7.451029962546817
       },
       "nextControl": {
-        "x": 4.400514981273409,
-        "y": 7.590627340823971
+        "x": 4.71255617977528,
+        "y": 7.451029962546817
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 6.5045037453183525,
-        "y": 7.582415730337079
+        "x": 5.757247191011236,
+        "y": 7.451029962546817
       },
       "prevControl": {
-        "x": 5.4525093632958805,
-        "y": 7.586521535580525
+        "x": 5.115360431728615,
+        "y": 7.451029962546817
+      },
+      "nextControl": {
+        "x": 6.399133950293856,
+        "y": 7.451029962546817
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 6.841179775280899,
+        "y": 7.155411985018727
+      },
+      "prevControl": {
+        "x": 6.3813295880149825,
+        "y": 7.459241573033707
       },
       "nextControl": null,
       "isLocked": false,
@@ -46,7 +62,11 @@
   ],
   "rotationTargets": [
     {
-      "waypointRelativePos": 0.8118006103763955,
+      "waypointRelativePos": 1.0630722278738638,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 1.7182095625635814,
       "rotationDegrees": 0.0
     }
   ],
@@ -55,7 +75,7 @@
   "eventMarkers": [
     {
       "name": "intake",
-      "waypointRelativePos": 0.16366483946750765,
+      "waypointRelativePos": 0.16092404072043098,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -70,13 +90,13 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": -46.88818800674095
   },
   "reversed": false,
-  "folder": "TBTT",
+  "folder": "1st Man - TBTB",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 125.00000000000001
+    "rotation": 145.0
   },
   "useDefaultConstraints": true
 }

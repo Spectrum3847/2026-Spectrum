@@ -114,10 +114,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         Telemetry.log("Swerve/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/MeasuredStates", state.ModuleStates);
         Telemetry.log("Swerve/MeasuredSpeeds", state.Speeds);
-        Telemetry.log("Swerve/DriveStatorCurrent", getDriveMotorStatorCurrents());
-        Telemetry.log("Swerve/SteerStatorCurrent", getSteerMotorStatorCurrents());
-        Telemetry.log("Swerve/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
-        Telemetry.log("Swerve/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
     }
 
     protected void logBatteryUsage() {
@@ -125,6 +121,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         double driveMotorCurrent = getDriveMotorSupplyCurrents();
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
+
+        Telemetry.log("Swerve/DriveStatorCurrent", getDriveMotorStatorCurrents());
+        Telemetry.log("Swerve/SteerStatorCurrent", getSteerMotorStatorCurrents());
+        Telemetry.log("Swerve/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
+        Telemetry.log("Swerve/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
     }
 
     protected double getDriveMotorStatorCurrents() {
@@ -590,7 +591,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                             // PID constants for translation
                             new PIDConstants(4, 0, 0),
                             // PID constants for rotation
-                            new PIDConstants(6, 0, 0)),
+                            new PIDConstants(3, 0, 0)),
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case

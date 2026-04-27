@@ -7,13 +7,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "1st-TBTB 1"
+            "pathName": "Option TBT 3"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
-  "folder": "1st Man TBTB",
+  "resetOdom": false,
+  "folder": "Option TBT",
   "choreoAuto": false
 }

@@ -641,8 +641,6 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     protected void setCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
-        // toggleSupplyCurrentLimit(supplyLimit, true);
-        // toggleTorqueCurrentLimit(statorLimit, true);
         applyCurrentLimit(supplyLimit, statorLimit);
     }
 

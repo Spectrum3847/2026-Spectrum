@@ -29,7 +29,7 @@ public class OperatorStates {
 
         operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
         operator.XButton.whileTrue(IndexerBedStates.unjamCommand());
-        operator.AButton.whileTrue(LauncherStates.aimAtTargetCommand());
+        operator.AButton.onTrue(LauncherStates.aimAtTargetCommand());
 
         operator.rightBumperOnly.whileTrue(IntakeExtensionStates.fullRetractCommand());
 

@@ -21,7 +21,7 @@ public class IndexerBed extends Mechanism {
         @Getter @Setter private double unjamVoltageOut = -4;
         @Getter @Setter private double indexerTorqueCurrent = 120;
         @Getter @Setter private double indexerVelocityRPM = 5000;
-        @Getter @Setter private double indexerSlowVelocityRPM = 2000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
         @Getter @Setter private double indexerUnjamRPM = -2000;
 
         @Getter
@@ -30,7 +30,7 @@ public class IndexerBed extends Mechanism {
 
         /* Indexer config values */
         @Getter @Setter private double currentLimit = 60;
-        @Getter @Setter private double torqueCurrentLimit = 80;
+        @Getter @Setter private double torqueCurrentLimit = 100;
         @Getter @Setter private double lowerCurrentLimit = 50;
         @Getter @Setter private double timeUntilLowerCurrent = 0;
         @Getter @Setter private double velocityKp = 30;

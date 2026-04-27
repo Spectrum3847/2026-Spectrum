@@ -7,37 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "TTTT 1"
+            "pathName": "Option TBT 1"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "TTTT 2"
+            "pathName": "Option TBT 2"
           }
         },
         {
           "type": "path",
           "data": {
-            "pathName": "TTTT 3"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "TTTT 4"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "TTTT 5"
+            "pathName": "Option TBT 3"
           }
         }
       ]
     }
   },
   "resetOdom": true,
-  "folder": "TTTT",
+  "folder": "Option TBT",
   "choreoAuto": false
 }

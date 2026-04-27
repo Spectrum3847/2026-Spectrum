@@ -54,13 +54,20 @@ public class IntakeExtensionStates {
         }
     }
 
-    public static void slowIntakeClose() {
+    public static void slowIntakeCloseWithDelay() {
         scheduleIfNotRunning(
                 Commands.sequence(
                                 Commands.waitSeconds(
                                         config.getTimeUntilIntakeSqueeze().getAsDouble()),
                                 intakeExtension.slowMoveToPercent(config::getSqueeze))
-                        .withName("IntakeExtension.slowIntakeClose"));
+                        .withName("IntakeExtension.slowIntakeCloseWithDelay"));
+    }
+
+    public static void slowIntakeCloseWithoutDelay() {
+        scheduleIfNotRunning(
+                intakeExtension
+                        .slowMoveToPercent(config::getSqueeze)
+                        .withName("IntakeExtension.slowIntakeCloseWithoutDelay"));
     }
 
     public static Command fullExtendCommand() {

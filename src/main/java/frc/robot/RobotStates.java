@@ -38,24 +38,36 @@ public class RobotStates {
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
     public static final Trigger robotInScoreZone = robotInFeedZone.not();
-
-    // public static final Trigger forceScore = operator.AButton;
-
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
 
     public static final Trigger autoUpdatePose = Auton.autonPoseUpdate;
 
     // Setup any binding to set states
     public static void setupStates() {
+
         // Pilot Triggers
-        pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
-        pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.XButton.whileTrue(applyState(State.LAUNCHER_TRACK));
+        pilot.RT.onTrue(
+                Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.LT.negate()));
+
+        pilot.LT.onTrue(
+                Commands.either(
+                        applyState(State.LAUNCH_WITH_SQUEEZE), Commands.none(), pilot.RT.negate()));
+
+        pilot.LT.and(pilot.RT).onTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
+
+        pilot.RT.onFalse(
+                Commands.either(
+                        applyState(State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
+                        Commands.none(),
+                        pilot.LT));
+
+        pilot.LT.onFalse(Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.RT));
+
+        pilot.LT.or(pilot.RT).onFalse(applyState(State.IDLE));
+
+        pilot.XButton.whileTrue(applyState(State.TRACK_TARGET));
         pilot.XButton.onFalse(applyState(State.IDLE));
-
-        pilot.LT.whileTrue(applyState(State.LAUNCHER_TRACK_WITH_LAUNCH));
-        pilot.LT.onFalse(applyState(State.IDLE));
 
         pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));
@@ -85,13 +97,13 @@ public class RobotStates {
 
         // Auton Triggers
         Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
-        Auton.autonShotPrep.onTrue(applyState(State.LAUNCHER_TRACK));
-        Auton.autonShoot.onTrue(applyState(State.LAUNCHER_TRACK_WITH_LAUNCH));
+        Auton.autonShotPrep.onTrue(applyState(State.TRACK_TARGET_WITH_NO_SWERVE));
+        Auton.autonShoot.onTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         applyState(State.UNJAM),
                         Commands.waitSeconds(1),
-                        applyState(State.LAUNCHER_TRACK_WITH_LAUNCH)));
+                        applyState(State.LAUNCH_WITH_SQUEEZE)));
         Auton.autonClearState.onTrue(clearState());
     }
 
