@@ -26,8 +26,11 @@ public class LauncherStates {
         return new Trigger(
                 () ->
                         Utils.isSimulation()
-                                && RobotStates.getAppliedState()
-                                        .equals(State.LAUNCHER_TRACK_WITH_LAUNCH));
+                                && (RobotStates.getAppliedState().equals(State.LAUNCH_WITH_SQUEEZE)
+                                        || RobotStates.getAppliedState()
+                                                .equals(State.LAUNCH_WITHOUT_SQUEEZE)
+                                        || RobotStates.getAppliedState()
+                                                .equals(State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)));
     }
 
     public static void setupStates() {
