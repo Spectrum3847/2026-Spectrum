@@ -51,11 +51,14 @@ public class RobotStates {
         pilot.RT.whileTrue(applyState(State.INTAKE_FUEL));
         pilot.RT.onFalse(applyState(State.IDLE));
 
-        pilot.XButton.whileTrue(applyState(State.TRACK_TARGET));
-        pilot.XButton.onFalse(applyState(State.IDLE));
-
         pilot.LT.whileTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
         pilot.LT.onFalse(applyState(State.IDLE));
+
+        pilot.LT.and(pilot.RT).whileTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
+        pilot.LT.and(pilot.RT).onFalse(applyState(State.IDLE));
+
+        pilot.XButton.whileTrue(applyState(State.TRACK_TARGET));
+        pilot.XButton.onFalse(applyState(State.IDLE));
 
         pilot.startButton.whileTrue(applyState(State.CUSTOM_SPEED_TURRET_LAUNCH));
         pilot.startButton.onFalse(applyState(State.IDLE));

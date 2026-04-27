@@ -51,7 +51,7 @@ public class SwerveConfig {
     @Getter private double maxAngularVelocity = 1.5 * Math.PI; // rad/s
     @Getter private double maxAngularAcceleration = 2 * Math.PI; // rad/s^2
 
-    @Getter private double kPRotationController = 6.0;
+    @Getter private double kPRotationController = 5.0;
     @Getter private double kIRotationController = 0.0;
     @Getter private double kDRotationController = 0.0;
     @Getter private double rotationTolerance = Units.degreesToRadians(1); // rads
@@ -101,7 +101,7 @@ public class SwerveConfig {
 
     @Getter
     private Slot0Configs driveGains =
-            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4).withKV(0.0);
+            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4.0).withKV(0.0);
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
