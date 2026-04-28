@@ -75,9 +75,6 @@ public class RobotStates {
         pilot.AButton.whileTrue(applyState(State.UNJAM));
         pilot.AButton.onFalse(applyState(State.IDLE));
 
-        operator.AButton.whileTrue(applyState(State.UNJAM));
-        operator.AButton.onFalse(applyState(State.IDLE));
-
         pilot.home_select.and(pilot.fn).onTrue(applyState(State.FORCE_HOME));
         pilot.home_select.and(pilot.fn).onFalse(applyState(State.IDLE));
 
