@@ -6,11 +6,11 @@ name: CI
 # events but only for the main branch.
 on:
   push:
-  # This will run when a push to main or photon is made
-    branches: [ "main", "photon" ]
-  # This will run when a pull request to main or photon is created
+  # This will run when a push to main is made
+    branches: [ "main" ]
+  # This will run when a pull request to main is created
   pull_request:
-    branches: [ "main", "photon" ]
+    branches: [ "main" ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -18,6 +18,8 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     # This grabs the WPILib docker container
     container: wpilib/roborio-cross-ubuntu:2025-24.04

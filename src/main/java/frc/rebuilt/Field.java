@@ -32,11 +32,17 @@ public class Field {
 
     public static final double tag26X = Units.inchesToMeters(158.61);
 
-    public static final Translation2d feedBlueLeft = new Translation2d(1, fieldWidth - 1);
-    public static final Translation2d feedBlueRight = new Translation2d(1, 1);
-    public static final Translation2d feedRedLeft = new Translation2d(fieldLength - 1, 1);
-    public static final Translation2d feedRedRight =
+    public static final Translation2d normalFeedBlueLeft = new Translation2d(1, fieldWidth - 1);
+    public static final Translation2d normalFeedBlueRight = new Translation2d(1, 1);
+    public static final Translation2d normalFeedRedLeft = new Translation2d(fieldLength - 1, 1);
+    public static final Translation2d normalFeedRedRight =
             new Translation2d(fieldLength - 1, fieldWidth - 1);
+
+    public static final Translation2d deepFeedBlueLeft = new Translation2d(1, fieldWidth - 2.5);
+    public static final Translation2d deepFeedBlueRight = new Translation2d(21, 2.5);
+    public static final Translation2d deepFeedRedLeft = new Translation2d(fieldLength - 1, 2.5);
+    public static final Translation2d deepFeedRedRight =
+            new Translation2d(fieldLength - 1, fieldWidth - 2.5);
 
     public static class BlueHub {
         public static final double width = Units.inchesToMeters(47.0);

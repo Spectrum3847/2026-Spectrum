@@ -38,7 +38,9 @@ public class Launcher extends Mechanism {
 
         /* Launcher config values */
         @Getter private double currentLimit = 80;
-        @Getter private double torqueCurrentLimit = 160;
+        @Getter private double torqueCurrentLimit = 100;
+        @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
+        @Getter private double reverseTorqueCurrentLimit = -10;
         @Getter private double lowerCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
@@ -54,7 +56,7 @@ public class Launcher extends Mechanism {
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher Top Left", 46, Rio.CANIVORE);
+            super("Launcher", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -62,8 +64,8 @@ public class Launcher extends Mechanism {
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
+            configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);
@@ -96,9 +98,11 @@ public class Launcher extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Launcher/Voltage", getVoltage());
-        Telemetry.log("Launcher/Current", getStatorCurrent());
-        Telemetry.log("Launcher/RPM", getVelocityRPM());
+        Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
+        Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
     }
 
     @Override

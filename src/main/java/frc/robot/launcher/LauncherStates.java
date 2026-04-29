@@ -65,6 +65,10 @@ public class LauncherStates {
                 .withName("Launcher.launchFuelCommand");
     }
 
+    public static Command aimAtTargetCommand() {
+        return log(launcher.trackTargetCommand().withName("Launcher.aimAtHubCommand"));
+    }
+
     // Log Command
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);

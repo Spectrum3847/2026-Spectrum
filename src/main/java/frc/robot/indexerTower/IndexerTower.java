@@ -2,6 +2,7 @@ package frc.robot.indexerTower;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
@@ -18,18 +19,23 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double indexVoltageOut = 10;
         @Getter @Setter private double unjamVoltageOut = -10;
         @Getter @Setter private double indexerTorqueCurrent = 80;
-        @Getter @Setter private double indexerVelocityRPM = 2500;
+
+        @Getter @Setter private double indexerVelocityRPM = 2000;
         @Getter @Setter private double indexerSlowVelocityRPM = 1000;
         @Getter @Setter private double indexerUnjamRPM = -1500;
 
+        @Getter
+        private final DoubleSubscriber indexerTowerFeedRPM =
+                Telemetry.tunable("Tunable/IndexerTowerFeedRPM", indexerVelocityRPM);
+
         /* Intake config values */
-        @Getter @Setter private double currentLimit = 60;
+        @Getter @Setter private double currentLimit = 80;
         @Getter @Setter private double torqueCurrentLimit = 140;
-        @Getter @Setter private double lowerCurrentLimit = 40;
+        @Getter @Setter private double lowerCurrentLimit = 60;
         @Getter @Setter private double timeUntilLowerCurrent = 1;
-        @Getter @Setter private double velocityKp = 25;
-        @Getter @Setter private double velocityKv = 0.2;
-        @Getter @Setter private double velocityKs = 4;
+        @Getter @Setter private double velocityKp = 50;
+        @Getter @Setter private double velocityKv = 0;
+        @Getter @Setter private double velocityKs = 40;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(60);
@@ -47,7 +53,7 @@ public class IndexerTower extends Mechanism {
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configLowerSupplyCurrentLimit(lowerCurrentLimit);
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
-            configNeutralBrakeMode(false);
+            configNeutralBrakeMode(true);
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
@@ -73,9 +79,11 @@ public class IndexerTower extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("IndexerTower/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IndexerTower/Voltage", getVoltage());
-        Telemetry.log("IndexerTower/Current", getStatorCurrent());
-        Telemetry.log("IndexerTower/RPM", getVelocityRPM());
+        Telemetry.log("IndexerTower/Voltage", getVoltage(), "volts");
+        Telemetry.log("IndexerTower/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerTower/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("IndexerTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IndexerTower/Temp", getTemp(), "deg_C");
     }
 
     @Override

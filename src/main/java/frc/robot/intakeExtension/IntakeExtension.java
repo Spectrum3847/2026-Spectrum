@@ -5,16 +5,20 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotSim;
+import frc.robot.RobotStates;
+import frc.robot.State;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
 import frc.spectrumLib.sim.LinearSim;
+import frc.spectrumLib.util.Util;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,19 +42,30 @@ public class IntakeExtension extends Mechanism {
         @Getter private double squeeze = 25;
         @Getter private double fullOut = 100;
         @Getter private double atPoseTolerance = 10;
+        @Getter private double springyPoseTolerance = 20;
 
-        @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private double positiveVoltageOut = 10;
+        @Getter private double negativeVoltageOut = -10;
+
+        @Getter
+        private final DoubleSubscriber timeUntilIntakeSqueeze =
+                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 1.0);
+
+        @Getter private final double normalCurrentLimit = 40;
+        @Getter private final double normalTorqueCurrentLimit = 80;
+        @Getter private final double springyModeSupplyCurrentLimit = 5;
+        @Getter private final double springyModeStatorCurrentLimit = 20;
+
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 0.5;
-        @Getter private final double positionKs = 1.5;
+        @Getter private final double positionKv = 1.0;
+        @Getter private final double positionKs = 2.0;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double gearRatio = 11.25;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
+        @Getter private final double mmCruiseVelocity = 100;
+        @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
         @Getter @Setter private double sensorToMechanismRatio = 11.25;
@@ -78,16 +93,16 @@ public class IntakeExtension extends Mechanism {
         @Getter private double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
-            super("Intake Extension", 7, Rio.CANIVORE); // Rio.CANIVORE);
+            super("IntakeExtension", 7, Rio.CANIVORE); // Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
+            configSupplyCurrentLimit(normalCurrentLimit, true);
+            configStatorCurrentLimit(normalTorqueCurrentLimit, true);
             configGearRatio(gearRatio);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
+            configForwardTorqueCurrentLimit(normalTorqueCurrentLimit);
+            configReverseTorqueCurrentLimit(-1 * normalTorqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
@@ -107,6 +122,8 @@ public class IntakeExtension extends Mechanism {
     @Getter private IntakeExtensionConfig config;
     @Getter private IntakeExtensionSim sim;
 
+    @Getter @Setter private boolean inSpringyMode = false;
+
     public IntakeExtension(IntakeExtensionConfig config) {
         super(config);
         this.config = config;
@@ -121,12 +138,17 @@ public class IntakeExtension extends Mechanism {
 
     @Override
     public void periodic() {
+        updateSpringyMode();
+
         logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IntakeExtension/Voltage", getVoltage());
-        Telemetry.log("IntakeExtension/Current", getStatorCurrent());
-        Telemetry.log("IntakeExtension/Position", getPositionRotations());
-        Telemetry.log("IntakeExtension/RPM", getVelocityRPM());
+        Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
+        Telemetry.log("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IntakeExtension/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
+        Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
+        Telemetry.log("IntakeExtension/InSpringyMode", inSpringyMode);
     }
 
     @Override
@@ -147,6 +169,32 @@ public class IntakeExtension extends Mechanism {
 
     public Command resetToInitialPos() {
         return run(this::setInitialPosition);
+    }
+
+    public void setSpringyMode(boolean enabled) {
+        if (enabled && !inSpringyMode) {
+            setCurrentLimits(
+                    config::getSpringyModeSupplyCurrentLimit,
+                    config::getSpringyModeStatorCurrentLimit);
+            inSpringyMode = true;
+        } else if (!enabled && inSpringyMode) {
+            setCurrentLimits(config::getNormalCurrentLimit, config::getNormalTorqueCurrentLimit);
+            inSpringyMode = false;
+        }
+    }
+
+    public void updateSpringyMode() {
+        State currentState = RobotStates.getAppliedState();
+        boolean isLaunching =
+                currentState == State.AUTON_LAUNCH_WITH_SQUEEZE
+                        || currentState == State.LAUNCH_WITH_SQUEEZE
+                        || currentState == State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
+        boolean atFullOut =
+                atPercentage(config::getFullOut, config::getSpringyPoseTolerance).getAsBoolean();
+
+        boolean inAuto = Util.autoMode.getAsBoolean();
+
+        setSpringyMode(!isLaunching && atFullOut && !inAuto);
     }
 
     // --------------------------------------------------------------------------------
@@ -200,14 +248,6 @@ public class IntakeExtension extends Mechanism {
         return run(() -> setVoltageOutput(rotations));
     }
 
-    public Command voltageOutPositive() {
-        return run(() -> setVoltageOutput(() -> 8)).withTimeout(2);
-    }
-
-    public Command voltageOutNegative() {
-        return run(() -> setVoltageOutput(() -> -8)).withTimeout(2);
-    }
-
     public Command motionMagicPercentMove(DoubleSupplier percent) {
         return run(() -> setMMPosition(() -> percentToRotations(percent)));
     }
@@ -216,7 +256,7 @@ public class IntakeExtension extends Mechanism {
         return run(
                 () ->
                         setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 3, () -> 20, () -> 1000));
+                                () -> percentToRotations(percent), () -> 4, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

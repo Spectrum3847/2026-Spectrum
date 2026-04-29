@@ -27,13 +27,8 @@ public class PilotStates {
     private static Trigger reorientButton =
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
-    private static final Trigger intaking =
-            new Trigger(
-                    () ->
-                            RobotStates.getAppliedState() == State.SNAKE_INTAKE
-                                    || RobotStates.getAppliedState() == State.INTAKE_FUEL);
     private static final Trigger launching =
-            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCER_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCH_WITH_SQUEEZE);
 
     /** Set the states for the pilot controller */
     public static void setStates() {
@@ -41,7 +36,7 @@ public class PilotStates {
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
         pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
-        pilot.YButton.whileTrue(Robot.getAuton().prepThanLaunch());
+        pilot.YButton.whileTrue(Robot.getAuton().launch());
 
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
         pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
@@ -57,8 +52,7 @@ public class PilotStates {
         pilot.dpadRight.onTrue(log(ShotCalculator.decreaseDriveAngleOffset()));
         pilot.dpadLeft.onTrue(log(ShotCalculator.increaseDriveAngleOffset()));
 
-        // Slow mode when driver is intaking or launching fuel
-        intaking.whileTrue(slowMode());
+        // Slow mode when driver is launching fuel
         launching.whileTrue(slowMode());
 
         // Rumble whenever we reorient

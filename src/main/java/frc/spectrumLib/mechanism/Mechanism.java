@@ -1,5 +1,6 @@
 package frc.spectrumLib.mechanism;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
@@ -83,13 +84,25 @@ public abstract class Mechanism implements SpectrumSubsystem {
     private final CachedDouble cachedVoltage;
     private final CachedDouble cachedDegrees;
     private final CachedDouble cachedVelocity;
-    private final CachedDouble cachedCurrent;
+    private final CachedDouble cachedStatorCurrent;
+    private final CachedDouble cachedSupplyCurrent;
+    private final CachedDouble cachedTemp;
 
     protected Mechanism(Config config) {
         this.config = config;
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                    100,
+                    motor.getDutyCycle(),
+                    motor.getMotorVoltage(),
+                    motor.getTorqueCurrent(),
+                    motor.getStatorCurrent(),
+                    motor.getSupplyCurrent(),
+                    motor.getPosition(),
+                    motor.getVelocity());
+            motor.optimizeBusUtilization();
 
             followerMotors = new TalonFX[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
@@ -98,15 +111,18 @@ public abstract class Mechanism implements SpectrumSubsystem {
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
+                followerMotors[i].optimizeBusUtilization();
             }
         }
 
-        cachedCurrent = new CachedDouble(this::updateCurrent);
+        cachedStatorCurrent = new CachedDouble(this::updateStatorCurrent);
+        cachedSupplyCurrent = new CachedDouble(this::updateSupplyCurrent);
         cachedVoltage = new CachedDouble(this::updateVoltage);
         cachedRotations = new CachedDouble(this::updatePositionRotations);
         cachedPercentage = new CachedDouble(this::updatePositionPercentage);
         cachedDegrees = new CachedDouble(this::updatePositionDegrees);
         cachedVelocity = new CachedDouble(this::updateVelocityRPM);
+        cachedTemp = new CachedDouble(this::updateTemp);
 
         SpectrumRobot.add(this);
         this.register();
@@ -135,10 +151,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
     public void logBatteryUsage() {
         if (isAttached()) {
             // Get all motor currents
-            double motorCurrent = motor.getStatorCurrent().getValueAsDouble();
+            double motorCurrent = motor.getSupplyCurrent().getValueAsDouble();
             double followersCurrent = 0;
             for (TalonFX follower : followerMotors) {
-                followersCurrent += follower.getStatorCurrent().getValueAsDouble();
+                followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
             }
 
             // Report to battery logger
@@ -263,19 +279,50 @@ public abstract class Mechanism implements SpectrumSubsystem {
     /**
      * Update the value of the stator current for the motor
      *
-     * @return
+     * @return motor stator current in amps
      */
-    public double updateCurrent() {
+    public double updateStatorCurrent() {
         if (config.attached) {
             return motor.getStatorCurrent().getValueAsDouble();
         }
         return 0;
     }
 
+    /**
+     * Gets the stator current of the motor
+     *
+     * @return motor stator current in amps
+     */
     public double getStatorCurrent() {
-        return cachedCurrent.getAsDouble();
+        return cachedStatorCurrent.getAsDouble();
     }
 
+    /**
+     * Update the value of the supply current for the motor
+     *
+     * @return motor supply current in amps
+     */
+    public double updateSupplyCurrent() {
+        if (config.attached) {
+            return motor.getSupplyCurrent().getValueAsDouble();
+        }
+        return 0;
+    }
+
+    /**
+     * Gets the supply current of the motor
+     *
+     * @return motor supply current in amps
+     */
+    public double getSupplyCurrent() {
+        return cachedSupplyCurrent.getAsDouble();
+    }
+
+    /**
+     * Update the value of the voltage for the motor
+     *
+     * @return motor voltage in volts
+     */
     public double updateVoltage() {
         if (config.attached) {
             return motor.getMotorVoltage().getValueAsDouble();
@@ -283,14 +330,40 @@ public abstract class Mechanism implements SpectrumSubsystem {
         return 0;
     }
 
+    /**
+     * Gets the voltage of the motor
+     *
+     * @return motor voltage in volts
+     */
     public double getVoltage() {
         return cachedVoltage.getAsDouble();
     }
 
     /**
+     * Update the value of the temperature for the motor
+     *
+     * @return motor temperature in Celsius
+     */
+    public double updateTemp() {
+        if (config.attached) {
+            return motor.getDeviceTemp().getValueAsDouble();
+        }
+        return 0;
+    }
+
+    /**
+     * Gets the temperature of the motor
+     *
+     * @return motor temperature in Celsius
+     */
+    public double getTemp() {
+        return cachedTemp.getAsDouble();
+    }
+
+    /**
      * Percentage to Rotations
      *
-     * @return
+     * @return rotations based on percentage of max rotations
      */
     public double percentToRotations(DoubleSupplier percent) {
         return (percent.getAsDouble() / 100) * config.maxRotations;
@@ -300,7 +373,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Rotations to Percentage
      *
      * @param rotations
-     * @return
+     * @return percentage of max rotations
      */
     public double rotationsToPercent(DoubleSupplier rotations) {
         return (rotations.getAsDouble() / config.maxRotations) * 100;
@@ -325,12 +398,17 @@ public abstract class Mechanism implements SpectrumSubsystem {
         return 360 * rotations.getAsDouble();
     }
 
+    /**
+     * Gets the position of the motor in rotations
+     *
+     * @return motor position in rotations
+     */
     public double getPositionRotations() {
         return cachedRotations.getAsDouble();
     }
 
     /**
-     * Updates the position of the motor
+     * Updates the position of the motor in rotations
      *
      * @return motor position in rotations
      */
@@ -341,18 +419,38 @@ public abstract class Mechanism implements SpectrumSubsystem {
         return 0;
     }
 
+    /**
+     * Gets the position of the motor in percentage of max rotations
+     *
+     * @return motor position in percentage of max rotations
+     */
     public double getPositionPercentage() {
         return cachedPercentage.getAsDouble();
     }
 
+    /**
+     * Updates the position of the motor and converts it to percentage of max rotations
+     *
+     * @return motor position in percentage of max rotations
+     */
     private double updatePositionPercentage() {
         return rotationsToPercent(this::getPositionRotations);
     }
 
+    /**
+     * Gets the position of the motor in degrees
+     *
+     * @return motor position in degrees
+     */
     public double getPositionDegrees() {
         return cachedDegrees.getAsDouble();
     }
 
+    /**
+     * Updates the position of the motor and converts it to degrees
+     *
+     * @return motor position in degrees
+     */
     private double updatePositionDegrees() {
         return rotationsToDegrees(this::getPositionRotations);
     }
@@ -369,11 +467,20 @@ public abstract class Mechanism implements SpectrumSubsystem {
         return 0;
     }
 
+    /**
+     * Gets the velocity of the motor in RPM
+     *
+     * @return motor velocity in RPM
+     */
     public double getVelocityRPM() {
         return cachedVelocity.getAsDouble();
     }
 
-    // Get Velocity in RPM
+    /**
+     * Updates the velocity of the motor and converts it to RPM
+     *
+     * @return motor velocity in RPM
+     */
     private double updateVelocityRPM() {
         return Conversions.RPStoRPM(updateVelocityRPS());
     }
@@ -392,22 +499,54 @@ public abstract class Mechanism implements SpectrumSubsystem {
     /**
      * Run the mechanism at given velocity rpm in TorqueCurrentFOC mode
      *
-     * @param velocityRPM
-     * @return
+     * @param velocityRPM rotations per minute
+     * @return A Command that runs the mechanism at the given velocity in rpm using torque current
+     *     FOC control.
      */
     public Command runVelocityTcFocRPM(DoubleSupplier velocityRPM) {
         return run(() -> setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM)))
                 .withName(getName() + ".runVelocityFOCrpm");
     }
 
+    /**
+     * Open-loop percent output control with voltage compensation
+     *
+     * @param percent A fractional units between -1 and +1
+     * @return A Command that runs the mechanism at the given percentage output.
+     */
     public Command runPercentage(DoubleSupplier percent) {
         return run(() -> setPercentOutput(percent)).withName(getName() + ".runPercentage");
     }
 
+    /**
+     * Apply a voltage output to the mechanism, bypassing any closed-loop control.
+     *
+     * @param voltage volts
+     * @return A Command that applies the specified voltage output to the mechanism.
+     */
     public Command runVoltage(DoubleSupplier voltage) {
         return run(() -> setVoltageOutput(voltage)).withName(getName() + ".runVoltage");
     }
 
+    /**
+     * Apply a voltage output to the mechanism, bypassing any closed-loop control and ignoring
+     * software limits.
+     *
+     * @param voltage volts
+     * @return A Command that applies the specified voltage output to the mechanism, ignoring
+     *     software limits.
+     */
+    public Command runVoltageNoSoftLimit(DoubleSupplier voltage) {
+        return run(() -> setVoltageOutputNoSoftLimit(voltage))
+                .withName(getName() + ".runVoltageNoSoftLimit");
+    }
+
+    /**
+     * Run the mechanism at the specified torque current in FOC control.
+     *
+     * @param current torque current
+     * @return A Command that runs the mechanism at the given torque current in FOC control.
+     */
     public Command runTorqueCurrentFoc(DoubleSupplier current) {
         return run(() -> setTorqueCurrentFoc(current)).withName(getName() + ".runTorqueCurrentFoc");
     }
@@ -416,6 +555,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Run to the specified position.
      *
      * @param rotations position in revolutions
+     * @return A Command that runs the mechanism to the specified position in revolutions using FOC
+     *     control.
      */
     public Command moveToRotations(DoubleSupplier rotations) {
         return run(() -> setMMPositionFoc(rotations)).withName(getName() + ".runPoseRevolutions");
@@ -425,6 +566,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Move to the specified position.
      *
      * @param percent position in percentage of max revolutions
+     * @return A Command that runs the mechanism to the specified position in percentage of max
+     *     revolutions using FOC control.
      */
     public Command moveToPercentage(DoubleSupplier percent) {
         return run(() -> setMMPositionFoc(() -> percentToRotations(percent)))
@@ -435,6 +578,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Move to the specified position.
      *
      * @param degrees position in degrees
+     * @return A Command that runs the mechanism to the specified position in degrees using FOC
+     *     control.
      */
     public Command moveToDegrees(DoubleSupplier degrees) {
         return run(() -> setMMPositionFoc(() -> degreesToRotations(degrees)))
@@ -446,11 +591,18 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * feedforward configs
      *
      * @param rotations position in revolutions
+     * @return A Command that runs the mechanism to the specified position in revolutions using
+     *     Motion Magic FOC control.
      */
     public Command runFocRotations(DoubleSupplier rotations) {
         return run(() -> setMMPositionFoc(rotations)).withName(getName() + ".runFOCPosition");
     }
 
+    /**
+     * Stops the mechanism.
+     *
+     * @return A Command that stops the mechanism.
+     */
     public Command runStop() {
         return run(this::stop).withName(getName() + ".runStop");
     }
@@ -458,6 +610,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     /**
      * Temporarily sets the mechanism to coast mode. The configuration is applied when the command
      * is started and reverted when the command is ended.
+     *
+     * @return A Command that sets the mechanism to coast mode.
      */
     public Command coastMode() {
         return startEnd(() -> setBrakeMode(false), () -> setBrakeMode(true))
@@ -465,7 +619,12 @@ public abstract class Mechanism implements SpectrumSubsystem {
                 .withName(getName() + ".coastMode");
     }
 
-    /** Sets the motor to brake mode if it is in coast mode */
+    /**
+     * Sets the motor to brake mode if it is in coast mode.
+     *
+     * @return A Command that sets the mechanism to brake mode if it is in coast mode, ignoring
+     *     disable.
+     */
     public Command ensureBrakeMode() {
         return runOnce(() -> setBrakeMode(true))
                 .onlyIf(
@@ -482,8 +641,6 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     protected void setCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
-        // toggleSupplyCurrentLimit(supplyLimit, true);
-        // toggleTorqueCurrentLimit(statorLimit, true);
         applyCurrentLimit(supplyLimit, statorLimit);
     }
 
@@ -666,9 +823,29 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
     }
 
+    /**
+     * Open-loop voltage control
+     *
+     * @param voltage volts
+     */
     public void setVoltageOutput(DoubleSupplier voltage) {
         if (isAttached()) {
             VoltageOut output = config.voltageControl.withOutput(voltage.getAsDouble());
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Open-loop voltage control that ignores software limits
+     *
+     * @param voltage volts
+     */
+    public void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
+        if (isAttached()) {
+            VoltageOut output =
+                    config.voltageControl
+                            .withOutput(voltage.getAsDouble())
+                            .withIgnoreSoftwareLimits(true);
             motor.setControl(output);
         }
     }

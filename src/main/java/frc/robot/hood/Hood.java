@@ -36,12 +36,12 @@ public class Hood extends Mechanism {
 
         /* Hood config values */
         @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 60;
-        @Getter private final double positionKp = 900;
+        @Getter private final double torqueCurrentLimit = 80;
+        @Getter private final double positionKp = 3000;
         @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 115;
+        @Getter private final double positionKd = 220;
         @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 15;
+        @Getter private final double positionKs = 25;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
 
@@ -98,10 +98,12 @@ public class Hood extends Mechanism {
     public void periodic() {
         logBatteryUsage();
         Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Hood/Voltage", getVoltage());
-        Telemetry.log("Hood/Current", getStatorCurrent());
-        Telemetry.log("Hood/PositionDegrees", getPositionDegrees());
-        Telemetry.log("Hood/RPM", getVelocityRPM());
+        Telemetry.log("Hood/Voltage", getVoltage(), "volts");
+        Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "degrees");
+        Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
     }
 
     @Override

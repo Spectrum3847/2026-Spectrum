@@ -10,11 +10,14 @@ public enum State {
     INTAKE_FUEL,
     SNAKE_INTAKE,
 
-    LAUNCHER_TRACK,
-    LAUNCER_TRACK_WITH_LAUNCH,
+    TRACK_TARGET,
+    TRACK_TARGET_WITH_NO_SWERVE,
+    LAUNCH_WITH_SQUEEZE,
+    LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
+    LAUNCH_WITHOUT_SQUEEZE,
 
-    AUTON_LAUNCHER_TRACK,
-    AUTON_LAUNCHER_TRACK_WITH_LAUNCH,
+    AUTON_TRACK_TARGET,
+    AUTON_LAUNCH_WITH_SQUEEZE,
 
     CUSTOM_SPEED_TURRET_LAUNCH,
     UNJAM,
@@ -30,7 +33,7 @@ public enum State {
     // Define the scoring sequence map, the 2nd state is the next state after the
     // current one
     private static final ImmutableMap<State, State> scoreSequence =
-            ImmutableMap.ofEntries(Map.entry(LAUNCHER_TRACK, LAUNCER_TRACK_WITH_LAUNCH));
+            ImmutableMap.ofEntries(Map.entry(TRACK_TARGET, LAUNCH_WITH_SQUEEZE));
 
     // ------ STATE ATTRIBUTES ------//
 
@@ -41,7 +44,7 @@ public enum State {
     private static BooleanSupplier isReadyState(State state) {
         return () ->
                 switch (state) {
-                    case LAUNCHER_TRACK -> true;
+                    case TRACK_TARGET -> true;
                     default -> false;
                 };
     }

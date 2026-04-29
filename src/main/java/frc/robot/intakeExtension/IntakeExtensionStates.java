@@ -54,12 +54,20 @@ public class IntakeExtensionStates {
         }
     }
 
-    public static void slowIntakeClose() {
+    public static void slowIntakeCloseWithDelay() {
         scheduleIfNotRunning(
                 Commands.sequence(
-                                Commands.waitSeconds(0.5),
+                                Commands.waitSeconds(
+                                        config.getTimeUntilIntakeSqueeze().getAsDouble()),
                                 intakeExtension.slowMoveToPercent(config::getSqueeze))
-                        .withName("IntakeExtension.slowIntakeClose"));
+                        .withName("IntakeExtension.slowIntakeCloseWithDelay"));
+    }
+
+    public static void slowIntakeCloseWithoutDelay() {
+        scheduleIfNotRunning(
+                intakeExtension
+                        .slowMoveToPercent(config::getSqueeze)
+                        .withName("IntakeExtension.slowIntakeCloseWithoutDelay"));
     }
 
     public static Command fullExtendCommand() {
@@ -79,6 +87,20 @@ public class IntakeExtensionStates {
     public static Command slowIntakeCloseCommand() {
         return log(intakeExtension.slowMoveToPercent(config::getSqueeze))
                 .withName("IntakeExtension.slowIntakeClose");
+    }
+
+    public static Command positiveVoltageOut() {
+        return log(
+                intakeExtension
+                        .runVoltage(config::getPositiveVoltageOut)
+                        .withName("IntakeExtension.positiveVoltageOut"));
+    }
+
+    public static Command negativeVoltageOut() {
+        return log(
+                intakeExtension
+                        .runVoltage(config::getNegativeVoltageOut)
+                        .withName("IntakeExtension.negativeVoltageOut"));
     }
 
     public static Command coastMode() {
