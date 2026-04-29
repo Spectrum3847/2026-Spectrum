@@ -1,5 +1,7 @@
 package frc.robot.pilot;
 
+import static edu.wpi.first.units.Units.MetersPerSecond;
+
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.SpectrumState;
@@ -85,8 +87,8 @@ public class Pilot extends Gamepad {
             // Set Scalar in Constructor from Swerve Config
 
             setRightStickDeadzone(deadzone);
-            setRightStickExp(3.0);
-            setRightStickScalar(3 * Math.PI);
+            setRightStickExp(3);
+            // Set Scalar in Constructor from Swerve Config
 
             setTriggersDeadzone(deadzone);
             setTriggersExp(1);
@@ -104,12 +106,14 @@ public class Pilot extends Gamepad {
         super(config);
         this.config = config;
 
-        // Set Left stick Scalar from Swerve Config
-        config.setLeftStickScalar(Robot.getConfig().swerve.getSpeedAt12Volts().magnitude());
+        config.setLeftStickScalar(Robot.getConfig().swerve.getSpeedAt12Volts().in(MetersPerSecond));
         leftStickCurve.setScalar(config.getLeftStickScalar());
 
+        config.setRightStickScalar(Robot.getConfig().swerve.getMaxAngularVelocity());
+        rightStickCurve.setScalar(config.getRightStickScalar());
+
         Robot.add(this);
-        Telemetry.print("Pilot Subsystem Initialized: ");
+        Telemetry.print("Pilot Subsystem Initialized");
     }
 
     @Override

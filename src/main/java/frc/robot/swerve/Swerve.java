@@ -102,7 +102,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         registerTelemetry(this::log);
 
-        Telemetry.print(getName() + " Subsystem Initialized: ");
+        Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     // --------------------------------------------------------------------------------

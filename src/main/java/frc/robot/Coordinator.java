@@ -27,7 +27,7 @@ public class Coordinator {
                 IndexerBedStates.slowIndex();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.idlePrep();
-                HoodStates.neutral();
+                HoodStates.home();
             }
             case TRACK_TARGET -> {
                 FuelIntakeStates.stop();
@@ -91,7 +91,7 @@ public class Coordinator {
                 IndexerBedStates.unjam();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.neutral();
-                HoodStates.neutral();
+                HoodStates.home();
             }
             case FORCE_HOME -> {
                 FuelIntakeStates.stop();
@@ -99,7 +99,7 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullRetract();
                 LauncherStates.neutral();
-                HoodStates.neutral();
+                HoodStates.home();
             }
             case CUSTOM_SPEED_TURRET_LAUNCH -> {
                 FuelIntakeStates.stop();
@@ -121,7 +121,7 @@ public class Coordinator {
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 LauncherStates.neutral();
-                HoodStates.neutral();
+                HoodStates.home();
             }
             case COAST -> {
                 IntakeExtensionStates.coastMode();
