@@ -24,12 +24,21 @@ public class FeedTargetFactory {
 
     public static Translation2d generate() {
         boolean inFieldLeft = swerve.inFieldLeft().getAsBoolean();
+        boolean inOpposingAllianceZone = swerve.inEnemyAllianceZone().getAsBoolean();
         Translation2d feedTarget;
 
-        if (inFieldLeft) {
-            feedTarget = Field.isBlue() ? Field.feedBlueLeft : Field.feedRedRight;
+        if (inOpposingAllianceZone) {
+            if (inFieldLeft) {
+                feedTarget = Field.isBlue() ? Field.deepFeedBlueLeft : Field.deepFeedRedRight;
+            } else {
+                feedTarget = Field.isBlue() ? Field.deepFeedBlueRight : Field.deepFeedRedLeft;
+            }
         } else {
-            feedTarget = Field.isBlue() ? Field.feedBlueRight : Field.feedRedLeft;
+            if (inFieldLeft) {
+                feedTarget = Field.isBlue() ? Field.normalFeedBlueLeft : Field.normalFeedRedRight;
+            } else {
+                feedTarget = Field.isBlue() ? Field.normalFeedBlueRight : Field.normalFeedRedLeft;
+            }
         }
 
         double distance =

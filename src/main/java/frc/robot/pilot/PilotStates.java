@@ -28,7 +28,7 @@ public class PilotStates {
             pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
 
     private static final Trigger launching =
-            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCHER_TRACK_WITH_LAUNCH);
+            new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCH_WITH_SQUEEZE);
 
     /** Set the states for the pilot controller */
     public static void setStates() {
@@ -36,7 +36,7 @@ public class PilotStates {
         pilot.visionPoseReset_LB_Select.onTrue(VisionStates.resetVisionPose());
 
         pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
-        pilot.YButton.whileTrue(Robot.getAuton().prepThanLaunch());
+        pilot.YButton.whileTrue(Robot.getAuton().launch());
 
         // Simulation Only: Map RT and LT to intake and launch fuel for testing
         pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());

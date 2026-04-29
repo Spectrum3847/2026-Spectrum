@@ -24,10 +24,10 @@ public class FuelIntake extends Mechanism {
 
         // Intake Voltages and Current
         @Getter @Setter private double fuelIntakeVoltage = 9.0;
-        @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
+
         @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
         @Getter @Setter private double fuelSlowIntakeTorqueCurrent = 45.0;
-        @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
+        @Getter @Setter private double fuelIntakeTorqueCurrent = 130.0;
         @Getter @Setter private double ejectTorqueCurrent = -50;
 
         @Getter
@@ -36,10 +36,10 @@ public class FuelIntake extends Mechanism {
 
         /* Intake config values */
         @Getter private double currentLimit = 70;
-        @Getter private double torqueCurrentLimit = 120;
+        @Getter private double torqueCurrentLimit = 180;
         @Getter private double velocityKp = 5;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 2;
+        @Getter private double velocityKv = 0;
+        @Getter private double velocityKs = 4;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(15);

@@ -11,7 +11,7 @@ import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import frc.rebuilt.launchingMaps.AndyMarkMap;
+import frc.rebuilt.launchingMaps.HomeMap;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
@@ -70,10 +70,10 @@ public class ShotCalculator {
     private static double maxDistance;
     private static double phaseDelay;
 
-    @Getter private static InterpolatingDoubleTreeMap hoodAngleMap = AndyMarkMap.getHoodAngleMap();
+    @Getter private static InterpolatingDoubleTreeMap hoodAngleMap = HomeMap.getHoodAngleMap();
 
     @Getter
-    private static InterpolatingDoubleTreeMap launcherSpeedMap = AndyMarkMap.getLauncherSpeedMap();
+    private static InterpolatingDoubleTreeMap launcherSpeedMap = HomeMap.getLauncherSpeedMap();
 
     @Getter
     private static InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
@@ -96,11 +96,11 @@ public class ShotCalculator {
         phaseDelay = 0.03;
 
         // TOF map (in seconds)
-        timeOfFlightMap.put(5.68, 1.16);
-        timeOfFlightMap.put(4.55, 1.12);
-        timeOfFlightMap.put(3.15, 1.11);
-        timeOfFlightMap.put(1.88, 1.09);
-        timeOfFlightMap.put(1.38, 0.90);
+        timeOfFlightMap.put(5.68, 1.10);
+        timeOfFlightMap.put(4.55, 1.07);
+        timeOfFlightMap.put(3.15, 1.05);
+        timeOfFlightMap.put(1.88, 1.00);
+        timeOfFlightMap.put(1.38, 0.86);
     }
 
     public ShootingParameters getParameters() {

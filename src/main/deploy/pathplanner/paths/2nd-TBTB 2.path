@@ -1,0 +1,122 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 2.26,
+        "y": 5.5
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 2.26,
+        "y": 7.75
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 4.63,
+        "y": 7.64
+      },
+      "prevControl": {
+        "x": 2.63,
+        "y": 7.64
+      },
+      "nextControl": {
+        "x": 6.63,
+        "y": 7.64
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 8.113979400749065,
+        "y": 5.5
+      },
+      "prevControl": {
+        "x": 8.113979400749065,
+        "y": 7.5
+      },
+      "nextControl": {
+        "x": 8.113979400749065,
+        "y": 4.5
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 8.113979400749065,
+        "y": 4.018576779026217
+      },
+      "prevControl": {
+        "x": 8.113979400749065,
+        "y": 4.418115353042417
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.6205493387588983,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 1.05,
+      "rotationDegrees": 0.0
+    }
+  ],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 1.9604541895066578,
+      "maxWaypointRelativePos": 3.0,
+      "constraints": {
+        "maxVelocity": 1.5,
+        "maxAcceleration": 5.0,
+        "maxAngularVelocity": 360.0,
+        "maxAngularAcceleration": 540.0,
+        "nominalVoltage": 10.0,
+        "unlimited": false
+      }
+    }
+  ],
+  "pointTowardsZones": [],
+  "eventMarkers": [
+    {
+      "name": "poseUpdate",
+      "waypointRelativePos": 0.0,
+      "endWaypointRelativePos": 7.0,
+      "command": null
+    },
+    {
+      "name": "intake",
+      "waypointRelativePos": 0.05,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
+  "globalConstraints": {
+    "maxVelocity": 3.5,
+    "maxAcceleration": 5.0,
+    "maxAngularVelocity": 360.0,
+    "maxAngularAcceleration": 360.0,
+    "nominalVoltage": 10.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": -90.0
+  },
+  "reversed": false,
+  "folder": "2nd Man - TBTB",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 130.0
+  },
+  "useDefaultConstraints": true
+}

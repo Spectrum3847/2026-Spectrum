@@ -29,7 +29,7 @@ public class Coordinator {
                 LauncherStates.idlePrep();
                 HoodStates.neutral();
             }
-            case LAUNCHER_TRACK -> {
+            case TRACK_TARGET -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
@@ -37,15 +37,39 @@ public class Coordinator {
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }
-            case LAUNCHER_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.intakeFuel();
-                IndexerTowerStates.indexMax();
-                IndexerBedStates.indexMax();
-                IntakeExtensionStates.slowIntakeClose();
+            case TRACK_TARGET_WITH_NO_SWERVE -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
                 HoodStates.aimAtTarget();
             }
-            case AUTON_LAUNCHER_TRACK -> {
+            case LAUNCH_WITH_SQUEEZE -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeCloseWithDelay();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeCloseWithoutDelay();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCH_WITHOUT_SQUEEZE -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case AUTON_TRACK_TARGET -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
@@ -53,11 +77,11 @@ public class Coordinator {
                 LauncherStates.autonAimAtTarget();
                 HoodStates.autonAimAtTarget();
             }
-            case AUTON_LAUNCHER_TRACK_WITH_LAUNCH -> {
+            case AUTON_LAUNCH_WITH_SQUEEZE -> {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
-                IntakeExtensionStates.slowIntakeClose();
+                IntakeExtensionStates.slowIntakeCloseWithDelay();
                 LauncherStates.autonAimAtTarget();
                 HoodStates.autonAimAtTarget();
             }
