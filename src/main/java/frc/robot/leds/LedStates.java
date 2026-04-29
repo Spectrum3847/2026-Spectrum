@@ -54,8 +54,14 @@ public class LedStates {
                             })
                     .and(Util.teleop);
 
-    public static final Trigger redShift;
-    public static final Trigger blueShift;
+    public static final Trigger redShift = new Trigger(
+        () -> {
+                if (DriverStation.Alliance == blue && ) {
+
+                }
+        }
+    ).and(Util.teleop);
+    public static final Trigger blueShift = new Trigger().and(Util.teleop);
 
     public static Trigger bothInShift = auto.or(transitionShift, endgame);
 
@@ -102,13 +108,13 @@ public class LedStates {
     static void redAlliance(Trigger trigger, int priority) {
         SingleFadeAnimation redAllianceShift =
                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(255, 0, 0));
-        trigger.onTrue(Commands.runOnce(() -> candle.setControl(redAllianceShift)));
+        redShift.onTrue(Commands.runOnce(() -> candle.setControl(redAllianceShift)));
     }
 
     static void blueAlliance(Trigger trigger, int priority) {
         SingleFadeAnimation blueAllianceShift =
                 new SingleFadeAnimation(0, 20).withSlot(0).withColor(new RGBWColor(0, 0, 255));
-        trigger.onTrue(Commands.runOnce(() -> candle.setControl(blueAllianceShift)));
+        blueShift.onTrue(Commands.runOnce(() -> candle.setControl(blueAllianceShift)));
     }
 
     static void shiftAboutToEnd(Trigger trigger, int priority) {
