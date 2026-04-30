@@ -124,7 +124,7 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withSupplyCurrentLimit(Amps.of(40))
+                                    .withSupplyCurrentLimit(Amps.of(65))
                                     .withSupplyCurrentLimitEnable(true));
 
     // Swerve azimuth does not require much torque output, so we can set a

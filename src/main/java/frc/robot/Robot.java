@@ -133,7 +133,7 @@ public class Robot extends SpectrumRobot {
              * subsystem Something that don't have an output are also subsystems.
              */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
-            mainCANBus = new CANBus("*"); // Use the first CANivore bus found
+            mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
 
             coordinator = new Coordinator();
             operator = new Operator(config.operator);

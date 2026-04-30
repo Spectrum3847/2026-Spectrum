@@ -92,14 +92,14 @@ public class IntakeExtensionStates {
     public static Command positiveVoltageOut() {
         return log(
                 intakeExtension
-                        .runVoltage(config::getPositiveVoltageOut)
+                        .runVoltageNoSoftLimit(config::getPositiveVoltageOut)
                         .withName("IntakeExtension.positiveVoltageOut"));
     }
 
     public static Command negativeVoltageOut() {
         return log(
                 intakeExtension
-                        .runVoltage(config::getNegativeVoltageOut)
+                        .runVoltageNoSoftLimit(config::getNegativeVoltageOut)
                         .withName("IntakeExtension.negativeVoltageOut"));
     }
 

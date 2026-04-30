@@ -13,11 +13,11 @@ public class AndyMarkMap {
             new InterpolatingDoubleTreeMap();
 
     static {
-        hoodAngleMap.put(1.85, 9.0);
-        hoodAngleMap.put(2.00, 10.0);
-        hoodAngleMap.put(2.35, 10.7);
-        hoodAngleMap.put(2.55, 12.8);
-        hoodAngleMap.put(2.65, 13.5);
+        hoodAngleMap.put(1.85, 9.5);
+        hoodAngleMap.put(2.00, 10.5);
+        hoodAngleMap.put(2.35, 12.3);
+        hoodAngleMap.put(2.55, 13.8);
+        hoodAngleMap.put(2.65, 14.5);
         hoodAngleMap.put(2.96, 16.0);
         hoodAngleMap.put(3.30, 19.5);
 
