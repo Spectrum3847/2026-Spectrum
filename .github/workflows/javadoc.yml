@@ -24,15 +24,9 @@ jobs:
       - name: Generate JavaDoc
         run: ./gradlew javadoc
 
-      - name: Prepare Pages content
-        run: |
-          mkdir -p staging/javadoc
-          cp -r docs/. staging/
-          cp -r build/docs/javadoc/. staging/javadoc/
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./staging
+          publish_dir: ./build/docs/javadoc
           force_orphan: true
