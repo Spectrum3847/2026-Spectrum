@@ -75,4 +75,4 @@ src
 └── vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
 ```
 
-#### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum/javadoc).
+#### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).
