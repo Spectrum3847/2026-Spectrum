@@ -2,6 +2,8 @@
 
 Welcome to the documentation for Spectrum's 2026 robot code, developed for the FRC game season REBUILT. This guide is designed to help new programmers get up to speed with our codebase, understand core FRC concepts, and learn about our development practices.
 
+**Looking for the online javadocs? View them [here](javadoc/).**
+
 ## Table of Contents
 
 ### FRC Software Basics
