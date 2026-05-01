@@ -1,11 +1,11 @@
 package frc.robot;
 
 import frc.robot.fuelIntake.FuelIntakeStates;
+import frc.robot.hood.HoodStates;
 import frc.robot.indexerBed.IndexerBedStates;
 import frc.robot.indexerTower.IndexerTowerStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.launcher.LauncherStates;
-import frc.robot.turretRotationalPivot.RotationalPivotStates;
 
 public class Coordinator {
 
@@ -19,31 +19,71 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.neutral();
                 LauncherStates.idlePrep();
-                RotationalPivotStates.aimAtTarget();
+                HoodStates.home();
             }
             case INTAKE_FUEL -> {
                 FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.neutral();
-                IndexerBedStates.neutral();
+                IndexerBedStates.slowIndex();
                 IntakeExtensionStates.fullExtend();
                 LauncherStates.idlePrep();
-                RotationalPivotStates.aimAtTarget();
+                HoodStates.neutral();
             }
-            case TURRET_TRACK -> {
+            case TRACK_TARGET -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtTarget();
+                HoodStates.aimAtTarget();
             }
-            case TURRET_TRACK_WITH_LAUNCH -> {
-                FuelIntakeStates.slowIntakeFuel();
+            case TRACK_TARGET_WITH_NO_SWERVE -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCH_WITH_SQUEEZE -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeCloseWithDelay();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeCloseWithoutDelay();
+                LauncherStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case LAUNCH_WITHOUT_SQUEEZE -> {
+                FuelIntakeStates.intakeFuel();
                 IndexerTowerStates.indexMax();
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.aimAtTarget();
-                RotationalPivotStates.aimAtTarget();
+                HoodStates.aimAtTarget();
+            }
+            case AUTON_TRACK_TARGET -> {
+                FuelIntakeStates.stop();
+                IndexerTowerStates.neutral();
+                IndexerBedStates.neutral();
+                IntakeExtensionStates.fullExtendConditional();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.autonAimAtTarget();
+            }
+            case AUTON_LAUNCH_WITH_SQUEEZE -> {
+                FuelIntakeStates.intakeFuel();
+                IndexerTowerStates.indexMax();
+                IndexerBedStates.indexMax();
+                IntakeExtensionStates.slowIntakeCloseWithDelay();
+                LauncherStates.autonAimAtTarget();
+                HoodStates.autonAimAtTarget();
             }
             case UNJAM -> {
                 FuelIntakeStates.stop();
@@ -51,7 +91,7 @@ public class Coordinator {
                 IndexerBedStates.unjam();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.neutral();
-                RotationalPivotStates.neutral();
+                HoodStates.neutral();
             }
             case FORCE_HOME -> {
                 FuelIntakeStates.stop();
@@ -59,7 +99,7 @@ public class Coordinator {
                 IndexerBedStates.neutral();
                 IntakeExtensionStates.fullRetract();
                 LauncherStates.neutral();
-                RotationalPivotStates.home();
+                HoodStates.neutral();
             }
             case CUSTOM_SPEED_TURRET_LAUNCH -> {
                 FuelIntakeStates.stop();
@@ -67,29 +107,29 @@ public class Coordinator {
                 IndexerBedStates.indexMax();
                 IntakeExtensionStates.fullExtendConditional();
                 LauncherStates.customLaunchSpeed();
-                RotationalPivotStates.aimAtTarget();
+                HoodStates.aimAtTarget();
             }
             case TEST_INFINITE_LAUNCH -> {
                 FuelIntakeStates.slowIntakeFuel();
                 IndexerTowerStates.slowIndex();
                 IndexerBedStates.slowIndex();
                 LauncherStates.slowLaunch();
-                RotationalPivotStates.aimAt180();
+                HoodStates.neutral();
             }
             case TEST_IDLE -> {
                 FuelIntakeStates.stop();
                 IndexerTowerStates.neutral();
                 IndexerBedStates.neutral();
                 LauncherStates.neutral();
-                RotationalPivotStates.home();
+                HoodStates.neutral();
             }
             case COAST -> {
                 IntakeExtensionStates.coastMode();
-                RotationalPivotStates.coastMode();
+                HoodStates.coastMode();
             }
             case BRAKE -> {
                 IntakeExtensionStates.brakeMode();
-                RotationalPivotStates.brakeMode();
+                HoodStates.ensureBrakeMode();
             }
             default -> {
                 // Handle other states or throw an error

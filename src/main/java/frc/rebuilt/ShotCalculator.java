@@ -9,22 +9,21 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
-import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
+import frc.rebuilt.launchingMaps.HomeMap;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.robot.RobotStates;
 import frc.spectrumLib.Telemetry;
-import java.text.DecimalFormat;
+import lombok.Getter;
 
 public class ShotCalculator {
     private static ShotCalculator instance;
 
-    // Offset from robot center to turret center (leave zero if turret is centered)
-    private static final Transform2d robotToTurret =
-            new Transform2d(
-                    new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0)),
-                    new Rotation2d());
+    // Offset from robot center to launcher center (leave zero if launcher is centered)
+    private static final Transform2d robotToLauncher = Transform2d.kZero;
 
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
@@ -33,34 +32,37 @@ public class ShotCalculator {
 
     public record ShootingParameters(
             boolean isValid,
-            Rotation2d turretAngle,
-            double turretAngularVelocityRotPerSec,
-            double flywheelSpeed) {}
+            Rotation2d driveAngle,
+            double driveAngularVelocity,
+            double hoodAngle,
+            double hoodVelocity,
+            double flywheelSpeed,
+            double distance,
+            double distanceNoLookahead,
+            double timeOfFlight) {}
 
     private ShootingParameters latestParameters = null;
 
-    private static final DecimalFormat df = new DecimalFormat("0.00");
+    public static final double STARTING_HOOD_ANGLE_OFFSET = 0; // degrees
+    public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
-    public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0; // percent
-    public static double FLYWHEEL_SPEED_OFFSET = STARTING_FLYWHEEL_SPEED_OFFSET;
+    public static final double STARTING_DRIVE_ANGLE_OFFSET = 0; // degrees
+    public static double DRIVE_ANGLE_OFFSET = STARTING_DRIVE_ANGLE_OFFSET;
 
-    public static final double STARTING_TURRET_ANGLE_OFFSET_DEGREES = 0;
-    public static double TURRET_ANGLE_OFFSET_DEGREES = STARTING_TURRET_ANGLE_OFFSET_DEGREES;
-
-    public static void increaseFlywheelSpeedOffset() {
-        FLYWHEEL_SPEED_OFFSET += 1;
+    public static Command increaseHoodAngleOffset() {
+        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
     }
 
-    public static void decreaseFlywheelSpeedOffset() {
-        FLYWHEEL_SPEED_OFFSET -= 1;
+    public static Command decreaseHoodAngleOffset() {
+        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= 0.1).ignoringDisable(true);
     }
 
-    public static void increaseTurretAngleOffsetDegrees() {
-        TURRET_ANGLE_OFFSET_DEGREES += 1;
+    public static Command increaseDriveAngleOffset() {
+        return Commands.runOnce(() -> DRIVE_ANGLE_OFFSET += 1).ignoringDisable(true);
     }
 
-    public static void decreaseTurretAngleOffsetDegrees() {
-        TURRET_ANGLE_OFFSET_DEGREES -= 1;
+    public static Command decreaseDriveAngleOffset() {
+        return Commands.runOnce(() -> DRIVE_ANGLE_OFFSET -= 1).ignoringDisable(true);
     }
 
     // ===== Config / maps =====
@@ -68,57 +70,44 @@ public class ShotCalculator {
     private static double maxDistance;
     private static double phaseDelay;
 
-    private static final InterpolatingDoubleTreeMap shotFlywheelSpeedMap =
-            new InterpolatingDoubleTreeMap();
+    @Getter private static InterpolatingDoubleTreeMap hoodAngleMap = HomeMap.getHoodAngleMap();
 
-    private static final InterpolatingDoubleTreeMap timeOfFlightMap =
-            new InterpolatingDoubleTreeMap();
+    @Getter
+    private static InterpolatingDoubleTreeMap launcherSpeedMap = HomeMap.getLauncherSpeedMap();
 
-    // ===== Turret angular velocity calculation =====
-    // If you have a known loop period constant, swap it in here.
-    // WPILib TimedRobot default is 0.02s, but use your actual period.
+    @Getter
+    private static InterpolatingDoubleTreeMap timeOfFlightMap = new InterpolatingDoubleTreeMap();
+
+    // ===== Velocity and angle calculation =====
     private static final double loopPeriodSecs = 0.02;
 
-    private final LinearFilter turretOmegaFilter =
+    private final LinearFilter hoodAngleFilter =
             LinearFilter.movingAverage((int) (0.1 / loopPeriodSecs)); // ~100ms window
 
-    private Rotation2d lastTurretAngle = null;
+    private final LinearFilter driveAngleFilter =
+            LinearFilter.movingAverage((int) (0.1 / loopPeriodSecs)); // ~100ms window
+
+    private double lastHoodAngle = Double.NaN;
+    private Rotation2d lastDriveAngle = null;
 
     static {
         minDistance = 1.34;
         maxDistance = 5.60;
-
         phaseDelay = 0.03;
 
-        // Flywheel map
-        shotFlywheelSpeedMap.put(1.50, 2250.0 + 100);
-        shotFlywheelSpeedMap.put(1.78, 2300.0 + 100);
-        shotFlywheelSpeedMap.put(2.00, 2450.0 + 100);
-        shotFlywheelSpeedMap.put(2.35, 2600.0 + 100);
-        shotFlywheelSpeedMap.put(2.56, 2650.0 + 100);
-        shotFlywheelSpeedMap.put(2.96, 2750.0 + 100);
-        shotFlywheelSpeedMap.put(3.16, 2900.0 + 100);
-        shotFlywheelSpeedMap.put(3.50, 3200.0 + 100);
-        shotFlywheelSpeedMap.put(4.00, 3300.0 + 100);
-        shotFlywheelSpeedMap.put(4.20, 3650.0 + 100);
-        shotFlywheelSpeedMap.put(5.00, 4000.0 + 100);
-
-        // TOF map
-        timeOfFlightMap.put(3.41, 1.10);
-        timeOfFlightMap.put(3.08, 1.07);
-        timeOfFlightMap.put(2.75, 1.05);
-        timeOfFlightMap.put(2.33, 0.95);
-        timeOfFlightMap.put(2.03, 0.85);
-        timeOfFlightMap.put(1.68, 0.76);
+        // TOF map (in seconds)
+        timeOfFlightMap.put(5.68, 1.10);
+        timeOfFlightMap.put(4.55, 1.07);
+        timeOfFlightMap.put(3.15, 1.05);
+        timeOfFlightMap.put(1.88, 1.00);
+        timeOfFlightMap.put(1.38, 0.86);
     }
 
     public ShootingParameters getParameters() {
         if (latestParameters != null) return latestParameters;
 
         // Target selection
-        boolean feed =
-                RobotStates.robotInFeedZone.getAsBoolean()
-                        && !RobotStates.forceScore.getAsBoolean();
+        boolean feed = RobotStates.robotInFeedZone.getAsBoolean();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
@@ -132,39 +121,40 @@ public class ShotCalculator {
                                 robotRelativeVelocity.vyMetersPerSecond * phaseDelay,
                                 robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
 
-        // Turret pose + base distance
-        Pose2d turretPose = estimatedPose.transformBy(robotToTurret);
-        double turretToTargetDistance = target.getDistance(turretPose.getTranslation());
+        // Launcher pose + base distance
+        Pose2d launcherPose = estimatedPose.transformBy(robotToLauncher);
+        double launcherToTargetDistance = target.getDistance(launcherPose.getTranslation());
+        double distanceNoLookahead = launcherToTargetDistance;
 
         // Field-relative velocity of robot
         ChassisSpeeds fieldVelocity =
                 ChassisSpeeds.fromRobotRelativeSpeeds(
                         robotRelativeVelocity, estimatedPose.getRotation());
 
-        // Turret tangential velocity due to robot rotation about robot center
+        // Launcher tangential velocity due to robot rotation about robot center
         double robotAngle = estimatedPose.getRotation().getRadians();
-        double turretVelocityX =
+        double launcherVelocityX =
                 fieldVelocity.vxMetersPerSecond
                         + fieldVelocity.omegaRadiansPerSecond
-                                * (robotToTurret.getY() * Math.cos(robotAngle)
-                                        - robotToTurret.getX() * Math.sin(robotAngle));
-        double turretVelocityY =
+                                * (robotToLauncher.getY() * Math.cos(robotAngle)
+                                        - robotToLauncher.getX() * Math.sin(robotAngle));
+        double launcherVelocityY =
                 fieldVelocity.vyMetersPerSecond
                         + fieldVelocity.omegaRadiansPerSecond
-                                * (robotToTurret.getX() * Math.cos(robotAngle)
-                                        - robotToTurret.getY() * Math.sin(robotAngle));
+                                * (robotToLauncher.getX() * Math.cos(robotAngle)
+                                        - robotToLauncher.getY() * Math.sin(robotAngle));
 
         // Lookahead iteration: converge distance
-        double lookaheadDistance = turretToTargetDistance;
+        double lookaheadDistance = launcherToTargetDistance;
         for (int i = 0; i < 20; i++) {
             double tof = timeOfFlightMap.get(lookaheadDistance);
-            double offsetX = turretVelocityX * tof;
-            double offsetY = turretVelocityY * tof;
+            double offsetX = launcherVelocityX * tof;
+            double offsetY = launcherVelocityY * tof;
 
-            Translation2d lookaheadTurretTranslation =
-                    turretPose.getTranslation().plus(new Translation2d(offsetX, offsetY));
+            Translation2d lookaheadLauncherTranslation =
+                    launcherPose.getTranslation().plus(new Translation2d(offsetX, offsetY));
 
-            double newDistance = target.getDistance(lookaheadTurretTranslation);
+            double newDistance = target.getDistance(lookaheadLauncherTranslation);
             if (Math.abs(newDistance - lookaheadDistance) < 0.01) {
                 lookaheadDistance = newDistance;
                 break;
@@ -172,49 +162,63 @@ public class ShotCalculator {
             lookaheadDistance = newDistance;
         }
 
-        // Final compensated turret translation using final TOF
+        // Final compensated launcher translation using final TOF
         double tofFinal = timeOfFlightMap.get(lookaheadDistance);
-        Translation2d compensatedTurretTranslation =
-                turretPose
+        Translation2d compensatedLauncherTranslation =
+                launcherPose
                         .getTranslation()
                         .plus(
                                 new Translation2d(
-                                        turretVelocityX * tofFinal, turretVelocityY * tofFinal));
+                                        launcherVelocityX * tofFinal,
+                                        launcherVelocityY * tofFinal));
 
-        // Commanded turret angle (with preference offset)
-        Rotation2d turretAngle = target.minus(compensatedTurretTranslation).getAngle();
-        turretAngle = turretAngle.plus(Rotation2d.fromDegrees(TURRET_ANGLE_OFFSET_DEGREES));
+        // Commanded drive angle (robot angle to aim launcher at target)
+        Rotation2d driveAngle = target.minus(compensatedLauncherTranslation).getAngle();
+        driveAngle = driveAngle.plus(Rotation2d.fromDegrees(DRIVE_ANGLE_OFFSET));
 
-        // Turret angular velocity (rot/s) for your position controller feedforward
-        if (lastTurretAngle == null) lastTurretAngle = turretAngle;
+        // Drive angular velocity (rad/s) for your position controller feedforward
+        if (lastDriveAngle == null) lastDriveAngle = driveAngle;
         double deltaRot =
-                MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
+                MathUtil.inputModulus(driveAngle.minus(lastDriveAngle).getRotations(), -0.5, 0.5);
 
-        double rawOmega = deltaRot / loopPeriodSecs;
-        double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
-        lastTurretAngle = turretAngle;
+        double rawDriveOmega = deltaRot / loopPeriodSecs;
+        double driveAngularVelocity = driveAngleFilter.calculate(rawDriveOmega);
+        lastDriveAngle = driveAngle;
+
+        // Hood angle from map with offset
+        double hoodAngle = hoodAngleMap.get(lookaheadDistance);
+        if (Double.isNaN(lastHoodAngle)) lastHoodAngle = hoodAngle;
+        double hoodVelocity =
+                hoodAngleFilter.calculate((hoodAngle - lastHoodAngle) / loopPeriodSecs);
+        lastHoodAngle = hoodAngle;
+
+        // Apply hood angle offset
+        hoodAngle += HOOD_ANGLE_OFFSET;
 
         // Flywheel from map + preference offset (%)
-        double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadDistance);
-        flywheelSpeed += flywheelSpeed * (FLYWHEEL_SPEED_OFFSET / 100.0);
+        double flywheelSpeed = launcherSpeedMap.get(lookaheadDistance);
 
         boolean isValid = lookaheadDistance >= minDistance && lookaheadDistance <= maxDistance;
 
         latestParameters =
                 new ShootingParameters(
-                        isValid, turretAngle, turretAngularVelocityRotPerSec, flywheelSpeed);
+                        isValid,
+                        driveAngle,
+                        driveAngularVelocity,
+                        hoodAngle,
+                        hoodVelocity,
+                        flywheelSpeed,
+                        lookaheadDistance,
+                        distanceNoLookahead,
+                        tofFinal);
 
-        Telemetry.log("ShotCalc/IsValid", isValid);
-        Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadDistance));
-        Telemetry.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
-        Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRotPerSec));
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
-        Telemetry.log("ShotCalc/TurretPose", turretPose);
-        Telemetry.log("ShotCalc/LookaheadPose", compensatedTurretTranslation);
-        Telemetry.log(
-                "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
-        Telemetry.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
-        Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
+        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDistance, "meters");
+        Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees(), "degrees");
+        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
+        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
+        Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/Target", target);
 
         return latestParameters;
     }

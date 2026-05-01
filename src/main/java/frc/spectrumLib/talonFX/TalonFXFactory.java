@@ -49,14 +49,15 @@ public class TalonFXFactory {
      * @param motorAlignment Set to Aligned for motor invert to match the leader's configured Invert
      *     - which is typical when leader and follower are mechanically linked and spin in the same
      *     direction. Set to Opposed for motor invert to oppose the leader's configured Invert -
-     *     this is typical where the leader and follower mechanically spin in opposite directions..
+     *     this is typical where the leader and follower mechanically spin in opposite directions.
      */
     public static TalonFX createPermanentFollowerTalon(
             CanDeviceId followerId, TalonFX leaderTalonFX, MotorAlignmentValue motorAlignment) {
         String leaderCanBus = leaderTalonFX.getNetwork().toString();
         int leaderId = leaderTalonFX.getDeviceID();
         if (!followerId.getBus().equals(leaderCanBus)) {
-            throw new RuntimeException("Leader and Follwer Talons must be on the same CAN bus");
+            throw new IllegalArgumentException(
+                    "Leader and Follower Talons must be on the same CAN bus");
         }
 
         TalonFXConfiguration followerConfig = getDefaultConfig();

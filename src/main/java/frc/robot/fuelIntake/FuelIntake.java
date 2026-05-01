@@ -3,7 +3,7 @@ package frc.robot.fuelIntake;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Robot;
@@ -24,18 +24,22 @@ public class FuelIntake extends Mechanism {
 
         // Intake Voltages and Current
         @Getter @Setter private double fuelIntakeVoltage = 9.0;
-        @Getter @Setter private double fuelIntakeSupplyCurrent = 30.0;
+
         @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
         @Getter @Setter private double fuelSlowIntakeTorqueCurrent = 45.0;
-        @Getter @Setter private double fuelIntakeTorqueCurrent = 85.0;
+        @Getter @Setter private double fuelIntakeTorqueCurrent = 130.0;
         @Getter @Setter private double ejectTorqueCurrent = -50;
 
+        @Getter
+        private final DoubleSubscriber intakeTorqueCurrent =
+                Telemetry.tunable("Tunable/IntakeTorqueCurrent", fuelIntakeTorqueCurrent);
+
         /* Intake config values */
-        @Getter private double currentLimit = 44;
-        @Getter private double torqueCurrentLimit = 200;
+        @Getter private double currentLimit = 70;
+        @Getter private double torqueCurrentLimit = 180;
         @Getter private double velocityKp = 5;
-        @Getter private double velocityKv = 0.2;
-        @Getter private double velocityKs = 2;
+        @Getter private double velocityKv = 0;
+        @Getter private double velocityKs = 4;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(15);
@@ -67,12 +71,19 @@ public class FuelIntake extends Mechanism {
         this.config = config;
 
         simulationInit();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
+        Telemetry.log("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
+    }
 
     @Override
     public void setupStates() {}
@@ -80,22 +91,6 @@ public class FuelIntake extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         FuelIntakeStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     // --------------------------------------------------------------------------------

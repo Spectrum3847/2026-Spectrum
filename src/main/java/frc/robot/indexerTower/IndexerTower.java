@@ -1,17 +1,12 @@
 package frc.robot.indexerTower;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,15 +19,23 @@ public class IndexerTower extends Mechanism {
         @Getter @Setter private double indexVoltageOut = 10;
         @Getter @Setter private double unjamVoltageOut = -10;
         @Getter @Setter private double indexerTorqueCurrent = 80;
-        @Getter @Setter private double indexerVelocityRPM = 3000;
-        @Getter @Setter private double indexerSlowVelocityRPM = 2000;
+
+        @Getter @Setter private double indexerVelocityRPM = 2000;
+        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
+        @Getter @Setter private double indexerUnjamRPM = -1500;
+
+        @Getter
+        private final DoubleSubscriber indexerTowerFeedRPM =
+                Telemetry.tunable("Tunable/IndexerTowerFeedRPM", indexerVelocityRPM);
 
         /* Intake config values */
-        @Getter private double currentLimit = 70;
-        @Getter private double torqueCurrentLimit = 150;
-        @Getter private double velocityKp = 0.5;
-        @Getter private double velocityKv = 0.08;
-        @Getter private double velocityKs = 0.3;
+        @Getter @Setter private double currentLimit = 80;
+        @Getter @Setter private double torqueCurrentLimit = 140;
+        @Getter @Setter private double lowerCurrentLimit = 60;
+        @Getter @Setter private double timeUntilLowerCurrent = 1;
+        @Getter @Setter private double velocityKp = 50;
+        @Getter @Setter private double velocityKv = 0;
+        @Getter @Setter private double velocityKs = 40;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(60);
@@ -48,31 +51,40 @@ public class IndexerTower extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configNeutralBrakeMode(false);
-            configCounterClockwise_Positive();
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
+            configNeutralBrakeMode(true);
+            configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "IndexerTower Follower 1",
+                            "IndexerTower Follower",
                             52,
                             Rio.CANIVORE,
                             MotorAlignmentValue.Aligned));
         }
     }
 
-    private IndexerTowerConfig config;
-    private IndexerSim sim;
+    // private IndexerTowerConfig config;
+    // private IndexerSim sim;
 
     public IndexerTower(IndexerTowerConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
-        telemetryInit();
+        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("IndexerTower/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("IndexerTower/Voltage", getVoltage(), "volts");
+        Telemetry.log("IndexerTower/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("IndexerTower/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("IndexerTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("IndexerTower/Temp", getTemp(), "deg_C");
+    }
 
     @Override
     public void setupStates() {}
@@ -80,22 +92,6 @@ public class IndexerTower extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         IndexerTowerStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-        }
     }
 
     // --------------------------------------------------------------------------------
@@ -129,30 +125,31 @@ public class IndexerTower extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new IndexerSim(RobotSim.topView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+    // diameter
+    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
+    //     }
+    // }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class IndexerSim extends RollerSim {
-        public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class IndexerSim extends RollerSim {
+    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }

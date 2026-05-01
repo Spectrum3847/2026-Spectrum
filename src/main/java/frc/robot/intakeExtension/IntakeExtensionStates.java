@@ -1,12 +1,18 @@
 package frc.robot.intakeExtension;
 
 import edu.wpi.first.wpilibj2.command.*;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.Telemetry;
 
 public class IntakeExtensionStates {
     private static IntakeExtension intakeExtension = Robot.getIntakeExtension();
     private static IntakeExtension.IntakeExtensionConfig config = Robot.getConfig().intakeExtension;
+
+    public static final Trigger fullOut =
+            intakeExtension.atPercentage(config::getFullOut, config::getAtPoseTolerance);
+    public static final Trigger home =
+            intakeExtension.atPercentage(config::getHome, config::getAtPoseTolerance);
 
     private static boolean sentOutByIntakeState = false;
 
@@ -16,7 +22,8 @@ public class IntakeExtensionStates {
     }
 
     public static Command operatorResetIntakeExtension() {
-        return new InstantCommand(() -> intakeExtension.resetCurrentPositionToMax());
+        return Commands.runOnce(() -> intakeExtension.resetCurrentPositionToMax())
+                .ignoringDisable(true);
     }
 
     // -------------------- State Commands --------------------
@@ -47,6 +54,22 @@ public class IntakeExtensionStates {
         }
     }
 
+    public static void slowIntakeCloseWithDelay() {
+        scheduleIfNotRunning(
+                Commands.sequence(
+                                Commands.waitSeconds(
+                                        config.getTimeUntilIntakeSqueeze().getAsDouble()),
+                                intakeExtension.slowMoveToPercent(config::getSqueeze))
+                        .withName("IntakeExtension.slowIntakeCloseWithDelay"));
+    }
+
+    public static void slowIntakeCloseWithoutDelay() {
+        scheduleIfNotRunning(
+                intakeExtension
+                        .slowMoveToPercent(config::getSqueeze)
+                        .withName("IntakeExtension.slowIntakeCloseWithoutDelay"));
+    }
+
     public static Command fullExtendCommand() {
         return log(
                 intakeExtension
@@ -64,6 +87,20 @@ public class IntakeExtensionStates {
     public static Command slowIntakeCloseCommand() {
         return log(intakeExtension.slowMoveToPercent(config::getSqueeze))
                 .withName("IntakeExtension.slowIntakeClose");
+    }
+
+    public static Command positiveVoltageOut() {
+        return log(
+                intakeExtension
+                        .runVoltage(config::getPositiveVoltageOut)
+                        .withName("IntakeExtension.positiveVoltageOut"));
+    }
+
+    public static Command negativeVoltageOut() {
+        return log(
+                intakeExtension
+                        .runVoltage(config::getNegativeVoltageOut)
+                        .withName("IntakeExtension.negativeVoltageOut"));
     }
 
     public static Command coastMode() {

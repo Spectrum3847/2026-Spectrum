@@ -1,0 +1,102 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 2.26,
+        "y": 5.8
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 2.3083707865168543,
+        "y": 6.408155430711611
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 3.71255617977528,
+        "y": 7.451029962546817
+      },
+      "prevControl": {
+        "x": 2.71255617977528,
+        "y": 7.451029962546817
+      },
+      "nextControl": {
+        "x": 4.71255617977528,
+        "y": 7.451029962546817
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 5.757247191011236,
+        "y": 7.451029962546817
+      },
+      "prevControl": {
+        "x": 5.115360431728615,
+        "y": 7.451029962546817
+      },
+      "nextControl": {
+        "x": 6.399133950293856,
+        "y": 7.451029962546817
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 6.841179775280899,
+        "y": 7.155411985018727
+      },
+      "prevControl": {
+        "x": 6.3813295880149825,
+        "y": 7.459241573033707
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 1.0630722278738638,
+      "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 1.7182095625635814,
+      "rotationDegrees": 0.0
+    }
+  ],
+  "constraintZones": [],
+  "pointTowardsZones": [],
+  "eventMarkers": [
+    {
+      "name": "intake",
+      "waypointRelativePos": 0.16092404072043098,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
+  "globalConstraints": {
+    "maxVelocity": 3.5,
+    "maxAcceleration": 5.0,
+    "maxAngularVelocity": 360.0,
+    "maxAngularAcceleration": 360.0,
+    "nominalVoltage": 10.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": -46.88818800674095
+  },
+  "reversed": false,
+  "folder": "1st Man - TBTB",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 145.0
+  },
+  "useDefaultConstraints": true
+}

@@ -1,0 +1,19 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "2nd-BBD 2"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": false,
+  "folder": "2nd Man BBD",
+  "choreoAuto": false
+}

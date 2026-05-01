@@ -3,11 +3,12 @@ package frc.robot.launcher;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.NTSendableBuilder;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.Telemetry;
@@ -28,41 +29,57 @@ public class Launcher extends Mechanism {
         @Getter @Setter private double LauncherTorqueCurrent = 85.0;
 
         @Getter @Setter private double idlingRPM = 700;
-
-        @Getter @Setter private double onTheFlySpeed = 0;
         @Getter @Setter private double slowLaunchSpeed = 400;
+        @Getter @Setter private double autoTrenchLaunch = 1800;
+
+        @Getter
+        private final DoubleSubscriber onTheFlySpeed =
+                Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double currentLimit = 60;
-        @Getter private double torqueCurrentLimit = 80;
+        @Getter private double currentLimit = 80;
+        @Getter private double torqueCurrentLimit = 100;
+        @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
+        @Getter private double reverseTorqueCurrentLimit = -10;
+        @Getter private double lowerCurrentLimit = 60;
+        @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 10;
+        @Getter private double velocityKs = 20;
 
         @Getter private double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
-        @Getter private double launcherX = Units.inchesToMeters(50);
-        @Getter private double launcherY = Units.inchesToMeters(63);
+        @Getter private double launcherX = Units.inchesToMeters(62.5);
+        @Getter private double launcherY = Units.inchesToMeters(60);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher", 48, Rio.CANIVORE);
+            super("Launcher", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
+            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
+            configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
+                    new FollowerConfig(
+                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
+                    new FollowerConfig(
+                            "Launcher Bottom Right",
+                            49,
+                            Rio.CANIVORE,
+                            MotorAlignmentValue.Opposed));
         }
     }
 
@@ -74,12 +91,19 @@ public class Launcher extends Mechanism {
         this.config = config;
 
         simulationInit();
-        telemetryInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override
-    public void periodic() {}
+    public void periodic() {
+        logBatteryUsage();
+        Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
+        Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
+    }
 
     @Override
     public void setupStates() {}
@@ -87,24 +111,6 @@ public class Launcher extends Mechanism {
     @Override
     public void setupDefaultCommand() {
         LauncherStates.setupDefaultCommand();
-    }
-
-    /*-------------------
-    initSendable
-    Use # to denote items that are settable
-    ------------*/
-
-    @Override
-    public void initSendable(NTSendableBuilder builder) {
-        if (isAttached()) {
-            builder.addStringProperty("CurrentCommand", this::getCurrentCommandName, null);
-            builder.addDoubleProperty("Motor Voltage", this::getVoltage, null);
-            builder.addDoubleProperty("Rotations", this::getPositionRotations, null);
-            builder.addDoubleProperty("Velocity RPM", this::getVelocityRPM, null);
-            builder.addDoubleProperty("StatorCurrent", this::getStatorCurrent, null);
-            builder.addDoubleProperty(
-                    "onTheFlySpeedRPM", config::getOnTheFlySpeed, config::setOnTheFlySpeed);
-        }
     }
 
     // --------------------------------------------------------------------------------
@@ -145,7 +151,7 @@ public class Launcher extends Mechanism {
 
     public Command onTheFlyLaunch() {
         return run(() -> {
-                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed());
+                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed().get());
                 })
                 .withName("Launcher.onTheFlyLaunch");
     }
@@ -186,7 +192,8 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY())
+                            .setMount(Robot.getHood().getSim()),
                     mech,
                     rollerMotorSim,
                     config.getName());

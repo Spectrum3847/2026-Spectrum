@@ -28,18 +28,19 @@ public class SwerveConfig {
     @Getter @Setter private double robotWidth = Units.inchesToMeters(25);
     @Getter @Setter private double robotLength = Units.inchesToMeters(29);
 
-    @Getter @Setter private double maxAngularRate = 2 * Math.PI; // rad/s
+    @Getter @Setter private double maxAngularRate = 3 * Math.PI; // rad/s
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
+    @Getter @Setter private double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
-    @Getter @Setter private double driveGearRatio = 7.03;
+    @Getter @Setter private double driveGearRatio = 6.03;
     @Getter @Setter private double steerGearRatio = 26.09;
 
     @Getter @Setter
     // Estimated at first, then fudge-factored to make odom match record
     private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
-    // Theoretical free speed (m/s) at 12v applied output;
-    @Getter @Setter private LinearVelocity speedAt12Volts = MetersPerSecond.of(4.5);
+    // Theoretical free speed (ft/s) at 12v applied output;
+    @Getter @Setter private LinearVelocity speedAt12Volts = FeetPerSecond.of(16.8);
 
     @Getter private double kSdrive = 0.10; // 0.13
     @Getter private double kSsteer = 0.25; // 0.2
@@ -50,9 +51,9 @@ public class SwerveConfig {
     @Getter private double maxAngularVelocity = 1.5 * Math.PI; // rad/s
     @Getter private double maxAngularAcceleration = 2 * Math.PI; // rad/s^2
 
-    @Getter private double kPRotationController = 5; // 4.5 // 6.5 // 8.0;
+    @Getter private double kPRotationController = 5.0;
     @Getter private double kIRotationController = 0.0;
-    @Getter private double kDRotationController = 0.0; // 0.2
+    @Getter private double kDRotationController = 0.0;
     @Getter private double rotationTolerance = Units.degreesToRadians(1); // rads
     @Getter private double rotationVelocityTolerance = Units.degreesToRadians(3); // rads/s
 
@@ -82,9 +83,9 @@ public class SwerveConfig {
     @Getter private double tagDistanceTolerance = 0.3; // Area
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
-    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.fromDegrees(0);
+    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.kZero;
     /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
-    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
+    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.k180deg;
 
     // Both sets of gains need to be tuned to your individual robot.
     @Getter
@@ -100,7 +101,7 @@ public class SwerveConfig {
 
     @Getter
     private Slot0Configs driveGains =
-            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4).withKV(0.0);
+            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4.0).withKV(0.0);
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
@@ -114,7 +115,7 @@ public class SwerveConfig {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    @Getter @Setter private Current slipCurrent = Amps.of(80);
+    @Getter @Setter private Current slipCurrent = Amps.of(90);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -123,9 +124,7 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(100))
-                                    .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(70))
+                                    .withSupplyCurrentLimit(Amps.of(40))
                                     .withSupplyCurrentLimitEnable(true));
 
     // Swerve azimuth does not require much torque output, so we can set a
@@ -169,8 +168,8 @@ public class SwerveConfig {
                     TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             constantCreator;
 
-    private final double wheelBaseInches = 19.75;
-    private final double trackWidthInches = 23.75;
+    private final double wheelBaseInches = 21.75;
+    private final double trackWidthInches = 21.75;
 
     // Distance from robot center to each module (drivebase "radius") in inches
     @Getter

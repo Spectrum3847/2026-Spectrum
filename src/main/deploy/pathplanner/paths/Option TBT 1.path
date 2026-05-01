@@ -1,0 +1,97 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 3.6140168539325845,
+        "y": 4.035
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 2.8257022471910114,
+        "y": 4.905430711610489
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 2.940664794007491,
+        "y": 7.327855805243446
+      },
+      "prevControl": {
+        "x": 2.070978878771296,
+        "y": 6.834250285785063
+      },
+      "nextControl": {
+        "x": 3.5483239700374534,
+        "y": 7.672743445692885
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 5.05,
+        "y": 7.54
+      },
+      "prevControl": {
+        "x": 4.706161048689139,
+        "y": 7.548211610486891
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": null
+    }
+  ],
+  "rotationTargets": [],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 0.4424432263116705,
+      "maxWaypointRelativePos": 2.0,
+      "constraints": {
+        "maxVelocity": 2.0,
+        "maxAcceleration": 2.0,
+        "maxAngularVelocity": 360.0,
+        "maxAngularAcceleration": 360.0,
+        "nominalVoltage": 10.0,
+        "unlimited": false
+      }
+    }
+  ],
+  "pointTowardsZones": [],
+  "eventMarkers": [
+    {
+      "name": "poseUpdate",
+      "waypointRelativePos": 0,
+      "endWaypointRelativePos": 2.0,
+      "command": null
+    },
+    {
+      "name": "intake",
+      "waypointRelativePos": 0.9342208300704796,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
+  "globalConstraints": {
+    "maxVelocity": 3.5,
+    "maxAcceleration": 5.0,
+    "maxAngularVelocity": 360.0,
+    "maxAngularAcceleration": 360.0,
+    "nominalVoltage": 10.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": 0.0
+  },
+  "reversed": false,
+  "folder": "2nd Man - Optional",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 0.0
+  },
+  "useDefaultConstraints": true
+}
