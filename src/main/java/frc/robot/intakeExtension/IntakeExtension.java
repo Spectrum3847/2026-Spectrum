@@ -138,7 +138,7 @@ public class IntakeExtension extends Mechanism {
 
     @Override
     public void periodic() {
-        updateSpringyMode();
+        // updateSpringyMode();
 
         logBatteryUsage();
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());

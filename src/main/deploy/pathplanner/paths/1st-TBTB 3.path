@@ -55,6 +55,22 @@
         "x": 6.3813295880149825,
         "y": 7.459241573033707
       },
+      "nextControl": {
+        "x": 7.301029962546816,
+        "y": 6.851582397003747
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 7.596647940074906,
+        "y": 3.3452247191011235
+      },
+      "prevControl": {
+        "x": 7.596647940074906,
+        "y": 4.283650497230019
+      },
       "nextControl": null,
       "isLocked": false,
       "linkedName": null
@@ -68,6 +84,10 @@
     {
       "waypointRelativePos": 1.7182095625635814,
       "rotationDegrees": 0.0
+    },
+    {
+      "waypointRelativePos": 3.012546625974878,
+      "rotationDegrees": -45.0
     }
   ],
   "constraintZones": [],
@@ -90,7 +110,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": -46.88818800674095
+    "rotation": -45.0
   },
   "reversed": false,
   "folder": "1st Man - TBTB",

@@ -40,8 +40,8 @@ public class Auton {
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 
-    private final double SECOND_MAN_DELAY = 0.0;
-    private final double OPTIONAL_DELAY = 0.0;
+    private final double SECOND_MAN_DELAY = 1.0;
+    private final double OPTIONAL_DELAY = 1.0;
 
     /**
      * This method configures the available autonomous routines that can be selected from the

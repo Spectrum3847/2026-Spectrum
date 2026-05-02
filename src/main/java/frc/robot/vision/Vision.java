@@ -151,13 +151,13 @@ public class Vision implements Subsystem {
 
     public void logTelemetry() {
         if (Util.disabled.getAsBoolean()) {
-            Telemetry.log("BackLL-MT2", getBackMegaTag2Pose());
-            Telemetry.log("LeftLL-MT2", getLeftMegaTag2Pose());
-            Telemetry.log("RightLL-MT2", getRightMegaTag2Pose());
+            Telemetry.log("Vision/BackLL-MT2", getBackMegaTag2Pose());
+            Telemetry.log("Vision/LeftLL-MT2", getLeftMegaTag2Pose());
+            Telemetry.log("Vision/RightLL-MT2", getRightMegaTag2Pose());
         }
-        Telemetry.log("BackLL-MT1", getBackMegaTag1Pose());
-        Telemetry.log("LeftLL-MT1", getLeftMegaTag1Pose());
-        Telemetry.log("RightLL-MT1", getRightMegaTag1Pose());
+        Telemetry.log("Vision/BackLL-MT1", getBackMegaTag1Pose());
+        Telemetry.log("Vision/LeftLL-MT1", getLeftMegaTag1Pose());
+        Telemetry.log("Vision/RightLL-MT1", getRightMegaTag1Pose());
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
         Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
         Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
