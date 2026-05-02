@@ -48,8 +48,8 @@ public class SwerveConfig {
     // -----------------------------------------------------------------------
     // PID Controller Constants
     // -----------------------------------------------------------------------
-    @Getter private double maxAngularVelocity = 1.5 * Math.PI; // rad/s
-    @Getter private double maxAngularAcceleration = 2 * Math.PI; // rad/s^2
+    @Getter private double maxAngularVelocity = 3.0 * Math.PI; // rad/s
+    @Getter private double maxAngularAcceleration = 3.0 * Math.PI; // rad/s^2
 
     @Getter private double kPRotationController = 5.0;
     @Getter private double kIRotationController = 0.0;
@@ -124,7 +124,7 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withSupplyCurrentLimit(Amps.of(40))
+                                    .withSupplyCurrentLimit(Amps.of(65))
                                     .withSupplyCurrentLimitEnable(true));
 
     // Swerve azimuth does not require much torque output, so we can set a

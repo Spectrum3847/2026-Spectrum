@@ -21,7 +21,8 @@ public class FuelIntakeStates {
 
     public static void intakeFuel() {
         scheduleIfNotRunning(
-                intake.runTorqueFOC(config.getIntakeTorqueCurrent()).withName("Intake.intakeFuel"));
+                intake.runTorqueFOC(config::getFuelIntakeTorqueCurrent)
+                        .withName("Intake.intakeFuel"));
     }
 
     public static void slowIntakeFuel() {
