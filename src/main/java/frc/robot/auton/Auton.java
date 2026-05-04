@@ -75,6 +75,8 @@ public class Auton {
         pathChooser.addOption("2nd Man - BBD Left", secondMan_BBD(false));
         pathChooser.addOption("2nd Man - BBD Right", secondMan_BBD(true));
 
+        pathChooser.addOption("1 Meter", oneMeter());
+
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
@@ -215,6 +217,9 @@ public class Auton {
                 .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
     }
 
+    public Command oneMeter() {
+        return SpectrumAuton("1 Meter", false).withName("1 Meter");
+    }
     /**
      * Creates a SpectrumAuton command sequence.
      *
