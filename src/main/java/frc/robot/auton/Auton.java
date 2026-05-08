@@ -77,6 +77,9 @@ public class Auton {
 
         pathChooser.addOption("1 Meter", oneMeter());
 
+        pathChooser.addOption("BOB Left", BOB(false));
+        pathChooser.addOption("BOB Right", BOB(true));
+
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
@@ -220,6 +223,20 @@ public class Auton {
     public Command oneMeter() {
         return SpectrumAuton("1 Meter", false).withName("1 Meter");
     }
+
+    public Command BOB(boolean mirrored) {
+        return Commands.sequence(
+                        SpectrumAuton("BOB 1", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("BOB 2", mirrored))
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("BOB Full - " + (mirrored ? "Right" : "Left"));
+
+        // return SpectrumAuton("BOB", mirrored).withName("BOB - " + (mirrored ? "Right" : "Left"));
+    }
+
     /**
      * Creates a SpectrumAuton command sequence.
      *
