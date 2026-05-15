@@ -228,7 +228,8 @@ public class Auton {
         return Commands.sequence(
                         SpectrumAuton("BOB 1", mirrored),
                         prepThanLaunch(),
-                        SpectrumAuton("BOB 2", mirrored))
+                        SpectrumAuton("BOB 2", mirrored),
+                        prepThanLaunch())
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
