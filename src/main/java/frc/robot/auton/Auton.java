@@ -80,6 +80,9 @@ public class Auton {
         pathChooser.addOption("BOB Left", BOB(false));
         pathChooser.addOption("BOB Right", BOB(true));
 
+        pathChooser.addOption("BDB Left", BDB(false));
+        pathChooser.addOption("BDB Right", BDB(true));
+
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
@@ -236,6 +239,15 @@ public class Auton {
                 .withName("BOB Full - " + (mirrored ? "Right" : "Left"));
 
         // return SpectrumAuton("BOB", mirrored).withName("BOB - " + (mirrored ? "Right" : "Left"));
+    }
+
+    public Command BDB(boolean mirrored) {
+        return Commands.sequence(
+                        SpectrumAuton("BDB 1", mirrored),
+                        prepThanLaunch(),
+                        SpectrumAuton("BDB 2", mirrored),
+                        prepThanLaunch())
+                .withName("BDB Full - " + (mirrored ? "Right" : "Left"));
     }
 
     /**
