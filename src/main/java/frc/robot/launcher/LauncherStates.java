@@ -5,9 +5,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.telemetry.Telemetry;
 import frc.robot.RobotStates;
 import frc.robot.State;
+import frc.spectrumLib.telemetry.Telemetry;
 
 public class LauncherStates {
     private static Launcher launcher = Robot.getLauncher();

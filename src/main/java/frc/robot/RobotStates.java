@@ -46,21 +46,20 @@ public class RobotStates {
     public static void setupStates() {
 
         // Pilot Triggers
+        pilot.LT.onTrue(
+                Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.RT.negate()));
 
         pilot.RT.onTrue(
-                Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.LT.negate()));
-
-        pilot.LT.onTrue(
                 Commands.either(
-                        applyState(State.LAUNCH_WITH_SQUEEZE), Commands.none(), pilot.RT.negate()));
+                        applyState(State.LAUNCH_WITH_SQUEEZE), Commands.none(), pilot.LT.negate()));
 
-        pilot.LT.and(pilot.RT).onTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
+        pilot.RT.and(pilot.LT).onTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
 
-        pilot.RT.onFalse(
+        pilot.LT.onFalse(
                 Commands.either(
                         applyState(State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
                         Commands.none(),
-                        pilot.LT));
+                        pilot.RT));
 
         pilot.LT.onFalse(Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.RT));
 
