@@ -17,12 +17,12 @@ public class Pilot extends Gamepad {
     /*  A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
     public final Trigger enabled = teleop.or(testMode); // works for both teleop and testMode
     public final Trigger fn = leftBumper;
-    public final Trigger noFn = fn.not();
+    public final Trigger noFn = fn.negate();
     public final Trigger home_select = select;
 
-    public final Trigger LT = leftTrigger.and(noFn, teleop);
-    public final Trigger RT = rightTrigger.and(noFn, teleop);
-    public final Trigger LB_LT = leftTrigger.and(fn, teleop);
+    public final Trigger LT = leftTrigger.and(noFn).and(teleop);
+    public final Trigger RT = rightTrigger.and(noFn).and(teleop);
+    public final Trigger LB_LT = leftTrigger.and(fn).and(teleop);
 
     public final Trigger AButton = A.and(teleop);
     public final Trigger BButton = B.and(teleop);
@@ -32,7 +32,7 @@ public class Pilot extends Gamepad {
     public final Trigger coastA = A.and(disabled);
     public final Trigger brakeB = B.and(disabled);
 
-    public final Trigger startButton = start.and(noFn, teleop);
+    public final Trigger startButton = start.and(noFn).and(teleop);
 
     public final Trigger RB = rightBumper.and(teleop);
 
@@ -42,10 +42,10 @@ public class Pilot extends Gamepad {
     public final Trigger dpadRight = rightDpad.and(teleop);
 
     // Drive Triggers
-    public final Trigger upReorient = upDpad.and(fn, teleop);
-    public final Trigger leftReorient = leftDpad.and(fn, teleop);
-    public final Trigger downReorient = downDpad.and(fn, teleop);
-    public final Trigger rightReorient = rightDpad.and(fn, teleop);
+    public final Trigger upReorient = upDpad.and(fn).and(teleop);
+    public final Trigger leftReorient = leftDpad.and(fn).and(teleop);
+    public final Trigger downReorient = downDpad.and(fn).and(teleop);
+    public final Trigger rightReorient = rightDpad.and(fn).and(teleop);
 
     /* Use the right stick to set a cardinal direction to aim at */
     public final Trigger driving = enabled.and(leftStickX.or(leftStickY));
@@ -58,8 +58,8 @@ public class Pilot extends Gamepad {
     // DISABLED TRIGGERS
     public final Trigger coastOn_dB = disabled.and(B);
     public final Trigger coastOff_dA = disabled.and(A);
-    public final Trigger reZero_start = disabled.and(leftBumper, rightBumper, start);
-    public final Trigger visionPoseReset_LB_Select = disabled.and(leftBumper, select);
+    public final Trigger reZero_start = disabled.and(leftBumper).and(rightBumper).and(start);
+    public final Trigger visionPoseReset_LB_Select = disabled.and(leftBumper).and(select);
 
     // TEST TRIGGERS
     public final Trigger testTune_tB = testMode.and(B);

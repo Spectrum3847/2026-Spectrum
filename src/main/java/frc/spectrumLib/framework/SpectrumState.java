@@ -106,7 +106,7 @@ public class SpectrumState extends Trigger {
      */
     public Command setTrueForTimeWithCancel(DoubleSupplier time, Trigger cancelCondition) {
         return Commands.runOnce(() -> setState(true))
-                .alongWith(new WaitCommand(time.getAsDouble()).onlyWhile(cancelCondition.not()))
+                .alongWith(new WaitCommand(time.getAsDouble()).onlyWhile(cancelCondition.negate()))
                 .andThen(
                         () -> {
                             setState(false);

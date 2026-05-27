@@ -37,7 +37,7 @@ public class RobotStates {
 
     public static final Trigger robotInEnemyZone = swerve.inEnemyAllianceZone();
     public static final Trigger robotInFeedZone = robotInEnemyZone.or(robotInNeutralZone);
-    public static final Trigger robotInScoreZone = robotInFeedZone.not();
+    public static final Trigger robotInScoreZone = robotInFeedZone.negate();
     public static final Trigger launcherOnTarget = LauncherStates.aimingAtTarget();
 
     public static final Trigger autoUpdatePose = Auton.autonPoseUpdate;

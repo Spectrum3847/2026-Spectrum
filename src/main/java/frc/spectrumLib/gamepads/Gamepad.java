@@ -159,11 +159,13 @@ public abstract class Gamepad implements SpectrumSubsystem {
             leftDpad =
                     xboxController
                             .povLeft()
-                            .or(xboxController.povUpLeft(), xboxController.povDownLeft());
+                            .or(xboxController.povUpLeft())
+                            .or(xboxController.povDownLeft());
             rightDpad =
                     xboxController
                             .povRight()
-                            .or(xboxController.povDownRight(), xboxController.povUpRight());
+                            .or(xboxController.povDownRight())
+                            .or(xboxController.povUpRight());
             leftStickY = leftYTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
             leftStickX = leftXTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
             rightStickY = rightYTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);

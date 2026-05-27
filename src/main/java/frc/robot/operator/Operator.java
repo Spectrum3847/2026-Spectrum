@@ -16,7 +16,7 @@ public class Operator extends Gamepad {
 
     public final Trigger enabled = teleop.or(testMode); // works for both teleop and testMode
     public final Trigger fn = leftBumper;
-    public final Trigger noFn = fn.not();
+    public final Trigger noFn = fn.negate();
     public final Trigger home_select = select.or(leftStickClick);
     public final Trigger startButton = start;
 

@@ -25,7 +25,10 @@ public class PilotStates {
     }
 
     private static Trigger reorientButton =
-            pilot.upReorient.or(pilot.downReorient, pilot.leftReorient, pilot.rightReorient);
+            pilot.upReorient
+                    .or(pilot.downReorient)
+                    .or(pilot.leftReorient)
+                    .or(pilot.rightReorient);
 
     private static final Trigger launching =
             new Trigger(() -> RobotStates.getAppliedState() == State.LAUNCH_WITH_SQUEEZE);
@@ -65,7 +68,7 @@ public class PilotStates {
     public static Command rumble(double intensity, double durationSeconds) {
         return pilot.rumbleCommand(intensity, durationSeconds)
                 .withName("Pilot.rumble")
-                .onlyIf(Util.autoMode.not());
+                .onlyIf(Util.autoMode.negate());
     }
 
     /**

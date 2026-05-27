@@ -131,10 +131,12 @@ public class SwerveStates {
         pilot.fpv_LS.whileTrue(log(fpvDrive()));
 
         (launching.or(launchPreping))
-                .and(isRed, Util.autoMode.not())
+                .and(isRed)
+                .and(Util.autoMode.negate())
                 .whileTrue(log(pilotAimAtTargetRed()));
         (launching.or(launchPreping))
-                .and(isRed.not(), Util.autoMode.not())
+                .and(isRed.negate())
+                .and(Util.autoMode.negate())
                 .whileTrue(log(pilotAimAtTargetBlue()));
         // launching.and(Robot.getPilot().fn).whileTrue(log(tweakOut()));
         launching.and(Robot.getPilot().RB).whileTrue(log(xBrake()));
@@ -178,7 +180,7 @@ public class SwerveStates {
                                         .getParameters()
                                         .driveAngle()
                                         .getRadians())
-                .withName("Swerve.pilotAimAtTarget");
+                .withName("Swerve.pilotAimAtTargetRed");
     }
 
     protected static Command pilotAimAtTargetBlue() {
@@ -191,7 +193,7 @@ public class SwerveStates {
                                         .driveAngle()
                                         .plus(Rotation2d.k180deg)
                                         .getRadians())
-                .withName("Swerve.pilotAimAtTarget");
+                .withName("Swerve.pilotAimAtTargetBlue");
     }
 
     public static Command autonAimAtTarget() {
@@ -296,12 +298,12 @@ public class SwerveStates {
     /**
      * Drive the robot with the front bumper trying to match a target angle.
      *
-     * @param targetDegrees The target angle (expected to be in radians in current call sites)
+     * @param targetRadians The target heading in radians (field-relative)
      * @return A command that drives the robot to match the target angle while allowing translation
      *     control with the left stick
      */
-    protected static Command pilotAimDrive(DoubleSupplier targetDegrees) {
-        return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetDegrees)
+    protected static Command pilotAimDrive(DoubleSupplier targetRadians) {
+        return aimDrive(pilot::getDriveFwdPositive, pilot::getDriveLeftPositive, targetRadians)
                 .withName("Swerve.PilotAimDrive");
     }
 
