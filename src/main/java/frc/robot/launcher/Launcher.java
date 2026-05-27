@@ -10,8 +10,8 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
-import frc.spectrumLib.Rio;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.hardware.Rio;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
@@ -40,7 +40,7 @@ public class Launcher extends Mechanism {
         @Getter private double currentLimit = 80;
         @Getter private double torqueCurrentLimit = 100;
         @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
-        @Getter private double reverseTorqueCurrentLimit = -10;
+        @Getter private double reverseTorqueCurrentLimit = 10;
         @Getter private double lowerCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
@@ -144,7 +144,9 @@ public class Launcher extends Mechanism {
     public Command trackTargetCommand() {
         return run(() -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    setVelocityTCFOCrpm(() -> params.flywheelSpeed());
+                    if (params.isValid()) {
+                        setVelocityTCFOCrpm(() -> params.flywheelSpeed());
+                    }
                 })
                 .withName("Launcher.trackTargetCommand");
     }
@@ -160,6 +162,7 @@ public class Launcher extends Mechanism {
         return new Trigger(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
+                    if (!params.isValid()) return false;
 
                     double targetRPM = params.flywheelSpeed();
                     double currentRPM = getVelocityRPM();

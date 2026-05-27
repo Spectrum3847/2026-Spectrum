@@ -1,7 +1,7 @@
 package frc.spectrumLib.vision;
 
 import edu.wpi.first.math.geometry.Pose2d;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
 public class VisionLogger {

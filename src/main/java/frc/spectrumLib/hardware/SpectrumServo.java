@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.hardware;
 
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.Subsystem;

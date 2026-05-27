@@ -163,7 +163,11 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName()).tagCount;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName());
+        if (est == null) {
+            return 0;
+        }
+        return est.tagCount;
 
         // if (retrieveJSON() == null) return 0;
 
@@ -272,7 +276,11 @@ public class Limelight {
     }
 
     public RawFiducial[] getRawFiducial() {
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name).rawFiducials;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name);
+        if (est == null) {
+            return new RawFiducial[0];
+        }
+        return est.rawFiducials;
     }
 
     /**
@@ -284,7 +292,11 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName()).timestampSeconds;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName());
+        if (est == null) {
+            return 0;
+        }
+        return est.timestampSeconds;
     }
 
     /**
@@ -296,8 +308,11 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.getName())
-                .timestampSeconds;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.getName());
+        if (est == null) {
+            return 0;
+        }
+        return est.timestampSeconds;
     }
 
     /**

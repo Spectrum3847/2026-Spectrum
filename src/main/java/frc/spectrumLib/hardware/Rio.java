@@ -1,9 +1,10 @@
-package frc.spectrumLib;
+package frc.spectrumLib.hardware;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
+import frc.spectrumLib.telemetry.Telemetry;
 import java.util.HashMap;
 import java.util.Map;
 

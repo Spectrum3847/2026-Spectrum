@@ -12,7 +12,7 @@ import frc.robot.State;
 import frc.robot.fuelIntake.FuelIntakeStates;
 import frc.robot.intakeExtension.IntakeExtensionStates;
 import frc.robot.vision.VisionStates;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 
 /** This class should have any command calls that directly call the Pilot */

@@ -3,7 +3,7 @@ package frc.robot.indexerBed;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.Robot;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 
 public class IndexerBedStates {
     private static IndexerBed indexerBed = Robot.getIndexerBed();

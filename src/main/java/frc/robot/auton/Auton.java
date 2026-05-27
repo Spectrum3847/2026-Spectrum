@@ -20,8 +20,8 @@ import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.RobotStates;
 import frc.robot.State;
 import frc.robot.swerve.SwerveStates;
-import frc.spectrumLib.SpectrumState;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.framework.SpectrumState;
+import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 

@@ -47,12 +47,11 @@ import frc.robot.swerve.Swerve;
 import frc.robot.swerve.SwerveConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
-import frc.robot.vision.VisionSystem;
-import frc.spectrumLib.BatteryLogger;
-import frc.spectrumLib.Rio;
-import frc.spectrumLib.SpectrumRobot;
-import frc.spectrumLib.Telemetry;
-import frc.spectrumLib.Telemetry.PrintPriority;
+import frc.spectrumLib.framework.SpectrumRobot;
+import frc.spectrumLib.hardware.Rio;
+import frc.spectrumLib.telemetry.BatteryLogger;
+import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import frc.spectrumLib.util.CrashTracker;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -95,7 +94,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static IndexerBed indexerBed;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
-    @Getter private static VisionSystem visionSystem;
     @Getter private static Launcher launcher;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
@@ -291,7 +289,6 @@ public class Robot extends SpectrumRobot {
     @Override
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
-        clearCommandsAndButtons();
         resetCommandsAndButtons();
 
         if (!autonWarmedUp) {
@@ -360,23 +357,31 @@ public class Robot extends SpectrumRobot {
                                     .collect(Collectors.toList());
                 }
 
-                // Set the robot pose to the starting pose of the first path
-                swerve.resetPose(
-                        pathPlannerPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+                if (!pathPlannerPaths.isEmpty()) {
+                    // Set the robot pose to the starting pose of the first path
+                    swerve.resetPose(
+                            pathPlannerPaths
+                                    .get(0)
+                                    .getStartingHolonomicPose()
+                                    .orElse(new Pose2d()));
 
-                // Warm up the starting path
-                Command warmUpPath =
-                        Commands.sequence(
-                                        AutoBuilder.followPath(pathPlannerPaths.get(0))
-                                                .withTimeout(0.5),
-                                        Commands.runOnce(
-                                                () -> {
-                                                    Telemetry.print(
-                                                            "Auton Warmed Up", PrintPriority.HIGH);
-                                                    Telemetry.log("Auton Warmed Up", true);
-                                                }))
-                                .ignoringDisable(true);
-                CommandScheduler.getInstance().schedule(warmUpPath);
+                    // Warm up the starting path
+                    Command warmUpPath =
+                            Commands.sequence(
+                                            AutoBuilder.followPath(pathPlannerPaths.get(0))
+                                                    .withTimeout(0.5),
+                                            Commands.runOnce(
+                                                    () -> {
+                                                        Telemetry.print(
+                                                                "Auton Warmed Up",
+                                                                PrintPriority.HIGH);
+                                                        Telemetry.log("Auton Warmed Up", true);
+                                                    }))
+                                    .ignoringDisable(true);
+                    CommandScheduler.getInstance().schedule(warmUpPath);
+                } else {
+                    Telemetry.print("Warning: No paths loaded for auto: " + autoName);
+                }
 
                 // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();

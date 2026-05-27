@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.hardware;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusCode;
@@ -10,6 +10,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import frc.spectrumLib.mechanism.Mechanism.Config;
+import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
 public class SpectrumCANcoder {

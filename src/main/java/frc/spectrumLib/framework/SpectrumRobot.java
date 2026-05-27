@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.framework;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.IterativeRobotBase;

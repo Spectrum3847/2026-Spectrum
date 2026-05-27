@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.telemetry;
 
 import dev.doglog.DogLog;
 import dev.doglog.DogLogOptions;

@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.telemetry;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import java.util.function.DoubleSupplier;

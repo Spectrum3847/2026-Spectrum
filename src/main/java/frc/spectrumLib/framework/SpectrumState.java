@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.framework;
 
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;

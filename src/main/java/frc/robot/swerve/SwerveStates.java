@@ -19,7 +19,7 @@ import frc.robot.RobotStates;
 import frc.robot.State;
 import frc.robot.operator.Operator;
 import frc.robot.pilot.Pilot;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;

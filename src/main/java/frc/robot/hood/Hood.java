@@ -7,8 +7,8 @@ import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
-import frc.spectrumLib.Rio;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.hardware.Rio;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
@@ -67,7 +67,7 @@ public class Hood extends Mechanism {
             configSupplyCurrentLimit(currentLimit, true);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(-1 * torqueCurrentLimit);
+            configReverseTorqueCurrentLimit(torqueCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
@@ -141,7 +141,9 @@ public class Hood extends Mechanism {
     public Command trackTargetCommand() {
         return run(() -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    setMMPositionFoc(() -> degreesToRotations(() -> params.hoodAngle()));
+                    if (params.isValid()) {
+                        setMMPositionFoc(() -> degreesToRotations(() -> params.hoodAngle()));
+                    }
                 })
                 .withName("Hood.trackTargetCommand");
     }
@@ -164,7 +166,7 @@ public class Hood extends Mechanism {
 
             // constructor
             {
-                setName("IntakeExtension.holdPosition");
+                setName("Hood.holdPosition");
                 addRequirements(Hood.this);
             }
 

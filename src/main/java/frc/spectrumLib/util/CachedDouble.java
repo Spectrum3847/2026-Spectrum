@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.util;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;

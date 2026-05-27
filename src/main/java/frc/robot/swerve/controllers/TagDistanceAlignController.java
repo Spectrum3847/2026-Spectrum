@@ -44,13 +44,11 @@ public class TagDistanceAlignController {
 
     public boolean atGoal(double current) {
         double goal = controller.getSetpoint();
-        boolean atGoal = Math.abs(current - goal) < config.getTagDistanceTolerance();
-        System.out.println("At Goal: " + atGoal + " Goal: " + goal + " Current: " + current);
-        return atGoal;
+        return Math.abs(current - goal) < config.getTagDistanceTolerance();
     }
 
     public void reset(double current) {
-        // controller.reset(current);
+        controller.reset();
     }
 
     public void updatePID(double kP, double kI, double kD) {

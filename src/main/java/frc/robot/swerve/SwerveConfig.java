@@ -18,7 +18,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
-import frc.spectrumLib.Rio;
+import frc.spectrumLib.hardware.Rio;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -1,4 +1,4 @@
-package frc.spectrumLib.talonFX;
+package frc.spectrumLib.hardware;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;

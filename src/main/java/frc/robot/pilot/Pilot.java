@@ -4,8 +4,8 @@ import static edu.wpi.first.units.Units.MetersPerSecond;
 
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.SpectrumState;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.framework.SpectrumState;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.gamepads.Gamepad;
 import lombok.Getter;
 import lombok.Setter;

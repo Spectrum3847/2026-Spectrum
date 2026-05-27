@@ -1,4 +1,4 @@
-package frc.spectrumLib;
+package frc.spectrumLib.hardware;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package frc.spectrumLib;
+package frc.spectrumLib.telemetry;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -63,13 +63,15 @@ public class BatteryLogger {
 
     public void logPower() {
         if (enabled) {
+            // Controls overhead is added here so it is included in the totalCurrent log below.
+            // Subsystem currents have already been accumulated via logBatteryUsage() in periodic().
             reportCurrentUsage("Controls/roboRIO", rioCurrent);
             reportCurrentUsage("Controls/CANcoders", 0.05 * 4);
             reportCurrentUsage("Controls/Pigeon", 0.04);
             reportCurrentUsage("Controls/CANivore", 0.03);
             reportCurrentUsage("Controls/Radio", 0.5);
 
-            // Log total and subsystem energy usage
+            // Log total (subsystems + controls overhead) and per-subsystem energy usage
             Telemetry.log("BatteryLogger/Current", totalCurrent, "amps");
             Telemetry.log("BatteryLogger/Power", totalPower, "watts");
             Telemetry.log("BatteryLogger/Energy", joulesToWattHours(totalEnergy), "wh");
