@@ -419,7 +419,8 @@ public class Robot extends SpectrumRobot {
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
         if (Utils.isSimulation()) {
-            SimulatedArena.getInstance().resetFieldForAuto();
+            robotSim.getBallSim().clearBalls();
+            robotSim.getBallSim().placeFieldBalls();
         }
         try {
             auton.init();
@@ -514,7 +515,8 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        SmartDashboard.putNumber(
-                "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        robotSim.updateArticulatedMechanisms();
+        Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
     }
 }

@@ -1,10 +1,13 @@
 package frc.robot.launcher;
 
+import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.telemetry.Telemetry;
+import frc.robot.RobotStates;
+import frc.robot.State;
 
 public class LauncherStates {
     private static Launcher launcher = Robot.getLauncher();
@@ -17,6 +20,21 @@ public class LauncherStates {
 
     public static Trigger aimingAtTarget() {
         return launcher.aimingAtTarget();
+    }
+
+    public static Trigger simLaunching() {
+        return new Trigger(
+                () ->
+                        Utils.isSimulation()
+                                && (RobotStates.getAppliedState().equals(State.LAUNCH_WITH_SQUEEZE)
+                                        || RobotStates.getAppliedState()
+                                                .equals(State.LAUNCH_WITHOUT_SQUEEZE)
+                                        || RobotStates.getAppliedState()
+                                                .equals(State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)));
+    }
+
+    public static void setupStates() {
+        simLaunching().whileTrue(Robot.getRobotSim().ballSimLaunchFuel());
     }
 
     // -------------------- State Commands --------------------

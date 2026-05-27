@@ -1,12 +1,10 @@
 package frc.robot.pilot;
 
-import com.ctre.phoenix6.Utils;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
-import frc.robot.RobotSim;
 import frc.robot.RobotStates;
 import frc.robot.State;
 import frc.robot.fuelIntake.FuelIntakeStates;
@@ -40,10 +38,6 @@ public class PilotStates {
 
         pilot.BButton.whileTrue(IntakeExtensionStates.slowIntakeCloseCommand());
         pilot.YButton.whileTrue(Robot.getAuton().launch());
-
-        // Simulation Only: Map RT and LT to intake and launch fuel for testing
-        pilot.RT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimIntakeFuel());
-        pilot.LT.and(Utils::isSimulation).whileTrue(RobotSim.mapleSimLaunchFuel());
 
         pilot.rightTriggerOnly.and(pilot.fn).whileTrue(FuelIntakeStates.ejectCommand());
 

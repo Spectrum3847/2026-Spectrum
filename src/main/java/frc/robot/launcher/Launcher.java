@@ -106,7 +106,9 @@ public class Launcher extends Mechanism {
     }
 
     @Override
-    public void setupStates() {}
+    public void setupStates() {
+        LauncherStates.setupStates();
+    }
 
     @Override
     public void setupDefaultCommand() {
