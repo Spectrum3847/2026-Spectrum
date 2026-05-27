@@ -16,52 +16,50 @@ public class VisionLogger {
     }
 
     public boolean getCameraConnection() {
-        Telemetry.log("Vision " + name + " ConnectionStatus", limelight.isCameraConnected());
-        return limelight.isCameraConnected();
+        boolean connected = limelight.isCameraConnected();
+        Telemetry.log("Vision/" + name + "/ConnectionStatus", connected);
+        return connected;
     }
 
-    public boolean getIntegratingStatus() { // Vision/Integrating
-        Telemetry.log("Vision " + name + " IntegratingStatus", limelight.isIntegrating());
-        return limelight.isIntegrating();
+    public boolean getIntegratingStatus() {
+        boolean integrating = limelight.isIntegrating();
+        Telemetry.log("Vision/" + name + "/IntegratingStatus", integrating);
+        return integrating;
     }
 
     public String getLogStatus() {
-        Telemetry.log("Vision " + name + " LogStatus", limelight.getLogStatus());
-        return limelight.getLogStatus();
+        String status = limelight.getLogStatus();
+        Telemetry.log("Vision/" + name + "/LogStatus", status);
+        return status;
     }
 
     public String getTagStatus() {
-        Telemetry.log("Vision " + name + " TagStatus", limelight.getTagStatus());
-        return limelight.getLogStatus();
+        String status = limelight.getTagStatus();
+        Telemetry.log("Vision/" + name + "/TagStatus", status);
+        return status;
     }
 
     public Pose2d getPose() {
-        Telemetry.log("Vision " + name + " Pose", limelight.getMegaTag1_Pose3d().toPose2d());
-        return limelight.getMegaTag1_Pose3d().toPose2d();
+        Pose2d pose = limelight.getMegaTag1_Pose3d().toPose2d();
+        Telemetry.log("Vision/" + name + "/MT1Pose", pose);
+        return pose;
     }
 
     public Pose2d getMegaPose() {
-        Telemetry.log("Vision " + name + " MegaPose", limelight.getMegaTag2_Pose2d());
-        return limelight.getMegaTag2_Pose2d();
-    }
-
-    public double getPoseX() {
-        Telemetry.log("Vision " + name + " PoseX", getPose().getX());
-        return getPose().getX();
-    }
-
-    public double getPoseY() {
-        Telemetry.log("Vision " + name + " PoseY", getPose().getY());
-        return getPose().getY();
+        Pose2d pose = limelight.getMegaTag2_Pose2d();
+        Telemetry.log("Vision/" + name + "/MT2Pose", pose);
+        return pose;
     }
 
     public double getTagCount() {
-        Telemetry.log("Vision " + name + " TagCount", limelight.getTagCountInView());
-        return limelight.getTagCountInView();
+        double count = limelight.getTagCountInView();
+        Telemetry.log("Vision/" + name + "/TagCount", count);
+        return count;
     }
 
     public double getTargetSize() {
-        Telemetry.log("Vision " + name + " TargetSize", limelight.getTargetSize());
-        return limelight.getTargetSize();
+        double size = limelight.getTargetSize();
+        Telemetry.log("Vision/" + name + "/TargetSize", size);
+        return size;
     }
 }

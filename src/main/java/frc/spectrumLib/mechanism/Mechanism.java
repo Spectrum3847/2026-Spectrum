@@ -93,9 +93,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
     @Getter protected TalonFX[] followerMotors;
 
     /**
-     * Mechanism configuration. Declared {@code public} so subclasses can shadow it with a
-     * narrower type (e.g. {@code private MyConfig config}) while still allowing the parent to
-     * access common fields.
+     * Mechanism configuration. Declared {@code public} so subclasses can shadow it with a narrower
+     * type (e.g. {@code private MyConfig config}) while still allowing the parent to access common
+     * fields.
      */
     public Config config;
 
@@ -120,8 +120,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
     /**
      * Constructs the mechanism, initializing the leader and all follower TalonFX motors when
-     * attached, wiring up cached sensor suppliers, and registering the subsystem with the
-     * {@link SpectrumRobot} registry and WPILib {@link edu.wpi.first.wpilibj2.command.CommandScheduler}.
+     * attached, wiring up cached sensor suppliers, and registering the subsystem with the {@link
+     * SpectrumRobot} registry and WPILib {@link edu.wpi.first.wpilibj2.command.CommandScheduler}.
      *
      * @param config the mechanism configuration describing motor IDs, gains, limits, and followers
      */
@@ -173,7 +173,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * <p>Prefer setting {@link Config#setAttached(boolean)} before construction; this constructor
      * exists for cases where attachment must be decided after the config is built.
      *
-     * @param config   the mechanism configuration
+     * @param config the mechanism configuration
      * @param attached {@code true} to initialize hardware, {@code false} to run detached
      */
     protected Mechanism(Config config, boolean attached) {
@@ -193,7 +193,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
     @Override
     public void simulationPeriodic() {}
 
-    /** @return the mechanism name as defined in {@link Config}. */
+    /**
+     * @return the mechanism name as defined in {@link Config}.
+     */
     @Override
     public String getName() {
         return config.getName();
@@ -215,8 +217,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Stator Current ----
 
     /**
-     * Reads the leader motor's stator current directly from hardware.
-     * Called by the {@link CachedDouble} backing {@link #getStatorCurrent()}.
+     * Reads the leader motor's stator current directly from hardware. Called by the {@link
+     * CachedDouble} backing {@link #getStatorCurrent()}.
      *
      * @return stator current in amps, or {@code 0} if not attached
      */
@@ -239,8 +241,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Supply Current ----
 
     /**
-     * Reads the leader motor's supply (battery) current directly from hardware.
-     * Called by the {@link CachedDouble} backing {@link #getSupplyCurrent()}.
+     * Reads the leader motor's supply (battery) current directly from hardware. Called by the
+     * {@link CachedDouble} backing {@link #getSupplyCurrent()}.
      *
      * @return supply current in amps, or {@code 0} if not attached
      */
@@ -263,8 +265,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Voltage ----
 
     /**
-     * Reads the leader motor's output voltage directly from hardware.
-     * Called by the {@link CachedDouble} backing {@link #getVoltage()}.
+     * Reads the leader motor's output voltage directly from hardware. Called by the {@link
+     * CachedDouble} backing {@link #getVoltage()}.
      *
      * @return motor voltage in volts, or {@code 0} if not attached
      */
@@ -287,8 +289,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Temperature ----
 
     /**
-     * Reads the leader motor's device temperature directly from hardware.
-     * Called by the {@link CachedDouble} backing {@link #getTemp()}.
+     * Reads the leader motor's device temperature directly from hardware. Called by the {@link
+     * CachedDouble} backing {@link #getTemp()}.
      *
      * @return temperature in °C, or {@code 0} if not attached
      */
@@ -311,9 +313,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Position ----
 
     /**
-     * Reads the mechanism position in rotations directly from hardware.
-     * The value is scaled by {@link Config#configGearRatio(double)} (SensorToMechanismRatio).
-     * Called by the {@link CachedDouble} backing {@link #getPositionRotations()}.
+     * Reads the mechanism position in rotations directly from hardware. The value is scaled by
+     * {@link Config#configGearRatio(double)} (SensorToMechanismRatio). Called by the {@link
+     * CachedDouble} backing {@link #getPositionRotations()}.
      *
      * @return position in rotations, or {@code 0} if not attached
      */
@@ -334,8 +336,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Derives the mechanism position as a percentage of {@link Config#getMaxRotations()}.
-     * Called by the {@link CachedDouble} backing {@link #getPositionPercentage()}.
+     * Derives the mechanism position as a percentage of {@link Config#getMaxRotations()}. Called by
+     * the {@link CachedDouble} backing {@link #getPositionPercentage()}.
      *
      * @return position as a percentage of max rotations (0–100)
      */
@@ -354,8 +356,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Derives the mechanism position in degrees from the cached rotation value.
-     * Called by the {@link CachedDouble} backing {@link #getPositionDegrees()}.
+     * Derives the mechanism position in degrees from the cached rotation value. Called by the
+     * {@link CachedDouble} backing {@link #getPositionDegrees()}.
      *
      * @return position in degrees
      */
@@ -388,8 +390,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Converts the raw RPS hardware reading to RPM.
-     * Called by the {@link CachedDouble} backing {@link #getVelocityRPM()}.
+     * Converts the raw RPS hardware reading to RPM. Called by the {@link CachedDouble} backing
+     * {@link #getVelocityRPM()}.
      *
      * @return velocity in RPM
      */
@@ -469,8 +471,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the last closed-loop setpoint commanded to the motor. Units depend on the most
-     * recent control mode: rotations for position modes, RPS for velocity modes.
+     * Returns the last closed-loop setpoint commanded to the motor. Units depend on the most recent
+     * control mode: rotations for position modes, RPS for velocity modes.
      *
      * @return last commanded setpoint
      */
@@ -479,8 +481,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns a {@link Trigger} that is active when the mechanism position is within
-     * {@code tolerance} rotations of the last commanded {@link #getTarget() target}.
+     * Returns a {@link Trigger} that is active when the mechanism position is within {@code
+     * tolerance} rotations of the last commanded {@link #getTarget() target}.
      *
      * @param tolerance acceptable error in rotations
      * @return trigger active when position is at the last commanded target
@@ -499,7 +501,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is within {@code tolerance} rotations of
      * {@code target}.
      *
-     * @param target    desired position in rotations
+     * @param target desired position in rotations
      * @param tolerance acceptable error in rotations
      * @return trigger active when position ≈ target
      */
@@ -514,7 +516,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is below {@code target + tolerance}
      * rotations.
      *
-     * @param target    reference position in rotations
+     * @param target reference position in rotations
      * @param tolerance added to target to form the upper bound
      * @return trigger active when position &lt; target + tolerance
      */
@@ -527,7 +529,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is above {@code target - tolerance}
      * rotations.
      *
-     * @param target    reference position in rotations
+     * @param target reference position in rotations
      * @param tolerance subtracted from target to form the lower bound
      * @return trigger active when position &gt; target - tolerance
      */
@@ -542,7 +544,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is within {@code tolerance} percent of
      * {@code target}.
      *
-     * @param target    desired position as a percentage of max travel (0–100)
+     * @param target desired position as a percentage of max travel (0–100)
      * @param tolerance acceptable error in percent
      * @return trigger active when position ≈ target
      */
@@ -557,7 +559,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is below {@code target + tolerance}
      * percent.
      *
-     * @param target    reference position in percent
+     * @param target reference position in percent
      * @param tolerance added to target to form the upper bound
      * @return trigger active when position &lt; target + tolerance
      */
@@ -570,7 +572,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is above {@code target - tolerance}
      * percent.
      *
-     * @param target    reference position in percent
+     * @param target reference position in percent
      * @param tolerance subtracted from target to form the lower bound
      * @return trigger active when position &gt; target - tolerance
      */
@@ -585,7 +587,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is within {@code tolerance} degrees of
      * {@code target}.
      *
-     * @param target    desired position in degrees
+     * @param target desired position in degrees
      * @param tolerance acceptable error in degrees
      * @return trigger active when position ≈ target
      */
@@ -600,7 +602,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is below {@code target + tolerance}
      * degrees.
      *
-     * @param target    reference position in degrees
+     * @param target reference position in degrees
      * @param tolerance added to target to form the upper bound
      * @return trigger active when position &lt; target + tolerance
      */
@@ -613,7 +615,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when the position is above {@code target - tolerance}
      * degrees.
      *
-     * @param target    reference position in degrees
+     * @param target reference position in degrees
      * @param tolerance subtracted from target to form the lower bound
      * @return trigger active when position &gt; target - tolerance
      */
@@ -625,10 +627,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Velocity Triggers ----
 
     /**
-     * Returns a {@link Trigger} active when velocity is within {@code tolerance} RPM of
-     * {@code target}.
+     * Returns a {@link Trigger} active when velocity is within {@code tolerance} RPM of {@code
+     * target}.
      *
-     * @param target    desired velocity in RPM
+     * @param target desired velocity in RPM
      * @param tolerance acceptable error in RPM
      * @return trigger active when velocity ≈ target
      */
@@ -640,7 +642,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
     /**
      * Returns a {@link Trigger} active when velocity is below {@code target + tolerance} RPM.
      *
-     * @param target    reference velocity in RPM
+     * @param target reference velocity in RPM
      * @param tolerance added to target to form the upper bound
      * @return trigger active when velocity &lt; target + tolerance
      */
@@ -652,7 +654,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
     /**
      * Returns a {@link Trigger} active when velocity is above {@code target - tolerance} RPM.
      *
-     * @param target    reference velocity in RPM
+     * @param target reference velocity in RPM
      * @param tolerance subtracted from target to form the lower bound
      * @return trigger active when velocity &gt; target - tolerance
      */
@@ -667,7 +669,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when stator current is within {@code tolerance} amps of
      * {@code target}.
      *
-     * @param target    desired stator current in amps
+     * @param target desired stator current in amps
      * @param tolerance acceptable error in amps
      * @return trigger active when current ≈ target
      */
@@ -682,7 +684,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when stator current is below {@code target + tolerance}
      * amps.
      *
-     * @param target    reference current in amps
+     * @param target reference current in amps
      * @param tolerance added to target to form the upper bound
      * @return trigger active when current &lt; target + tolerance
      */
@@ -695,7 +697,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Returns a {@link Trigger} active when stator current is above {@code target - tolerance}
      * amps.
      *
-     * @param target    reference current in amps
+     * @param target reference current in amps
      * @param tolerance subtracted from target to form the lower bound
      * @return trigger active when current &gt; target - tolerance
      */
@@ -709,8 +711,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // =========================================================================
 
     /**
-     * Runs the mechanism at a fixed percentage of supply voltage, scaled by
-     * {@link Config#getVoltageCompSaturation()}.
+     * Runs the mechanism at a fixed percentage of supply voltage, scaled by {@link
+     * Config#getVoltageCompSaturation()}.
      *
      * @param percent output fraction between -1 (full reverse) and +1 (full forward)
      * @return a command that applies the percentage output while scheduled
@@ -818,8 +820,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Moves the mechanism to a position using Motion Magic voltage control (slot 1 gains).
-     * Use when FOC is unavailable or when a separate voltage-mode gain set is needed.
+     * Moves the mechanism to a position using Motion Magic voltage control (slot 1 gains). Use when
+     * FOC is unavailable or when a separate voltage-mode gain set is needed.
      *
      * @param rotations target position in rotations
      * @return a command that moves to and holds the position while scheduled
@@ -887,11 +889,11 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
     /**
      * Monitors stator current while scheduled and raises a {@link Alert} when the command ends if
-     * the time-averaged current deviates from {@code expectedCurrent} by more than
-     * {@code tolerance} amps.
+     * the time-averaged current deviates from {@code expectedCurrent} by more than {@code
+     * tolerance} amps.
      *
      * @param expectedCurrent expected average stator current in amps
-     * @param tolerance       acceptable deviation in amps before an alert is raised
+     * @param tolerance acceptable deviation in amps before an alert is raised
      * @return a command that monitors current and alerts on mismatch
      */
     public Command checkAvgCurrent(DoubleSupplier expectedCurrent, DoubleSupplier tolerance) {
@@ -931,8 +933,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
     /**
      * Monitors stator current while scheduled and raises a {@link Alert} when the command ends if
-     * the peak current exceeded {@code expectedCurrent} amps. Useful for detecting mechanical
-     * jams or binding.
+     * the peak current exceeded {@code expectedCurrent} amps. Useful for detecting mechanical jams
+     * or binding.
      *
      * @param expectedCurrent maximum expected stator current in amps
      * @return a command that monitors current and alerts if peak is exceeded
@@ -972,8 +974,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
     /**
      * Monitors stator current while scheduled and raises a {@link Alert} when the command ends if
-     * the peak current never reached {@code expectedCurrent} amps. Useful for detecting a
-     * mechanism that failed to move (broken belt, disconnected motor, etc.).
+     * the peak current never reached {@code expectedCurrent} amps. Useful for detecting a mechanism
+     * that failed to move (broken belt, disconnected motor, etc.).
      *
      * @param expectedCurrent minimum expected peak stator current in amps
      * @return a command that monitors current and alerts if the threshold is not reached
@@ -1021,8 +1023,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- State Management ----
 
     /**
-     * Commands the motor to neutral output (stops the motor).
-     * Does nothing if the mechanism is not attached.
+     * Commands the motor to neutral output (stops the motor). Does nothing if the mechanism is not
+     * attached.
      */
     protected void stop() {
         if (isAttached()) {
@@ -1031,8 +1033,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Sets the motor's internal position sensor to zero. Used to establish a home reference
-     * after a hard-stop zeroing routine.
+     * Sets the motor's internal position sensor to zero. Used to establish a home reference after a
+     * hard-stop zeroing routine.
      */
     protected void tareMotor() {
         if (isAttached()) {
@@ -1066,8 +1068,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // ---- Open-Loop Setters ----
 
     /**
-     * Applies a percentage output scaled by the voltage compensation saturation voltage.
-     * Equivalent to a voltage-mode output clamped to {@code voltageCompSaturation × percent}.
+     * Applies a percentage output scaled by the voltage compensation saturation voltage. Equivalent
+     * to a voltage-mode output clamped to {@code voltageCompSaturation × percent}.
      *
      * @param percent output fraction between -1 and +1
      */
@@ -1093,8 +1095,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Applies a direct voltage output, bypassing both closed-loop control and software limits.
-     * Use with caution — the mechanism can be driven past its configured travel range.
+     * Applies a direct voltage output, bypassing both closed-loop control and software limits. Use
+     * with caution — the mechanism can be driven past its configured travel range.
      *
      * @param voltage output in volts
      */
@@ -1136,8 +1138,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Runs the mechanism at a closed-loop velocity using Torque Current FOC (requires Phoenix
-     * Pro). Accepts RPS directly.
+     * Runs the mechanism at a closed-loop velocity using Torque Current FOC (requires Phoenix Pro).
+     * Accepts RPS directly.
      *
      * @param velocityRPS target velocity in rotations-per-second
      */
@@ -1150,8 +1152,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Runs the mechanism at a closed-loop velocity using Torque Current FOC (requires Phoenix
-     * Pro). Accepts RPM and converts internally to RPS.
+     * Runs the mechanism at a closed-loop velocity using Torque Current FOC (requires Phoenix Pro).
+     * Accepts RPM and converts internally to RPS.
      *
      * @param velocityRPM target velocity in RPM
      */
@@ -1200,10 +1202,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Phoenix Pro). Velocity, acceleration, and jerk limits can be changed each loop cycle,
      * allowing adaptive profiling (e.g., slower motion near limits).
      *
-     * @param rotations    target position in rotations
-     * @param velocity     maximum profile velocity in rotations-per-second
+     * @param rotations target position in rotations
+     * @param velocity maximum profile velocity in rotations-per-second
      * @param acceleration maximum profile acceleration in rotations-per-second²
-     * @param jerk         maximum profile jerk in rotations-per-second³
+     * @param jerk maximum profile jerk in rotations-per-second³
      */
     protected void setDynMMPositionFoc(
             DoubleSupplier rotations,
@@ -1226,10 +1228,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Moves the mechanism to a position using Dynamic Motion Magic voltage control. Velocity,
      * acceleration, and jerk limits can be changed each loop cycle.
      *
-     * @param rotations    target position in rotations
-     * @param velocity     maximum profile velocity in rotations-per-second
+     * @param rotations target position in rotations
+     * @param velocity maximum profile velocity in rotations-per-second
      * @param acceleration maximum profile acceleration in rotations-per-second²
-     * @param jerk         maximum profile jerk in rotations-per-second³
+     * @param jerk maximum profile jerk in rotations-per-second³
      */
     protected void setDynMMPositionVoltage(
             DoubleSupplier rotations,
@@ -1263,7 +1265,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * slot. Use slot 1 or 2 for alternative gain sets (e.g., a slower profile near soft limits).
      *
      * @param rotations target position in rotations
-     * @param slot      gain slot index (0, 1, or 2)
+     * @param slot gain slot index (0, 1, or 2)
      */
     public void setMMPosition(DoubleSupplier rotations, int slot) {
         if (isAttached()) {
@@ -1306,13 +1308,13 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Overrides the torque current limits at runtime. When {@code enabled} is {@code true},
-     * both forward and reverse torque current limits (and the stator limit) are set to
-     * {@code enabledLimit}. When {@code false}, the limits are removed by setting them to 300 A
+     * Overrides the torque current limits at runtime. When {@code enabled} is {@code true}, both
+     * forward and reverse torque current limits (and the stator limit) are set to {@code
+     * enabledLimit}. When {@code false}, the limits are removed by setting them to 300 A
      * (effectively unlimited for typical FRC use).
      *
      * @param enabledLimit peak torque current in amps (positive magnitude) when limiting is active
-     * @param enabled      {@code true} to apply the limit, {@code false} to remove it
+     * @param enabled {@code true} to apply the limit, {@code false} to remove it
      */
     public void toggleTorqueCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
         if (isAttached()) {
@@ -1333,8 +1335,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Enables or disables the supply current limit at runtime without changing the limit value.
      *
      * @param enabledLimit supply current limit in amps (used as both enabled and disabled value;
-     *                     only the enable flag changes)
-     * @param enabled      {@code true} to enable the supply limit, {@code false} to disable it
+     *     only the enable flag changes)
+     * @param enabled {@code true} to enable the supply limit, {@code false} to disable it
      */
     public void toggleSupplyCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
         if (isAttached()) {
@@ -1349,15 +1351,15 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Pushes updated supply and stator current limits to hardware only when at least one limit
-     * has changed from the currently configured value. Retries up to 10 times on CAN failure.
+     * Pushes updated supply and stator current limits to hardware only when at least one limit has
+     * changed from the currently configured value. Retries up to 10 times on CAN failure.
      *
      * <p>All limit values are treated as positive magnitudes; the reverse torque limit is
      * automatically negated by {@link Config#configReverseTorqueCurrentLimit(double)}.
      *
      * @param supplyLimit new supply current limit in amps (positive magnitude)
-     * @param statorLimit new stator current limit in amps (positive magnitude); also applied as
-     *                    the forward and reverse torque current limit
+     * @param statorLimit new stator current limit in amps (positive magnitude); also applied as the
+     *     forward and reverse torque current limit
      */
     public void applyCurrentLimit(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
         if (isAttached()) {
@@ -1388,9 +1390,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
     // =========================================================================
 
     /**
-     * Reports the combined supply current of the leader and all follower motors to the
-     * {@link frc.spectrumLib.BatteryLogger} under the key {@code "Mechanisms/<name>"}. Call this
-     * from {@link #periodic()} in each subclass to include the mechanism in power budgeting.
+     * Reports the combined supply current of the leader and all follower motors to the {@link
+     * frc.spectrumLib.BatteryLogger} under the key {@code "Mechanisms/<name>"}. Call this from
+     * {@link #periodic()} in each subclass to include the mechanism in power budgeting.
      */
     public void logBatteryUsage() {
         if (isAttached()) {
@@ -1405,8 +1407,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the name of the command currently requiring this subsystem, or {@code "none"} if
-     * the default command (or no command) is running. Useful for telemetry logs.
+     * Returns the name of the command currently requiring this subsystem, or {@code "none"} if the
+     * default command (or no command) is running. Useful for telemetry logs.
      *
      * @return current command name, or {@code "none"}
      */
@@ -1425,8 +1427,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
     /**
      * Configuration for a single follower TalonFX that mirrors the leader motor.
      *
-     * <p>Followers are configured as permanent followers via
-     * {@link TalonFXFactory#createPermanentFollowerTalon} and cannot be commanded independently.
+     * <p>Followers are configured as permanent followers via {@link
+     * TalonFXFactory#createPermanentFollowerTalon} and cannot be commanded independently.
      */
     public static class FollowerConfig {
         /** Human-readable name used for logging. */
@@ -1439,18 +1441,17 @@ public abstract class Mechanism implements SpectrumSubsystem {
         @Getter private boolean attached = true;
 
         /**
-         * Motor alignment relative to the leader. Use {@link MotorAlignmentValue#Opposed} when
-         * the follower is mechanically inverted (e.g., motors on opposite sides of a shooter).
+         * Motor alignment relative to the leader. Use {@link MotorAlignmentValue#Opposed} when the
+         * follower is mechanically inverted (e.g., motors on opposite sides of a shooter).
          */
         @Getter private MotorAlignmentValue opposeLeader = MotorAlignmentValue.Aligned;
 
         /**
-         * @param name        human-readable name for logging
-         * @param id          CAN device ID
-         * @param canbus      CAN bus name (e.g., {@link frc.spectrumLib.Rio#CANIVORE})
+         * @param name human-readable name for logging
+         * @param id CAN device ID
+         * @param canbus CAN bus name (e.g., {@link frc.spectrumLib.Rio#CANIVORE})
          * @param opposeLeader {@link MotorAlignmentValue#Opposed} if the follower runs in the
-         *                    opposite direction from the leader, {@link MotorAlignmentValue#Aligned}
-         *                    otherwise
+         *     opposite direction from the leader, {@link MotorAlignmentValue#Aligned} otherwise
          */
         public FollowerConfig(
                 String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
@@ -1464,14 +1465,14 @@ public abstract class Mechanism implements SpectrumSubsystem {
      * Base configuration class for a {@link Mechanism}.
      *
      * <p>Subclass this inside each concrete mechanism class to add mechanism-specific tuning
-     * values, then call the {@code config*()} helpers in the subclass constructor to build the
-     * full {@link TalonFXConfiguration} before the motor is constructed.
+     * values, then call the {@code config*()} helpers in the subclass constructor to build the full
+     * {@link TalonFXConfiguration} before the motor is constructed.
      *
      * <h2>Sign conventions</h2>
      *
      * <ul>
-     *   <li>Always pass <b>positive magnitudes</b> to {@link #configReverseTorqueCurrentLimit}.
-     *       The method automatically negates the value before writing it to the hardware register.
+     *   <li>Always pass <b>positive magnitudes</b> to {@link #configReverseTorqueCurrentLimit}. The
+     *       method automatically negates the value before writing it to the hardware register.
      *   <li>All other current/voltage limit helpers accept and store positive values.
      * </ul>
      *
@@ -1489,8 +1490,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
         @Getter private String name;
 
         /**
-         * Whether the physical hardware for this mechanism is installed on the robot.
-         * When {@code false}, motors are not constructed and all commands are no-ops.
+         * Whether the physical hardware for this mechanism is installed on the robot. When {@code
+         * false}, motors are not constructed and all commands are no-ops.
          */
         @Getter @Setter private boolean attached = true;
 
@@ -1512,14 +1513,14 @@ public abstract class Mechanism implements SpectrumSubsystem {
         @Getter private double voltageCompSaturation = 12.0;
 
         /**
-         * Minimum mechanism position in rotations. Used by {@link #percentToRotations} and
-         * enforced as a reverse soft limit when {@link #configReverseSoftLimit} is called.
+         * Minimum mechanism position in rotations. Used by {@link #percentToRotations} and enforced
+         * as a reverse soft limit when {@link #configReverseSoftLimit} is called.
          */
         @Getter private double minRotations = 0;
 
         /**
-         * Maximum mechanism position in rotations. Used by {@link #percentToRotations} and
-         * enforced as a forward soft limit when {@link #configForwardSoftLimit} is called.
+         * Maximum mechanism position in rotations. Used by {@link #percentToRotations} and enforced
+         * as a forward soft limit when {@link #configForwardSoftLimit} is called.
          */
         @Getter private double maxRotations = 1;
 
@@ -1569,12 +1570,12 @@ public abstract class Mechanism implements SpectrumSubsystem {
         /**
          * Creates a base mechanism configuration.
          *
-         * <p>Hardware limit switches are disabled by default. Call the appropriate
-         * {@code config*()} helpers in subclass constructors to configure PID gains, gear ratio,
-         * current limits, soft limits, etc.
+         * <p>Hardware limit switches are disabled by default. Call the appropriate {@code
+         * config*()} helpers in subclass constructors to configure PID gains, gear ratio, current
+         * limits, soft limits, etc.
          *
-         * @param name   human-readable name (used in telemetry and alerts)
-         * @param id     CAN device ID of the leader motor
+         * @param name human-readable name (used in telemetry and alerts)
+         * @param id CAN device ID of the leader motor
          * @param canbus CAN bus name (e.g., {@link frc.spectrumLib.Rio#CANIVORE})
          */
         public Config(String name, int id, String canbus) {
@@ -1588,8 +1589,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
         // ---- Hardware Application ----
 
         /**
-         * Applies the current {@link TalonFXConfiguration} to the given motor controller. Logs a
-         * DS warning if the CAN write fails.
+         * Applies the current {@link TalonFXConfiguration} to the given motor controller. Logs a DS
+         * warning if the CAN write fails.
          *
          * @param talon the motor controller to configure
          */
@@ -1624,16 +1625,16 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets the positive direction to counter-clockwise (when viewed from the front of the
-         * motor shaft).
+         * Sets the positive direction to counter-clockwise (when viewed from the front of the motor
+         * shaft).
          */
         public void configCounterClockwise_Positive() {
             talonConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         }
 
         /**
-         * Sets the positive direction to clockwise (when viewed from the front of the motor
-         * shaft). This is the default for most mechanisms mounted on the right side.
+         * Sets the positive direction to clockwise (when viewed from the front of the motor shaft).
+         * This is the default for most mechanisms mounted on the right side.
          */
         public void configClockwise_Positive() {
             talonConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
@@ -1684,7 +1685,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Sets the peak reverse output voltage. Limits the motor output even in FOC modes.
          *
          * @param voltageLimit peak reverse voltage in volts (use a positive value; direction is
-         *                     implied)
+         *     implied)
          */
         public void configReverseVoltageLimit(double voltageLimit) {
             talonConfig.Voltage.PeakReverseVoltage = voltageLimit;
@@ -1696,8 +1697,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Configures the supply (battery-side) current limit.
          *
          * @param supplyLimit supply current limit in amps (positive magnitude; auto-corrected if
-         *                    negative is passed)
-         * @param enabled     {@code true} to enable the limit
+         *     negative is passed)
+         * @param enabled {@code true} to enable the limit
          */
         public void configSupplyCurrentLimit(double supplyLimit, boolean enabled) {
             if (supplyLimit < 0) {
@@ -1711,8 +1712,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Configures the stator (motor-side) current limit.
          *
          * @param statorLimit stator current limit in amps (positive magnitude; auto-corrected if
-         *                    negative is passed)
-         * @param enabled     {@code true} to enable the limit
+         *     negative is passed)
+         * @param enabled {@code true} to enable the limit
          */
         public void configStatorCurrentLimit(double statorLimit, boolean enabled) {
             if (statorLimit < 0) {
@@ -1726,7 +1727,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Sets the peak forward torque current limit used in FOC modes.
          *
          * @param currentLimit peak forward torque current in amps (positive magnitude;
-         *                     auto-corrected if negative is passed)
+         *     auto-corrected if negative is passed)
          */
         public void configForwardTorqueCurrentLimit(double currentLimit) {
             if (currentLimit < 0) {
@@ -1739,8 +1740,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Sets the peak reverse torque current limit used in FOC modes.
          *
          * <p><b>Sign convention:</b> always pass a <em>positive</em> magnitude. This method
-         * automatically negates the value before writing it to the hardware register
-         * ({@code PeakReverseTorqueCurrent} must be ≤ 0 for Phoenix 6).
+         * automatically negates the value before writing it to the hardware register ({@code
+         * PeakReverseTorqueCurrent} must be ≤ 0 for Phoenix 6).
          *
          * @param currentLimit peak reverse torque current magnitude in amps (positive)
          */
@@ -1752,8 +1753,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets the lower supply current limit, which is applied after
-         * {@link #configLowerSupplyCurrentTime(double)} seconds at the higher limit. Useful for
+         * Sets the lower supply current limit, which is applied after {@link
+         * #configLowerSupplyCurrentTime(double)} seconds at the higher limit. Useful for
          * stall-prevention: allow a brief high-current spike on startup, then throttle back.
          *
          * @param currentLimit lower supply current limit in amps
@@ -1778,7 +1779,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Configures the forward software limit switch (maximum travel boundary).
          *
          * @param threshold position threshold in rotations; motor output is cut when exceeded
-         * @param enabled   {@code true} to enforce the limit
+         * @param enabled {@code true} to enforce the limit
          */
         public void configForwardSoftLimit(double threshold, boolean enabled) {
             talonConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold = threshold;
@@ -1789,7 +1790,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Configures the reverse software limit switch (minimum travel boundary).
          *
          * @param threshold position threshold in rotations; motor output is cut when exceeded
-         * @param enabled   {@code true} to enforce the limit
+         * @param enabled {@code true} to enforce the limit
          */
         public void configReverseSoftLimit(double threshold, boolean enabled) {
             talonConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold = threshold;
@@ -1825,9 +1826,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Sets PID feedback gains for the specified slot (0–2).
          *
          * @param slot gain slot index
-         * @param kP   proportional gain
-         * @param kI   integral gain
-         * @param kD   derivative gain
+         * @param kP proportional gain
+         * @param kI integral gain
+         * @param kD derivative gain
          */
         public void configPIDGains(int slot, double kP, double kI, double kD) {
             talonConfigFeedbackPID(slot, kP, kI, kD);
@@ -1849,10 +1850,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
          * Sets feedforward gains for the specified slot (0–2).
          *
          * @param slot gain slot index
-         * @param kS   static friction compensation
-         * @param kV   velocity feedforward
-         * @param kA   acceleration feedforward
-         * @param kG   gravity feedforward
+         * @param kS static friction compensation
+         * @param kV velocity feedforward
+         * @param kA acceleration feedforward
+         * @param kG gravity feedforward
          */
         public void configFeedForwardGains(int slot, double kS, double kV, double kA, double kG) {
             talonConfigFeedForward(slot, kV, kA, kS, kG);
@@ -1861,8 +1862,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
         /**
          * Configures the gravity compensation type for slot 0.
          *
-         * @param isArm {@code true} for {@link GravityTypeValue#Arm_Cosine} (rotary arm),
-         *              {@code false} for {@link GravityTypeValue#Elevator_Static} (linear elevator)
+         * @param isArm {@code true} for {@link GravityTypeValue#Arm_Cosine} (rotary arm), {@code
+         *     false} for {@link GravityTypeValue#Elevator_Static} (linear elevator)
          */
         public void configGravityType(boolean isArm) {
             configGravityType(0, isArm);
@@ -1871,7 +1872,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
         /**
          * Configures the gravity compensation type for the specified slot.
          *
-         * @param slot  gain slot index (0–2)
+         * @param slot gain slot index (0–2)
          * @param isArm {@code true} for arm cosine, {@code false} for elevator static
          */
         public void configGravityType(int slot, boolean isArm) {
@@ -1891,12 +1892,12 @@ public abstract class Mechanism implements SpectrumSubsystem {
         // ---- Motion Magic ----
 
         /**
-         * Sets the Motion Magic trapezoidal profile parameters applied to all position and
-         * velocity Motion Magic control requests.
+         * Sets the Motion Magic trapezoidal profile parameters applied to all position and velocity
+         * Motion Magic control requests.
          *
          * @param cruiseVelocity maximum profile velocity in rotations-per-second
-         * @param acceleration   maximum profile acceleration in rotations-per-second²
-         * @param jerk           maximum profile jerk in rotations-per-second³ (0 = unlimited)
+         * @param acceleration maximum profile acceleration in rotations-per-second²
+         * @param jerk maximum profile jerk in rotations-per-second³ (0 = unlimited)
          */
         public void configMotionMagic(double cruiseVelocity, double acceleration, double jerk) {
             talonConfig.MotionMagic.MotionMagicCruiseVelocity = cruiseVelocity;
@@ -1905,12 +1906,12 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Overrides the acceleration and feedforward on the pre-built velocity Motion Magic
-         * control request objects. Call after {@link #configMotionMagic} if velocity-specific
-         * acceleration or feedforward tuning is needed.
+         * Overrides the acceleration and feedforward on the pre-built velocity Motion Magic control
+         * request objects. Call after {@link #configMotionMagic} if velocity-specific acceleration
+         * or feedforward tuning is needed.
          *
          * @param acceleration profile acceleration override in rotations-per-second²
-         * @param feedforward  additional feedforward output added to the velocity controller
+         * @param feedforward additional feedforward output added to the velocity controller
          */
         public void configMotionMagicVelocity(double acceleration, double feedforward) {
             mmVelocityFOC =
@@ -1920,9 +1921,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Overrides the feedforward on the pre-built position Motion Magic control request
-         * objects. Useful when a constant output is needed to overcome a static load (e.g., a
-         * pneumatic spring).
+         * Overrides the feedforward on the pre-built position Motion Magic control request objects.
+         * Useful when a constant output is needed to overcome a static load (e.g., a pneumatic
+         * spring).
          *
          * @param feedforward additional feedforward output added to the position controller
          */
@@ -1934,9 +1935,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
         // ---- Feedback / Gearing ----
 
         /**
-         * Sets the sensor-to-mechanism gear ratio, i.e., how many rotor rotations correspond to
-         * one mechanism rotation. If a remote sensor is used, this is the ratio of sensor
-         * rotations to mechanism rotations.
+         * Sets the sensor-to-mechanism gear ratio, i.e., how many rotor rotations correspond to one
+         * mechanism rotation. If a remote sensor is used, this is the ratio of sensor rotations to
+         * mechanism rotations.
          *
          * <p>Example: a 10:1 gearbox where the sensor is on the rotor → {@code gearRatio = 10}.
          *
@@ -1966,8 +1967,8 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets the feedback sensor source and rotor offset. The offset is applied as
-         * {@code FeedbackRotorOffset} in the TalonFX configuration.
+         * Sets the feedback sensor source and rotor offset. The offset is applied as {@code
+         * FeedbackRotorOffset} in the TalonFX configuration.
          *
          * @param source feedback sensor source
          * @param offset rotor offset in rotations
