@@ -897,6 +897,7 @@ public class FuelPhysicsSim {
      * @param width robot width along Y axis (m)
      * @param length robot length along X axis (m)
      * @param bumperHeight bumper height (m)
+     * @param hopperSize quantity of Fuel the robot can hold
      * @param poseSupplier field-relative pose supplier
      * @param speedsSupplier field-relative chassis speeds supplier
      */
@@ -904,13 +905,13 @@ public class FuelPhysicsSim {
             double width,
             double length,
             double bumperHeight,
-            double intakeSize,
+            double hopperSize,
             Supplier<Pose2d> poseSupplier,
             Supplier<ChassisSpeeds> speedsSupplier) {
         this.robotWidth = width;
         this.robotLength = length;
         this.bumperHeight = bumperHeight;
-        this.hopperSize = intakeSize;
+        this.hopperSize = hopperSize;
         this.robotPoseSupplier = poseSupplier;
         this.robotSpeedsSupplier = speedsSupplier;
     }
