@@ -5,8 +5,8 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import lombok.Getter;
 
 /**
- * Configuration data for a roller mechanism simulation. Stores physical properties, display
- * colors, canvas position, and optional mount attachment used by {@link RollerSim}.
+ * Configuration data for a roller mechanism simulation. Stores physical properties, display colors,
+ * canvas position, and optional mount attachment used by {@link RollerSim}.
  */
 public class RollerConfig {
     /** Outer diameter of the roller in inches, used for physics and visual scaling. */

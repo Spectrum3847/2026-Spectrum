@@ -18,6 +18,7 @@ import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -33,6 +34,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
+import frc.rebuilt.RobotBumpSim;
 import frc.robot.Robot;
 import frc.robot.swerve.controllers.RotationController;
 import frc.robot.swerve.controllers.TranslationXController;
@@ -165,6 +167,23 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         if (Utils.isSimulation()) {
             Telemetry.log("Sim/SimPose", getRobotPose());
+            if (robotBumpSim != null) {
+                Pose2d simPose =
+                        mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
+                ChassisSpeeds robotRelSpeeds =
+                        mapleSimSwerveDrivetrain.mapleSimDrive
+                                .getDriveTrainSimulatedChassisSpeedsRobotRelative();
+                ChassisSpeeds fieldRelSpeeds =
+                        ChassisSpeeds.fromRobotRelativeSpeeds(
+                                robotRelSpeeds, simPose.getRotation());
+                // subticks=5 -> dt = 20ms/5 = 4ms sub-steps (matches MapleSim's 5ms period closely)
+                simRobotPose3d = robotBumpSim.update(simPose, fieldRelSpeeds, 5);
+                if (robotBumpSim.isOnRamp()) {
+                    mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(
+                            robotBumpSim.getSimWorldPose(simPose));
+                }
+                Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
+            }
         }
     }
 
@@ -610,6 +629,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // --------------------------------------------------------------------------------
 
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
+    @Getter private RobotBumpSim robotBumpSim = null;
+    @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
 
     @SuppressWarnings("unchecked")
     private void startSimThread() {
@@ -629,6 +650,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                         config.getFrontRight(),
                         config.getBackLeft(),
                         config.getBackRight());
+        robotBumpSim = new RobotBumpSim(getModuleLocations());
+
         /* Run simulation at a faster rate so PID gains behave more reasonably */
         simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
         simNotifier.startPeriodic(config.getSimLoopPeriod());
