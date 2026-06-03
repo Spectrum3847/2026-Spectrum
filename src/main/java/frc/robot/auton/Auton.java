@@ -17,9 +17,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
-import frc.robot.RobotStates;
-import frc.robot.State;
-import frc.robot.swerve.SwerveStates;
 import frc.spectrumLib.framework.SpectrumState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
@@ -40,8 +37,8 @@ public class Auton {
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 
-    private final double SECOND_MAN_DELAY = 1.0;
-    private final double OPTIONAL_DELAY = 1.0;
+    // private final double SECOND_MAN_DELAY = 1.0;
+    // private final double OPTIONAL_DELAY = 1.0;
 
     /**
      * This method configures the available autonomous routines that can be selected from the
@@ -51,29 +48,29 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", doNothing());
 
-        pathChooser.addOption("TBTB Left", TBTB(false));
-        pathChooser.addOption("TBTB Right", TBTB(true));
+        // pathChooser.addOption("TBTB Left", TBTB(false));
+        // pathChooser.addOption("TBTB Right", TBTB(true));
 
-        pathChooser.addOption("TBTT Left", TBTT(false));
-        pathChooser.addOption("TBTT Right", TBTT(true));
+        // pathChooser.addOption("TBTT Left", TBTT(false));
+        // pathChooser.addOption("TBTT Right", TBTT(true));
 
-        pathChooser.addOption("TTTT Left", TTTT(false));
-        pathChooser.addOption("TTTT Right", TTTT(true));
+        // pathChooser.addOption("TTTT Left", TTTT(false));
+        // pathChooser.addOption("TTTT Right", TTTT(true));
 
-        pathChooser.addOption("BBBB Left", BBBB(false));
-        pathChooser.addOption("BBBB Right", BBBB(true));
+        // pathChooser.addOption("BBBB Left", BBBB(false));
+        // pathChooser.addOption("BBBB Right", BBBB(true));
 
-        pathChooser.addOption("Optional - Left TBT", optional_TBT(false));
-        pathChooser.addOption("Optional - Right TBT", optional_TBT(true));
+        // pathChooser.addOption("Optional - Left TBT", optional_TBT(false));
+        // pathChooser.addOption("Optional - Right TBT", optional_TBT(true));
 
-        pathChooser.addOption("Optional - Left BBB", optional_BBB(false));
-        pathChooser.addOption("Optional - Right BBB", optional_BBB(true));
+        // pathChooser.addOption("Optional - Left BBB", optional_BBB(false));
+        // pathChooser.addOption("Optional - Right BBB", optional_BBB(true));
 
-        pathChooser.addOption("2nd Man - TBTB Left", secondMan_TBTB(false));
-        pathChooser.addOption("2nd Man - TBTB Right", secondMan_TBTB(true));
+        // pathChooser.addOption("2nd Man - TBTB Left", secondMan_TBTB(false));
+        // pathChooser.addOption("2nd Man - TBTB Right", secondMan_TBTB(true));
 
-        pathChooser.addOption("2nd Man - BBD Left", secondMan_BBD(false));
-        pathChooser.addOption("2nd Man - BBD Right", secondMan_BBD(true));
+        // pathChooser.addOption("2nd Man - BBD Left", secondMan_BBD(false));
+        // pathChooser.addOption("2nd Man - BBD Right", secondMan_BBD(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
@@ -102,117 +99,125 @@ public class Auton {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
     }
 
-    public Command launch() {
-        return Commands.deadline(
-                Commands.sequence(
-                        autonLaunching.setTrue(),
-                        RobotStates.applyState(State.LAUNCH_WITH_SQUEEZE),
-                        Commands.waitSeconds(2.5),
-                        RobotStates.applyState(State.IDLE),
-                        autonLaunching.setFalse()),
-                SwerveStates.autonAimAtTarget());
-    }
+    // public Command launch() {
+    //     return Commands.deadline(
+    //             Commands.sequence(
+    //                     autonLaunching.setTrue(),
+    //                     RobotStates.applyState(State.LAUNCH_WITH_SQUEEZE),
+    //                     Commands.waitSeconds(2.5),
+    //                     RobotStates.applyState(State.IDLE),
+    //                     autonLaunching.setFalse()),
+    //             SwerveStates.autonAimAtTarget());
+    // }
 
-    public Command secondMan_TBTB(boolean mirrored) {
-        return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
-                        SpectrumAuton("2nd-TBTB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("2nd-TBTB 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("2nd-TBTB Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command secondMan_TBTB(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     Commands.waitSeconds(SECOND_MAN_DELAY),
+    //                     SpectrumAuton("2nd-TBTB 1", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("2nd-TBTB 2", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("2nd-TBTB Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command secondMan_BBD(boolean mirrored) {
-        return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
-                        SpectrumAuton("2nd-BBD 1", mirrored),
-                        launch(),
-                        SpectrumAuton("2nd-BBD 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("2nd-BBD Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command secondMan_BBD(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     Commands.waitSeconds(SECOND_MAN_DELAY),
+    //                     SpectrumAuton("2nd-BBD 1", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("2nd-BBD 2", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("2nd-BBD Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command optional_TBT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("Option TBT 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
-                        SpectrumAuton("Option TBT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("Option TBT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("Option TBT Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command optional_TBT(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     SpectrumAuton("Option TBT 1", mirrored),
+    //                     Commands.waitSeconds(OPTIONAL_DELAY),
+    //                     SpectrumAuton("Option TBT 2", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("Option TBT 3", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("Option TBT Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command optional_BBB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("Option BBB 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
-                        SpectrumAuton("Option BBB 2", mirrored),
-                        launch(),
-                        SpectrumAuton("Option BBB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("Option BBB Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command optional_BBB(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     SpectrumAuton("Option BBB 1", mirrored),
+    //                     Commands.waitSeconds(OPTIONAL_DELAY),
+    //                     SpectrumAuton("Option BBB 2", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("Option BBB 3", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("Option BBB Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command TBTB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TBTB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTB 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TBTB Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command TBTB(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     SpectrumAuton("TBTB 1", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("TBTB 2", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("TBTB 3", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("TBTB Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command TBTT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TBTT 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TBTT Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command TBTT(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     SpectrumAuton("TBTT 1", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("TBTT 2", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("TBTT 3", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("TBTT Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command TTTT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TTTT 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TTTT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TTTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command TTTT(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     SpectrumAuton("TTTT 1", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("TTTT 2", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("TTTT 3", mirrored))
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
-    public Command BBBB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("BBBB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("BBBB 2", mirrored),
-                        launch())
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
-    }
+    // public Command BBBB(boolean mirrored) {
+    //     return Commands.sequence(
+    //                     SpectrumAuton("BBBB 1", mirrored),
+    //                     launch(),
+    //                     SpectrumAuton("BBBB 2", mirrored),
+    //                     launch())
+    //             // the "- Right" and "- Left" is added to the name of the command so that when
+    // the
+    //             // visualizer checks the name of the command it can determine whether the auto is
+    //             // mirrored or not and correctly mirror the poses
+    //             .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
+    // }
 
     /**
      * Creates a SpectrumAuton command sequence.

@@ -1,4 +1,4 @@
-package frc.robot.intakeExtension;
+package frc.robot.subsystems.intakeExtension;
 
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -12,15 +12,11 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotSim;
-import frc.robot.RobotStates;
-import frc.robot.State;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
 import frc.spectrumLib.sim.LinearSim;
 import frc.spectrumLib.telemetry.Telemetry;
-import frc.spectrumLib.util.Util;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -129,6 +125,73 @@ public class IntakeExtension extends Mechanism {
 
     @Getter @Setter private boolean inSpringyMode = false;
 
+    // ---- State Machine ----
+
+    public enum WantedState {
+        STOPPED,
+        FULL_EXTEND,
+        CONDITIONAL_EXTEND,
+        FULL_RETRACT,
+        SLOW_CLOSE,
+    }
+
+    public enum SystemState {
+        STOPPED,
+        FULL_EXTEND,
+        FULL_RETRACT,
+        SLOW_CLOSE,
+    }
+
+    private WantedState wantedState = WantedState.STOPPED;
+    private SystemState systemState = SystemState.STOPPED;
+    private boolean sentOutByIntakeState = false;
+
+    public void setWantedState(WantedState state) {
+        this.wantedState = state;
+    }
+
+    private SystemState handleStateTransition() {
+        return switch (wantedState) {
+            case STOPPED -> SystemState.STOPPED;
+            case FULL_EXTEND -> {
+                sentOutByIntakeState = true;
+                yield SystemState.FULL_EXTEND;
+            }
+            case CONDITIONAL_EXTEND -> sentOutByIntakeState
+                    ? SystemState.FULL_EXTEND
+                    : SystemState.STOPPED;
+            case FULL_RETRACT -> SystemState.FULL_RETRACT;
+            case SLOW_CLOSE -> SystemState.SLOW_CLOSE;
+        };
+    }
+
+    private void applyStates() {
+        boolean slowMove = false;
+        double wantedPercent = 0;
+        switch (systemState) {
+            case FULL_EXTEND:
+                wantedPercent = 100;
+                break;
+            case FULL_RETRACT:
+                wantedPercent = 0;
+                break;
+            case SLOW_CLOSE:
+                slowMove = true;
+                wantedPercent = 25;
+                break;
+            case STOPPED:
+                stop();
+                return;
+        }
+        final double finalWantedPercent = wantedPercent;
+        final double finalRotation = percentToRotations(() -> finalWantedPercent);
+        if (slowMove) {
+            setDynMMPositionVoltage(() -> finalRotation, () -> 4.0, () -> 20.0, () -> 1000.0);
+        } else {
+            setMMPosition(() -> finalRotation);
+        }
+    }
+
     public IntakeExtension(IntakeExtensionConfig config) {
         super(config);
         this.config = config;
@@ -143,9 +206,11 @@ public class IntakeExtension extends Mechanism {
 
     @Override
     public void periodic() {
-        // updateSpringyMode();
-
+        systemState = handleStateTransition();
+        applyStates();
         logBatteryUsage();
+        Telemetry.log("IntakeExtension/WantedState", wantedState.toString());
+        Telemetry.log("IntakeExtension/SystemState", systemState.toString());
         Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
         Telemetry.log("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
@@ -154,14 +219,6 @@ public class IntakeExtension extends Mechanism {
         Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
         Telemetry.log("IntakeExtension/InSpringyMode", inSpringyMode);
-    }
-
-    @Override
-    public void setupStates() {}
-
-    @Override
-    public void setupDefaultCommand() {
-        IntakeExtensionStates.setupDefaultCommand();
     }
 
     private void setInitialPosition() {
@@ -174,94 +231,6 @@ public class IntakeExtension extends Mechanism {
 
     public Command resetToInitialPos() {
         return run(this::setInitialPosition);
-    }
-
-    public void setSpringyMode(boolean enabled) {
-        if (enabled && !inSpringyMode) {
-            setCurrentLimits(
-                    config::getSpringyModeSupplyCurrentLimit,
-                    config::getSpringyModeStatorCurrentLimit);
-            inSpringyMode = true;
-        } else if (!enabled && inSpringyMode) {
-            setCurrentLimits(config::getNormalCurrentLimit, config::getNormalTorqueCurrentLimit);
-            inSpringyMode = false;
-        }
-    }
-
-    public void updateSpringyMode() {
-        State currentState = RobotStates.getAppliedState();
-        boolean isLaunching =
-                currentState == State.AUTON_LAUNCH_WITH_SQUEEZE
-                        || currentState == State.LAUNCH_WITH_SQUEEZE
-                        || currentState == State.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
-        boolean atFullOut =
-                atPercentage(config::getFullOut, config::getSpringyPoseTolerance).getAsBoolean();
-
-        boolean inAuto = Util.autoMode.getAsBoolean();
-
-        setSpringyMode(!isLaunching && atFullOut && !inAuto);
-    }
-
-    // --------------------------------------------------------------------------------
-    // Custom Commands
-    // --------------------------------------------------------------------------------
-
-    /** Holds the position of the Intake Extension. */
-    public Command runHoldIntakeExtension() {
-        return new Command() {
-            double holdPosition = 0; // rotations
-
-            // constructor
-            {
-                setName("IntakeExtension.holdPosition");
-                addRequirements(IntakeExtension.this);
-            }
-
-            @Override
-            public boolean runsWhenDisabled() {
-                return true;
-            }
-
-            @Override
-            public void initialize() {
-                holdPosition = getPositionRotations();
-                stop();
-            }
-
-            @Override
-            public void execute() {
-                if (Math.abs(getVelocityRPM()) > config.holdMaxSpeedRPM) {
-                    stop();
-                    holdPosition = getPositionRotations();
-                } else {
-                    setDynMMPositionFoc(
-                            () -> holdPosition,
-                            () -> config.getMmCruiseVelocity(),
-                            () -> config.getMmAcceleration(),
-                            () -> 20);
-                }
-            }
-
-            @Override
-            public void end(boolean interrupted) {
-                stop();
-            }
-        };
-    }
-
-    public Command move(DoubleSupplier rotations) {
-        return run(() -> setVoltageOutput(rotations));
-    }
-
-    public Command motionMagicPercentMove(DoubleSupplier percent) {
-        return run(() -> setMMPosition(() -> percentToRotations(percent)));
-    }
-
-    public Command slowMoveToPercent(DoubleSupplier percent) {
-        return run(
-                () ->
-                        setDynMMPositionVoltage(
-                                () -> percentToRotations(percent), () -> 4, () -> 20, () -> 1000));
     }
 
     // --------------------------------------------------------------------------------

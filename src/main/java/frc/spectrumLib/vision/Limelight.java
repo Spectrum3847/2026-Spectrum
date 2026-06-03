@@ -4,7 +4,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.robot.vision.Vision.VisionConfig;
+import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.vision.LimelightHelpers.LimelightResults;
 import frc.spectrumLib.vision.LimelightHelpers.PoseEstimate;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
@@ -155,7 +155,7 @@ public class Limelight {
      *
      * @param name the network-table name of the camera
      * @param pipeline the pipeline index to activate (see {@link
-     *     frc.robot.vision.Vision.VisionConfig})
+     *     frc.robot.subsystems.vision.Vision.VisionConfig})
      */
     public Limelight(String name, int pipeline) {
         this(name);

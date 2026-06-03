@@ -1,11 +1,9 @@
-package frc.robot.fuelIntake;
+package frc.robot.subsystems.fuelIntake;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
@@ -13,26 +11,12 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
-import lombok.Setter;
 
 /** The Fuel Intake subsystem. Responsible for intake and handling of fuel elements. */
 public class FuelIntake extends Mechanism {
 
     public static class FuelIntakeConfig extends Config {
-
-        // Intake Voltages and Current
-        @Getter @Setter private double fuelIntakeVoltage = 9.0;
-
-        @Getter @Setter private double fuelAgitationTorqueCurrent = 45.0;
-        @Getter @Setter private double fuelSlowIntakeTorqueCurrent = 45.0;
-        @Getter @Setter private double fuelIntakeTorqueCurrent = 130.0;
-        @Getter @Setter private double ejectTorqueCurrent = -50;
-
-        @Getter
-        private final DoubleSubscriber intakeTorqueCurrent =
-                Telemetry.tunable("Tunable/IntakeTorqueCurrent", fuelIntakeTorqueCurrent);
 
         /* Intake config values */
         @Getter private double currentLimit = 70;
@@ -63,6 +47,58 @@ public class FuelIntake extends Mechanism {
         }
     }
 
+    // ---- State Machine ----
+
+    public enum WantedState {
+        NEUTRAL,
+        OFF,
+        INTAKE,
+        SLOW_INTAKE,
+    }
+
+    public enum SystemState {
+        NEUTRAL,
+        OFF,
+        INTAKE,
+        SLOW_INTAKE,
+    }
+
+    private WantedState wantedState = WantedState.NEUTRAL;
+    private SystemState systemState = SystemState.NEUTRAL;
+
+    public void setWantedState(WantedState state) {
+        this.wantedState = state;
+    }
+
+    private SystemState handleStateTransition() {
+        return switch (wantedState) {
+            case NEUTRAL -> SystemState.NEUTRAL;
+            case INTAKE -> SystemState.INTAKE;
+            case SLOW_INTAKE -> SystemState.SLOW_INTAKE;
+            case OFF -> SystemState.OFF;
+        };
+    }
+
+    private void applyStates() {
+        double wantedTorqueCurrent = 0;
+        switch (systemState) {
+            case NEUTRAL:
+                wantedTorqueCurrent = 0;
+                break;
+            case INTAKE:
+                wantedTorqueCurrent = 130;
+                break;
+            case SLOW_INTAKE:
+                wantedTorqueCurrent = 45;
+                break;
+            case OFF:
+                stop();
+                return;
+        }
+        final double finalWantedTorqueCurrent = wantedTorqueCurrent;
+        setTorqueCurrentFoc(() -> finalWantedTorqueCurrent);
+    }
+
     private FuelIntakeConfig config;
     private FuelIntakeSim sim;
 
@@ -76,49 +112,17 @@ public class FuelIntake extends Mechanism {
 
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
+        applyStates();
         logBatteryUsage();
+        Telemetry.log("FuelIntake/WantedState", wantedState.toString());
+        Telemetry.log("FuelIntake/SystemState", systemState.toString());
         Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
         Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
         Telemetry.log("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
-    }
-
-    @Override
-    public void setupStates() {}
-
-    @Override
-    public void setupDefaultCommand() {
-        FuelIntakeStates.setupDefaultCommand();
-    }
-
-    // --------------------------------------------------------------------------------
-    // Custom Commands
-    // --------------------------------------------------------------------------------
-
-    public Command runTorqueFOC(DoubleSupplier torque) {
-        return run(() -> setTorqueCurrentFoc(torque));
-    }
-
-    public void setVoltageAndCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supply, DoubleSupplier torque) {
-        setVoltageOutput(voltage);
-        setCurrentLimits(supply, torque);
-    }
-
-    public Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return runVoltage(voltage).alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command runTCcurrentLimits(DoubleSupplier torqueCurrent, DoubleSupplier supplyCurrent) {
-        return runTorqueCurrentFoc(torqueCurrent)
-                .alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command stopMotor() {
-        return run(() -> stop());
     }
 
     // --------------------------------------------------------------------------------

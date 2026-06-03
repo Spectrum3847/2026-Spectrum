@@ -19,8 +19,10 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
 import lombok.Getter;
@@ -39,6 +41,19 @@ public class RobotSim {
     public static final Mechanism2d leftView =
             new Mechanism2d(
                     Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
+
+    public static Trigger simLaunching() {
+        return new Trigger(
+                () ->
+                        Utils.isSimulation()
+                                && (Robot.getSuperStructure().getCurrentSuperState()
+                                                == CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                                        || Robot.getSuperStructure().getCurrentSuperState()
+                                                == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                                        || Robot.getSuperStructure().getCurrentSuperState()
+                                                == CurrentSuperState
+                                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
+    }
 
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
@@ -130,7 +145,9 @@ public class RobotSim {
                 intakeXMax,
                 intakeYMin,
                 intakeYMax,
-                () -> RobotStates.getAppliedState() == State.INTAKE_FUEL);
+                () ->
+                        Robot.getSuperStructure().getCurrentSuperState()
+                                == CurrentSuperState.INTAKE_FUEL);
     }
 
     private Command createSimBallLaunch(double laneOffset) {

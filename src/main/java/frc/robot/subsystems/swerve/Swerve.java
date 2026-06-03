@@ -1,6 +1,6 @@
 // Based on
 // https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
-package frc.robot.swerve;
+package frc.robot.subsystems.swerve;
 
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Pounds;
@@ -10,9 +10,11 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
+import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.ctre.phoenix6.swerve.utility.PhoenixPIDController;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
@@ -31,21 +33,18 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.rebuilt.RobotBumpSim;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
-import frc.robot.swerve.controllers.RotationController;
-import frc.robot.swerve.controllers.TranslationXController;
-import frc.robot.swerve.controllers.TranslationYController;
-import frc.spectrumLib.framework.SpectrumSubsystem;
 import frc.spectrumLib.swerve.MapleSimSwerveDrivetrain;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import lombok.Getter;
 
@@ -53,13 +52,33 @@ import lombok.Getter;
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
  * in command-based projects easily.
  */
-public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
-        implements SpectrumSubsystem {
+public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
+
+    // ── State machine ──────────────────────────────────────────────────────────────────
+    public enum WantedState {
+        TELEOP_DRIVE,
+        PILOT_AIM_AT_TARGET,
+        IDLE
+    }
+
+    public enum SystemState {
+        TELEOP_DRIVE,
+        PILOT_AIM_AT_TARGET,
+        IDLE
+    }
+
+    private WantedState wantedState = WantedState.IDLE;
+    private SystemState systemState = SystemState.IDLE;
+
+    public static final double TRANSLATION_ERROR_MARGIN_METERS = Units.inchesToMeters(1.0);
+    public static final double DRIVE_TO_POINT_STATIC_FRICTION_CONSTANT = 0.02;
+    private static final double SKEW_COMPENSATION_SCALAR = -0.03;
+
+    private double teleopVelocityCoefficient = 1.0;
+    private double rotationVelocityCoefficient = 1.0;
+
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
-    private RotationController rotationController;
-    private TranslationXController xController;
-    private TranslationYController yController;
 
     private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
 
@@ -71,6 +90,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                     .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.Position)
                     .withDesaturateWheelSpeeds(true);
+
+    private static final SwerveRequest.ApplyFieldSpeeds FIELD_CENTRIC_DRIVE =
+            new SwerveRequest.ApplyFieldSpeeds()
+                    .withDriveRequestType(DriveRequestType.Velocity)
+                    .withSteerRequestType(SteerRequestType.Position);
+
+    private final SwerveRequest.FieldCentricFacingAngle DRIVE_AT_ANGLE_REQUEST =
+            new SwerveRequest.FieldCentricFacingAngle()
+                    .withDriveRequestType(SwerveModule.DriveRequestType.Velocity)
+                    .withSteerRequestType(SwerveModule.SteerRequestType.Position);
 
     /**
      * Constructs a new Swerve drive subsystem.
@@ -89,17 +118,25 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
 
         this.config = config;
 
-        rotationController = new RotationController(config);
-        xController = new TranslationXController(config);
-        yController = new TranslationYController(config);
-
         if (Utils.isSimulation()) {
             startSimThread();
         }
 
         configurePathPlanner();
 
-        Robot.add(this);
+        // Configure heading PID on the shared drive-at-angle request
+        DRIVE_AT_ANGLE_REQUEST.HeadingController =
+                new PhoenixPIDController(
+                        config.getKPRotationController(),
+                        config.getKIRotationController(),
+                        config.getKDRotationController());
+        DRIVE_AT_ANGLE_REQUEST.HeadingController.enableContinuousInput(-Math.PI, Math.PI);
+        DRIVE_AT_ANGLE_REQUEST
+                .withDeadband(
+                        config.getSpeedAt12Volts().baseUnitMagnitude() * config.getAimDeadband())
+                .withRotationalDeadband(config.getMaxAngularRate() * config.getAimDeadband())
+                .withMaxAbsRotationalRate(config.getMaxAngularRate());
+
         this.register();
 
         registerTelemetry(this::log);
@@ -160,6 +197,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
      */
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
+        applyStates();
+
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
         checkPigeonConnection();
@@ -185,21 +225,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
                 Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
             }
         }
+
+        Telemetry.log("Swerve/WantedState", wantedState.toString());
+        Telemetry.log("Swerve/SystemState", systemState.toString());
     }
 
     // -----------------------------------------------------------------------
     // Subsystem Setup
     // -----------------------------------------------------------------------
-
-    @Override
-    public void setupStates() {
-        SwerveStates.setStates();
-    }
-
-    @Override
-    public void setupDefaultCommand() {
-        SwerveStates.setupDefaultCommand();
-    }
 
     protected String getCurrentCommandName() {
         Command currentCommand = this.getCurrentCommand();
@@ -208,6 +241,72 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
         }
 
         return "none";
+    }
+
+    private SystemState handleStateTransition() {
+        return switch (wantedState) {
+            case TELEOP_DRIVE -> SystemState.TELEOP_DRIVE;
+            case PILOT_AIM_AT_TARGET -> SystemState.PILOT_AIM_AT_TARGET;
+            case IDLE -> SystemState.IDLE;
+            default -> SystemState.IDLE;
+        };
+    }
+
+    private void applyStates() {
+        switch (systemState) {
+            default:
+            case IDLE:
+                break;
+            case PILOT_AIM_AT_TARGET:
+                var params = ShotCalculator.getInstance().getParameters();
+                setControl(
+                        DRIVE_AT_ANGLE_REQUEST
+                                .withVelocityX(
+                                        calculateSpeedsBasedOnJoystickInputs().vxMetersPerSecond)
+                                .withVelocityY(
+                                        calculateSpeedsBasedOnJoystickInputs().vyMetersPerSecond)
+                                .withTargetDirection(params.driveAngle()));
+
+                break;
+            case TELEOP_DRIVE:
+                setControl(FIELD_CENTRIC_DRIVE.withSpeeds(calculateSpeedsBasedOnJoystickInputs()));
+                break;
+        }
+    }
+
+    private ChassisSpeeds calculateSpeedsBasedOnJoystickInputs() {
+        if (DriverStation.getAlliance().isEmpty()) {
+            return new ChassisSpeeds(0, 0, 0);
+        }
+
+        double xMagnitude = Robot.getPilot().getDriveFwdPositive();
+        double yMagnitude = Robot.getPilot().getDriveLeftPositive();
+        double angularMagnitude = Robot.getPilot().getDriveCCWPositive();
+
+        double xVelocity =
+                (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+                                        == DriverStation.Alliance.Blue
+                                ? xMagnitude
+                                : -xMagnitude)
+                        * teleopVelocityCoefficient;
+        double yVelocity =
+                (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+                                        == DriverStation.Alliance.Blue
+                                ? yMagnitude
+                                : -yMagnitude)
+                        * teleopVelocityCoefficient;
+        double angularVelocity = -angularMagnitude * rotationVelocityCoefficient;
+
+        Rotation2d skewCompensationFactor =
+                Rotation2d.fromRadians(
+                        getCurrentRobotChassisSpeeds().omegaRadiansPerSecond
+                                * SKEW_COMPENSATION_SCALAR);
+
+        return ChassisSpeeds.fromRobotRelativeSpeeds(
+                ChassisSpeeds.fromFieldRelativeSpeeds(
+                        new ChassisSpeeds(xVelocity, yVelocity, -angularVelocity),
+                        getRobotPose().getRotation()),
+                getRobotPose().getRotation().plus(skewCompensationFactor));
     }
 
     // --------------------------------------------------------------------------------
@@ -524,49 +623,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // Rotation Controller
     // --------------------------------------------------------------------------------
 
-    double getRotationControl(double goalRadians) {
-        return rotationController.calculate(goalRadians, getRotationRadians());
-    }
-
-    void resetRotationController() {
-        rotationController.reset(getRotationRadians());
-    }
-
     Rotation2d getRotation() {
         return getRobotPose().getRotation();
     }
 
     double getRotationRadians() {
         return getRobotPose().getRotation().getRadians();
-    }
-
-    double calculateRotationController(DoubleSupplier targetRadians, boolean useHold) {
-        return rotationController.calculate(
-                targetRadians.getAsDouble(), getRotationRadians(), useHold);
-    }
-
-    // --------------------------------------------------------------------------------
-    // Translation X Controller
-    // --------------------------------------------------------------------------------
-
-    void resetXController() {
-        xController.reset(getRobotPose().getX());
-    }
-
-    DoubleSupplier calculateXController(DoubleSupplier targetMeters) {
-        return () -> xController.calculate(targetMeters.getAsDouble(), getRobotPose().getX());
-    }
-
-    // --------------------------------------------------------------------------------
-    // Translation Y Controller
-    // --------------------------------------------------------------------------------
-
-    void resetYController() {
-        yController.reset(getRobotPose().getY());
-    }
-
-    DoubleSupplier calculateYController(DoubleSupplier targetMeters) {
-        return () -> yController.calculate(targetMeters.getAsDouble(), getRobotPose().getY());
     }
 
     // --------------------------------------------------------------------------------
@@ -577,6 +639,29 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     // continuous.
     Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
         return run(() -> this.setControl(requestSupplier.get())).ignoringDisable(true);
+    }
+
+    // ── Public state setters ───────────────────────────────────────────────────────────
+
+    public void setWantedState(WantedState state) {
+        this.wantedState = state;
+    }
+
+    public void setTeleopVelocityCoefficient(double coefficient) {
+        this.teleopVelocityCoefficient = coefficient;
+    }
+
+    public void setRotationVelocityCoefficient(double coefficient) {
+        this.rotationVelocityCoefficient = coefficient;
+    }
+
+    public boolean isAtDesiredRotation() {
+        return isAtDesiredRotation(Units.degreesToRadians(10.0));
+    }
+
+    public boolean isAtDesiredRotation(double toleranceRadians) {
+        return Math.abs(DRIVE_AT_ANGLE_REQUEST.HeadingController.getPositionError())
+                < toleranceRadians;
     }
 
     // --------------------------------------------------------------------------------

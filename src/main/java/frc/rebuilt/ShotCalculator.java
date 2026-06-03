@@ -13,7 +13,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
-import frc.robot.RobotStates;
 import frc.spectrumLib.telemetry.Telemetry;
 
 public class ShotCalculator {
@@ -206,7 +205,7 @@ public class ShotCalculator {
         if (latestParameters != null) return latestParameters;
 
         // ── Target selection ─────────────────────────────────────────────────
-        boolean feed = RobotStates.robotInFeedZone.getAsBoolean();
+        boolean feed = Robot.getSuperStructure().robotInFeedZone().getAsBoolean();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
@@ -264,7 +263,8 @@ public class ShotCalculator {
                 launcherToTarget
                         .getAngle()
                         .plus(Rotation2d.fromDegrees(yawOffsetDeg))
-                        .plus(Rotation2d.fromDegrees(DRIVE_ANGLE_OFFSET));
+                        .plus(Rotation2d.fromDegrees(DRIVE_ANGLE_OFFSET))
+                        .plus(Rotation2d.k180deg);
 
         // ── Lookahead pose: estimated launcher position when the ball arrives ────
         // Useful for Field2d visualization and validating shoot-on-move compensation.

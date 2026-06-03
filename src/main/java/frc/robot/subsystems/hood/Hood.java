@@ -1,10 +1,8 @@
-package frc.robot.hood;
+package frc.robot.subsystems.hood;
 
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj2.command.Command;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
@@ -12,7 +10,6 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.Telemetry;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,17 +19,8 @@ public class Hood extends Mechanism {
 
         @Getter private final double initPosition = 9;
 
-        /* Hood Voltages and Current */
-        @Getter @Setter private double hoodVoltageOut = 6;
-        @Getter @Setter private double hoodTorqueCurrent = 30;
-
         @Getter @Setter private double maxRotations = 0.137;
         @Getter @Setter private double minRotations = 0.024;
-
-        @Getter @Setter private double autoTrenchShot = 25.0;
-
-        @Getter
-        private final DoubleSubscriber onTheFlyAngle = Telemetry.tunable("Hood/OnTheFlyAngle", 9.0);
 
         /* Hood config values */
         @Getter private final double currentLimit = 40;
@@ -75,6 +63,62 @@ public class Hood extends Mechanism {
         }
     }
 
+    // ---- State Machine ----
+
+    public enum WantedState {
+        HOME,
+        STOPPED,
+        AIM_AT_TARGET,
+        AUTON_AIM,
+    }
+
+    public enum SystemState {
+        HOME,
+        STOPPED,
+        AIM_AT_TARGET,
+        AUTON_AIM,
+    }
+
+    private WantedState wantedState = WantedState.HOME;
+    private SystemState systemState = SystemState.HOME;
+
+    public void setWantedState(WantedState state) {
+        this.wantedState = state;
+    }
+
+    private SystemState handleStateTransition() {
+        return switch (wantedState) {
+            case HOME -> SystemState.HOME;
+            case STOPPED -> SystemState.STOPPED;
+            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case AUTON_AIM -> SystemState.AUTON_AIM;
+        };
+    }
+
+    private void applyStates() {
+        double wantedPosition = 9;
+        switch (systemState) {
+            case HOME:
+                wantedPosition = 9.0;
+                break;
+            case STOPPED:
+                stop();
+                return;
+            case AIM_AT_TARGET:
+                var params = ShotCalculator.getInstance().getParameters();
+                if (params.isValid()) {
+                    wantedPosition = params.hoodAngle();
+                }
+
+                break;
+            case AUTON_AIM:
+                wantedPosition = 25.0;
+                break;
+        }
+        final double finalWantedPosition = wantedPosition;
+        setMMPositionFoc(() -> finalWantedPosition);
+    }
+
     private HoodConfig config;
     @Getter private HoodSim sim;
 
@@ -96,7 +140,11 @@ public class Hood extends Mechanism {
 
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
+        applyStates();
         logBatteryUsage();
+        Telemetry.log("Hood/WantedState", wantedState.toString());
+        Telemetry.log("Hood/SystemState", systemState.toString());
         Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Hood/Voltage", getVoltage(), "volts");
         Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
@@ -104,106 +152,6 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "degrees");
         Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("Hood/Temp", getTemp(), "deg_C");
-    }
-
-    @Override
-    public void setupStates() {}
-
-    @Override
-    public void setupDefaultCommand() {
-        HoodStates.setupDefaultCommand();
-    }
-
-    // --------------------------------------------------------------------------------
-    // Custom Commands
-    // --------------------------------------------------------------------------------
-
-    public Command runTorqueFOC(DoubleSupplier torque) {
-        return run(() -> setTorqueCurrentFoc(torque));
-    }
-
-    public void setVoltageAndCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supply, DoubleSupplier torque) {
-        setVoltageOutput(voltage);
-        setCurrentLimits(supply, torque);
-    }
-
-    public Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return runVoltage(voltage).alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command runTCcurrentLimits(DoubleSupplier torqueCurrent, DoubleSupplier supplyCurrent) {
-        return runTorqueCurrentFoc(torqueCurrent)
-                .alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command trackTargetCommand() {
-        return run(() -> {
-                    var params = ShotCalculator.getInstance().getParameters();
-                    if (params.isValid()) {
-                        setMMPositionFoc(() -> degreesToRotations(() -> params.hoodAngle()));
-                    }
-                })
-                .withName("Hood.trackTargetCommand");
-    }
-
-    public Command moveToDegrees(double degrees) {
-        return run(() -> setMMPositionFoc(() -> degreesToRotations(() -> degrees)));
-    }
-
-    public Command onTheFlyLaunch() {
-        return run(() -> {
-                    setMMPositionFoc(() -> config.getOnTheFlyAngle().get());
-                })
-                .withName("Launcher.onTheFlyLaunch");
-    }
-
-    /** Holds the position of the Hood. */
-    public Command runHoldHood() {
-        return new Command() {
-            double holdPosition = 0; // rotations
-
-            // constructor
-            {
-                setName("Hood.holdPosition");
-                addRequirements(Hood.this);
-            }
-
-            @Override
-            public boolean runsWhenDisabled() {
-                return true;
-            }
-
-            @Override
-            public void initialize() {
-                holdPosition = getPositionRotations();
-                stop();
-            }
-
-            @Override
-            public void execute() {
-                if (Math.abs(getVelocityRPM()) > config.holdMaxSpeedRPM) {
-                    stop();
-                    holdPosition = getPositionRotations();
-                } else {
-                    setDynMMPositionFoc(
-                            () -> holdPosition,
-                            () -> config.getMmCruiseVelocity(),
-                            () -> config.getMmAcceleration(),
-                            () -> 20);
-                }
-            }
-
-            @Override
-            public void end(boolean interrupted) {
-                stop();
-            }
-        };
-    }
-
-    public Command stopMotor() {
-        return run(() -> stop());
     }
 
     // --------------------------------------------------------------------------------

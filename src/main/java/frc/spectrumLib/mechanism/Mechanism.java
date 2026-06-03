@@ -25,10 +25,9 @@ import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.framework.SpectrumRobot;
-import frc.spectrumLib.framework.SpectrumSubsystem;
 import frc.spectrumLib.hardware.TalonFXFactory;
 import frc.spectrumLib.util.CachedDouble;
 import frc.spectrumLib.util.CanDeviceId;
@@ -37,101 +36,83 @@ import java.util.function.DoubleSupplier;
 import lombok.*;
 
 /**
- * Abstract base class for all CTRE TalonFX-driven robot mechanisms.
+ * Abstract base class representing a CTRE TalonFX-driven robot mechanism with common control modes,
+ * telemetry, and convenience {@link edu.wpi.first.wpilibj2.command.Command} factories.
  *
- * <p>Provides a unified API covering:
+ * <p>This class centralizes:
  *
  * <ul>
- *   <li><b>Hardware init</b> — leader + follower TalonFX construction and signal configuration
- *   <li><b>Sensor readings</b> — cached position (rotations, %, degrees), velocity (RPM), voltage,
- *       current, and temperature
- *   <li><b>Unit conversions</b> — rotations ↔ percent ↔ degrees; RPS ↔ RPM
- *   <li><b>Trigger factories</b> — at/above/below thresholds for position, velocity, and current
- *   <li><b>Command factories</b> — open-loop (voltage, percent, torque) and closed-loop (Motion
- *       Magic position, velocity) commands ready to be bound to triggers
- *   <li><b>Low-level setters</b> — direct motor-control calls used inside command lambdas
- *   <li><b>Configuration helpers</b> — runtime brake/coast, current limits, soft limits
- *   <li><b>Diagnostics</b> — current-check commands and battery-logger integration
+ *   <li>Motor creation/configuration (leader + optional followers) via the provided {@link Config}
+ *   <li>Cached sensor readings (position, velocity, voltage, current) for efficient access
+ *   <li>Common unit conversions (rotations/percent/degrees; RPS/RPM)
+ *   <li>Standard closed-loop and open-loop control helpers (Motion Magic, velocity, voltage,
+ *       percent, torque current)
+ *   <li>Convenience {@link edu.wpi.first.wpilibj2.command.button.Trigger} factories (at/above/below
+ *       thresholds)
+ *   <li>Basic periodic current reporting to a battery/current logger
  * </ul>
  *
  * <h2>Attachment semantics</h2>
  *
- * When {@link Config#isAttached()} returns {@code false}, no hardware is constructed and all sensor
- * methods return {@code 0}. This lets the same codebase run on robots that are missing a mechanism
- * without crashing.
+ * If {@link Config#isAttached()} is {@code false}, the mechanism will not attempt to construct or
+ * command hardware and will return safe default sensor values (typically {@code 0}).
  *
  * <h2>Target tracking</h2>
  *
- * The private {@code target} field stores the most-recently-commanded closed-loop setpoint (in
- * rotations or RPS depending on the control mode). Trigger factories like {@link
- * #atTargetPosition(DoubleSupplier)} compare live position against this value.
+ * The {@code target} field tracks the last commanded closed-loop setpoint sent by this class. It is
+ * used by helper triggers such as {@code atTargetPosition(...)}.
  *
- * <h2>Creating a concrete mechanism</h2>
+ * <h2>Extending</h2>
  *
- * <ol>
- *   <li>Subclass {@code Mechanism} and create a matching inner {@link Config} subclass.
- *   <li>In the config constructor call the appropriate {@code config*()} helpers to set PID gains,
- *       gear ratio, current limits, soft limits, etc.
- *   <li>Override {@link #setupDefaultCommand()} and {@link #setupStates()} to bind triggers.
- *   <li>Add mechanism-specific {@code Command} methods that delegate to the protected setters.
- * </ol>
+ * Concrete mechanisms should provide a {@link Config} describing motor IDs, Talon configuration,
+ * follower configuration, and mechanism-specific min/max rotation bounds as needed.
  *
- * <p><b>Units:</b> All CTRE Phoenix 6 signals use <em>rotations</em> for position and
- * <em>rotations-per-second</em> for velocity. Conversions to RPM, degrees, and percent-of-travel
- * are provided by this class.
+ * <p><b>Note:</b> This class assumes CTRE Phoenix 6 units (rotations, rotations/sec, etc.) and uses
+ * {@code Config.talonConfig.Feedback.SensorToMechanismRatio} as the mechanism gearing ratio.
  */
-public abstract class Mechanism implements SpectrumSubsystem {
+public abstract class Mechanism implements Subsystem {
 
-    // =========================================================================
-    // Fields & Construction
-    // =========================================================================
+    // ── Fields ─────────────────────────────────────────────────────────────────
 
-    /** The leader TalonFX motor controller. {@code null} when not attached. */
+    /** The primary (leader) TalonFX motor controller. */
     @Getter protected TalonFX motor;
 
-    /** Follower TalonFX motor controllers. Empty array when not attached. */
+    /** Optional follower TalonFX motor controllers that mirror the leader. */
     @Getter protected TalonFX[] followerMotors;
 
-    /**
-     * Mechanism configuration. Declared {@code public} so subclasses can shadow it with a narrower
-     * type (e.g. {@code private MyConfig config}) while still allowing the parent to access common
-     * fields.
-     */
+    /** Configuration object holding motor IDs, Talon settings, and mechanism parameters. */
     public Config config;
 
-    /** WPILib alert raised by current-check diagnostic commands. */
+    /** Alert displayed when an unexpected current reading is detected during diagnostics. */
     Alert currentAlert = new Alert("", AlertType.kWarning);
 
-    /**
-     * Last commanded closed-loop setpoint sent to the motor. Units depend on control mode:
-     * rotations for position modes, RPS for velocity modes.
-     */
+    /** The last closed-loop setpoint (in rotations) sent to the motor. */
     private double target = 0;
 
-    // Cached sensor values — refreshed once per accessor call per loop cycle
+    // Cached sensor readings — updated lazily each loop via CachedDouble
     private final CachedDouble cachedRotations;
     private final CachedDouble cachedPercentage;
+    private final CachedDouble cachedVoltage;
     private final CachedDouble cachedDegrees;
     private final CachedDouble cachedVelocity;
-    private final CachedDouble cachedVoltage;
     private final CachedDouble cachedStatorCurrent;
     private final CachedDouble cachedSupplyCurrent;
     private final CachedDouble cachedTemp;
 
+    // ── Constructors ───────────────────────────────────────────────────────────
+
     /**
-     * Constructs the mechanism, initializing the leader and all follower TalonFX motors when
-     * attached, wiring up cached sensor suppliers, and registering the subsystem with the {@link
-     * SpectrumRobot} registry and WPILib {@link edu.wpi.first.wpilibj2.command.CommandScheduler}.
+     * Creates a Mechanism and, if {@link Config#isAttached()} is {@code true}, initializes the
+     * leader TalonFX and any configured follower motors. Sensor caches are always initialized so
+     * safe defaults ({@code 0}) are returned even when unattached.
      *
-     * @param config the mechanism configuration describing motor IDs, gains, limits, and followers
+     * @param config the mechanism configuration (motor IDs, Talon settings, follower config, etc.)
      */
     protected Mechanism(Config config) {
         this.config = config;
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
-
-            // Run high-priority signals at 100 Hz to keep cached values fresh
             BaseStatusSignal.setUpdateFrequencyForAll(
                     100,
                     motor.getDutyCycle(),
@@ -163,64 +144,355 @@ public abstract class Mechanism implements SpectrumSubsystem {
         cachedVelocity = new CachedDouble(this::updateVelocityRPM);
         cachedTemp = new CachedDouble(this::updateTemp);
 
-        SpectrumRobot.add(this);
         this.register();
     }
 
     /**
-     * Constructs the mechanism and immediately overrides the attachment state.
-     *
-     * <p>Prefer setting {@link Config#setAttached(boolean)} before construction; this constructor
-     * exists for cases where attachment must be decided after the config is built.
+     * Creates a Mechanism and explicitly overrides the {@code attached} flag in the config.
      *
      * @param config the mechanism configuration
-     * @param attached {@code true} to initialize hardware, {@code false} to run detached
+     * @param attached {@code true} to enable hardware; {@code false} to run in software-only mode
      */
     protected Mechanism(Config config, boolean attached) {
         this(config);
         config.attached = attached;
     }
 
-    // =========================================================================
-    // SpectrumSubsystem Overrides
-    // =========================================================================
+    // ── Subsystem Overrides ────────────────────────────────────────────────────
 
-    /** Called every scheduler loop. Override in subclasses to log telemetry. */
+    /**
+     * Called once per scheduler loop. Concrete subclasses should override to implement their
+     * periodic state-machine logic, telemetry, and sensor updates.
+     */
     @Override
     public void periodic() {}
 
-    /** Called every scheduler loop during simulation. Override to update sim models. */
+    /**
+     * Called once per simulation loop. Concrete subclasses should override to update simulation
+     * state (e.g., physics model inputs).
+     */
     @Override
     public void simulationPeriodic() {}
 
     /**
-     * @return the mechanism name as defined in {@link Config}.
+     * Returns the human-readable name of this mechanism, as defined in its {@link Config}.
+     *
+     * @return the mechanism name
      */
     @Override
     public String getName() {
         return config.getName();
     }
 
+    // ── Utility ────────────────────────────────────────────────────────────────
+
     /**
-     * Returns whether this mechanism's hardware is connected and should be commanded.
+     * Returns {@code true} if physical hardware is attached and motor commands should be sent.
      *
-     * @return {@code true} if the motor(s) are attached and safe to command
+     * @return {@code true} when hardware is available
      */
     public boolean isAttached() {
         return config.isAttached();
     }
 
-    // =========================================================================
-    // Sensor Readings
-    // =========================================================================
-
-    // ---- Stator Current ----
+    /**
+     * Reports the combined supply current draw of the leader motor and all followers to the battery
+     * logger. Does nothing if the mechanism is not attached.
+     */
+    public void logBatteryUsage() {
+        if (isAttached()) {
+            double motorCurrent = motor.getSupplyCurrent().getValueAsDouble();
+            double followersCurrent = 0;
+            for (TalonFX follower : followerMotors) {
+                followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
+            }
+            Robot.getBatteryLogger()
+                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+        }
+    }
 
     /**
-     * Reads the leader motor's stator current directly from hardware. Called by the {@link
-     * CachedDouble} backing {@link #getStatorCurrent()}.
+     * Returns the name of the command currently scheduled on this subsystem, or {@code "none"} if
+     * no command is running.
      *
-     * @return stator current in amps, or {@code 0} if not attached
+     * @return the current command name
+     */
+    protected String getCurrentCommandName() {
+        Command currentCommand = this.getCurrentCommand();
+        if (currentCommand != null) {
+            return currentCommand.getName();
+        }
+        return "none";
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active whenever this subsystem's current command is its
+     * default command.
+     *
+     * @return trigger that is {@code true} while the default command is running
+     */
+    public Trigger runningDefaultCommand() {
+        return new Trigger(this::isRunningDefaultCommand);
+    }
+
+    private boolean isRunningDefaultCommand() {
+        return this.getCurrentCommand() == this.getDefaultCommand();
+    }
+
+    /**
+     * Returns the last closed-loop setpoint (in rotations) sent to the motor by this class.
+     *
+     * @return the most recent target position in rotations
+     */
+    public double getTarget() {
+        return target;
+    }
+
+    // ── Triggers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor is within {@code tolerance} rotations
+     * of the last commanded target position.
+     *
+     * @param tolerance maximum allowable error in rotations
+     * @return trigger that is {@code true} when position error is within tolerance
+     */
+    public Trigger atTargetPosition(DoubleSupplier tolerance) {
+        return new Trigger(() -> isAtTargetPosition(tolerance));
+    }
+
+    /**
+     * Returns {@code true} when the motor is within {@code tolerance} rotations of the last
+     * commanded target position.
+     *
+     * @param tolerance maximum allowable error in rotations
+     * @return {@code true} when position error is within tolerance
+     */
+    public boolean isAtTargetPosition(DoubleSupplier tolerance) {
+        return Math.abs(cachedRotations.getAsDouble() - target) < tolerance.getAsDouble();
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is within {@code tolerance}
+     * of {@code target} (both in rotations).
+     *
+     * @param target the desired position in rotations
+     * @param tolerance maximum allowable error in rotations
+     * @return trigger that is {@code true} when position is within tolerance of target
+     */
+    public Trigger atRotations(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () ->
+                        Math.abs(getPositionRotations() - target.getAsDouble())
+                                < tolerance.getAsDouble());
+    }
+
+    /**
+     * Returns {@code true} when the motor position is within {@code tolerance} of {@code target}
+     * (both in rotations).
+     *
+     * @param target the desired position in rotations
+     * @param tolerance maximum allowable error in rotations
+     * @return {@code true} when position is within tolerance of target
+     */
+    public boolean isAtRotations(DoubleSupplier target, DoubleSupplier tolerance) {
+        return Math.abs(getPositionRotations() - target.getAsDouble()) < tolerance.getAsDouble();
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is below {@code target +
+     * tolerance} rotations.
+     *
+     * @param target reference position in rotations
+     * @param tolerance offset added to target to form the upper bound
+     * @return trigger that is {@code true} when position is below the threshold
+     */
+    public Trigger belowRotations(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getPositionRotations() < (target.getAsDouble() + tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is above {@code target -
+     * tolerance} rotations.
+     *
+     * @param target reference position in rotations
+     * @param tolerance offset subtracted from target to form the lower bound
+     * @return trigger that is {@code true} when position is above the threshold
+     */
+    public Trigger aboveRotations(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getPositionRotations() > (target.getAsDouble() - tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is within {@code tolerance}
+     * of {@code target} (both as a percentage of max rotations).
+     *
+     * @param target the desired position as a percentage of max rotations
+     * @param tolerance maximum allowable error as a percentage
+     * @return trigger that is {@code true} when position is within tolerance of target
+     */
+    public Trigger atPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () ->
+                        Math.abs(getPositionPercentage() - target.getAsDouble())
+                                < tolerance.getAsDouble());
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is below {@code target +
+     * tolerance} (as a percentage of max rotations).
+     *
+     * @param target reference position as a percentage
+     * @param tolerance offset added to target to form the upper bound
+     * @return trigger that is {@code true} when position is below the threshold
+     */
+    public Trigger belowPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getPositionPercentage() < (target.getAsDouble() + tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is above {@code target -
+     * tolerance} (as a percentage of max rotations).
+     *
+     * @param target reference position as a percentage
+     * @param tolerance offset subtracted from target to form the lower bound
+     * @return trigger that is {@code true} when position is above the threshold
+     */
+    public Trigger abovePercentage(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getPositionPercentage() > (target.getAsDouble() - tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is within {@code tolerance}
+     * of {@code target} (both in degrees).
+     *
+     * @param target the desired position in degrees
+     * @param tolerance maximum allowable error in degrees
+     * @return trigger that is {@code true} when position is within tolerance of target
+     */
+    public Trigger atDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () ->
+                        Math.abs(getPositionDegrees() - target.getAsDouble())
+                                < tolerance.getAsDouble());
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is below {@code target +
+     * tolerance} degrees.
+     *
+     * @param target reference position in degrees
+     * @param tolerance offset added to target to form the upper bound
+     * @return trigger that is {@code true} when position is below the threshold
+     */
+    public Trigger belowDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getPositionDegrees() < (target.getAsDouble() + tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor position is above {@code target -
+     * tolerance} degrees.
+     *
+     * @param target reference position in degrees
+     * @param tolerance offset subtracted from target to form the lower bound
+     * @return trigger that is {@code true} when position is above the threshold
+     */
+    public Trigger aboveDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getPositionDegrees() > (target.getAsDouble() - tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor velocity is within {@code tolerance}
+     * RPM of {@code target}.
+     *
+     * @param target the desired velocity in RPM
+     * @param tolerance maximum allowable error in RPM
+     * @return trigger that is {@code true} when velocity is within tolerance of target
+     */
+    public Trigger atVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> Math.abs(getVelocityRPM() - target.getAsDouble()) < tolerance.getAsDouble());
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor velocity is below {@code target +
+     * tolerance} RPM.
+     *
+     * @param target reference velocity in RPM
+     * @param tolerance offset added to target to form the upper bound
+     * @return trigger that is {@code true} when velocity is below the threshold
+     */
+    public Trigger belowVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getVelocityRPM() < (target.getAsDouble() + tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor velocity is above {@code target -
+     * tolerance} RPM.
+     *
+     * @param target reference velocity in RPM
+     * @param tolerance offset subtracted from target to form the lower bound
+     * @return trigger that is {@code true} when velocity is above the threshold
+     */
+    public Trigger aboveVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getVelocityRPM() > (target.getAsDouble() - tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor stator current is within {@code
+     * tolerance} amps of {@code target}.
+     *
+     * @param target the desired stator current in amps
+     * @param tolerance maximum allowable error in amps
+     * @return trigger that is {@code true} when stator current is within tolerance of target
+     */
+    public Trigger atCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () ->
+                        Math.abs(getStatorCurrent() - target.getAsDouble())
+                                < tolerance.getAsDouble());
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor stator current is below {@code target
+     * + tolerance} amps.
+     *
+     * @param target reference current in amps
+     * @param tolerance offset added to target to form the upper bound
+     * @return trigger that is {@code true} when stator current is below the threshold
+     */
+    public Trigger belowCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getStatorCurrent() < (target.getAsDouble() + tolerance.getAsDouble()));
+    }
+
+    /**
+     * Returns a {@link Trigger} that is active when the motor stator current is above {@code target
+     * - tolerance} amps.
+     *
+     * @param target reference current in amps
+     * @param tolerance offset subtracted from target to form the lower bound
+     * @return trigger that is {@code true} when stator current is above the threshold
+     */
+    public Trigger aboveCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> getStatorCurrent() > (target.getAsDouble() - tolerance.getAsDouble()));
+    }
+
+    // ── Sensor Readings ────────────────────────────────────────────────────────
+
+    /**
+     * Reads the stator current directly from the motor hardware.
+     *
+     * @return motor stator current in amps, or {@code 0} if not attached
      */
     public double updateStatorCurrent() {
         if (config.attached) {
@@ -230,21 +502,18 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the leader motor's stator current, cached for the current loop cycle.
+     * Returns the cached stator current of the motor.
      *
-     * @return stator current in amps
+     * @return motor stator current in amps
      */
     public double getStatorCurrent() {
         return cachedStatorCurrent.getAsDouble();
     }
 
-    // ---- Supply Current ----
-
     /**
-     * Reads the leader motor's supply (battery) current directly from hardware. Called by the
-     * {@link CachedDouble} backing {@link #getSupplyCurrent()}.
+     * Reads the supply current directly from the motor hardware.
      *
-     * @return supply current in amps, or {@code 0} if not attached
+     * @return motor supply current in amps, or {@code 0} if not attached
      */
     public double updateSupplyCurrent() {
         if (config.attached) {
@@ -254,19 +523,16 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the leader motor's supply current, cached for the current loop cycle.
+     * Returns the cached supply current of the motor.
      *
-     * @return supply current in amps
+     * @return motor supply current in amps
      */
     public double getSupplyCurrent() {
         return cachedSupplyCurrent.getAsDouble();
     }
 
-    // ---- Voltage ----
-
     /**
-     * Reads the leader motor's output voltage directly from hardware. Called by the {@link
-     * CachedDouble} backing {@link #getVoltage()}.
+     * Reads the motor voltage directly from hardware.
      *
      * @return motor voltage in volts, or {@code 0} if not attached
      */
@@ -278,7 +544,7 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the leader motor's output voltage, cached for the current loop cycle.
+     * Returns the cached voltage of the motor.
      *
      * @return motor voltage in volts
      */
@@ -286,13 +552,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
         return cachedVoltage.getAsDouble();
     }
 
-    // ---- Temperature ----
-
     /**
-     * Reads the leader motor's device temperature directly from hardware. Called by the {@link
-     * CachedDouble} backing {@link #getTemp()}.
+     * Reads the motor temperature directly from hardware.
      *
-     * @return temperature in °C, or {@code 0} if not attached
+     * @return motor temperature in Celsius, or {@code 0} if not attached
      */
     public double updateTemp() {
         if (config.attached) {
@@ -302,22 +565,71 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the leader motor's device temperature, cached for the current loop cycle.
+     * Returns the cached temperature of the motor.
      *
-     * @return temperature in °C
+     * @return motor temperature in Celsius
      */
     public double getTemp() {
         return cachedTemp.getAsDouble();
     }
 
-    // ---- Position ----
+    // ── Unit Conversions ───────────────────────────────────────────────────────
 
     /**
-     * Reads the mechanism position in rotations directly from hardware. The value is scaled by
-     * {@link Config#configGearRatio(double)} (SensorToMechanismRatio). Called by the {@link
-     * CachedDouble} backing {@link #getPositionRotations()}.
+     * Converts a percentage of the mechanism's maximum range into an absolute rotation count.
      *
-     * @return position in rotations, or {@code 0} if not attached
+     * @param percent position as a percentage of max rotations (0–100)
+     * @return the equivalent position in rotations
+     */
+    public double percentToRotations(DoubleSupplier percent) {
+        return (percent.getAsDouble() / 100) * config.maxRotations;
+    }
+
+    /**
+     * Converts an absolute rotation count into a percentage of the mechanism's maximum range.
+     *
+     * @param rotations position in rotations
+     * @return the equivalent percentage of max rotations (0–100)
+     */
+    public double rotationsToPercent(DoubleSupplier rotations) {
+        return (rotations.getAsDouble() / config.maxRotations) * 100;
+    }
+
+    /**
+     * Converts degrees to rotations (1 rotation = 360 degrees).
+     *
+     * @param degrees angle in degrees
+     * @return the equivalent position in rotations
+     */
+    public double degreesToRotations(DoubleSupplier degrees) {
+        return (degrees.getAsDouble() / 360);
+    }
+
+    /**
+     * Converts rotations to degrees (1 rotation = 360 degrees).
+     *
+     * @param rotations position in rotations
+     * @return the equivalent angle in degrees
+     */
+    public double rotationsToDegrees(DoubleSupplier rotations) {
+        return 360 * rotations.getAsDouble();
+    }
+
+    // ── Position & Velocity ────────────────────────────────────────────────────
+
+    /**
+     * Returns the cached motor position in rotations.
+     *
+     * @return motor position in rotations
+     */
+    public double getPositionRotations() {
+        return cachedRotations.getAsDouble();
+    }
+
+    /**
+     * Reads the motor position directly from hardware.
+     *
+     * @return motor position in rotations, or {@code 0} if not attached
      */
     private double updatePositionRotations() {
         if (config.attached) {
@@ -327,60 +639,45 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns the mechanism position in rotations, cached for the current loop cycle.
+     * Returns the cached motor position as a percentage of max rotations.
      *
-     * @return position in rotations
-     */
-    public double getPositionRotations() {
-        return cachedRotations.getAsDouble();
-    }
-
-    /**
-     * Derives the mechanism position as a percentage of {@link Config#getMaxRotations()}. Called by
-     * the {@link CachedDouble} backing {@link #getPositionPercentage()}.
-     *
-     * @return position as a percentage of max rotations (0–100)
-     */
-    private double updatePositionPercentage() {
-        return rotationsToPercent(this::getPositionRotations);
-    }
-
-    /**
-     * Returns the mechanism position as a percentage of max travel, cached for the current loop
-     * cycle.
-     *
-     * @return position in percent (0 = min, 100 = max)
+     * @return motor position in percentage of max rotations (0–100)
      */
     public double getPositionPercentage() {
         return cachedPercentage.getAsDouble();
     }
 
     /**
-     * Derives the mechanism position in degrees from the cached rotation value. Called by the
-     * {@link CachedDouble} backing {@link #getPositionDegrees()}.
+     * Computes the motor position as a percentage of max rotations using the cached rotation value.
      *
-     * @return position in degrees
+     * @return motor position in percentage of max rotations
+     */
+    private double updatePositionPercentage() {
+        return rotationsToPercent(this::getPositionRotations);
+    }
+
+    /**
+     * Returns the cached motor position in degrees.
+     *
+     * @return motor position in degrees
+     */
+    public double getPositionDegrees() {
+        return cachedDegrees.getAsDouble();
+    }
+
+    /**
+     * Computes the motor position in degrees using the cached rotation value.
+     *
+     * @return motor position in degrees
      */
     private double updatePositionDegrees() {
         return rotationsToDegrees(this::getPositionRotations);
     }
 
     /**
-     * Returns the mechanism position in degrees, cached for the current loop cycle.
+     * Reads the motor velocity directly from hardware in rotations per second (CTRE native units).
      *
-     * @return position in degrees
-     */
-    public double getPositionDegrees() {
-        return cachedDegrees.getAsDouble();
-    }
-
-    // ---- Velocity ----
-
-    /**
-     * Reads the mechanism velocity in rotations-per-second (CTRE native unit) directly from
-     * hardware.
-     *
-     * @return velocity in RPS, or {@code 0} if not attached
+     * @return motor velocity in rotations per second, or {@code 0} if not attached
      */
     private double updateVelocityRPS() {
         if (config.attached) {
@@ -390,378 +687,31 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Converts the raw RPS hardware reading to RPM. Called by the {@link CachedDouble} backing
-     * {@link #getVelocityRPM()}.
+     * Returns the cached motor velocity in RPM.
      *
-     * @return velocity in RPM
-     */
-    private double updateVelocityRPM() {
-        return Conversions.RPStoRPM(updateVelocityRPS());
-    }
-
-    /**
-     * Returns the mechanism velocity in RPM, cached for the current loop cycle.
-     *
-     * @return velocity in RPM
+     * @return motor velocity in revolutions per minute
      */
     public double getVelocityRPM() {
         return cachedVelocity.getAsDouble();
     }
 
-    // ---- Unit Conversions ----
-
     /**
-     * Converts a percentage of max travel to rotations.
+     * Computes the motor velocity in RPM from the raw RPS sensor reading.
      *
-     * @param percent percentage (0–100), where 100% equals {@link Config#getMaxRotations()}
-     * @return equivalent position in rotations
+     * @return motor velocity in revolutions per minute
      */
-    public double percentToRotations(DoubleSupplier percent) {
-        return (percent.getAsDouble() / 100) * config.maxRotations;
+    private double updateVelocityRPM() {
+        return Conversions.RPStoRPM(updateVelocityRPS());
     }
+
+    // ── Command Factories ──────────────────────────────────────────────────────
 
     /**
-     * Converts rotations to a percentage of max travel.
+     * Returns a {@link Command} that continuously drives the mechanism at the specified velocity
+     * using closed-loop voltage control.
      *
-     * @param rotations position in rotations
-     * @return percentage of {@link Config#getMaxRotations()} (0–100)
-     */
-    public double rotationsToPercent(DoubleSupplier rotations) {
-        return (rotations.getAsDouble() / config.maxRotations) * 100;
-    }
-
-    /**
-     * Converts degrees to rotations (mechanism-side, after gearing).
-     *
-     * @param degrees angle in degrees
-     * @return equivalent position in rotations
-     */
-    public double degreesToRotations(DoubleSupplier degrees) {
-        return (degrees.getAsDouble() / 360);
-    }
-
-    /**
-     * Converts rotations to degrees (mechanism-side, after gearing).
-     *
-     * @param rotations position in rotations
-     * @return equivalent angle in degrees
-     */
-    public double rotationsToDegrees(DoubleSupplier rotations) {
-        return 360 * rotations.getAsDouble();
-    }
-
-    // =========================================================================
-    // Triggers
-    // =========================================================================
-
-    // ---- Command / Default State ----
-
-    /**
-     * Returns a {@link Trigger} that is active whenever the mechanism is running its default
-     * command (i.e., no other command has required it).
-     *
-     * @return trigger active while the default command is running
-     */
-    public Trigger runningDefaultCommand() {
-        return new Trigger(this::isRunningDefaultCommand);
-    }
-
-    private boolean isRunningDefaultCommand() {
-        return this.getCurrentCommand() == this.getDefaultCommand();
-    }
-
-    /**
-     * Returns the last closed-loop setpoint commanded to the motor. Units depend on the most recent
-     * control mode: rotations for position modes, RPS for velocity modes.
-     *
-     * @return last commanded setpoint
-     */
-    public double getTarget() {
-        return target;
-    }
-
-    /**
-     * Returns a {@link Trigger} that is active when the mechanism position is within {@code
-     * tolerance} rotations of the last commanded {@link #getTarget() target}.
-     *
-     * @param tolerance acceptable error in rotations
-     * @return trigger active when position is at the last commanded target
-     */
-    public Trigger atTargetPosition(DoubleSupplier tolerance) {
-        return new Trigger(() -> isAtTargetPosition(tolerance));
-    }
-
-    private boolean isAtTargetPosition(DoubleSupplier tolerance) {
-        return Math.abs(cachedRotations.getAsDouble() - target) < tolerance.getAsDouble();
-    }
-
-    // ---- Position Triggers (Rotations) ----
-
-    /**
-     * Returns a {@link Trigger} active when the position is within {@code tolerance} rotations of
-     * {@code target}.
-     *
-     * @param target desired position in rotations
-     * @param tolerance acceptable error in rotations
-     * @return trigger active when position ≈ target
-     */
-    public Trigger atRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionRotations() - target.getAsDouble())
-                                < tolerance.getAsDouble());
-    }
-
-    /**
-     * Returns a {@link Trigger} active when the position is below {@code target + tolerance}
-     * rotations.
-     *
-     * @param target reference position in rotations
-     * @param tolerance added to target to form the upper bound
-     * @return trigger active when position &lt; target + tolerance
-     */
-    public Trigger belowRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionRotations() < (target.getAsDouble() + tolerance.getAsDouble()));
-    }
-
-    /**
-     * Returns a {@link Trigger} active when the position is above {@code target - tolerance}
-     * rotations.
-     *
-     * @param target reference position in rotations
-     * @param tolerance subtracted from target to form the lower bound
-     * @return trigger active when position &gt; target - tolerance
-     */
-    public Trigger aboveRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionRotations() > (target.getAsDouble() - tolerance.getAsDouble()));
-    }
-
-    // ---- Position Triggers (Percent) ----
-
-    /**
-     * Returns a {@link Trigger} active when the position is within {@code tolerance} percent of
-     * {@code target}.
-     *
-     * @param target desired position as a percentage of max travel (0–100)
-     * @param tolerance acceptable error in percent
-     * @return trigger active when position ≈ target
-     */
-    public Trigger atPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionPercentage() - target.getAsDouble())
-                                < tolerance.getAsDouble());
-    }
-
-    /**
-     * Returns a {@link Trigger} active when the position is below {@code target + tolerance}
-     * percent.
-     *
-     * @param target reference position in percent
-     * @param tolerance added to target to form the upper bound
-     * @return trigger active when position &lt; target + tolerance
-     */
-    public Trigger belowPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionPercentage() < (target.getAsDouble() + tolerance.getAsDouble()));
-    }
-
-    /**
-     * Returns a {@link Trigger} active when the position is above {@code target - tolerance}
-     * percent.
-     *
-     * @param target reference position in percent
-     * @param tolerance subtracted from target to form the lower bound
-     * @return trigger active when position &gt; target - tolerance
-     */
-    public Trigger abovePercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionPercentage() > (target.getAsDouble() - tolerance.getAsDouble()));
-    }
-
-    // ---- Position Triggers (Degrees) ----
-
-    /**
-     * Returns a {@link Trigger} active when the position is within {@code tolerance} degrees of
-     * {@code target}.
-     *
-     * @param target desired position in degrees
-     * @param tolerance acceptable error in degrees
-     * @return trigger active when position ≈ target
-     */
-    public Trigger atDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionDegrees() - target.getAsDouble())
-                                < tolerance.getAsDouble());
-    }
-
-    /**
-     * Returns a {@link Trigger} active when the position is below {@code target + tolerance}
-     * degrees.
-     *
-     * @param target reference position in degrees
-     * @param tolerance added to target to form the upper bound
-     * @return trigger active when position &lt; target + tolerance
-     */
-    public Trigger belowDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionDegrees() < (target.getAsDouble() + tolerance.getAsDouble()));
-    }
-
-    /**
-     * Returns a {@link Trigger} active when the position is above {@code target - tolerance}
-     * degrees.
-     *
-     * @param target reference position in degrees
-     * @param tolerance subtracted from target to form the lower bound
-     * @return trigger active when position &gt; target - tolerance
-     */
-    public Trigger aboveDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionDegrees() > (target.getAsDouble() - tolerance.getAsDouble()));
-    }
-
-    // ---- Velocity Triggers ----
-
-    /**
-     * Returns a {@link Trigger} active when velocity is within {@code tolerance} RPM of {@code
-     * target}.
-     *
-     * @param target desired velocity in RPM
-     * @param tolerance acceptable error in RPM
-     * @return trigger active when velocity ≈ target
-     */
-    public Trigger atVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> Math.abs(getVelocityRPM() - target.getAsDouble()) < tolerance.getAsDouble());
-    }
-
-    /**
-     * Returns a {@link Trigger} active when velocity is below {@code target + tolerance} RPM.
-     *
-     * @param target reference velocity in RPM
-     * @param tolerance added to target to form the upper bound
-     * @return trigger active when velocity &lt; target + tolerance
-     */
-    public Trigger belowVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getVelocityRPM() < (target.getAsDouble() + tolerance.getAsDouble()));
-    }
-
-    /**
-     * Returns a {@link Trigger} active when velocity is above {@code target - tolerance} RPM.
-     *
-     * @param target reference velocity in RPM
-     * @param tolerance subtracted from target to form the lower bound
-     * @return trigger active when velocity &gt; target - tolerance
-     */
-    public Trigger aboveVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getVelocityRPM() > (target.getAsDouble() - tolerance.getAsDouble()));
-    }
-
-    // ---- Current Triggers ----
-
-    /**
-     * Returns a {@link Trigger} active when stator current is within {@code tolerance} amps of
-     * {@code target}.
-     *
-     * @param target desired stator current in amps
-     * @param tolerance acceptable error in amps
-     * @return trigger active when current ≈ target
-     */
-    public Trigger atCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getStatorCurrent() - target.getAsDouble())
-                                < tolerance.getAsDouble());
-    }
-
-    /**
-     * Returns a {@link Trigger} active when stator current is below {@code target + tolerance}
-     * amps.
-     *
-     * @param target reference current in amps
-     * @param tolerance added to target to form the upper bound
-     * @return trigger active when current &lt; target + tolerance
-     */
-    public Trigger belowCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getStatorCurrent() < (target.getAsDouble() + tolerance.getAsDouble()));
-    }
-
-    /**
-     * Returns a {@link Trigger} active when stator current is above {@code target - tolerance}
-     * amps.
-     *
-     * @param target reference current in amps
-     * @param tolerance subtracted from target to form the lower bound
-     * @return trigger active when current &gt; target - tolerance
-     */
-    public Trigger aboveCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getStatorCurrent() > (target.getAsDouble() - tolerance.getAsDouble()));
-    }
-
-    // =========================================================================
-    // Command Factories — Open-Loop
-    // =========================================================================
-
-    /**
-     * Runs the mechanism at a fixed percentage of supply voltage, scaled by {@link
-     * Config#getVoltageCompSaturation()}.
-     *
-     * @param percent output fraction between -1 (full reverse) and +1 (full forward)
-     * @return a command that applies the percentage output while scheduled
-     */
-    public Command runPercentage(DoubleSupplier percent) {
-        return run(() -> setPercentOutput(percent)).withName(getName() + ".runPercentage");
-    }
-
-    /**
-     * Runs the mechanism at a fixed voltage, bypassing closed-loop control.
-     *
-     * @param voltage output in volts
-     * @return a command that applies the voltage while scheduled
-     */
-    public Command runVoltage(DoubleSupplier voltage) {
-        return run(() -> setVoltageOutput(voltage)).withName(getName() + ".runVoltage");
-    }
-
-    /**
-     * Runs the mechanism at a fixed voltage, bypassing both closed-loop control and software
-     * limits. Use with caution — this can drive the mechanism past its configured travel limits.
-     *
-     * @param voltage output in volts
-     * @return a command that applies the voltage while scheduled, ignoring soft limits
-     */
-    public Command runVoltageNoSoftLimit(DoubleSupplier voltage) {
-        return run(() -> setVoltageOutputNoSoftLimit(voltage))
-                .withName(getName() + ".runVoltageNoSoftLimit");
-    }
-
-    /**
-     * Runs the mechanism in open-loop Torque Current FOC mode (requires Phoenix Pro).
-     *
-     * @param current target torque current in amps
-     * @return a command that applies the torque current while scheduled
-     */
-    public Command runTorqueCurrentFoc(DoubleSupplier current) {
-        return run(() -> setTorqueCurrentFoc(current)).withName(getName() + ".runTorqueCurrentFoc");
-    }
-
-    // =========================================================================
-    // Command Factories — Closed-Loop Velocity
-    // =========================================================================
-
-    /**
-     * Runs the mechanism at a closed-loop velocity using voltage-compensated control.
-     *
-     * @param velocityRPM target velocity in RPM
-     * @return a command that maintains the velocity while scheduled
+     * @param velocityRPM the target velocity in revolutions per minute
+     * @return a command that runs the mechanism at the given velocity
      */
     public Command runVelocity(DoubleSupplier velocityRPM) {
         return run(() -> setVelocity(() -> Conversions.RPMtoRPS(velocityRPM)))
@@ -769,85 +719,124 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Runs the mechanism at a closed-loop velocity using Torque Current FOC control (requires
-     * Phoenix Pro). Provides better torque linearity than voltage-mode velocity control.
+     * Returns a {@link Command} that continuously drives the mechanism at the specified velocity
+     * using closed-loop Torque Current FOC control (requires Phoenix Pro).
      *
-     * @param velocityRPM target velocity in RPM
-     * @return a command that maintains the velocity while scheduled
+     * @param velocityRPM the target velocity in revolutions per minute
+     * @return a command that runs the mechanism at the given velocity using torque current FOC
      */
     public Command runVelocityTcFocRPM(DoubleSupplier velocityRPM) {
         return run(() -> setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM)))
                 .withName(getName() + ".runVelocityFOCrpm");
     }
 
-    // =========================================================================
-    // Command Factories — Closed-Loop Position (Motion Magic)
-    // =========================================================================
-
     /**
-     * Moves the mechanism to a position in rotations using Motion Magic Torque Current FOC
-     * (requires Phoenix Pro).
+     * Returns a {@link Command} that continuously applies an open-loop percent output to the
+     * mechanism using voltage compensation.
      *
-     * @param rotations target position in rotations
-     * @return a command that moves to and holds the position while scheduled
+     * @param percent fractional output between -1 and +1
+     * @return a command that runs the mechanism at the given percent output
      */
-    public Command moveToRotations(DoubleSupplier rotations) {
-        return run(() -> setMMPositionFoc(rotations)).withName(getName() + ".moveToRotations");
+    public Command runPercentage(DoubleSupplier percent) {
+        return run(() -> setPercentOutput(percent)).withName(getName() + ".runPercentage");
     }
 
     /**
-     * Moves the mechanism to a position expressed as a percentage of max travel using Motion Magic
-     * Torque Current FOC (requires Phoenix Pro).
+     * Returns a {@link Command} that continuously applies the specified voltage to the mechanism,
+     * bypassing any closed-loop control.
      *
-     * @param percent target position as a percentage of {@link Config#getMaxRotations()} (0–100)
-     * @return a command that moves to and holds the position while scheduled
+     * @param voltage the desired voltage in volts
+     * @return a command that applies the given voltage output
+     */
+    public Command runVoltage(DoubleSupplier voltage) {
+        return run(() -> setVoltageOutput(voltage)).withName(getName() + ".runVoltage");
+    }
+
+    /**
+     * Returns a {@link Command} that continuously applies the specified voltage to the mechanism,
+     * bypassing closed-loop control <em>and</em> ignoring software limit switches.
+     *
+     * @param voltage the desired voltage in volts
+     * @return a command that applies the given voltage output, ignoring software limits
+     */
+    public Command runVoltageNoSoftLimit(DoubleSupplier voltage) {
+        return run(() -> setVoltageOutputNoSoftLimit(voltage))
+                .withName(getName() + ".runVoltageNoSoftLimit");
+    }
+
+    /**
+     * Returns a {@link Command} that continuously drives the mechanism at the specified torque
+     * current using FOC control (requires Phoenix Pro).
+     *
+     * @param current the desired torque current in amps
+     * @return a command that runs the mechanism at the given torque current
+     */
+    public Command runTorqueCurrentFoc(DoubleSupplier current) {
+        return run(() -> setTorqueCurrentFoc(current)).withName(getName() + ".runTorqueCurrentFoc");
+    }
+
+    /**
+     * Returns a {@link Command} that continuously moves the mechanism to the specified position
+     * using Motion Magic Torque Current FOC control (requires Phoenix Pro).
+     *
+     * @param rotations the target position in rotations
+     * @return a command that moves the mechanism to the given position
+     */
+    public Command moveToRotations(DoubleSupplier rotations) {
+        return run(() -> setMMPositionFoc(rotations)).withName(getName() + ".runPoseRevolutions");
+    }
+
+    /**
+     * Returns a {@link Command} that continuously moves the mechanism to the specified position
+     * using Motion Magic Torque Current FOC control (requires Phoenix Pro).
+     *
+     * @param percent the target position as a percentage of max rotations (0–100)
+     * @return a command that moves the mechanism to the given percentage position
      */
     public Command moveToPercentage(DoubleSupplier percent) {
         return run(() -> setMMPositionFoc(() -> percentToRotations(percent)))
-                .withName(getName() + ".moveToPercentage");
+                .withName(getName() + ".runPosePercentage");
     }
 
     /**
-     * Moves the mechanism to a position in degrees using Motion Magic Torque Current FOC (requires
-     * Phoenix Pro).
+     * Returns a {@link Command} that continuously moves the mechanism to the specified angular
+     * position using Motion Magic Torque Current FOC control (requires Phoenix Pro).
      *
-     * @param degrees target position in degrees
-     * @return a command that moves to and holds the position while scheduled
+     * @param degrees the target position in degrees
+     * @return a command that moves the mechanism to the given position in degrees
      */
     public Command moveToDegrees(DoubleSupplier degrees) {
         return run(() -> setMMPositionFoc(() -> degreesToRotations(degrees)))
-                .withName(getName() + ".moveToDegrees");
+                .withName(getName() + ".runPoseDegrees");
     }
 
     /**
-     * Moves the mechanism to a position using Motion Magic voltage control (slot 1 gains). Use when
-     * FOC is unavailable or when a separate voltage-mode gain set is needed.
+     * Returns a {@link Command} that continuously moves the mechanism to the specified position
+     * using Motion Magic Torque Current FOC control (requires Phoenix Pro).
      *
-     * @param rotations target position in rotations
-     * @return a command that moves to and holds the position while scheduled
+     * <p>Equivalent to {@link #moveToRotations(DoubleSupplier)} — prefer that method for clarity.
+     *
+     * @param rotations the target position in rotations
+     * @return a command that moves the mechanism to the given position
      */
     public Command runFocRotations(DoubleSupplier rotations) {
-        return run(() -> setMMPosition(rotations)).withName(getName() + ".runFOCPosition");
+        return run(() -> setMMPositionFoc(rotations)).withName(getName() + ".runFOCPosition");
     }
 
-    // =========================================================================
-    // Command Factories — Utility
-    // =========================================================================
-
     /**
-     * Stops the mechanism by calling {@link TalonFX#stopMotor()}.
+     * Returns a {@link Command} that stops the mechanism and holds it stopped for its duration.
      *
-     * @return a command that stops the mechanism while scheduled
+     * @return a command that stops the mechanism
      */
     public Command runStop() {
         return run(this::stop).withName(getName() + ".runStop");
     }
 
     /**
-     * Temporarily sets the mechanism to coast mode for the duration of the command, then restores
-     * brake mode when the command ends. Safe to run while disabled.
+     * Returns a {@link Command} that sets the mechanism to coast mode while active, then reverts to
+     * brake mode when the command ends. Safe to run while the robot is disabled.
      *
-     * @return a command that coasts the mechanism while scheduled
+     * @return a command that temporarily enables coast mode
      */
     public Command coastMode() {
         return startEnd(() -> setBrakeMode(false), () -> setBrakeMode(true))
@@ -856,10 +845,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Ensures the mechanism is in brake mode. If it is already in brake mode this command does
-     * nothing. Safe to run while disabled — useful at match end to lock mechanisms in place.
+     * Returns a {@link Command} that sets the mechanism to brake mode if it is currently in coast
+     * mode. Safe to run while the robot is disabled.
      *
-     * @return a command that switches to brake mode if currently coasting
+     * @return a command that ensures brake mode is active
      */
     public Command ensureBrakeMode() {
         return runOnce(() -> setBrakeMode(true))
@@ -873,28 +862,369 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Returns a one-shot command that applies new supply and stator current limits immediately.
+     * Returns a {@link Command} that applies new supply and stator current limits to the mechanism.
      *
-     * @param supplyLimit new supply current limit in amps (positive magnitude)
-     * @param statorLimit new stator current limit in amps (positive magnitude)
-     * @return an instant command that updates the limits
+     * @param supplyLimit the new supply current limit in amps
+     * @param statorLimit the new stator current limit in amps
+     * @return a command that updates the current limits
      */
     protected Command runCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
         return Commands.runOnce(() -> setCurrentLimits(supplyLimit, statorLimit));
     }
 
-    // =========================================================================
-    // Command Factories — Diagnostics
-    // =========================================================================
+    // ── Motor Control (Protected) ──────────────────────────────────────────────
 
     /**
-     * Monitors stator current while scheduled and raises a {@link Alert} when the command ends if
-     * the time-averaged current deviates from {@code expectedCurrent} by more than {@code
-     * tolerance} amps.
+     * Immediately applies new supply and stator current limits to the motor configuration.
      *
-     * @param expectedCurrent expected average stator current in amps
-     * @param tolerance acceptable deviation in amps before an alert is raised
-     * @return a command that monitors current and alerts on mismatch
+     * @param supplyLimit the new supply current limit in amps
+     * @param statorLimit the new stator current limit in amps
+     */
+    protected void setCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
+        applyCurrentLimit(supplyLimit, statorLimit);
+    }
+
+    /** Stops the motor output. Does nothing if the mechanism is not attached. */
+    protected void stop() {
+        if (isAttached()) {
+            motor.stopMotor();
+        }
+    }
+
+    /**
+     * Sets the mechanism's reported position to zero (tares the motor encoder). Does nothing if the
+     * mechanism is not attached.
+     */
+    protected void tareMotor() {
+        if (isAttached()) {
+            setMotorPosition(() -> 0);
+        }
+    }
+
+    /**
+     * Sets the motor's internal position register to the specified value without moving the motor.
+     *
+     * @param rotations the position to write to the motor in rotations
+     */
+    protected void setMotorPosition(DoubleSupplier rotations) {
+        if (isAttached()) {
+            motor.setPosition(rotations.getAsDouble());
+        }
+    }
+
+    /**
+     * Closed-loop velocity control using Motion Magic with Torque Current FOC (requires Phoenix
+     * Pro).
+     *
+     * @param velocityRPS the target velocity in rotations per second
+     */
+    protected void setMMVelocityFOC(DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = velocityRPS.getAsDouble();
+            MotionMagicVelocityTorqueCurrentFOC mm = config.mmVelocityFOC.withVelocity(target);
+            motor.setControl(mm);
+        }
+    }
+
+    /**
+     * Closed-loop velocity control using Torque Current FOC (requires Phoenix Pro).
+     *
+     * @param velocityRPS the target velocity in rotations per second
+     */
+    protected void setVelocityTorqueCurrentFOC(DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = velocityRPS.getAsDouble();
+            VelocityTorqueCurrentFOC output = config.velocityTorqueCurrentFOC.withVelocity(target);
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Closed-loop velocity control using Torque Current FOC with an RPM input (requires Phoenix
+     * Pro). The RPM value is converted to RPS internally before being sent to the motor.
+     *
+     * @param velocityRPM the target velocity in revolutions per minute
+     */
+    protected void setVelocityTCFOCrpm(DoubleSupplier velocityRPM) {
+        if (isAttached()) {
+            target = Conversions.RPMtoRPS(velocityRPM.getAsDouble());
+            VelocityTorqueCurrentFOC output = config.velocityTorqueCurrentFOC.withVelocity(target);
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Closed-loop velocity control with voltage compensation.
+     *
+     * @param velocityRPS the target velocity in rotations per second
+     */
+    protected void setVelocity(DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = velocityRPS.getAsDouble();
+            VelocityVoltage output = config.velocityControl.withVelocity(target);
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Closed-loop position control using Motion Magic with Torque Current FOC (requires Phoenix
+     * Pro).
+     *
+     * @param rotations the target position in rotations
+     */
+    protected void setMMPositionFoc(DoubleSupplier rotations) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            MotionMagicTorqueCurrentFOC mm = config.mmPositionFOC.withPosition(target);
+            motor.setControl(mm);
+        }
+    }
+
+    /**
+     * Closed-loop position control using Dynamic Motion Magic with Torque Current FOC (requires
+     * Phoenix Pro). Trajectory parameters can be changed every loop cycle.
+     *
+     * @param rotations the target position in rotations
+     * @param velocity the cruise velocity in rotations per second
+     * @param acceleration the acceleration in rotations per second squared
+     * @param jerk the jerk in rotations per second cubed
+     */
+    protected void setDynMMPositionFoc(
+            DoubleSupplier rotations,
+            DoubleSupplier velocity,
+            DoubleSupplier acceleration,
+            DoubleSupplier jerk) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            DynamicMotionMagicTorqueCurrentFOC mm =
+                    config.dynamicMMPositionFOC
+                            .withPosition(target)
+                            .withVelocity(velocity.getAsDouble())
+                            .withAcceleration(acceleration.getAsDouble())
+                            .withJerk(jerk.getAsDouble());
+            motor.setControl(mm);
+        }
+    }
+
+    /**
+     * Closed-loop position control using Dynamic Motion Magic with voltage compensation. Trajectory
+     * parameters can be changed every loop cycle.
+     *
+     * @param rotations the target position in rotations
+     * @param velocity the cruise velocity in rotations per second
+     * @param acceleration the acceleration in rotations per second squared
+     * @param jerk the jerk in rotations per second cubed
+     */
+    protected void setDynMMPositionVoltage(
+            DoubleSupplier rotations,
+            DoubleSupplier velocity,
+            DoubleSupplier acceleration,
+            DoubleSupplier jerk) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            DynamicMotionMagicVoltage mm =
+                    config.dynamicMotionMagicVoltage
+                            .withPosition(target)
+                            .withVelocity(velocity.getAsDouble())
+                            .withAcceleration(acceleration.getAsDouble())
+                            .withJerk(jerk.getAsDouble());
+            motor.setControl(mm);
+        }
+    }
+
+    /**
+     * Closed-loop position control using Motion Magic with voltage compensation (slot 0).
+     *
+     * @param rotations the target position in rotations
+     */
+    protected void setMMPosition(DoubleSupplier rotations) {
+        setMMPosition(rotations, 0);
+    }
+
+    /**
+     * Closed-loop position control using Motion Magic with voltage compensation and an explicit
+     * PID/FF gain slot.
+     *
+     * @param rotations the target position in rotations
+     * @param slot the gain slot to use (0, 1, or 2)
+     */
+    public void setMMPosition(DoubleSupplier rotations, int slot) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            MotionMagicVoltage mm =
+                    config.mmPositionVoltageSlot.withSlot(slot).withPosition(target);
+            motor.setControl(mm);
+        }
+    }
+
+    // ── Motor Control (Public) ─────────────────────────────────────────────────
+
+    /**
+     * Open-loop percent output control with voltage compensation. The output voltage is {@code
+     * percent × voltageCompSaturation}.
+     *
+     * @param percent fractional output between -1 and +1
+     */
+    public void setPercentOutput(DoubleSupplier percent) {
+        if (isAttached()) {
+            VoltageOut output =
+                    config.voltageControl.withOutput(
+                            config.voltageCompSaturation * percent.getAsDouble());
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Open-loop voltage control — applies the requested voltage directly without compensation
+     * scaling.
+     *
+     * @param voltage the desired voltage in volts
+     */
+    public void setVoltageOutput(DoubleSupplier voltage) {
+        if (isAttached()) {
+            VoltageOut output = config.voltageControl.withOutput(voltage.getAsDouble());
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Open-loop voltage control that ignores software limit switches. Use with caution — this can
+     * drive the mechanism past its configured travel limits.
+     *
+     * @param voltage the desired voltage in volts
+     */
+    public void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
+        if (isAttached()) {
+            VoltageOut output =
+                    config.voltageControl
+                            .withOutput(voltage.getAsDouble())
+                            .withIgnoreSoftwareLimits(true);
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Applies a torque current setpoint using FOC control (requires Phoenix Pro).
+     *
+     * @param current the desired torque current in amps
+     */
+    public void setTorqueCurrentFoc(DoubleSupplier current) {
+        if (isAttached()) {
+            TorqueCurrentFOC output = config.torqueCurrentFOC.withOutput(current.getAsDouble());
+            motor.setControl(output);
+        }
+    }
+
+    // ── Hardware Configuration ─────────────────────────────────────────────────
+
+    /**
+     * Sets the motor's neutral mode to brake or coast and immediately applies the change to
+     * hardware.
+     *
+     * @param isInBrake {@code true} to set brake mode; {@code false} to set coast mode
+     */
+    public void setBrakeMode(boolean isInBrake) {
+        if (isAttached()) {
+            config.configNeutralBrakeMode(isInBrake);
+            config.applyTalonConfig(motor);
+        }
+    }
+
+    /**
+     * Enables or disables the reverse software limit switch and immediately applies the change. The
+     * threshold is read from the current configuration.
+     *
+     * @param enabled {@code true} to enable the reverse soft limit; {@code false} to disable it
+     */
+    public void toggleReverseSoftLimit(boolean enabled) {
+        if (isAttached()) {
+            double threshold = config.talonConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold;
+            config.configReverseSoftLimit(threshold, enabled);
+            config.applyTalonConfig(motor);
+        }
+    }
+
+    /**
+     * Enables or disables a forward/reverse torque current limit and immediately applies the
+     * change. When disabled, the peak torque current is reset to ±300 A (effectively unlimited).
+     *
+     * @param enabledLimit the torque current limit in amps when {@code enabled} is {@code true}
+     * @param enabled {@code true} to apply the limit; {@code false} to remove it
+     */
+    public void toggleTorqueCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
+        if (isAttached()) {
+            if (enabled) {
+                config.configForwardTorqueCurrentLimit(enabledLimit.getAsDouble());
+                config.configReverseTorqueCurrentLimit(-1 * enabledLimit.getAsDouble());
+                config.configStatorCurrentLimit(enabledLimit.getAsDouble(), true);
+                config.applyTalonConfig(motor);
+            } else {
+                config.configForwardTorqueCurrentLimit(300);
+                config.configReverseTorqueCurrentLimit(-300);
+                config.applyTalonConfig(motor);
+            }
+        }
+    }
+
+    /**
+     * Enables or disables the supply current limit and immediately applies the change.
+     *
+     * @param enabledLimit the supply current limit in amps
+     * @param enabled {@code true} to enable the limit; {@code false} to disable it
+     */
+    public void toggleSupplyCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
+        if (isAttached()) {
+            if (enabled) {
+                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), true);
+                config.applyTalonConfig(motor);
+            } else {
+                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), false);
+                config.applyTalonConfig(motor);
+            }
+        }
+    }
+
+    /**
+     * Applies new supply and stator current limits if the requested values differ from the
+     * currently configured limits. The update is retried up to 10 times on failure.
+     *
+     * @param supplyLimit the new supply current limit in amps
+     * @param statorLimit the new stator current limit in amps
+     */
+    public void applyCurrentLimit(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
+        if (isAttached()) {
+            if (config.talonConfig.CurrentLimits.StatorCurrentLimit != statorLimit.getAsDouble()
+                    && config.talonConfig.CurrentLimits.SupplyCurrentLimit
+                            != supplyLimit.getAsDouble()) {
+                config.configSupplyCurrentLimit(Math.abs(supplyLimit.getAsDouble()), true);
+                config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);
+                config.configForwardTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
+                config.configReverseTorqueCurrentLimit(-1 * Math.abs(statorLimit.getAsDouble()));
+                for (int i = 0; i < 10; i++) {
+                    StatusCode result = motor.getConfigurator().apply(config.talonConfig);
+                    if (!result.isOK()) {
+                        System.out.println(
+                                "Could not apply config changes to "
+                                        + config.getName()
+                                        + "\'s motor ");
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Diagnostic Commands ────────────────────────────────────────────────────
+
+    /**
+     * Returns a {@link Command} that measures the average stator current over its runtime and fires
+     * a warning {@link Alert} if the average deviates from {@code expectedCurrent} by more than
+     * {@code tolerance}.
+     *
+     * @param expectedCurrent the expected average stator current in amps
+     * @param tolerance the maximum acceptable deviation in amps
+     * @return a diagnostic command that checks average current
      */
     public Command checkAvgCurrent(DoubleSupplier expectedCurrent, DoubleSupplier tolerance) {
         return new Command() {
@@ -932,12 +1262,11 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Monitors stator current while scheduled and raises a {@link Alert} when the command ends if
-     * the peak current exceeded {@code expectedCurrent} amps. Useful for detecting mechanical jams
-     * or binding.
+     * Returns a {@link Command} that tracks the peak stator current over its runtime and fires a
+     * warning {@link Alert} if the peak exceeds {@code expectedCurrent}.
      *
-     * @param expectedCurrent maximum expected stator current in amps
-     * @return a command that monitors current and alerts if peak is exceeded
+     * @param expectedCurrent the maximum acceptable peak stator current in amps
+     * @return a diagnostic command that checks peak current
      */
     public Command checkMaxCurrent(DoubleSupplier expectedCurrent) {
         return new Command() {
@@ -973,12 +1302,12 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Monitors stator current while scheduled and raises a {@link Alert} when the command ends if
-     * the peak current never reached {@code expectedCurrent} amps. Useful for detecting a mechanism
-     * that failed to move (broken belt, disconnected motor, etc.).
+     * Returns a {@link Command} that tracks the peak stator current over its runtime and fires a
+     * warning {@link Alert} if the peak never reaches {@code expectedCurrent}. Use this to verify
+     * that a mechanism drew at least the expected minimum load.
      *
-     * @param expectedCurrent minimum expected peak stator current in amps
-     * @return a command that monitors current and alerts if the threshold is not reached
+     * @param expectedCurrent the minimum acceptable peak stator current in amps
+     * @return a diagnostic command that checks whether a minimum current threshold was reached
      */
     public Command checkMinThresholdCurrent(DoubleSupplier expectedCurrent) {
         return new Command() {
@@ -1013,445 +1342,39 @@ public abstract class Mechanism implements SpectrumSubsystem {
         };
     }
 
-    // =========================================================================
-    // Low-Level Motor Control (protected setters)
-    //
-    // These are intended to be called from within Command lambdas in subclasses.
-    // Each method is a no-op when isAttached() returns false.
-    // =========================================================================
-
-    // ---- State Management ----
+    // ── Nested Classes ─────────────────────────────────────────────────────────
 
     /**
-     * Commands the motor to neutral output (stops the motor). Does nothing if the mechanism is not
-     * attached.
-     */
-    protected void stop() {
-        if (isAttached()) {
-            motor.stopMotor();
-        }
-    }
-
-    /**
-     * Sets the motor's internal position sensor to zero. Used to establish a home reference after a
-     * hard-stop zeroing routine.
-     */
-    protected void tareMotor() {
-        if (isAttached()) {
-            setMotorPosition(() -> 0);
-        }
-    }
-
-    /**
-     * Seeds the motor's internal position sensor to an arbitrary value without moving the
-     * mechanism. Useful for restoring a known position after robot enable.
+     * Configuration for a TalonFX follower motor that mirrors the leader.
      *
-     * @param rotations the position to write to the motor's sensor, in rotations
-     */
-    protected void setMotorPosition(DoubleSupplier rotations) {
-        if (isAttached()) {
-            motor.setPosition(rotations.getAsDouble());
-        }
-    }
-
-    /**
-     * Delegates to {@link #applyCurrentLimit(DoubleSupplier, DoubleSupplier)} to push updated
-     * supply and stator limits to hardware.
-     *
-     * @param supplyLimit new supply current limit in amps (positive magnitude)
-     * @param statorLimit new stator current limit in amps (positive magnitude)
-     */
-    protected void setCurrentLimits(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
-        applyCurrentLimit(supplyLimit, statorLimit);
-    }
-
-    // ---- Open-Loop Setters ----
-
-    /**
-     * Applies a percentage output scaled by the voltage compensation saturation voltage. Equivalent
-     * to a voltage-mode output clamped to {@code voltageCompSaturation × percent}.
-     *
-     * @param percent output fraction between -1 and +1
-     */
-    public void setPercentOutput(DoubleSupplier percent) {
-        if (isAttached()) {
-            VoltageOut output =
-                    config.voltageControl.withOutput(
-                            config.voltageCompSaturation * percent.getAsDouble());
-            motor.setControl(output);
-        }
-    }
-
-    /**
-     * Applies a direct voltage output, bypassing closed-loop control.
-     *
-     * @param voltage output in volts
-     */
-    public void setVoltageOutput(DoubleSupplier voltage) {
-        if (isAttached()) {
-            VoltageOut output = config.voltageControl.withOutput(voltage.getAsDouble());
-            motor.setControl(output);
-        }
-    }
-
-    /**
-     * Applies a direct voltage output, bypassing both closed-loop control and software limits. Use
-     * with caution — the mechanism can be driven past its configured travel range.
-     *
-     * @param voltage output in volts
-     */
-    public void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
-        if (isAttached()) {
-            VoltageOut output =
-                    config.voltageControl
-                            .withOutput(voltage.getAsDouble())
-                            .withIgnoreSoftwareLimits(true);
-            motor.setControl(output);
-        }
-    }
-
-    /**
-     * Applies an open-loop Torque Current FOC output (requires Phoenix Pro).
-     *
-     * @param current target torque current in amps (positive = forward)
-     */
-    public void setTorqueCurrentFoc(DoubleSupplier current) {
-        if (isAttached()) {
-            TorqueCurrentFOC output = config.torqueCurrentFOC.withOutput(current.getAsDouble());
-            motor.setControl(output);
-        }
-    }
-
-    // ---- Closed-Loop Velocity Setters ----
-
-    /**
-     * Runs the mechanism at a closed-loop velocity using voltage-compensated control.
-     *
-     * @param velocityRPS target velocity in rotations-per-second
-     */
-    protected void setVelocity(DoubleSupplier velocityRPS) {
-        if (isAttached()) {
-            target = velocityRPS.getAsDouble();
-            VelocityVoltage output = config.velocityControl.withVelocity(target);
-            motor.setControl(output);
-        }
-    }
-
-    /**
-     * Runs the mechanism at a closed-loop velocity using Torque Current FOC (requires Phoenix Pro).
-     * Accepts RPS directly.
-     *
-     * @param velocityRPS target velocity in rotations-per-second
-     */
-    protected void setVelocityTorqueCurrentFOC(DoubleSupplier velocityRPS) {
-        if (isAttached()) {
-            target = velocityRPS.getAsDouble();
-            VelocityTorqueCurrentFOC output = config.velocityTorqueCurrentFOC.withVelocity(target);
-            motor.setControl(output);
-        }
-    }
-
-    /**
-     * Runs the mechanism at a closed-loop velocity using Torque Current FOC (requires Phoenix Pro).
-     * Accepts RPM and converts internally to RPS.
-     *
-     * @param velocityRPM target velocity in RPM
-     */
-    protected void setVelocityTCFOCrpm(DoubleSupplier velocityRPM) {
-        if (isAttached()) {
-            target = Conversions.RPMtoRPS(velocityRPM.getAsDouble());
-            VelocityTorqueCurrentFOC output = config.velocityTorqueCurrentFOC.withVelocity(target);
-            motor.setControl(output);
-        }
-    }
-
-    /**
-     * Runs the mechanism at a closed-loop velocity using Motion Magic Velocity Torque Current FOC
-     * (requires Phoenix Pro). Motion Magic profiles the velocity ramp using the configured
-     * acceleration limit.
-     *
-     * @param velocityRPS target velocity in rotations-per-second
-     */
-    protected void setMMVelocityFOC(DoubleSupplier velocityRPS) {
-        if (isAttached()) {
-            target = velocityRPS.getAsDouble();
-            MotionMagicVelocityTorqueCurrentFOC mm = config.mmVelocityFOC.withVelocity(target);
-            motor.setControl(mm);
-        }
-    }
-
-    // ---- Closed-Loop Position Setters ----
-
-    /**
-     * Moves the mechanism to a position using Motion Magic Torque Current FOC (requires Phoenix
-     * Pro). The motion profile is governed by the cruise velocity, acceleration, and jerk set in
-     * {@link Config#configMotionMagic(double, double, double)}.
-     *
-     * @param rotations target position in rotations
-     */
-    protected void setMMPositionFoc(DoubleSupplier rotations) {
-        if (isAttached()) {
-            target = rotations.getAsDouble();
-            MotionMagicTorqueCurrentFOC mm = config.mmPositionFOC.withPosition(target);
-            motor.setControl(mm);
-        }
-    }
-
-    /**
-     * Moves the mechanism to a position using Dynamic Motion Magic Torque Current FOC (requires
-     * Phoenix Pro). Velocity, acceleration, and jerk limits can be changed each loop cycle,
-     * allowing adaptive profiling (e.g., slower motion near limits).
-     *
-     * @param rotations target position in rotations
-     * @param velocity maximum profile velocity in rotations-per-second
-     * @param acceleration maximum profile acceleration in rotations-per-second²
-     * @param jerk maximum profile jerk in rotations-per-second³
-     */
-    protected void setDynMMPositionFoc(
-            DoubleSupplier rotations,
-            DoubleSupplier velocity,
-            DoubleSupplier acceleration,
-            DoubleSupplier jerk) {
-        if (isAttached()) {
-            target = rotations.getAsDouble();
-            DynamicMotionMagicTorqueCurrentFOC mm =
-                    config.dynamicMMPositionFOC
-                            .withPosition(target)
-                            .withVelocity(velocity.getAsDouble())
-                            .withAcceleration(acceleration.getAsDouble())
-                            .withJerk(jerk.getAsDouble());
-            motor.setControl(mm);
-        }
-    }
-
-    /**
-     * Moves the mechanism to a position using Dynamic Motion Magic voltage control. Velocity,
-     * acceleration, and jerk limits can be changed each loop cycle.
-     *
-     * @param rotations target position in rotations
-     * @param velocity maximum profile velocity in rotations-per-second
-     * @param acceleration maximum profile acceleration in rotations-per-second²
-     * @param jerk maximum profile jerk in rotations-per-second³
-     */
-    protected void setDynMMPositionVoltage(
-            DoubleSupplier rotations,
-            DoubleSupplier velocity,
-            DoubleSupplier acceleration,
-            DoubleSupplier jerk) {
-        if (isAttached()) {
-            target = rotations.getAsDouble();
-            DynamicMotionMagicVoltage mm =
-                    config.dynamicMotionMagicVoltage
-                            .withPosition(target)
-                            .withVelocity(velocity.getAsDouble())
-                            .withAcceleration(acceleration.getAsDouble())
-                            .withJerk(jerk.getAsDouble());
-            motor.setControl(mm);
-        }
-    }
-
-    /**
-     * Moves the mechanism to a position using Motion Magic voltage control with slot 0 gains.
-     * Delegates to {@link #setMMPosition(DoubleSupplier, int)} with slot 0.
-     *
-     * @param rotations target position in rotations
-     */
-    protected void setMMPosition(DoubleSupplier rotations) {
-        setMMPosition(rotations, 0);
-    }
-
-    /**
-     * Moves the mechanism to a position using Motion Magic voltage control with the specified gain
-     * slot. Use slot 1 or 2 for alternative gain sets (e.g., a slower profile near soft limits).
-     *
-     * @param rotations target position in rotations
-     * @param slot gain slot index (0, 1, or 2)
-     */
-    public void setMMPosition(DoubleSupplier rotations, int slot) {
-        if (isAttached()) {
-            target = rotations.getAsDouble();
-            MotionMagicVoltage mm =
-                    config.mmPositionVoltageSlot.withSlot(slot).withPosition(target);
-            motor.setControl(mm);
-        }
-    }
-
-    // =========================================================================
-    // Configuration & Limits (runtime)
-    // =========================================================================
-
-    /**
-     * Sets the neutral mode (brake or coast) and immediately pushes the updated configuration to
-     * hardware.
-     *
-     * @param isInBrake {@code true} for brake mode, {@code false} for coast mode
-     */
-    public void setBrakeMode(boolean isInBrake) {
-        if (isAttached()) {
-            config.configNeutralBrakeMode(isInBrake);
-            config.applyTalonConfig(motor);
-        }
-    }
-
-    /**
-     * Enables or disables the reverse software limit switch without changing its threshold. The
-     * threshold is read from the current {@link TalonFXConfiguration}.
-     *
-     * @param enabled {@code true} to enable the reverse soft limit, {@code false} to disable it
-     */
-    public void toggleReverseSoftLimit(boolean enabled) {
-        if (isAttached()) {
-            double threshold = config.talonConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold;
-            config.configReverseSoftLimit(threshold, enabled);
-            config.applyTalonConfig(motor);
-        }
-    }
-
-    /**
-     * Overrides the torque current limits at runtime. When {@code enabled} is {@code true}, both
-     * forward and reverse torque current limits (and the stator limit) are set to {@code
-     * enabledLimit}. When {@code false}, the limits are removed by setting them to 300 A
-     * (effectively unlimited for typical FRC use).
-     *
-     * @param enabledLimit peak torque current in amps (positive magnitude) when limiting is active
-     * @param enabled {@code true} to apply the limit, {@code false} to remove it
-     */
-    public void toggleTorqueCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
-        if (isAttached()) {
-            if (enabled) {
-                config.configForwardTorqueCurrentLimit(enabledLimit.getAsDouble());
-                config.configReverseTorqueCurrentLimit(enabledLimit.getAsDouble());
-                config.configStatorCurrentLimit(enabledLimit.getAsDouble(), true);
-                config.applyTalonConfig(motor);
-            } else {
-                config.configForwardTorqueCurrentLimit(300);
-                config.configReverseTorqueCurrentLimit(300);
-                config.applyTalonConfig(motor);
-            }
-        }
-    }
-
-    /**
-     * Enables or disables the supply current limit at runtime without changing the limit value.
-     *
-     * @param enabledLimit supply current limit in amps (used as both enabled and disabled value;
-     *     only the enable flag changes)
-     * @param enabled {@code true} to enable the supply limit, {@code false} to disable it
-     */
-    public void toggleSupplyCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
-        if (isAttached()) {
-            if (enabled) {
-                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), true);
-                config.applyTalonConfig(motor);
-            } else {
-                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), false);
-                config.applyTalonConfig(motor);
-            }
-        }
-    }
-
-    /**
-     * Pushes updated supply and stator current limits to hardware only when at least one limit has
-     * changed from the currently configured value. Retries up to 10 times on CAN failure.
-     *
-     * <p>All limit values are treated as positive magnitudes; the reverse torque limit is
-     * automatically negated by {@link Config#configReverseTorqueCurrentLimit(double)}.
-     *
-     * @param supplyLimit new supply current limit in amps (positive magnitude)
-     * @param statorLimit new stator current limit in amps (positive magnitude); also applied as the
-     *     forward and reverse torque current limit
-     */
-    public void applyCurrentLimit(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
-        if (isAttached()) {
-            if (config.talonConfig.CurrentLimits.StatorCurrentLimit != statorLimit.getAsDouble()
-                    || config.talonConfig.CurrentLimits.SupplyCurrentLimit
-                            != supplyLimit.getAsDouble()) {
-                config.configSupplyCurrentLimit(Math.abs(supplyLimit.getAsDouble()), true);
-                config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);
-                config.configForwardTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
-                config.configReverseTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
-                for (int i = 0; i < 10; i++) {
-                    StatusCode result = motor.getConfigurator().apply(config.talonConfig);
-                    if (!result.isOK()) {
-                        System.out.println(
-                                "Could not apply config changes to "
-                                        + config.getName()
-                                        + "\'s motor ");
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    // =========================================================================
-    // Telemetry & Diagnostics
-    // =========================================================================
-
-    /**
-     * Reports the combined supply current of the leader and all follower motors to the {@link
-     * frc.spectrumLib.BatteryLogger} under the key {@code "Mechanisms/<name>"}. Call this from
-     * {@link #periodic()} in each subclass to include the mechanism in power budgeting.
-     */
-    public void logBatteryUsage() {
-        if (isAttached()) {
-            double motorCurrent = motor.getSupplyCurrent().getValueAsDouble();
-            double followersCurrent = 0;
-            for (TalonFX follower : followerMotors) {
-                followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
-            }
-            Robot.getBatteryLogger()
-                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
-        }
-    }
-
-    /**
-     * Returns the name of the command currently requiring this subsystem, or {@code "none"} if the
-     * default command (or no command) is running. Useful for telemetry logs.
-     *
-     * @return current command name, or {@code "none"}
-     */
-    protected String getCurrentCommandName() {
-        Command currentCommand = this.getCurrentCommand();
-        if (currentCommand != null) {
-            return currentCommand.getName();
-        }
-        return "none";
-    }
-
-    // =========================================================================
-    // Inner Classes
-    // =========================================================================
-
-    /**
-     * Configuration for a single follower TalonFX that mirrors the leader motor.
-     *
-     * <p>Followers are configured as permanent followers via {@link
-     * TalonFXFactory#createPermanentFollowerTalon} and cannot be commanded independently.
+     * <p>A follower automatically copies the leader's output. Set {@code opposeLeader} to {@link
+     * MotorAlignmentValue#Opposed} when the physical motor is mounted in the opposite direction and
+     * must spin in reverse to produce the same mechanism motion.
      */
     public static class FollowerConfig {
-        /** Human-readable name used for logging. */
+
+        /** Human-readable name for this follower motor (used in alerts and logging). */
         @Getter private String name;
 
-        /** CAN bus device ID of the follower motor. */
+        /** CAN bus device ID and bus name for this follower motor. */
         @Getter private CanDeviceId id;
 
-        /** Whether this follower motor is physically installed on the robot. */
+        /** Whether hardware is attached for this follower. */
         @Getter private boolean attached = true;
 
         /**
-         * Motor alignment relative to the leader. Use {@link MotorAlignmentValue#Opposed} when the
-         * follower is mechanically inverted (e.g., motors on opposite sides of a shooter).
+         * Alignment of the follower relative to the leader. Use {@link MotorAlignmentValue#Opposed}
+         * when the follower is physically mounted in the opposite direction.
          */
         @Getter private MotorAlignmentValue opposeLeader = MotorAlignmentValue.Aligned;
 
         /**
-         * @param name human-readable name for logging
+         * Creates a follower motor configuration.
+         *
+         * @param name human-readable name for this follower
          * @param id CAN device ID
-         * @param canbus CAN bus name (e.g., {@link frc.spectrumLib.Rio#CANIVORE})
-         * @param opposeLeader {@link MotorAlignmentValue#Opposed} if the follower runs in the
-         *     opposite direction from the leader, {@link MotorAlignmentValue#Aligned} otherwise
+         * @param canbus CAN bus name (e.g., {@code "rio"} or {@code "canivore"})
+         * @param opposeLeader alignment relative to the leader motor
          */
         public FollowerConfig(
                 String name, int id, String canbus, MotorAlignmentValue opposeLeader) {
@@ -1462,73 +1385,50 @@ public abstract class Mechanism implements SpectrumSubsystem {
     }
 
     /**
-     * Base configuration class for a {@link Mechanism}.
+     * Configuration for a {@link Mechanism}, encapsulating the TalonFX hardware configuration,
+     * control request objects, and mechanism-level parameters (gear ratio, soft limits, PID/FF
+     * gains, Motion Magic profile, current limits, etc.).
      *
-     * <p>Subclass this inside each concrete mechanism class to add mechanism-specific tuning
-     * values, then call the {@code config*()} helpers in the subclass constructor to build the full
-     * {@link TalonFXConfiguration} before the motor is constructed.
-     *
-     * <h2>Sign conventions</h2>
-     *
-     * <ul>
-     *   <li>Always pass <b>positive magnitudes</b> to {@link #configReverseTorqueCurrentLimit}. The
-     *       method automatically negates the value before writing it to the hardware register.
-     *   <li>All other current/voltage limit helpers accept and store positive values.
-     * </ul>
-     *
-     * <h2>Gain slots</h2>
-     *
-     * TalonFX supports three independent gain slots (0, 1, 2). Slot 0 is the default for all
-     * helpers that do not accept a slot parameter. Use slots 1 and 2 for alternative profiles
-     * (e.g., a slower position profile near soft limits).
+     * <p>Subclass this in each concrete mechanism and call the {@code config*()} helpers in the
+     * constructor to set mechanism-specific parameters before passing the config to the {@link
+     * Mechanism} constructor.
      */
     public static class Config {
 
-        // ---- Identity ----
-
-        /** Human-readable mechanism name, used in telemetry keys and alerts. */
+        /** Human-readable name for this mechanism (used in logging and alerts). */
         @Getter private String name;
 
         /**
-         * Whether the physical hardware for this mechanism is installed on the robot. When {@code
-         * false}, motors are not constructed and all commands are no-ops.
+         * Whether physical hardware is attached. Set to {@code false} to run in simulation-only
+         * mode.
          */
         @Getter @Setter private boolean attached = true;
 
-        /** CAN bus device ID of the leader TalonFX. */
+        /** CAN bus device ID and bus name for the leader motor. */
         @Getter private CanDeviceId id;
 
-        // ---- TalonFX Configuration ----
-
-        /** Full Phoenix 6 configuration applied to the leader motor at construction time. */
+        /** Full TalonFX hardware configuration applied to the leader motor on startup. */
         @Getter @Setter protected TalonFXConfiguration talonConfig;
 
-        /** Total number of motors (leader + followers). Informational only. */
+        /** Total number of motors (leader + followers). */
         @Getter private int numMotors = 1;
 
         /**
-         * Voltage compensation saturation used by {@link #setPercentOutput(DoubleSupplier)}.
+         * Voltage compensation saturation value used by {@link Mechanism#setPercentOutput}.
          * Defaults to 12 V.
          */
         @Getter private double voltageCompSaturation = 12.0;
 
-        /**
-         * Minimum mechanism position in rotations. Used by {@link #percentToRotations} and enforced
-         * as a reverse soft limit when {@link #configReverseSoftLimit} is called.
-         */
+        /** Minimum mechanism position in rotations (used for range calculations). */
         @Getter private double minRotations = 0;
 
-        /**
-         * Maximum mechanism position in rotations. Used by {@link #percentToRotations} and enforced
-         * as a forward soft limit when {@link #configForwardSoftLimit} is called.
-         */
+        /** Maximum mechanism position in rotations (used for range calculations). */
         @Getter private double maxRotations = 1;
 
-        /** Follower motor configurations. Empty by default (no followers). */
+        /** Configurations for follower motors. Empty by default (no followers). */
         @Getter private FollowerConfig[] followerConfigs = new FollowerConfig[0];
 
-        // ---- Pre-built Control Request Objects ----
-        // CTRE control requests are allocated once and mutated with withXxx() to avoid GC pressure.
+        // Pre-built control request objects — reused each loop to avoid GC pressure.
 
         @Getter
         private MotionMagicVelocityTorqueCurrentFOC mmVelocityFOC =
@@ -1550,7 +1450,6 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         @Getter private MotionMagicVoltage mmPositionVoltage = new MotionMagicVoltage(0);
 
-        /** Motion Magic voltage request pre-configured for slot 1. */
         @Getter
         private MotionMagicVoltage mmPositionVoltageSlot = new MotionMagicVoltage(0).withSlot(1);
 
@@ -1562,37 +1461,36 @@ public abstract class Mechanism implements SpectrumSubsystem {
 
         @Getter private TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0);
 
-        /** Duty-cycle output request. Prefer {@link #voltageControl} for reproducible behavior. */
+        /** Percent (duty-cycle) output control — prefer {@link #voltageControl} in most cases. */
         @Getter private DutyCycleOut percentOutput = new DutyCycleOut(0);
 
-        // ---- Constructor ----
+        // ── Constructor ───────────────────────────────────────────────────────
 
         /**
-         * Creates a base mechanism configuration.
+         * Creates a base mechanism configuration with default Talon settings. Hardware limit
+         * switches are disabled by default.
          *
-         * <p>Hardware limit switches are disabled by default. Call the appropriate {@code
-         * config*()} helpers in subclass constructors to configure PID gains, gear ratio, current
-         * limits, soft limits, etc.
-         *
-         * @param name human-readable name (used in telemetry and alerts)
+         * @param name human-readable name for this mechanism
          * @param id CAN device ID of the leader motor
-         * @param canbus CAN bus name (e.g., {@link frc.spectrumLib.Rio#CANIVORE})
+         * @param canbus CAN bus name (e.g., {@code "rio"} or {@code "canivore"})
          */
         public Config(String name, int id, String canbus) {
             this.name = name;
             this.id = new CanDeviceId(id, canbus);
             talonConfig = new TalonFXConfiguration();
+
+            /* Put default config settings for all mechanisms here */
             talonConfig.HardwareLimitSwitch.ForwardLimitEnable = false;
             talonConfig.HardwareLimitSwitch.ReverseLimitEnable = false;
         }
 
-        // ---- Hardware Application ----
+        // ── Config Helpers ────────────────────────────────────────────────────
 
         /**
-         * Applies the current {@link TalonFXConfiguration} to the given motor controller. Logs a DS
-         * warning if the CAN write fails.
+         * Applies the current {@link TalonFXConfiguration} to the given motor and reports a warning
+         * to the DriverStation if the apply fails.
          *
-         * @param talon the motor controller to configure
+         * @param talon the TalonFX motor to configure
          */
         public void applyTalonConfig(TalonFX talon) {
             StatusCode result = talon.getConfigurator().apply(talonConfig);
@@ -1602,102 +1500,60 @@ public abstract class Mechanism implements SpectrumSubsystem {
             }
         }
 
-        // ---- Follower Configuration ----
-
         /**
-         * Registers one or more follower motors for this mechanism.
+         * Sets the follower motor configurations.
          *
-         * @param followers varargs of {@link FollowerConfig} describing each follower
+         * @param followers one or more {@link FollowerConfig} objects describing follower motors
          */
         public void setFollowerConfigs(FollowerConfig... followers) {
             followerConfigs = followers;
         }
 
-        // ---- Motor Output ----
-
         /**
          * Sets the voltage compensation saturation voltage used by percent-output control.
          *
-         * @param voltageCompSaturation saturation voltage in volts (typically 12 V)
+         * @param voltageCompSaturation the saturation voltage in volts (typically 12.0)
          */
         public void configVoltageCompensation(double voltageCompSaturation) {
             this.voltageCompSaturation = voltageCompSaturation;
         }
 
         /**
-         * Sets the positive direction to counter-clockwise (when viewed from the front of the motor
-         * shaft).
+         * Configures the motor output as counter-clockwise positive (default for most mechanisms
+         * when viewed from the shaft end).
          */
         public void configCounterClockwise_Positive() {
             talonConfig.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         }
 
-        /**
-         * Sets the positive direction to clockwise (when viewed from the front of the motor shaft).
-         * This is the default for most mechanisms mounted on the right side.
-         */
+        /** Configures the motor output as clockwise positive (inverted relative to the default). */
         public void configClockwise_Positive() {
             talonConfig.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
         }
 
         /**
-         * Sets the duty-cycle neutral deadband. Outputs within this band are treated as zero.
+         * Sets the peak forward output voltage.
          *
-         * @param deadband deadband fraction (0–1); 0.04 is a typical value
-         */
-        public void configNeutralDeadband(double deadband) {
-            talonConfig.MotorOutput.DutyCycleNeutralDeadband = deadband;
-        }
-
-        /**
-         * Clamps the duty-cycle output to the specified forward and reverse peaks.
-         *
-         * @param forward maximum forward output fraction (0–1)
-         * @param reverse maximum reverse output fraction (-1–0)
-         */
-        public void configPeakOutput(double forward, double reverse) {
-            talonConfig.MotorOutput.PeakForwardDutyCycle = forward;
-            talonConfig.MotorOutput.PeakReverseDutyCycle = reverse;
-        }
-
-        /**
-         * Sets the neutral (idle) mode of the motor.
-         *
-         * @param isInBrake {@code true} for brake mode, {@code false} for coast mode
-         */
-        public void configNeutralBrakeMode(boolean isInBrake) {
-            talonConfig.MotorOutput.NeutralMode =
-                    isInBrake ? NeutralModeValue.Brake : NeutralModeValue.Coast;
-        }
-
-        // ---- Voltage Limits ----
-
-        /**
-         * Sets the peak forward output voltage. Limits the motor output even in FOC modes.
-         *
-         * @param voltageLimit peak forward voltage in volts
+         * @param voltageLimit maximum forward voltage in volts
          */
         public void configForwardVoltageLimit(double voltageLimit) {
             talonConfig.Voltage.PeakForwardVoltage = voltageLimit;
         }
 
         /**
-         * Sets the peak reverse output voltage. Limits the motor output even in FOC modes.
+         * Sets the peak reverse output voltage.
          *
-         * @param voltageLimit peak reverse voltage in volts (use a positive value; direction is
-         *     implied)
+         * @param voltageLimit maximum reverse voltage in volts
          */
         public void configReverseVoltageLimit(double voltageLimit) {
             talonConfig.Voltage.PeakReverseVoltage = voltageLimit;
         }
 
-        // ---- Current Limits ----
-
         /**
-         * Configures the supply (battery-side) current limit.
+         * Configures the supply current limit. The absolute value of {@code supplyLimit} is used,
+         * so negative values are automatically corrected.
          *
-         * @param supplyLimit supply current limit in amps (positive magnitude; auto-corrected if
-         *     negative is passed)
+         * @param supplyLimit the supply current limit in amps
          * @param enabled {@code true} to enable the limit
          */
         public void configSupplyCurrentLimit(double supplyLimit, boolean enabled) {
@@ -1709,10 +1565,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Configures the stator (motor-side) current limit.
+         * Configures the stator current limit. The absolute value of {@code statorLimit} is used,
+         * so negative values are automatically corrected.
          *
-         * @param statorLimit stator current limit in amps (positive magnitude; auto-corrected if
-         *     negative is passed)
+         * @param statorLimit the stator current limit in amps
          * @param enabled {@code true} to enable the limit
          */
         public void configStatorCurrentLimit(double statorLimit, boolean enabled) {
@@ -1724,10 +1580,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets the peak forward torque current limit used in FOC modes.
+         * Sets the peak forward torque current limit. The absolute value is used so negative inputs
+         * are corrected automatically.
          *
-         * @param currentLimit peak forward torque current in amps (positive magnitude;
-         *     auto-corrected if negative is passed)
+         * @param currentLimit peak forward torque current in amps
          */
         public void configForwardTorqueCurrentLimit(double currentLimit) {
             if (currentLimit < 0) {
@@ -1737,13 +1593,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets the peak reverse torque current limit used in FOC modes.
+         * Sets the peak reverse torque current limit. The value is forced negative so positive
+         * inputs are corrected automatically.
          *
-         * <p><b>Sign convention:</b> always pass a <em>positive</em> magnitude. This method
-         * automatically negates the value before writing it to the hardware register ({@code
-         * PeakReverseTorqueCurrent} must be ≤ 0 for Phoenix 6).
-         *
-         * @param currentLimit peak reverse torque current magnitude in amps (positive)
+         * @param currentLimit peak reverse torque current in amps (sign is corrected if positive)
          */
         public void configReverseTorqueCurrentLimit(double currentLimit) {
             if (currentLimit > 0) {
@@ -1753,33 +1606,49 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets the lower supply current limit, which is applied after {@link
-         * #configLowerSupplyCurrentTime(double)} seconds at the higher limit. Useful for
-         * stall-prevention: allow a brief high-current spike on startup, then throttle back.
+         * Sets the lower supply current limit, used to reduce dissipation after the upper limit has
+         * been triggered.
          *
-         * @param currentLimit lower supply current limit in amps
+         * @param currentLimit the lower supply current limit in amps
          */
         public void configLowerSupplyCurrentLimit(double currentLimit) {
             talonConfig.CurrentLimits.SupplyCurrentLowerLimit = currentLimit;
         }
 
         /**
-         * Sets the time after which the lower supply current limit takes effect.
+         * Sets the time window for the lower supply current limit.
          *
-         * @param time duration in seconds before the lower limit is applied
-         * @see #configLowerSupplyCurrentLimit(double)
+         * @param time the time in seconds
          */
         public void configLowerSupplyCurrentTime(double time) {
             talonConfig.CurrentLimits.SupplyCurrentLowerTime = time;
         }
 
-        // ---- Soft Limits ----
+        /**
+         * Sets the duty-cycle neutral deadband. Outputs below this magnitude are treated as zero.
+         *
+         * @param deadband deadband as a fraction of full output (e.g., {@code 0.001})
+         */
+        public void configNeutralDeadband(double deadband) {
+            talonConfig.MotorOutput.DutyCycleNeutralDeadband = deadband;
+        }
 
         /**
-         * Configures the forward software limit switch (maximum travel boundary).
+         * Sets the peak forward and reverse duty-cycle output limits.
          *
-         * @param threshold position threshold in rotations; motor output is cut when exceeded
-         * @param enabled {@code true} to enforce the limit
+         * @param forward maximum forward output (0 to 1)
+         * @param reverse maximum reverse output (-1 to 0)
+         */
+        public void configPeakOutput(double forward, double reverse) {
+            talonConfig.MotorOutput.PeakForwardDutyCycle = forward;
+            talonConfig.MotorOutput.PeakReverseDutyCycle = reverse;
+        }
+
+        /**
+         * Configures the forward software limit switch.
+         *
+         * @param threshold the position threshold in rotations
+         * @param enabled {@code true} to enable the limit
          */
         public void configForwardSoftLimit(double threshold, boolean enabled) {
             talonConfig.SoftwareLimitSwitch.ForwardSoftLimitThreshold = threshold;
@@ -1787,10 +1656,10 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Configures the reverse software limit switch (minimum travel boundary).
+         * Configures the reverse software limit switch.
          *
-         * @param threshold position threshold in rotations; motor output is cut when exceeded
-         * @param enabled {@code true} to enforce the limit
+         * @param threshold the position threshold in rotations
+         * @param enabled {@code true} to enable the limit
          */
         public void configReverseSoftLimit(double threshold, boolean enabled) {
             talonConfig.SoftwareLimitSwitch.ReverseSoftLimitThreshold = threshold;
@@ -1798,21 +1667,87 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Stores the minimum and maximum mechanism positions used by percentage-of-travel
-         * conversions and the {@code atPercentage} / {@code moveToPercentage} helpers.
+         * Enables or disables continuous position wrap-around for closed-loop control. Useful for
+         * mechanisms that rotate continuously (e.g., swerve azimuth).
          *
-         * @param minRotation minimum position in rotations (home / reverse limit)
-         * @param maxRotation maximum position in rotations (full extension / forward limit)
+         * @param enabled {@code true} to enable continuous wrap
          */
-        protected void configMinMaxRotations(double minRotation, double maxRotation) {
-            this.minRotations = minRotation;
-            this.maxRotations = maxRotation;
+        public void configContinuousWrap(boolean enabled) {
+            talonConfig.ClosedLoopGeneral.ContinuousWrap = enabled;
         }
 
-        // ---- Closed-Loop Gains ----
+        /**
+         * Configures optional Motion Magic velocity parameters (acceleration and feed-forward) for
+         * both FOC and voltage velocity control requests.
+         *
+         * @param acceleration the velocity acceleration in rotations per second squared
+         * @param feedforward the feed-forward term applied during velocity control
+         */
+        public void configMotionMagicVelocity(double acceleration, double feedforward) {
+            mmVelocityFOC =
+                    mmVelocityFOC.withAcceleration(acceleration).withFeedForward(feedforward);
+            mmVelocityVoltage =
+                    mmVelocityVoltage.withAcceleration(acceleration).withFeedForward(feedforward);
+        }
 
         /**
-         * Sets PID feedback gains for slot 0.
+         * Configures the feed-forward term for Motion Magic position control requests.
+         *
+         * @param feedforward the feed-forward term to apply during position control
+         */
+        public void configMotionMagicPosition(double feedforward) {
+            mmPositionFOC = mmPositionFOC.withFeedForward(feedforward);
+            mmPositionVoltage = mmPositionVoltage.withFeedForward(feedforward);
+        }
+
+        /**
+         * Configures the Motion Magic cruise velocity, acceleration, and jerk limits.
+         *
+         * @param cruiseVelocity maximum cruise velocity in rotations per second
+         * @param acceleration maximum acceleration in rotations per second squared
+         * @param jerk maximum jerk in rotations per second cubed
+         */
+        public void configMotionMagic(double cruiseVelocity, double acceleration, double jerk) {
+            talonConfig.MotionMagic.MotionMagicCruiseVelocity = cruiseVelocity;
+            talonConfig.MotionMagic.MotionMagicAcceleration = acceleration;
+            talonConfig.MotionMagic.MotionMagicJerk = jerk;
+        }
+
+        /**
+         * Configures the sensor-to-mechanism gear ratio. This is the ratio of rotor rotations to
+         * one full mechanism output rotation (or sensor rotations if a remote sensor is used).
+         *
+         * @param gearRatio the gear ratio (e.g., {@code 11.25} means 11.25 rotor turns per output
+         *     rotation)
+         */
+        public void configGearRatio(double gearRatio) {
+            talonConfig.Feedback.SensorToMechanismRatio = gearRatio;
+        }
+
+        /**
+         * Returns the currently configured sensor-to-mechanism gear ratio.
+         *
+         * @return the gear ratio
+         */
+        public double getGearRatio() {
+            return talonConfig.Feedback.SensorToMechanismRatio;
+        }
+
+        /**
+         * Sets the motor neutral mode to brake or coast.
+         *
+         * @param isInBrake {@code true} for brake mode; {@code false} for coast mode
+         */
+        public void configNeutralBrakeMode(boolean isInBrake) {
+            if (isInBrake) {
+                talonConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+            } else {
+                talonConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+            }
+        }
+
+        /**
+         * Configures PID gains in slot 0.
          *
          * @param kP proportional gain
          * @param kI integral gain
@@ -1823,9 +1758,9 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets PID feedback gains for the specified slot (0–2).
+         * Configures PID gains in the specified slot.
          *
-         * @param slot gain slot index
+         * @param slot the gain slot (0, 1, or 2)
          * @param kP proportional gain
          * @param kI integral gain
          * @param kD derivative gain
@@ -1835,45 +1770,66 @@ public abstract class Mechanism implements SpectrumSubsystem {
         }
 
         /**
-         * Sets feedforward gains for slot 0.
+         * Configures feed-forward gains in slot 0.
          *
          * @param kS static friction compensation (volts or amps)
-         * @param kV velocity feedforward (output per RPS)
-         * @param kA acceleration feedforward (output per RPS²)
-         * @param kG gravity feedforward (output; non-zero only for arm/elevator mechanisms)
+         * @param kV velocity feed-forward gain
+         * @param kA acceleration feed-forward gain
+         * @param kG gravity/load compensation gain
          */
         public void configFeedForwardGains(double kS, double kV, double kA, double kG) {
             configFeedForwardGains(0, kS, kV, kA, kG);
         }
 
         /**
-         * Sets feedforward gains for the specified slot (0–2).
+         * Configures feed-forward gains in the specified slot.
          *
-         * @param slot gain slot index
-         * @param kS static friction compensation
-         * @param kV velocity feedforward
-         * @param kA acceleration feedforward
-         * @param kG gravity feedforward
+         * @param slot the gain slot (0, 1, or 2)
+         * @param kS static friction compensation (volts or amps)
+         * @param kV velocity feed-forward gain
+         * @param kA acceleration feed-forward gain
+         * @param kG gravity/load compensation gain
          */
         public void configFeedForwardGains(int slot, double kS, double kV, double kA, double kG) {
             talonConfigFeedForward(slot, kV, kA, kS, kG);
         }
 
         /**
-         * Configures the gravity compensation type for slot 0.
+         * Configures the feedback sensor source using a rotorOffset of {@code 0}.
          *
-         * @param isArm {@code true} for {@link GravityTypeValue#Arm_Cosine} (rotary arm), {@code
-         *     false} for {@link GravityTypeValue#Elevator_Static} (linear elevator)
+         * @param source the feedback sensor source (e.g., remote CANcoder)
+         */
+        public void configFeedbackSensorSource(FeedbackSensorSourceValue source) {
+            configFeedbackSensorSource(source, 0);
+        }
+
+        /**
+         * Configures the feedback sensor source and its rotational offset.
+         *
+         * @param source the feedback sensor source
+         * @param offset the feedback rotor offset in rotations
+         */
+        public void configFeedbackSensorSource(FeedbackSensorSourceValue source, double offset) {
+            talonConfig.Feedback.FeedbackSensorSource = source;
+            talonConfig.Feedback.FeedbackRotorOffset = offset;
+        }
+
+        /**
+         * Configures the gravity compensation type in slot 0.
+         *
+         * @param isArm {@code true} for {@link GravityTypeValue#Arm_Cosine} (rotating arm); {@code
+         *     false} for {@link GravityTypeValue#Elevator_Static} (elevator)
          */
         public void configGravityType(boolean isArm) {
             configGravityType(0, isArm);
         }
 
         /**
-         * Configures the gravity compensation type for the specified slot.
+         * Configures the gravity compensation type in the specified slot.
          *
-         * @param slot gain slot index (0–2)
-         * @param isArm {@code true} for arm cosine, {@code false} for elevator static
+         * @param slot the gain slot (0, 1, or 2)
+         * @param isArm {@code true} for {@link GravityTypeValue#Arm_Cosine} (rotating arm); {@code
+         *     false} for {@link GravityTypeValue#Elevator_Static} (elevator)
          */
         public void configGravityType(int slot, boolean isArm) {
             GravityTypeValue gravityType =
@@ -1889,110 +1845,28 @@ public abstract class Mechanism implements SpectrumSubsystem {
             }
         }
 
-        // ---- Motion Magic ----
-
         /**
-         * Sets the Motion Magic trapezoidal profile parameters applied to all position and velocity
-         * Motion Magic control requests.
+         * Sets the minimum and maximum rotation limits for the mechanism. These bounds are used by
+         * unit-conversion helpers such as {@link Mechanism#percentToRotations}.
          *
-         * @param cruiseVelocity maximum profile velocity in rotations-per-second
-         * @param acceleration maximum profile acceleration in rotations-per-second²
-         * @param jerk maximum profile jerk in rotations-per-second³ (0 = unlimited)
+         * @param minRotation the minimum position in rotations
+         * @param maxRotation the maximum position in rotations
          */
-        public void configMotionMagic(double cruiseVelocity, double acceleration, double jerk) {
-            talonConfig.MotionMagic.MotionMagicCruiseVelocity = cruiseVelocity;
-            talonConfig.MotionMagic.MotionMagicAcceleration = acceleration;
-            talonConfig.MotionMagic.MotionMagicJerk = jerk;
+        protected void configMinMaxRotations(double minRotation, double maxRotation) {
+            this.minRotations = minRotation;
+            this.maxRotations = maxRotation;
         }
 
-        /**
-         * Overrides the acceleration and feedforward on the pre-built velocity Motion Magic control
-         * request objects. Call after {@link #configMotionMagic} if velocity-specific acceleration
-         * or feedforward tuning is needed.
-         *
-         * @param acceleration profile acceleration override in rotations-per-second²
-         * @param feedforward additional feedforward output added to the velocity controller
-         */
-        public void configMotionMagicVelocity(double acceleration, double feedforward) {
-            mmVelocityFOC =
-                    mmVelocityFOC.withAcceleration(acceleration).withFeedForward(feedforward);
-            mmVelocityVoltage =
-                    mmVelocityVoltage.withAcceleration(acceleration).withFeedForward(feedforward);
-        }
+        // ── Private Helpers ───────────────────────────────────────────────────
 
         /**
-         * Overrides the feedforward on the pre-built position Motion Magic control request objects.
-         * Useful when a constant output is needed to overcome a static load (e.g., a pneumatic
-         * spring).
+         * Applies feed-forward gains (kV, kA, kS, kG) to the specified TalonFX slot.
          *
-         * @param feedforward additional feedforward output added to the position controller
-         */
-        public void configMotionMagicPosition(double feedforward) {
-            mmPositionFOC = mmPositionFOC.withFeedForward(feedforward);
-            mmPositionVoltage = mmPositionVoltage.withFeedForward(feedforward);
-        }
-
-        // ---- Feedback / Gearing ----
-
-        /**
-         * Sets the sensor-to-mechanism gear ratio, i.e., how many rotor rotations correspond to one
-         * mechanism rotation. If a remote sensor is used, this is the ratio of sensor rotations to
-         * mechanism rotations.
-         *
-         * <p>Example: a 10:1 gearbox where the sensor is on the rotor → {@code gearRatio = 10}.
-         *
-         * @param gearRatio rotor-to-mechanism (or sensor-to-mechanism) ratio
-         */
-        public void configGearRatio(double gearRatio) {
-            talonConfig.Feedback.SensorToMechanismRatio = gearRatio;
-        }
-
-        /**
-         * Returns the currently configured sensor-to-mechanism gear ratio.
-         *
-         * @return gear ratio (sensor rotations per mechanism rotation)
-         */
-        public double getGearRatio() {
-            return talonConfig.Feedback.SensorToMechanismRatio;
-        }
-
-        /**
-         * Sets the feedback sensor source and optional rotor offset. Use when a CANcoder or other
-         * remote sensor is the primary feedback device.
-         *
-         * @param source feedback sensor source
-         */
-        public void configFeedbackSensorSource(FeedbackSensorSourceValue source) {
-            configFeedbackSensorSource(source, 0);
-        }
-
-        /**
-         * Sets the feedback sensor source and rotor offset. The offset is applied as {@code
-         * FeedbackRotorOffset} in the TalonFX configuration.
-         *
-         * @param source feedback sensor source
-         * @param offset rotor offset in rotations
-         */
-        public void configFeedbackSensorSource(FeedbackSensorSourceValue source, double offset) {
-            talonConfig.Feedback.FeedbackSensorSource = source;
-            talonConfig.Feedback.FeedbackRotorOffset = offset;
-        }
-
-        /**
-         * Enables or disables continuous wrap, allowing the position sensor to wrap at ±0.5
-         * rotations. Useful for mechanisms that rotate continuously (e.g., a swerve azimuth).
-         *
-         * @param enabled {@code true} to enable continuous wrap
-         */
-        public void configContinuousWrap(boolean enabled) {
-            talonConfig.ClosedLoopGeneral.ContinuousWrap = enabled;
-        }
-
-        // ---- Private Helpers ----
-
-        /**
-         * Writes feedforward gains to the specified TalonFX gain slot. Note that the parameter
-         * order differs from the public API to match the Phoenix 6 field naming convention.
+         * @param slot the gain slot (0, 1, or 2)
+         * @param kV velocity feed-forward
+         * @param kA acceleration feed-forward
+         * @param kS static friction compensation
+         * @param kG gravity compensation
          */
         private void talonConfigFeedForward(int slot, double kV, double kA, double kS, double kG) {
             if (slot == 0) {
@@ -2015,7 +1889,14 @@ public abstract class Mechanism implements SpectrumSubsystem {
             }
         }
 
-        /** Writes PID feedback gains to the specified TalonFX gain slot. */
+        /**
+         * Applies PID gains (kP, kI, kD) to the specified TalonFX slot.
+         *
+         * @param slot the gain slot (0, 1, or 2)
+         * @param kP proportional gain
+         * @param kI integral gain
+         * @param kD derivative gain
+         */
         private void talonConfigFeedbackPID(int slot, double kP, double kI, double kD) {
             if (slot == 0) {
                 talonConfig.Slot0.kP = kP;

@@ -27,32 +27,35 @@ import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
 import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
-import frc.robot.fuelIntake.FuelIntake;
-import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.hood.Hood;
-import frc.robot.hood.Hood.HoodConfig;
-import frc.robot.indexerBed.IndexerBed;
-import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
-import frc.robot.indexerTower.IndexerTower;
-import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
-import frc.robot.intakeExtension.IntakeExtension;
-import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
-import frc.robot.launcher.Launcher;
-import frc.robot.launcher.Launcher.LauncherConfig;
 import frc.robot.operator.Operator;
 import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
-import frc.robot.swerve.Swerve;
-import frc.robot.swerve.SwerveConfig;
-import frc.robot.vision.Vision;
-import frc.robot.vision.Vision.VisionConfig;
+import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.WantedSuperState;
+import frc.robot.subsystems.fuelIntake.FuelIntake;
+import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.subsystems.hood.Hood;
+import frc.robot.subsystems.hood.Hood.HoodConfig;
+import frc.robot.subsystems.indexerBed.IndexerBed;
+import frc.robot.subsystems.indexerBed.IndexerBed.IndexerBedConfig;
+import frc.robot.subsystems.indexerTower.IndexerTower;
+import frc.robot.subsystems.indexerTower.IndexerTower.IndexerTowerConfig;
+import frc.robot.subsystems.intakeExtension.IntakeExtension;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
+import frc.robot.subsystems.launcher.Launcher;
+import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
+import frc.robot.subsystems.swerve.Swerve;
+import frc.robot.subsystems.swerve.SwerveConfig;
+import frc.robot.subsystems.vision.Vision;
+import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.framework.SpectrumRobot;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.BatteryLogger;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import frc.spectrumLib.util.CrashTracker;
+import frc.spectrumLib.util.Util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +101,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Hood hood;
     @Getter private static Vision vision;
     @Getter private static Auton auton;
-    @Getter private static Coordinator coordinator;
+    @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
 
@@ -133,32 +136,53 @@ public class Robot extends SpectrumRobot {
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
             mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
 
-            coordinator = new Coordinator();
-            operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
+            operator = new Operator(config.operator);
+
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
+
             vision = new Vision(config.vision);
             Timer.delay(canInitDelay);
+
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
+
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
+
             hood = new Hood(config.hood);
             Timer.delay(canInitDelay);
+
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
+
             indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);
+
             indexerBed = new IndexerBed(config.indexerBed);
+            Timer.delay(canInitDelay);
+
             auton = new Auton();
             batteryLogger = new BatteryLogger();
 
+            superStructure =
+                    new SuperStructure(
+                            swerve,
+                            fuelIntake,
+                            intakeExtension,
+                            indexerTower,
+                            indexerBed,
+                            launcher,
+                            hood);
+
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();
+                configureSimBindings();
             }
 
-            setupDefaultCommands();
+            configureBindings();
+
             batteryLogger.setEnabled(true);
 
             Telemetry.print("--- Robot Init Complete ---");
@@ -185,45 +209,66 @@ public class Robot extends SpectrumRobot {
                 });
     }
 
-    /**
-     * This method cancels all commands and returns subsystems to their default commands and the
-     * gamepad configs are reset so that new bindings can be assigned based on mode. This method
-     * should be called when each mode is initialized.
-     *
-     * <p><b>Warning:</b> This method will cause a very large loop overrun, as it rebinds all states
-     * to their triggers. Be careful when you call this as it will cause delays in the robot code.
-     * It is recommended to call this method at the end of disabledInit and teleopInit, as those are
-     * the most common places to need to reset commands and bindings.
-     */
-    public void resetCommandsAndButtons() {
-        CommandScheduler.getInstance().cancelAll(); // Disable any currently running commands
-        CommandScheduler.getInstance().getActiveButtonLoop().clear();
+    public void configureBindings() {
+        // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
+        pilot.LT.onTrue(
+                Commands.either(
+                        superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
+                        Commands.none(),
+                        pilot.RT.negate()));
 
-        // Reset Config for all gamepads and other button bindings
-        pilot.resetConfig();
-        operator.resetConfig();
+        // RT alone → launch; do nothing if LT is already held (RT+LT handled below)
+        pilot.RT.onTrue(
+                Commands.either(
+                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
+                        Commands.none(),
+                        pilot.LT.negate()));
 
-        // Bind Triggers for all subsystems
-        setupStates();
-        RobotStates.setupStates();
+        // RT + LT both held → launch (intake stays extended; resolves to LAUNCH_WITHOUT_SQUEEZE)
+        pilot.RT
+                .and(pilot.LT)
+                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE));
+
+        // LT released while RT still held → launch (no delay; resolves to
+        // LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)
+        pilot.LT.onFalse(
+                Commands.either(
+                        superStructure.setStateCommand(
+                                WantedSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
+                        Commands.none(),
+                        pilot.RT));
+
+        // RT released while LT still held → resume intaking
+        pilot.RT.onFalse(
+                Commands.either(
+                        superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
+                        Commands.none(),
+                        pilot.LT));
+
+        // Both released → idle
+        pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
+        pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        pilot.selectButton
+                .and(pilot.LB)
+                .onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
+        pilot.selectButton
+                .and(pilot.LB)
+                .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        // Reset hub shift timer when enabling
+        Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
+        Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
+        Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
     }
 
-    /**
-     * This method cancels all commands and returns subsystems to their default commands. This
-     * method should be called when each mode is initialized.
-     *
-     * <p><b>Warning:</b> This method will cause a very large loop overrun, as it rebinds all states
-     * to their triggers. Be careful when you call this as it will cause delays in the robot code.
-     * It is recommended to call this method at the end of disabledInit and teleopInit, as those are
-     * the most common places to need to reset commands and bindings.
-     */
-    public void clearCommandsAndButtons() {
-        CommandScheduler.getInstance().cancelAll(); // Disable any currently running commands
-        CommandScheduler.getInstance().getActiveButtonLoop().clear();
-
-        // Bind Triggers for all subsystems
-        setupStates();
-        RobotStates.setupStates();
+    public void configureSimBindings() {
+        RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
     }
 
     /** Sets up the SmartDashboard data for visualization. */
@@ -262,7 +307,6 @@ public class Robot extends SpectrumRobot {
                     "Match Data/TimeLeftInShift",
                     ShiftHelpers.getOfficialShiftInfo().remainingTime(),
                     "seconds");
-            Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
@@ -289,7 +333,6 @@ public class Robot extends SpectrumRobot {
     @Override
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
-        resetCommandsAndButtons();
 
         if (!autonWarmedUp) {
             Command autonStartCommand =
@@ -444,7 +487,6 @@ public class Robot extends SpectrumRobot {
     public void teleopInit() {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
-            RobotStates.clearState();
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
@@ -480,7 +522,6 @@ public class Robot extends SpectrumRobot {
         try {
 
             Telemetry.print("~~~ Test Init Starting ~~~ ");
-            resetCommandsAndButtons();
 
             Telemetry.print("~~~ Test Init Complete ~~~ ");
         } catch (Throwable t) {

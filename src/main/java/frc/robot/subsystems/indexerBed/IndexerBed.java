@@ -1,33 +1,16 @@
-package frc.robot.indexerBed;
+package frc.robot.subsystems.indexerBed;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleSubscriber;
-import edu.wpi.first.wpilibj2.command.Command;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.telemetry.Telemetry;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
 public class IndexerBed extends Mechanism {
 
     public static class IndexerBedConfig extends Config {
-
-        // Intake Voltages and Current
-        @Getter @Setter private double indexerVoltageOut = 8;
-        @Getter @Setter private double indexerSlowVoltageOut = 4;
-        @Getter @Setter private double unjamVoltageOut = -4;
-        @Getter @Setter private double indexerTorqueCurrent = 120;
-        @Getter @Setter private double indexerVelocityRPM = 5000;
-        @Getter @Setter private double indexerSlowVelocityRPM = 1000;
-        @Getter @Setter private double indexerUnjamRPM = -2000;
-
-        @Getter
-        private final DoubleSubscriber indexerBedFeedRPM =
-                Telemetry.tunable("Tunable/IndexerBedFeedRPM", indexerVelocityRPM);
-
         /* Indexer config values */
         @Getter @Setter private double currentLimit = 60;
         @Getter @Setter private double torqueCurrentLimit = 100;
@@ -61,6 +44,57 @@ public class IndexerBed extends Mechanism {
         }
     }
 
+    // ---- State Machine ----
+    public enum WantedState {
+        OFF,
+        INDEX_MAX,
+        SLOW_INDEX,
+        UNJAM,
+    }
+
+    public enum SystemState {
+        OFF,
+        INDEX_MAX,
+        SLOW_INDEX,
+        UNJAM,
+    }
+
+    private WantedState wantedState = WantedState.OFF;
+    private SystemState systemState = SystemState.OFF;
+
+    public void setWantedState(WantedState state) {
+        this.wantedState = state;
+    }
+
+    private SystemState handleStateTransition() {
+        return switch (wantedState) {
+            case OFF -> SystemState.OFF;
+            case INDEX_MAX -> SystemState.INDEX_MAX;
+            case SLOW_INDEX -> SystemState.SLOW_INDEX;
+            case UNJAM -> SystemState.UNJAM;
+        };
+    }
+
+    private void applyStates() {
+        double wantedRPM = 0;
+        switch (systemState) {
+            case OFF:
+                stop();
+                return;
+            case INDEX_MAX:
+                wantedRPM = 5000;
+                break;
+            case SLOW_INDEX:
+                wantedRPM = 1000;
+                break;
+            case UNJAM:
+                wantedRPM = -2000;
+                break;
+        }
+        final double finalWantedRPM = wantedRPM;
+        setVelocityTCFOCrpm(() -> finalWantedRPM);
+    }
+
     // private IndexerBedConfig config;
     // private IndexerSim sim;
 
@@ -74,49 +108,17 @@ public class IndexerBed extends Mechanism {
 
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
+        applyStates();
         logBatteryUsage();
+        Telemetry.log("IndexerBed/WantedState", wantedState.toString());
+        Telemetry.log("IndexerBed/SystemState", systemState.toString());
         Telemetry.log("IndexerBed/CurrentCommand", getCurrentCommandName());
         Telemetry.log("IndexerBed/Voltage", getVoltage(), "volts");
         Telemetry.log("IndexerBed/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("IndexerBed/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("IndexerBed/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("IndexerBed/Temp", getTemp(), "deg_C");
-    }
-
-    @Override
-    public void setupStates() {}
-
-    @Override
-    public void setupDefaultCommand() {
-        IndexerBedStates.setupDefaultCommand();
-    }
-
-    // --------------------------------------------------------------------------------
-    // Custom Commands
-    // --------------------------------------------------------------------------------
-
-    public Command runTorqueFOC(DoubleSupplier torque) {
-        return run(() -> setTorqueCurrentFoc(torque));
-    }
-
-    public void setVoltageAndCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supply, DoubleSupplier torque) {
-        setVoltageOutput(voltage);
-        setCurrentLimits(supply, torque);
-    }
-
-    public Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return runVoltage(voltage).alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command runTCcurrentLimits(DoubleSupplier torqueCurrent, DoubleSupplier supplyCurrent) {
-        return runTorqueCurrentFoc(torqueCurrent)
-                .alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command stopMotor() {
-        return run(() -> stop());
     }
 
     // --------------------------------------------------------------------------------

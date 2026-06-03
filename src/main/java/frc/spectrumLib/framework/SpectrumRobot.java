@@ -45,22 +45,4 @@ public class SpectrumRobot extends TimedRobot {
         }
         CommandScheduler.getInstance().setPeriod(0.20);
     }
-
-    /**
-     * Set up default commands for all registered subsystems. Should be called during robot
-     * initialization.
-     */
-    protected void setupDefaultCommands() {
-        // Setup Default Commands for all subsystems
-        subsystems.forEach(SpectrumSubsystem::setupDefaultCommand);
-    }
-
-    /**
-     * Set up states and triggers for all registered subsystems. Should be called during robot
-     * initialization.
-     */
-    protected void setupStates() {
-        // Bind Triggers for all subsystems
-        subsystems.forEach(SpectrumSubsystem::setupStates);
-    }
 }

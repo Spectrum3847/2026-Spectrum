@@ -168,17 +168,10 @@ public class FuelPhysicsSim {
     private static final double BRACING_BOTTOM = 0.721; // m, 28.4 in
     private static final double BRACING_TOP = 1.102; // m, 43.4 in
 
-    // Outpost geometry
-    // Outpost/corral AABBs removed (not in YAGSL collision model, caused phantom floating)
-
-    // Corral geometry
-
     // Hub ramp area
     private static final double HUB_RAMP_WIDTH = 1.194; // m, 47 in
     private static final double HUB_RAMP_LENGTH = 5.512; // m, 217 in
     private static final double HUB_RAMP_HEIGHT = 0.165; // m, 6.5 in
-
-    // Divider pipe
 
     // Spatial hash
     private static final double CELL_SIZE = 0.25;
@@ -768,7 +761,8 @@ public class FuelPhysicsSim {
     private double robotWidth;
     private double robotLength;
     private double bumperHeight;
-    private double hopperSize;
+    private int hopperSize =
+            Integer.MAX_VALUE; // max balls the robot can hold; unlimited by default
 
     // Intakes
     private final List<IntakeZone> intakes = new ArrayList<>();
@@ -897,7 +891,7 @@ public class FuelPhysicsSim {
      * @param width robot width along Y axis (m)
      * @param length robot length along X axis (m)
      * @param bumperHeight bumper height (m)
-     * @param hopperSize quantity of Fuel the robot can hold
+     * @param hopperSize maximum number of balls the robot's hopper can hold; intake stops when full
      * @param poseSupplier field-relative pose supplier
      * @param speedsSupplier field-relative chassis speeds supplier
      */
@@ -905,7 +899,7 @@ public class FuelPhysicsSim {
             double width,
             double length,
             double bumperHeight,
-            double hopperSize,
+            int hopperSize,
             Supplier<Pose2d> poseSupplier,
             Supplier<ChassisSpeeds> speedsSupplier) {
         this.robotWidth = width;
@@ -914,6 +908,26 @@ public class FuelPhysicsSim {
         this.hopperSize = hopperSize;
         this.robotPoseSupplier = poseSupplier;
         this.robotSpeedsSupplier = speedsSupplier;
+    }
+
+    /**
+     * Tell the sim about your robot so it can handle bumper collisions and intake pickup. Hopper
+     * capacity is unlimited.
+     *
+     * @param width robot width along Y axis (m)
+     * @param length robot length along X axis (m)
+     * @param bumperHeight bumper height (m)
+     * @param poseSupplier field-relative pose supplier
+     * @param speedsSupplier field-relative chassis speeds supplier
+     */
+    public void configureRobot(
+            double width,
+            double length,
+            double bumperHeight,
+            Supplier<Pose2d> poseSupplier,
+            Supplier<ChassisSpeeds> speedsSupplier) {
+        configureRobot(
+                width, length, bumperHeight, Integer.MAX_VALUE, poseSupplier, speedsSupplier);
     }
 
     /**
@@ -936,15 +950,7 @@ public class FuelPhysicsSim {
         intakes.add(new IntakeZone(xMin, xMax, yMin, yMax, active, callback));
     }
 
-    /**
-     * Add an intake zone without a callback.
-     *
-     * @param xMin front edge in robot frame
-     * @param xMax back edge in robot frame
-     * @param yMin left edge in robot frame
-     * @param yMax right edge in robot frame
-     * @param active returns true when the intake is actually running
-     */
+    /** Add an intake zone without a callback. */
     public void addIntakeZone(
             double xMin, double xMax, double yMin, double yMax, BooleanSupplier active) {
         addIntakeZone(xMin, xMax, yMin, yMax, active, () -> {});
@@ -976,7 +982,6 @@ public class FuelPhysicsSim {
         SimBall ball = new SimBall(pos, vel, omega);
         balls.add(ball);
         totalLaunched++;
-        totalIntaked--;
         lastLaunchSpeed = vel.getNorm();
 
         // Predict the trajectory arc for Field3d visualization (20 points, gravity + drag only)
@@ -1646,7 +1651,6 @@ public class FuelPhysicsSim {
         if (cyl.abLenSq() < 1e-12) return;
 
         // Find nearest point on line segment to ball center
-
         double apx = ball.pos.getX() - cyl.ax();
         double apy = ball.pos.getY() - cyl.ay();
         double apz = ball.pos.getZ() - cyl.az();
@@ -2109,9 +2113,9 @@ public class FuelPhysicsSim {
     }
 
     private void handleIntakePickup(SimBall ball, Pose2d robotPose) {
+        if (totalIntaked >= hopperSize) return; // hopper is full
         for (IntakeZone intake : intakes) {
-            if (intake.shouldIntake(ball, robotPose, bumperHeight)
-                    && getTotalIntaked() < hopperSize) {
+            if (intake.shouldIntake(ball, robotPose, bumperHeight)) {
                 ball.intaked = true;
                 totalIntaked++;
                 return;

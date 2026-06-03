@@ -1,12 +1,9 @@
-package frc.robot.launcher;
+package frc.robot.subsystems.launcher;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
@@ -15,26 +12,11 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
-import lombok.Setter;
 
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
-
-        // Intake Voltages and Current
-        @Getter @Setter private double LauncherVoltage = 9.0;
-        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
-        @Getter @Setter private double LauncherTorqueCurrent = 85.0;
-
-        @Getter @Setter private double idlingRPM = 700;
-        @Getter @Setter private double slowLaunchSpeed = 400;
-        @Getter @Setter private double autoTrenchLaunch = 1800;
-
-        @Getter
-        private final DoubleSubscriber onTheFlySpeed =
-                Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
         @Getter private double currentLimit = 80;
@@ -83,6 +65,67 @@ public class Launcher extends Mechanism {
         }
     }
 
+    // ---- State Machine ----
+
+    public enum WantedState {
+        OFF,
+        IDLE_PREP,
+        SLOW_LAUNCH,
+        AIM_AT_TARGET,
+        AUTON_AIM,
+    }
+
+    public enum SystemState {
+        OFF,
+        IDLE_PREP,
+        SLOW_LAUNCH,
+        AIM_AT_TARGET,
+        AUTON_AIM,
+    }
+
+    private WantedState wantedState = WantedState.OFF;
+    private SystemState systemState = SystemState.OFF;
+
+    public void setWantedState(WantedState state) {
+        this.wantedState = state;
+    }
+
+    private SystemState handleStateTransition() {
+        return switch (wantedState) {
+            case OFF -> SystemState.OFF;
+            case IDLE_PREP -> SystemState.IDLE_PREP;
+            case SLOW_LAUNCH -> SystemState.SLOW_LAUNCH;
+            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case AUTON_AIM -> SystemState.AUTON_AIM;
+        };
+    }
+
+    private void applyStates() {
+        double wantedRPM = 0;
+        switch (systemState) {
+            case OFF:
+                stop();
+                return;
+            case IDLE_PREP:
+                wantedRPM = 700;
+                break;
+            case SLOW_LAUNCH:
+                wantedRPM = 400;
+                break;
+            case AIM_AT_TARGET:
+                var params = ShotCalculator.getInstance().getParameters();
+                if (params.isValid()) {
+                    wantedRPM = params.flywheelSpeed();
+                }
+                break;
+            case AUTON_AIM:
+                wantedRPM = 1800;
+                break;
+        }
+        final double finalWantedRPM = wantedRPM;
+        setVelocityTCFOCrpm(() -> finalWantedRPM);
+    }
+
     private LauncherConfig config;
     private LauncherSim sim;
 
@@ -96,83 +139,17 @@ public class Launcher extends Mechanism {
 
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
+        applyStates();
         logBatteryUsage();
+        Telemetry.log("Launcher/WantedState", wantedState.toString());
+        Telemetry.log("Launcher/SystemState", systemState.toString());
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
         Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
-    }
-
-    @Override
-    public void setupStates() {
-        LauncherStates.setupStates();
-    }
-
-    @Override
-    public void setupDefaultCommand() {
-        LauncherStates.setupDefaultCommand();
-    }
-
-    // --------------------------------------------------------------------------------
-    // Custom Commands
-    // --------------------------------------------------------------------------------
-
-    public Command runTorqueFOC(DoubleSupplier torque) {
-        return run(() -> setTorqueCurrentFoc(torque));
-    }
-
-    public void setVoltageAndCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supply, DoubleSupplier torque) {
-        setVoltageOutput(voltage);
-        setCurrentLimits(supply, torque);
-    }
-
-    public Command runVoltageCurrentLimits(
-            DoubleSupplier voltage, DoubleSupplier supplyCurrent, DoubleSupplier torqueCurrent) {
-        return runVoltage(voltage).alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command runTCcurrentLimits(DoubleSupplier torqueCurrent, DoubleSupplier supplyCurrent) {
-        return runTorqueCurrentFoc(torqueCurrent)
-                .alongWith(runCurrentLimits(supplyCurrent, torqueCurrent));
-    }
-
-    public Command stopMotor() {
-        return run(() -> stop());
-    }
-
-    public Command trackTargetCommand() {
-        return run(() -> {
-                    var params = ShotCalculator.getInstance().getParameters();
-                    if (params.isValid()) {
-                        setVelocityTCFOCrpm(() -> params.flywheelSpeed());
-                    }
-                })
-                .withName("Launcher.trackTargetCommand");
-    }
-
-    public Command onTheFlyLaunch() {
-        return run(() -> {
-                    setVelocityTCFOCrpm(() -> config.getOnTheFlySpeed().get());
-                })
-                .withName("Launcher.onTheFlyLaunch");
-    }
-
-    public Trigger aimingAtTarget() {
-        return new Trigger(
-                () -> {
-                    var params = ShotCalculator.getInstance().getParameters();
-                    if (!params.isValid()) return false;
-
-                    double targetRPM = params.flywheelSpeed();
-                    double currentRPM = getVelocityRPM();
-
-                    double errorRPM = currentRPM - targetRPM;
-
-                    return Math.abs(errorRPM) < config.getOnTargetToleranceRPM();
-                });
     }
 
     // --------------------------------------------------------------------------------

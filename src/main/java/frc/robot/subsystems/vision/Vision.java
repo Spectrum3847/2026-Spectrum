@@ -1,4 +1,4 @@
-package frc.robot.vision;
+package frc.robot.subsystems.vision;
 
 import com.ctre.phoenix6.Utils;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
-import frc.robot.RobotStates;
 import frc.robot.auton.Auton;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
@@ -326,7 +325,7 @@ public class Vision implements Subsystem {
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean()
-                || RobotStates.autoUpdatePose.getAsBoolean()
+                // || RobotStates.autoUpdatePose.getAsBoolean()
                 || Auton.autonLaunching.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, false));

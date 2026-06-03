@@ -10,9 +10,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.spectrumLib.framework.SpectrumSubsystem;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.ExpCurve;
 import frc.spectrumLib.util.Util;
@@ -43,7 +43,7 @@ import lombok.Setter;
  * false} and axis reads return {@code 0.0}.
  */
 // Gamepad class
-public abstract class Gamepad implements SpectrumSubsystem {
+public abstract class Gamepad implements Subsystem {
     /** WPILib alert displayed on the driver station when this gamepad is disconnected. */
     private Alert disconnectedAlert;
 

@@ -1,82 +1,34 @@
 package frc.robot.pilot;
 
-import static edu.wpi.first.units.Units.MetersPerSecond;
-
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
-import frc.spectrumLib.framework.SpectrumState;
 import frc.spectrumLib.gamepads.Gamepad;
 import frc.spectrumLib.telemetry.Telemetry;
-import lombok.Getter;
-import lombok.Setter;
 
+/* A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
 public class Pilot extends Gamepad {
+    public final Trigger LB = leftBumper;
+    public final Trigger RB = rightBumper;
+    public final Trigger LT = leftTrigger;
+    public final Trigger RT = rightTrigger;
 
-    // Triggers, these would be robot states such as ampReady, intake, visionAim, etc.
-    // If triggers need any of the config values set them in the constructor
-    /*  A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
-    public final Trigger enabled = teleop.or(testMode); // works for both teleop and testMode
-    public final Trigger fn = leftBumper;
-    public final Trigger noFn = fn.negate();
-    public final Trigger home_select = select;
+    public final Trigger AButton = A;
+    public final Trigger BButton = B;
+    public final Trigger XButton = X;
+    public final Trigger YButton = Y;
 
-    public final Trigger LT = leftTrigger.and(noFn).and(teleop);
-    public final Trigger RT = rightTrigger.and(noFn).and(teleop);
-    public final Trigger LB_LT = leftTrigger.and(fn).and(teleop);
+    public final Trigger startButton = start;
+    public final Trigger selectButton = select;
 
-    public final Trigger AButton = A.and(teleop);
-    public final Trigger BButton = B.and(teleop);
-    public final Trigger XButton = X.and(teleop);
-    public final Trigger YButton = Y.and(teleop);
+    public final Trigger leftStickPress = leftStickClick;
+    public final Trigger rightStickPress = rightStickClick;
 
-    public final Trigger coastA = A.and(disabled);
-    public final Trigger brakeB = B.and(disabled);
-
-    public final Trigger startButton = start.and(noFn).and(teleop);
-
-    public final Trigger RB = rightBumper.and(teleop);
-
-    public final Trigger dpadUp = upDpad.and(teleop);
-    public final Trigger dpadDown = downDpad.and(teleop);
-    public final Trigger dpadLeft = leftDpad.and(teleop);
-    public final Trigger dpadRight = rightDpad.and(teleop);
-
-    // Drive Triggers
-    public final Trigger upReorient = upDpad.and(fn).and(teleop);
-    public final Trigger leftReorient = leftDpad.and(fn).and(teleop);
-    public final Trigger downReorient = downDpad.and(fn).and(teleop);
-    public final Trigger rightReorient = rightDpad.and(fn).and(teleop);
-
-    /* Use the right stick to set a cardinal direction to aim at */
-    public final Trigger driving = enabled.and(leftStickX.or(leftStickY));
-    public final Trigger steer = enabled.and(rightStickX.or(rightStickY));
-
-    public final Trigger fpv_LS = leftStickClick.and(enabled); // Remapped to Left back button
-    public final Trigger toggleReverse =
-            rightStickClick.and(enabled); // Remapped to Right back button
-
-    // DISABLED TRIGGERS
-    public final Trigger coastOn_dB = disabled.and(B);
-    public final Trigger coastOff_dA = disabled.and(A);
-    public final Trigger reZero_start = disabled.and(leftBumper).and(rightBumper).and(start);
-    public final Trigger visionPoseReset_LB_Select = disabled.and(leftBumper).and(select);
-
-    // TEST TRIGGERS
-    public final Trigger testTune_tB = testMode.and(B);
-    public final Trigger testTune_tA = testMode.and(A);
-    public final Trigger testTune_tX = testMode.and(X);
-    public final Trigger testTune_tY = testMode.and(Y);
-    public final Trigger testTune_RB = testMode.and(rightBumper);
-    public final Trigger testTune_LB = testMode.and(leftBumper);
-    public final Trigger testTriggersTrigger = testMode.and(leftTrigger.or(rightTrigger));
-
-    public final Trigger testActionReady = rightBumper.and(testMode);
+    public final Trigger dPadUp = upDpad;
+    public final Trigger dPadDown = downDpad;
+    public final Trigger dPadLeft = leftDpad;
+    public final Trigger dPadRight = rightDpad;
 
     public static class PilotConfig extends Config {
-
-        @Getter @Setter private double slowModeScalor = 0.45;
-        @Getter @Setter private double defaultTurnScalor = 0.6;
-        @Getter @Setter private double turboModeScalor = 1;
         private double deadzone = 0.05;
 
         public PilotConfig() {
@@ -87,8 +39,8 @@ public class Pilot extends Gamepad {
             // Set Scalar in Constructor from Swerve Config
 
             setRightStickDeadzone(deadzone);
-            setRightStickExp(3);
-            // Set Scalar in Constructor from Swerve Config
+            setRightStickExp(3.0);
+            setRightStickScalar(6 * Math.PI);
 
             setTriggersDeadzone(deadzone);
             setTriggersExp(1);
@@ -96,38 +48,22 @@ public class Pilot extends Gamepad {
         }
     }
 
+    @SuppressWarnings("unused")
     private PilotConfig config;
-
-    private @Getter @Setter SpectrumState slowMode = new SpectrumState("SlowMode");
-    private @Getter @Setter SpectrumState turboMode = new SpectrumState("TurboMode");
 
     /** Create a new Pilot with the default name and port. */
     public Pilot(PilotConfig config) {
         super(config);
         this.config = config;
 
-        config.setLeftStickScalar(Robot.getConfig().swerve.getSpeedAt12Volts().in(MetersPerSecond));
+        // Set Left stick Scalar from Swerve Config
+        config.setLeftStickScalar(Robot.getConfig().swerve.getSpeedAt12Volts().magnitude());
         leftStickCurve.setScalar(config.getLeftStickScalar());
 
-        config.setRightStickScalar(Robot.getConfig().swerve.getMaxAngularVelocity());
-        rightStickCurve.setScalar(config.getRightStickScalar());
-
-        Robot.add(this);
-        Telemetry.print("Pilot Subsystem Initialized");
+        register();
+        Telemetry.print("Pilot Subsystem Initialized: ");
     }
 
-    @Override
-    public void setupStates() {
-        // Used for setting rumble and control mode states only
-        PilotStates.setStates();
-    }
-
-    @Override
-    public void setupDefaultCommand() {
-        PilotStates.setupDefaultCommand();
-    }
-
-    // DRIVE METHODS
     public void setMaxVelocity(double maxVelocity) {
         leftStickCurve.setScalar(maxVelocity);
     }
@@ -137,36 +73,20 @@ public class Pilot extends Gamepad {
     }
 
     // Positive is forward, up on the left stick is positive
-    // Applies Exponential Curve, Deadzone, and Slow Mode toggle
     public double getDriveFwdPositive() {
         double fwdPositive = leftStickCurve.calculate(-1 * getLeftY());
-        if (slowMode.getAsBoolean()) {
-            fwdPositive *= Math.abs(config.getSlowModeScalor());
-        }
         return fwdPositive;
     }
 
     // Positive is left, left on the left stick is positive
-    // Applies Exponential Curve, Deadzone, and Slow Mode toggle
     public double getDriveLeftPositive() {
         double leftPositive = -1 * leftStickCurve.calculate(getLeftX());
-        if (slowMode.getAsBoolean()) {
-            leftPositive *= Math.abs(config.getSlowModeScalor());
-        }
         return leftPositive;
     }
 
     // Positive is counter-clockwise, left Trigger is positive
-    // Applies Exponential Curve, Deadzone, and Slow Mode toggle
     public double getDriveCCWPositive() {
         double ccwPositive = rightStickCurve.calculate(getRightX());
-        if (slowMode.getAsBoolean()) {
-            ccwPositive *= Math.abs(config.getSlowModeScalor());
-        } else if (turboMode.getAsBoolean()) {
-            ccwPositive *= Math.abs(config.getTurboModeScalor());
-        } else {
-            ccwPositive *= Math.abs(config.getDefaultTurnScalor());
-        }
         return -1 * ccwPositive; // invert the value
     }
 
