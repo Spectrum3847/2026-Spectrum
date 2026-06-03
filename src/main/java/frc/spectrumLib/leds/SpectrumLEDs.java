@@ -22,23 +22,71 @@ import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * WPILib-based addressable LED subsystem that wraps {@link AddressableLED} and exposes a rich
+ * library of pattern factories (solid, blink, breathe, rainbow, chase, bounce, ombre, wave,
+ * countdown, etc.).
+ *
+ * <p>Multiple {@code SpectrumLEDs} instances can share a single physical LED strip by passing the
+ * same {@link AddressableLED} and {@link AddressableLEDBuffer} in their {@link Config} objects and
+ * selecting non-overlapping start/end indices. Only the instance constructed with {@code
+ * config.getLed() == null} (i.e., the first/main instance) calls {@link AddressableLED#setData}
+ * each loop.
+ *
+ * <p>Patterns are applied via {@link #setPattern(LEDPattern, int)}, which returns a {@link Command}
+ * that runs continuously and respects the priority system ({@link #checkPriority(int)}).
+ */
 public class SpectrumLEDs implements SpectrumSubsystem {
 
     // Example Animation List - https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 
+    /**
+     * Configuration for a {@link SpectrumLEDs} subsystem instance.
+     *
+     * <p>Use {@link #Config(String, int)} for the first (main) instance that owns the physical LED
+     * strip, or {@link #Config(String, AddressableLED, AddressableLEDBuffer, int, int)} to share an
+     * existing strip across multiple subsystems.
+     */
     public static class Config {
+        /** Human-readable name used in telemetry. */
         @Getter private String name;
+
+        /** Whether this LED strip is physically connected to the robot. */
         @Getter @Setter private boolean attached = true;
+
+        /** Shared {@link AddressableLED} instance; {@code null} for the main instance. */
         @Getter @Setter private AddressableLED led;
+
+        /** Shared buffer backing the physical strip; {@code null} for the main instance. */
         @Getter @Setter private AddressableLEDBuffer buffer;
+
+        /** View into the shared buffer; unused in this config (set on the subsystem). */
         @Getter @Setter private AddressableLEDBufferView view;
+
+        /** First LED index (inclusive) within the shared buffer owned by this instance. */
         @Getter @Setter private int startingIndex = 0;
+
+        /** Last LED index (inclusive) within the shared buffer owned by this instance. */
         @Getter @Setter private int endingIndex = 0;
+
+        /** PWM header port number used when this instance owns the physical strip. */
         @Getter @Setter private int port = 0;
+
+        /** Total number of LEDs in the strip owned by this instance. */
         @Getter @Setter private int length;
+
+        /**
+         * Physical spacing between adjacent LEDs; used for speed calculations in scroll patterns.
+         */
         // LED strip density
         @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
 
+        /**
+         * Creates a configuration for a standalone LED strip (this instance owns the hardware).
+         *
+         * @param name human-readable name for telemetry
+         * @param length total number of LEDs on the strip
+         */
         public Config(String name, int length) {
             this.name = name;
             this.length = length;
@@ -46,6 +94,15 @@ public class SpectrumLEDs implements SpectrumSubsystem {
             this.endingIndex = length - 1;
         }
 
+        /**
+         * Creates a configuration for a LED view that shares an existing physical strip.
+         *
+         * @param name human-readable name for telemetry
+         * @param l the shared {@link AddressableLED} instance
+         * @param lb the shared {@link AddressableLEDBuffer}
+         * @param startingIndex first LED index (inclusive) in the shared buffer for this view
+         * @param endingIndex last LED index (inclusive) in the shared buffer for this view
+         */
         public Config(
                 String name,
                 AddressableLED l,
@@ -60,26 +117,54 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         }
     }
 
+    /** Active configuration for this instance. */
     @Getter private Config config;
 
+    /** The physical {@link AddressableLED} output (owned or shared). */
     @Getter protected final AddressableLED led;
+
+    /** The full LED data buffer (owned or shared). */
     @Getter protected final AddressableLEDBuffer ledBuffer;
+
+    /** View into {@link #ledBuffer} that covers only this instance's segment of the strip. */
     @Getter protected final AddressableLEDBufferView ledView;
+
+    /**
+     * {@code true} if this instance is responsible for writing the buffer to hardware each loop.
+     */
     private boolean mainView = false;
 
+    /** Default pattern shown when no other command requires this subsystem (orange blink). */
     protected final LEDPattern defaultPattern = blink(Color.kOrange, 1);
 
+    /**
+     * The subsystem's WPILib default command; displays {@link #defaultPattern} at lowest priority.
+     */
     @Getter
     protected Command defaultCommand =
             setPattern(defaultPattern, -1).withName("LEDs.defaultCommand");
 
+    /** Trigger that is active while the default command is scheduled (for priority arbitration). */
     public final Trigger defaultTrigger = new Trigger(() -> defaultCommand.isScheduled());
 
+    /**
+     * Priority level of the pattern command currently running. Higher values indicate higher
+     * priority; {@link #setPattern(LEDPattern, int)} stores this when a command starts.
+     */
     @Getter @Setter private int commandPriority = 0;
 
+    /** Spectrum purple color constant ({@code RGB 130, 103, 185}). */
     public final Color purple = new Color(130, 103, 185);
+
+    /** Convenience alias for {@link Color#kWhite}. */
     public final Color white = Color.kWhite;
 
+    /**
+     * Constructs the LED subsystem, configures the hardware (or reuses a shared strip), and
+     * registers with the WPILib {@link edu.wpi.first.wpilibj2.command.CommandScheduler}.
+     *
+     * @param config the configuration describing port, length, and optional shared hardware
+     */
     public SpectrumLEDs(Config config) {
         this.config = config;
 
@@ -114,14 +199,35 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         }
     }
 
+    /**
+     * Returns whether this LED strip is physically connected to the robot.
+     *
+     * @return {@code true} if attached
+     */
     public boolean isAttached() {
         return config.isAttached();
     }
 
+    /**
+     * Returns a {@link Trigger} that is active when the currently running command's priority is at
+     * or below the given value. Use to gate lower-priority commands from overriding higher-priority
+     * ones.
+     *
+     * @param priority the maximum priority level that should allow the trigger to be active
+     * @return trigger active when {@link #commandPriority} &le; priority
+     */
     public Trigger checkPriority(int priority) {
         return new Trigger(() -> commandPriority <= priority);
     }
 
+    /**
+     * Returns a command that continuously applies {@code pattern} to the LED view and records the
+     * given {@code priority} while running. The command runs while disabled.
+     *
+     * @param pattern the {@link LEDPattern} to apply each loop cycle
+     * @param priority priority level stored in {@link #commandPriority} while this command runs
+     * @return a command that applies the pattern continuously
+     */
     public Command setPattern(LEDPattern pattern, int priority) {
         return run(() -> {
                     commandPriority = priority;
@@ -131,6 +237,12 @@ public class SpectrumLEDs implements SpectrumSubsystem {
                 .withName("LEDs.setPattern");
     }
 
+    /**
+     * Returns a command that continuously applies {@code pattern} to the LED view at priority 0.
+     *
+     * @param pattern the {@link LEDPattern} to apply each loop cycle
+     * @return a command that applies the pattern continuously at the default priority
+     */
     public Command setPattern(LEDPattern pattern) {
         return setPattern(pattern, 0);
     }
@@ -193,6 +305,12 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         return rainbow(255, 128);
     }
 
+    /**
+     * Creates a rainbow LED pattern that scrolls along the strip at 0.25 m/s using the configured
+     * LED spacing.
+     *
+     * @return an {@link LEDPattern} representing a scrolling rainbow
+     */
     public LEDPattern scrollingRainbow() {
         return rainbow().scrollAtAbsoluteSpeed(MetersPerSecond.of(0.25), config.getLedSpacing());
     }
@@ -418,6 +536,15 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         };
     }
 
+    /**
+     * Creates an LED pattern that visualises the alliance switch countdown during a match. The
+     * strip cycles through alliance colors (and purple) according to a hard-coded time schedule
+     * tied to the remaining match clock, progressively turning off LEDs to show elapsed time within
+     * each segment.
+     *
+     * @param startingColor the alliance color displayed during this robot's segments
+     * @return an {@link LEDPattern} that reflects the current switch-countdown state
+     */
     public LEDPattern switchCountdown(Color startingColor) {
 
         return new LEDPattern() {
@@ -484,6 +611,14 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         };
     }
 
+    /**
+     * Creates an LED pattern that lights the first and last {@code length} LEDs with color {@code
+     * c} and turns off all LEDs in between.
+     *
+     * @param c the color to apply to the edge LEDs
+     * @param length the number of LEDs to illuminate at each end of the strip
+     * @return an {@link LEDPattern} showing lit edges and a dark center
+     */
     public LEDPattern edges(Color c, double length) {
         return new LEDPattern() {
             public void applyTo(LEDReader reader, LEDWriter writer) {

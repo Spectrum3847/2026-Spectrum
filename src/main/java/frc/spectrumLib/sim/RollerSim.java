@@ -14,6 +14,12 @@ import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 
+/**
+ * WPILib-backed simulation of a roller (flywheel) mechanism driven by a single Kraken X60 motor.
+ * Updates the TalonFX sim state each robot period and animates the roller — including spin-color
+ * feedback — in a {@link Mechanism2d} canvas. Implements {@link Mountable} so the roller axle can
+ * follow a parent {@link Mount}.
+ */
 public class RollerSim implements Mountable {
 
     private MechanismRoot2d rollerAxle;
@@ -24,6 +30,14 @@ public class RollerSim implements Mountable {
     private RollerConfig config;
     private Circle roller;
 
+    /**
+     * Creates and registers a roller simulation.
+     *
+     * @param config physical and display configuration for the roller
+     * @param mech the Mechanism2d canvas to draw the roller on
+     * @param rollerMotorSim the TalonFX sim state of the motor driving the roller
+     * @param name unique name prefix used for Mechanism2d element labels
+     */
     public RollerSim(
             RollerConfig config, Mechanism2d mech, TalonFXSimState rollerMotorSim, String name) {
         this.config = config;
@@ -54,6 +68,11 @@ public class RollerSim implements Mountable {
                         mech);
     }
 
+    /**
+     * Advances the flywheel physics simulation by one robot period, updates the TalonFX rotor
+     * velocity and position, moves the axle to its current mount position, and updates the
+     * Mechanism2d color to reflect the roller's spin direction.
+     */
     public void simulationPeriodic() { // double x, double y) {
         // ------ Update sim based on motor output
         rollerSim.setInput(rollerMotorSim.getMotorVoltage());

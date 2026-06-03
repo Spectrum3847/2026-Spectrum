@@ -8,17 +8,17 @@ import frc.spectrumLib.telemetry.Telemetry;
 import java.util.HashMap;
 import java.util.Map;
 
-/*
- * Represents a specific RoboRIO, as a key for configurations.
+/**
+ * Identifies the specific RoboRIO that is running, keyed by its serial number. Used to select
+ * robot-specific configurations at startup.
  *
- * The serial numbers here can be found on the label on the back: add a leading zero.
+ * <p>Serial numbers are printed on the label on the back of the RoboRIO — prefix with a leading
+ * zero if needed. Keep entries in lexical order. Note that the serial number may change after
+ * reflashing the RoboRIO.
  *
- * Please keep the ID strings in lexical order.
- *
- * Note that the ID string may change when you reflash the RoboRIO.
- * Based on: https://github.com/Team100/all24/blob/2a109b28467cfddcafb93c7fc85ef60b56a628a2/lib/src/main/java/org/team100/lib/config/Identity.java
+ * <p>Based on:
+ * https://github.com/Team100/all24/blob/2a109b28467cfddcafb93c7fc85ef60b56a628a2/lib/src/main/java/org/team100/lib/config/Identity.java
  */
-
 public enum Rio {
 
     // 2026 Robots
@@ -35,6 +35,7 @@ public enum Rio {
     SIM("", true), // e.g. test default or simulation
     UNKNOWN(null, true);
 
+    /** Map from serial-number string to the corresponding {@link Rio} enum constant. */
     private static final Map<String, Rio> IDs = new HashMap<>();
 
     static {
@@ -47,9 +48,12 @@ public enum Rio {
     private static final Alert rioIdUnknown = new Alert("UNKNOWN RIO: ", AlertType.kError);
     private static final Alert rio1alert = new Alert("RIO 1.0", AlertType.kWarning);
 
+    /** The {@link Rio} constant that matches the hardware running this code. */
     public static final Rio id = checkID();
 
-    public static final String CANIVORE = "*"; // Use the first CANivore bus found
+    /** CANivore bus selector that chooses the first CANivore found on the system. */
+    public static final String CANIVORE = "*";
+    /** CAN bus name for the native RoboRIO CAN interface. */
     public static final String RIO_CANBUS = "rio";
 
     private final String serialNumber;
@@ -90,6 +94,11 @@ public enum Rio {
         return UNKNOWN;
     }
 
+    /**
+     * Returns {@code true} if this RoboRIO is a second-generation (RIO 2.0) controller.
+     *
+     * @return {@code true} for RIO 2.0, {@code false} for RIO 1.0
+     */
     public boolean isRio2() {
         return isRio2;
     }

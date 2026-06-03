@@ -11,6 +11,13 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import lombok.Getter;
 
+/**
+ * WPILib-backed simulation of a linear (elevator-style) mechanism driven by one or more Kraken X60
+ * motors. Updates the TalonFX sim state each robot period and animates both a static backing
+ * ligament and a moving stage ligament in a {@link Mechanism2d} canvas. Implements {@link Mount} so
+ * other mechanisms can be attached to the moving stage, and implements {@link Mountable} so this
+ * stage can itself be attached to a parent mount.
+ */
 public class LinearSim implements Mount, Mountable {
     private ElevatorSim elevatorSim;
 
@@ -18,11 +25,22 @@ public class LinearSim implements Mount, Mountable {
     private final MechanismRoot2d root;
     private final MechanismLigament2d staticMech2d;
     private final MechanismLigament2d m_elevatorMech2d;
+    /** Configuration containing physical properties and display settings for this linear stage. */
     @Getter private LinearConfig config;
+
     private TalonFXSimState linearMotorSim;
 
+    /** Always {@link MountType#LINEAR}; used by child mechanisms to determine positioning logic. */
     @Getter private final MountType mountType = MountType.LINEAR;
 
+    /**
+     * Creates and registers a linear mechanism simulation.
+     *
+     * @param config physical and display configuration for the linear stage
+     * @param mech the Mechanism2d canvas to draw the stage on
+     * @param linearMotorSim the TalonFX sim state of the motor driving the stage
+     * @param name unique name prefix used for Mechanism2d element labels
+     */
     public LinearSim(
             LinearConfig config, Mechanism2d mech, TalonFXSimState linearMotorSim, String name) {
         this.config = config;
@@ -61,6 +79,12 @@ public class LinearSim implements Mount, Mountable {
                                 new Color8Bit(Color.kBlack)));
     }
 
+    /**
+     * Returns the moving stage {@link MechanismLigament2d}, useful for attaching additional visual
+     * elements.
+     *
+     * @return the elevator moving-stage ligament
+     */
     public MechanismLigament2d getElevatorMech2d() {
         return m_elevatorMech2d;
     }
@@ -75,6 +99,10 @@ public class LinearSim implements Mount, Mountable {
                 * config.getElevatorGearing();
     }
 
+    /**
+     * Advances the elevator physics simulation by one robot period, updates the TalonFX rotor
+     * position and velocity, and refreshes both the static and moving Mechanism2d ligaments.
+     */
     public void simulationPeriodic() {
         elevatorSim.setInput(linearMotorSim.getMotorVoltage());
         elevatorSim.update(TimedRobot.kDefaultPeriod);
@@ -118,6 +146,12 @@ public class LinearSim implements Mount, Mountable {
         }
     }
 
+    /**
+     * Returns the horizontal component of the stage's current displacement from its initial
+     * position, accounting for the parent mount's angle when mounted.
+     *
+     * @return horizontal displacement in metres
+     */
     public double getDisplacementX() {
         double angle;
 
@@ -138,6 +172,12 @@ public class LinearSim implements Mount, Mountable {
                 + (config.getStaticRootX() - config.getInitialX());
     }
 
+    /**
+     * Returns the vertical component of the stage's current displacement from its initial position,
+     * accounting for the parent mount's angle when mounted.
+     *
+     * @return vertical displacement in metres
+     */
     public double getDisplacementY() {
         double angle;
 
@@ -158,6 +198,12 @@ public class LinearSim implements Mount, Mountable {
                 + (config.getStaticRootY() - config.getInitialY());
     }
 
+    /**
+     * Returns the effective absolute angle of the linear stage in radians, adding the parent
+     * mount's angle when mounted.
+     *
+     * @return effective stage angle in radians
+     */
     public double getAngle() {
         if (config.isMounted()) {
             return config.getMount().getAngle() + Math.toRadians(config.getAngle());
@@ -166,10 +212,22 @@ public class LinearSim implements Mount, Mountable {
         }
     }
 
+    /**
+     * Returns the X coordinate of the static root of this stage, used by child mechanisms as their
+     * mount point.
+     *
+     * @return static root X position in metres
+     */
     public double getMountX() {
         return config.getStaticRootX();
     }
 
+    /**
+     * Returns the Y coordinate of the static root of this stage, used by child mechanisms as their
+     * mount point.
+     *
+     * @return static root Y position in metres
+     */
     public double getMountY() {
         return config.getStaticRootY();
     }

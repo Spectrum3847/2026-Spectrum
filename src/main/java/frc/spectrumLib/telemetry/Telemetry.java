@@ -20,8 +20,13 @@ import java.util.Map;
  */
 public class Telemetry extends DogLog implements Subsystem {
 
+    /**
+     * Tracks the most recent set of active alerts for each severity key to avoid duplicate log
+     * entries.
+     */
     private static final Map<String, String[]> previousAlerts = new HashMap<>();
 
+    /** Named fault conditions that can be surfaced as structured log entries. */
     public enum Fault {
         CAMERA_OFFLINE,
         AUTO_SHOT_TIMEOUT_TRIGGERED,
@@ -29,21 +34,31 @@ public class Telemetry extends DogLog implements Subsystem {
     }
 
     /**
-     * Priority levels for printing to the console NORMAL: Low priority, only print if enabled HIGH:
-     * High priority, always print
+     * Priority levels for printing to the console.
+     *
+     * <ul>
+     *   <li>{@link #NORMAL} — only printed when the global priority is also {@code NORMAL}.
+     *   <li>{@link #HIGH} — always printed regardless of the global priority setting.
+     * </ul>
      */
     public enum PrintPriority {
         NORMAL,
         HIGH
     }
 
+    /** Minimum priority level a message must have to be written to the console. */
     private static PrintPriority priority = PrintPriority.HIGH;
 
+    /**
+     * Creates a Telemetry instance and registers it as a WPILib subsystem so its {@link
+     * #periodic()} method is called every loop cycle.
+     */
     public Telemetry() {
         super();
         register();
     }
 
+    /** Called every robot loop cycle. Logs any newly active alerts from NetworkTables. */
     @Override
     public void periodic() {
         logAlerts();
@@ -87,6 +102,12 @@ public class Telemetry extends DogLog implements Subsystem {
         Telemetry.priority = priority;
     }
 
+    /**
+     * Wraps a command so that its initialization and end are logged to the "Commands" key.
+     *
+     * @param cmd The command to wrap
+     * @return a decorated command that logs lifecycle events and preserves the original name
+     */
     public static Command log(Command cmd) {
         return cmd.deadlineFor(
                         Commands.startEnd(
@@ -105,11 +126,20 @@ public class Telemetry extends DogLog implements Subsystem {
         log("Prints", out);
     }
 
+    /**
+     * Prints a message at {@link PrintPriority#NORMAL} priority. The message is always written to
+     * the DogLog "Prints" key but only echoed to stdout when the global priority allows it.
+     *
+     * @param output The string to print
+     */
     public static void print(String output) {
         print(output, PrintPriority.NORMAL);
     }
 
-    // New method to log alerts from NetworkTables
+    /**
+     * Reads all active alerts from the SmartDashboard NetworkTable and logs any that are new since
+     * the last call under the "Alerts" DogLog key.
+     */
     public static void logAlerts() {
         NetworkTableInstance ntInstance = NetworkTableInstance.getDefault();
         logAlertType(ntInstance, "errors", "ERROR");

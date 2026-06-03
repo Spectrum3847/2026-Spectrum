@@ -26,15 +26,28 @@ public class TalonFXFactory {
     private static double neutralDeadband = 0.04;
     private static double supplyCurrentLimit = 40;
 
+    /** Utility class — not instantiable. */
     private TalonFXFactory() {}
 
-    // create a CANTalon with the default (out of the box) configuration
+    /**
+     * Creates a TalonFX configured with Spectrum's default parameter set.
+     *
+     * @param id CAN device identifier (device number + bus name)
+     * @return the configured TalonFX
+     */
     public static TalonFX createDefaultTalon(CanDeviceId id) {
         var talon = createTalon(id);
         talon.getConfigurator().apply(getDefaultConfig());
         return talon;
     }
 
+    /**
+     * Creates a TalonFX and applies the supplied configuration.
+     *
+     * @param id CAN device identifier
+     * @param config The {@link TalonFXConfiguration} to apply
+     * @return the configured TalonFX
+     */
     public static TalonFX createConfigTalon(CanDeviceId id, TalonFXConfiguration config) {
         var talon = createTalon(id);
         talon.getConfigurator().apply(config);
@@ -68,6 +81,13 @@ public class TalonFXFactory {
         return talon;
     }
 
+    /**
+     * Builds a {@link TalonFXConfiguration} populated with Spectrum's standard defaults: brake
+     * neutral mode, counter-clockwise positive invert, 4 % duty-cycle deadband, 40 A supply current
+     * limit, software and hardware limits disabled, rotor sensor feedback, and audio cues enabled.
+     *
+     * @return a new configuration object with default values applied
+     */
     public static TalonFXConfiguration getDefaultConfig() {
         TalonFXConfiguration config = new TalonFXConfiguration();
 

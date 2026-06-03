@@ -26,6 +26,10 @@ public class SpectrumRobot extends TimedRobot {
         subsystems.add(subsystem);
     }
 
+    /**
+     * Constructs a SpectrumRobot, silencing joystick connection warnings and extending the loop
+     * overrun watchdog timeout to 200 ms to accommodate longer periodic loops.
+     */
     public SpectrumRobot() {
         super();
         DriverStation.silenceJoystickConnectionWarning(true);

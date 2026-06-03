@@ -17,7 +17,9 @@ import java.util.function.DoubleSupplier;
  */
 public class SpectrumState extends Trigger {
 
+    /** Shared map from state name to its current boolean value, polled by all Trigger instances. */
     private static final HashMap<String, Boolean> stateConditions = new HashMap<>();
+
     private String name;
     private boolean value = false;
     private Alert alert;
@@ -129,10 +131,10 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Command to set state to true, and then to false, ensuring your state will trigger change to
-     * false actions
+     * Command to set state to true, and then to false, ensuring triggers bound to the false
+     * transition fire reliably.
      *
-     * @return
+     * @return the command
      */
     public Command toggleToFalse() {
         return setTrue()
@@ -143,21 +145,38 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * @param value
-     * @return
+     * Creates an instant command that sets the state to the given value.
+     *
+     * @param value The desired state value
+     * @return the command
      */
     public Command set(boolean value) {
         return Commands.runOnce(() -> setState(value)).ignoringDisable(true);
     }
 
+    /**
+     * Creates an instant command that sets the state to {@code true}.
+     *
+     * @return the command
+     */
     public Command setTrue() {
         return set(true).withName(name + " state: SetTrue");
     }
 
+    /**
+     * Creates an instant command that sets the state to {@code false}.
+     *
+     * @return the command
+     */
     public Command setFalse() {
         return set(false).withName(name + " state: SetFalse");
     }
 
+    /**
+     * Creates an instant command that flips the current state value.
+     *
+     * @return the command
+     */
     public Command toggle() {
         return Commands.runOnce(
                         () -> {

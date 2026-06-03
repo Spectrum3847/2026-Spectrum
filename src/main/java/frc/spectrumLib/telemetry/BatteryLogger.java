@@ -12,21 +12,41 @@ import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Class for logging current, power, and energy usage. */
+/**
+ * Tracks and logs current draw, power, and cumulative energy consumption across subsystems each
+ * robot loop cycle.
+ */
 public class BatteryLogger {
+    /** Duration of one robot loop in seconds, used to convert power (W) to energy (J). */
     private final double loopPeriodSecs = 0.02;
 
+    /** When {@code false} all methods are no-ops, allowing the logger to be disabled at runtime. */
     @Setter private boolean enabled = false;
+    /**
+     * Running total of current draw accumulated since the last {@link #logPower()} call, in amps.
+     */
     @Getter private double totalCurrent = 0.0;
+    /** Running total of power accumulated since the last {@link #logPower()} call, in watts. */
     @Getter private double totalPower = 0.0;
+    /** Cumulative energy consumed over the entire enabled session, in joules. */
     @Getter private double totalEnergy = 0.0;
+    /** Battery terminal voltage used to convert current to power, in volts. */
     @Setter private double batteryVoltage = 12.6;
+    /** Estimated current drawn by the RoboRIO itself, in amps. */
     @Setter private double rioCurrent = 0.0;
 
     private Map<String, Double> subsytemCurrents = new HashMap<>();
     private Map<String, Double> subsytemPowers = new HashMap<>();
     private Map<String, Double> subsytemEnergies = new HashMap<>();
 
+    /**
+     * Records the current draw for a named subsystem channel and accumulates it into the running
+     * totals. The {@code key} may use "/" or "-" as separators; parent keys are automatically
+     * aggregated.
+     *
+     * @param key Hierarchical name for the current consumer (e.g. {@code "Drive/FrontLeft"})
+     * @param amps One or more current readings in amps; absolute values are summed
+     */
     public void reportCurrentUsage(String key, double... amps) {
         if (enabled) {
             double totalAmps = 0.0;
@@ -61,6 +81,12 @@ public class BatteryLogger {
         }
     }
 
+    /**
+     * Appends control-overhead current consumers (roboRIO, CANcoders, Pigeon, CANivore, radio),
+     * then logs total and per-subsystem current, power, and energy to DogLog under the {@code
+     * BatteryLogger/} key hierarchy. Resets per-loop current and power accumulators afterward;
+     * cumulative energy is preserved across calls.
+     */
     public void logPower() {
         if (enabled) {
             // Controls overhead is added here so it is included in the totalCurrent log below.

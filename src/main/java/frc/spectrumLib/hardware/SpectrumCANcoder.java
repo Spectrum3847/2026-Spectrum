@@ -13,19 +13,38 @@ import frc.spectrumLib.mechanism.Mechanism.Config;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
+/**
+ * Wraps a CTRE CANcoder and applies Spectrum-specific configuration. On construction the encoder is
+ * configured and the supplied TalonFX motor's feedback source is updated to use it.
+ */
 public class SpectrumCANcoder {
 
+    /** The underlying CTRE CANcoder hardware object. */
     @Getter private CANcoder canCoder;
+
     private SpectrumCANcoderConfig config;
 
+    /** Selects how the TalonFX reads position data from the remote CANcoder. */
     public enum CANCoderFeedbackType {
+        /** Position is read remotely; motor encoder is used for velocity. */
         RemoteCANcoder,
+        /** CANcoder position is fused with the motor encoder for high-bandwidth feedback. */
         FusedCANcoder,
+        /** Motor encoder is synchronized to the CANcoder position on enable. */
         SyncCANcoder,
     }
 
     private CANCoderFeedbackType feedbackSource = CANCoderFeedbackType.FusedCANcoder;
 
+    /**
+     * Creates and configures a SpectrumCANcoder, then updates the motor's feedback configuration.
+     *
+     * @param CANcoderID CAN device ID of the CANcoder
+     * @param config Configuration object containing offset, inversion, and ratio values
+     * @param motor The TalonFX whose feedback configuration will be updated
+     * @param mechConfig The mechanism configuration that holds the TalonFX config to modify
+     * @param feedbackSource How the TalonFX should read data from this CANcoder
+     */
     public SpectrumCANcoder(
             int CANcoderID,
             SpectrumCANcoderConfig config,
@@ -52,10 +71,24 @@ public class SpectrumCANcoder {
         }
     }
 
+    /**
+     * Returns whether this CANcoder is configured as physically present on the robot.
+     *
+     * @return {@code true} if the CANcoder is attached
+     */
     public boolean isAttached() {
         return config.isAttached();
     }
 
+    /**
+     * Updates the TalonFX feedback configuration to reference this CANcoder using the chosen
+     * feedback source type and the ratios defined in the config.
+     *
+     * @param motor The TalonFX motor to reconfigure
+     * @param mechConfig The mechanism configuration whose stored TalonFX config is modified in
+     *     place
+     * @return this instance, for chaining
+     */
     public SpectrumCANcoder modifyMotorConfig(TalonFX motor, Config mechConfig) {
         TalonFXConfigurator configurator = motor.getConfigurator();
         TalonFXConfiguration talonConfigMod = mechConfig.getTalonConfig();
@@ -81,6 +114,13 @@ public class SpectrumCANcoder {
         return this;
     }
 
+    /**
+     * Checks whether a CANcoder configuration response indicates success. Prints a warning via
+     * {@link Telemetry} if the response is not OK.
+     *
+     * @param response The {@link StatusCode} returned by the CANcoder configurator
+     * @return {@code true} if the response is OK, {@code false} otherwise
+     */
     public boolean canCoderResponseOK(StatusCode response) {
         if (!response.isOK()) {
             Telemetry.print(
