@@ -14,9 +14,8 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import frc.spectrumLib.framework.SpectrumRobot;
-import frc.spectrumLib.framework.SpectrumSubsystem;
 import java.util.Map;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
@@ -36,7 +35,7 @@ import lombok.Setter;
  * <p>Patterns are applied via {@link #setPattern(LEDPattern, int)}, which returns a {@link Command}
  * that runs continuously and respects the priority system ({@link #checkPriority(int)}).
  */
-public class SpectrumLEDs implements SpectrumSubsystem {
+public class SpectrumLEDs implements Subsystem {
 
     // Example Animation List - https://github.com/Aircoookie/WLED/wiki/List-of-effects-and-palettes
 
@@ -187,7 +186,6 @@ public class SpectrumLEDs implements SpectrumSubsystem {
         setPattern(defaultPattern);
         led.start();
 
-        SpectrumRobot.add(this);
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 
@@ -245,16 +243,6 @@ public class SpectrumLEDs implements SpectrumSubsystem {
      */
     public Command setPattern(LEDPattern pattern) {
         return setPattern(pattern, 0);
-    }
-
-    @Override
-    public void setupStates() {}
-
-    @Override
-    public void setupDefaultCommand() {
-        setDefaultCommand(
-                setPattern(solid(Color.kOrange), 0)
-                        .withName("SPECTRUM LED DEFAULT COMMAND SHOULD NOT BE RUNNING"));
     }
 
     /**

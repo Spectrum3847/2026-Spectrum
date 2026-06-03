@@ -6,25 +6,12 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 
 /**
  * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and manages a collection of
  * SpectrumSubsystems.
  */
 public class SpectrumRobot extends TimedRobot {
-
-    /** Create a single static instance of all of your subsystems */
-    private static final ArrayList<SpectrumSubsystem> subsystems = new ArrayList<>();
-
-    /**
-     * Add a subsystem to the global list of subsystems.
-     *
-     * @param subsystem The subsystem to add.
-     */
-    public static void add(SpectrumSubsystem subsystem) {
-        subsystems.add(subsystem);
-    }
 
     /**
      * Constructs a SpectrumRobot, silencing joystick connection warnings and extending the loop
