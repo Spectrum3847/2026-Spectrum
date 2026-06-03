@@ -128,11 +128,6 @@ public class Robot extends SpectrumRobot {
                     break;
             }
 
-            /*
-             * Initialize the Subsystems of the robot. Subsystems are how we divide up the robot
-             * code. Anything with an output that needs to be independently controlled is a
-             * subsystem Something that don't have an output are also subsystems.
-             */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
             mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
 
@@ -140,9 +135,6 @@ public class Robot extends SpectrumRobot {
             operator = new Operator(config.operator);
 
             swerve = new Swerve(config.swerve);
-            Timer.delay(canInitDelay);
-
-            vision = new Vision(config.vision);
             Timer.delay(canInitDelay);
 
             intakeExtension = new IntakeExtension(config.intakeExtension);
@@ -163,9 +155,6 @@ public class Robot extends SpectrumRobot {
             indexerBed = new IndexerBed(config.indexerBed);
             Timer.delay(canInitDelay);
 
-            auton = new Auton();
-            batteryLogger = new BatteryLogger();
-
             superStructure =
                     new SuperStructure(
                             swerve,
@@ -175,6 +164,10 @@ public class Robot extends SpectrumRobot {
                             indexerBed,
                             launcher,
                             hood);
+
+            auton = new Auton();
+            vision = new Vision(config.vision);
+            batteryLogger = new BatteryLogger();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();
@@ -265,6 +258,16 @@ public class Robot extends SpectrumRobot {
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
+
+        // Auton Triggers
+        Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
+        Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        Auton.autonUnjam.onTrue(
+                Commands.sequence(
+                        superStructure.setStateCommand(WantedSuperState.UNJAM),
+                        Commands.waitSeconds(1),
+                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
+        Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
 
     public void configureSimBindings() {

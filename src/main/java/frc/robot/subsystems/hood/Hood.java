@@ -69,14 +69,12 @@ public class Hood extends Mechanism {
         HOME,
         STOPPED,
         AIM_AT_TARGET,
-        AUTON_AIM,
     }
 
     public enum SystemState {
         HOME,
         STOPPED,
         AIM_AT_TARGET,
-        AUTON_AIM,
     }
 
     private WantedState wantedState = WantedState.HOME;
@@ -91,7 +89,6 @@ public class Hood extends Mechanism {
             case HOME -> SystemState.HOME;
             case STOPPED -> SystemState.STOPPED;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
-            case AUTON_AIM -> SystemState.AUTON_AIM;
         };
     }
 
@@ -110,9 +107,6 @@ public class Hood extends Mechanism {
                     wantedPosition = params.hoodAngle();
                 }
 
-                break;
-            case AUTON_AIM:
-                wantedPosition = 25.0;
                 break;
         }
         final double finalWantedPosition = wantedPosition;

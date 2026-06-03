@@ -72,7 +72,6 @@ public class Launcher extends Mechanism {
         IDLE_PREP,
         SLOW_LAUNCH,
         AIM_AT_TARGET,
-        AUTON_AIM,
     }
 
     public enum SystemState {
@@ -80,7 +79,6 @@ public class Launcher extends Mechanism {
         IDLE_PREP,
         SLOW_LAUNCH,
         AIM_AT_TARGET,
-        AUTON_AIM,
     }
 
     private WantedState wantedState = WantedState.OFF;
@@ -96,7 +94,6 @@ public class Launcher extends Mechanism {
             case IDLE_PREP -> SystemState.IDLE_PREP;
             case SLOW_LAUNCH -> SystemState.SLOW_LAUNCH;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
-            case AUTON_AIM -> SystemState.AUTON_AIM;
         };
     }
 
@@ -117,9 +114,6 @@ public class Launcher extends Mechanism {
                 if (params.isValid()) {
                     wantedRPM = params.flywheelSpeed();
                 }
-                break;
-            case AUTON_AIM:
-                wantedRPM = 1800;
                 break;
         }
         final double finalWantedRPM = wantedRPM;

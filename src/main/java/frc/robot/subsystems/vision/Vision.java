@@ -325,7 +325,7 @@ public class Vision implements Subsystem {
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean()
-                // || RobotStates.autoUpdatePose.getAsBoolean()
+                || Auton.autonPoseUpdate.getAsBoolean()
                 || Auton.autonLaunching.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, false));

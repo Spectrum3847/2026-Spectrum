@@ -13,6 +13,7 @@ import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.util.Util;
 import lombok.Getter;
 
 public class SuperStructure extends SubsystemBase {
@@ -29,12 +30,11 @@ public class SuperStructure extends SubsystemBase {
         IDLE,
         INTAKE_FUEL,
         TRACK_TARGET,
-        TRACK_TARGET_WITH_NO_SWERVE,
         LAUNCH_WITH_SQUEEZE,
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
         AUTON_TRACK_TARGET,
-        AUTON_LAUNCH_WITH_SQUEEZE,
+        AUTON_INTAKE_FUEL,
         UNJAM,
         FORCE_HOME,
     }
@@ -43,12 +43,12 @@ public class SuperStructure extends SubsystemBase {
         IDLE,
         INTAKE_FUEL,
         TRACK_TARGET,
-        TRACK_TARGET_WITH_NO_SWERVE,
         LAUNCH_WITH_SQUEEZE,
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
+        AUTON_IDLE,
         AUTON_TRACK_TARGET,
-        AUTON_LAUNCH_WITH_SQUEEZE,
+        AUTON_INTAKE_FUEL,
         UNJAM,
         FORCE_HOME,
     }
@@ -78,8 +78,7 @@ public class SuperStructure extends SubsystemBase {
     private final double secondsToSqueeze = 1.0;
 
     private static boolean isSqueezeState(CurrentSuperState state) {
-        return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE
-                || state == CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE;
+        return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
     }
 
     @Override
@@ -103,16 +102,17 @@ public class SuperStructure extends SubsystemBase {
 
     private CurrentSuperState handleStateTransitions() {
         return switch (wantedSuperState) {
-            case IDLE -> CurrentSuperState.IDLE;
+            case IDLE -> Util.autoMode.getAsBoolean() || Util.disabled.getAsBoolean()
+                    ? CurrentSuperState.AUTON_IDLE
+                    : CurrentSuperState.IDLE;
             case INTAKE_FUEL -> CurrentSuperState.INTAKE_FUEL;
             case TRACK_TARGET -> CurrentSuperState.TRACK_TARGET;
-            case TRACK_TARGET_WITH_NO_SWERVE -> CurrentSuperState.TRACK_TARGET_WITH_NO_SWERVE;
             case LAUNCH_WITH_SQUEEZE -> CurrentSuperState.LAUNCH_WITH_SQUEEZE;
             case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> CurrentSuperState
                     .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
             case LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE;
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
-            case AUTON_LAUNCH_WITH_SQUEEZE -> CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE;
+            case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
         };
@@ -129,9 +129,6 @@ public class SuperStructure extends SubsystemBase {
             case TRACK_TARGET:
                 trackTarget();
                 break;
-            case TRACK_TARGET_WITH_NO_SWERVE:
-                trackTargetWithNoSwerve();
-                break;
             case LAUNCH_WITH_SQUEEZE:
                 launchWithSqueeze();
                 break;
@@ -141,11 +138,14 @@ public class SuperStructure extends SubsystemBase {
             case LAUNCH_WITHOUT_SQUEEZE:
                 launchWithoutSqueeze();
                 break;
+            case AUTON_IDLE:
+                applyAutonIdle();
+                break;
+            case AUTON_INTAKE_FUEL:
+                autonIntakeFuel();
+                break;
             case AUTON_TRACK_TARGET:
                 autonTrackTarget();
-                break;
-            case AUTON_LAUNCH_WITH_SQUEEZE:
-                autonLaunchWithSqueeze();
                 break;
             case UNJAM:
                 unjam();
@@ -180,16 +180,6 @@ public class SuperStructure extends SubsystemBase {
 
     private void trackTarget() {
         swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        indexerBed.setWantedState(IndexerBed.WantedState.OFF);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
-        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
-    }
-
-    private void trackTargetWithNoSwerve() {
-        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.OFF);
@@ -234,28 +224,31 @@ public class SuperStructure extends SubsystemBase {
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
 
+    private void applyAutonIdle() {
+        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
+        indexerBed.setWantedState(IndexerBed.WantedState.OFF);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
+        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        hood.setWantedState(Hood.WantedState.HOME);
+    }
+
+    private void autonIntakeFuel() {
+        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
+        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
+        indexerBed.setWantedState(IndexerBed.WantedState.SLOW_INDEX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        hood.setWantedState(Hood.WantedState.HOME);
+    }
+
     private void autonTrackTarget() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.AUTON_AIM);
-        hood.setWantedState(Hood.WantedState.AUTON_AIM);
-    }
-
-    private void autonLaunchWithSqueeze() {
-        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
-        indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
-        launcher.setWantedState(Launcher.WantedState.AUTON_AIM);
-        hood.setWantedState(Hood.WantedState.AUTON_AIM);
-
-        if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze)) {
-            intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
-            intakeSqueezeTimer.stop();
-        } else {
-            intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
-        }
+        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
 
     private void unjam() {
