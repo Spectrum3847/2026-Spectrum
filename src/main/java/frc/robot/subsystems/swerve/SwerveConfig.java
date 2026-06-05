@@ -15,7 +15,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
 import frc.spectrumLib.hardware.Rio;
@@ -25,8 +24,6 @@ import lombok.Setter;
 public class SwerveConfig {
 
     @Getter private final double simLoopPeriod = 0.005; // 5 ms
-    @Getter @Setter private double robotWidth = Units.inchesToMeters(25);
-    @Getter @Setter private double robotLength = Units.inchesToMeters(29);
 
     @Getter @Setter private double maxAngularRate = 3 * Math.PI; // rad/s
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
@@ -42,45 +39,12 @@ public class SwerveConfig {
     // Theoretical free speed (ft/s) at 12v applied output;
     @Getter @Setter private LinearVelocity speedAt12Volts = FeetPerSecond.of(16.8);
 
-    @Getter private double kSdrive = 0.10; // 0.13
-    @Getter private double kSsteer = 0.25; // 0.2
-
     // -----------------------------------------------------------------------
     // PID Controller Constants
     // -----------------------------------------------------------------------
-    @Getter private double maxAngularVelocity = 3.0 * Math.PI; // rad/s
-    @Getter private double maxAngularAcceleration = 3.0 * Math.PI; // rad/s^2
-
     @Getter private double kPRotationController = 5.0;
     @Getter private double kIRotationController = 0.0;
     @Getter private double kDRotationController = 0.0;
-    @Getter private double rotationTolerance = Units.degreesToRadians(1); // rads
-    @Getter private double rotationVelocityTolerance = Units.degreesToRadians(3); // rads/s
-
-    @Getter private double kPHoldController = 0.15;
-    @Getter private double kIHoldController = 0.0;
-    @Getter private double kDHoldController = 0.0;
-
-    @Getter private double kPTranslationController = 3.0;
-    @Getter private double kITranslationController = 0.0;
-    @Getter private double kDTranslationController = 0.0;
-
-    @Getter private double translationTolerance = Units.inchesToMeters(0.6); // 0.4
-    @Getter private double translationVelocityTolerance = Units.inchesToMeters(0.8); // 0.75
-
-    @Getter
-    private Constraints translationConstraints =
-            new Constraints(speedAt12Volts.baseUnitMagnitude(), 10);
-
-    @Getter private double kPTagCenterController = 1.3;
-    @Getter private double kITagCenterController = 0.0;
-    @Getter private double kDTagCenterController = 0.00;
-    @Getter private double tagCenterTolerance = Units.inchesToMeters(0.5); // meters
-
-    @Getter private double kPTagDistanceController = 0.1; // 0.15;
-    @Getter private double kITagDistanceController = 0.0;
-    @Getter private double kDTagDistanceController = 0.00;
-    @Getter private double tagDistanceTolerance = 0.3; // Area
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -115,7 +79,7 @@ public class SwerveConfig {
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    @Getter @Setter private Current slipCurrent = Amps.of(90);
+    @Getter @Setter private Current slipCurrent = Amps.of(80);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -124,8 +88,11 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withSupplyCurrentLimit(Amps.of(65))
-                                    .withSupplyCurrentLimitEnable(true));
+                                    .withStatorCurrentLimit(Amps.of(80.0))
+                                    .withStatorCurrentLimitEnable(true)
+                                    .withSupplyCurrentLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLimitEnable(true)
+                                    .withSupplyCurrentLowerLimit(Amps.of(40.0)));
 
     // Swerve azimuth does not require much torque output, so we can set a
     // relatively low stator current limit to help avoid
@@ -145,7 +112,7 @@ public class SwerveConfig {
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    @Getter private double coupleRatio = 3.375;
+    @Getter private double coupleRatio = 4.5;
 
     @Getter @Setter private boolean steerMotorReversed = false;
     @Getter @Setter private boolean invertLeftSide = false;

@@ -82,9 +82,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
 
-    /* Keep track if we've ever applied the operator perspective before or not */
-    private boolean hasAppliedPilotPerspective = false;
-
     private final SwerveRequest.ApplyRobotSpeeds AutoRequest =
             new SwerveRequest.ApplyRobotSpeeds()
                     .withDriveRequestType(DriveRequestType.Velocity)
@@ -203,7 +200,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         logBatteryUsage();
         checkPigeonConnection();
-        setPilotPerspective();
 
         if (Utils.isSimulation()) {
             Telemetry.log("Sim/SimPose", getRobotPose());
@@ -490,29 +486,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     public ChassisSpeeds getCurrentRobotChassisSpeeds() {
         return getKinematics().toChassisSpeeds(getState().ModuleStates);
-    }
-
-    // --------------------------------------------------------------------------------
-    // Pilot Perspective
-    // --------------------------------------------------------------------------------
-
-    private void setPilotPerspective() {
-        /* Periodically try to apply the operator perspective */
-        /* If we haven't applied the operator perspective before, then we should apply it regardless of DS state */
-        /* This allows us to correct the perspective in case the robot code restarts mid-match */
-        /* Otherwise, only check and apply the operator perspective if the DS is disabled */
-        /* This ensures driving behavior doesn't change until an explicit disable event occurs during testing*/
-        if (!hasAppliedPilotPerspective || DriverStation.isDisabled()) {
-            DriverStation.getAlliance()
-                    .ifPresent(
-                            allianceColor -> {
-                                this.setOperatorPerspectiveForward(
-                                        allianceColor == Alliance.Red
-                                                ? config.getRedAlliancePerspectiveRotation()
-                                                : config.getBlueAlliancePerspectiveRotation());
-                                hasAppliedPilotPerspective = true;
-                            });
-        }
     }
 
     // --------------------------------------------------------------------------------
