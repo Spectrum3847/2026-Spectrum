@@ -45,6 +45,7 @@ import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
+import frc.robot.subsystems.leds.Leds;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveConfig;
 import frc.robot.subsystems.vision.Vision;
@@ -100,6 +101,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Launcher launcher;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
+    @Getter private static Leds leds;
     @Getter private static Auton auton;
     @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
@@ -168,6 +170,7 @@ public class Robot extends SpectrumRobot {
             auton = new Auton();
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
+            leds = new Leds();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();
