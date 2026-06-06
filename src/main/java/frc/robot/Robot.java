@@ -358,30 +358,30 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void disabledPeriodic() {
-        String newAutoName;
-        boolean leftStart = true;
+        String fullAutoName = auton.getAutonomousCommand().getName();
+        boolean leftStart = !fullAutoName.endsWith(" - Right");
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();
-        newAutoName = auton.getAutonomousCommand().getName();
-        leftStart = !newAutoName.endsWith(" - Right");
 
-        if (newAutoName.equals("Do Nothing")) {
+        if (fullAutoName.equals("Do Nothing")) {
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
-            autoName = newAutoName;
+            autoName = fullAutoName;
             return;
         }
 
-        // Remove " - Left" or " - Right" suffix if present
-        if (newAutoName.endsWith(" - Left") || newAutoName.endsWith(" - Right")) {
-            newAutoName = newAutoName.substring(0, newAutoName.lastIndexOf(" - "));
+        // Strip " - Left" / " - Right" suffix to get the base path name
+        String baseAutoName = fullAutoName;
+        if (baseAutoName.endsWith(" - Left") || baseAutoName.endsWith(" - Right")) {
+            baseAutoName = baseAutoName.substring(0, baseAutoName.lastIndexOf(" - "));
         }
 
-        if (!autoName.equals(newAutoName)) {
-            autoName = newAutoName;
+        // Reload whenever the full name changes — catches both auto switches and side switches
+        if (!autoName.equals(fullAutoName)) {
+            autoName = fullAutoName;
             Telemetry.log("Auton Warmed Up", false);
 
-            if (AutoBuilder.getAllAutoNames().contains(autoName)) {
+            if (AutoBuilder.getAllAutoNames().contains(baseAutoName)) {
                 try {
-                    pathPlannerPaths = PathPlannerAuto.getPathGroupFromAutoFile(autoName);
+                    pathPlannerPaths = PathPlannerAuto.getPathGroupFromAutoFile(baseAutoName);
                 } catch (IOException | ParseException e) {
                     Telemetry.print("Could not load path planner paths");
                 }
@@ -426,7 +426,7 @@ public class Robot extends SpectrumRobot {
                                     .ignoringDisable(true);
                     CommandScheduler.getInstance().schedule(warmUpPath);
                 } else {
-                    Telemetry.print("Warning: No paths loaded for auto: " + autoName);
+                    Telemetry.print("Warning: No paths loaded for auto: " + baseAutoName);
                 }
 
                 // Convert path points to poses
@@ -490,6 +490,7 @@ public class Robot extends SpectrumRobot {
     public void teleopInit() {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
+
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");

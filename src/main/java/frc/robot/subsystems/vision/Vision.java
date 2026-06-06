@@ -709,7 +709,7 @@ public class Vision implements Subsystem {
      */
     public boolean tagsInView() {
         DriverStation.Alliance alliance =
-                DriverStation.getAlliance().orElse(DriverStation.Alliance.Red);
+                DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue);
         int[] allianceTags = (alliance == DriverStation.Alliance.Blue) ? blueTags : redTags;
         return Arrays.stream(allLimelights)
                 .mapToInt(ll -> (int) ll.getClosestTagID())
@@ -788,11 +788,11 @@ public class Vision implements Subsystem {
         double[] before = {botpose.getX(), botpose.getY(), botpose.getRotation().getDegrees()};
         Telemetry.log("Vision/PoseReset/Before", before);
 
-        Robot.getSwerve().setVisionMeasurementStdDevs(VecBuilder.fill(0.00001, 0.00001, 0.00001));
-
         // Use MT2 translation + MT1 heading for best combined accuracy
         Pose2d integratedPose = new Pose2d(megaPose.getTranslation(), botpose.getRotation());
-        Robot.getSwerve().addVisionMeasurement(integratedPose, poseTimestamp);
+        Robot.getSwerve()
+                .addVisionMeasurement(
+                        integratedPose, poseTimestamp, VecBuilder.fill(0.00001, 0.00001, 0.00001));
 
         Pose2d updated = Robot.getSwerve().getRobotPose();
         double[] after = {updated.getX(), updated.getY(), updated.getRotation().getDegrees()};

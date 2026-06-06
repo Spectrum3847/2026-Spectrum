@@ -6,10 +6,6 @@ import frc.spectrumLib.telemetry.Telemetry;
 
 /*  A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
 public class Operator extends Gamepad {
-
-    private static double climberScalerDown = 0.15;
-    private static double climberScalerUp = 0.35;
-
     public final Trigger LB = leftBumper;
     public final Trigger RB = rightBumper;
     public final Trigger LT = leftTrigger;
@@ -47,10 +43,5 @@ public class Operator extends Gamepad {
         this.config = config;
         register();
         Telemetry.print("Operator Subsystem Initialized: ");
-    }
-
-    public double getClimberTriggerAxis() {
-        return ((getRightTriggerAxis() * climberScalerUp)
-                - (getLeftTriggerAxis() * climberScalerDown));
     }
 }

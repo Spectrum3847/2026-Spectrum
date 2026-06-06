@@ -291,7 +291,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                                 ? yMagnitude
                                 : -yMagnitude)
                         * teleopVelocityCoefficient;
-        double angularVelocity = -angularMagnitude * rotationVelocityCoefficient;
+        double angularVelocity = angularMagnitude * rotationVelocityCoefficient;
 
         Rotation2d skewCompensationFactor =
                 Rotation2d.fromRadians(
@@ -300,7 +300,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         return ChassisSpeeds.fromRobotRelativeSpeeds(
                 ChassisSpeeds.fromFieldRelativeSpeeds(
-                        new ChassisSpeeds(xVelocity, yVelocity, -angularVelocity),
+                        new ChassisSpeeds(xVelocity, yVelocity, angularVelocity),
                         getRobotPose().getRotation()),
                 getRobotPose().getRotation().plus(skewCompensationFactor));
     }
