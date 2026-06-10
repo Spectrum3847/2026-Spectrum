@@ -982,6 +982,7 @@ public class FuelPhysicsSim {
         SimBall ball = new SimBall(pos, vel, omega);
         balls.add(ball);
         totalLaunched++;
+        totalIntaked--;
         lastLaunchSpeed = vel.getNorm();
 
         // Predict the trajectory arc for Field3d visualization (20 points, gravity + drag only)

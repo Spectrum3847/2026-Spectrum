@@ -52,7 +52,7 @@ public class Leds extends SpectrumLEDs {
 
         Telemetry.print("LED Subsystem Initialized");
     }
-    
+
     @Override
     public void periodic() {
         Telemetry.log("Leds/CurrentCommand", getCurrentCommandName());

@@ -90,7 +90,7 @@ public class ShotCalculator {
     }
 
     // =========================================================================
-    // Polynomial Model — Generated 2026-05-27
+    // Polynomial Model
     // =========================================================================
     // 2D degree-3 polynomial surface:
     //   f(distance_m, radialVel_ms) → { exitSpeed_ms, launchAngle_deg }
@@ -100,7 +100,7 @@ public class ShotCalculator {
      * Global exit-speed scale factor. Adjust post-characterization to correct for ball compression,
      * wear, or temperature without re-fitting the polynomial. 1.0 = no scaling.
      */
-    private static final double MPS_FACTOR = 0.86;
+    private static final double MPS_FACTOR = 0.8;
 
     /**
      * Fitted distance range (metres). Inputs to the polynomial are clamped here; shots outside this
@@ -118,40 +118,45 @@ public class ShotCalculator {
 
     private static final double RV_MAX = 3.0;
 
-    /**
-     * Scale factor converting polynomial exit speed (m/s) to flywheel RPM.
-     *
-     * <p>Tune this constant so mid-distance shots (3–5 m) land in the 2000–2500 RPM band. At 4 m
-     * the polynomial yields ~8.64 m/s; 260 RPM/(m/s) × 8.64 ≈ 2246 RPM.
-     */
+    /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
     private static final double RPM_PER_MPS = 260.0;
 
-    /** Polynomial coefficients for ball exit speed (m/s). */
+    // ── Input normalisation (applied before polynomial evaluation) ────────────
+    // Inputs are mapped to zero-mean unit-variance before the polynomial is
+    // evaluated. Coefficients are in normalised space and must NOT be used
+    // with raw (metres / m/s) inputs directly.
+    private static final double D_MEAN = 4.7946224256;
+    private static final double D_STD = 1.9514199579;
+    private static final double V_MEAN = -0.0434782609;
+    private static final double V_STD = 1.9813242725;
+
+    // ── Polynomial coefficients ───────────────────────────────────────────────
+    // Both arrays share the same monomial basis (in normalised input space).
+    // f(d_norm, v_norm) = Σ COEFFS[i] · d_norm^a[i] · v_norm^b[i]
     private static final double[] SPEED_COEFFS = {
-        /* 1    */ 5.3893753991e+0,
-        /* d    */ 7.6770669910e-1,
-        /* v    */ -9.1413239448e-1,
-        /* d²   */ 1.3055521448e-2,
-        /* d·v  */ 9.7274725618e-2,
-        /* v²   */ 2.8263559613e-2,
-        /* d³   */ -4.8010121843e-4,
-        /* d²·v */ -9.0509996412e-3,
-        /* d·v² */ -8.6995503921e-4,
-        /* v³   */ -2.5418343175e-3
+        /* 1    */ 1.1143628795e+1,
+        /* d    */ 1.0138658152e+0,
+        /* v    */ -3.2159777567e-1,
+        /* d²   */ -5.1612304349e-2,
+        /* d·v  */ 3.6484374359e-1,
+        /* v²   */ -1.7402563290e-1,
+        /* d³   */ 7.9863642916e-2,
+        /* d²·v */ -1.2476148148e-1,
+        /* d·v² */ 3.8502387398e-1,
+        /* v³   */ -3.2039252056e-1
     };
 
-    /** Polynomial coefficients for launch angle (degrees). */
     private static final double[] ANGLE_COEFFS = {
-        /* 1    */ 7.6359986384e+1,
-        /* d    */ -5.2935902069e+0,
-        /* v    */ 8.0286655180e-1,
-        /* d²   */ 3.7188988633e-1,
-        /* d·v  */ 1.0699214272e+0,
-        /* v²   */ -8.1720220665e-1,
-        /* d³   */ -2.1747714773e-2,
-        /* d²·v */ -9.6406498556e-2,
-        /* d·v² */ 1.5434678111e-1,
-        /* v³   */ -7.2395347174e-2
+        /* 1    */ 6.6464926591e+1,
+        /* d    */ -7.7256852841e+0,
+        /* v    */ 1.1734641473e+1,
+        /* d²   */ 8.1692458382e-3,
+        /* d·v  */ 5.2897492237e-1,
+        /* v²   */ -2.6845198119e-1,
+        /* d³   */ 1.7588060294e-1,
+        /* d²·v */ -2.0564699991e-3,
+        /* d·v² */ 1.2509312471e+0,
+        /* v³   */ -1.4532157984e+0
     };
 
     // =========================================================================
@@ -231,9 +236,9 @@ public class ShotCalculator {
         double robotAngle = estimatedPose.getRotation().getRadians();
         double launcherVelocityX =
                 fieldVelocity.vxMetersPerSecond
-                        + fieldVelocity.omegaRadiansPerSecond
-                                * (robotToLauncher.getY() * Math.cos(robotAngle)
-                                        - robotToLauncher.getX() * Math.sin(robotAngle));
+                        - fieldVelocity.omegaRadiansPerSecond
+                                * (robotToLauncher.getX() * Math.sin(robotAngle)
+                                        + robotToLauncher.getY() * Math.cos(robotAngle));
         double launcherVelocityY =
                 fieldVelocity.vyMetersPerSecond
                         + fieldVelocity.omegaRadiansPerSecond
@@ -406,23 +411,23 @@ public class ShotCalculator {
     }
 
     /**
-     * Evaluates the raw polynomial surface at ({@code distance}, {@code radialVel}). Both inputs
-     * are clamped to the fitted data range before evaluation.
+     * Evaluates the polynomial surface at (distance, radialVel). Inputs are clamped to the fitted
+     * data range. Output values already include MPS_FACTOR and HOOD_OFFSET_DEG — do not apply them
+     * again.
      *
-     * @param distance horizontal distance to goal (metres)
-     * @param radialVel robot velocity toward goal (m/s)
-     * @return {@code double[]} { rawExitSpeed_ms, rawLaunchAngle_deg }
+     * @return double[] { exitSpeed_ms, launchAngle_deg }
      */
     private static double[] evalPolyRaw(double distance, double radialVel) {
-        double d = Math.max(DIST_MIN, Math.min(DIST_MAX, distance));
-        double v = Math.max(RV_MIN, Math.min(RV_MAX, radialVel));
+        double d_raw = Math.max(DIST_MIN, Math.min(DIST_MAX, distance));
+        double v_raw = Math.max(RV_MIN, Math.min(RV_MAX, radialVel));
+        double d = (d_raw - D_MEAN) / D_STD;
+        double v = (v_raw - V_MEAN) / V_STD;
 
         double d2 = d * d;
         double v2 = v * v;
         double d3 = d2 * d;
         double v3 = v2 * v;
 
-        // Monomial basis: 1, d, v, d², d·v, v², d³, d²·v, d·v², v³
         double[] terms = {
             1.0, // 1
             d, // d

@@ -136,6 +136,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         this.register();
 
+        optimizeBusUtilization();
         registerTelemetry(this::log);
 
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -519,49 +520,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         } else {
             return 270;
         }
-    }
-
-    protected double getClosest45() {
-        double angleRadians = getRotation().getRadians();
-        double angleDegrees = Math.toDegrees(angleRadians);
-
-        // Normalize the angle to be within 0 to 360 degrees
-        angleDegrees = angleDegrees % 360;
-        if (angleDegrees < 0) {
-            angleDegrees += 360;
-        }
-
-        // Round to the nearest multiple of 45 degrees
-        double closest45Degrees = Math.round(angleDegrees / 45.0) * 45.0;
-
-        // Convert back to radians and return as a Rotation2d
-        return Rotation2d.fromDegrees(closest45Degrees).getRadians();
-    }
-
-    protected double getClosestFieldAngle() {
-        // Step 1: Read the angle in radians
-        double angleRadians = getRotation().getRadians();
-
-        // Step 2: Convert the angle from radians to degrees
-        double angleDegrees = Math.toDegrees(angleRadians);
-
-        // Step 3: Define a table of angles in degrees
-        double[] angleTable = {0, 180, 126, -126, 54, -54, 60, -60, 120, -120, 90, -90};
-
-        // Step 4: Find the nearest angle from the table
-        double closestAngle = angleTable[0];
-        double minDifference = getRotationDifference(angleDegrees, closestAngle);
-
-        for (double angle : angleTable) {
-            double difference = getRotationDifference(angleDegrees, angle);
-            if (difference < minDifference) {
-                minDifference = difference;
-                closestAngle = angle;
-            }
-        }
-
-        // Step 5: Return the nearest angle in Radians
-        return Math.toRadians(closestAngle);
     }
 
     protected Command cardinalReorient() {
