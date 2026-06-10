@@ -26,6 +26,9 @@ public class SuperStructure extends SubsystemBase {
     private final Launcher launcher;
     private final Hood hood;
 
+    private static final double REGULAR_TELEOP_TRANSLATION_COEFFICIENT = 1.0;
+    private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.1;
+
     public enum WantedSuperState {
         IDLE,
         INTAKE_FUEL,
@@ -160,6 +163,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void applyIdle() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.OFF);
@@ -170,6 +174,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void intakeFuel() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.SLOW_INDEX);
@@ -180,6 +185,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void trackTarget() {
         swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.OFF);
@@ -190,6 +196,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void launchWithSqueeze() {
         swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
@@ -206,6 +213,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void launchWithSqueezeWithNoDelay() {
         swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
@@ -216,6 +224,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void launchWithoutSqueeze() {
         swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
@@ -253,6 +262,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void unjam() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.UNJAM);
         indexerBed.setWantedState(IndexerBed.WantedState.UNJAM);
@@ -263,6 +273,7 @@ public class SuperStructure extends SubsystemBase {
 
     private void forceHome() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.OFF);

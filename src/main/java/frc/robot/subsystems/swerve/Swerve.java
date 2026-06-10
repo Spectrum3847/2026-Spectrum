@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
@@ -74,8 +75,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     public static final double DRIVE_TO_POINT_STATIC_FRICTION_CONSTANT = 0.02;
     private static final double SKEW_COMPENSATION_SCALAR = -0.03;
 
-    private double teleopVelocityCoefficient = 1.0;
-    private double rotationVelocityCoefficient = 1.0;
+    @Getter @Setter private double teleopVelocityCoefficient = 1.0;
+    @Getter @Setter private double rotationVelocityCoefficient = 1.0;
 
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
@@ -147,10 +148,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
 
     protected void log(SwerveDriveState state) {
-        Telemetry.log("Swerve/Pose", state.Pose);
-        Telemetry.log("Swerve/TargetStates", state.ModuleTargets);
-        Telemetry.log("Swerve/MeasuredStates", state.ModuleStates);
-        Telemetry.log("Swerve/MeasuredSpeeds", state.Speeds);
+        Telemetry.log("Swerve/State/Pose", state.Pose);
+        Telemetry.log("Swerve/State/TargetStates", state.ModuleTargets);
+        Telemetry.log("Swerve/State/MeasuredStates", state.ModuleStates);
+        Telemetry.log("Swerve/State/MeasuredSpeeds", state.Speeds);
     }
 
     protected void logBatteryUsage() {
@@ -159,10 +160,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
 
-        Telemetry.log("Swerve/DriveStatorCurrent", getDriveMotorStatorCurrents());
-        Telemetry.log("Swerve/SteerStatorCurrent", getSteerMotorStatorCurrents());
-        Telemetry.log("Swerve/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
-        Telemetry.log("Swerve/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
+        Telemetry.log("Swerve/Currents/DriveStatorCurrent", getDriveMotorStatorCurrents());
+        Telemetry.log("Swerve/Currents/SteerStatorCurrent", getSteerMotorStatorCurrents());
+        Telemetry.log("Swerve/Currents/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
+        Telemetry.log("Swerve/Currents/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
     }
 
     protected double getDriveMotorStatorCurrents() {
@@ -199,6 +200,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         applyStates();
 
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
+        Telemetry.log("Swerve/RotationVelocityCoefficient", getRotationVelocityCoefficient());
         logBatteryUsage();
         checkPigeonConnection();
 
@@ -576,14 +579,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     public void setWantedState(WantedState state) {
         this.wantedState = state;
-    }
-
-    public void setTeleopVelocityCoefficient(double coefficient) {
-        this.teleopVelocityCoefficient = coefficient;
-    }
-
-    public void setRotationVelocityCoefficient(double coefficient) {
-        this.rotationVelocityCoefficient = coefficient;
     }
 
     public boolean isAtDesiredRotation() {
