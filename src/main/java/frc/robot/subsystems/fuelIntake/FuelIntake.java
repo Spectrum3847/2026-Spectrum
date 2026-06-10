@@ -19,16 +19,16 @@ public class FuelIntake extends Mechanism {
     public static class FuelIntakeConfig extends Config {
 
         /* Intake config values */
-        @Getter private double currentLimit = 70;
-        @Getter private double torqueCurrentLimit = 180;
-        @Getter private double velocityKp = 5;
-        @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 4;
+        @Getter private final double currentLimit = 70;
+        @Getter private final double torqueCurrentLimit = 180;
+        @Getter private final double velocityKp = 5;
+        @Getter private final double velocityKv = 0;
+        @Getter private final double velocityKs = 4;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(15);
-        @Getter private double intakeY = Units.inchesToMeters(23);
-        @Getter private double wheelDiameter = 6;
+        @Getter private final double intakeX = Units.inchesToMeters(15);
+        @Getter private final double intakeY = Units.inchesToMeters(23);
+        @Getter private final double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
             super("Intake", 5, Rio.RIO_CANBUS);
@@ -99,8 +99,8 @@ public class FuelIntake extends Mechanism {
         setTorqueCurrentFoc(() -> finalWantedTorqueCurrent);
     }
 
-    private FuelIntakeConfig config;
-    private FuelIntakeSim sim;
+    @Getter private final FuelIntakeConfig config;
+    @Getter private FuelIntakeSim sim;
 
     public FuelIntake(FuelIntakeConfig config) {
         super(config);

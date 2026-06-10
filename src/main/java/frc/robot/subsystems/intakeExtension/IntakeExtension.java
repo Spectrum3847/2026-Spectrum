@@ -20,29 +20,30 @@ import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 import lombok.Setter;
 
+/** The Intake Extension subsystem. Extends and retracts the fuel intake. */
 public class IntakeExtension extends Mechanism {
 
     public static class IntakeExtensionConfig extends Config {
 
         @Getter private final double initPosition = 0;
-        @Getter private double triggerTolerance = 5;
+        @Getter private final double triggerTolerance = 5;
 
         /* Intake Extension config settings */
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter @Setter private double maxRotations = 2.779053;
-        @Getter @Setter private double minRotations = 0.0;
+        @Getter private final double maxRotations = 2.779053;
+        @Getter private final double minRotations = 0.0;
 
         /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
-        @Getter private double home = 0;
-        @Getter private double squeeze = 25;
-        @Getter private double fullOut = 100;
-        @Getter private double atPoseTolerance = 10;
-        @Getter private double springyPoseTolerance = 20;
+        @Getter private final double home = 0;
+        @Getter private final double squeeze = 25;
+        @Getter private final double fullOut = 100;
+        @Getter private final double atPoseTolerance = 10;
+        @Getter private final double springyPoseTolerance = 20;
 
-        @Getter private double positiveVoltageOut = 10;
-        @Getter private double negativeVoltageOut = -10;
+        @Getter private final double positiveVoltageOut = 10;
+        @Getter private final double negativeVoltageOut = -10;
 
         @Getter
         private final DoubleSubscriber timeUntilIntakeSqueeze =
@@ -65,29 +66,29 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
 
-        @Getter @Setter private double sensorToMechanismRatio = 11.25;
-        @Getter @Setter private double rotorToSensorRatio = 1;
+        @Getter private final double sensorToMechanismRatio = 11.25;
+        @Getter private final double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
-        @Getter @Setter private double CANcoderRotorToSensorRatio = 1.7;
+        @Getter private final double CANcoderRotorToSensorRatio = 1.7;
         // CANcoderRotorToSensorRatio / sensorToMechanismRatio;
 
-        @Getter @Setter private double CANcoderSensorToMechanismRatio = 1;
+        @Getter private final double CANcoderSensorToMechanismRatio = 1;
 
-        @Getter @Setter private double CANcoderOffset = 0;
-        @Getter @Setter private boolean CANcoderAttached = false;
+        @Getter private final double CANcoderOffset = 0;
+        @Getter private final boolean CANcoderAttached = false;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(70);
-        @Getter private double intakeY = Units.inchesToMeters(23);
-        @Getter private double extensionMass = 10.0;
-        @Getter private double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-        @Getter private double extensionGearing = 3.6111;
-        @Getter private double angle = 180;
-        @Getter private double staticLength = 10;
-        @Getter private double movingLength = 55;
-        @Getter private double lineWidth = 20;
-        @Getter private double maxExtensionHeight = 40;
+        @Getter private final double intakeX = Units.inchesToMeters(70);
+        @Getter private final double intakeY = Units.inchesToMeters(23);
+        @Getter private final double extensionMass = 10.0;
+        @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
+        @Getter private final double extensionGearing = 3.6111;
+        @Getter private final double angle = 180;
+        @Getter private final double staticLength = 10;
+        @Getter private final double movingLength = 55;
+        @Getter private final double lineWidth = 20;
+        @Getter private final double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
             super("IntakeExtension", 7, Rio.CANIVORE); // Rio.CANIVORE);
@@ -119,11 +120,6 @@ public class IntakeExtension extends Mechanism {
             return this;
         }
     }
-
-    @Getter private IntakeExtensionConfig config;
-    @Getter private IntakeExtensionSim sim;
-
-    @Getter @Setter private boolean inSpringyMode = false;
 
     // ---- State Machine ----
 
@@ -192,16 +188,33 @@ public class IntakeExtension extends Mechanism {
         }
     }
 
+    @Getter private final IntakeExtensionConfig config;
+    @Getter private IntakeExtensionSim sim;
+
+    @Getter @Setter private boolean inSpringyMode = false;
+
     public IntakeExtension(IntakeExtensionConfig config) {
         super(config);
         this.config = config;
 
-        if (isAttached()) {
-            setInitialPosition();
-        }
+        setInitialPosition();
 
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
+    }
+
+    private void setInitialPosition() {
+        if (isAttached()) {
+            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+        }
+    }
+
+    public void resetCurrentPositionToMax() {
+        motor.setPosition(config.getMaxRotations());
+    }
+
+    public Command resetToInitialPos() {
+        return run(this::setInitialPosition);
     }
 
     @Override
@@ -221,22 +234,10 @@ public class IntakeExtension extends Mechanism {
         Telemetry.log("IntakeExtension/InSpringyMode", inSpringyMode);
     }
 
-    private void setInitialPosition() {
-        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-    }
-
-    public void resetCurrentPositionToMax() {
-        motor.setPosition(config.getMaxRotations());
-    }
-
-    public Command resetToInitialPos() {
-        return run(this::setInitialPosition);
-    }
-
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    private void simulationInit() {
+    public void simulationInit() {
         if (isAttached()) {
             sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
         }

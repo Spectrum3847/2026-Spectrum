@@ -131,9 +131,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         DRIVE_AT_ANGLE_REQUEST.HeadingController.enableContinuousInput(-Math.PI, Math.PI);
         DRIVE_AT_ANGLE_REQUEST
                 .withDeadband(
-                        config.getSpeedAt12Volts().baseUnitMagnitude() * config.getAimDeadband())
-                .withRotationalDeadband(config.getMaxAngularRate() * config.getAimDeadband())
-                .withMaxAbsRotationalRate(config.getMaxAngularRate());
+                        config.getLinearSpeedAt12Volts().baseUnitMagnitude()
+                                * config.getAimDeadband())
+                .withRotationalDeadband(
+                        config.getAngularSpeedAt12Volts().baseUnitMagnitude()
+                                * config.getAimDeadband())
+                .withMaxAbsRotationalRate(config.getAngularSpeedAt12Volts());
 
         this.register();
 

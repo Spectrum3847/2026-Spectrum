@@ -412,10 +412,10 @@ public class ShotCalculator {
 
     /**
      * Evaluates the polynomial surface at (distance, radialVel). Inputs are clamped to the fitted
-     * data range. Output values already include MPS_FACTOR and HOOD_OFFSET_DEG — do not apply them
-     * again.
+     * data range. Returns raw polynomial output — callers are responsible for applying {@link
+     * #MPS_FACTOR} to the exit speed and {@code HOOD_ANGLE_OFFSET} to the launch angle.
      *
-     * @return double[] { exitSpeed_ms, launchAngle_deg }
+     * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg }
      */
     private static double[] evalPolyRaw(double distance, double radialVel) {
         double d_raw = Math.max(DIST_MIN, Math.min(DIST_MAX, distance));

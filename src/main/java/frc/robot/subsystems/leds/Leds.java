@@ -50,7 +50,7 @@ public class Leds extends SpectrumLEDs {
 
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
 
-        Telemetry.print("LED Subsystem Initialized");
+        Telemetry.print(getName() + " Subsystem Initialized");
     }
 
     @Override

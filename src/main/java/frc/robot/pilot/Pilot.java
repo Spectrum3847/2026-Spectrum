@@ -57,7 +57,7 @@ public class Pilot extends Gamepad {
         this.config = config;
 
         // Set Left stick Scalar from Swerve Config
-        config.setLeftStickScalar(Robot.getConfig().swerve.getSpeedAt12Volts().magnitude());
+        config.setLeftStickScalar(Robot.getConfig().swerve.getLinearSpeedAt12Volts().magnitude());
         leftStickCurve.setScalar(config.getLeftStickScalar());
 
         register();

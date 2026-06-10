@@ -6,24 +6,24 @@ import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
+/** The Indexer Tower subsystem. Lifts fuel from the bed up to the launcher. */
 public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
-        /* Intake config values */
-        @Getter @Setter private double currentLimit = 80;
-        @Getter @Setter private double torqueCurrentLimit = 140;
-        @Getter @Setter private double lowerCurrentLimit = 60;
-        @Getter @Setter private double timeUntilLowerCurrent = 1;
-        @Getter @Setter private double velocityKp = 50;
-        @Getter @Setter private double velocityKv = 0;
-        @Getter @Setter private double velocityKs = 40;
+        /* Indexer config values */
+        @Getter private final double currentLimit = 80;
+        @Getter private final double torqueCurrentLimit = 140;
+        @Getter private final double lowerCurrentLimit = 60;
+        @Getter private final double timeUntilLowerCurrent = 1;
+        @Getter private final double velocityKp = 50;
+        @Getter private final double velocityKv = 0;
+        @Getter private final double velocityKs = 40;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(60);
-        @Getter private double intakeY = Units.inchesToMeters(75);
-        @Getter private double wheelDiameter = 12;
+        @Getter private final double intakeX = Units.inchesToMeters(60);
+        @Getter private final double intakeY = Units.inchesToMeters(75);
+        @Getter private final double wheelDiameter = 12;
 
         public IndexerTowerConfig() {
             super("IndexerTower", 51, Rio.CANIVORE);
@@ -48,6 +48,7 @@ public class IndexerTower extends Mechanism {
     }
 
     // ---- State Machine ----
+
     public enum WantedState {
         OFF,
         INDEX_MAX,
@@ -98,8 +99,8 @@ public class IndexerTower extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    // private IndexerTowerConfig config;
-    // private IndexerSim sim;
+    @Getter private final IndexerTowerConfig config;
+    // @Getter private IndexerSim sim;
 
     public IndexerTower(IndexerTowerConfig config) {
         super(config);

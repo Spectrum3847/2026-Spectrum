@@ -13,6 +13,7 @@ import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 import lombok.Setter;
 
+/** The Hood subsystem. Positions the hood that sets the fuel launch angle. */
 public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
@@ -40,10 +41,10 @@ public class Hood extends Mechanism {
         @Getter private final double holdMaxSpeedRPM = 18;
 
         /* Sim Configs */
-        @Getter private double hoodX = Units.inchesToMeters(62.5);
-        @Getter private double hoodY = Units.inchesToMeters(50);
-        @Getter private double simRatio = 5;
-        @Getter private double length = Units.inchesToMeters(10);
+        @Getter private final double hoodX = Units.inchesToMeters(62.5);
+        @Getter private final double hoodY = Units.inchesToMeters(50);
+        @Getter private final double simRatio = 5;
+        @Getter private final double length = Units.inchesToMeters(10);
 
         public HoodConfig() {
             super("Hood", 15, Rio.CANIVORE);
@@ -113,7 +114,7 @@ public class Hood extends Mechanism {
         setMMPositionFoc(() -> finalWantedPosition);
     }
 
-    private HoodConfig config;
+    @Getter private final HoodConfig config;
     @Getter private HoodSim sim;
 
     public Hood(HoodConfig config) {

@@ -79,16 +79,16 @@ public class Robot extends SpectrumRobot {
     public static boolean autonWarmedUp = false;
 
     public static class Config {
-        public SwerveConfig swerve = new SwerveConfig();
-        public PilotConfig pilot = new PilotConfig();
-        public OperatorConfig operator = new OperatorConfig();
-        public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
-        public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
-        public IndexerBedConfig indexerBed = new IndexerBedConfig();
-        public LauncherConfig launcher = new LauncherConfig();
-        public HoodConfig hood = new HoodConfig();
-        public VisionConfig vision = new VisionConfig();
+        public final SwerveConfig swerve = new SwerveConfig();
+        public final PilotConfig pilot = new PilotConfig();
+        public final OperatorConfig operator = new OperatorConfig();
+        public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
+        public final IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
+        public final IndexerTowerConfig indexerTower = new IndexerTowerConfig();
+        public final IndexerBedConfig indexerBed = new IndexerBedConfig();
+        public final LauncherConfig launcher = new LauncherConfig();
+        public final HoodConfig hood = new HoodConfig();
+        public final VisionConfig vision = new VisionConfig();
     }
 
     @Getter private static Swerve swerve;

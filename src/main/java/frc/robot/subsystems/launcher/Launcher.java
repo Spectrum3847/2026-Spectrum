@@ -14,28 +14,29 @@ import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
+/** The Launcher subsystem. Four-motor flywheel that launches fuel at the hub. */
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
         /* Launcher config values */
-        @Getter private double currentLimit = 80;
-        @Getter private double torqueCurrentLimit = 100;
-        @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
-        @Getter private double reverseTorqueCurrentLimit = 10;
-        @Getter private double lowerCurrentLimit = 60;
-        @Getter private double timeUntilLowerCurrent = 1;
-        @Getter private double nominalVoltage = 16;
-        @Getter private double velocityKp = 10;
-        @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 20;
+        @Getter private final double currentLimit = 80;
+        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double forwardTorqueCurrentLimit = torqueCurrentLimit;
+        @Getter private final double reverseTorqueCurrentLimit = 10;
+        @Getter private final double lowerCurrentLimit = 60;
+        @Getter private final double timeUntilLowerCurrent = 1;
+        @Getter private final double nominalVoltage = 16;
+        @Getter private final double velocityKp = 10;
+        @Getter private final double velocityKv = 0;
+        @Getter private final double velocityKs = 20;
 
-        @Getter private double onTargetToleranceRPM = 100;
+        @Getter private final double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
-        @Getter private double launcherX = Units.inchesToMeters(62.5);
-        @Getter private double launcherY = Units.inchesToMeters(60);
-        @Getter private double wheelDiameter = 4;
+        @Getter private final double launcherX = Units.inchesToMeters(62.5);
+        @Getter private final double launcherY = Units.inchesToMeters(60);
+        @Getter private final double wheelDiameter = 4;
 
         public LauncherConfig() {
             super("Launcher", 46, Rio.CANIVORE);
@@ -120,8 +121,8 @@ public class Launcher extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    private LauncherConfig config;
-    private LauncherSim sim;
+    @Getter private final LauncherConfig config;
+    @Getter private LauncherSim sim;
 
     public Launcher(LauncherConfig config) {
         super(config);

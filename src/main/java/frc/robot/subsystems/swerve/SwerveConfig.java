@@ -1,6 +1,11 @@
 package frc.robot.subsystems.swerve;
 
-import static edu.wpi.first.units.Units.*;
+import static edu.wpi.first.units.Units.Amps;
+import static edu.wpi.first.units.Units.DegreesPerSecond;
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.MetersPerSecond;
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
@@ -16,7 +21,12 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.*;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.units.measure.LinearVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import frc.spectrumLib.hardware.Rio;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,19 +35,20 @@ public class SwerveConfig {
 
     @Getter private final double simLoopPeriod = 0.005; // 5 ms
 
-    @Getter @Setter private double maxAngularRate = 3 * Math.PI; // rad/s
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
     @Getter @Setter private double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
     @Getter @Setter private double driveGearRatio = 6.03;
     @Getter @Setter private double steerGearRatio = 26.09;
 
-    @Getter @Setter
     // Estimated at first, then fudge-factored to make odom match record
-    private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
+    @Getter @Setter private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
-    // Theoretical free speed (ft/s) at 12v applied output;
-    @Getter @Setter private LinearVelocity speedAt12Volts = FeetPerSecond.of(16.8);
+    // Theoretical translational free speed (ft/s) at 12v applied output;
+    @Getter @Setter private LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);
+
+    // Theoretical rotational free speed (ft/s) at 12v applied output;
+    @Getter @Setter private AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
 
     // -----------------------------------------------------------------------
     // PID Controller Constants
@@ -241,7 +252,7 @@ public class SwerveConfig {
                         .withDriveMotorGains(driveGains)
                         .withSteerMotorClosedLoopOutput(steerClosedLoopOutput)
                         .withDriveMotorClosedLoopOutput(driveClosedLoopOutput)
-                        .withSpeedAt12Volts(speedAt12Volts)
+                        .withSpeedAt12Volts(linearSpeedAt12Volts)
                         .withSteerInertia(steerInertia)
                         .withDriveInertia(driveInertia)
                         .withSteerFrictionVoltage(steerFrictionVoltage)

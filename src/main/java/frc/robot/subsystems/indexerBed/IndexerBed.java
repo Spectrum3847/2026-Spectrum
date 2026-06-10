@@ -6,24 +6,24 @@ import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
+/** The Indexer Bed subsystem. Moves fuel across the hopper bed toward the indexer tower. */
 public class IndexerBed extends Mechanism {
 
     public static class IndexerBedConfig extends Config {
         /* Indexer config values */
-        @Getter @Setter private double currentLimit = 60;
-        @Getter @Setter private double torqueCurrentLimit = 100;
-        @Getter @Setter private double lowerCurrentLimit = 50;
-        @Getter @Setter private double timeUntilLowerCurrent = 0;
-        @Getter @Setter private double velocityKp = 30;
-        @Getter @Setter private double velocityKv = 0;
-        @Getter @Setter private double velocityKs = 4;
+        @Getter private final double currentLimit = 60;
+        @Getter private final double torqueCurrentLimit = 100;
+        @Getter private final double lowerCurrentLimit = 50;
+        @Getter private final double timeUntilLowerCurrent = 0;
+        @Getter private final double velocityKp = 30;
+        @Getter private final double velocityKv = 0;
+        @Getter private final double velocityKs = 4;
 
         /* Sim Configs */
-        @Getter @Setter private double intakeX = Units.inchesToMeters(60);
-        @Getter @Setter private double intakeY = Units.inchesToMeters(75);
-        @Getter @Setter private double wheelDiameter = 12;
+        @Getter private final double intakeX = Units.inchesToMeters(60);
+        @Getter private final double intakeY = Units.inchesToMeters(75);
+        @Getter private final double wheelDiameter = 12;
 
         public IndexerBedConfig() {
             super("IndexerBed", 8, Rio.CANIVORE);
@@ -45,6 +45,7 @@ public class IndexerBed extends Mechanism {
     }
 
     // ---- State Machine ----
+
     public enum WantedState {
         OFF,
         INDEX_MAX,
@@ -95,8 +96,8 @@ public class IndexerBed extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    // private IndexerBedConfig config;
-    // private IndexerSim sim;
+    @Getter private final IndexerBedConfig config;
+    // @Getter private IndexerSim sim;
 
     public IndexerBed(IndexerBedConfig config) {
         super(config);
