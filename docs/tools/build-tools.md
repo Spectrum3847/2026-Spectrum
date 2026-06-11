@@ -36,5 +36,5 @@ These Visual Studio Code extensions enhance our development workflow:
 *   **Git Config User Profiles**: Useful for managing multiple Git identities, allowing different people to commit from the same machine with their respective GitHub accounts. Works with `git blame`, etc.
 *   **IntelliCode** (`VisualStudioExptTeam.vscodeintellicode`): Provides AI-assisted development features, including context-aware code completions.
 *   **Spell Right** (`Ban.spellright`): A spell checker for VS Code.
-*   **Open in Browser** (`techer.open-in-browser`): Useful for quickly opening HTML files (e.g., SpotBugs output) in a web browser.
+*   **Open in Browser**: Useful for quickly opening HTML files (e.g., SpotBugs output) in a web browser.
 *   **Live Share** (`ms-vsliveshare.vsliveshare`): Enables real-time collaborative development, allowing remote follow mode and pair programming. (We haven't used this much but would like to.)
