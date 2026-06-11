@@ -70,7 +70,7 @@ a = 5; # Semicolon not used in Python
 1.  **P**arentheses
 2.  **E**xponents (not an operator in Java, use the `Math` class)
 3.  **M**ultiplication and **D**ivision
-4.  **A**ddition and **S**ubtraction
+4.  **Addition** and **Subtraction**
 
 ## Arithmetic (Binary) Operator Examples
 
