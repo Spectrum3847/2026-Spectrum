@@ -1,9 +1,3 @@
-// Copyright (c) 2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
 package frc.rebuilt;
 
 import edu.wpi.first.math.geometry.*;
@@ -225,19 +219,8 @@ public class Field {
         return Field.fieldLength - translation;
     }
 
-    @Getter
-    public static final Translation3d blueHubCenter = BlueHub.topCenter; // new Translation3d(
-    // Units.inchesToMeters(182.11),
-    // Units.inchesToMeters(158.84),
-    // Units.inchesToMeters(72));
-    @Getter
-    public static final Translation3d redHubCenter =
-            BlueToRed(BlueHub.topCenter); // new Translation3d(
-    // Units.inchesToMeters(469.11),
-    // Units.inchesToMeters(158.84),
-    // Units.inchesToMeters(72));
-
-    @Getter private static final double aprilTagWidth = Units.inchesToMeters(6.50);
+    @Getter public static final Translation3d blueHubCenter = BlueHub.topCenter;
+    @Getter public static final Translation3d redHubCenter = BlueToRed(BlueHub.topCenter);
 
     /** Returns {@code true} if the robot is on the blue alliance. */
     public static boolean isBlue() {
