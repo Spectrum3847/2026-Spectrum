@@ -22,6 +22,7 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
@@ -58,6 +59,9 @@ public class RobotSim {
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
+    private static final Translation3d SHOOTER_HOOD_PIVOT_POINT =
+            new Translation3d(-Units.inchesToMeters(11.00), 0, Units.inchesToMeters(19.237));
+
     @Getter private FuelPhysicsSim ballSim;
     private int singleLaneBPS = 8;
     private double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
@@ -69,7 +73,10 @@ public class RobotSim {
     private double lane3 = 1 * laneWidth / 2;
     private double lane4 = 2 * laneWidth / 2;
 
-    public RobotSim() {
+    private SuperStructure robotSuperStructure;
+
+    public RobotSim(SuperStructure superStructure) {
+        this.robotSuperStructure = superStructure;
         SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
         leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
         drawRobot();
@@ -82,13 +89,21 @@ public class RobotSim {
 
     public void updateArticulatedMechanisms() {
         double intakeExtensionPose =
-                Units.inchesToMeters(12) * Robot.getIntakeExtension().getPositionPercentage() / 100;
+                Units.inchesToMeters(12)
+                        * robotSuperStructure.getIntakeExtension().getPositionPercentage()
+                        / 100;
         var intakePose3d =
                 Pose3d.kZero.plus(
                         new Transform3d(
                                 new Translation3d(intakeExtensionPose, 0, 0), Rotation3d.kZero));
 
-        Pose3d[] mechanismPoses = {intakePose3d};
+        double hoodAngleDegrees = robotSuperStructure.getHood().getPositionDegrees();
+        var hoodPose3d =
+                Pose3d.kZero.rotateAround(
+                        SHOOTER_HOOD_PIVOT_POINT,
+                        new Rotation3d(0, -Math.toRadians(hoodAngleDegrees - 9), 0));
+
+        Pose3d[] mechanismPoses = {intakePose3d, hoodPose3d};
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }
@@ -120,9 +135,6 @@ public class RobotSim {
         br.setColor(edgeColor);
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
-
-        MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
-        shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
     private void configBallSimRobot() {
@@ -166,13 +178,13 @@ public class RobotSim {
                     Transform2d robotToLauncher =
                             new Transform2d(
                                     new Translation2d(
-                                            Units.inchesToMeters(-12),
+                                            Units.inchesToMeters(-5.5),
                                             Units.inchesToMeters(laneOffset)),
                                     Rotation2d.k180deg);
                     Translation3d launcherPose =
                             new Translation3d(
                                             robotPos.transformBy(robotToLauncher).getTranslation())
-                                    .plus(new Translation3d(0, 0, Units.inchesToMeters(21)));
+                                    .plus(new Translation3d(0, 0, Units.inchesToMeters(17.5)));
                     ballSim.launchBall(launcherPose, launchVelocity, 500);
                 });
     }

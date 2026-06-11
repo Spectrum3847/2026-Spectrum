@@ -17,7 +17,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
-import frc.robot.Robot;
+import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.spectrumLib.framework.SpectrumState;
 import frc.spectrumLib.telemetry.Telemetry;
@@ -77,7 +77,10 @@ public class Auton {
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
-    public Auton() {
+    private SuperStructure robotSuperStructure;
+
+    public Auton(SuperStructure robotSuperStructure) {
+        this.robotSuperStructure = robotSuperStructure;
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized");
     }
@@ -104,10 +107,9 @@ public class Auton {
     public Command launch() {
         return Commands.sequence(
                         autonLaunching.setTrue(),
-                        Robot.getSuperStructure()
-                                .setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
+                        robotSuperStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
                         Commands.waitSeconds(2.5),
-                        Robot.getSuperStructure().setStateCommand(WantedSuperState.IDLE),
+                        robotSuperStructure.setStateCommand(WantedSuperState.IDLE),
                         autonLaunching.setFalse())
                 .withName("Auton.launch");
     }

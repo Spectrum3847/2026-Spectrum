@@ -43,7 +43,7 @@ public class Hood extends Mechanism {
         /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(62.5);
         @Getter private final double hoodY = Units.inchesToMeters(50);
-        @Getter private final double simRatio = 5;
+        @Getter private final double simRatio = 51.667;
         @Getter private final double length = Units.inchesToMeters(10);
 
         public HoodConfig() {
@@ -94,10 +94,10 @@ public class Hood extends Mechanism {
     }
 
     private void applyStates() {
-        double wantedPosition = 9;
+        double wantedDegrees = 9;
         switch (systemState) {
             case HOME:
-                wantedPosition = 9.0;
+                wantedDegrees = 9.0;
                 break;
             case STOPPED:
                 stop();
@@ -105,12 +105,13 @@ public class Hood extends Mechanism {
             case AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
                 if (params.isValid()) {
-                    wantedPosition = params.hoodAngle();
+                    wantedDegrees = params.hoodAngle();
                 }
 
                 break;
         }
-        final double finalWantedPosition = wantedPosition;
+        final double finalWantedDegrees = wantedDegrees;
+        final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
         setMMPositionFoc(() -> finalWantedPosition);
     }
 
@@ -168,7 +169,7 @@ public class Hood extends Mechanism {
     }
 
     class HoodSim extends ArmSim {
-        public HoodSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+        public HoodSim(Mechanism2d mech, TalonFXSimState armMotorSim) {
             super(
                     new ArmConfig(
                             config.hoodX,
@@ -176,10 +177,10 @@ public class Hood extends Mechanism {
                             config.simRatio,
                             config.length,
                             90,
-                            180,
-                            90),
+                            180 - 9,
+                            180 - 9),
                     mech,
-                    rollerMotorSim,
+                    armMotorSim,
                     config.getName());
         }
     }

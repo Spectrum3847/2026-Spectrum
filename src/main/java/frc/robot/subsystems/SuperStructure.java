@@ -18,13 +18,13 @@ import lombok.Getter;
 
 public class SuperStructure extends SubsystemBase {
 
-    private final Swerve swerve;
-    private final FuelIntake fuelIntake;
-    private final IntakeExtension intakeExtension;
-    private final IndexerTower indexerTower;
-    private final IndexerBed indexerBed;
-    private final Launcher launcher;
-    private final Hood hood;
+    @Getter private final Swerve swerve;
+    @Getter private final FuelIntake fuelIntake;
+    @Getter private final IntakeExtension intakeExtension;
+    @Getter private final IndexerTower indexerTower;
+    @Getter private final IndexerBed indexerBed;
+    @Getter private final Launcher launcher;
+    @Getter private final Hood hood;
 
     private static final double REGULAR_TELEOP_TRANSLATION_COEFFICIENT = 1.0;
     private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.1;

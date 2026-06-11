@@ -167,13 +167,13 @@ public class Robot extends SpectrumRobot {
                             launcher,
                             hood);
 
-            auton = new Auton();
+            auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
             leds = new Leds();
 
             if (Utils.isSimulation()) {
-                robotSim = new RobotSim();
+                robotSim = new RobotSim(superStructure);
                 configureSimBindings();
             }
 

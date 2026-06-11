@@ -83,7 +83,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double intakeY = Units.inchesToMeters(23);
         @Getter private final double extensionMass = 10.0;
         @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-        @Getter private final double extensionGearing = 3.6111;
+        @Getter private final double extensionGearing = 11.25;
         @Getter private final double angle = 180;
         @Getter private final double staticLength = 10;
         @Getter private final double movingLength = 55;
