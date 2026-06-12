@@ -757,7 +757,7 @@ public abstract class Mechanism implements Subsystem {
      */
     public Command runVelocityTcFocRPM(DoubleSupplier velocityRPM) {
         return run(() -> setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM)))
-                .withName(getName() + ".runVelocityFOCrpm");
+                .withName(getName() + ".runVelocityTcFocRPM");
     }
 
     /**

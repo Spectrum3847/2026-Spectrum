@@ -35,9 +35,9 @@ public class BatteryLogger {
     /** Estimated current drawn by the RoboRIO itself, in amps. */
     @Setter private double rioCurrent = 0.0;
 
-    private Map<String, Double> subsytemCurrents = new HashMap<>();
-    private Map<String, Double> subsytemPowers = new HashMap<>();
-    private Map<String, Double> subsytemEnergies = new HashMap<>();
+    private Map<String, Double> subsystemCurrents = new HashMap<>();
+    private Map<String, Double> subsystemPowers = new HashMap<>();
+    private Map<String, Double> subsystemEnergies = new HashMap<>();
 
     /**
      * Records the current draw for a named subsystem channel and accumulates it into the running
@@ -59,9 +59,9 @@ public class BatteryLogger {
             totalPower += power;
             totalEnergy += energy;
 
-            subsytemCurrents.put(key, totalAmps);
-            subsytemPowers.put(key, power);
-            subsytemEnergies.merge(key, energy, Double::sum);
+            subsystemCurrents.put(key, totalAmps);
+            subsystemPowers.put(key, power);
+            subsystemEnergies.merge(key, energy, Double::sum);
 
             String[] keys = key.split("/|-");
             if (keys.length < 2) {
@@ -74,9 +74,9 @@ public class BatteryLogger {
                 if (i < keys.length - 2) {
                     subkey += "/";
                 }
-                subsytemCurrents.merge(subkey, totalAmps, Double::sum);
-                subsytemPowers.merge(subkey, power, Double::sum);
-                subsytemEnergies.merge(subkey, energy, Double::sum);
+                subsystemCurrents.merge(subkey, totalAmps, Double::sum);
+                subsystemPowers.merge(subkey, power, Double::sum);
+                subsystemEnergies.merge(subkey, energy, Double::sum);
             }
         }
     }
@@ -103,22 +103,22 @@ public class BatteryLogger {
             Telemetry.log("BatteryLogger/Energy", joulesToWattHours(totalEnergy), "wh");
             Telemetry.log("BatteryLogger/BatteryVoltage", batteryVoltage, "volts");
 
-            for (var entry : subsytemCurrents.entrySet()) {
+            for (var entry : subsystemCurrents.entrySet()) {
                 Telemetry.log("BatteryLogger/Current/" + entry.getKey(), entry.getValue(), "amps");
-                subsytemCurrents.put(entry.getKey(), 0.0);
+                subsystemCurrents.put(entry.getKey(), 0.0);
             }
-            for (var entry : subsytemPowers.entrySet()) {
+            for (var entry : subsystemPowers.entrySet()) {
                 Telemetry.log("BatteryLogger/Power/" + entry.getKey(), entry.getValue(), "watts");
-                subsytemPowers.put(entry.getKey(), 0.0);
+                subsystemPowers.put(entry.getKey(), 0.0);
             }
-            for (var entry : subsytemEnergies.entrySet()) {
+            for (var entry : subsystemEnergies.entrySet()) {
                 Telemetry.log(
                         "BatteryLogger/Energy/" + entry.getKey(),
                         joulesToWattHours(entry.getValue()),
                         "wh");
             }
 
-            // Reset power and curren totals, before next loop
+            // Reset power and current totals, before next loop
             totalPower = 0.0;
             totalCurrent = 0.0;
         }
