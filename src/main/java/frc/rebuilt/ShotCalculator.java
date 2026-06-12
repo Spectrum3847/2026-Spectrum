@@ -210,7 +210,7 @@ public class ShotCalculator {
         if (latestParameters != null) return latestParameters;
 
         // ── Target selection ─────────────────────────────────────────────────
-        boolean feed = Robot.getSuperStructure().robotInFeedZone().getAsBoolean();
+        boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 

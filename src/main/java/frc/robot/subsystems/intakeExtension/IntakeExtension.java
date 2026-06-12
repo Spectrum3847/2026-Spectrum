@@ -6,7 +6,6 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
@@ -44,10 +43,6 @@ public class IntakeExtension extends Mechanism {
 
         @Getter private final double positiveVoltageOut = 10;
         @Getter private final double negativeVoltageOut = -10;
-
-        @Getter
-        private final DoubleSubscriber timeUntilIntakeSqueeze =
-                Telemetry.tunable("Tunable/TimeUntilIntakeSqueeze", 1.0);
 
         @Getter private final double normalCurrentLimit = 40;
         @Getter private final double normalTorqueCurrentLimit = 80;

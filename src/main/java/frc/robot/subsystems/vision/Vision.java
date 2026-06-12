@@ -459,7 +459,8 @@ public class Vision implements Subsystem {
         Pose2d integratedPose =
                 new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, degStds);
+        // The pose estimator expects the heading std-dev in radians; degStds is in degrees.
+        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds));
         int numTags = tags == null ? 1 : tags.length;
 
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
@@ -543,7 +544,7 @@ public class Vision implements Subsystem {
         return new VisionFieldPoseEstimate(
                 integratedPose,
                 Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp()),
-                VecBuilder.fill(xyStds, xyStds, degStds),
+                VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)),
                 (int) ll.getTagCountInView());
     }
 

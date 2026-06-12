@@ -234,6 +234,7 @@ public class SuperStructure extends SubsystemBase {
     }
 
     private void applyAutonIdle() {
+        swerve.setWantedState(Swerve.WantedState.IDLE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         indexerBed.setWantedState(IndexerBed.WantedState.OFF);
@@ -283,20 +284,39 @@ public class SuperStructure extends SubsystemBase {
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
+
+    // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
+    public boolean isRobotInNeutralZone() {
+        return swerve.isInNeutralZone();
+    }
+
+    public boolean isRobotInEnemyZone() {
+        return swerve.isInEnemyAllianceZone();
+    }
+
+    public boolean isRobotInFeedZone() {
+        return isRobotInEnemyZone() || isRobotInNeutralZone();
+    }
+
+    public boolean isRobotInScoreZone() {
+        return !isRobotInFeedZone();
+    }
+
+    // Trigger factories — use these for binding-time composition only.
     public Trigger robotInNeutralZone() {
-        return swerve.inNeutralZone();
+        return new Trigger(this::isRobotInNeutralZone);
     }
 
     public Trigger robotInEnemyZone() {
-        return swerve.inEnemyAllianceZone();
+        return new Trigger(this::isRobotInEnemyZone);
     }
 
     public Trigger robotInFeedZone() {
-        return robotInEnemyZone().or(robotInNeutralZone());
+        return new Trigger(this::isRobotInFeedZone);
     }
 
     public Trigger robotInScoreZone() {
-        return robotInFeedZone().negate();
+        return new Trigger(this::isRobotInScoreZone);
     }
 
     public void setWantedSuperState(WantedSuperState state) {

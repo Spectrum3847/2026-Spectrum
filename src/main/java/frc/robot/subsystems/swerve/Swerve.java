@@ -262,12 +262,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 break;
             case PILOT_AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
+                ChassisSpeeds joystickSpeeds = calculateSpeedsBasedOnJoystickInputs();
                 setControl(
                         DRIVE_AT_ANGLE_REQUEST
-                                .withVelocityX(
-                                        calculateSpeedsBasedOnJoystickInputs().vxMetersPerSecond)
-                                .withVelocityY(
-                                        calculateSpeedsBasedOnJoystickInputs().vyMetersPerSecond)
+                                .withVelocityX(joystickSpeeds.vxMetersPerSecond)
+                                .withVelocityY(joystickSpeeds.vyMetersPerSecond)
                                 .withTargetDirection(params.driveAngle()));
 
                 break;
@@ -411,56 +410,47 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                                 maxYmeter));
     }
 
+    private static final double FIELD_LENGTH_METERS = Units.feetToMeters(54.0);
+    private static final double FIELD_WIDTH_METERS = Units.feetToMeters(27.0);
+    private static final double NEUTRAL_DEPTH_METERS = Units.inchesToMeters(283.0);
+    private static final double NEUTRAL_LENGTH_METERS = Units.inchesToMeters(317.7);
+    private static final double ENEMY_ALLIANCE_DEPTH_METERS = Units.inchesToMeters(180.0);
+
+    private static final Rectangle2d NEUTRAL_ZONE =
+            new Rectangle2d(
+                    new Translation2d(
+                            FIELD_LENGTH_METERS / 2.0 - NEUTRAL_DEPTH_METERS / 2.0,
+                            FIELD_WIDTH_METERS / 2.0 - NEUTRAL_LENGTH_METERS / 2.0),
+                    new Translation2d(
+                            FIELD_LENGTH_METERS / 2.0 + NEUTRAL_DEPTH_METERS / 2.0,
+                            FIELD_WIDTH_METERS / 2.0 + NEUTRAL_LENGTH_METERS / 2.0));
+
+    private static final Rectangle2d ENEMY_ALLIANCE_ZONE =
+            new Rectangle2d(
+                    new Translation2d(FIELD_LENGTH_METERS - ENEMY_ALLIANCE_DEPTH_METERS, 0),
+                    new Translation2d(FIELD_LENGTH_METERS, FIELD_WIDTH_METERS));
+
+    /** Returns {@code true} when the robot is inside the neutral zone. Allocation-free. */
+    public boolean isInNeutralZone() {
+        return NEUTRAL_ZONE.contains(getRobotPose().getTranslation());
+    }
+
+    /**
+     * Returns {@code true} when the robot is inside the opposing alliance's zone (pose X is flipped
+     * for red so the same rectangle works for both alliances).
+     */
+    public boolean isInEnemyAllianceZone() {
+        return ENEMY_ALLIANCE_ZONE.contains(
+                new Translation2d(
+                        FieldHelpers.flipXifRed(getRobotPose().getX()), getRobotPose().getY()));
+    }
+
     public Trigger inNeutralZone() {
-        final double fieldLengthMeters = Units.feetToMeters(54.0);
-        final double fieldWidthMeters = Units.feetToMeters(27.0);
-
-        final double neutralDepthMeters = Units.inchesToMeters(283.0);
-        final double neutralLengthMeters = Units.inchesToMeters(317.7);
-
-        final double centerX = fieldLengthMeters / 2.0;
-        final double centerY = fieldWidthMeters / 2.0;
-
-        Rectangle2d neutralZone =
-                new Rectangle2d(
-                        new Translation2d(
-                                (centerX - neutralDepthMeters / 2.0),
-                                centerY - neutralLengthMeters / 2.0),
-                        new Translation2d(
-                                (centerX + neutralDepthMeters / 2.0),
-                                centerY + neutralLengthMeters / 2.0));
-
-        return new Trigger(
-                () -> {
-                    double x = getRobotPose().getX();
-                    double y = getRobotPose().getY();
-
-                    return neutralZone.contains(new Translation2d(x, y));
-                });
+        return new Trigger(this::isInNeutralZone);
     }
 
     public Trigger inEnemyAllianceZone() {
-        final double fieldLengthMeters = Units.feetToMeters(54.0);
-        final double fieldWidthMeters = Units.feetToMeters(27.0);
-
-        final double allianceDepthMeters = Units.inchesToMeters(180.0); // X depth
-        final double allianceSpanMeters = fieldWidthMeters; // Y span
-
-        final double minX = fieldLengthMeters - allianceDepthMeters;
-        final double minY = 0;
-
-        Rectangle2d enemyAllianceZone =
-                new Rectangle2d(
-                        new Translation2d(minX, minY),
-                        new Translation2d(fieldLengthMeters, allianceSpanMeters));
-
-        return new Trigger(
-                () -> {
-                    double x = FieldHelpers.flipXifRed(getRobotPose().getX());
-                    double y = getRobotPose().getY();
-
-                    return enemyAllianceZone.contains(new Translation2d(x, y));
-                });
+        return new Trigger(this::isInEnemyAllianceZone);
     }
 
     public Trigger inFieldRight() {

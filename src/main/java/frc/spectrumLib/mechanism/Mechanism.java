@@ -86,8 +86,11 @@ public abstract class Mechanism implements Subsystem {
     /** Alert displayed when an unexpected current reading is detected during diagnostics. */
     Alert currentAlert = new Alert("", AlertType.kWarning);
 
-    /** The last closed-loop setpoint (in rotations) sent to the motor. */
+    /** The last closed-loop position setpoint (in rotations) sent to the motor. */
     private double target = 0;
+
+    /** The last closed-loop velocity setpoint (in rotations per second) sent to the motor. */
+    private double velocityTarget = 0;
 
     // Cached sensor readings — updated lazily each loop via CachedDouble
     private final CachedDouble cachedRotations;
@@ -114,14 +117,15 @@ public abstract class Mechanism implements Subsystem {
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
             BaseStatusSignal.setUpdateFrequencyForAll(
-                    100,
+                    250,
                     motor.getDutyCycle(),
                     motor.getMotorVoltage(),
                     motor.getTorqueCurrent(),
                     motor.getStatorCurrent(),
                     motor.getSupplyCurrent(),
                     motor.getPosition(),
-                    motor.getVelocity());
+                    motor.getVelocity(),
+                    motor.getDeviceTemp());
             motor.optimizeBusUtilization();
 
             followerMotors = new TalonFX[config.followerConfigs.length];
@@ -131,6 +135,16 @@ public abstract class Mechanism implements Subsystem {
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
+                BaseStatusSignal.setUpdateFrequencyForAll(
+                        250,
+                        followerMotors[i].getDutyCycle(),
+                        followerMotors[i].getMotorVoltage(),
+                        followerMotors[i].getTorqueCurrent(),
+                        followerMotors[i].getStatorCurrent(),
+                        followerMotors[i].getSupplyCurrent(),
+                        followerMotors[i].getPosition(),
+                        followerMotors[i].getVelocity(),
+                        followerMotors[i].getDeviceTemp());
                 followerMotors[i].optimizeBusUtilization();
             }
         }
@@ -154,8 +168,14 @@ public abstract class Mechanism implements Subsystem {
      * @param attached {@code true} to enable hardware; {@code false} to run in software-only mode
      */
     protected Mechanism(Config config, boolean attached) {
-        this(config);
+        // The override must be applied BEFORE the delegated constructor runs, since that
+        // constructor decides whether to create the motor hardware based on the flag.
+        this(applyAttachedOverride(config, attached));
+    }
+
+    private static Config applyAttachedOverride(Config config, boolean attached) {
         config.attached = attached;
+        return config;
     }
 
     // ── Subsystem Overrides ────────────────────────────────────────────────────
@@ -246,6 +266,16 @@ public abstract class Mechanism implements Subsystem {
      */
     public double getTarget() {
         return target;
+    }
+
+    /**
+     * Returns the last closed-loop velocity setpoint (in rotations per second) sent to the motor by
+     * this class.
+     *
+     * @return the most recent target velocity in rotations per second
+     */
+    public double getVelocityTargetRPS() {
+        return velocityTarget;
     }
 
     // ── Triggers ───────────────────────────────────────────────────────────────
@@ -920,8 +950,9 @@ public abstract class Mechanism implements Subsystem {
      */
     protected void setMMVelocityFOC(DoubleSupplier velocityRPS) {
         if (isAttached()) {
-            target = velocityRPS.getAsDouble();
-            MotionMagicVelocityTorqueCurrentFOC mm = config.mmVelocityFOC.withVelocity(target);
+            velocityTarget = velocityRPS.getAsDouble();
+            MotionMagicVelocityTorqueCurrentFOC mm =
+                    config.mmVelocityFOC.withVelocity(velocityTarget);
             motor.setControl(mm);
         }
     }
@@ -933,8 +964,9 @@ public abstract class Mechanism implements Subsystem {
      */
     protected void setVelocityTorqueCurrentFOC(DoubleSupplier velocityRPS) {
         if (isAttached()) {
-            target = velocityRPS.getAsDouble();
-            VelocityTorqueCurrentFOC output = config.velocityTorqueCurrentFOC.withVelocity(target);
+            velocityTarget = velocityRPS.getAsDouble();
+            VelocityTorqueCurrentFOC output =
+                    config.velocityTorqueCurrentFOC.withVelocity(velocityTarget);
             motor.setControl(output);
         }
     }
@@ -947,8 +979,9 @@ public abstract class Mechanism implements Subsystem {
      */
     protected void setVelocityTCFOCrpm(DoubleSupplier velocityRPM) {
         if (isAttached()) {
-            target = Conversions.RPMtoRPS(velocityRPM.getAsDouble());
-            VelocityTorqueCurrentFOC output = config.velocityTorqueCurrentFOC.withVelocity(target);
+            velocityTarget = Conversions.RPMtoRPS(velocityRPM.getAsDouble());
+            VelocityTorqueCurrentFOC output =
+                    config.velocityTorqueCurrentFOC.withVelocity(velocityTarget);
             motor.setControl(output);
         }
     }
@@ -960,8 +993,8 @@ public abstract class Mechanism implements Subsystem {
      */
     protected void setVelocity(DoubleSupplier velocityRPS) {
         if (isAttached()) {
-            target = velocityRPS.getAsDouble();
-            VelocityVoltage output = config.velocityControl.withVelocity(target);
+            velocityTarget = velocityRPS.getAsDouble();
+            VelocityVoltage output = config.velocityControl.withVelocity(velocityTarget);
             motor.setControl(output);
         }
     }
@@ -1194,7 +1227,7 @@ public abstract class Mechanism implements Subsystem {
     public void applyCurrentLimit(DoubleSupplier supplyLimit, DoubleSupplier statorLimit) {
         if (isAttached()) {
             if (config.talonConfig.CurrentLimits.StatorCurrentLimit != statorLimit.getAsDouble()
-                    && config.talonConfig.CurrentLimits.SupplyCurrentLimit
+                    || config.talonConfig.CurrentLimits.SupplyCurrentLimit
                             != supplyLimit.getAsDouble()) {
                 config.configSupplyCurrentLimit(Math.abs(supplyLimit.getAsDouble()), true);
                 config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);

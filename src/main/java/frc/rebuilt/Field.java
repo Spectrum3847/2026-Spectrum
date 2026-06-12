@@ -33,7 +33,7 @@ public class Field {
             new Translation2d(fieldLength - 1, fieldWidth - 1);
 
     public static final Translation2d deepFeedBlueLeft = new Translation2d(1, fieldWidth - 2.5);
-    public static final Translation2d deepFeedBlueRight = new Translation2d(21, 2.5);
+    public static final Translation2d deepFeedBlueRight = new Translation2d(1, 2.5);
     public static final Translation2d deepFeedRedLeft = new Translation2d(fieldLength - 1, 2.5);
     public static final Translation2d deepFeedRedRight =
             new Translation2d(fieldLength - 1, fieldWidth - 2.5);
@@ -159,8 +159,8 @@ public class Field {
         public static final double lowRungZ = Units.inchesToMeters(27.0);
         public static final double midRungZ = Units.inchesToMeters(45.0);
         public static final double highRungZ = Units.inchesToMeters(63.0);
-
-        public static final double tag31Y = Units.inchesToMeters(fieldWidth / 2);
+        
+        public static final double tag31Y = fieldWidth / 2.0;
 
         // Fixed X location
         public static final double frontFaceX = Units.inchesToMeters(43.51);

@@ -127,6 +127,7 @@ public class Limelight {
      */
     public Limelight(LimelightConfig config) {
         this.config = config;
+        cameraName = config.getName();
     }
 
     /**
@@ -467,7 +468,7 @@ public class Limelight {
             return 0;
         }
         return (targetHeight - config.up)
-                / Math.tan(Units.degreesToRadians(config.roll + getVerticalOffset()));
+                / Math.tan(Units.degreesToRadians(config.pitch + getVerticalOffset()));
     }
 
     /**
@@ -603,10 +604,10 @@ public class Limelight {
             return -99999;
         }
 
-        double rotation =
+        double rotationRadians =
                 LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getRotation().getZ();
 
-        return rotation;
+        return Math.toDegrees(rotationRadians);
     }
 
     /**

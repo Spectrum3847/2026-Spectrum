@@ -6,6 +6,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.configs.LEDConfigs;
 import com.ctre.phoenix6.controls.ColorFlowAnimation;
+import com.ctre.phoenix6.controls.EmptyAnimation;
 import com.ctre.phoenix6.controls.FireAnimation;
 import com.ctre.phoenix6.controls.LarsonAnimation;
 import com.ctre.phoenix6.controls.RainbowAnimation;
@@ -142,6 +143,13 @@ public class SpectrumLEDs implements Subsystem {
         /** Number of LEDs in the segment owned by this instance. */
         @Getter @Setter private int numLeds;
 
+        /**
+         * CANdle hardware animation slot (0–7) used by this instance's animation patterns. Each
+         * {@link SpectrumLEDs} instance sharing a single {@link CANdle} must use a distinct slot,
+         * otherwise their animations overwrite each other.
+         */
+        @Getter @Setter private int animationSlot = 0;
+
         /** LED strip type (RGB, RGBW, GRB, etc.). Ignored when {@link #sharedCandle} is set. */
         @Getter @Setter private StripTypeValue stripType = StripTypeValue.RGB;
 
@@ -214,20 +222,25 @@ public class SpectrumLEDs implements Subsystem {
     protected final CANdlePattern defaultPattern;
 
     /**
-     * The subsystem's WPILib default command; displays {@link #defaultPattern} at lowest priority.
-     *
-     * <p>Initialized in the constructor body alongside {@link #defaultPattern}.
+     * The default command built by this class (displays {@link #defaultPattern} at lowest
+     * priority). Installed via {@code setDefaultCommand} in the constructor; subclasses may install
+     * their own default command to replace it. Use {@code getDefaultCommand()} (from {@link
+     * Subsystem}) to query whichever default is currently installed.
      */
-    @Getter protected final Command defaultCommand;
+    protected final Command defaultCommand;
 
-    /** Trigger that is active while the default command is scheduled (for priority arbitration). */
+    /**
+     * Trigger that is active while the currently installed default command (whichever one that is)
+     * is the one running — i.e. no higher-priority pattern owns the subsystem.
+     */
     public final Trigger defaultTrigger;
 
     /**
      * Priority level of the pattern command currently running. Higher values indicate higher
-     * priority; {@link #setPattern(CANdlePattern, int)} stores this when a command starts.
+     * priority; {@link #setPattern(CANdlePattern, int)} stores this while a command runs and resets
+     * it to {@code -1} when the command ends.
      */
-    @Getter @Setter private int commandPriority = 0;
+    @Getter @Setter private int commandPriority = -1;
 
     /** Spectrum purple color constant ({@code RGB 130, 103, 185}). */
     public final Color purple = new Color(130, 103, 185);
@@ -267,7 +280,13 @@ public class SpectrumLEDs implements Subsystem {
         // can safely read config values.
         defaultPattern = blink(Color.kOrange, 1.0);
         defaultCommand = setPattern(defaultPattern, -1).withName("LEDs.defaultCommand");
-        defaultTrigger = new Trigger(() -> defaultCommand.isScheduled());
+        setDefaultCommand(defaultCommand);
+        defaultTrigger =
+                new Trigger(
+                        () -> {
+                            Command current = getCurrentCommand();
+                            return current != null && current == getDefaultCommand();
+                        });
 
         CommandScheduler.getInstance().registerSubsystem(this);
     }
@@ -331,13 +350,16 @@ public class SpectrumLEDs implements Subsystem {
         return run(() -> {
                     commandPriority = priority;
                     boolean isAnim = pattern instanceof HardwareAnimPattern;
-                    // Clear hardware animations once when transitioning to a software pattern.
+                    // Clear this instance's animation slot once when transitioning to a software
+                    // pattern. Only our own slot is cleared so other instances sharing the same
+                    // CANdle keep their animations running.
                     if (lastWasAnimation && !isAnim) {
-                        candle.clearAllAnimations();
+                        candle.setControl(new EmptyAnimation(config.getAnimationSlot()));
                     }
                     lastWasAnimation = isAnim;
                     pattern.applyTo(candle, config.getStartIdx(), config.getNumLeds());
                 })
+                .finallyDo(() -> commandPriority = -1)
                 .ignoringDisable(true)
                 .withName("LEDs.setPattern");
     }
@@ -388,6 +410,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new StrobeAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withColor(rgbw)
                                         .withFrameRate(Hertz.of(1.0 / onTimeSecs));
                     }
@@ -413,6 +436,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new SingleFadeAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withColor(rgbw)
                                         .withFrameRate(Hertz.of(200.0 / periodSecs));
                     }
@@ -442,6 +466,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new RainbowAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withBrightness(brightness)
                                         .withFrameRate(Hertz.of(3));
                     }
@@ -461,6 +486,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new RainbowAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withBrightness(1.0)
                                         .withFrameRate(Hertz.of(60));
                     }
@@ -487,6 +513,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new ColorFlowAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withColor(rgbw)
                                         .withFrameRate(Hertz.of(numLeds * speed));
                     }
@@ -514,6 +541,7 @@ public class SpectrumLEDs implements Subsystem {
                         double frameRate = 2.0 * Math.max(numLeds - 1, 1) / durationSecs;
                         holder[0] =
                                 new LarsonAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withColor(rgbw)
                                         .withSize(3)
                                         .withBounceMode(LarsonBounceValue.Back)
@@ -535,6 +563,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new FireAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withFrameRate(Hertz.of(60));
                     }
                     candle.setControl(holder[0]);
@@ -553,6 +582,7 @@ public class SpectrumLEDs implements Subsystem {
                     if (holder[0] == null) {
                         holder[0] =
                                 new RgbFadeAnimation(startIdx, startIdx + numLeds - 1)
+                                        .withSlot(config.getAnimationSlot())
                                         .withFrameRate(Hertz.of(30));
                     }
                     candle.setControl(holder[0]);
@@ -770,7 +800,6 @@ public class SpectrumLEDs implements Subsystem {
      * @return a software {@link CANdlePattern} showing the countdown
      */
     public CANdlePattern countdown(DoubleSupplier countStartTimeSec, double durationInSeconds) {
-        double startTime = countStartTimeSec.getAsDouble();
         SolidColor[][] holder = new SolidColor[1][];
         return (candle, startIdx, numLeds) -> {
             if (holder[0] == null) {
@@ -779,7 +808,9 @@ public class SpectrumLEDs implements Subsystem {
                     holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
                 }
             }
-            double elapsed = Timer.getFPGATimestamp() - startTime;
+            // Read the supplier each loop (not at factory time) so patterns built at binding
+            // time still measure from the correct start when the command eventually runs.
+            double elapsed = Timer.getFPGATimestamp() - countStartTimeSec.getAsDouble();
             double progress = Math.min(elapsed / durationInSeconds, 1.0);
             int ledsOff = (int) (numLeds * progress);
             int green = (int) (255 * (1 - progress));
@@ -838,7 +869,7 @@ public class SpectrumLEDs implements Subsystem {
                         case 0, 5 -> color = Color.kPurple;
                         case 1, 3 -> color = startingColor;
                         case 2, 4 -> color =
-                                (startingColor == Color.kRed) ? Color.kBlue : Color.kRed;
+                                Color.kRed.equals(startingColor) ? Color.kBlue : Color.kRed;
                         default -> color = Color.kBlack;
                     }
                     break;

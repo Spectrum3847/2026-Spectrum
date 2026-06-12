@@ -257,14 +257,21 @@ public class Robot extends SpectrumRobot {
                 .and(pilot.LB)
                 .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
+        operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
+        operator.dPadRight.onTrue(ShotCalculator.decreaseDriveAngleOffset());
+        operator.dPadLeft.onTrue(ShotCalculator.increaseDriveAngleOffset());
+
         // Reset hub shift timer when enabling
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
 
         // Auton Triggers
-        Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
-        Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        Auton.autonIntake.onTrue(
+                superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
+        Auton.autonShotPrep.onTrue(
+                superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         superStructure.setStateCommand(WantedSuperState.UNJAM),

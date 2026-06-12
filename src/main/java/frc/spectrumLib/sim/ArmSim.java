@@ -47,7 +47,7 @@ public class ArmSim implements Mount, Mountable {
                         config.getSimCGLength(),
                         config.getMinAngle(),
                         config.getMaxAngle(),
-                        false, // Simulate gravity (change back to true)
+                        config.isSimulateGravity(),
                         config.getStartingAngle());
 
         armPivot = mech.getRoot(name + " Arm Pivot", config.getPivotX(), config.getPivotY());

@@ -104,10 +104,7 @@ public class Hood extends Mechanism {
                 return;
             case AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
-                if (params.isValid()) {
-                    wantedDegrees = params.hoodAngle();
-                }
-
+                wantedDegrees = params.hoodAngle();
                 break;
         }
         final double finalWantedDegrees = wantedDegrees;

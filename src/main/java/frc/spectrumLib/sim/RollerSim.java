@@ -83,9 +83,11 @@ public class RollerSim implements Mountable {
         // Subtracting out the starting angle is necessary so the simulation can't "cheat" and use
         // the
         // sim as an absolute encoder.
-        double rotationsPerSecond = rollerSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI);
-        rollerMotorSim.setRotorVelocity(rotationsPerSecond);
-        rollerMotorSim.addRotorPosition(rotationsPerSecond * TimedRobot.kDefaultPeriod);
+        // FlywheelSim reports mechanism-side velocity; the rotor spins gearRatio times faster.
+        double rotorRotationsPerSecond =
+                rollerSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI) * config.getGearRatio();
+        rollerMotorSim.setRotorVelocity(rotorRotationsPerSecond);
+        rollerMotorSim.addRotorPosition(rotorRotationsPerSecond * TimedRobot.kDefaultPeriod);
 
         // Update the axle as the robot moves
         if (config.isMounted()) {
