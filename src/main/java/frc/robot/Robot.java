@@ -48,6 +48,7 @@ import frc.robot.swerve.SwerveConfig;
 import frc.robot.vision.Vision;
 import frc.robot.vision.Vision.VisionConfig;
 import frc.robot.vision.VisionSystem;
+import frc.robot.leds.*;
 import frc.spectrumLib.BatteryLogger;
 import frc.spectrumLib.Rio;
 import frc.spectrumLib.SpectrumRobot;
@@ -99,6 +100,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Launcher launcher;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
+    @Getter private static CANdleLeds leds;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
     @Getter private static BatteryLogger batteryLogger;
@@ -155,6 +157,7 @@ public class Robot extends SpectrumRobot {
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             batteryLogger = new BatteryLogger();
+            leds = new CANdleLeds();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();
