@@ -1,131 +1,120 @@
 # Loops
 
-## What are Loops?
+*Audience: New programmers. Assumes you've read [Arrays & Enums](arrays.md).*
 
-Loops iterate through a set number of times or items. They can be used to repeatedly perform a task or calculate values.
-
-## Types of Loops
-
-*   `while-loop`
-*   `for-loop` (including enhanced for-loop)
-*   `do-while loop`
-
-## While Loop
-
-A `while` loop repeatedly executes a block of code as long as its condition remains `true`.
-
-*   Used mainly when the number of iterations is not defined beforehand.
-*   Example: a robot iterating to a non-defined target position.
-
-```java
-boolean targetValue = false;
-// Loop continues as long as targetValue is false
-while (!targetValue) {
-    boolean foundTarget = checkSensorForTarget(); // Assume this method checks for the target
-    // Code within loop
-    if (foundTarget) {
-        // If target is found, set targetValue to true to stop the loop
-        targetValue = foundTarget;
-    }
-}
-```
+A loop runs a block of code repeatedly — either a fixed number of times or until some condition changes. Read [Applied to FRC](applied-to-frc.md) first for context on when loops appear in robot code versus when the command-based framework handles repetition for you.
 
 ## For Loop
 
-A `for` loop is typically used when the number of iterations is known.
+Use a `for` loop when you know how many iterations you need. The three parts of the header are: initialize a counter, state the condition that keeps it running, and update the counter each iteration.
 
 ```java
-for (int i = 6; i < 24; i++) {
-    System.out.println(i);
+for (int i = 0; i < 4; i++) {
+    // runs with i = 0, 1, 2, 3
 }
 ```
 
-**Two variations:**
-*   **Standard for loop**: `for(int i=0; i < maxIndex; i++)`
-*   **Enhanced for loop**: `for(index : (given array))`
-
-## Enhanced For Loop
-
-Used specifically for iterating through all entities within an array or collection.
-
-**General Makeup:**
-*   `Datatype` of elements in the array
-*   `index/variable` to hold each element during iteration
-*   `Array` or collection being iterated
+In `SwerveStates`, this pattern reads back position data from all four swerve modules:
 
 ```java
-int [] variables = {8, 5, 1, 5};
-for (int variable : variables) {
-    // Will print out each int in the array
-    System.out.print(variable);
+double[] positions = new double[4];
+for (int i = 0; i < 4; i++) {
+    positions[i] = swerve.getModule(i).getCachedPosition().distanceMeters / wheelRadiusGuess;
 }
-
-// Output:
-// 8515
 ```
 
-## Inside vs. Outside the Loop
+### Enhanced For Loop
 
-Variables behave differently depending on whether they are initialized outside versus inside the loop.
+When you want to visit every element in an array or collection without tracking an index yourself, the enhanced `for` loop is cleaner:
 
 ```java
-// Variable 'x' initialized outside the loop
-int x = 0;
-System.out.println("Outside the loop");
-for(int i = 0; i < 4; i++) {
-    x += i;
-    // x values: 0 (0+0), 1 (0+1), 3 (1+2), 6 (3+3)
-}
-System.out.println("Final x: " + x); // prints 6
-
-System.out.println("Inside the Loop");
-for(int i = 0; i < 4; i++) {
-    // Variable 'y' initialized inside the loop (new 'y' each iteration)
-    int y = i;
-    System.out.println(y);
-    // y values: 0, 1, 2, 3
+for (ElementType element : collection) {
+    // use element
 }
 ```
+
+`Vision.java` uses this to update all three Limelights in one pass:
+
+```java
+for (Limelight limelight : allLimelights) {
+    limelight.setRobotOrientation(yaw);
+}
+```
+
+`BatteryLogger` uses it to sum current draw across subsystems:
+
+```java
+for (double amp : amps) totalAmps += Math.abs(amp);
+```
+
+Use the enhanced form when you don't need the index. Use the indexed form when you do — for example, reading `positions[i]` alongside `state.positions[i]` in the same loop.
+
+## While Loop
+
+A `while` loop runs as long as a condition stays `true`. You'd use it when you don't know the iteration count up front.
+
+```java
+while (condition) {
+    // body
+}
+```
+
+In command-based robot code, true `while` loops doing I/O or sensor polling inside `periodic()` are uncommon — the scheduler's 20 ms loop handles that for you. But the concept shows up in setup code or utility methods where you're waiting on a result before continuing.
+
+```java
+boolean targetFound = false;
+while (!targetFound) {
+    targetFound = checkSensorForTarget();
+}
+```
+
+One risk: if the condition never becomes `false`, you have an infinite loop, and the program hangs. Always make sure something inside the loop can make the condition change.
 
 ## Do-While Loop
 
-Similar to a `while` loop, but guarantees that the loop body executes at least once before the condition is checked.
-
-*   Only used in situations where one singular repetition at the start is necessary to calculate or set a value.
+Like a `while`, but the body runs once before the condition is checked. That guarantees at least one execution.
 
 ```java
 int targetPos = 0;
 do {
-    targetPos = calculatePos(); // Assume this method calculates a position
+    targetPos = calculatePos();
 } while (targetPos != 0);
-// The loop will run at least once, then continue as long as targetPos is not 0.
 ```
 
-*Note: `do-while` loops are less commonly used compared to `for` and `while` loops, but it's good to be aware of their existence and purpose.*
+This is uncommon in the codebase — only reach for it when you need that "run at least once" guarantee.
 
-## Loop Errors
+## Variables Inside vs. Outside Loops
 
-Errors occur in loops when either:
+Where you declare a variable determines how it persists across iterations.
 
-*   **Faulty logic in the loop heading**: For instance, the loop never terminates (infinite loop).
-    ```java
-    // Infinite loop example: condition 'i > 6' will always be true if i starts at 24 and increments
-    // for (i = 24; i > 6; i++) {
-    //    System.out.println(i);
-    // }
-    ```
-*   **Syntax errors**:
-    *   Not matching curly braces.
-    *   Forgetting to define the variable you are looping through.
-    *   Missing semicolons in `for` loop headers.
+```java
+int x = 0;
+for (int i = 0; i < 4; i++) {
+    x += i;   // x accumulates: 0, 1, 3, 6
+}
+// x is 6 after the loop
+```
 
-    ```java
-    // Example of syntax errors:
-    // for (i = 6; i < 24; i++) { // 'i' not defined
-    //    System.out.println(i);
-    // }
+```java
+for (int i = 0; i < 4; i++) {
+    int y = i;   // y is brand new each iteration: 0, 1, 2, 3
+    // y disappears when this brace closes
+}
+```
 
-    // for (int i = 6; i < 24; i++) {
-    //    System.out.println(i) // Missing semicolon
-    // }
-    ```
+Declare outside the loop when you need to use the value after it finishes (like `positions[]` in the swerve example above). Declare inside when each iteration is independent.
+
+## Common Loop Errors
+
+An infinite loop — one whose condition is always `true` — will freeze the robot or the simulation. The most common cause is a counter that moves the wrong direction:
+
+```java
+// infinite loop: i starts at 24, increments, condition i > 6 is always true
+for (int i = 24; i > 6; i++) { ... }
+```
+
+Syntax errors the compiler will catch: forgetting `int` before the counter variable, missing semicolons in the `for` header, or unmatched braces.
+
+---
+
+*Previous: [Arrays & Enums](arrays.md) — Next: [Classes, Methods, & Objects](classes-methods-objects.md)*

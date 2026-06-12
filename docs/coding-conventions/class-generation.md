@@ -1,32 +1,53 @@
 # Class Generation and Method Building
 
-This section covers best practices for designing and structuring classes and methods within our codebase, focusing on maintainability and readability.
+*Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-## Overload Constructors Rarely
+Conventions for designing classes and methods. Most of what follows is reinforced throughout `frc.spectrumLib` — if you're not sure how to structure something new, copy what an existing subsystem like `Launcher` or `Hood` already does.
 
-While Java allows multiple constructors (overloading) with different parameter lists, we generally recommend minimizing their use.
+## Subsystem Layout
 
-*   **When to Use**: Should be used primarily when an object can be constructed meaningfully from different *types* of parameters, and the initialization logic is simple and distinct.
-*   **Minimize Code Duplication**: Avoid duplicating initialization logic across multiple constructors. Instead, use constructor chaining (`this(...)`) to call one constructor from another. This reduces redundancy and simplifies code maintenance.
-*   **Prefer Builder Pattern**: For objects with many optional parameters or complex initialization, a **Builder Pattern** is generally preferred over multiple overloaded constructors. Builders allow for more readable and flexible object creation.
+Every mechanism in `frc.robot` is three pieces in one folder:
 
-## Method Building
+```
+launcher/
+  Launcher.java         // the subsystem itself
+  Launcher.LauncherConfig (inner class)
+  LauncherStates.java   // commands + triggers the rest of the robot uses
+```
 
-### Simplify Lengthy If Statements
+The subsystem class extends `Mechanism` (from `frc.spectrumLib.mechanism`) and owns the motors and sensors. The `Config` inner class holds every tunable value — gear ratios, current limits, voltages, target poses — annotated with `@Getter`/`@Setter`. Each per-robot config file (`FM2026`, `PM2026`, …) mutates those defaults during construction so a single codebase covers different physical robots.
 
-*   **Extract to Method**: If an `if` statement extends beyond approximately 3 conditions or lines, consider extracting the logic into a separate helper method.
-*   **Clarity**: Ensure the parameters and conditions of your `if` statement can be clearly understood using common terminology related to your code.
+The `*States` class is `public final` with a private constructor, exposing only `public static` command factories (`intakeFuel()`, `aimAtTarget()`, …). The rest of the robot — `Coordinator`, `RobotStates`, gamepad bindings — talks to the subsystem through `*States`, never directly. That indirection is what makes the trigger graph work and what lets us swap robot configs without rewriting the call sites.
 
-### Parameters
+Stick to this layout for new subsystems unless there's a concrete reason not to.
 
-*   **Use Parameters Often**: Utilize parameters to clarify values being changed or acted upon by a method. Explicit parameters improve readability and make methods easier to test.
+## Constructors
 
-### Avoid Unnecessary For-Loops
+Java lets you have a dozen overloaded constructors. We mostly don't. The pattern that's settled across the codebase is "one constructor that takes a `Config`":
 
-*   **Algebraic Simplification**: Generally, avoid using `for` loops when a simpler algebraic expression can achieve the same result. For instance, if you're iterating an array to find a pattern that can be mathematically derived, prefer the mathematical solution.
+```java
+public Launcher(LauncherConfig config) {
+    super(config);
+    // wire up motors, encoders, triggers
+}
+```
 
-## Document Your Code
+The `Config` itself uses chained setters (via `@Accessors(chain = true)` — see [Project Lombok](project-lombok.md)) so the call site reads like a builder. For pure-value classes that genuinely warrant different construction shapes (constructing from inches versus meters, say), a builder is still preferred over a pile of overloads. If you do end up with multiple constructors, chain them through `this(...)` so the actual initialization logic lives in exactly one place.
 
-Even if you completely understand what you're building, it is crucial to document your code to help others (and your future self) understand it.
+## Methods
 
-(Further details on commenting and documentation practices are covered in the [Documentation and Comments](documentation-and-comments.md) section.)
+Keep them single-purpose. A subsystem method that both computes a setpoint *and* drives the motor is hard to test and hard to override per-robot. Pull the math into a small helper — often a `DoubleSupplier` — and let the command factory just schedule things.
+
+For long `if` chains: if you're past about three conditions, extract them. A `switch` on an enum reads better than nested `if`s once a pattern emerges — `frc.robot.State.isReadyState` is a decent template for that. And for anything that's checked every loop and might run a command, return a `Trigger` (via the `At/Above/Below` helpers on `Mechanism`) instead of a raw `boolean`. The scheduler handles re-evaluation; you don't have to.
+
+Use parameters generously. Explicit parameters make methods readable and testable. But avoid the boolean-flag pattern — a method that takes `boolean reverse` is usually two methods with clearer names (`forward()` and `reverse()`).
+
+For setpoints that may change while a command is running (joystick input, target distance, tunable dashboard values), accept a `DoubleSupplier` rather than a fixed `double`. The reasoning is in [Tips](../other-guides/tips.md#doublesupplier-vs-double).
+
+A note on streams: they're fine for one-shot setup code. Inside a `periodic()` they allocate every loop, which adds up. Plain `for` loops in hot paths.
+
+## Documentation
+
+Every `public` method on a `*States` class is part of the API the rest of the robot consumes. They deserve at least a one-line JavaDoc. `Config` fields should be documented with their units (`rotations`, `meters`, `volts`) so per-robot configs don't drift on what a number means.
+
+The bigger picture on comments is in [Documentation and Comments](documentation-and-comments.md).

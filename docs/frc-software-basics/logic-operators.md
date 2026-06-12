@@ -1,145 +1,140 @@
 # Logic-Based Operators
 
+*Audience: New programmers. Assumes you've read [Variables & Arithmetic](variables-arithmetic.md).*
+
 ## Comparison Operators
 
-*   `>`, `>=`: greater than or greater than or equal to
-*   `<`, `<=`: less than or less than or equal to
-*   `!=`: not equal to
-*   `==`: equals
+These compare two values and return a `boolean`.
 
-**Examples:**
-*   `5 > 4` = `true`
-*   `5 >= 6` = `false`
-*   `5 < 6` = `true`
-*   `5 <= 4` = `false`
-*   `5 != 4` = `true`
-*   `5 != 5` = `false`
-*   `5 == 5` = `true`
-*   `5 == 4` = `false`
+| Operator | Meaning |
+| --- | --- |
+| `>` | greater than |
+| `>=` | greater than or equal to |
+| `<` | less than |
+| `<=` | less than or equal to |
+| `==` | equal to |
+| `!=` | not equal to |
+
+`5 > 4` is `true`. `5 >= 6` is `false`. `5 != 5` is `false`. Those work exactly as you'd expect.
+
+One gotcha: `==` checks value equality for primitives, but for objects (like `String`) it checks whether both variables point to the same object in memory, not whether they contain the same text. For strings, use `.equals()`:
+
+```java
+String s1 = "Hello World";
+String s2 = "Hello World";
+s1.equals(s2);  // true — compare content
+s1 == s2;       // may be false — compares memory address
+```
 
 ## Logical Operators
 
-*   `&&` **AND**: if both sides of the operator are true, will return `true`.
-*   `||` **OR**: if either side of the operator is true, will return `true`.
+`&&` (AND) returns `true` only when both sides are `true`. `||` (OR) returns `true` when either side is `true`.
 
-**Examples:**
-*   `((5 == 5) && (4 == 4))` = `true`
-*   `((5 == 5) || (5 == 4))` = `true`
-*   `((5 == 4) && (5 == 5))` = `false`
-*   `((5 == 4) || (5 == 3))` = `false`
+```java
+(5 == 5) && (4 == 4)   // true  — both sides true
+(5 == 5) || (5 == 4)   // true  — left side is true
+(5 == 4) && (5 == 5)   // false — left side is false
+(5 == 4) || (5 == 3)   // false — both sides false
+```
+
+In robot code you see these constantly in trigger compositions:
+
+```java
+pilot.LT.and(pilot.RT).onTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
+pilot.LT.or(pilot.RT).onFalse(applyState(State.IDLE));
+```
+
+`&&`/`||` are short-circuit operators. For `&&`, if the left side is `false`, Java doesn't evaluate the right side. For `||`, if the left side is `true`, it stops. That matters when the right side has a side effect or could throw an exception.
 
 ## Conditional Statements
 
-*   **One-way selection**: If-statements
-*   **Two-way selection**: If-else statements
-*   **Multi-way selection**: Else-if statements, Switch statements
+### If
 
-### One-Way Selection (If-statements)
+Runs a block when the condition is `true`. Nothing happens if it's `false`.
 
 ```java
-public static void main(String[] args) {
-    boolean name = true;
-    if (name){
-        System.out.println("J.R.R.");
-    }
-    System.out.println("Tolkien");
+if (launcher.isAttached()) {
+    launcher.configPIDGains(kP, kI, kD);
 }
-// Output:
-// J.R.R.
-// Tolkien
 ```
 
-### Two-Way Selection (If-else statements)
+### If-Else
+
+Picks one of two paths.
 
 ```java
-public static void main(String[] args) {
-    boolean a = false;
-    if (a) {
-        System.out.println("Never ");
-    } else  {
-        System.out.println("gonna give");
-    }
-    System.out.println(" you up");
+if (isSimulation()) {
+    initializeSimDrivetrain();
+} else {
+    initializeRealDrivetrain();
 }
-// Output:
-// gonna give
-// you up
 ```
 
-### Multi-Way Selection (Else-if statements)
+### Else-If
+
+Chains multiple conditions. Java evaluates them top to bottom and takes the first branch that matches.
 
 ```java
-public static void main(String[] args) {
-    boolean a = false;
-    boolean b = true;
-    if (a) {
-        System.out.println("Never ");
-    } else if (b) {
-        System.out.println("gonna give");
-    } else {
-        System.out.println(" you up");
-    }
+if (state == State.TRACK_TARGET) {
+    aimAtTarget();
+} else if (state == State.INTAKE_FUEL) {
+    runIntake();
+} else {
+    neutral();
 }
-// Output:
-// gonna give
 ```
+
+Once any branch runs, the rest are skipped. That's different from writing three separate `if` statements, which would all be evaluated independently.
+
+### Switch
+
+When you're branching on a single enum or integer value, a `switch` often reads more clearly than a stack of `else if`. The codebase uses Java's modern arrow-syntax switch expressions in `State.java`:
+
+```java
+private static BooleanSupplier isReadyState(State state) {
+    return () ->
+            switch (state) {
+                case TRACK_TARGET -> true;
+                default -> false;
+            };
+}
+```
+
+The arrow form doesn't fall through between cases, so you don't need `break` statements. The older colon-syntax switch does fall through unless you `break` explicitly — that's a common source of bugs if you're used to the newer form.
 
 ## Strings
 
-### Initialization
+`String` isn't a primitive type but it's used constantly. It's immutable — operations return a new string rather than modifying the original.
 
 ```java
-String s = "Hello World";
+String name = "Spectrum";
 ```
 
-### String Operations
+Common operations:
 
-Assume `String s = "Hello ";` and `String s1 = "Hello World";` for examples below.
+```java
+String s = "Hello ";
+String s1 = s + "World";        // concatenation: "Hello World"
 
-*   **Concatenation**:
-    ```java
-    String s = "Hello ";
-    String s1 = s + "World";
-    System.out.println(s1); // This would print "Hello World"
-    ```
+String str = "IndexerBed";
+str.length();                    // 10
+str.charAt(0);                   // 'I'
+str.substring(0, 7);             // "Indexer"
+str.contains("Bed");             // true
+str.toUpperCase();               // "INDEXERBED"
+str.toLowerCase();               // "indexerbed"
 
-*   **Length**: Returns the number of characters in the string.
-    ```java
-    String str = "Java";
-    System.out.println(str.length()); // This would print 4
-    ```
+"Hello".equals("Hello");         // true
+"Hello".equals("hello");         // false — case-sensitive
+"Hello".toLowerCase().equals("hello".toLowerCase());  // true
+```
 
-*   **charAt(index)**: Returns the character at the specified index.
-    ```java
-    String str = "Spectrum";
-    System.out.println(str.charAt(1)); // This would print 'p'
-    ```
+In log messages you'll often see string concatenation with `+` to attach a variable value:
 
-*   **substring(beginIndex, endIndex)**: Returns a new string that is a substring of this string. The substring begins at the specified `beginIndex` and extends to the character at `endIndex - 1`.
-    ```java
-    String str = "Hello World";
-    System.out.println(str.substring(1, 4)); // This would print 'ell'
-    ```
+```java
+Telemetry.print(getName() + " Subsystem Initialized");
+```
 
-*   **contains(CharSequence s)**: Checks to see if a given string can be found within the original string.
-    ```java
-    String str = "Hello World";
-    boolean b = str.contains("he"); // Case-sensitive, so this will be false for "Hello World"
-    System.out.println(b); // Prints false
-    // To make it case-insensitive, convert both to lower case:
-    // boolean b = str.toLowerCase().contains("he".toLowerCase());
-    ```
+---
 
-*   **equals(Object anotherString)**: Checks to see if two strings have equal values.
-    ```java
-    String s1 = "Hello World";
-    String s2 = "Hello World";
-    System.out.println(s1.equals(s2)); // Prints true
-    ```
-
-*   **toUpperCase()** and **toLowerCase()**: Returns a new string with all characters converted to uppercase or lowercase.
-    ```java
-    String str = "Hello World";
-    String sUpper = str.toUpperCase();
-    System.out.println(sUpper); // Prints 'HELLO WORLD'
-    ```
+*Previous: [Variables & Arithmetic](variables-arithmetic.md) — Next: [Arrays & Enums](arrays.md)*

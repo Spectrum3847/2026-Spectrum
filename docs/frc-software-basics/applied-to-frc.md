@@ -1,39 +1,47 @@
-# Applied to FRC (First Robotics Competition)
+# Applied to FRC
 
-This section highlights common Java constructs and how they are typically used (or not used) within the context of FRC programming.
+*Audience: New programmers. Assumes you've read [Formatting Code & Comments](formatting-code.md).*
 
-## What's Used and What Isn't?
+The basics docs in this section cover Java as a language. This page is the bridge: it maps what you've learned to what actually shows up (or doesn't) in robot code.
 
-### Example: Command Chaining
+## The Command-Based Framework Replaces Most Loops
 
-We often use WPILib's command-based programming structure, which allows for concise command scheduling.
+The biggest shift from general Java to FRC Java is that WPILib's command-based framework handles repetition for you. `teleop` and `autonomous` aren't loops you write — the scheduler calls `periodic()` on every subsystem, then runs whatever commands are scheduled, 50 times a second.
 
-**We write:**
+That means `while` loops doing continuous robot control are almost never the right tool. Instead of:
+
 ```java
-stationIntaking.whileTrue(coral.toggleToTrue().alongWith(algae.setFalse()));
-```
-
-**Instead of:**
-```java
-while(stationIntaking == true) {
-    coral = true;
-    algae = false;
+while (unjamButtonHeld) {
+    runUnjam();
 }
 ```
-This demonstrates how higher-level APIs abstract away traditional loop structures for FRC-specific tasks.
 
-### Frequently Used
+you write:
 
-*   **If and else statements**: For conditional logic (e.g., `if (buttonPressed) { ... } else { ... }`).
-*   **Logic operators and arithmetic**: Essential for all calculations and decision-making.
-*   **Classes, objects, etc.**: The foundation of our object-oriented robot code, with subsystems being prime examples of classes.
+```java
+operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
+```
 
-### Moderately Used
+The `Trigger.whileTrue()` call handles the "keep doing this while the condition holds" logic. When the trigger goes false, the command ends automatically. No loop, no manual state management.
 
-*   **Enums**: Useful for defining states (e.g., robot states, mechanism positions).
-*   **Direct for loops**: Can be used for specific iterative tasks, but often abstracted by command-based programming or stream APIs.
+## What You'll Actually Use
 
-### Barely Used
+**If/else and logic operators** — everywhere. Conditions gate command scheduling, check sensor state, and drive branching in subsystem logic. `Launcher.java` checks `isAttached()` before configuring motors; `SwerveStates.java` checks `isSimulation()` to decide which drivetrain to initialize.
 
-*   **Arrays**: While fundamental, complex data structures in FRC often leverage more dynamic collections or specialized WPILib constructs.
-*   **While loops**: Less common for continuous robot control due to the event-driven nature of FRC's command-based framework; however, they can be used for specific blocking operations or custom sensor polling where appropriate.
+**Classes and objects** — the entire robot is structured around them. Each mechanism is a class. `RobotStates`, `Coordinator`, every `*States` file — all classes. See [Class Generation](../coding-conventions/class-generation.md) for how they're organized.
+
+**Enums** — heavily used. `State.java` defines every top-level robot state (`IDLE`, `TRACK_TARGET`, `INTAKE_FUEL`, etc.). `switch` on an enum drives the state machine in `State.isReadyState()`. When you see a mechanism that has multiple named modes, those modes are an enum.
+
+**Standard `for` loops** — used in specific places where you need to touch every element of a fixed array. `SwerveStates` iterates all four swerve modules by index; `Vision.java` iterates all three Limelights with an enhanced `for`. See [Loops](loops.md) and [Arrays](arrays.md).
+
+**Lambdas and method references** — used constantly. Command factories take `DoubleSupplier` instead of `double` so setpoints can be live values. `config::getIdlingRPM` is a method reference; `() -> config.getIdlingRPM()` is an equivalent lambda. See [Classes, Methods, and Objects](classes-methods-objects.md).
+
+## What's Rare
+
+`while` loops and `do-while` loops appear occasionally in utility and setup code, but almost never in subsystem periodic logic or command bodies. If you're reaching for one in a command, there's usually a trigger or command composition that fits better.
+
+Raw arrays are present but tend to live at the edges of the system — collecting module positions, storing April tag IDs, passing data to WPILib APIs that expect arrays. For anything that grows or shrinks, the codebase uses `List` or lets WPILib handle it.
+
+---
+
+*Previous: [Formatting Code & Comments](formatting-code.md) — Up next: the [reference docs](../index.md#i-already-know-how-to-program--show-me-the-reference) on tools, dependencies, and conventions.*
