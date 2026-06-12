@@ -1,60 +1,83 @@
-# Programming Tips and Best Practices
+# Programming Tips
 
-This section covers various tips and best practices that can help improve your Java and FRC programming experience.
+*Audience: Reference. Assumes you've read [2026 Season Specific](2026-season-specific.md).*
 
-## Java Clean Workspace
+Practical things that come up often enough to be worth writing down.
 
-If you are encountering strange Java errors that you suspect are not genuine code issues, sometimes cleaning and reloading the Java Workspace can resolve them.
+## Clean Your Java Workspace
 
-*   **How to Clean**: In VS Code, open the Command Palette (`Ctrl + Shift + P`) and type `>java Clean` or run `./gradlew clean` in the terminal to initiate the cleaning process. This rebuilds the Java language server's cache.
+If VS Code is showing red squiggles on code that definitely compiles, or IntelliSense is behaving strangely, the language server's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `Java: Clean Language Server Workspace`. If that doesn't do it, run `./gradlew clean build` from the terminal — see [Gradle](../tools/gradle.md) for what that actually does.
 
 ## Coordinate Systems
 
-Understanding coordinate systems is fundamental in FRC, especially for robot motion and vision.
+FRC uses a field-relative coordinate system where positive X points toward the opposing alliance wall and positive Y points left from the driver's perspective. Robot heading is in radians measured counter-clockwise from the positive X axis. This matters when writing drive commands and when interpreting `Pose2d` values from the vision or auton systems.
 
-*   **Spectrum Coordinate System Poster**: Refer to this visual aid for our team's specific coordinate system conventions.
-*   **Coordinate System Document**: A detailed document explaining the coordinate systems used in our robot code and how they relate to the field.
+If you're confused about which way something points, draw it. A quick sketch on a whiteboard with labeled axes has unblocked many programming sessions faster than any amount of reading.
 
 ## `DoubleSupplier` vs. `double`
 
-For most commands and trigger factories, using `DoubleSupplier` as arguments is preferred over a raw `double`.
+Most command and trigger factory methods in this codebase take a `DoubleSupplier` instead of a raw `double`. The difference is that a `DoubleSupplier` is evaluated each time it's called, while a plain `double` is captured once when the command is scheduled.
 
-*   **Dynamic Values**: `DoubleSupplier` allows values to be updated as they are running (e.g., fetching a sensor reading or a potentiometer value), which makes tuning easier and more flexible.
-*   **Static Values**: A `double` provides a fixed, static value that won't change after the command is scheduled.
+For setpoints that may shift while a command runs — shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue) — you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
+
+The launcher shows this pattern:
+
+```java
+// LauncherStates.java
+public static void idlePrep() {
+    scheduleIfNotRunning(
+            launcher.runVelocityTcFocRPM(config::getIdlingRPM).withName("Launcher.idlePrep"));
+}
+```
+
+`config::getIdlingRPM` is a method reference — a `DoubleSupplier` — so if `idlingRPM` is changed at runtime (say, from a per-robot config override), the running command picks up the new value. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
 
 ## Cached Values
 
-For any sensor updates that have to go over the CAN bus (e.g., getting motor rotations, velocity, or CAN sensor distances), it's a best practice to cache these values.
+Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
 
-*   **Efficiency**: Check the value once per periodic loop within a subsystem's `periodic()` method.
-*   **Consistency**: Save this value to an object (e.g., a member variable) that can then be read by other methods throughout the robot's control loop. This prevents multiple, potentially expensive, CAN bus calls within a single loop cycle and ensures all parts of the code are working with the same, most recent, sensor data.
+The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class already does this for position, velocity, voltage, and current using [`CachedDouble`](../../src/main/java/frc/spectrumLib/CachedDouble.java), which is a `SubsystemBase` that clears its cached flag in `periodic()` and recomputes on first access each loop.
+
+If you're reading a sensor value that isn't already cached by `Mechanism`, do it in the subsystem's `periodic()` into a field, and have everything else read the field. Don't scatter CAN reads across command bodies.
 
 ## Method Chaining
 
-We utilize method chaining extensively in our codebase.
+`Command` and `Trigger` in WPILib return `this` from most modifier methods, so you can write:
 
-*   **Fluid API**: Methods in `Triggers` and `Commands` often return the `this` object (the instance itself).
-*   **Conciseness**: This allows you to chain multiple method calls together in a single line, creating a more fluent and readable API.
+```java
+myTrigger.whileTrue(
+    launcher.runVelocityTcFocRPM(config::getIdlingRPM)
+        .andThen(launcher.stopMotor())
+        .withTimeout(5.0));
+```
 
-    ```java
-    // Example of method chaining
-    myTrigger.whenTrue(myCommand.andThen(anotherCommand).withTimeout(5.0));
-    ```
+This is idiomatic in the codebase — you'll see it everywhere in the `*States` files. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
 
-## Spectrum 2026 Code Goals
+## Simulation Before Robot Time
 
-Our development goals for the 2026 season code include:
+Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths — most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P → WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
 
-*   **Accessibility**: Make it easier for more people to work on our code.
-*   **Modularity**: Organize code so small chunks can be worked on individually.
-*   **Build Tools**: Better utilize build tools (Spotless and SpotBugs) to help reduce errors.
-*   **Simulation**: Improve our use of WPILib Simulation and AdvantageScope.
-*   **Merge Conflicts**: Reduce the amount of merge conflicts when committing (as they can be confusing and cause errors).
-*   **Codebase Consolidation**: Reduce lines of code in `Robot.java` where possible, moving more logic to `SpectrumLib`.
-*   **Robot Agnostic**: Allow a single codebase to run on multiple robots, even with very different configurations.
-*   **Command Groups**: Reduce the number of large Command Groups, better using `Triggers` to represent state.
-*   **CTRE & PathPlanner**: Integrate CTRE 2026 Swerve and PathPlanner (possibly Choreo too).
-*   **LEDs**: Move to 2026 WPILib LED and `LEDBuffer`.
-*   **Logging**: Improve logging (DogLog).
+Reserve time on the real robot for things that genuinely require it: tuning gains, calibrating offsets, testing hardware interactions. Don't develop new features on the robot.
 
-Feel free to open a pull request with any changes!
+## Feature Branches
+
+Work on a feature branch, not directly on `main`. The typical flow:
+
+1. Branch from `main` for your feature.
+2. Develop and test in simulation.
+3. Merge `main` back into your branch before opening a pull request, re-test in sim, then put it on the robot if needed.
+4. Open a PR for review by a programming lead before merging.
+
+Small, focused branches have fewer merge conflicts and are much easier to review than multi-week accumulations of changes. See [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for commit message conventions.
+
+## Logging is Free
+
+Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition — these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. The pattern used in every `*States` file is:
+
+```java
+private static Command log(Command cmd) {
+    return Telemetry.log(cmd);
+}
+```
+
+Wrap command factories in `log(...)` and you automatically get init/end events in the log without changing any other code.

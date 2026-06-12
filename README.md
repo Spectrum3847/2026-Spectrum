@@ -8,7 +8,7 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 
 ### Features
 
-* Mechanism class wraps all the FalconFX configurations and control mode calls so they are easier to use.
+* Mechanism class wraps all the TalonFX configurations and control mode calls so they are easier to use.
 * Heavy use of Triggers as states for activating commands. This all but eliminates the need for complex multi-mechanism command groups.
 * Simulation classes allow us to build a good representation of the complete robot in sim so more of the code can be tested without the robot.
 * CachedDouble: Allows a value to only be updated once per periodic loop. This is useful for CANbus calls to sensors or motors, etc.
@@ -18,7 +18,7 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 
 * **Spotless:** Autoformats are code on each build so that we keep a consistent format across programmers.
 * **SpotBugs**: Catches some common bugs in the software such as using = instead of == in a conditional, etc.
-* **Lomok:** Annotations to create Getter and Setter methods. This allows for less boilerplate code.
+* **Lombok:** Annotations to create Getter and Setter methods. This allows for less boilerplate code.
 * **Error Lens:** Highlights errors and makes them easier to see and fix.
 * **Git Config User Profiles:** Allows multiple programmers to share the same computers and commit under their own names.
 * **Git Lens:** lets you see who committed changes and more
@@ -27,7 +27,7 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 ### Dependencies
 
 * WPILib 2026
-* CTRE Phoenix 6 (Using there swerve control code)
+* CTRE Phoenix 6 (using their swerve control code)
 * PathPlanner
 * PhotonLib (For vision simulation)
 
@@ -35,7 +35,7 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 
 * Robot = In season robot code, we have configuration files to be able to run our code base on multiple robots at once. Heavily uses WPILib commands and triggers.
 * [`SpectrumLib`](src/main/java/frc/spectrumLib) = Code that we try to reuse year to year.
-* Our goal is to make our software easy for multiple people to contribute too. Each subsystem should be able to be modified on it's own without needing to understand the rest of the robot code.
+* Each subsystem can be modified independently without needing to understand the rest of the robot code.
 
 ```text
 src
@@ -44,7 +44,7 @@ src
 │   │   └── frc: all FRC application code
 │   │       ├── robot: main robot application and subsystems
 │   │       │   ├── auton: autonomous routines and PathPlanner integration
-│   │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026)
+│   │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
 │   │       │   ├── swerve: swerve drive subsystem and controllers
 │   │       │   ├── vision: PhotonVision and Limelight vision subsystem
 │   │       │   ├── launcher: fuel launcher mechanism
@@ -52,7 +52,7 @@ src
 │   │       │   ├── indexerBed: horizontal fuel indexer mechanism
 │   │       │   ├── fuelIntake: ground intake mechanism
 │   │       │   ├── intakeExtension: intake arm extension mechanism
-│   │       │   ├── turretRotationalPivot: turret rotation mechanism
+│   │       │   ├── hood: launcher hood pivot mechanism
 │   │       │   ├── leds: CANdle LED control and animation
 │   │       │   ├── pilot: pilot gamepad bindings and commands
 │   │       │   └── operator: operator gamepad bindings and commands
@@ -61,11 +61,13 @@ src
 │   │       │   ├── leds: LED management utilities
 │   │       │   ├── mechanism: motor and mechanism base classes
 │   │       │   ├── sim: physics simulation helpers
+│   │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
 │   │       │   ├── talonFX: TalonFX motor factory and wrappers
 │   │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
 │   │       │   │   └── exceptions: custom exception classes
 │   │       │   └── vision: vision utilities (Limelight helpers)
 │   │       └── rebuilt: 2026 game-specific field and targeting helpers
+│   │           ├── launchingMaps: distance/angle lookup maps for launcher tuning
 │   │           ├── offsets: home offsets and calibration data
 │   │           └── targetFactories: target factory implementations
 │   └── deploy: files deployed to RoboRIO
