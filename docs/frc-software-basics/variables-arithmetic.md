@@ -1,158 +1,131 @@
 # Variables & Arithmetic
 
-Java is statically typed and uses semicolons.
+*Audience: New programmers. Assumes you've completed [Setup](../setup.md).*
 
-**Things that Work:**
+Java is a statically typed language, which means every variable has a fixed type declared up front, and you end each statement with a semicolon. If you come from Python, both of those things feel unusual at first.
+
 ```java
-int a = 5;
-a = 3;
+int a = 5;   // declare type, name, and initial value
+a = 3;       // reassign — fine
 ```
 
-**Things that Don't:**
+These will not compile:
+
 ```java
-a = "Java"; // Type mismatch
-a = 3    // Missing semicolon
-String a = "Java"; // Already declared
-int a = 3;   // Already declared
+a = "Java";      // type mismatch: a is an int, not a String
+a = 3            // missing semicolon
+String a = "Java"; // 'a' is already declared in this scope
+int a = 3;         // same problem
 ```
 
-Python is dynamically typed and does not use semicolons.
+## Primitive Types
 
-**Things that Work:**
-```python
-a = 5
-a = "Hello"
+The types you'll encounter most often in this codebase:
+
+| Type | What it holds | Example |
+| --- | --- | --- |
+| `int` | whole numbers | `int canID = 8;` |
+| `double` | decimal numbers | `double idlingRPM = 700;` |
+| `boolean` | `true` or `false` | `boolean isAttached = true;` |
+| `String` | text (not technically primitive, but used everywhere) | `String name = "IndexerBed";` |
+| `byte` | small signed integer, −128 to 127 | rare in robot code |
+
+You'll also see `final` (the value can't be reassigned) and `static` (belongs to the class rather than a specific instance) used as modifiers. Both are covered in [Classes, Methods, and Objects](classes-methods-objects.md).
+
+In the `Launcher.LauncherConfig` class, for instance, the config fields look like this:
+
+```java
+@Getter @Setter private double idlingRPM = 700;
+@Getter @Setter private double slowLaunchSpeed = 400;
+@Getter @Setter private double autoTrenchLaunch = 1800;
 ```
 
-**Things that Don't Work:**
-```python
-a = 5; # Semicolon not used in Python
-```
+All `double`s because RPM values have decimal precision. Changing them to `int` would silently truncate fractions.
 
-## Semicolons and Variable Types
+## Arithmetic Operators
 
-### Java
-*   Each program statement terminates with a semicolon.
-*   Statically typed.
-*   Java ignores whitespaces.
+These require two operands — one on each side.
 
-### Python
-*   Does not use semicolons.
-*   Dynamically typed.
-*   Python relies on whitespaces for code structure.
+| Operator | Meaning | Example |
+| --- | --- | --- |
+| `+` | addition | `a + b` |
+| `-` | subtraction | `a - b` |
+| `*` | multiplication | `a * b` |
+| `/` | division | `a / b` |
+| `%` | modulus (remainder) | `a % b` |
 
-## Java Primitive Types
-
-*   `int`: integer numbers
-*   `double`: decimal numbers
-*   `boolean`: either `true` or `false`
-*   `String`: represents text or sequences of characters. Enclosed in double quotes.
-    *   *Disclaimer: not a primitive type but very common.*
-*   `byte`: signed 8-bit integer. Values can be `-128` to `127`.
-
-**Other keywords we use:**
-*   `implements`
-*   `final`: means the variable's value cannot be changed.
-*   `static`
-
-## Arithmetic (Binary) Operators
-
-"Binary" - these operators require two operands or values to function.
-
-*   `+` **Addition**: The sum of two (or more) numbers.
-*   `-` **Subtraction**: The difference between two numbers.
-*   `*` **Multiplication**: The product of two (or more) numbers.
-*   `/` **Division**: The quotient of the division of two numbers.
-*   `%` **Modulus**: The remainder of the division of two numbers.
-
-## Mathematical Precedence (PEMDAS)
-
-1.  **P**arentheses
-2.  **E**xponents (not an operator in Java, use the `Math` class)
-3.  **M**ultiplication and **D**ivision
-4.  **A**ddition and **S**ubtraction
-
-## Arithmetic (Binary) Operator Examples
+A quick demonstration with concrete values:
 
 ```java
 int a = 5;
 int b = 2;
-int result;
 
-result = a + b; // result equals 7
-result = a - b; // result equals 3
-result = a * b; // result equals 10
-result = a / b; // result equals 2 (int division - normal division but the decimals are removed)
-result = a % b; // result equals 1
+int result = a + b; // 7
+result = a - b;     // 3
+result = a * b;     // 10
+result = a / b;     // 2  — integer division, decimal is truncated
+result = a % b;     // 1  — remainder of 5 ÷ 2
 ```
 
-**Truncation in Integer Division:**
-When performing integer division, Java truncates the decimal part.
-*   `int x = 3 / 2; // x will be 1 (truncates from 1.5)`
-*   `int x = 1 / 2; // x will be 0 (truncates from 0.5)`
+Integer division truncates, it doesn't round. `3 / 2` gives `1`, not `1.5`. If you need the decimal, at least one side has to be a `double`:
+
+```java
+double result = 3.0 / 2;   // 1.5
+```
+
+In real robot code you see this with RPM error checks:
+
+```java
+double targetRPM = params.flywheelSpeed();
+double currentRPM = getVelocityRPM();
+double errorRPM = currentRPM - targetRPM;
+
+return Math.abs(errorRPM) < config.getOnTargetToleranceRPM();
+```
+
+Operator precedence follows PEMDAS. Parentheses first, then multiplication and division (left to right), then addition and subtraction. Java has no exponent operator — use `Math.pow(base, exponent)` instead.
 
 ## Unary Operators
 
-*   `++` **Increment Operator**: Increases the operand by 1. Can be placed before variables (`++a`) or after (`a++`).
-*   `--` **Decrement Operator**: Decreases the operand by 1.
-*   `!` **NOT Operator**: Reverses the state of the operand (e.g., `!false` = `true`).
-*   `-` **Unary minus**: Multiplies the operand by -1.
+These work on a single value.
 
-## Unary Operator Examples
+- `++` increments by 1 (`a++` or `++a`)
+- `--` decrements by 1
+- `!` negates a boolean — `!true` is `false`
+- `-` flips the sign — `-a` where `a` is `5` gives `-5`
 
-```java
-int a = 5;
-boolean c = true;
-int result;
-
-a++;
-System.out.println(a); // prints 6
-
-a--;
-System.out.println(a); // prints 5
-
-System.out.println(!c); // prints false
-
-System.out.println(-a); // prints -5
-```
+The distinction between `a++` and `++a` matters when the expression is used in an assignment (`int x = a++` vs `int x = ++a`), but in a standalone statement like a `for` loop counter they're equivalent.
 
 ## Compound Assignment Operators
 
-Shortcuts for applying an arithmetic operation to a variable and assigning that new value to itself.
-
-*   `+=`: `a = a + 2` is the same as `a += 2`
-*   `-=`: `a = a - 2` is the same as `a -= 2`
-*   `*=`: `a = a * 2` is the same as `a *= 2`
-*   `/=`: `a = a / 2` is the same as `a /= 2`
-*   `%=`: `a = a % 2` is the same as `a %= 2`
-
-## Compound Assignment Examples
+Shortcuts that modify a variable in place:
 
 ```java
 int a = 5;
-
-a += 2; // a equals 7
-a -= 2; // a equals 5
-a *= 2; // a equals 10
-a /= 2; // a equals 5
-a %= 2; // a equals 1
+a += 2;  // a is now 7
+a -= 2;  // a is now 5
+a *= 2;  // a is now 10
+a /= 2;  // a is now 5
+a %= 2;  // a is now 1
 ```
 
-## Math Class
+## The Math Class
 
-The `Math` class is a built-in, static, Java class that handles a plethora of mathematical operations.
-
-*   `Math.sqrt(int or double)`: Returns the square root of the input as a `double`.
-*   `Math.pow(base, exponent)`: Returns the exponentiation of a number as a `double`.
-*   `Math.abs(int or double)`: Returns the absolute (positive) value of a number as the type received (`int` or `double`).
-*   `Math.PI`: Returns the value of pi.
-
-## Math Class Examples
+`Math` is a built-in static class for operations that don't have a symbol:
 
 ```java
-int a = 4;
-
-System.out.println(Math.sqrt(a));   // prints 2.0
-System.out.println(Math.pow(a, 2)); // prints 16.0
-System.out.println(Math.abs(-a));   // prints 4
+Math.sqrt(4)     // 2.0  — square root
+Math.pow(4, 2)   // 16.0 — exponentiation
+Math.abs(-4)     // 4    — absolute value
+Math.PI          // 3.141592653589793
 ```
+
+`BatteryLogger` uses `Math.abs` to sum up current draw across subsystems regardless of direction:
+
+```java
+for (double amp : amps) totalAmps += Math.abs(amp);
+```
+
+---
+
+*Previous: [Setup](../setup.md) — Next: [Logic-Based Operators & Strings](logic-operators.md)*

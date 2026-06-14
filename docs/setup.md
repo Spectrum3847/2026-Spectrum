@@ -1,36 +1,50 @@
 # Setup Guide
 
-To setup the project, you will need the following:
+*Audience: New programmers. No prerequisites — start here.*
+
+To set up the project you'll need:
 
 * [WPILib](#wpilib-notes) 2026
 * JDK 17 ([Eclipse Temurin](https://adoptium.net/temurin/releases?version=17) is recommended)
 * [PathPlanner](https://pathplanner.dev)
 * [Git](https://git-scm.com/)
 
-## Clone the repository
+## Clone the Repository
 
-In a place you will not forget, open the terminal and type:
+In a terminal, run:
+
 ```
 git clone https://github.com/spectrum3847/2026-Spectrum.git
 cd 2026-Spectrum
 ```
 
-This will clone (copy) the git repository locally to your computer. **Note:** If you prefer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. If you are on Linux, there [is a Flatpak](https://flathub.org/en/apps/io.github.shiftey.Desktop) version available.
+If you prefer a GUI, [GitHub Desktop](https://desktop.github.com/download/) works well. On Linux there's a [Flatpak version](https://flathub.org/en/apps/io.github.shiftey.Desktop).
 
 ## VSCode
 
-Open the `2026-Spectrum` folder in WPILib VSCode (or whatever editor/ide you prefer). To use the WPILib sim, press ctrl shift p, and type `sim`. Click WPILib: Simulate Robot Code. Then gradle will build the project. Once it's done, it will ask you to either run in GUI Sim, or use a real driver station. Press `GUI Sim`, it will launch Glass.
+Open the `2026-Spectrum` folder in WPILib VSCode (or your preferred editor). To run the simulator, press `Ctrl+Shift+P` and type `sim`, then click **WPILib: Simulate Robot Code**. Gradle will build the project, then prompt you to choose between **GUI Sim** and a real Driver Station. Pick **GUI Sim** — it launches Glass with joysticks and a Field2d view.
 
-## Java notes:
+## Java Notes
 
-If you are on Unix (MacOS/Linux), I strongly recommend using [SDKMAN](https://sdkman.io) for managing java installations. To set it up Java 17 (required for the robot code), run `sdk install java 17.0.18-tem`. Then if you want to switch to it, run `sdk use java 17.0.18-tem`.
+Java 17 is required. WPILib 2026 does not support later versions, and the build will fail with a confusing error if the wrong JDK is active.
 
-Also, for this robot project Java 17 is required: you cannot use a higher version, as WPILib 2026 does not support it.
+On macOS or Linux, [SDKMAN](https://sdkman.io) is the easiest way to manage Java versions. To install Temurin 17:
 
-## WPILib notes:
+```
+sdk install java 17.0.19-tem
+sdk use java 17.0.19-tem
+```
 
-Download the latest stable WPILib installer from [GitHub releases](https://github.com/wpilibsuite/allwpilib/releases/). If you're feeling extra adventurous, you can download the latest version of WPILib installer from the GitHub actions artifacts from the [WPILibInstaller-Avalonia repository](https://github.com/wpilibsuite/WPILibInstaller-Avalonia), if that sounds daunting, check out this [frontend](https://project516.dev/wpilib-nightly-installers). Make sure you're downloading the 2026 version of WPILib, as 2027 should have breaking changes and be incompatible with 2026.
+Run `java -version` to confirm the active JDK before building.
 
-## Next Steps:
+## WPILib Notes
 
-View the documentation [Table of Contents](index.md) for more resources.
+Download the latest stable WPILib installer from the [GitHub releases page](https://github.com/wpilibsuite/allwpilib/releases/). Make sure you're getting the 2026 release — a 2027 installer will have breaking changes that are incompatible with this project. If you want a nightly build, the [WPILib nightly installer frontend](https://project516.dev/wpilib-nightly-installers) is easier than navigating GitHub Actions artifacts directly.
+
+## Next Steps
+
+See the [Table of Contents](index.md) for the rest of the documentation.
+
+---
+
+*Next: [Variables & Arithmetic](frc-software-basics/variables-arithmetic.md)*

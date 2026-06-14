@@ -1,191 +1,131 @@
 # 2026 Season Specific Documentation: REBUILT
 
-This section provides documentation specifically relevant to the 2026 FRC game, **REBUILT**, and our robot's architecture and control schemes for this season.
+*Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-## 2026 FRC Code Structure
+This page is the orientation tour for the 2026 FRC game (**REBUILT**) — the subsystems we have, the state machine that drives them, the controls layout, and the vision setup. It's the page to read first if you've just cloned the repo and want to understand what does what.
 
-### Subsystems
+## Subsystems
 
-Subsystems represent any part of the robot with an output.
+Each physical thing the robot does lives in its own subsystem folder under `src/main/java/frc/robot/`:
 
-*   **Examples**: Mechanisms (FuelIntake, IndexerBed, Launcher), swerve drive, LEDs, controller rumble, Vision.
-*   **Mechanisms**: These are subsystems that typically involve a motor (e.g., TalonFX, Kraken). Our `Mechanism` class wraps many motor-related methods for easier setup.
-*   **Swerve**: A specialized drivetrain using Krakens. It handles movement and orientation as part of the overall drivetrain, distinct from game-specific mechanisms. It is fundamental for navigation and offensive/defensive play in REBUILT.
-    *   Examples: `swerve`, `fuelIntake`, `indexerBed`, `indexerTower`, `intakeExtension`, `launcher`, `turretRotationalPivot`, `leds`, `operator`, `pilot`, `vision`.
-*   **Structure**: Subsystems are usually organized into a folder containing 2-3 classes:
-    *   **Main Class**: The primary class defining the subsystem's functionality.
-    *   **Config Class**: Used to set up the subsystem and allow for configuration adjustments between different robots running our codebase.
-    *   **States Class**: Contains commands that can be run to perform actions, often bound to triggers, allowing for complex behaviors.
+`swerve`, `fuelIntake`, `indexerBed`, `indexerTower`, `intakeExtension`, `launcher`, `hood`, `vision`, `leds`, `pilot`, `operator`.
 
-### Configurations for Multiple Robots (XM, PM, FM)
+The "subsystem" name covers everything from "drives motors" (launcher, hood) to "reads controllers" (pilot, operator) to "renders status lights" (leds). Anything with a `periodic()` lifecycle and state to manage gets the same shape.
 
-Our codebase supports running on different physical robot setups for the 2026 season through distinct configuration classes. This allows us to adapt to variations in hardware or testing environments.
+Most subsystems follow a three-file layout:
 
-*   **`Robot.Config`**: The base class for all robot configurations, defining common parameters and subsystem configurations.
-*   **`Rio.id`**: The robot's unique ID (`Rio.id`) determines which specific configuration (e.g., `XM2026`, `PM2026`, `FM2026`) is loaded at startup.
-*   **Configuration Classes**:
-    *   **`XM2026` (Experimental Machine)**: Used for experimental robot setups. It may have specific encoder offsets or mechanism attachment states tailored for testing new designs or components.
-    *   **`PM2026` (Practice Machine)**: Configured for practice robots, often matching the competition robot as closely as possible but potentially with minor adjustments for wear and tear.
-    *   **`FM2026` (Field Machine/Competition Machine)**: The configuration intended for the competition robot, with precise calibration values.
-*   **`setAttached(boolean attached)`**: Each configuration can specify whether a particular mechanism (subsystem) is physically present and operational on that robot. This prevents errors and optimizes resource usage by only initializing active mechanisms.
+* `*.java` — the subsystem class itself, extending `Mechanism` for anything motor-backed.
+* `*.Config` (inner class) — every tunable, declared with `@Getter @Setter` so per-robot configs can override defaults.
+* `*States.java` — the public API of command factories the rest of the robot uses.
 
-### States/Triggers
+The full structural conventions live in [Class Generation](../coding-conventions/class-generation.md); don't reinvent the layout when adding a new subsystem.
 
-#### Commands
+## Per-Robot Configurations
 
-Commands represent atomic actions the robot can take.
+We build multiple physical robots each season and run the same code on all of them. The `Rio.id` field, looked up from the RoboRIO serial number in `frc.spectrumLib.Rio`, decides which configuration is loaded at startup. All configs live under `src/main/java/frc/robot/configs`:
 
-*   **Execution**: Commands run when scheduled, continuing until they are interrupted or their end condition is met. They encapsulate specific robot behaviors.
-*   **Examples**: `swerve.drive()`, `fuelIntake.intake()`, `launcher.shoot()`, `turret.aim()`, `leds.blink()`.
+| Config | Bot | Use |
+| --- | --- | --- |
+| `FM2026` | Final Machine — the competition robot | Precise calibration, the bot we travel with. |
+| `PM2026` | Practice Machine | Mirrors competition, minor wear-and-tear tweaks. |
+| `XM2026` | Experimental Machine | In-season experimentation and prototyping. Encoder offsets and attachment flags vary. (Off-season work gets its own `OM` config.) |
+| `AM2026` | Alpha Machine | Earlier prototype, used pre-build. |
+| `PHOTON2026` | Photon's machine | The robot run by Photon, our sister team. |
 
-#### Triggers
+Each config can mark a mechanism present or absent via `setAttached(boolean)` so a bot without the launcher doesn't try to initialize one.
 
-Triggers are conditions that, when met, can initiate commands or state changes.
+## States and Triggers
 
-*   **Examples**: A button press on a gamepad, a sensor detecting a game piece, the robot reaching a specific field position, or a timer expiring.
-*   **Boolean Value**: All triggers evaluate to a `true` or `false` condition.
-*   **Command Binding**: You can schedule commands based on the condition of a trigger (`whileTrue`, `onTrue`, `whileFalse`, `onFalse`).
-    *   `pilot.X` (true if button X is pressed)
-    *   `indexerBed.hasFuel()` (true if fuel is detected in the indexer bed).
-*   **`SpectrumState`**: A special trigger that holds its own boolean value, commanded true or false. Used for conditions not easily represented by hardware (buttons, encoders) but derived from complex logic.
-*   **Placement**: Triggers should normally be created as a `public static final` variable in the `SubsystemStates` file or the `RobotStates` file for consistent access.
-*   **Logging**: Each command sent by a trigger should be logged (e.g., using `Telemetry.log(Command)` in the `states.java` file's log method) for debugging and analysis.
+Commands are atomic actions: `swerve.drive()`, `fuelIntake.intake()`, `launcher.shoot()`, `hood.aimAtTarget()`. They run when scheduled and stop on interruption or completion — standard WPILib command-based stuff.
 
-#### Subsystem State Conventions
+Triggers are conditions that fire commands. A `pilot.X` button press, a sensor reading, a `SpectrumState` that another subsystem flipped. Triggers go in `*States` files as `public static final` so they're reachable from anywhere. Every command bound to a trigger should be wrapped in `log(...)` so the lifecycle ends up in the WPILib log — see [Logging](../tools/logging.md).
 
-*   **Default Command**: Set up a default command for each subsystem (e.g., a `stop()` or `hold()` method) to ensure safe and predictable behavior when no other command is active.
-*   **`setupStates()`**: This method (found in `Robot.java` and `RobotStates.java`) is where triggers are bound to commands, defining the robot's reactive behaviors.
-*   **`Coordinator.java`**: The `Coordinator` class plays a central role in managing high-level robot states by calling specific actions on multiple subsystems simultaneously based on a defined `State` enum. This simplifies complex inter-subsystem behaviors.
-    *   **Example from `Coordinator`**: In an `INTAKE_FUEL` state, the `FuelIntakeStates` might be set to `intakeFuel()`, `IntakeExtensionStates` to `fullExtend()`, while `LauncherStates` remain `idlePrep()`.
+The high-level orchestrator is [`Coordinator.java`](../../src/main/java/frc/robot/Coordinator.java). It maps the `State` enum (below) to a coordinated configuration across every mechanism. `applyRobotState(State)` is the entry point — when `INTAKE_FUEL` fires, the Coordinator schedules `FuelIntakeStates.intakeFuel()`, `IndexerBedStates.slowIndex()`, `IntakeExtensionStates.fullExtend()`, and keeps `LauncherStates.idlePrep()` + `HoodStates.home()` for the upper mechanisms.
 
-### Mechanism
+## Pose Estimation
 
-Our `Mechanism` class serves as a robust wrapper for motor controllers (e.g., Phoenix 6 TalonFX, Kraken).
+Swerve odometry and Limelight MegaTag readings feed a WPILib `SwerveDrivePoseEstimator`. The filtering, weighting, and which Limelight to trust live in [`Vision.java`](../../src/main/java/frc/robot/vision/Vision.java) — read [Vision](../tools/vision.md) for the full integration scheme.
 
-*   **Wrapper**: Simplifies interaction with motor controllers.
-*   **Config File**: Allows for easy configuration of the motor's behavior and parameters.
-*   **Followers**: Supports unlimited permanent follower motors for synchronized movement.
-*   **Configurable per Robot**: Configuration can be adjusted for each robot type loaded.
-*   **Constructor Injection**: Configuration (`Config`) is passed into the constructor, allowing dynamic setup after identifying the robot type.
-*   **Default Command Generators**: Provides utilities for generating commands for various operational modes (e.g., `MotionMagicTCFOC`, `VelocityFOC`).
-*   **Trigger Generators**: Generates triggers based on motor position and velocity setpoints (`At`, `Above`, `Below` position and velocity), useful for autonomous and closed-loop control.
+## 2026 Robot States
 
-### Pose Estimation for REBUILT
+These are the entries in `frc.robot.State`, applied by `Coordinator.applyRobotState(...)`. Each one drives a coordinated setup across launcher, hood, fuel intake, indexer bed/tower, and intake extension.
 
-*   **Integration with Swerve and Vision**: Pose estimation combines data from the Swerve drivetrain's odometry and the Vision system's AprilTag detections to provide a highly accurate estimate of the robot's position and orientation on the REBUILT field.
+| State | What it does |
+| --- | --- |
+| `IDLE` | Ready, neutral. Subsystems home. |
+| `INTAKE_FUEL` | Active fuel collection — intake runs, bed slow-indexes, extension fully extends. |
+| `SNAKE_INTAKE` | Variant intake when threading fuel through the indexer chain. |
+| `TRACK_TARGET` | Launcher + hood aim while the robot is free to drive. Extension extends conditionally. |
+| `TRACK_TARGET_WITH_NO_SWERVE` | Same as `TRACK_TARGET` but swerve is held still for auton shot prep. |
+| `LAUNCH_WITH_SQUEEZE` | Aim + launch with the delayed-close "squeeze" sequence. |
+| `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY` | Squeeze launch without the delayed close. |
+| `LAUNCH_WITHOUT_SQUEEZE` | Aim + launch while the intake stays fully extended. |
+| `AUTON_TRACK_TARGET` | Auton-mode aim profiles. |
+| `AUTON_LAUNCH_WITH_SQUEEZE` | Auton launch with squeeze. |
+| `CUSTOM_SPEED_TURRET_LAUNCH` | Tuning-only state: launch at a manually-specified speed. |
+| `UNJAM` | Clear jammed fuel from intake or indexer. |
+| `FORCE_HOME` | Drive every mechanism to its home position. |
+| `TEST_INFINITE_LAUNCH` | Calibration: continuously launch. |
+| `TEST_IDLE` | Calibration: neutral, isolate one subsystem. |
+| `COAST` / `BRAKE` | Motor neutral-mode overrides. |
 
-## 2026 Controls Meeting
+`State.getNext()` advances `TRACK_TARGET` → `LAUNCH_WITH_SQUEEZE` for the scoring sequence map.
 
-### Code Plan
+A few triggers in [`RobotStates.java`](../../src/main/java/frc/robot/RobotStates.java) are derived from field location rather than enum entries: `robotInNeutralZone`, `robotInEnemyZone`, `robotInFeedZone`, `robotInScoreZone`, plus `launcherOnTarget` from the launcher's aim state.
 
-*   **Mechanism Groups**: Code is logically organized into mechanism groups (e.g., Drivetrain covers swerve, vision, auton paths; Manipulator covers FuelIntake, Launcher, Indexer).
-*   **Collaboration**: Different team members can specialize and contribute to different areas concurrently.
-*   **Simulation First**: The majority of code development and testing should occur in simulation using WPILib Simulation and AdvantageScope. This catches logical errors early and prevents damage to physical hardware.
-*   **Robot Time**: Time on the physical robot should be primarily reserved for tuning, calibration, and final verification, not for developing new features.
-*   **Feature Branches**: Use Git feature branches for each new feature or significant addition.
-    *   **Workflow**:
-        1.  Develop and test in simulation on your feature branch.
-        2.  Merge `main` into your feature branch and re-test thoroughly in simulation to catch integration issues.
-        3.  Test on the physical robot only if the changes involve potential hardware interactions or require real-world feedback.
-        4.  Create a pull request for code review by a programming lead before merging into `main`.
+## Vision Hardware
 
-### Controls Areas for REBUILT
+Three Limelight 4s — back, left, right — for AprilTag-based pose estimation. `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` is the seasonal map. PhotonVision on an Orange Pi remains an option for game-piece detection (not currently wired up); QuestNav is on the radar but unintegrated. Details in [Vision](../tools/vision.md).
 
-*   **Swerve Drive**: Implementation and control of the swerve modules for advanced robot movement and field positioning in REBUILT.
-*   **Robot Mechanisms**: `FuelIntake`, `IndexerBed`, `IndexerTower`, `IntakeExtension`, `Launcher`, `TurretRotationalPivot` for interacting with game pieces.
-*   **Vision**: `Limelight`, object recognition (`PhotonVision` on Orange Pi), and `QuestNav` for targeting and localization using AprilTags and game pieces on the REBUILT field.
-*   **Driver Controls**: Implementation of the `Operator` and `Pilot` gamepads for intuitive control of robot movement and mechanisms.
-*   **Simulation**: Integration with WPILib Simulation and `IronMaple` for virtual testing.
-*   **Logging and Data Analysis**: `DogLog` and `AdvantageScope` for capturing, reviewing, and analyzing robot performance data.
-*   **LEDs**: `CANdle` LEDs for status indication and visual feedback.
-*   **Dashboard and Feedback**: `Elastic Dashboard` for real-time telemetry and control.
+## Controls Layout
 
-## 2026 Robot States (Game REBUILT)
+The pilot drives and runs the fuel cycle; the operator handles unjams, manual overrides, and shot-offset trims. The actual bindings live in [`RobotStates.setupStates()`](../../src/main/java/frc/robot/RobotStates.java), [`PilotStates.setStates()`](../../src/main/java/frc/robot/pilot/PilotStates.java), and [`OperatorStates.setStates()`](../../src/main/java/frc/robot/operator/OperatorStates.java) — this section is the summary, those files are the truth.
 
-These are high-level states the robot can be in for the 2026 game, **REBUILT**, reflecting strategic and operational modes.
+### Pilot — fuel cycle (the triggers)
 
-*   **`IDLE`**: Robot is ready but not actively performing a task. Subsystems are in a neutral or home position.
-*   **`INTAKE_FUEL`**: Actively collecting game pieces (fuel). This involves extending the intake, running the intake motor, and potentially indexing.
-*   **`TURRET_TRACK`**: The turret is tracking a target (e.g., AprilTag, goal) but not yet launching. Intake and indexing may be neutral or conditionally extended.
-*   **`TURRET_TRACK_WITH_LAUNCH`**: Turret is tracking, and the fuel intake/indexer/launcher are actively preparing or executing a launch sequence.
-*   **`UNJAM`**: Recovery state for clearing jammed game pieces from the intake or indexer.
-*   **`FORCE_HOME`**: Forces all relevant mechanisms to their fully retracted or home positions.
-*   **`CUSTOM_SPEED_TURRET_LAUNCH`**: Launches fuel with a custom speed, typically used for specific shot distances or scenarios.
-*   **`TEST_INFINITE_LAUNCH`**: A testing state to continuously launch fuel, primarily for calibration and tuning.
-*   **`TEST_IDLE`**: A neutral state for testing individual subsystems or functionalities without interference.
-*   **`COAST`**: Motors are set to coast mode (free-spinning).
-*   **`BRAKE`**: Motors are set to brake mode (actively resist movement when idle).
-*   **Location States**:
-    *   Left or Right Side of the field?
-    *   Nearest Goal Side?
-    *   Opponent's Side of the Field?
-    *   Aligned to April Tag on Goal?
+`RT` and `LT` drive the core intake/launch state machine:
 
-### 2026 Vision (Game REBUILT)
+* `RT` held alone — `INTAKE_FUEL`.
+* `LT` held alone — `LAUNCH_WITH_SQUEEZE`.
+* Both held — `LAUNCH_WITHOUT_SQUEEZE`.
+* Release `RT` while `LT` is still held — `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY`.
+* Release `LT` while `RT` is still held — back to `INTAKE_FUEL`.
+* Release both — `IDLE`.
 
-*   **Hardware**: Typically utilizes 1-2x Limelight 4s (main vision cameras) and potentially 0-1x Limelight 3s (for additional vision tasks).
-*   **`QuestNav`**: Possible integration of `QuestNav` for advanced navigation and localization, potentially used for logging even if not for primary control.
-*   **`PhotonVision`**: Potential use of an Orange Pi with `PhotonVision` for object recognition (e.g., detecting game pieces).
-*   **AprilTag Field Layout**: `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` confirms the use of the official 2026 REBUILT field AprilTag layout for accurate localization.
+Slow mode engages automatically while the robot is in `LAUNCH_WITH_SQUEEZE`.
 
-## 2026 Controls Layout (Game REBUILT)
+### Pilot — everything else
 
-This section details the intended interaction between the operator and pilot to control the robot for the 2026 game, **REBUILT**.
+* Left stick — field-relative translation; right stick — rotation (exponential curves, deadzone in `PilotConfig`).
+* `X` (hold) — `TRACK_TARGET` (launcher + hood aim while driving).
+* `A` (hold) — `UNJAM`.
+* `B` (hold) — slow intake-extension close.
+* `Y` (hold) — run the selected auton's launch routine.
+* `Start` (hold) — `CUSTOM_SPEED_TURRET_LAUNCH` (tuning).
+* `Dpad Up/Down` — hood-angle offset trim; `Dpad Left/Right` — drive-angle offset trim (`ShotCalculator`).
+* `LB` is the function (`fn`) modifier: `LB + Dpad` reorients the robot heading (up/down/left/right), `LB + RT` ejects fuel, `LB + Select` forces every mechanism home.
+* `Select` — clear state to `IDLE`.
+* While disabled: `A`/`B` toggle coast/brake, `LB + Select` resets pose to vision.
 
-### Concepts
+### Operator
 
-*   **Operator Staging**: The operator sets the robot's next action or desired state. This includes decisions about motion that keeps the center of gravity low or within the robot's frame.
-*   **Pilot Action Button**: The pilot's "Action Button" triggers the robot to perform the staged action.
-    *   **Press**: Alignment and game piece manipulation begins (potentially waiting for alignment to finish).
-    *   **Release**: The actual action (scoring/intaking) occurs.
-*   **Robot Autonomy**: The robot leverages its location, angle, and movement to assist in actions (e.g., choosing scoring side, aligning to nearest tag).
+* `A` — aim launcher at target.
+* `B` — unjam indexer tower; `X` — unjam indexer bed.
+* `RB` — fully retract the intake extension.
+* `RT` / `LT` — intake extension manual voltage out (+/−).
+* `Dpad` — same `ShotCalculator` hood/drive offset trims as the pilot.
+* `LB + Y` — reset intake-extension position.
+* Test mode: `A`/`B` full extend/retract, `X` — `TEST_INFINITE_LAUNCH`.
 
-### Fuel/Game Piece Mode (Example)
+### Hub shifts
 
-*   **Operator Staging (`LB` held)**: Operator holds `LB` to enter a specific game piece scoring/manipulation mode.
-    *   **Dpad Left/Right**: Chooses specific scoring locations or orientations.
-    *   **`A, B, X, Y` buttons**: Selects different scoring levels or game piece handling sub-modes.
-    *   Releasing `LB` returns to a home state.
-*   **Pilot Action (`RB` pressed)**: Pilot presses `RB` to move the robot to an "Action Ready" position (e.g., aligns to a scoring goal, positions manipulator).
-*   **Pilot Action Release**: Releasing `RB` initiates the scoring action. The robot will autonomously choose optimal scoring parameters (e.g., front/back) based on its pose/angle/AprilTags.
+REBUILT alternates each alliance's hub between active and inactive during teleop. `RobotStates` restarts the [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java) timer on auto/teleop/disable transitions so shift-aware triggers know where the match clock is.
 
-### Intaking (Example)
+## Where Robot State Lives
 
-*   **Pilot - LeftTrigger**: Initiates Human Player intake.
-*   **Operator or Pilot Button**: Extends intake to ground or specific height.
-*   **Pilot - RightTrigger**: Initiates ground intake of game pieces.
-*   **Combined Trigger Presses**: For specific, contextual intake actions (e.g., `LB + LeftTrigger` for a specialized ground intake).
+Two files, two roles:
 
-### Handoffs
+* [`State.java`](../../src/main/java/frc/robot/State.java) — the enum and the scoring-sequence map. Used by `Coordinator` to apply simultaneous mechanism configurations.
+* [`RobotStates.java`](../../src/main/java/frc/robot/RobotStates.java) — defines higher-level triggers and runs `setupStates()` which binds them. Field-derived triggers (alliance side, nearest goal, AprilTag alignment) live here.
 
-*   Operator buttons are typically responsible for managing the transfer of game pieces between different robot mechanisms (e.g., from intake to indexer, from indexer to launcher).
-
-### Operator Controls (Examples)
-
-*   Mechanisms Home/Retract
-*   Climb Sequence Initiation
-
-### Auto-Score Diagram (Conceptual Flow)
-
-**Pilot pressing auto-score? (Staging)**
-*   Robot aligns to goal.
-*   **Pilot pressing action?**
-    *   **Close to the goal?**
-        *   **Yes**: Manipulators in prep position. "Auto-score Mode" on.
-        *   **No**: Nothing happens.
-    *   **Cancel "Action Prep"**
-
-**Action State**
-*   **Aligned to the goal?**
-    *   **Yes**: "Auto-score Mode" on. Pilot can control scoring with action button.
-    *   **No**: Nothing happens.
-*   **Manipulators in prep position?**
-    *   **Yes**: "Auto-score Mode" on. Pilot can control scoring with action button.
-    *   **No**: Nothing happens.
-
-### RobotStates (`frc.robot.State.java` and `frc.robot.RobotStates.java`)
-
-As identified in the codebase, the robot utilizes high-level states to drive overall behavior.
-
-*   `frc.robot.State.java`: Defines an enum (`State`) used by `Coordinator.java` to manage simultaneous actions across multiple subsystems. These are typically command-level states.
-*   `frc.robot.RobotStates.java`: Defines high-level robot operational modes (also likely an enum) and provides a `setupStates()` method to bind triggers to specific commands or `Coordinator` states. This class represents broader robot objectives like "Intaking" or "Scoring".
+If you're adding a behavior that's a coordinated multi-mechanism move, extend `State` and update `Coordinator`. If you're adding a single trigger that fires one existing command, just add it in `RobotStates`.
