@@ -100,7 +100,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Launcher launcher;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
-    @Getter private static CANdleLeds leds;
+    @Getter private static Leds leds;
     @Getter private static Auton auton;
     @Getter private static Coordinator coordinator;
     @Getter private static BatteryLogger batteryLogger;
@@ -157,7 +157,7 @@ public class Robot extends SpectrumRobot {
             indexerBed = new IndexerBed(config.indexerBed);
             auton = new Auton();
             batteryLogger = new BatteryLogger();
-            leds = new CANdleLeds();
+            leds = new Leds();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim();

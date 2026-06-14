@@ -19,13 +19,13 @@ import frc.spectrumLib.Telemetry;
 import lombok.Getter;
 
 /** Subsystem that controls an addressable LED strip using a CANdle. */
-public class CANdleLeds extends SubsystemBase implements SpectrumSubsystem {
+public class Leds extends SubsystemBase implements SpectrumSubsystem {
     @Getter private final CANdle CANdle;
     @Getter private final CANdleConfiguration CANdleConfig;
 
     @Getter private final int numLeds = 20;
 
-    public CANdleLeds() {
+    public Leds() {
         CANdle = new CANdle(1, new CANBus(Rio.CANIVORE));
         CANdleConfig =
                 new CANdleConfiguration()

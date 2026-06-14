@@ -14,7 +14,7 @@ import frc.spectrumLib.util.Util;
 import edu.wpi.first.wpilibj2.command.Commands;
 
 public class LedStates {
-    private static CANdleLeds leds = Robot.getLeds();
+    private static Leds leds = Robot.getLeds();
     private static CANdle candle = leds.getCANdle();
 
     public static final Trigger auto = Util.autoMode;
