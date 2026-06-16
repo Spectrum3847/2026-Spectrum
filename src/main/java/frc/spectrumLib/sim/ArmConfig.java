@@ -100,6 +100,11 @@ public class ArmConfig {
         return this;
     }
 
+    public ArmConfig setSimulatedGravity(boolean simulateGravity) {
+        this.simulateGravity = simulateGravity;
+        return this;
+    }
+
     /**
      * Attaches this arm to a {@link LinearSim} mount so its pivot tracks the linear stage's
      * position.

@@ -56,7 +56,7 @@ public class Pilot extends Gamepad {
     public Pilot(PilotConfig config) {
         super(config);
         this.config = config;
-        
+
         config.setLeftStickScalar(
                 Robot.getConfig().swerve.getLinearSpeedAt12Volts().in(MetersPerSecond));
         config.setRightStickScalar(

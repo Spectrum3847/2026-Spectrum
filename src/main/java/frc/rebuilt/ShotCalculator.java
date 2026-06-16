@@ -98,66 +98,115 @@ public class ShotCalculator {
 
     /**
      * Global exit-speed scale factor. Adjust post-characterization to correct for ball compression,
-     * wear, or temperature without re-fitting the polynomial. 1.0 = no scaling.
+     * wear, or temperature without re-fitting the polynomial. 1.0 = no scaling. Applied to both the
+     * hub and feed models.
      */
     private static final double MPS_FACTOR = 0.8;
-
-    /**
-     * Fitted distance range (metres). Inputs to the polynomial are clamped here; shots outside this
-     * range are flagged {@code isValid = false}.
-     */
-    private static final double DIST_MIN = 1.5;
-
-    private static final double DIST_MAX = 8.0;
-
-    /**
-     * Fitted radial-velocity range (m/s). Inputs are clamped; the polynomial is only reliable
-     * within the training data envelope.
-     */
-    private static final double RV_MIN = -3.0;
-
-    private static final double RV_MAX = 3.0;
 
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
     private static final double RPM_PER_MPS = 260.0;
 
-    // ── Input normalisation (applied before polynomial evaluation) ────────────
-    // Inputs are mapped to zero-mean unit-variance before the polynomial is
-    // evaluated. Coefficients are in normalised space and must NOT be used
-    // with raw (metres / m/s) inputs directly.
-    private static final double D_MEAN = 4.7946224256;
-    private static final double D_STD = 1.9514199579;
-    private static final double V_MEAN = -0.0434782609;
-    private static final double V_STD = 1.9813242725;
+    /**
+     * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are
+     * mapped to zero-mean unit-variance before evaluation, so the coefficients live in normalised
+     * space and must not be applied to raw (metres / m/s) inputs directly.
+     *
+     * @param distMin fitted distance lower bound (metres); inputs clamped, shots outside flagged
+     *     invalid
+     * @param distMax fitted distance upper bound (metres)
+     * @param rvMin fitted radial-velocity lower bound (m/s)
+     * @param rvMax fitted radial-velocity upper bound (m/s)
+     * @param dMean distance normalisation mean
+     * @param dStd distance normalisation standard deviation
+     * @param vMean radial-velocity normalisation mean
+     * @param vStd radial-velocity normalisation standard deviation
+     * @param speedCoeffs exit-speed coefficients in the monomial basis 1, d, v, d², d·v, v², d³,
+     *     d²·v, d·v², v³
+     * @param angleCoeffs launch-angle coefficients in the same basis
+     */
+    private record PolyModel(
+            double distMin,
+            double distMax,
+            double rvMin,
+            double rvMax,
+            double dMean,
+            double dStd,
+            double vMean,
+            double vStd,
+            double[] speedCoeffs,
+            double[] angleCoeffs) {}
 
-    // ── Polynomial coefficients ───────────────────────────────────────────────
-    // Both arrays share the same monomial basis (in normalised input space).
-    // f(d_norm, v_norm) = Σ COEFFS[i] · d_norm^a[i] · v_norm^b[i]
-    private static final double[] SPEED_COEFFS = {
-        /* 1    */ 1.1143628795e+1,
-        /* d    */ 1.0138658152e+0,
-        /* v    */ -3.2159777567e-1,
-        /* d²   */ -5.1612304349e-2,
-        /* d·v  */ 3.6484374359e-1,
-        /* v²   */ -1.7402563290e-1,
-        /* d³   */ 7.9863642916e-2,
-        /* d²·v */ -1.2476148148e-1,
-        /* d·v² */ 3.8502387398e-1,
-        /* v³   */ -3.2039252056e-1
-    };
+    /** Hub-shot model — used when the robot is in a scoring zone. */
+    private static final PolyModel HUB_MODEL =
+            new PolyModel(
+                    1.5, // distMin (m)
+                    8.0, // distMax (m)
+                    -3.0, // rvMin (m/s)
+                    3.0, // rvMax (m/s)
+                    4.7946224256, // dMean
+                    1.9514199579, // dStd
+                    -0.0434782609, // vMean
+                    1.9813242725, // vStd
+                    new double[] {
+                        /* 1    */ 1.1143628795e+1,
+                        /* d    */ 1.0138658152e+0,
+                        /* v    */ -3.2159777567e-1,
+                        /* d²   */ -5.1612304349e-2,
+                        /* d·v  */ 3.6484374359e-1,
+                        /* v²   */ -1.7402563290e-1,
+                        /* d³   */ 7.9863642916e-2,
+                        /* d²·v */ -1.2476148148e-1,
+                        /* d·v² */ 3.8502387398e-1,
+                        /* v³   */ -3.2039252056e-1
+                    },
+                    new double[] {
+                        /* 1    */ 6.6464926591e+1,
+                        /* d    */ -7.7256852841e+0,
+                        /* v    */ 1.1734641473e+1,
+                        /* d²   */ 8.1692458382e-3,
+                        /* d·v  */ 5.2897492237e-1,
+                        /* v²   */ -2.6845198119e-1,
+                        /* d³   */ 1.7588060294e-1,
+                        /* d²·v */ -2.0564699991e-3,
+                        /* d·v² */ 1.2509312471e+0,
+                        /* v³   */ -1.4532157984e+0
+                    });
 
-    private static final double[] ANGLE_COEFFS = {
-        /* 1    */ 6.6464926591e+1,
-        /* d    */ -7.7256852841e+0,
-        /* v    */ 1.1734641473e+1,
-        /* d²   */ 8.1692458382e-3,
-        /* d·v  */ 5.2897492237e-1,
-        /* v²   */ -2.6845198119e-1,
-        /* d³   */ 1.7588060294e-1,
-        /* d²·v */ -2.0564699991e-3,
-        /* d·v² */ 1.2509312471e+0,
-        /* v³   */ -1.4532157984e+0
-    };
+    /** Feed-shot model — used when the robot is in a feed zone. */
+    private static final PolyModel FEED_MODEL =
+            new PolyModel(
+                    5.0, // distMin (m)
+                    10.0, // distMax (m)
+                    -3.0, // rvMin (m/s)
+                    3.0, // rvMax (m/s)
+                    7.5, // dMean
+                    1.5430334996, // dStd
+                    0.0, // vMean
+                    2.0, // vStd
+                    new double[] {
+                        /* 1    */ 1.2074547373e+1,
+                        /* d    */ 1.1124598419e+0,
+                        /* v    */ -9.2720217607e-1,
+                        /* d²   */ -5.8674357317e-2,
+                        /* d·v  */ -7.2912571960e-2,
+                        /* v²   */ -7.0818070818e-2,
+                        /* d³   */ 5.6161425197e-2,
+                        /* d²·v */ -6.0497571810e-3,
+                        /* d·v² */ 2.1986814335e-1,
+                        /* v³   */ -1.5954415954e-1
+                    },
+                    new double[] {
+                        /* 1    */ 5.7369141664e+1,
+                        /* d    */ -4.3735130912e+0,
+                        /* v    */ 1.0080892292e+1,
+                        /* d²   */ 7.8858336234e-2,
+                        /* d·v  */ -1.5120778737e+0,
+                        /* v²   */ 3.9384615385e-1,
+                        /* d³   */ 2.6249905834e-1,
+                        /* d²·v */ 2.9750087017e-1,
+                        /* d·v² */ 1.0186869775e+0,
+                        /* v³   */ -1.2099829060e+0
+                    });
 
     // =========================================================================
     // State — Velocity Derivative Filters
@@ -213,6 +262,8 @@ public class ShotCalculator {
         boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
+        // Feed and hub shots use separately-fitted polynomial surfaces.
+        PolyModel model = feed ? FEED_MODEL : HUB_MODEL;
 
         // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
@@ -256,7 +307,8 @@ public class ShotCalculator {
 
         // ── Polynomial + 1690 virtual-target solver ───────────────────────────
         // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
-        double[] poly = solveVirtualTarget(distanceNoLookahead, radialVelocity, tangentialVelocity);
+        double[] poly =
+                solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
         double exitSpeedMs = poly[0];
         double rawHoodAngle = 90 - poly[1]; // degrees, before HOOD_ANGLE_OFFSET
         double yawOffsetDeg = poly[2];
@@ -303,7 +355,8 @@ public class ShotCalculator {
         double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
 
         // ── Validity ──────────────────────────────────────────────────────────
-        boolean isValid = distanceNoLookahead >= DIST_MIN && distanceNoLookahead <= DIST_MAX;
+        boolean isValid =
+                distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
 
         latestParameters =
                 new ShootingParameters(
@@ -329,6 +382,7 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/RadialVelocityMs", radialVelocity, "m/s");
         Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
         Telemetry.log("ShotCalc/TimeOfFlight", tofFinal, "seconds");
+        Telemetry.log("ShotCalc/FeedShot", feed);
         Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Target", target);
@@ -356,6 +410,7 @@ public class ShotCalculator {
      * during that flight, and repeats until TOF converges. Terminates in ≤ 5 iterations (typically
      * 2–3).
      *
+     * @param model the polynomial model (hub or feed) to evaluate against
      * @param distance horizontal distance to goal centre (metres)
      * @param radialVelocity launcher velocity toward/away from goal (m/s); positive = closing on
      *     goal
@@ -370,7 +425,7 @@ public class ShotCalculator {
      *     </ul>
      */
     private static double[] solveVirtualTarget(
-            double distance, double radialVelocity, double tangentialVelocity) {
+            PolyModel model, double distance, double radialVelocity, double tangentialVelocity) {
         double vdx = distance; // virtual aim point — radial component (m)
         double vdz = 0.0; // virtual aim point — lateral component (m)
         double tof = 0.0;
@@ -381,7 +436,7 @@ public class ShotCalculator {
 
             // Evaluate polynomial at virtual point with rv = 0 (robot motion is
             // already encoded in the shifted aim point)
-            double[] raw = evalPolyRaw(vDist, 0.0);
+            double[] raw = evalPolyRaw(model, vDist, 0.0);
             double speed = raw[0] * MPS_FACTOR;
             double cosA = Math.cos(raw[1] * Math.PI / 180.0);
             double prevTof = tof;
@@ -400,7 +455,7 @@ public class ShotCalculator {
                 Math.atan2(-tangentialVelocity * tof, distance - radialVelocity * tof)
                         * (180.0 / Math.PI);
 
-        double[] result = evalPolyRaw(virtualDist, 0.0);
+        double[] result = evalPolyRaw(model, virtualDist, 0.0);
         return new double[] {
             result[0] * MPS_FACTOR, // exitSpeed_ms
             result[1], // launchAngle_deg
@@ -411,17 +466,21 @@ public class ShotCalculator {
     }
 
     /**
-     * Evaluates the polynomial surface at (distance, radialVel). Inputs are clamped to the fitted
-     * data range. Returns raw polynomial output — callers are responsible for applying {@link
-     * #MPS_FACTOR} to the exit speed and {@code HOOD_ANGLE_OFFSET} to the launch angle.
+     * Evaluates the given polynomial surface at (distance, radialVel). Inputs are clamped to the
+     * model's fitted data range. Returns raw polynomial output — callers are responsible for
+     * applying {@link #MPS_FACTOR} to the exit speed and {@code HOOD_ANGLE_OFFSET} to the launch
+     * angle.
      *
+     * @param model the polynomial model (hub or feed) to evaluate
+     * @param distance horizontal distance to the aim point (metres)
+     * @param radialVel radial velocity (m/s)
      * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg }
      */
-    private static double[] evalPolyRaw(double distance, double radialVel) {
-        double d_raw = Math.max(DIST_MIN, Math.min(DIST_MAX, distance));
-        double v_raw = Math.max(RV_MIN, Math.min(RV_MAX, radialVel));
-        double d = (d_raw - D_MEAN) / D_STD;
-        double v = (v_raw - V_MEAN) / V_STD;
+    private static double[] evalPolyRaw(PolyModel model, double distance, double radialVel) {
+        double d_raw = Math.max(model.distMin(), Math.min(model.distMax(), distance));
+        double v_raw = Math.max(model.rvMin(), Math.min(model.rvMax(), radialVel));
+        double d = (d_raw - model.dMean()) / model.dStd();
+        double v = (v_raw - model.vMean()) / model.vStd();
 
         double d2 = d * d;
         double v2 = v * v;
@@ -441,10 +500,12 @@ public class ShotCalculator {
             v3 // v³
         };
 
+        double[] speedCoeffs = model.speedCoeffs();
+        double[] angleCoeffs = model.angleCoeffs();
         double exitSpeed = 0.0, launchAngle = 0.0;
         for (int i = 0; i < terms.length; i++) {
-            exitSpeed += SPEED_COEFFS[i] * terms[i];
-            launchAngle += ANGLE_COEFFS[i] * terms[i];
+            exitSpeed += speedCoeffs[i] * terms[i];
+            launchAngle += angleCoeffs[i] * terms[i];
         }
         return new double[] {exitSpeed, launchAngle};
     }

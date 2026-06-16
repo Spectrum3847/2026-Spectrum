@@ -169,13 +169,14 @@ public class Hood extends Mechanism {
         public HoodSim(Mechanism2d mech, TalonFXSimState armMotorSim) {
             super(
                     new ArmConfig(
-                            config.hoodX,
-                            config.hoodY,
-                            config.simRatio,
-                            config.length,
-                            90,
-                            180 - 9,
-                            180 - 9),
+                                    config.hoodX,
+                                    config.hoodY,
+                                    config.simRatio,
+                                    config.length,
+                                    90,
+                                    180 - 9,
+                                    180 - 9)
+                            .setSimulatedGravity(false),
                     mech,
                     armMotorSim,
                     config.getName());

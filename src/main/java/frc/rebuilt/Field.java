@@ -159,7 +159,7 @@ public class Field {
         public static final double lowRungZ = Units.inchesToMeters(27.0);
         public static final double midRungZ = Units.inchesToMeters(45.0);
         public static final double highRungZ = Units.inchesToMeters(63.0);
-        
+
         public static final double tag31Y = fieldWidth / 2.0;
 
         // Fixed X location
