@@ -3,8 +3,8 @@ package frc.robot.subsystems.intakeExtension;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
@@ -101,9 +101,8 @@ public class IntakeExtension extends Mechanism {
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
             setFollowerConfigs(
-                new FollowerConfig(
-                    "IntakeExtension Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed)
-                );
+                    new FollowerConfig(
+                            "IntakeExtension Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {

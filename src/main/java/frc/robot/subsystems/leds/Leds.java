@@ -3,6 +3,8 @@ package frc.robot.subsystems.leds;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.signals.LossOfSignalBehaviorValue;
 import com.ctre.phoenix6.signals.StripTypeValue;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.subsystems.SuperStructure;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.telemetry.Telemetry;
@@ -45,12 +47,36 @@ public class Leds extends SpectrumLEDs {
     // Constructor
     // -------------------------------------------------------------------------
 
-    public Leds() {
+    private SuperStructure robotSuperStructure;
+
+    public Leds(SuperStructure superStructure) {
         super(ledsConfig);
 
+        robotSuperStructure = superStructure;
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
 
         Telemetry.print(getName() + " Subsystem Initialized");
+    }
+
+    // TODO: add more patterns and include ones for alliance shifts and bps
+
+    void bindTriggers() {
+        intakingLed(intakingFuel, 5);
+    }
+
+    private Trigger intakingFuel =
+            new Trigger(
+                    () ->
+                            robotSuperStructure.getCurrentSuperState()
+                                    == SuperStructure.CurrentSuperState.INTAKE_FUEL);
+
+    void intakingLed(Trigger trigger, int priority) {
+        ledCommand("Leds.intaking", rainbow(0.5), priority, trigger);
+    }
+
+    private Trigger ledCommand(String name, CANdlePattern pattern, int priority, Trigger trigger) {
+        return trigger.and(checkPriority(priority))
+                .whileTrue(setPattern(pattern, priority).withName(name));
     }
 
     @Override

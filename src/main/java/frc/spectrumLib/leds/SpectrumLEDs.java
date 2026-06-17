@@ -19,6 +19,7 @@ import com.ctre.phoenix6.signals.LarsonBounceValue;
 import com.ctre.phoenix6.signals.LossOfSignalBehaviorValue;
 import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.signals.StripTypeValue;
+import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -55,7 +56,7 @@ import lombok.Setter;
  * <p>Patterns are applied via {@link #setPattern(CANdlePattern, int)}, which returns a {@link
  * Command} that runs continuously and respects the priority system ({@link #checkPriority(int)}).
  */
-public class SpectrumLEDs implements Subsystem {
+public class SpectrumLEDs extends AddressableLED implements Subsystem {
 
     // -------------------------------------------------------------------------
     // CANdlePattern functional interface
@@ -259,6 +260,7 @@ public class SpectrumLEDs implements Subsystem {
      * @param config the configuration describing the device, segment range, and strip type
      */
     public SpectrumLEDs(Config config) {
+        super(1);
         this.config = config;
 
         if (config.getSharedCandle() != null) {
