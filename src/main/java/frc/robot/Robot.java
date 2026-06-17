@@ -170,7 +170,7 @@ public class Robot extends SpectrumRobot {
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
-            leds = new Leds();
+            // leds = new Leds();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim(superStructure);
@@ -250,12 +250,8 @@ public class Robot extends SpectrumRobot {
         pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        pilot.selectButton
-                .and(pilot.LB)
-                .onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
-        pilot.selectButton
-                .and(pilot.LB)
-                .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
+        pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
         operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());

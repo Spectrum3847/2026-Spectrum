@@ -32,13 +32,13 @@ public class Pilot extends Gamepad {
     public final Trigger dPadRight = rightDpad;
 
     public static class PilotConfig extends Config {
-        private double deadzone = 0.05;
+        private double deadzone = 0.10;
 
         public PilotConfig() {
             super("Pilot", 0);
 
             setLeftStickDeadzone(deadzone);
-            setLeftStickExp(3);
+            setLeftStickExp(3.0);
 
             setRightStickDeadzone(deadzone);
             setRightStickExp(3.0);
@@ -64,7 +64,6 @@ public class Pilot extends Gamepad {
         leftStickCurve.setScalar(config.getLeftStickScalar());
         rightStickCurve.setScalar(config.getRightStickScalar());
 
-        register();
         Telemetry.print("Pilot Subsystem Initialized: ");
     }
 
