@@ -37,7 +37,8 @@ import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.subsystems.hood.Hood;
 import frc.robot.subsystems.hood.Hood.HoodConfig;
-import frc.robot.subsystems.indexerBed.IndexerBed;
+import frc.robot.subsystems.spindexer.Spindexer;
+import frc.robot.subsystems.spindexer.Spindexer.SpindexerConfig;
 import frc.robot.subsystems.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.subsystems.indexerTower.IndexerTower;
 import frc.robot.subsystems.indexerTower.IndexerTower.IndexerTowerConfig;
@@ -85,7 +86,7 @@ public class Robot extends SpectrumRobot {
         public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public final IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
         public final IndexerTowerConfig indexerTower = new IndexerTowerConfig();
-        public final IndexerBedConfig indexerBed = new IndexerBedConfig();
+        public final SpindexerConfig spindexer = new SpindexerConfig();
         public final LauncherConfig launcher = new LauncherConfig();
         public final HoodConfig hood = new HoodConfig();
         public final VisionConfig vision = new VisionConfig();
@@ -95,7 +96,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static FuelIntake fuelIntake;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
-    @Getter private static IndexerBed indexerBed;
+    @Getter private static Spindexer spindexer;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static Launcher launcher;
@@ -154,7 +155,7 @@ public class Robot extends SpectrumRobot {
             indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);
 
-            indexerBed = new IndexerBed(config.indexerBed);
+            spindexer = new Spindexer(config.spindexer);
             Timer.delay(canInitDelay);
 
             superStructure =
@@ -163,7 +164,7 @@ public class Robot extends SpectrumRobot {
                             fuelIntake,
                             intakeExtension,
                             indexerTower,
-                            indexerBed,
+                            spindexer,
                             launcher,
                             hood);
 
