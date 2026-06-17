@@ -47,6 +47,11 @@ public class Trio<A, B, C> {
         return m_second;
     }
 
+    /**
+     * Returns the third object.
+     *
+     * @return The third object.
+     */
     public C getThird() {
         return m_third;
     }
