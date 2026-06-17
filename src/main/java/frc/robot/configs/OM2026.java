@@ -12,5 +12,11 @@ public class OM2026 extends Config {
         
         pilot.setAttached(true);
         operator.setAttached(true);
+        fuelIntake.setAttached(true);
+        intakeExtension.setAttached(true);
+        hood.setAttached(true);
+        launcher.setAttached(true);
+        indexerTower.setAttached(true);
+        spindexer.setAttached(true);
     }
 }
