@@ -17,11 +17,10 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
-import frc.robot.RobotStates;
-import frc.robot.State;
-import frc.robot.swerve.SwerveStates;
-import frc.spectrumLib.SpectrumState;
-import frc.spectrumLib.Telemetry;
+import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.WantedSuperState;
+import frc.spectrumLib.framework.SpectrumState;
+import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
@@ -78,7 +77,10 @@ public class Auton {
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
-    public Auton() {
+    private SuperStructure robotSuperStructure;
+
+    public Auton(SuperStructure robotSuperStructure) {
+        this.robotSuperStructure = robotSuperStructure;
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized");
     }
@@ -103,14 +105,13 @@ public class Auton {
     }
 
     public Command launch() {
-        return Commands.deadline(
-                Commands.sequence(
+        return Commands.sequence(
                         autonLaunching.setTrue(),
-                        RobotStates.applyState(State.LAUNCH_WITH_SQUEEZE),
+                        robotSuperStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
                         Commands.waitSeconds(2.5),
-                        RobotStates.applyState(State.IDLE),
-                        autonLaunching.setFalse()),
-                SwerveStates.autonAimAtTarget());
+                        robotSuperStructure.setStateCommand(WantedSuperState.IDLE),
+                        autonLaunching.setFalse())
+                .withName("Auton.launch");
     }
 
     public Command secondMan_TBTB(boolean mirrored) {
