@@ -104,13 +104,14 @@ public class ShotCalculator {
     private static final double MPS_FACTOR = 0.8;
 
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
-    private static final double RPM_PER_MPS = 260.0;
+    private static final double RPM_PER_MPS = 290.0;
 
     /**
      * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are
      * mapped to zero-mean unit-variance before evaluation, so the coefficients live in normalised
      * space and must not be applied to raw (metres / m/s) inputs directly.
      *
+     * @param name descriptive name for telemetry
      * @param distMin fitted distance lower bound (metres); inputs clamped, shots outside flagged
      *     invalid
      * @param distMax fitted distance upper bound (metres)
@@ -125,6 +126,7 @@ public class ShotCalculator {
      * @param angleCoeffs launch-angle coefficients in the same basis
      */
     private record PolyModel(
+            String name,
             double distMin,
             double distMax,
             double rvMin,
@@ -137,8 +139,9 @@ public class ShotCalculator {
             double[] angleCoeffs) {}
 
     /** Hub-shot model — used when the robot is in a scoring zone. */
-    private static final PolyModel HUB_MODEL =
+    private static final PolyModel NO_CEILING_HUB_MODEL =
             new PolyModel(
+                    "No Ceiling Hub Model",
                     1.5, // distMin (m)
                     8.0, // distMax (m)
                     -3.0, // rvMin (m/s)
@@ -172,9 +175,47 @@ public class ShotCalculator {
                         /* v³   */ -1.4532157984e+0
                     });
 
+    /** 3 meter ceiling hub model - used when the robot is testing at home */
+    private static final PolyModel CEILING_3M_HUB_MODEL =
+            new PolyModel(
+                    "3 Meter Ceiling Hub Model",
+                    1.5, // distMin (m)
+                    8.0, // distMax (m)
+                    -3.0, // rvMin (m/s)
+                    3.0, // rvMax (m/s)
+                    4.7330253114, // dMean
+                    1.8890844725, // dStd
+                    0.0229007634, // vMean
+                    1.9319161427, // vStd
+                    new double[] {
+                        /* 1    */ 9.1291597222e+0,
+                        /* d    */ 1.4704411927e+0,
+                        /* v    */ -1.1245274618e+0,
+                        /* d²   */ 5.9711528113e-2,
+                        /* d·v  */ -1.0395358193e-1,
+                        /* v²   */ 6.1638746813e-2,
+                        /* d³   */ -3.2358373131e-2,
+                        /* d²·v */ 1.7465238201e-2,
+                        /* d·v² */ 3.5205649680e-2,
+                        /* v³   */ -1.6138070441e-2
+                    },
+                    new double[] {
+                        /* 1    */ 5.4780057238e+1,
+                        /* d    */ -8.0553943910e+0,
+                        /* v    */ 9.8969071974e+0,
+                        /* d²   */ 9.3479980881e-1,
+                        /* d·v  */ -2.3620060557e+0,
+                        /* v²   */ 6.9825040437e-1,
+                        /* d³   */ -4.9506580821e-1,
+                        /* d²·v */ -6.4209468217e-1,
+                        /* d·v² */ 9.0324521099e-1,
+                        /* v³   */ -5.4437632941e-1
+                    });
+
     /** Feed-shot model — used when the robot is in a feed zone. */
     private static final PolyModel FEED_MODEL =
             new PolyModel(
+                    "Feed Model",
                     5.0, // distMin (m)
                     10.0, // distMax (m)
                     -3.0, // rvMin (m/s)
@@ -207,6 +248,8 @@ public class ShotCalculator {
                         /* d·v² */ 1.0186869775e+0,
                         /* v³   */ -1.2099829060e+0
                     });
+
+    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
 
     // =========================================================================
     // State — Velocity Derivative Filters
@@ -263,7 +306,7 @@ public class ShotCalculator {
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
         // Feed and hub shots use separately-fitted polynomial surfaces.
-        PolyModel model = feed ? FEED_MODEL : HUB_MODEL;
+        PolyModel model = feed ? FEED_MODEL : WANTED_HUB_MODEL;
 
         // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
@@ -383,6 +426,7 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
         Telemetry.log("ShotCalc/TimeOfFlight", tofFinal, "seconds");
         Telemetry.log("ShotCalc/FeedShot", feed);
+        Telemetry.log("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
         Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Target", target);

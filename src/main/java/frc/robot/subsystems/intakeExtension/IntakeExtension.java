@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -207,11 +208,11 @@ public class IntakeExtension extends Mechanism {
     }
 
     public Command resetCurrentPositionToMaxCommand() {
-        return run(this::resetCurrentPositionToMax);
+        return new InstantCommand(this::resetCurrentPositionToMax);
     }
 
     public Command resetToInitialPos() {
-        return run(this::setInitialPosition);
+        return new InstantCommand(this::setInitialPosition);
     }
 
     @Override

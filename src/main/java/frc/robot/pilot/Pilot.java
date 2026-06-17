@@ -32,7 +32,7 @@ public class Pilot extends Gamepad {
     public final Trigger dPadRight = rightDpad;
 
     public static class PilotConfig extends Config {
-        private double deadzone = 0.10;
+        private double deadzone = 0.15;
 
         public PilotConfig() {
             super("Pilot", 0);

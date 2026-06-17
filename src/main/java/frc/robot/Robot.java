@@ -253,6 +253,10 @@ public class Robot extends SpectrumRobot {
         pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        operator.LB
+                .and(operator.YButton)
+                .onTrue(intakeExtension.resetCurrentPositionToMaxCommand());
+
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
         operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
         operator.dPadRight.onTrue(ShotCalculator.decreaseDriveAngleOffset());
