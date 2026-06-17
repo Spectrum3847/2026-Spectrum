@@ -102,7 +102,7 @@ public class IntakeExtension extends Mechanism {
             configCounterClockwise_Positive();
             setFollowerConfigs(
                 new FollowerConfig(
-                    "IntakeExtension Right", 8, Rio.CANIVORE, MotorAlignmentValue.Opposed)
+                    "IntakeExtension Right", 6, Rio.CANIVORE, MotorAlignmentValue.Opposed)
                 );
         }
 
