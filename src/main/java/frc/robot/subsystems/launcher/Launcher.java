@@ -112,6 +112,7 @@ public class Launcher extends Mechanism {
         };
     }
 
+    // TODO: add actual values when robot is built
     @SuppressWarnings("unused")
     private void applyStates() {
         double wantedRPM = 0;

@@ -39,7 +39,6 @@ import frc.robot.subsystems.hood.Hood;
 import frc.robot.subsystems.hood.Hood.HoodConfig;
 import frc.robot.subsystems.spindexer.Spindexer;
 import frc.robot.subsystems.spindexer.Spindexer.SpindexerConfig;
-import frc.robot.subsystems.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.subsystems.indexerTower.IndexerTower;
 import frc.robot.subsystems.indexerTower.IndexerTower.IndexerTowerConfig;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
