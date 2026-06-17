@@ -12,10 +12,10 @@ public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
         /* Indexer config values */
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 140;
-        @Getter private final double lowerCurrentLimit = 60;
-        @Getter private final double timeUntilLowerCurrent = 1;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 140;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentTime = 0.5;
         @Getter private final double velocityKp = 50;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 40;
@@ -30,12 +30,12 @@ public class IndexerTower extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configLowerSupplyCurrentLimit(lowerCurrentLimit);
-            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(true);
             configClockwise_Positive();
             setFollowerConfigs(

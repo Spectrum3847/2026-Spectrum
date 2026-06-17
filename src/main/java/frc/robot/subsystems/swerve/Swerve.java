@@ -1,5 +1,3 @@
-// Based on
-// https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
 package frc.robot.subsystems.swerve;
 
 import static edu.wpi.first.units.Units.Inches;

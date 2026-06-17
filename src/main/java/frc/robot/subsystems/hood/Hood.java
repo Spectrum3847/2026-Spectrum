@@ -24,8 +24,10 @@ public class Hood extends Mechanism {
         @Getter @Setter private double minRotations = 0.024;
 
         /* Hood config values */
-        @Getter private final double currentLimit = 40;
-        @Getter private final double torqueCurrentLimit = 80;
+        @Getter private final double supplyCurrentLimit = 40;
+        @Getter private final double statorCurrentLimit = 60;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentTime = 1;
         @Getter private final double positionKp = 3000;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 220;
@@ -53,10 +55,12 @@ public class Hood extends Mechanism {
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configGearRatio(gearRatio);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);

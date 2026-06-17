@@ -255,7 +255,10 @@ public class Robot extends SpectrumRobot {
 
         operator.LB
                 .and(operator.YButton)
-                .onTrue(intakeExtension.resetCurrentPositionToMaxCommand());
+                .onTrue(
+                        Commands.parallel(
+                                intakeExtension.resetCurrentPositionToMaxCommand(),
+                                operator.rumbleCommand(1, 0.5)));
 
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
         operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
