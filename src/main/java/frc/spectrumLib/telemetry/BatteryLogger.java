@@ -22,7 +22,7 @@ public class BatteryLogger {
     /** Duration of one robot loop in seconds, used to convert power (W) to energy (J). */
     private static final double LOOP_PERIOD_SECS = 0.02;
 
-    /** Rolling-window sample counts. */
+    // Rolling-window sample counts.
     private static final int WINDOW_20S_SAMPLES = (int) (20.0 / LOOP_PERIOD_SECS);
     private static final int WINDOW_45S_SAMPLES = (int) (45.0 / LOOP_PERIOD_SECS);
     private static final int WINDOW_60S_SAMPLES = (int) (60.0 / LOOP_PERIOD_SECS);

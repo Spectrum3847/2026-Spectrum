@@ -15,6 +15,7 @@ import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.spectrumLib.telemetry.Telemetry;
 
+@SuppressWarnings("unused")
 public class ShotCalculator {
 
     // =========================================================================

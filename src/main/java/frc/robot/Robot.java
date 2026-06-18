@@ -244,6 +244,9 @@ public class Robot extends SpectrumRobot {
         // Both released → idle
         pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        pilot.LT.and(pilot.LB).onTrue(superStructure.setStateCommand(WantedSuperState.EJECT));
+        pilot.LT.and(pilot.LB).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
         pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
@@ -253,12 +256,27 @@ public class Robot extends SpectrumRobot {
         pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        pilot.dPadUp.and(pilot.LB).onTrue(swerve.reorientForward());
+        pilot.dPadLeft.and(pilot.LB).onTrue(swerve.reorientLeft());
+        pilot.dPadDown.and(pilot.LB).onTrue(swerve.reorientBack());
+        pilot.dPadRight.and(pilot.LB).onTrue(swerve.reorientRight());
+
+        Util.disabled.and(pilot.AButton).onTrue(superStructure.coastMechanisms());
+        Util.disabled.and(pilot.BButton).onTrue(superStructure.brakeMechanisms());
+
+        Util.disabled.and(operator.AButton).onTrue(superStructure.coastMechanisms());
+        Util.disabled.and(operator.BButton).onTrue(superStructure.brakeMechanisms());
+
         operator.LB
                 .and(operator.YButton)
                 .onTrue(
                         Commands.parallel(
-                                intakeExtension.resetCurrentPositionToMaxCommand(),
-                                operator.rumbleCommand(1, 0.5)));
+                                        intakeExtension.resetCurrentPositionToMaxCommand(),
+                                        operator.rumbleCommand(1, 0.5))
+                                .ignoringDisable(true));
+
+        operator.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
+        operator.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
         operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
