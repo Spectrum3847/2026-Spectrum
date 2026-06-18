@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -39,6 +40,7 @@ public class SuperStructure extends SubsystemBase {
         AUTON_TRACK_TARGET,
         AUTON_INTAKE_FUEL,
         UNJAM,
+        EJECT,
         FORCE_HOME,
     }
 
@@ -53,6 +55,7 @@ public class SuperStructure extends SubsystemBase {
         AUTON_TRACK_TARGET,
         AUTON_INTAKE_FUEL,
         UNJAM,
+        EJECT,
         FORCE_HOME,
     }
 
@@ -117,6 +120,7 @@ public class SuperStructure extends SubsystemBase {
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
             case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
+            case EJECT -> CurrentSuperState.EJECT;
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
         };
     }
@@ -152,6 +156,9 @@ public class SuperStructure extends SubsystemBase {
                 break;
             case UNJAM:
                 unjam();
+                break;
+            case EJECT:
+                eject();
                 break;
             case FORCE_HOME:
                 forceHome();
@@ -272,6 +279,17 @@ public class SuperStructure extends SubsystemBase {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
+    private void eject() {
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        fuelIntake.setWantedState(FuelIntake.WantedState.OUTTAKE);
+        indexerTower.setWantedState(IndexerTower.WantedState.UNJAM);
+        indexerBed.setWantedState(IndexerBed.WantedState.UNJAM);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.OFF);
+        hood.setWantedState(Hood.WantedState.HOME);
+    }
+
     private void forceHome() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -284,6 +302,22 @@ public class SuperStructure extends SubsystemBase {
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
+
+    public Command coastMechanisms() {
+        return Commands.runOnce(
+                () -> {
+                    intakeExtension.setBrakeMode(false);
+                    hood.setBrakeMode(false);
+                });
+    }
+
+    public Command brakeMechanisms() {
+        return Commands.runOnce(
+                () -> {
+                    intakeExtension.setBrakeMode(true);
+                    hood.setBrakeMode(true);
+                });
+    }
 
     // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
     public boolean isRobotInNeutralZone() {

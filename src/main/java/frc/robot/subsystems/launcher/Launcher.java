@@ -20,13 +20,13 @@ public class Launcher extends Mechanism {
     public static class LauncherConfig extends Config {
 
         /* Launcher config values */
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 100;
-        @Getter private final double forwardTorqueCurrentLimit = torqueCurrentLimit;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 100;
+        @Getter private final double lowerSupplyCurrentLimit = 80;
+        @Getter private final double lowerSupplyCurrentTime = 0;
+        @Getter private final double forwardTorqueCurrentLimit = statorCurrentLimit;
         @Getter private final double reverseTorqueCurrentLimit = 10;
-        @Getter private final double lowerCurrentLimit = 60;
-        @Getter private final double timeUntilLowerCurrent = 1;
-        @Getter private final double nominalVoltage = 16;
+        @Getter private final double voltageLimit = 12;
         @Getter private final double velocityKp = 10;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 20;
@@ -43,15 +43,15 @@ public class Launcher extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configLowerSupplyCurrentLimit(lowerCurrentLimit);
-            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
             configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
             configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
             configNeutralBrakeMode(false);
-            configForwardVoltageLimit(nominalVoltage);
-            configReverseVoltageLimit(nominalVoltage);
+            configForwardVoltageLimit(voltageLimit);
+            configReverseVoltageLimit(-voltageLimit);
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(

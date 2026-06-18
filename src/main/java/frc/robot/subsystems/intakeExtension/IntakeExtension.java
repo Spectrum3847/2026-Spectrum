@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -17,7 +18,6 @@ import frc.spectrumLib.sim.LinearConfig;
 import frc.spectrumLib.sim.LinearSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
 /** The Intake Extension subsystem. Extends and retracts the fuel intake. */
 public class IntakeExtension extends Mechanism {
@@ -34,20 +34,10 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double maxRotations = 2.779053;
         @Getter private final double minRotations = 0.0;
 
-        /* Positions are in percent of max rotations (0% -> 0 rotations | 100% -> max rotation) */
-        @Getter private final double home = 0;
-        @Getter private final double squeeze = 25;
-        @Getter private final double fullOut = 100;
-        @Getter private final double atPoseTolerance = 10;
-        @Getter private final double springyPoseTolerance = 20;
-
-        @Getter private final double positiveVoltageOut = 10;
-        @Getter private final double negativeVoltageOut = -10;
-
-        @Getter private final double normalCurrentLimit = 40;
-        @Getter private final double normalTorqueCurrentLimit = 80;
-        @Getter private final double springyModeSupplyCurrentLimit = 5;
-        @Getter private final double springyModeStatorCurrentLimit = 20;
+        @Getter private final double supplyCurrentLimit = 40;
+        @Getter private final double statorCurrentLimit = 80;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentTime = 0;
 
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
@@ -91,11 +81,13 @@ public class IntakeExtension extends Mechanism {
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configSupplyCurrentLimit(normalCurrentLimit, true);
-            configStatorCurrentLimit(normalTorqueCurrentLimit, true);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configGearRatio(gearRatio);
-            configForwardTorqueCurrentLimit(normalTorqueCurrentLimit);
-            configReverseTorqueCurrentLimit(normalTorqueCurrentLimit);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
@@ -189,8 +181,6 @@ public class IntakeExtension extends Mechanism {
     @Getter private final IntakeExtensionConfig config;
     @Getter private IntakeExtensionSim sim;
 
-    @Getter @Setter private boolean inSpringyMode = false;
-
     public IntakeExtension(IntakeExtensionConfig config) {
         super(config);
         this.config = config;
@@ -212,11 +202,11 @@ public class IntakeExtension extends Mechanism {
     }
 
     public Command resetCurrentPositionToMaxCommand() {
-        return run(this::resetCurrentPositionToMax);
+        return new InstantCommand(this::resetCurrentPositionToMax);
     }
 
     public Command resetToInitialPos() {
-        return run(this::setInitialPosition);
+        return new InstantCommand(this::setInitialPosition);
     }
 
     @Override
@@ -233,7 +223,6 @@ public class IntakeExtension extends Mechanism {
         Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
         Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
-        Telemetry.log("IntakeExtension/InSpringyMode", inSpringyMode);
     }
 
     // --------------------------------------------------------------------------------

@@ -1,5 +1,3 @@
-// Based on
-// https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
 package frc.robot.subsystems.swerve;
 
 import static edu.wpi.first.units.Units.Inches;
@@ -489,20 +487,30 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // Reorientation Methods
     // --------------------------------------------------------------------------------
 
-    protected void reorient(double angleDegrees) {
-        resetPose(
-                new Pose2d(
-                        getRobotPose().getX(),
-                        getRobotPose().getY(),
-                        Rotation2d.fromDegrees(angleDegrees)));
+    protected Command reorient(double angleDegrees) {
+        return runOnce(
+                () ->
+                        resetPose(
+                                new Pose2d(
+                                        getRobotPose().getX(),
+                                        getRobotPose().getY(),
+                                        Rotation2d.fromDegrees(angleDegrees))));
     }
 
-    protected Command reorientPilotAngle(double angleDegrees) {
-        return runOnce(
-                () -> {
-                    double output = FieldHelpers.flipAngleIfRed(angleDegrees);
-                    reorient(output);
-                });
+    public Command reorientForward() {
+        return reorient(0).withName("reorientForward");
+    }
+
+    public Command reorientLeft() {
+        return reorient(90).withName("reorientLeft");
+    }
+
+    public Command reorientBack() {
+        return reorient(180).withName("reorientBack");
+    }
+
+    public Command reorientRight() {
+        return reorient(270).withName("reorientRight");
     }
 
     protected double getClosestCardinal() {

@@ -19,8 +19,11 @@ public class FuelIntake extends Mechanism {
     public static class FuelIntakeConfig extends Config {
 
         /* Intake config values */
-        @Getter private final double currentLimit = 70;
-        @Getter private final double torqueCurrentLimit = 180;
+        @Getter private final double supplyCurrentLimit = 45;
+        @Getter private final double statorCurrentLimit = 90;
+        @Getter private final double lowerSupplyCurrentLimit = 45;
+        @Getter private final double lowerSupplyCurrentTime = 1;
+        @Getter private final double voltageLimit = 12;
         @Getter private final double velocityKp = 5;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 4;
@@ -35,10 +38,14 @@ public class FuelIntake extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configForwardVoltageLimit(voltageLimit);
+            configReverseVoltageLimit(-voltageLimit);
             configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
             setFollowerConfigs(
@@ -53,6 +60,7 @@ public class FuelIntake extends Mechanism {
         NEUTRAL,
         OFF,
         INTAKE,
+        OUTTAKE,
         SLOW_INTAKE,
     }
 
@@ -60,6 +68,7 @@ public class FuelIntake extends Mechanism {
         NEUTRAL,
         OFF,
         INTAKE,
+        OUTTAKE,
         SLOW_INTAKE,
     }
 
@@ -74,29 +83,33 @@ public class FuelIntake extends Mechanism {
         return switch (wantedState) {
             case NEUTRAL -> SystemState.NEUTRAL;
             case INTAKE -> SystemState.INTAKE;
+            case OUTTAKE -> SystemState.OUTTAKE;
             case SLOW_INTAKE -> SystemState.SLOW_INTAKE;
             case OFF -> SystemState.OFF;
         };
     }
 
     private void applyStates() {
-        double wantedTorqueCurrent = 0;
+        double wantedVoltage = 0;
         switch (systemState) {
             case NEUTRAL:
-                wantedTorqueCurrent = 0;
+                wantedVoltage = 0;
                 break;
             case INTAKE:
-                wantedTorqueCurrent = 130;
+                wantedVoltage = 12;
+                break;
+            case OUTTAKE:
+                wantedVoltage = -12;
                 break;
             case SLOW_INTAKE:
-                wantedTorqueCurrent = 45;
+                wantedVoltage = 5;
                 break;
             case OFF:
                 stop();
                 return;
         }
-        final double finalWantedTorqueCurrent = wantedTorqueCurrent;
-        setTorqueCurrentFoc(() -> finalWantedTorqueCurrent);
+        final double finalWantedVoltage = wantedVoltage;
+        setVoltageOutput(() -> finalWantedVoltage);
     }
 
     @Getter private final FuelIntakeConfig config;
