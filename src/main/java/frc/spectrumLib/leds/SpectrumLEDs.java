@@ -56,7 +56,7 @@ import lombok.Setter;
  * <p>Patterns are applied via {@link #setPattern(CANdlePattern, int)}, which returns a {@link
  * Command} that runs continuously and respects the priority system ({@link #checkPriority(int)}).
  */
-public class SpectrumLEDs extends AddressableLED implements Subsystem {
+public class SpectrumLEDs implements Subsystem {
 
     // -------------------------------------------------------------------------
     // CANdlePattern functional interface
@@ -888,5 +888,19 @@ public class SpectrumLEDs extends AddressableLED implements Subsystem {
                 candle.setControl(holder[0][i]);
             }
         };
+    }
+
+    // --------------------------------------------------------------------------------
+    // Simulation
+    // --------------------------------------------------------------------------------
+
+    // TODO: test when I have a computer that isn't too old for WPILib
+    @Getter @Setter private AddressableLED simLED;
+    @Getter @Setter private AddressableLEDBuffer simBuffer;
+
+    if (Utils.isSimulation()) {
+        led = new AddressableLED(1);
+        ledBuffer = new AddressableLEDBuffer(NUM_LEDS);
+        led.setLength(ledBuffer.getLength());
     }
 }

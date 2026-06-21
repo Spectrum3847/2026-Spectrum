@@ -47,7 +47,7 @@ public class Leds extends SpectrumLEDs {
     // Constructor
     // -------------------------------------------------------------------------
 
-    private SuperStructure robotSuperStructure;
+    private static SuperStructure robotSuperStructure;
 
     public Leds(SuperStructure superStructure) {
         super(ledsConfig);
@@ -60,21 +60,53 @@ public class Leds extends SpectrumLEDs {
 
     // TODO: add more patterns and include ones for alliance shifts and bps
 
-    void bindTriggers() {
-        intakingLed(intakingFuel, 5);
+    static void bindTriggers() {
+        launchingLed(launchingFuel, 5);
+        blueShiftLed(blueShift, 3);
+        redShiftLed(redShift, 3);
     }
 
-    private Trigger intakingFuel =
+    private static Trigger redShfit = 
+            new Trigger(
+                    () ->   {
+                                double t = DriverStation.getMatchTime();
+                                ShiftHelpers.getFirstActiveAlliance
+                                        == Alliance.Red && (t >= 10.0 && t <= 35.0) ||
+                                            (t >= 60.0 && t <= 85.0);
+                            })
+                    .and(Utils.teleop);
+
+    private static Trigger blueShfit =             
+            new Trigger(
+                    () ->   {
+                                double t = DriverStation.getMatchTime();
+                                ShiftHelpers.getFirstActiveAlliance
+                                        == Alliance.Blue && (t >= 10.0 && t <= 35.0) ||
+                                            (t >= 60.0 && t <= 85.0);
+                            })
+                    .and(Utils.teleop);
+    
+
+    private static Trigger launchingFuel =
             new Trigger(
                     () ->
                             robotSuperStructure.getCurrentSuperState()
-                                    == SuperStructure.CurrentSuperState.INTAKE_FUEL);
+                                    == SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE
+            );
 
-    void intakingLed(Trigger trigger, int priority) {
-        ledCommand("Leds.intaking", rainbow(0.5), priority, trigger);
+    static void redShiftLed(Trigger trigger, int priority) {
+        ledCommand("Leds.Red_Shift", bounce('red', 25), priority, trigger);
     }
 
-    private Trigger ledCommand(String name, CANdlePattern pattern, int priority, Trigger trigger) {
+    static void blueShiftLed(Trigger trigger, int priority) {
+        ledCommand("Leds.Blue_Shift", bounce('blue', 25), priority, trigger);
+    }
+
+    static void launchingLed(Trigger trigger, int priority) {
+        ledCommand("Leds.launching", rainbow(0.5), priority, trigger);
+    }
+
+    private static Trigger ledCommand(String name, CANdlePattern pattern, int priority, Trigger trigger) {
         return trigger.and(checkPriority(priority))
                 .whileTrue(setPattern(pattern, priority).withName(name));
     }
