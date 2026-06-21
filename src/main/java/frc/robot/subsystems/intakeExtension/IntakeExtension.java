@@ -138,7 +138,6 @@ public class IntakeExtension extends Mechanism {
         public static class RightConfig extends Config {
             public RightConfig(IntakeExtensionConfig left) {
                 super("IntakeExtensionRight", 6, Rio.CANIVORE);
-                // Mirror the left axis's attachment so detached configs don't build CAN hardware.
                 setAttached(left.isAttached());
                 configMinMaxRotations(left.getMinRotations(), left.getMaxRotations());
                 configPIDGains(0, left.getPositionKp(), left.getPositionKi(), left.getPositionKd());
@@ -148,9 +147,7 @@ public class IntakeExtension extends Mechanism {
                         left.getPositionKa(),
                         left.getPositionKg());
                 configMotionMagic(
-                        left.getMmCruiseVelocity(),
-                        left.getMmAcceleration(),
-                        left.getMmJerk());
+                        left.getMmCruiseVelocity(), left.getMmAcceleration(), left.getMmJerk());
                 configSupplyCurrentLimit(left.getSupplyCurrentLimit(), true);
                 configStatorCurrentLimit(left.getStatorCurrentLimit(), true);
                 configLowerSupplyCurrentLimit(left.getLowerSupplyCurrentLimit());
@@ -161,7 +158,7 @@ public class IntakeExtension extends Mechanism {
                 configForwardSoftLimit(left.getMaxRotations(), true);
                 configReverseSoftLimit(left.getMinRotations(), true);
                 configNeutralBrakeMode(true);
-                configClockwise_Positive(); // mirror of the left axis
+                configClockwise_Positive();
             }
         }
 
@@ -188,6 +185,13 @@ public class IntakeExtension extends Mechanism {
         /** Open-loop voltage that bypasses soft limits — used to drive into the hard stop. */
         public void driveHomingVoltage(double volts) {
             setVoltageOutputNoSoftLimit(() -> volts);
+        }
+
+        /** Seeds this axis's encoder to a known starting position (rotations). */
+        public void setInitialPosition(double rotations) {
+            if (isAttached()) {
+                motor.setPosition(rotations);
+            }
         }
 
         /** Re-zeroes this axis at the fully-extended hard stop. */
@@ -232,7 +236,9 @@ public class IntakeExtension extends Mechanism {
 
     private void setInitialPosition() {
         if (isAttached()) {
-            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+            double initialRotations = degreesToRotations(() -> config.getInitPosition());
+            motor.setPosition(initialRotations);
+            right.setInitialPosition(initialRotations);
         }
     }
 
@@ -240,7 +246,7 @@ public class IntakeExtension extends Mechanism {
         if (isAttached()) {
             motor.setPosition(config.getMaxRotations());
         }
-        if (right != null) right.zeroAtMax();
+        if (right.isAttached()) right.zeroAtMax();
     }
 
     public Command resetCurrentPositionToMaxCommand() {
@@ -255,7 +261,7 @@ public class IntakeExtension extends Mechanism {
     @Override
     public void setBrakeMode(boolean isInBrake) {
         super.setBrakeMode(isInBrake);
-        if (right != null) right.setBrakeMode(isInBrake);
+        if (right.isAttached()) right.setBrakeMode(isInBrake);
     }
 
     // ---- State Machine ----
@@ -321,7 +327,7 @@ public class IntakeExtension extends Mechanism {
                 break;
             case STOPPED:
                 stop();
-                if (right != null) right.stopAxis();
+                if (right.isAttached()) right.stopAxis();
                 return;
         }
     }
@@ -340,7 +346,7 @@ public class IntakeExtension extends Mechanism {
                     () -> config.getSlowMmCruiseVelocity(),
                     () -> config.getSlowMmAcceleration(),
                     () -> config.getSlowMmJerk());
-            if (right != null) {
+            if (right.isAttached()) {
                 right.goToRotationsSlow(
                         rotations,
                         config.getSlowMmCruiseVelocity(),
@@ -349,7 +355,7 @@ public class IntakeExtension extends Mechanism {
             }
         } else {
             setMMPosition(() -> rotations);
-            if (right != null) right.goToRotations(rotations);
+            if (right.isAttached()) right.goToRotations(rotations);
         }
     }
 
@@ -396,7 +402,7 @@ public class IntakeExtension extends Mechanism {
         }
 
         // ── Right side (independent axis) ──
-        if (right != null) {
+        if (right.isAttached()) {
             if (!rightHomed) {
                 if (detectRightStall() || timedOut) {
                     if (timedOut) Telemetry.print("IntakeExtension: RIGHT resync timed out");
