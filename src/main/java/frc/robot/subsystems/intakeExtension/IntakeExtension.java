@@ -94,7 +94,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
-            super("IntakeExtension", 7, Rio.CANIVORE);
+            super("IntakeExtension", 6, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
@@ -109,7 +109,7 @@ public class IntakeExtension extends Mechanism {
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configCounterClockwise_Positive();
+            configClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
@@ -137,7 +137,7 @@ public class IntakeExtension extends Mechanism {
 
         public static class RightConfig extends Config {
             public RightConfig(IntakeExtensionConfig left) {
-                super("IntakeExtensionRight", 6, Rio.CANIVORE);
+                super("IntakeExtensionRight", 7, Rio.CANIVORE);
                 setAttached(left.isAttached());
                 configMinMaxRotations(left.getMinRotations(), left.getMaxRotations());
                 configPIDGains(0, left.getPositionKp(), left.getPositionKi(), left.getPositionKd());
@@ -158,7 +158,7 @@ public class IntakeExtension extends Mechanism {
                 configForwardSoftLimit(left.getMaxRotations(), true);
                 configReverseSoftLimit(left.getMinRotations(), true);
                 configNeutralBrakeMode(true);
-                configClockwise_Positive();
+                configCounterClockwise_Positive();
             }
         }
 
