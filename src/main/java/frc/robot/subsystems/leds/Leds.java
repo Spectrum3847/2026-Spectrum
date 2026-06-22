@@ -61,9 +61,11 @@ public class Leds extends SpectrumLEDs {
     // TODO: add more patterns and include ones for alliance shifts and bps
 
     static void bindTriggers() {
-        launchingLed(launchingFuel, 5);
-        blueShiftLed(blueShift, 3);
-        redShiftLed(redShift, 3);
+        launchingLed(launchingFuel, 1);
+        redShiftLed(redShift, 2);
+        blueShiftLed(blueShift, 2);
+        bothHubsActiveLed(bothHubsActive, 2);
+        autonLed(autonomouns, 2);
     }
 
     private static Trigger redShfit = 
@@ -71,8 +73,8 @@ public class Leds extends SpectrumLEDs {
                     () ->   {
                                 double t = DriverStation.getMatchTime();
                                 ShiftHelpers.getFirstActiveAlliance
-                                        == Alliance.Red && (t >= 10.0 && t <= 35.0) ||
-                                            (t >= 60.0 && t <= 85.0);
+                                        == Alliance.Red && (t >= 11.0 && t <= 35.0) ||
+                                            (t >= 61.0 && t <= 85.0);
                             })
                     .and(Utils.teleop);
 
@@ -81,25 +83,47 @@ public class Leds extends SpectrumLEDs {
                     () ->   {
                                 double t = DriverStation.getMatchTime();
                                 ShiftHelpers.getFirstActiveAlliance
-                                        == Alliance.Blue && (t >= 10.0 && t <= 35.0) ||
-                                            (t >= 60.0 && t <= 85.0);
+                                        == Alliance.Blue && (t >= 11.0 && t <= 35.0) ||
+                                            (t >= 61.0 && t <= 85.0);
                             })
                     .and(Utils.teleop);
-    
+
+    private static Trigger bothHubsActive = 
+            new Trigger(
+                    () ->   {
+                                double t = DriverStation.getMatchTime();
+                                return (t >= 0.0 && t<= 10.0) || 
+                                    (t >= 111.0 && t <= 140.0);
+                            })
+                    .and(Utils.teleop);
+
+    private static Trigger autonomouns = new Trigger(() -> DriverStation.isAutonomous());
 
     private static Trigger launchingFuel =
             new Trigger(
                     () ->
                             robotSuperStructure.getCurrentSuperState()
-                                    == SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                                    == SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE ||
+                            robotSuperStructure.getCurrentSuperState()
+                                    == SuperStructure.CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE ||
+                            robotSuperStructure.getCurrentSuperState()
+                                    == SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
             );
 
     static void redShiftLed(Trigger trigger, int priority) {
-        ledCommand("Leds.Red_Shift", bounce('red', 25), priority, trigger);
+        ledCommand("Leds.Red_Shift", switchCountdown('red'), priority, trigger);
     }
 
     static void blueShiftLed(Trigger trigger, int priority) {
-        ledCommand("Leds.Blue_Shift", bounce('blue', 25), priority, trigger);
+        ledCommand("Leds.Blue_Shift", switchCountdown('blue'), priority, trigger);
+    }
+
+    static void bothHubsActiveLed(Trigger trigger, int priority) {
+        ledCommand("Leds.Both_Hubs_Active", gradient('blue', 'red'), priority, trigger);
+    }
+
+    static void autonLed(Trigger trigger, int priority) {
+        ledCommand("Leds.Auton", countdown(0, 20), priority, trigger);
     }
 
     static void launchingLed(Trigger trigger, int priority) {
