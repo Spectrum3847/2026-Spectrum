@@ -22,8 +22,8 @@ import lombok.Getter;
 /**
  * The Intake Extension subsystem. Extends and retracts the fuel intake.
  *
- * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class,
- * CAN id 7) and a right axis ({@link IntakeExtensionRight}, CAN id 6). Each side runs its own
+ * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class, CAN
+ * id 7) and a right axis ({@link IntakeExtensionRight}, CAN id 6). Each side runs its own
  * closed-loop position control rather than one following the other, so a side that skips teeth on
  * the rack can be driven on its own to resync.
  *
@@ -47,12 +47,12 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double maxRotations = 2.779053;
         @Getter private final double minRotations = 0.0;
 
-        @Getter private final double supplyCurrentLimit = 40;
-        @Getter private final double statorCurrentLimit = 80;
-        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double supplyCurrentLimit = 20;
+        @Getter private final double statorCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentLimit = 20;
         @Getter private final double lowerSupplyCurrentTime = 0;
 
-        @Getter private final double positionKp = 10;
+        @Getter private final double positionKp = 13;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
         @Getter private final double positionKv = 1.0;
@@ -94,7 +94,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
-            super("IntakeExtension", 6, Rio.CANIVORE);
+            super("IntakeExtension", 4, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
@@ -137,7 +137,7 @@ public class IntakeExtension extends Mechanism {
 
         public static class RightConfig extends Config {
             public RightConfig(IntakeExtensionConfig left) {
-                super("IntakeExtensionRight", 7, Rio.CANIVORE);
+                super("IntakeExtensionRight", 5, Rio.CANIVORE);
                 setAttached(left.isAttached());
                 configMinMaxRotations(left.getMinRotations(), left.getMaxRotations());
                 configPIDGains(0, left.getPositionKp(), left.getPositionKi(), left.getPositionKd());
