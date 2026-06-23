@@ -20,6 +20,7 @@ import com.ctre.phoenix6.signals.LossOfSignalBehaviorValue;
 import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.signals.StripTypeValue;
 import edu.wpi.first.wpilibj.AddressableLED;
+import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -260,7 +261,7 @@ public class SpectrumLEDs implements Subsystem {
      * @param config the configuration describing the device, segment range, and strip type
      */
     public SpectrumLEDs(Config config) {
-        super(1);
+        super();
         this.config = config;
 
         if (config.getSharedCandle() != null) {
@@ -894,13 +895,8 @@ public class SpectrumLEDs implements Subsystem {
     // Simulation
     // --------------------------------------------------------------------------------
 
-    // TODO: test when I have a computer that isn't too old for WPILib
     @Getter @Setter private AddressableLED simLED;
     @Getter @Setter private AddressableLEDBuffer simBuffer;
 
-    if (Utils.isSimulation()) {
-        led = new AddressableLED(1);
-        ledBuffer = new AddressableLEDBuffer(NUM_LEDS);
-        led.setLength(ledBuffer.getLength());
-    }
+    
 }
