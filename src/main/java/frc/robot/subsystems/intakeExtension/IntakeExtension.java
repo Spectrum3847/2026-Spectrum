@@ -44,7 +44,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double maxRotations = 2.779053;
+        @Getter private final double maxRotations = 2.8;
         @Getter private final double minRotations = 0.0;
 
         @Getter private final double supplyCurrentLimit = 20;
