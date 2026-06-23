@@ -22,7 +22,7 @@ import lombok.Getter;
 /**
  * The Intake Extension subsystem. Extends and retracts the fuel intake.
  *
- * <p>The deploy is a rack-and-pinion driven by two independent motors — a left axis (this class,
+ * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class,
  * CAN id 7) and a right axis ({@link IntakeExtensionRight}, CAN id 6). Each side runs its own
  * closed-loop position control rather than one following the other, so a side that skips teeth on
  * the rack can be driven on its own to resync.
@@ -182,7 +182,7 @@ public class IntakeExtension extends Mechanism {
                     () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
         }
 
-        /** Open-loop voltage that bypasses soft limits — used to drive into the hard stop. */
+        /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
         public void driveHomingVoltage(double volts) {
             setVoltageOutputNoSoftLimit(() -> volts);
         }
