@@ -159,7 +159,7 @@ public class Robot extends SpectrumRobot {
                             indexerBed,
                             launcher);
 
-            auton = new Auton(superStructure);
+            auton = new Auton();
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
             // leds = new Leds();
