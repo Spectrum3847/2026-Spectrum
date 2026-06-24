@@ -1,6 +1,5 @@
 package frc.robot.subsystems.indexerBed;
 
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -38,9 +37,6 @@ public class IndexerBed extends Mechanism {
             configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(false);
             configClockwise_Positive();
-            setFollowerConfigs(
-                    new FollowerConfig(
-                            "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
