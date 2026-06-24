@@ -12,10 +12,10 @@ public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
         /* Indexer config values */
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 140;
+        @Getter private final double supplyCurrentLimit = 40;
+        @Getter private final double statorCurrentLimit = 180;
         @Getter private final double lowerSupplyCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentTime = 0.5;
+        @Getter private final double lowerSupplyCurrentTime = 0;
         @Getter private final double velocityKp = 50;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 40;

@@ -105,7 +105,7 @@ public class ShotCalculator {
     private static final double MPS_FACTOR = 0.8;
 
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
-    private static final double RPM_PER_MPS = 290.0;
+    private static final double RPM_PER_MPS = 275.0;
 
     /**
      * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are

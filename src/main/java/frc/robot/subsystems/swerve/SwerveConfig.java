@@ -101,9 +101,9 @@ public class SwerveConfig {
                             new CurrentLimitsConfigs()
                                     .withStatorCurrentLimit(Amps.of(80.0))
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLimit(Amps.of(30.0))
                                     .withSupplyCurrentLimitEnable(true)
-                                    .withSupplyCurrentLowerLimit(Amps.of(40.0)));
+                                    .withSupplyCurrentLowerLimit(Amps.of(30.0)));
 
     // Swerve azimuth does not require much torque output, so we can set a
     // relatively low stator current limit to help avoid

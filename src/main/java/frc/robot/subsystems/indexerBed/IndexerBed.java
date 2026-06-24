@@ -12,10 +12,10 @@ public class IndexerBed extends Mechanism {
 
     public static class IndexerBedConfig extends Config {
         /* Indexer config values */
-        @Getter private final double supplyCurrentLimit = 60;
-        @Getter private final double statorCurrentLimit = 100;
-        @Getter private final double lowerSupplyCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentTime = 0.5;
+        @Getter private final double supplyCurrentLimit = 30;
+        @Getter private final double statorCurrentLimit = 180;
+        @Getter private final double lowerSupplyCurrentLimit = 30;
+        @Getter private final double lowerSupplyCurrentTime = 0;
         @Getter private final double velocityKp = 30;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 4;

@@ -21,7 +21,7 @@ public class Launcher extends Mechanism {
 
         /* Launcher config values */
         @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 100;
+        @Getter private final double statorCurrentLimit = 180;
         @Getter private final double lowerSupplyCurrentLimit = 80;
         @Getter private final double lowerSupplyCurrentTime = 0;
         @Getter private final double forwardTorqueCurrentLimit = statorCurrentLimit;
