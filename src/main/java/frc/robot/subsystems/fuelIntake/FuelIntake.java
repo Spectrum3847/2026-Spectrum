@@ -19,14 +19,14 @@ public class FuelIntake extends Mechanism {
     public static class FuelIntakeConfig extends Config {
 
         /* Intake config values */
-        @Getter private final double supplyCurrentLimit = 45;
-        @Getter private final double statorCurrentLimit = 90;
-        @Getter private final double lowerSupplyCurrentLimit = 45;
-        @Getter private final double lowerSupplyCurrentTime = 1;
+        @Getter private final double supplyCurrentLimit = 44;
+        @Getter private final double statorCurrentLimit = 200;
+        @Getter private final double lowerSupplyCurrentLimit = 44;
+        @Getter private final double lowerSupplyCurrentTime = 0;
         @Getter private final double voltageLimit = 12;
         @Getter private final double velocityKp = 5;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 4;
+        @Getter private final double velocityKv = 0.2;
+        @Getter private final double velocityKs = 2;
 
         /* Sim Configs */
         @Getter private final double intakeX = Units.inchesToMeters(15);
@@ -96,10 +96,10 @@ public class FuelIntake extends Mechanism {
                 wantedVoltage = 0;
                 break;
             case INTAKE:
-                wantedVoltage = 12;
+                wantedVoltage = 9;
                 break;
             case OUTTAKE:
-                wantedVoltage = -12;
+                wantedVoltage = -9;
                 break;
             case SLOW_INTAKE:
                 wantedVoltage = 5;

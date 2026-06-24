@@ -38,14 +38,14 @@ public class SwerveConfig {
     @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
     @Getter @Setter private double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
-    @Getter @Setter private double driveGearRatio = 6.03;
+    @Getter @Setter private double driveGearRatio = 7.03;
     @Getter @Setter private double steerGearRatio = 26.09;
 
     // Estimated at first, then fudge-factored to make odom match record
     @Getter @Setter private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
     // Theoretical translational free speed (ft/s) at 12v applied output;
-    @Getter @Setter private LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);
+    @Getter @Setter private LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(4.5);
 
     // Theoretical rotational free speed (ft/s) at 12v applied output;
     @Getter @Setter private AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
@@ -99,9 +99,9 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(80.0))
+                                    .withStatorCurrentLimit(Amps.of(100.0))
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLimit(Amps.of(70.0))
                                     .withSupplyCurrentLimitEnable(true)
                                     .withSupplyCurrentLowerLimit(Amps.of(40.0)));
 
@@ -123,7 +123,7 @@ public class SwerveConfig {
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    @Getter private double coupleRatio = 4.5;
+    @Getter private double coupleRatio = 3.375;
 
     @Getter @Setter private boolean steerMotorReversed = false;
     @Getter @Setter private boolean invertLeftSide = false;
@@ -146,8 +146,8 @@ public class SwerveConfig {
                     TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             constantCreator;
 
-    private final double wheelBaseInches = 21.75;
-    private final double trackWidthInches = 21.75;
+    private final double wheelBaseInches = 19.75;
+    private final double trackWidthInches = 23.75;
 
     // Distance from robot center to each module (drivebase "radius") in inches
     @Getter

@@ -44,30 +44,30 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double maxRotations = 2.8;
+        @Getter private final double maxRotations = 2.6;
         @Getter private final double minRotations = 0.0;
 
-        @Getter private final double supplyCurrentLimit = 20;
-        @Getter private final double statorCurrentLimit = 40;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 180;
         @Getter private final double lowerSupplyCurrentLimit = 20;
         @Getter private final double lowerSupplyCurrentTime = 0;
 
-        @Getter private final double positionKp = 13;
+        @Getter private final double positionKp = 5;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 1.0;
-        @Getter private final double positionKs = 2.0;
+        @Getter private final double positionKv = 0.3;
+        @Getter private final double positionKs = 1.5;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double gearRatio = 11.25;
-        @Getter private final double mmCruiseVelocity = 100;
-        @Getter private final double mmAcceleration = 300;
+        @Getter private final double mmCruiseVelocity = 50;
+        @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
         @Getter private final double slowMmCruiseVelocity = 4;
         @Getter private final double slowMmAcceleration = 20;
         @Getter private final double slowMmJerk = 1000;
 
-        @Getter private final double sensorToMechanismRatio = 11.25;
+        @Getter private final double sensorToMechanismRatio = 3.6111;
         @Getter private final double rotorToSensorRatio = 1;
         @Getter private final double CANcoderRotorToSensorRatio = 1.7;
         @Getter private final double CANcoderSensorToMechanismRatio = 1;

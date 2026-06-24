@@ -12,13 +12,13 @@ public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
         /* Indexer config values */
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 140;
+        @Getter private final double supplyCurrentLimit = 70;
+        @Getter private final double statorCurrentLimit = 150;
         @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double lowerSupplyCurrentTime = 0.5;
-        @Getter private final double velocityKp = 50;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 40;
+        @Getter private final double velocityKp = 0.5;
+        @Getter private final double velocityKv = 0.08;
+        @Getter private final double velocityKs = 0.3;
 
         /* Sim Configs */
         @Getter private final double intakeX = Units.inchesToMeters(60);
@@ -86,10 +86,10 @@ public class IndexerTower extends Mechanism {
                 stop();
                 return;
             case INDEX_MAX:
-                wantedRPM = 4000;
+                wantedRPM = 3000;
                 break;
             case SLOW_INDEX:
-                wantedRPM = 1000;
+                wantedRPM = 2000;
                 break;
             case UNJAM:
                 wantedRPM = -1500;

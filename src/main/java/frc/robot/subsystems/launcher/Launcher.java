@@ -19,16 +19,16 @@ public class Launcher extends Mechanism {
     public static class LauncherConfig extends Config {
 
         /* Launcher config values */
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 100;
-        @Getter private final double lowerSupplyCurrentLimit = 80;
+        @Getter private final double supplyCurrentLimit = 60;
+        @Getter private final double statorCurrentLimit = 80;
+        @Getter private final double lowerSupplyCurrentLimit = 60;
         @Getter private final double lowerSupplyCurrentTime = 0;
         @Getter private final double forwardTorqueCurrentLimit = statorCurrentLimit;
         @Getter private final double reverseTorqueCurrentLimit = 10;
-        @Getter private final double voltageLimit = 12;
+        @Getter private final double voltageLimit = 16;
         @Getter private final double velocityKp = 10;
         @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 20;
+        @Getter private final double velocityKs = 10;
 
         @Getter private final double onTargetToleranceRPM = 100;
 
@@ -38,7 +38,7 @@ public class Launcher extends Mechanism {
         @Getter private final double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher", 46, Rio.CANIVORE);
+            super("Launcher", 48, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -54,14 +54,7 @@ public class Launcher extends Mechanism {
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
-                    new FollowerConfig(
-                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
-                    new FollowerConfig(
-                            "Launcher Bottom Right",
-                            49,
-                            Rio.CANIVORE,
-                            MotorAlignmentValue.Opposed));
+                            "Launcher Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
