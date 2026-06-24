@@ -63,7 +63,7 @@ public class Leds extends SpectrumLEDs {
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
-    // TODO: add more patterns and include ones for alliance shifts and bps
+    // TODO: add more patterns and include ones for bps
 
     void bindTriggers() {
         launchingLed(launchingFuel, 1);
@@ -104,6 +104,8 @@ public class Leds extends SpectrumLEDs {
                     () -> {
                         return DriverStation.isAutonomous();
                     });
+
+    private Trigger bpsLow = new Trigger(() -> {})
 
     private Trigger launchingFuel =
             new Trigger(
