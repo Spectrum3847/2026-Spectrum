@@ -17,6 +17,5 @@ public class FM2026 extends Config {
         launcher.setAttached(true);
         indexerTower.setAttached(true);
         indexerBed.setAttached(true);
-        hood.setAttached(true);
     }
 }

@@ -35,8 +35,6 @@ import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.subsystems.hood.Hood;
-import frc.robot.subsystems.hood.Hood.HoodConfig;
 import frc.robot.subsystems.indexerBed.IndexerBed;
 import frc.robot.subsystems.indexerBed.IndexerBed.IndexerBedConfig;
 import frc.robot.subsystems.indexerTower.IndexerTower;
@@ -87,7 +85,6 @@ public class Robot extends SpectrumRobot {
         public final IndexerTowerConfig indexerTower = new IndexerTowerConfig();
         public final IndexerBedConfig indexerBed = new IndexerBedConfig();
         public final LauncherConfig launcher = new LauncherConfig();
-        public final HoodConfig hood = new HoodConfig();
         public final VisionConfig vision = new VisionConfig();
     }
 
@@ -99,7 +96,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static Launcher launcher;
-    @Getter private static Hood hood;
     @Getter private static Vision vision;
     @Getter private static Leds leds;
     @Getter private static Auton auton;
@@ -145,9 +141,6 @@ public class Robot extends SpectrumRobot {
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
 
-            hood = new Hood(config.hood);
-            Timer.delay(canInitDelay);
-
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
 
@@ -164,8 +157,7 @@ public class Robot extends SpectrumRobot {
                             intakeExtension,
                             indexerTower,
                             indexerBed,
-                            launcher,
-                            hood);
+                            launcher);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
@@ -278,10 +270,11 @@ public class Robot extends SpectrumRobot {
         operator.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         operator.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
-        operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
-        operator.dPadRight.onTrue(ShotCalculator.decreaseDriveAngleOffset());
-        operator.dPadLeft.onTrue(ShotCalculator.increaseDriveAngleOffset());
+        operator.dPadDown.onTrue(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset));
+        operator.dPadUp.onTrue(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset));
+        operator.dPadRight.onTrue(
+                Commands.runOnce(ShotCalculator::decreaseDriveAngleOffsetDegrees));
+        operator.dPadLeft.onTrue(Commands.runOnce(ShotCalculator::increaseDriveAngleOffsetDegrees));
 
         // Reset hub shift timer when enabling
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
@@ -302,7 +295,7 @@ public class Robot extends SpectrumRobot {
     }
 
     public void configureSimBindings() {
-        RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
+        // RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
     }
 
     /** Sets up the SmartDashboard data for visualization. */
@@ -592,7 +585,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void simulationPeriodic() {
         robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
-        robotSim.updateArticulatedMechanisms();
+        // robotSim.updateArticulatedMechanisms();
         Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
     }
 }

@@ -265,7 +265,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                         DRIVE_AT_ANGLE_REQUEST
                                 .withVelocityX(joystickSpeeds.vxMetersPerSecond)
                                 .withVelocityY(joystickSpeeds.vyMetersPerSecond)
-                                .withTargetDirection(params.driveAngle()));
+                                .withTargetDirection(params.fieldAngle()));
 
                 break;
             case TELEOP_DRIVE:
