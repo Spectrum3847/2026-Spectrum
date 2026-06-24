@@ -39,10 +39,10 @@ public class Leds extends SpectrumLEDs {
      * the 8 onboard CANdle LEDs); keep at {@code 0} to address all 20 LEDs starting from the first
      * onboard LED.
      */
-    public static final Config ledsConfig;
+    public static final LedConfig ledsConfig;
 
     static {
-        ledsConfig = new Config("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
+        ledsConfig = new LedConfig("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
         ledsConfig.setStripType(StripTypeValue.RGB);
         ledsConfig.setBrightness(0.5);
         ledsConfig.setLossOfSignalBehavior(LossOfSignalBehaviorValue.DisableLEDs);

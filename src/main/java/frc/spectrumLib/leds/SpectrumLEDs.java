@@ -21,12 +21,15 @@ import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.signals.StripTypeValue;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
+import edu.wpi.first.wpilibj.AddressableLEDBufferView;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.spectrumLib.hardware.Rio;
+import frc.spectrumLib.mechanism.Mechanism.Config;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
@@ -51,7 +54,7 @@ import lombok.Setter;
  * </ul>
  *
  * <p>Multiple {@code SpectrumLEDs} instances can share a single physical {@link CANdle} device by
- * passing the same {@link CANdle} reference in their {@link Config} objects and selecting
+ * passing the same {@link CANdle} reference in their {@link LedConfig} objects and selecting
  * non-overlapping {@code startIdx}/{@code numLeds} ranges.
  *
  * <p>Patterns are applied via {@link #setPattern(CANdlePattern, int)}, which returns a {@link
@@ -107,17 +110,17 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     // -------------------------------------------------------------------------
-    // Config
+    // LedConfig
     // -------------------------------------------------------------------------
 
     /**
      * Configuration for a {@link SpectrumLEDs} subsystem instance.
      *
-     * <p>Use {@link #Config(String, int, int, CANBus)} to create a standalone instance that owns
-     * and configures its {@link CANdle}, or {@link #Config(String, CANdle, int, int)} to share an
-     * already-configured device across multiple subsystems targeting different LED segments.
+     * <p>Use {@link #LedConfig(String, int, int, CANBus)} to create a standalone instance that owns
+     * and configures its {@link CANdle}, or {@link #LedConfig(String, CANdle, int, int)} to share
+     * an already-configured device across multiple subsystems targeting different LED segments.
      */
-    public static class Config {
+    public static class LedConfig extends Config {
         /** Human-readable name used in telemetry. */
         @Getter private String name;
 
@@ -178,7 +181,8 @@ public class SpectrumLEDs implements Subsystem {
          * @param numLeds number of LEDs on the external strip (not counting the 8 onboard LEDs)
          * @param canBus CAN bus the CANdle is on
          */
-        public Config(String name, int deviceId, int numLeds, CANBus canBus) {
+        public LedConfig(String name, int deviceId, int numLeds, CANBus canBus) {
+            super("Leds", 1, Rio.CANIVORE);
             this.name = name;
             this.deviceId = deviceId;
             this.numLeds = numLeds;
@@ -194,7 +198,8 @@ public class SpectrumLEDs implements Subsystem {
          * @param startIdx first LED index (inclusive) in the shared strip for this zone
          * @param numLeds number of LEDs in this zone
          */
-        public Config(String name, CANdle sharedCandle, int startIdx, int numLeds) {
+        public LedConfig(String name, CANdle sharedCandle, int startIdx, int numLeds) {
+            super("Leds", 1, Rio.CANIVORE);
             this.name = name;
             this.sharedCandle = sharedCandle;
             this.startIdx = startIdx;
@@ -207,7 +212,7 @@ public class SpectrumLEDs implements Subsystem {
     // -------------------------------------------------------------------------
 
     /** Active configuration for this instance. */
-    @Getter private Config config;
+    @Getter private LedConfig config;
 
     /** The {@link CANdle} device (owned or shared). */
     @Getter protected final CANdle candle;
@@ -260,7 +265,7 @@ public class SpectrumLEDs implements Subsystem {
      *
      * @param config the configuration describing the device, segment range, and strip type
      */
-    public SpectrumLEDs(Config config) {
+    public SpectrumLEDs(LedConfig config) {
         super();
         this.config = config;
 
@@ -278,6 +283,8 @@ public class SpectrumLEDs implements Subsystem {
                                                     config.getLossOfSignalBehavior()));
             candle.getConfigurator().apply(candleConfig);
         }
+
+        initSimLED();
 
         // Pattern fields are initialized here (after config is set) so factory methods
         // can safely read config values.
@@ -897,6 +904,18 @@ public class SpectrumLEDs implements Subsystem {
 
     @Getter @Setter private AddressableLED simLED;
     @Getter @Setter private AddressableLEDBuffer simBuffer;
+    @Getter @Setter private AddressableLEDBufferView ledView;
 
-    
+    /** Initializes simulation LED hardware. Called during constructor after CANdle setup. */
+    private void initSimLED() {
+        if (simBuffer != null && config != null) {
+            ledView =
+                    simBuffer.createView(
+                            config.getStartIdx(), config.getStartIdx() + config.getNumLeds());
+            if (simLED != null) {
+                simLED.setData(simBuffer);
+                simLED.start();
+            }
+        }
+    }
 }
