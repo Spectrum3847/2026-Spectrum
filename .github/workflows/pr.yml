@@ -1,10 +1,6 @@
-# Runs checks on every pull request, regardless of the target branch.
-# Verifies Java formatting (Spotless), that the code compiles, and runs the
-# unit tests + SpotBugs static analysis.
-
 name: PR Checks
 
-# Triggers on any pull request, no matter what branch it targets.
+# Triggers on any pull request
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -16,28 +12,22 @@ jobs:
   checks:
     runs-on: ubuntu-latest
 
-    # Grabs the WPILib toolchain container (matches main.yml).
     container: wpilib/roborio-cross-ubuntu:2025-24.04
 
     steps:
-      # Checks-out the repository so the job can access it.
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
-      # Declares the repository safe and not under dubious ownership.
+      # Declares the repository safe and not under dubious ownership
       - name: Add repository to git safe directories
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # Grant execute permission for gradlew.
+      # Grant execute permission for gradlew
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # Verify formatting WITHOUT auto-applying it. This runs first/in isolation
-      # because compileJava depends on spotlessApply (see build.gradle), which
-      # would otherwise reformat the sources before the check could catch them.
       - name: Check Java formatting (Spotless)
         run: ./gradlew spotlessCheck
 
-      # Compile the robot code, run unit tests, and run SpotBugs static analysis.
       - name: Compile, test, and analyze
         run: ./gradlew build
