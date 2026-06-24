@@ -324,9 +324,7 @@ public class Vision implements Subsystem {
      * MegaTag1 estimate from the best Limelight.
      */
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean()
-                || Auton.autonPoseUpdate.getAsBoolean()
-                || Auton.autonLaunching.getAsBoolean()) {
+        if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, false));
         }
