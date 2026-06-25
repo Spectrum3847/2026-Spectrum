@@ -44,12 +44,13 @@
             "title": "Auto Chooser",
             "x": 0.0,
             "y": 768.0,
-            "width": 1280.0,
+            "width": 640.0,
             "height": 128.0,
-            "type": "Split Button Chooser",
+            "type": "ComboBox Chooser",
             "properties": {
               "topic": "/SmartDashboard/Auto Chooser",
-              "period": 0.06
+              "period": 0.06,
+              "sort_options": false
             }
           },
           {
@@ -95,19 +96,6 @@
             }
           },
           {
-            "title": "limelight-front",
-            "x": 1280.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 256.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-front",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
-          },
-          {
             "title": "limelight-right",
             "x": 1536.0,
             "y": 0.0,
@@ -116,19 +104,6 @@
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight-right",
-              "period": 0.06,
-              "rotation_turns": 0
-            }
-          },
-          {
-            "title": "limelight-turret",
-            "x": 1280.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 256.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-turret",
               "period": 0.06,
               "rotation_turns": 0
             }
@@ -150,6 +125,32 @@
               "inverted": false,
               "orientation": "horizontal"
             }
+          },
+          {
+            "title": "limelight-left",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 256.0,
+            "type": "Camera Stream",
+            "properties": {
+              "topic": "/CameraPublisher/limelight-left",
+              "period": 0.2,
+              "rotation_turns": 0
+            }
+          },
+          {
+            "title": "CurrentSuperState",
+            "x": 640.0,
+            "y": 768.0,
+            "width": 640.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/Robot/SuperStructure/CurrentSuperState",
+              "period": 0.06,
+              "data_type": "string"
+            }
           }
         ]
       }
@@ -159,40 +160,151 @@
       "grid_layout": {
         "layouts": [
           {
-            "title": "ShotCalc",
-            "x": 1408.0,
-            "y": 0.0,
+            "title": "List Layout",
+            "x": 0.0,
+            "y": 128.0,
             "width": 384.0,
-            "height": 384.0,
+            "height": 768.0,
             "type": "List Layout",
             "properties": {
               "label_position": "TOP"
             },
             "children": [
               {
-                "title": "DistanceMeters",
+                "title": "Intake/SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
-                "type": "Large Text Display",
+                "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/DistanceMeters",
+                  "topic": "/Robot/FuelIntake/SystemState",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "string",
+                  "show_submit_button": false
                 }
               },
               {
-                "title": "TurretAngleDeg",
+                "title": "IntakeExtension/SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "IndexerBed/SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerBed/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "IndexerTower/SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerTower/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Launcher/SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Hood/SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Swerve/SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Swerve/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "ShotCalc",
+            "x": 1408.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 896.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "DriveAngleDeg",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Large Text Display",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/TurretAngleDeg",
+                  "topic": "/Robot/ShotCalc/DriveAngleDeg",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
+                }
+              },
+              {
+                "title": "HoodAngleDeg",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/HoodAngleDeg",
+                  "period": 0.06,
+                  "data_type": "double"
                 }
               },
               {
@@ -205,67 +317,65 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/FlywheelSpeedRPM",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
+                }
+              },
+              {
+                "title": "ExitSpeedMs",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/ExitSpeedMs",
+                  "period": 0.06,
+                  "data_type": "double"
+                }
+              },
+              {
+                "title": "DistanceMeters",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/DistanceMeters",
+                  "period": 0.06,
+                  "data_type": "double"
+                }
+              },
+              {
+                "title": "TimeOfFlight",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/TimeOfFlight",
+                  "period": 0.06,
+                  "data_type": "double"
+                }
+              },
+              {
+                "title": "FeedShot",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/FeedShot",
+                  "period": 0.06,
+                  "data_type": "boolean"
                 }
               }
             ]
           }
         ],
         "containers": [
-          {
-            "title": "Scheduler",
-            "x": 0.0,
-            "y": 128.0,
-            "width": 384.0,
-            "height": 768.0,
-            "type": "Scheduler",
-            "properties": {
-              "topic": "/SmartDashboard/Scheduler",
-              "period": 0.06
-            }
-          },
-          {
-            "title": "FlywheelSpeedOffset",
-            "x": 384.0,
-            "y": 384.0,
-            "width": 384.0,
-            "height": 384.0,
-            "type": "Radial Gauge",
-            "properties": {
-              "topic": "/Robot/ShotCalc/FlywheelSpeedOffset",
-              "period": 0.033,
-              "data_type": "double",
-              "start_angle": -140.0,
-              "end_angle": 140.0,
-              "min_value": -10.0,
-              "max_value": 10.0,
-              "number_of_labels": 8,
-              "wrap_value": false,
-              "show_pointer": true,
-              "show_ticks": false
-            }
-          },
-          {
-            "title": "TurretAngleOffsetDegrees",
-            "x": 1024.0,
-            "y": 384.0,
-            "width": 384.0,
-            "height": 384.0,
-            "type": "Radial Gauge",
-            "properties": {
-              "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
-              "period": 0.06,
-              "data_type": "double",
-              "start_angle": -140.0,
-              "end_angle": 140.0,
-              "min_value": -15.0,
-              "max_value": 15.0,
-              "number_of_labels": 8,
-              "wrap_value": false,
-              "show_pointer": true,
-              "show_ticks": false
-            }
-          },
           {
             "title": "MatchTime",
             "x": 768.0,
@@ -304,14 +414,73 @@
             }
           },
           {
-            "title": "Applied State",
+            "title": "InShift",
+            "x": 1024.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Match Data/InShift",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "DriveAngleOffsetDegrees",
+            "x": 384.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/Robot/ShotCalc/DriveAngleOffsetDegrees",
+              "period": 0.2,
+              "data_type": "double",
+              "start_angle": -140.0,
+              "end_angle": 140.0,
+              "min_value": -15.0,
+              "max_value": 15.0,
+              "number_of_labels": 10,
+              "wrap_value": false,
+              "show_pointer": true,
+              "show_ticks": true
+            }
+          },
+          {
+            "title": "HoodAngleOffsetDegrees",
+            "x": 1024.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/Robot/ShotCalc/HoodAngleOffsetDegrees",
+              "period": 0.2,
+              "data_type": "double",
+              "start_angle": -140.0,
+              "end_angle": 140.0,
+              "min_value": -5.0,
+              "max_value": 5.0,
+              "number_of_labels": 10,
+              "wrap_value": false,
+              "show_pointer": true,
+              "show_ticks": true
+            }
+          },
+          {
+            "title": "CurrentSuperState",
             "x": 0.0,
             "y": 0.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Large Text Display",
             "properties": {
-              "topic": "/Robot/Applied State",
+              "topic": "/Robot/SuperStructure/CurrentSuperState",
               "period": 0.06,
               "data_type": "string"
             }
@@ -330,23 +499,6 @@
               "time_display_mode": "Minutes and Seconds",
               "red_start_time": 20,
               "yellow_start_time": 30
-            }
-          },
-          {
-            "title": "InShift",
-            "x": 1024.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 384.0,
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/Robot/Match Data/InShift",
-              "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4283215696,
-              "false_color": 4294198070,
-              "true_icon": "None",
-              "false_icon": "None"
             }
           }
         ]
@@ -377,20 +529,20 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/DistanceMeters",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
                 }
               },
               {
-                "title": "TurretAngleDeg",
+                "title": "HoodAngleDeg",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Large Text Display",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/TurretAngleDeg",
-                  "period": 0.06,
-                  "data_type": "string"
+                  "topic": "/Robot/ShotCalc/HoodAngleDeg",
+                  "period": 0.2,
+                  "data_type": "double"
                 }
               },
               {
@@ -403,39 +555,39 @@
                 "properties": {
                   "topic": "/Robot/ShotCalc/FlywheelSpeedRPM",
                   "period": 0.06,
-                  "data_type": "string"
+                  "data_type": "double"
                 }
               },
               {
-                "title": "TurretAngleOffsetDegrees",
+                "title": "DriveAngleOffsetDegrees",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Number Slider",
                 "properties": {
-                  "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "min_value": -15.0,
-                  "max_value": 15.0,
-                  "divisions": 6,
-                  "update_continuously": false
-                }
-              },
-              {
-                "title": "FlywheelSpeedOffset",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Number Slider",
-                "properties": {
-                  "topic": "/Robot/ShotCalc/FlywheelSpeedOffset",
-                  "period": 0.06,
+                  "topic": "/Robot/ShotCalc/DriveAngleOffsetDegrees",
+                  "period": 0.2,
                   "data_type": "double",
                   "min_value": -10.0,
                   "max_value": 10.0,
+                  "divisions": 5,
+                  "update_continuously": false
+                }
+              },
+              {
+                "title": "HoodAngleOffsetDegrees",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Number Slider",
+                "properties": {
+                  "topic": "/Robot/ShotCalc/HoodAngleOffsetDegrees",
+                  "period": 0.2,
+                  "data_type": "double",
+                  "min_value": -5.0,
+                  "max_value": 5.0,
                   "divisions": 6,
                   "update_continuously": false
                 }
@@ -443,105 +595,41 @@
             ]
           },
           {
-            "title": "LauncherPrep",
-            "x": 512.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 384.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
-              {
-                "title": "LauncherOnTarget",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Boolean Box",
-                "properties": {
-                  "topic": "/Robot/LauncherPrep/LauncherOnTarget",
-                  "period": 0.06,
-                  "data_type": "boolean",
-                  "true_color": 4283215696,
-                  "false_color": 4294198070,
-                  "true_icon": "None",
-                  "false_icon": "None"
-                }
-              },
-              {
-                "title": "TurretOnTarget",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Boolean Box",
-                "properties": {
-                  "topic": "/Robot/LauncherPrep/TurretOnTarget",
-                  "period": 0.06,
-                  "data_type": "boolean",
-                  "true_color": 4283215696,
-                  "false_color": 4294198070,
-                  "true_icon": "None",
-                  "false_icon": "None"
-                }
-              },
-              {
-                "title": "ReadyToLaunch",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Boolean Box",
-                "properties": {
-                  "topic": "/Robot/LauncherPrep/ReadyToLaunch",
-                  "period": 0.06,
-                  "data_type": "boolean",
-                  "true_color": 4283215696,
-                  "false_color": 4294198070,
-                  "true_icon": "None",
-                  "false_icon": "None"
-                }
-              }
-            ]
-          },
-          {
-            "title": "Turret",
+            "title": "Hood",
             "x": 1024.0,
             "y": 0.0,
             "width": 256.0,
-            "height": 512.0,
+            "height": 768.0,
             "type": "List Layout",
             "properties": {
               "label_position": "TOP"
             },
             "children": [
               {
-                "title": "CurrentCommand",
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/CurrentCommand",
+                  "topic": "/Robot/Hood/SystemState",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "Current",
+                "title": "WantedState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/Current",
+                  "topic": "/Robot/Hood/WantedState",
                   "period": 0.06,
-                  "data_type": "double",
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -553,35 +641,49 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/PositionDegrees",
+                  "topic": "/Robot/Hood/PositionDegrees",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "PositionRotations",
+                "title": "SupplyCurrent",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/PositionRotations",
+                  "topic": "/Robot/Hood/SupplyCurrent",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "VelocityRPM",
+                "title": "StatorCurrent",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/VelocityRPM",
+                  "topic": "/Robot/Hood/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "RPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/RPM",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -595,9 +697,37 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/Voltage",
+                  "topic": "/Robot/Hood/Voltage",
                   "period": 0.06,
                   "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/CurrentCommand",
+                  "period": 0.06,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               }
@@ -608,37 +738,37 @@
             "x": 1280.0,
             "y": 0.0,
             "width": 256.0,
-            "height": 512.0,
+            "height": 768.0,
             "type": "List Layout",
             "properties": {
               "label_position": "TOP"
             },
             "children": [
               {
-                "title": "CurrentCommand",
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Launcher/CurrentCommand",
+                  "topic": "/Robot/Launcher/SystemState",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "Current",
+                "title": "WantedState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Launcher/Current",
+                  "topic": "/Robot/Launcher/WantedState",
                   "period": 0.06,
-                  "data_type": "double",
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -671,16 +801,58 @@
                 }
               },
               {
-                "title": "OnTheFlySpeed",
+                "title": "SupplyCurrent",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Tunable/Launcher/OnTheFlySpeed",
+                  "topic": "/Robot/Launcher/SupplyCurrent",
                   "period": 0.06,
                   "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/CurrentCommand",
+                  "period": 0.06,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               }
@@ -710,15 +882,15 @@
             }
           },
           {
-            "title": "limelight-turret",
-            "x": 768.0,
+            "title": "limelight-back",
+            "x": 512.0,
             "y": 512.0,
-            "width": 384.0,
+            "width": 512.0,
             "height": 384.0,
             "type": "Camera Stream",
             "properties": {
-              "topic": "/CameraPublisher/limelight-turret",
-              "period": 0.06,
+              "topic": "/CameraPublisher/limelight-back",
+              "period": 0.2,
               "rotation_turns": 0
             }
           }
@@ -726,14 +898,14 @@
       }
     },
     {
-      "name": "Diagnostic",
+      "name": "Diagnostics",
       "grid_layout": {
         "layouts": [
           {
-            "title": "FuelIntake",
-            "x": 640.0,
-            "y": 512.0,
-            "width": 256.0,
+            "title": "SuperStructure",
+            "x": 512.0,
+            "y": 640.0,
+            "width": 768.0,
             "height": 384.0,
             "type": "List Layout",
             "properties": {
@@ -741,28 +913,122 @@
             },
             "children": [
               {
-                "title": "CurrentCommand",
+                "title": "CurrentSuperState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/SuperStructure/CurrentSuperState",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "WantedSuperState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/SuperStructure/WantedSuperState",
+                  "period": 0.06,
+                  "data_type": "string"
+                }
+              },
+              {
+                "title": "IntakeSqueezeTimerElapsed",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Large Text Display",
+                "properties": {
+                  "topic": "/Robot/SuperStructure/IntakeSqueezeTimerElapsed",
+                  "period": 0.06,
+                  "data_type": "double"
+                }
+              }
+            ]
+          },
+          {
+            "title": "FuelIntake",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 640.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/FuelIntake/CurrentCommand",
+                  "topic": "/Robot/FuelIntake/SystemState",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "Current",
+                "title": "WantedState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/FuelIntake/Current",
+                  "topic": "/Robot/FuelIntake/WantedState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Voltage",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/FuelIntake/Voltage",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "SupplyCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/FuelIntake/SupplyCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/FuelIntake/StatorCurrent",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -783,32 +1049,19 @@
                 }
               },
               {
-                "title": "Voltage",
+                "title": "Temp",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/FuelIntake/Voltage",
+                  "topic": "/Robot/FuelIntake/Temp",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
-              }
-            ]
-          },
-          {
-            "title": "IndexerBed",
-            "x": 896.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 384.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
+              },
               {
                 "title": "CurrentCommand",
                 "x": 0.0,
@@ -817,23 +1070,189 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/IndexerBed/CurrentCommand",
+                  "topic": "/Robot/FuelIntake/CurrentCommand",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
-              },
+              }
+            ]
+          },
+          {
+            "title": "IntakeExtension",
+            "x": 256.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 640.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
               {
-                "title": "Current",
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/IndexerBed/Current",
+                  "topic": "/Robot/IntakeExtension/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "WantedState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/WantedState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Position",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/Position",
                   "period": 0.06,
                   "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "SupplyCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/SupplyCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Voltage",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/Voltage",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "RPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/RPM",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IntakeExtension/CurrentCommand",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              }
+            ]
+          },
+          {
+            "title": "IndexerBed",
+            "x": 512.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 640.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
+              {
+                "title": "SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerBed/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "WantedState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerBed/WantedState",
+                  "period": 0.06,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -864,20 +1283,49 @@
                   "data_type": "double",
                   "show_submit_button": false
                 }
-              }
-            ]
-          },
-          {
-            "title": "IndexerTower",
-            "x": 896.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
+              },
+              {
+                "title": "SupplyCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerBed/SupplyCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerBed/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerBed/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
               {
                 "title": "CurrentCommand",
                 "x": 0.0,
@@ -886,23 +1334,50 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/IndexerTower/CurrentCommand",
+                  "topic": "/Robot/IndexerBed/CurrentCommand",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
-              },
+              }
+            ]
+          },
+          {
+            "title": "IndexerTower",
+            "x": 768.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 640.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
               {
-                "title": "Current",
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/IndexerTower/Current",
+                  "topic": "/Robot/IndexerTower/SystemState",
                   "period": 0.06,
-                  "data_type": "double",
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "WantedState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerTower/WantedState",
+                  "period": 0.06,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -921,6 +1396,34 @@
                 }
               },
               {
+                "title": "SupplyCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerTower/SupplyCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerTower/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
                 "title": "Voltage",
                 "x": 0.0,
                 "y": 0.0,
@@ -933,20 +1436,21 @@
                   "data_type": "double",
                   "show_submit_button": false
                 }
-              }
-            ]
-          },
-          {
-            "title": "IndexerTowerBack",
-            "x": 1152.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/IndexerTower/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
               {
                 "title": "CurrentCommand",
                 "x": 0.0,
@@ -955,134 +1459,9 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/IndexerTowerBack/CurrentCommand",
+                  "topic": "/Robot/IndexerTower/CurrentCommand",
                   "period": 0.06,
                   "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Current",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/Current",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "RPM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/RPM",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Voltage",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IndexerTowerBack/Voltage",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              }
-            ]
-          },
-          {
-            "title": "IntakeExtension",
-            "x": 640.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
-              {
-                "title": "CurrentCommand",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IntakeExtension/CurrentCommand",
-                  "period": 0.06,
-                  "data_type": "string",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Current",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IntakeExtension/Current",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Position",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IntakeExtension/Position",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "RPM",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IntakeExtension/RPM",
-                  "period": 0.06,
-                  "data_type": "double",
-                  "show_submit_button": false
-                }
-              },
-              {
-                "title": "Voltage",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "Text Display",
-                "properties": {
-                  "topic": "/Robot/IntakeExtension/Voltage",
-                  "period": 0.06,
-                  "data_type": "double",
                   "show_submit_button": false
                 }
               }
@@ -1090,40 +1469,40 @@
           },
           {
             "title": "Launcher",
-            "x": 384.0,
-            "y": 512.0,
+            "x": 1024.0,
+            "y": 0.0,
             "width": 256.0,
-            "height": 384.0,
+            "height": 640.0,
             "type": "List Layout",
             "properties": {
               "label_position": "TOP"
             },
             "children": [
               {
-                "title": "CurrentCommand",
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Launcher/CurrentCommand",
+                  "topic": "/Robot/Launcher/SystemState",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "Current",
+                "title": "WantedState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Launcher/Current",
+                  "topic": "/Robot/Launcher/WantedState",
                   "period": 0.06,
-                  "data_type": "double",
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -1156,32 +1535,47 @@
                 }
               },
               {
-                "title": "OnTheFlySpeed",
+                "title": "SupplyCurrent",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Tunable/Launcher/OnTheFlySpeed",
+                  "topic": "/Robot/Launcher/SupplyCurrent",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
-              }
-            ]
-          },
-          {
-            "title": "Turret",
-            "x": 384.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 512.0,
-            "type": "List Layout",
-            "properties": {
-              "label_position": "TOP"
-            },
-            "children": [
+              },
+              {
+                "title": "StatorCurrent",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Launcher/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
               {
                 "title": "CurrentCommand",
                 "x": 0.0,
@@ -1190,23 +1584,50 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/CurrentCommand",
+                  "topic": "/Robot/Launcher/CurrentCommand",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
                 }
-              },
+              }
+            ]
+          },
+          {
+            "title": "Hood",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 640.0,
+            "type": "List Layout",
+            "properties": {
+              "label_position": "TOP"
+            },
+            "children": [
               {
-                "title": "Current",
+                "title": "SystemState",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/Current",
+                  "topic": "/Robot/Hood/SystemState",
                   "period": 0.06,
-                  "data_type": "double",
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "WantedState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/WantedState",
+                  "period": 0.06,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               },
@@ -1218,35 +1639,49 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/PositionDegrees",
+                  "topic": "/Robot/Hood/PositionDegrees",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "PositionRotations",
+                "title": "SupplyCurrent",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/PositionRotations",
+                  "topic": "/Robot/Hood/SupplyCurrent",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
                 }
               },
               {
-                "title": "VelocityRPM",
+                "title": "StatorCurrent",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/VelocityRPM",
+                  "topic": "/Robot/Hood/StatorCurrent",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "RPM",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/RPM",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -1260,9 +1695,37 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/Robot/Turret/Voltage",
+                  "topic": "/Robot/Hood/Voltage",
                   "period": 0.06,
                   "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Temp",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/Temp",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "CurrentCommand",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Hood/CurrentCommand",
+                  "period": 0.06,
+                  "data_type": "string",
                   "show_submit_button": false
                 }
               }
@@ -1270,15 +1733,71 @@
           },
           {
             "title": "Swerve",
-            "x": 1152.0,
-            "y": 512.0,
+            "x": 1536.0,
+            "y": 0.0,
             "width": 256.0,
-            "height": 384.0,
+            "height": 640.0,
             "type": "List Layout",
             "properties": {
               "label_position": "TOP"
             },
             "children": [
+              {
+                "title": "SystemState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Swerve/SystemState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "WantedState",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Swerve/WantedState",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "TeleopVelocityCoefficient",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Swerve/TeleopVelocityCoefficient",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "RotationVelocityCoefficient",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/Robot/Swerve/RotationVelocityCoefficient",
+                  "period": 0.06,
+                  "data_type": "double",
+                  "show_submit_button": false
+                }
+              },
               {
                 "title": "CurrentCommand",
                 "x": 0.0,
@@ -1296,45 +1815,7 @@
             ]
           }
         ],
-        "containers": [
-          {
-            "title": "Scheduler",
-            "x": 0.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 896.0,
-            "type": "Scheduler",
-            "properties": {
-              "topic": "/SmartDashboard/Scheduler",
-              "period": 0.06
-            }
-          },
-          {
-            "title": "Alerts",
-            "x": 1408.0,
-            "y": 128.0,
-            "width": 384.0,
-            "height": 768.0,
-            "type": "Alerts",
-            "properties": {
-              "topic": "/SmartDashboard/Alerts",
-              "period": 0.06
-            }
-          },
-          {
-            "title": "Applied State",
-            "x": 1408.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Large Text Display",
-            "properties": {
-              "topic": "/Robot/Applied State",
-              "period": 0.06,
-              "data_type": "string"
-            }
-          }
-        ]
+        "containers": []
       }
     },
     {

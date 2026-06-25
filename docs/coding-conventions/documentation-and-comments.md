@@ -1,41 +1,75 @@
 # Documentation and Comments
 
-Effective documentation and commenting are vital for team collaboration, code maintainability, and helping new programmers understand the codebase.
+*Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-## General Documentation Principles
+The goal: someone joining the team next month should be able to read this codebase top-to-bottom and form an accurate mental model without you on a call to translate. Comments and JavaDoc are the most useful when the code's *what* is clear from the names but the *why* isn't.
 
-*   **Helps Fellow Programmers**: Documentation clarifies your code's purpose, logic, and design, making it easier for others to understand and review your work.
-*   **Spectrum Code Guide**: If you discover a particularly helpful approach or insight, contribute it to the Spectrum Code Guide to benefit future team members.
-*   **GitHub Issues**: Utilize GitHub Issues for tracking tasks, bugs, and enhancements. Documenting issues helps resolve problems faster if the context is known.
-*   **External Resources**: Don't limit yourself to internal documentation. Consult resources like Chief Delphi forums or official WPILib documentation for solutions and best practices.
+## When to Comment
 
-## JavaDoc Comments
+Default to writing no comment. Add one when the *why* is non-obvious:
 
-"Every class and nontrivial public method that you write must contain a Javadoc comment with at least one sentence describing what the class or method does. This sentence should start with a third person descriptive verb."
+* A hidden constraint (`// PathPlanner expects angles in radians, not degrees`)
+* A workaround for a specific bug (`// Phoenix 6 < 26.1.3 returns NaN for unconfigured slots — see CTRE issue #471`)
+* A subtle invariant (`// must be called before configurePID() — order matters`)
+* Behavior that would surprise a reader (`// LED priority of -1 is the lowest — it only runs when no higher-priority pattern is active`)
 
-*   Use `/** Comment */` syntax for JavaDoc comments.
-*   **Purpose**: JavaDoc comments are used to generate API documentation automatically. They explain the purpose of classes, methods, and variables.
-*   **Content**: Describe *what* the class/method does, its parameters, return values, and any exceptions it might throw.
-*   **Tools**: GitHub Copilot can often assist in generating basic JavaDoc comments.
-*   **Full Guide**: Refer to the official JavaDoc guide for comprehensive details.
+Don't write comments that just restate the code. `// loop over modules` above `for (var module : modules)` is noise. Names like `tightenMagnetOffset` or `rejectAmbiguousTagEstimate` already say what the code does.
+
+## JavaDoc
+
+Public methods on `*States` classes and `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious:
+
+```java
+/**
+ * Sets the launcher target speed.
+ *
+ * @param rpm flywheel revolutions per minute, 0-6000
+ */
+public Command setSpeed(double rpm) { ... }
+```
+
+Two specific habits that pay off:
+
+* **Document units in `@param`/`@return`** — `meters`, `radians`, `volts`, `RPM`. Off-by-π errors happen because someone assumed the wrong unit.
+* **Note thread/loop expectations when they matter** — "must be called from `periodic()`", "safe to call while disabled", etc.
+
+`./gradlew javadoc` renders HTML to `build/docs/javadoc/`. `Xdoclint:none` is set, so missing JavaDocs don't fail the build — but they do fail readers later. See [Build Tools](../tools/build-tools.md) for the JavaDoc task config and cross-link setup.
 
 ## TODO Comments
 
-Use `TODO` comments for code that is:
+Use `// TODO:` for code that works but you know wants follow-up. Include enough context that future-you can pick it up cold:
 
-*   Temporary.
-*   A short-term solution.
-*   Functional but could be improved.
+```java
+// TODO: replace hardcoded 12V with battery-compensated supply voltage
+```
 
-**Format**: `// TODO: Followed by a colon and a descriptive message.`
-*   These comments often appear as tasks in the VS Code console, making them easy to track for future improvements.
+VSCode surfaces TODOs in the Problems panel, which is the closest thing to a built-in tracker. For anything bigger than a one-line follow-up, open a GitHub Issue and reference it from the TODO (`// TODO(#142): integrate PhotonVision pipeline`). The Issue persists; the TODO might get refactored away.
 
-## Design Slide Building
+Don't use `// TODO` for known broken code — fix it or open an Issue and `@SuppressWarnings` it intentionally. A TODO on a bug becomes a landmine for the next person.
 
-Building design review slides effectively relies heavily on clear and accessible code documentation. When preparing for design reviews (e.g., subsystem designs, architectural overviews, new feature proposals), your documentation serves as a critical resource.
+## What Not to Write
 
-*   **Understanding "Why"**: Good comments and general documentation (like this guide) explain the rationale behind design choices, making it easier to present the "why" to others.
-*   **Code Structure Overview**: Class-level JavaDocs and module documentation help you quickly summarize the purpose and interfaces of different code components for your slides.
-*   **Behavioral Details**: Method-level JavaDocs and descriptions of state transitions (e.g., in `Coordinator.java` or `RobotStates.java`) provide the necessary detail to explain how specific functionalities work.
-*   **Debugging/Testing Insights**: Documentation around potential edge cases, known bugs (TODOs), or testing procedures can inform discussions about system robustness during reviews.
-*   **Consistency**: Adhering to code style and documentation standards ensures that when you pull information from the codebase for slides, it is presented clearly and consistently.
+* **Don't reference current context.** `// added for the launching state` or `// fix for issue #99` rots — the issue gets closed, the state gets renamed, and the comment is wrong forever. Put that in the PR description and commit message.
+* **Don't write block-comment banners.** `/* === Helpers === */` looks tidy but adds nothing.
+* **Don't write multi-paragraph docstrings** unless the method really is that subtle. If your comment is longer than the method, the method probably wants to be split.
+* **Don't commit commented-out code.** Delete it; git has the history. The only exception is when explicitly marking a WIP region with a clear `// TODO: re-enable when X` — and even then, prefer a stub or `throw new UnsupportedOperationException`.
+
+## Cross-Referencing Code From Docs
+
+This documentation set links into source via relative paths from `docs/` — e.g., `[Launcher.java](../../src/main/java/frc/robot/launcher/Launcher.java)`. Keep those alive:
+
+* When you rename a class, grep the `docs/` tree for the old name (`grep -r "OldClassName" docs/`) and fix references.
+* When you delete a class, decide whether the doc reference is still useful (might point to a successor) or should be removed.
+* When you move a file, the relative path needs updating.
+
+There's no automated link checker on this repo — if you break a link, nobody notices until someone clicks. Periodic grep-and-fix is the only enforcement.
+
+## External Resources
+
+Don't reinvent. Chief Delphi, the [WPILib docs](https://docs.wpilib.org), and CTRE / Limelight / PathPlanner docs cover everything except the team-specific patterns. This doc set is specifically *not* trying to replace those — its job is to capture how *we* assemble those pieces. If the right answer is "go read the WPILib docs on `SubsystemBase`," that's the right answer; link to it.
+
+## See Also
+
+* [Code Style](code-style.md) for naming and formatting.
+* [Class Generation](class-generation.md) for the structural conventions JavaDocs live around.
+* [Build Tools](../tools/build-tools.md) for the JavaDoc Gradle task.

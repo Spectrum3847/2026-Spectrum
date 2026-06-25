@@ -54,6 +54,10 @@
         }
       },
       "/SmartDashboard/Field2d": {
+        "Auto Routine": {
+          "arrows": false,
+          "style": "Line"
+        },
         "Robot": {
           "arrowColor": [
             1.0,
@@ -153,7 +157,11 @@
       "Robot": {
         "FieldSimulation": {
           "open": true
-        }
+        },
+        "Match Data": {
+          "open": true
+        },
+        "open": true
       },
       "SmartDashboard": {
         "MapleSim": {
@@ -173,6 +181,9 @@
       "open": true
     },
     "Clients": {
+      "open": true
+    },
+    "Elastic@2": {
       "open": true
     },
     "visible": true

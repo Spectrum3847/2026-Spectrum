@@ -17,7 +17,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
@@ -48,13 +48,6 @@ public class Auton {
                 "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
 
         pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
-
-        pathChooser.addOption(
-                "Playoff Neutral Zone - Left Start",
-                SpectrumAuton("Playoff Neutral Zone - Left Start", false));
-        pathChooser.addOption(
-                "Playoff Neutral Zone - Right Start",
-                SpectrumAuton("Playoff Neutral Zone - Left Start", true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

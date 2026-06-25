@@ -1,9 +1,3 @@
-// Copyright (c) 2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
 package frc.rebuilt;
 
 import edu.wpi.first.math.geometry.*;
@@ -32,11 +26,17 @@ public class Field {
 
     public static final double tag26X = Units.inchesToMeters(158.61);
 
-    public static final Translation2d feedBlueLeft = new Translation2d(1, fieldWidth - 1);
-    public static final Translation2d feedBlueRight = new Translation2d(1, 1);
-    public static final Translation2d feedRedLeft = new Translation2d(fieldLength - 1, 1);
-    public static final Translation2d feedRedRight =
+    public static final Translation2d normalFeedBlueLeft = new Translation2d(1, fieldWidth - 1);
+    public static final Translation2d normalFeedBlueRight = new Translation2d(1, 1);
+    public static final Translation2d normalFeedRedLeft = new Translation2d(fieldLength - 1, 1);
+    public static final Translation2d normalFeedRedRight =
             new Translation2d(fieldLength - 1, fieldWidth - 1);
+
+    public static final Translation2d deepFeedBlueLeft = new Translation2d(1, fieldWidth - 2.5);
+    public static final Translation2d deepFeedBlueRight = new Translation2d(1, 2.5);
+    public static final Translation2d deepFeedRedLeft = new Translation2d(fieldLength - 1, 2.5);
+    public static final Translation2d deepFeedRedRight =
+            new Translation2d(fieldLength - 1, fieldWidth - 2.5);
 
     public static class BlueHub {
         public static final double width = Units.inchesToMeters(47.0);
@@ -160,7 +160,7 @@ public class Field {
         public static final double midRungZ = Units.inchesToMeters(45.0);
         public static final double highRungZ = Units.inchesToMeters(63.0);
 
-        public static final double tag31Y = Units.inchesToMeters(fieldWidth / 2);
+        public static final double tag31Y = fieldWidth / 2.0;
 
         // Fixed X location
         public static final double frontFaceX = Units.inchesToMeters(43.51);
@@ -219,19 +219,8 @@ public class Field {
         return Field.fieldLength - translation;
     }
 
-    @Getter
-    public static final Translation3d blueHubCenter = BlueHub.topCenter; // new Translation3d(
-    // Units.inchesToMeters(182.11),
-    // Units.inchesToMeters(158.84),
-    // Units.inchesToMeters(72));
-    @Getter
-    public static final Translation3d redHubCenter =
-            BlueToRed(BlueHub.topCenter); // new Translation3d(
-    // Units.inchesToMeters(469.11),
-    // Units.inchesToMeters(158.84),
-    // Units.inchesToMeters(72));
-
-    @Getter private static final double aprilTagWidth = Units.inchesToMeters(6.50);
+    @Getter public static final Translation3d blueHubCenter = BlueHub.topCenter;
+    @Getter public static final Translation3d redHubCenter = BlueToRed(BlueHub.topCenter);
 
     /** Returns {@code true} if the robot is on the blue alliance. */
     public static boolean isBlue() {

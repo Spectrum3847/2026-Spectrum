@@ -1,47 +1,88 @@
 # Exception Handling
 
-Proper exception handling is crucial for creating robust and reliable robot code. It prevents unexpected crashes and allows the robot to recover gracefully from errors.
+*Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-## No Empty Catch Clauses
+Robot code runs in a single process that's responsible for moving a lot of mass around. Crashing during a match is the worst outcome; silently swallowing an exception that explains *why* the robot is misbehaving is a close second. The aim of exception handling here is to fail loudly when something is wrong, recover gracefully when recovery is meaningful, and never hide errors from the log.
 
-Never use empty catch clauses.
+## Never Write an Empty Catch
 
-> "Anytime somebody has an empty catch clause they should have a creepy feeling. There are definitely times when it is actually the correct thing to do, but at least you have to think about it. In Java you can't escape the creepy feeling." — James Gosling
+> "Anytime somebody has an empty catch clause they should have a creepy feeling. There are definitely times when it is actually the correct thing to do, but at least you have to think about it." — James Gosling
 
-An empty catch block hides errors, making debugging extremely difficult. At a minimum, log the exception or print its stack trace.
+If you have a reason to catch and not log, write it down in a one-line comment so a future reader sees you thought about it. Otherwise, at minimum:
 
-## Don't Catch Generic Exceptions
+```java
+} catch (IOException e) {
+    Telemetry.print("Failed to load auto file: " + e.getMessage(), PrintPriority.HIGH);
+    e.printStackTrace();
+}
+```
 
-Avoid catching `Exception` or `Throwable` generically, especially in application-level code.
+Use [`Telemetry.print(..., PrintPriority.HIGH)`](../tools/logging.md) — it ends up in the WPILib log *and* on the Driver Station console. `e.printStackTrace()` adds the full trace to stderr, which is also captured if `captureConsole` is on (it is, see `Telemetry.start(...)`).
 
-*   **Danger**: Catching generic exceptions can inadvertently suppress critical errors, including runtime exceptions like `NullPointerException` or `ClassCastException`, which should typically cause program termination or be handled more specifically.
-*   **Specificity**: Catch the most specific exception possible (e.g., `IOException`, `TimeoutException`) to handle only the errors you anticipate and can meaningfully recover from.
+## Don't Catch `Exception` Broadly
 
-## Array Exceptions
+Catching `Exception` or `Throwable` at the top of a method silences `NullPointerException`, `ClassCastException`, and `OutOfMemoryError` along with whatever you actually wanted to catch. Those generic exceptions almost always mean a real bug — let them propagate so the WPILib robot wrapper can log them and the match continues with whatever it can.
 
-Commonly, exceptions like `NullPointerException` or `ArrayIndexOutOfBoundsException` can cause the robot to break if not handled.
+Catch the *specific* exception you're handling:
 
-### Prevention Strategies
+```java
+try {
+    path = PathPlannerPath.fromPathFile(pathName);
+    return AutoBuilder.followPath(path);
+} catch (FileVersionException | IOException | ParseException e) {
+    // Pattern from frc.robot.auton.Auton.followSinglePath
+    e.printStackTrace();
+    return new PrintCommand("ERROR LOADING PATH");
+}
+```
 
-1.  **Conditional Checks**: Use `if` statements to check for potential array-related issues *before* accessing elements.
-    *   **Example**: Check if an `index` is within bounds (`index >= 0 && index < array.length`) before accessing `array[index]`.
-    *   **Example**: Check if an object is `null` (`if (myObject != null)`) before calling methods on it.
+This is the actual pattern in [`Auton.followSinglePath`](../../src/main/java/frc/robot/auton/Auton.java) — three specific exceptions, joined with `|`, fallback to a print command that names the failure mode.
 
-2.  **`try-catch` Blocks**: Use `try-catch` blocks as a fail-safe mechanism in robot code, particularly for operations that might fail unpredictably (e.g., sensor readings, network communication).
+## Prefer Validating Inputs Over Catching `NullPointerException`
 
-    ```java
-    try {
-        // Code that might throw an exception
-        int value = mySensor.getValue();
-        // ...
-    } catch (SpecificException e) {
-        // Handle the specific exception, e.g., log it and use a default value
-        System.err.println("Error reading sensor: " + e.getMessage());
-        // telemetry.log("SensorError", e.getMessage());
-    } catch (AnotherSpecificException e) {
-        // Handle other specific exceptions
-    } catch (Exception e) { // Only catch generic Exception as a last resort, and always log it!
-        System.err.println("An unexpected error occurred: " + e.getMessage());
-        e.printStackTrace(); // Always print stack trace for generic exceptions
-    }
-    ```
+`NullPointerException` is almost never the right thing to catch. If a value can be null, check for null:
+
+```java
+Command auton = pathChooser.getSelected();
+if (auton != null) {
+    return auton;
+}
+return new PrintCommand("*** AUTON COMMAND IS NULL ***");
+```
+
+That's how `Auton.getAutonomousCommand()` handles "what if nothing's selected" — explicit check, explicit fallback, no `try { … } catch (NullPointerException)`.
+
+Same logic for `ArrayIndexOutOfBoundsException`: bounds-check before indexing rather than trapping the throw.
+
+## When `try-catch` Is the Right Tool
+
+You want `try-catch` when:
+
+* You're at a boundary with code you don't control — file I/O, network calls, vendor SDK methods that declare checked exceptions.
+* The recoverable behavior is meaningful — fall back to a default, retry once, switch to a degraded mode.
+* You want to *log and continue* rather than crash. Per-loop sensor reads are a common case: a bad read shouldn't crash the loop, just produce a sentinel value and log the issue.
+
+You don't want `try-catch` when:
+
+* The exception indicates a bug in your code. Let it crash; fix the bug.
+* You're catching it just to log and re-throw. Use the underlying logging hook instead, or let it propagate.
+
+## Logging the Exception, Not Just Its Message
+
+`e.getMessage()` alone often loses the chain. Prefer:
+
+```java
+Telemetry.print("Vision: failed to decode tag: " + e, PrintPriority.HIGH);
+e.printStackTrace();
+```
+
+`e.toString()` (which `+ e` calls) includes the exception class name; `printStackTrace()` includes the call site. Both together let someone reading the log six weeks later figure out what happened.
+
+## Faults
+
+For known failure modes, use the named entries in `Telemetry.Fault` (`CAMERA_OFFLINE`, `AUTO_SHOT_TIMEOUT_TRIGGERED`, `BROWNOUT`). The enum is the shared vocabulary; log the fault via `Telemetry.print(Fault.X.name(), PrintPriority.HIGH)` so it's easy to grep after a match. Add new entries as new fault classes emerge — they're cheap and they make post-match analysis much faster than free-text searches through `Prints`.
+
+## See Also
+
+* [Logging](../tools/logging.md) for how `Telemetry.print` and `log` end up in the `.wpilog`, plus the `Telemetry.Fault` catalog.
+* [Code Style](code-style.md) for the surrounding conventions.

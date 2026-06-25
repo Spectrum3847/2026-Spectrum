@@ -13,8 +13,7 @@ import edu.wpi.first.math.util.Units;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
-import frc.robot.RobotStates;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 
 public class ShotCalculator {
     private static ShotCalculator instance;
@@ -52,11 +51,11 @@ public class ShotCalculator {
         FLYWHEEL_SPEED_OFFSET -= 1;
     }
 
-    public static void increaseTurretAngleOffsetDegrees() {
+    public static void increaseDriveAngleOffsetDegrees() {
         FIELD_ANGLE_OFFSET_DEGREES += 1;
     }
 
-    public static void decreaseTurretAngleOffsetDegrees() {
+    public static void decreaseDriveAngleOffsetDegrees() {
         FIELD_ANGLE_OFFSET_DEGREES -= 1;
     }
 
@@ -111,9 +110,7 @@ public class ShotCalculator {
         if (latestParameters != null) return latestParameters;
 
         // Target selection
-        boolean feed =
-                RobotStates.robotInFeedZone.getAsBoolean()
-                        && !RobotStates.forceScore.getAsBoolean();
+        boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
@@ -178,7 +175,10 @@ public class ShotCalculator {
 
         // Commanded turret angle (with preference offset)
         Rotation2d fieldAngle = target.minus(compensatedTurretTranslation).getAngle();
-        fieldAngle = fieldAngle.plus(Rotation2d.fromDegrees(FIELD_ANGLE_OFFSET_DEGREES));
+        fieldAngle =
+                fieldAngle
+                        .plus(Rotation2d.k180deg)
+                        .plus(Rotation2d.fromDegrees(FIELD_ANGLE_OFFSET_DEGREES));
 
         // Turret angular velocity (rot/s) for your position controller feedforward
         if (lastTurretAngle == null) lastTurretAngle = fieldAngle;

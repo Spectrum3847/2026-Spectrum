@@ -1,166 +1,107 @@
 # Classes, Methods, and Objects
 
+*Audience: New programmers. Assumes you've read [Loops](loops.md).*
+
+A class is a blueprint. An object is a specific instance built from that blueprint. In this codebase, every mechanism on the robot is a class: `Launcher`, `IndexerBed`, `Hood`, and so on. When `Robot.java` starts up, it constructs one object of each class, which owns that mechanism's motors and state for the whole match.
+
+For how we structure those classes and their companion `*States` files, see [Class Generation](../coding-conventions/class-generation.md).
+
 ## Methods
 
-Methods are actions that objects can perform. In Java, using a method is called "invoking." Parameters are values that are passed into a method.
-
-### Invoking a Method
+A method is a named block of code the class can run. In Java, calling a method is "invoking" it.
 
 ```java
-class/object.doSomething(parameters);
+someObject.doSomething(parameter1, parameter2);
 ```
-This calls a method with the parameters passed in. If a method takes no parameters, a blank pair of parentheses is used.
 
-### General Method Format
+If there are no parameters, the parentheses are still required:
 
 ```java
-scope returnType methodName(parameters) {
-    // Method Body
-    return value; // (if not void)
+launcher.stopMotor();
+```
+
+The general form of a method declaration:
+
+```java
+accessModifier returnType methodName(parameterType parameterName) {
+    // body
+    return value;  // omit this line if returnType is void
 }
 ```
 
-You don't need to call the class/object name for the method if the method is in the same scope where it is being called.
+A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types — `LauncherStates.aimingAtTarget()` returns a `Trigger`, for example.
 
-### Lambdas
+## Scope and Access Modifiers
 
-Lambda expressions allow methods to be passed in as parameters.
+`private` means only code inside this class can see this variable or method. `public` means anything can. No modifier at all (package-private) means only code in the same package can.
 
-We use them when creating Commands and whenever we call config values in Commands as Suppliers.
+The convention in this codebase: fields are `private`, methods on `*States` classes are `public static`. That keeps internal mechanism data hidden while exposing a clean API to `Coordinator` and `RobotStates`.
 
 ```java
-public static Command move(DoubleSupplier percent) {
-    return moveToPercentage(percent);
-}
-
-// Using a lambda expression
-move(() -> config.getPercent());
-// Or using a method reference (shorthand for lambda if method only calls one thing)
-move(config::getPercent);
-```
-
-`() -> config.getPercent()` is equivalent to defining an anonymous method:
-```java
-public double someName() {
-    return config.getPercent();
+public class IndexerBed extends Mechanism {
+    @Getter @Setter private double indexerVoltageOut = 8;  // private field, accessed via getter
+    // ...
 }
 ```
-Lambdas are especially useful for returning config values of a mechanism when using Getter/Setter methods.
 
-## Scope
-
-Access modifiers are added to variables and methods to control access.  
-
-*   `private`: Restricts variable/method access to the declaring class.  
-*   `public`: Variables/methods can be accessed from anywhere.  
-*   No modifier (package-private): Variables/methods can be accessed only within the same package.  
-*   Other access modifiers like `protected` are also used.  
-
-We typically keep variables `private` and most methods `public`.
-
-### Scope Example
-
-**`Elevator.java`**
 ```java
-public class Elevator {
-    public void extendArm() {
-        // ...
-        // getGoals(); // cannot access goals variable from Intake
+public class LauncherStates {
+    private static Launcher launcher = Robot.getLauncher();  // private — internal
+
+    public static Command launchFuel() {                      // public — used by Coordinator
+        return launcher.runTorqueFOC(config::getLauncherTorqueCurrent);
     }
 }
 ```
 
-**`Intake.java`**
+## Static vs. Non-Static
+
+A `static` method or field belongs to the class itself, not to any particular instance. You call it with the class name, not an object name:
+
 ```java
-public class Intake {
-    private int goals;
+LauncherStates.launchFuel();  // static method on LauncherStates
+Math.abs(-5);                  // static method on Math
+```
 
-    public Intake() {
-        goals = 5;
-    }
+Non-static (instance) methods and fields belong to a specific object. You call them on the object:
 
-    public int getGoals() {
-        return goals;
+```java
+launcher.stopMotor();          // instance method on a specific Launcher object
+```
+
+`*States` classes are all static because there's only ever one launcher, one indexer, etc. The static reference to the mechanism object (`private static Launcher launcher = Robot.getLauncher()`) is initialized once when `Robot.java` constructs everything.
+
+## Constructors
+
+A constructor runs once when an object is created. It sets up the object's initial state. Its name matches the class name and it has no return type:
+
+```java
+public class IndexerBed extends Mechanism {
+    public IndexerBed(IndexerBedConfig config) {
+        super(config);
+        // motor setup, encoder wiring, etc.
     }
 }
 ```
 
-## Return Type
+`super(config)` calls the parent class (`Mechanism`) constructor before doing any `IndexerBed`-specific setup.
 
-Returning is sending back a value from a method.
+## Lambdas and Method References
 
-*   In Java, methods can only return one value.
-*   If the method does not return anything, `void` is used in the header.
-*   The data type that is returned by the method must be specified in the header (e.g., `String`, `int`, `boolean`). Data types also include class objects as return types.
+When a method expects a function as a parameter — like a `DoubleSupplier` or `Command` factory — you can pass a lambda rather than writing a whole named method:
 
-## Classes and Objects
-
-*   **Class**: A template/blueprint for objects.
-    *   File names must match the name of the class.
-    *   Usage of Encapsulation: Each mechanism on the robot is a class and contains all the variables and commands we can call on the mechanism.
-*   **Objects**: Instances of a class. An object is like a cookie and a class is like a cookie cutter.
-
-### Generalization: Car Example
-
-**`Car.java`**
 ```java
-public class Car {
-    private int position;
+// lambda: () -> body
+launcher.runVelocityTcFocRPM(() -> config.getIdlingRPM())
 
-    // Constructor: defines how to initialize the class
-    public Car(int pos) {
-        position = pos;
-    }
-
-    // Method: can change or access fields
-    public void run() {
-        position = position + 2;
-    }
-}
+// method reference: shorthand when the lambda just calls one method
+launcher.runVelocityTcFocRPM(config::getIdlingRPM)
 ```
 
-## Static and Non-Static
+Both are equivalent. The method reference form reads more clearly when there's nothing else in the lambda body. Lambdas are how commands in this codebase stay connected to live config values — if `idlingRPM` changes at runtime (through a `TuneValue`, say), the command sees the new value because it re-evaluates the supplier each loop.
 
-### Static
+This is covered further in [Tips](../other-guides/tips.md#doublesupplier-vs-double).
 
-The `static` keyword means that the method or field belongs to the **class** itself, not to specific **objects** of the class.
+---
 
-*   Static methods and attributes are called with the name of the class they belong to (e.g., `ClassName.staticMethod()`).
-*   Made for shared data, constants, and behaviors shared between multiple subsystems (e.g., tracking the number of users).
-
-### Non-Static
-
-There is no specific keyword for non-static; its absence indicates non-static.
-
-*   Non-static methods and attributes are called with the name of the **instance created/object** (e.g., `objectName.nonStaticMethod()`).
-*   Use non-static when data is unique to the specific instance of a class (e.g., tracking the score of each user).
-
-### Robot Example: Intake Subsystem
-
-**`Intake.java`**
-```java
-public class Intake {
-    private int position;
-
-    public Intake(int pos) {
-        position = pos;
-    }
-
-    public void run() {
-        position = position + 2;
-    }
-}
-```
-
-**`IntakeStates.java`**
-```java
-public class IntakeStates {
-    private static Intake intake = Robot.getIntake(); // Static reference to the Intake instance
-    private static int speed;
-
-    public static void run() {
-        intake.run(); // Calls the non-static run() method on the static intake object
-    }
-}
-```
-*In `IntakeStates.java`, `Robot.getIntake()` (assumed to be a static method) provides a shared instance of `Intake`. The `run()` method in `IntakeStates` is `static` but operates on the `intake` object, which is an instance, demonstrating interaction between static and non-static elements.*
+*Previous: [Loops](loops.md) — Next: [Formatting Code & Comments](formatting-code.md)*

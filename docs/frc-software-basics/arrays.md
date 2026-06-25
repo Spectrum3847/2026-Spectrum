@@ -1,82 +1,92 @@
 # Arrays
 
-## What are Arrays?
+*Audience: New programmers. Assumes you've read [Logic-Based Operators & Strings](logic-operators.md).*
 
-Arrays are lists/containers that can store multiple elements of the same data type.
-
-*   Can store variables, integers, bytes, booleans, etc.
-*   Also can store objects (covered in the next section).
-*   Limited only by the initialized amount in the array and its data type.
+An array holds a fixed number of values of the same type, indexed starting at zero. You declare the type, then the name, with `[]` after the type to signal it's an array.
 
 ```java
-// Main.java
-public static void main(String [] args) {
-    int [] x = {3, 8, 4, 7};
-    System.out.print(x[0]);
-    System.out.print(x[1]);
-    System.out.print(x[2]);
-    System.out.print(x[3]);
-}
-
-// Output:
-// 3847
+int[] x = {3, 8, 4, 7};
+// x[0] is 3, x[1] is 8, x[2] is 4, x[3] is 7
 ```
 
-## Initializing Arrays
+The size is fixed at creation. Once you create an `int[4]`, it holds exactly four ints for its lifetime. If you need a resizable list, Java has `ArrayList` — but for most robot code, fixed arrays are fine.
 
-Arrays are useful in storing multiple variables at once.
+## Declaring and Initializing
 
-*   The array can be created and initialized with its length.
-*   They can only store the same initialized data type within each array.
-*   There are no arrays with "negative" length/size.
-*   Each stored value is at an "index" value.
-*   The first index value—or the start of the list—is at "0".
+You can declare an array and fill it in one line (as above), or declare it first and initialize separately:
 
 ```java
-// Main.java
-public static void main(String [] args) {
-    int [] x;
+double[] positions = new double[4];   // four doubles, all initialized to 0.0
+positions[0] = 1.5;
+positions[1] = 2.3;
+// etc.
+```
 
-    // initializes the array to length "4"
-    x = new int[4];
+In `Vision.java`, the April tag IDs for each alliance are stored as int arrays:
 
-    // stores the value 4 at index "0"
-    x[0] = 4;
+```java
+int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
+int[] redTags  = {2, 3, 4, 5, 8, 9, 10, 11, 12};
+```
+
+Arrays of objects work the same way. `Vision.java` groups its three Limelights:
+
+```java
+allLimelights = new Limelight[] {backLL, leftLL, rightLL};
+```
+
+Once that array exists, a single enhanced `for` loop can update all three:
+
+```java
+for (Limelight limelight : allLimelights) {
+    limelight.setRobotOrientation(yaw);
 }
 ```
+
+`SwerveStates` uses a `double[4]` to collect per-module positions for wheel-radius characterization:
+
+```java
+double[] positions = new double[4];
+for (int i = 0; i < 4; i++) {
+    positions[i] = swerve.getModule(i).getCachedPosition().distanceMeters / wheelRadiusGuess;
+}
+```
+
+See [Loops](loops.md) for more on the `for` patterns used with arrays.
 
 ## Enums
 
-Enums (enumerations) are used to define a fixed number of named constants.
-
-*   Makes code clearer.
-*   Useful when you need to access one variable out of a set.
-*   Good usage for switch cases.
+Enums define a fixed set of named constants, and they're far more common in this codebase than raw arrays. Every mechanism's operating modes are expressed as enum values. `State.java` defines the top-level robot states:
 
 ```java
-public class EnumExample {
-    enum Day {
-        MONDAY, TUESDAY, WEDNESDAY,
-        THURSDAY, FRIDAY, SATURDAY,
-        SUNDAY
-    }
-    public static void main(String[] args) {
-        Day today = Day.MONDAY;
-        switch (today) {
-            case MONDAY:
-                System.out.println("Start of the week!");
-                break;
-            case SUNDAY:
-                System.out.println("It's the weekend!");
-                break;
-            default:
-                System.out.println("A regular weekday.");
-        }
-    }
+public enum State {
+    IDLE,
+    INTAKE_FUEL,
+    TRACK_TARGET,
+    LAUNCH_WITH_SQUEEZE,
+    LAUNCH_WITHOUT_SQUEEZE,
+    UNJAM,
+    // ...
 }
 ```
 
-## Array Specific Errors
+Enums are useful wherever you'd otherwise use a magic string or integer to represent a category. A `switch` on an enum is cleaner than a chain of `if/else` comparisons, and the compiler catches typos because only declared values exist:
 
-*   `ArrayIndexOutOfBoundsException`: Occurs when you try to access an array element using an index that is outside the valid range (e.g., negative index or an index greater than or equal to the array size).
-*   `NullPointerException`: Occurs when you try to access members of an object that is `null`. If an array of objects is declared but not initialized, its elements will be `null` by default.
+```java
+switch (state) {
+    case TRACK_TARGET -> true;
+    default -> false;
+}
+```
+
+For how this pattern fits into subsystem design, see [Class Generation](../coding-conventions/class-generation.md).
+
+## Array Errors
+
+`ArrayIndexOutOfBoundsException` — you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
+
+`NullPointerException` — you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
+
+---
+
+*Previous: [Logic-Based Operators & Strings](logic-operators.md) — Next: [Loops](loops.md)*

@@ -3,25 +3,25 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 3.6,
-        "y": 1.75
+        "x": 3.5975936329588016,
+        "y": 4.051423220973783
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.720032303943375,
-        "y": 1.1174708885191877
+        "x": 2.597593632958798,
+        "y": 4.051423220973783
       },
       "isLocked": false,
       "linkedName": null
     },
     {
       "anchor": {
-        "x": 0.43,
-        "y": 0.67
+        "x": 0.61,
+        "y": 5.98
       },
       "prevControl": {
-        "x": 1.5692354124917347,
-        "y": 1.0615243485770516
+        "x": 1.859999999999994,
+        "y": 5.98
       },
       "nextControl": null,
       "isLocked": false,
@@ -29,9 +29,36 @@
     }
   ],
   "rotationTargets": [],
-  "constraintZones": [],
+  "constraintZones": [
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 0.3997650743931118,
+      "maxWaypointRelativePos": 1.0,
+      "constraints": {
+        "maxVelocity": 1.0,
+        "maxAcceleration": 4.5,
+        "maxAngularVelocity": 540.0,
+        "maxAngularAcceleration": 720.0,
+        "nominalVoltage": 10.0,
+        "unlimited": false
+      }
+    }
+  ],
   "pointTowardsZones": [],
-  "eventMarkers": [],
+  "eventMarkers": [
+    {
+      "name": "shotPrep",
+      "waypointRelativePos": 0.18833202819106723,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
+      "name": "shoot",
+      "waypointRelativePos": 0.6346906812842638,
+      "endWaypointRelativePos": null,
+      "command": null
+    }
+  ],
   "globalConstraints": {
     "maxVelocity": 3.0,
     "maxAcceleration": 4.5,
@@ -41,14 +68,14 @@
     "unlimited": false
   },
   "goalEndState": {
-    "velocity": 0.0,
-    "rotation": 0.0
+    "velocity": 0,
+    "rotation": 180.0
   },
   "reversed": false,
-  "folder": "Outpost",
+  "folder": "Depot",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": 180.0
   },
   "useDefaultConstraints": true
 }
