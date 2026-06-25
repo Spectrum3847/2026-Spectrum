@@ -99,9 +99,9 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(100.0))
+                                    .withStatorCurrentLimit(Amps.of(80.0))
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(70.0))
+                                    .withSupplyCurrentLimit(Amps.of(40.0))
                                     .withSupplyCurrentLimitEnable(true)
                                     .withSupplyCurrentLowerLimit(Amps.of(40.0)));
 
