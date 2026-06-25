@@ -305,18 +305,20 @@ public class SuperStructure extends SubsystemBase {
 
     public Command coastMechanisms() {
         return Commands.runOnce(
-                () -> {
-                    intakeExtension.setBrakeMode(false);
-                    hood.setBrakeMode(false);
-                });
+                        () -> {
+                            intakeExtension.setBrakeMode(false);
+                            hood.setBrakeMode(false);
+                        })
+                .ignoringDisable(true);
     }
 
     public Command brakeMechanisms() {
         return Commands.runOnce(
-                () -> {
-                    intakeExtension.setBrakeMode(true);
-                    hood.setBrakeMode(true);
-                });
+                        () -> {
+                            intakeExtension.setBrakeMode(true);
+                            hood.setBrakeMode(true);
+                        })
+                .ignoringDisable(true);
     }
 
     // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
