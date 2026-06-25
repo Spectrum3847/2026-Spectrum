@@ -291,14 +291,14 @@ public class SuperStructure extends SubsystemBase {
         return Commands.runOnce(
                 () -> {
                     intakeExtension.setBrakeMode(false);
-                });
+                }).ignoringDisable(true);
     }
 
     public Command brakeMechanisms() {
         return Commands.runOnce(
                 () -> {
                     intakeExtension.setBrakeMode(true);
-                });
+                }).ignoringDisable(true);
     }
 
     // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
