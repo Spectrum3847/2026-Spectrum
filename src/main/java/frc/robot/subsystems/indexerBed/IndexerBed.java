@@ -1,6 +1,5 @@
 package frc.robot.subsystems.indexerBed;
 
-import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -37,10 +36,7 @@ public class IndexerBed extends Mechanism {
             configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(false);
-            configClockwise_Positive();
-            setFollowerConfigs(
-                    new FollowerConfig(
-                            "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+            configCounterClockwise_Positive();
         }
     }
 
@@ -77,23 +73,23 @@ public class IndexerBed extends Mechanism {
     }
 
     private void applyStates() {
-        double wantedRPM = 0;
+        double wantedVoltage = 0;
         switch (systemState) {
             case OFF:
                 stop();
                 return;
             case INDEX_MAX:
-                wantedRPM = 5000;
+                wantedVoltage = 8;
                 break;
             case SLOW_INDEX:
-                wantedRPM = 1000;
+                wantedVoltage = 4;
                 break;
             case UNJAM:
-                wantedRPM = -2000;
+                wantedVoltage = -8;
                 break;
         }
-        final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        final double finalWantedVoltage = wantedVoltage;
+        setVoltageOutput(() -> finalWantedVoltage);
     }
 
     @Getter private final IndexerBedConfig config;

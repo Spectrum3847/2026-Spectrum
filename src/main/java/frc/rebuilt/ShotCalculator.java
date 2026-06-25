@@ -175,7 +175,10 @@ public class ShotCalculator {
 
         // Commanded turret angle (with preference offset)
         Rotation2d fieldAngle = target.minus(compensatedTurretTranslation).getAngle();
-        fieldAngle = fieldAngle.plus(Rotation2d.fromDegrees(FIELD_ANGLE_OFFSET_DEGREES));
+        fieldAngle =
+                fieldAngle
+                        .plus(Rotation2d.k180deg)
+                        .plus(Rotation2d.fromDegrees(FIELD_ANGLE_OFFSET_DEGREES));
 
         // Turret angular velocity (rot/s) for your position controller feedforward
         if (lastTurretAngle == null) lastTurretAngle = fieldAngle;

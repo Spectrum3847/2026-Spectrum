@@ -74,19 +74,6 @@ public class Vision implements Subsystem {
                         .withTranslation(-0.3084987734, 0.2134100126, 0.6502249886)
                         .withRotation(0, 0, 180);
 
-        // -- Left Limelight ---------------------------------------------------
-
-        /** NetworkTables hostname for the left-facing Limelight. */
-        @Getter final String leftLL = "limelight-left";
-
-        /**
-         * Robot-relative pose of the left Limelight. Translation in metres (x, y, z); rotation in
-         * degrees (roll, pitch, yaw).
-         */
-        @Getter
-        final LimelightConfig leftConfig =
-                new LimelightConfig(leftLL).withTranslation(0, 0.215, 0.188).withRotation(0, 0, 90);
-
         // -- Right Limelight --------------------------------------------------
 
         /** NetworkTables hostname for the right-facing Limelight. */
@@ -101,6 +88,17 @@ public class Vision implements Subsystem {
                 new LimelightConfig(rightLL)
                         .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
                         .withRotation(0, 0, -90);
+
+        // -- Front Limelight --------------------------------------------------
+
+        /** NetworkTables hostname for the front-facing Limelight. */
+        @Getter final String frontLL = "limelight-front";
+
+        /**
+         * Robot-relative pose of the front Limelight. Translation in metres (x, y, z); rotation in
+         * degrees (roll, pitch, yaw).
+         */
+        @Getter final LimelightConfig frontConfig = new LimelightConfig(frontLL);
 
         // -- Turret geometry --------------------------------------------------
 
@@ -117,7 +115,7 @@ public class Vision implements Subsystem {
         // -- Pipeline indices -------------------------------------------------
 
         @Getter final int backTagPipeline = 0;
-        @Getter final int leftTagPipeline = 0;
+        @Getter final int frontTagPipeline = 0;
         @Getter final int rightTagPipeline = 0;
 
         // -- Pose estimation covariance ---------------------------------------
@@ -161,8 +159,8 @@ public class Vision implements Subsystem {
     /** Rear-facing Limelight instance. */
     @Getter public final Limelight backLL;
 
-    /** Left-facing Limelight instance. */
-    @Getter public final Limelight leftLL;
+    /** Front-facing Limelight instance. */
+    @Getter public final Limelight frontLL;
 
     /** Right-facing Limelight instance. */
     @Getter public final Limelight rightLL;
@@ -172,7 +170,7 @@ public class Vision implements Subsystem {
 
     /* Vision loggers — one per Limelight */
     private final VisionLogger backLogger;
-    private final VisionLogger leftLogger;
+    private final VisionLogger frontLogger;
     private final VisionLogger rightLogger;
 
     /** All three loggers in one array for bulk telemetry loops. */
@@ -212,15 +210,15 @@ public class Vision implements Subsystem {
         this.config = config;
 
         backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
-        leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
         rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
+        frontLL = new Limelight(config.frontLL, config.frontTagPipeline, config.frontConfig);
 
-        allLimelights = new Limelight[] {backLL, leftLL, rightLL};
+        allLimelights = new Limelight[] {backLL, frontLL, rightLL};
 
         backLogger = new VisionLogger("BackLL", backLL);
-        leftLogger = new VisionLogger("LeftLL", leftLL);
+        frontLogger = new VisionLogger("FrontLL", frontLL);
         rightLogger = new VisionLogger("RightLL", rightLL);
-        allLoggers = new VisionLogger[] {backLogger, leftLogger, rightLogger};
+        allLoggers = new VisionLogger[] {backLogger, frontLogger, rightLogger};
 
         for (Limelight limelight : allLimelights) {
             limelight.setLEDMode(false);
@@ -282,13 +280,13 @@ public class Vision implements Subsystem {
         // MT2 poses are only reliable when the robot is stationary
         if (Util.disabled.getAsBoolean()) {
             backLogger.getMegaPose();
-            leftLogger.getMegaPose();
+            frontLogger.getMegaPose();
             rightLogger.getMegaPose();
         }
 
         // Update Field2d visualization (null-safe; returns Pose2d.kZero when no data)
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
-        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
+        Robot.getField2d().getObject(frontLL.getCameraName()).setPose(getFrontMegaTag1Pose());
         Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
     }
 
@@ -626,11 +624,11 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Returns the MegaTag1 (MT1) pose from the left Limelight, or {@link Pose2d#kZero} if no
+     * Returns the MegaTag1 (MT1) pose from the front Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getLeftMegaTag1Pose() {
-        Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
+    public Pose2d getFrontMegaTag1Pose() {
+        Pose2d pose = frontLL.getMegaTag1_Pose3d().toPose2d();
         return pose != null ? pose : Pose2d.kZero;
     }
 
@@ -653,11 +651,11 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Returns the MegaTag2 (MT2) pose from the left Limelight, or {@link Pose2d#kZero} if no
+     * Returns the MegaTag2 (MT2) pose from the front Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getLeftMegaTag2Pose() {
-        Pose2d pose = leftLL.getMegaTag2_Pose2d();
+    public Pose2d getFrontMegaTag2Pose() {
+        Pose2d pose = frontLL.getMegaTag2_Pose2d();
         return pose != null ? pose : Pose2d.kZero;
     }
 
