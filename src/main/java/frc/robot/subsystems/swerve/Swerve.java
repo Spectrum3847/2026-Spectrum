@@ -4,6 +4,8 @@ import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Seconds;
 
+import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -25,6 +27,9 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -68,6 +73,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     private WantedState wantedState = WantedState.IDLE;
     private SystemState systemState = SystemState.IDLE;
+
+    private final StatusSignal<AngularVelocity> angularPitchVelocity;
+    private final StatusSignal<AngularVelocity> angularRollVelocity;
+    private final StatusSignal<AngularVelocity> angularYawVelocity;
+    private final StatusSignal<Angle> roll;
+    private final StatusSignal<Angle> pitch;
+    private final StatusSignal<LinearAcceleration> accelerationX;
+    private final StatusSignal<LinearAcceleration> accelerationY;
 
     public static final double TRANSLATION_ERROR_MARGIN_METERS = Units.inchesToMeters(1.0);
     public static final double DRIVE_TO_POINT_STATIC_FRICTION_CONSTANT = 0.02;
@@ -138,7 +151,27 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         this.register();
 
+        angularPitchVelocity = getPigeon2().getAngularVelocityYWorld();
+        angularRollVelocity = getPigeon2().getAngularVelocityXWorld();
+        angularYawVelocity = getPigeon2().getAngularVelocityZWorld();
+        roll = getPigeon2().getRoll();
+        pitch = getPigeon2().getPitch();
+        accelerationX = getPigeon2().getAccelerationX();
+        accelerationY = getPigeon2().getAccelerationY();
+
+        BaseStatusSignal.setUpdateFrequencyForAll(250, angularYawVelocity);
+        BaseStatusSignal.setUpdateFrequencyForAll(
+                100,
+                angularPitchVelocity,
+                angularRollVelocity,
+                roll,
+                pitch,
+                accelerationX,
+                accelerationY);
+
+        getPigeon2().optimizeBusUtilization();
         optimizeBusUtilization();
+
         registerTelemetry(this::log);
 
         Telemetry.print(getName() + " Subsystem Initialized");
