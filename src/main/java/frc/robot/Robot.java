@@ -286,6 +286,7 @@ public class Robot extends SpectrumRobot {
                 superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
         Auton.autonShotPrep.onTrue(
                 superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
+        Auton.autonShoot.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         superStructure.setStateCommand(WantedSuperState.UNJAM),

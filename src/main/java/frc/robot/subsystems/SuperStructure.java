@@ -36,6 +36,7 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
         AUTON_TRACK_TARGET,
+        AUTON_LAUNCH,
         AUTON_INTAKE_FUEL,
         UNJAM,
         EJECT,
@@ -51,6 +52,7 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITHOUT_SQUEEZE,
         AUTON_IDLE,
         AUTON_TRACK_TARGET,
+        AUTON_LAUNCH,
         AUTON_INTAKE_FUEL,
         UNJAM,
         EJECT,
@@ -114,6 +116,7 @@ public class SuperStructure extends SubsystemBase {
                     .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
             case LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE;
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
+            case AUTON_LAUNCH -> CurrentSuperState.AUTON_LAUNCH;
             case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
             case EJECT -> CurrentSuperState.EJECT;
@@ -146,6 +149,9 @@ public class SuperStructure extends SubsystemBase {
                 break;
             case AUTON_INTAKE_FUEL:
                 autonIntakeFuel();
+                break;
+            case AUTON_LAUNCH:
+                autonLaunch();
                 break;
             case AUTON_TRACK_TARGET:
                 autonTrackTarget();
@@ -255,6 +261,14 @@ public class SuperStructure extends SubsystemBase {
         launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
     }
 
+    private void autonLaunch() {
+        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
+        indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+    }
+
     private void unjam() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -289,16 +303,18 @@ public class SuperStructure extends SubsystemBase {
 
     public Command coastMechanisms() {
         return Commands.runOnce(
-                () -> {
-                    intakeExtension.setBrakeMode(false);
-                }).ignoringDisable(true);
+                        () -> {
+                            intakeExtension.setBrakeMode(false);
+                        })
+                .ignoringDisable(true);
     }
 
     public Command brakeMechanisms() {
         return Commands.runOnce(
-                () -> {
-                    intakeExtension.setBrakeMode(true);
-                }).ignoringDisable(true);
+                        () -> {
+                            intakeExtension.setBrakeMode(true);
+                        })
+                .ignoringDisable(true);
     }
 
     // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).

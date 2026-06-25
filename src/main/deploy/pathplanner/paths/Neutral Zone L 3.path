@@ -125,7 +125,7 @@
     },
     {
       "name": "shoot",
-      "waypointRelativePos": 2.106108065779166,
+      "waypointRelativePos": 2.29404855129208,
       "endWaypointRelativePos": null,
       "command": null
     },
@@ -149,7 +149,7 @@
     "rotation": 180.0
   },
   "reversed": false,
-  "folder": "Neutral Zone - Left Start",
+  "folder": null,
   "idealStartingState": {
     "velocity": 0,
     "rotation": -130.0
