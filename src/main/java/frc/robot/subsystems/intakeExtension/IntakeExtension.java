@@ -44,7 +44,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double maxRotations = 2.6;
+        @Getter private final double maxRotations = 2.8;
         @Getter private final double minRotations = 0.0;
 
         @Getter private final double supplyCurrentLimit = 80;
@@ -59,7 +59,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double positionKs = 1.5;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double gearRatio = 11.25;
+        @Getter private final double gearRatio = 3.611;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
@@ -86,7 +86,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double intakeY = Units.inchesToMeters(23);
         @Getter private final double extensionMass = 10.0;
         @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-        @Getter private final double extensionGearing = 11.25;
+        @Getter private final double extensionGearing = 3.611;
         @Getter private final double angle = 180;
         @Getter private final double staticLength = 10;
         @Getter private final double movingLength = 55;
@@ -109,7 +109,7 @@ public class IntakeExtension extends Mechanism {
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
 
         public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
@@ -158,7 +158,7 @@ public class IntakeExtension extends Mechanism {
                 configForwardSoftLimit(left.getMaxRotations(), true);
                 configReverseSoftLimit(left.getMinRotations(), true);
                 configNeutralBrakeMode(true);
-                configCounterClockwise_Positive();
+                configClockwise_Positive();
             }
         }
 

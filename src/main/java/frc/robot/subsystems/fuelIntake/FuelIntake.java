@@ -96,10 +96,10 @@ public class FuelIntake extends Mechanism {
                 wantedVoltage = 0;
                 break;
             case INTAKE:
-                wantedVoltage = 9;
+                wantedVoltage = 12;
                 break;
             case OUTTAKE:
-                wantedVoltage = -9;
+                wantedVoltage = -12;
                 break;
             case SLOW_INTAKE:
                 wantedVoltage = 5;

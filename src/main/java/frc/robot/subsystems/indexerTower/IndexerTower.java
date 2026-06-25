@@ -37,7 +37,7 @@ public class IndexerTower extends Mechanism {
             configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
                             "IndexerTower Follower",
@@ -80,23 +80,23 @@ public class IndexerTower extends Mechanism {
     }
 
     private void applyStates() {
-        double wantedRPM = 0;
+        double wantedVoltage = 0;
         switch (systemState) {
             case OFF:
                 stop();
                 return;
             case INDEX_MAX:
-                wantedRPM = 3000;
+                wantedVoltage = 10;
                 break;
             case SLOW_INDEX:
-                wantedRPM = 2000;
+                wantedVoltage = 5;
                 break;
             case UNJAM:
-                wantedRPM = -1500;
+                wantedVoltage = -10;
                 break;
         }
-        final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        final double finalWantedVoltage = wantedVoltage;
+        setVoltageOutput(() -> finalWantedVoltage);
     }
 
     @Getter private final IndexerTowerConfig config;

@@ -36,7 +36,7 @@ public class IndexerBed extends Mechanism {
             configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(false);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
     }
 
@@ -73,23 +73,23 @@ public class IndexerBed extends Mechanism {
     }
 
     private void applyStates() {
-        double wantedRPM = 0;
+        double wantedVoltage = 0;
         switch (systemState) {
             case OFF:
                 stop();
                 return;
             case INDEX_MAX:
-                wantedRPM = 5000;
+                wantedVoltage = 8;
                 break;
             case SLOW_INDEX:
-                wantedRPM = 1000;
+                wantedVoltage = 4;
                 break;
             case UNJAM:
-                wantedRPM = -2000;
+                wantedVoltage = -8;
                 break;
         }
-        final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        final double finalWantedVoltage = wantedVoltage;
+        setVoltageOutput(() -> finalWantedVoltage);
     }
 
     @Getter private final IndexerBedConfig config;
