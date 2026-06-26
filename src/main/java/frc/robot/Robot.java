@@ -270,6 +270,9 @@ public class Robot extends SpectrumRobot {
         operator.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         operator.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        operator.RB.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
+        operator.RB.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         operator.dPadDown.onTrue(Commands.runOnce(ShotCalculator::decreaseFlywheelSpeedOffset));
         operator.dPadUp.onTrue(Commands.runOnce(ShotCalculator::increaseFlywheelSpeedOffset));
         operator.dPadRight.onTrue(
