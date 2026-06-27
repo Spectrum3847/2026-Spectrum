@@ -49,14 +49,14 @@ public class IntakeExtension extends Mechanism {
 
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 180;
-        @Getter private final double lowerSupplyCurrentLimit = 20;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double lowerSupplyCurrentTime = 0;
 
-        @Getter private final double positionKp = 5;
+        @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
         @Getter private final double positionKv = 0.3;
-        @Getter private final double positionKs = 1.5;
+        @Getter private final double positionKs = 3;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
         @Getter private final double gearRatio = 3.611;
