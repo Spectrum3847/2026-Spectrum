@@ -11,15 +11,15 @@
           }
         },
         {
-          "type": "wait",
+          "type": "path",
           "data": {
-            "waitTime": 5.0
+            "pathName": "Depot to Launch"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
-  "folder": "Front Autos",
+  "resetOdom": false,
+  "folder": null,
   "choreoAuto": false
 }

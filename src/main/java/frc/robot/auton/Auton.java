@@ -17,11 +17,15 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
 public class Auton {
+
+    private SuperStructure robotSuperStructure;
 
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
@@ -47,14 +51,24 @@ public class Auton {
         pathChooser.addOption(
                 "Neutral Zone - Right Start", SpectrumAuton("Neutral Zone - Left Start", true));
 
-        pathChooser.addOption("Taxi + Preload", SpectrumAuton("Taxi + Preload", false));
+        pathChooser.addOption("Depot", depot());
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
-    public Auton() {
+    public Auton(SuperStructure superStructure) {
+        robotSuperStructure = superStructure;
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized: ");
+    }
+
+    private Command depot() {
+        return Commands.sequence(
+                        SpectrumAuton("Depot", false),
+                        robotSuperStructure.setStateCommand(WantedSuperState.TRACK_TARGET),
+                        Commands.waitSeconds(1),
+                        robotSuperStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE))
+                .withName("Depot");
     }
 
     public void init() {
