@@ -267,6 +267,14 @@ public class Robot extends SpectrumRobot {
                                         operator.rumbleCommand(1, 0.5))
                                 .ignoringDisable(true));
 
+        operator.LB
+                .and(operator.AButton)
+                .onTrue(
+                        Commands.parallel(
+                                        intakeExtension.resetCurrentPositionToMinCommand(),
+                                        operator.rumbleCommand(1, 0.5))
+                                .ignoringDisable(true));
+
         operator.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         operator.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 

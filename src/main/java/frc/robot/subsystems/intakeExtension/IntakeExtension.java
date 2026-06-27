@@ -199,6 +199,11 @@ public class IntakeExtension extends Mechanism {
             setMotorPosition(() -> rightConfig.getMaxRotations());
         }
 
+        /** Re-zeroes this axis at the fully-extended hard stop. */
+        public void zeroAtMin() {
+            setMotorPosition(() -> rightConfig.getMinRotations());
+        }
+
         /** Holds the axis (neutral output). */
         public void stopAxis() {
             stop();
@@ -249,8 +254,19 @@ public class IntakeExtension extends Mechanism {
         if (right.isAttached()) right.zeroAtMax();
     }
 
+    public void resetCurrentPositionToZero() {
+        if (isAttached()) {
+            motor.setPosition(config.getMinRotations());
+        }
+        if (right.isAttached()) right.zeroAtMin();
+    }
+
     public Command resetCurrentPositionToMaxCommand() {
         return new InstantCommand(this::resetCurrentPositionToMax);
+    }
+
+    public Command resetCurrentPositionToMinCommand() {
+        return new InstantCommand(this::resetCurrentPositionToZero);
     }
 
     public Command resetToInitialPos() {
