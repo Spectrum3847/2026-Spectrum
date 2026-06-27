@@ -68,7 +68,7 @@ public class ShotCalculator {
     // Runtime-Adjustable Offsets
     // =========================================================================
 
-    public static final double STARTING_HOOD_ANGLE_OFFSET = 0; // degrees
+    public static final double STARTING_HOOD_ANGLE_OFFSET = -1; // degrees
     public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
     public static final double STARTING_DRIVE_ANGLE_OFFSET = 0; // degrees
@@ -105,7 +105,7 @@ public class ShotCalculator {
     private static final double MPS_FACTOR = 0.8;
 
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
-    private static final double RPM_PER_MPS = 275.0;
+    private static final double RPM_PER_MPS = 255.0;
 
     /**
      * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are
@@ -250,7 +250,7 @@ public class ShotCalculator {
                         /* v³   */ -1.2099829060e+0
                     });
 
-    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
+    private static final PolyModel WANTED_HUB_MODEL = NO_CEILING_HUB_MODEL;
 
     // =========================================================================
     // State — Velocity Derivative Filters
@@ -393,7 +393,7 @@ public class ShotCalculator {
         double hoodVelocity =
                 hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
         lastHoodAngle = rawHoodAngle;
-        double hoodAngle = rawHoodAngle + HOOD_ANGLE_OFFSET;
+        double hoodAngle = Math.max(rawHoodAngle + HOOD_ANGLE_OFFSET, 9);
 
         // ── Flywheel speed: exit speed (m/s) → RPM ───────────────────────────
         double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
