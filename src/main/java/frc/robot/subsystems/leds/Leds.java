@@ -34,6 +34,47 @@ public class Leds extends SpectrumLEDs {
     /** Number of external LEDs attached to the CANdle output (indices 8–27 on the device). */
     public static final int NUM_LEDS = 20;
 
+    public static class LedConfig {
+        @Getter private String name;
+        @Getter @Setter private boolean attached = true;
+        @Getter @Setter private AddressableLED led;
+        @Getter @Setter private AddressableLEDBuffer buffer;
+        @Getter @Setter private AddressableLEDBufferView view;
+        @Getter @Setter private int startingIndex = 0;
+        @Getter @Setter private int endingIndex = 0;
+        @Getter @Setter private int port = 0;
+        @Getter @Setter private int length;
+        // LED strip density
+        @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
+
+        public LedConfig(String name, int length) {
+            this.name = name;
+            this.length = length;
+            this.startingIndex = 0;
+            this.endingIndex = length - 1;
+        }
+
+        public LedConfig(
+                String name,
+                AddressableLED l,
+                AddressableLEDBuffer lb,
+                int startingIndex,
+                int endingIndex) {
+            this.name = name;
+            this.led = l;
+            this.buffer = lb;
+            this.startingIndex = startingIndex;
+            this.endingIndex = endingIndex;
+        }
+    }
+
+    @Getter private Config config;
+
+    @Getter protected final AddressableLED led;
+    @Getter protected final AddressableLEDBuffer ledBuffer;
+    @Getter protected final AddressableLEDBufferView ledView;
+    private boolean mainView = false;
+    
     /**
      * Static hardware config. Set {@code startIdx = 8} to address only the external strip (skipping
      * the 8 onboard CANdle LEDs); keep at {@code 0} to address all 20 LEDs starting from the first
@@ -59,6 +100,24 @@ public class Leds extends SpectrumLEDs {
 
         robotSuperStructure = superStructure;
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
+
+        if (config.getLed() == null) {
+            led = new AddressableLED(config.port);
+            // Length is expensive to set, so only set it once, then just update data
+            ledBuffer = new AddressableLEDBuffer(config.length);
+            led.setLength(ledBuffer.getLength());
+            mainView = true;
+        } else {
+            led = config.getLed();
+            ledBuffer = config.buffer;
+        }
+
+        ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
+
+        // Set the data
+        led.setData(ledBuffer);
+        setPattern(defaultPattern);
+        led.start();
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
