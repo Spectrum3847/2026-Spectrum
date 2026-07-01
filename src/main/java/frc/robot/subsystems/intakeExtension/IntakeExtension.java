@@ -43,8 +43,8 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double positiveVoltageOut = 10;
         @Getter private final double negativeVoltageOut = -10;
 
-        @Getter private final double normalCurrentLimit = 40;
-        @Getter private final double normalTorqueCurrentLimit = 80;
+        @Getter private final double normalSupplyCurrentLimit = 40;
+        @Getter private final double normalStatorCurrentLimit = 80;
         @Getter private final double springyModeSupplyCurrentLimit = 5;
         @Getter private final double springyModeStatorCurrentLimit = 20;
 
@@ -90,11 +90,11 @@ public class IntakeExtension extends Mechanism {
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configSupplyCurrentLimit(normalCurrentLimit, true);
-            configStatorCurrentLimit(normalTorqueCurrentLimit, true);
+            configSupplyCurrentLimit(normalSupplyCurrentLimit, true);
+            configStatorCurrentLimit(normalStatorCurrentLimit, true);
             configGearRatio(gearRatio);
-            configForwardTorqueCurrentLimit(normalTorqueCurrentLimit);
-            configReverseTorqueCurrentLimit(normalTorqueCurrentLimit);
+            configForwardTorqueCurrentLimit(normalStatorCurrentLimit);
+            configReverseTorqueCurrentLimit(normalStatorCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);

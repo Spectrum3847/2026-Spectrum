@@ -22,7 +22,7 @@ public class Launcher extends Mechanism {
         // Intake Voltages and Current
         @Getter @Setter private double LauncherVoltage = 9.0;
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
-        @Getter @Setter private double LauncherTorqueCurrent = 85.0;
+        @Getter @Setter private double LauncherStatorCurrent = 85.0;
 
         @Getter @Setter private double idlingRPM = 700;
         @Getter @Setter private double slowLaunchSpeed = 400;
@@ -33,11 +33,11 @@ public class Launcher extends Mechanism {
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double currentLimit = 80;
-        @Getter private double torqueCurrentLimit = 100;
-        @Getter private double forwardTorqueCurrentLimit = torqueCurrentLimit;
+        @Getter private double supplyCurrentLimiturrentLimit = 80;
+        @Getter private double statorCurrentLimitCurrentLimit = 100;
+        @Getter private double forwardStatorCurrentLimit = statorCurrentLimit;
         @Getter private double reverseTorqueCurrentLimit = -10;
-        @Getter private double lowerCurrentLimit = 60;
+        @Getter private double lowerSupplyCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
         @Getter private double velocityKp = 10;
@@ -56,12 +56,12 @@ public class Launcher extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
-            configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimitCurrentLimit, true);
+            configForwardTorqueCurrentLimit(forwardStatorCurrentLimit);
+            configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);

@@ -10,13 +10,8 @@ public class Spindexer extends Mechanism {
     
     public static class SpindexerConfig extends Config {
 
-        @Getter @Setter private double spindexerVoltageOut;
-        @Getter @Setter private double spindexerTorqueCurrent;
-        @Getter @Setter private double spindexerVelocityRPM;
-
-        /* Spindexer config values */
-        @Getter @Setter private double currentLimit;
-        @Getter @Setter private double torqueCurrentLimit;
+        @Getter @Setter private double supplyCurrentLimit;
+        @Getter @Setter private double statorCurrentLimit;
         @Getter @Setter private double velocityKp;
         @Getter @Setter private double velocityKv;
         @Getter @Setter private double velocityKs;
@@ -29,7 +24,6 @@ public class Spindexer extends Mechanism {
               - configFeedForwardGains()
               - configSupplyCurrentLimits()
               - configStatorCurrentLimit()
-              - configForwardTorqueCurrent();
               - configClockwise_Positive()
               - follower?
             */
@@ -90,7 +84,6 @@ public class Spindexer extends Mechanism {
     }
 
     @Getter private final SpindexerConfig config;
-    // @Getter private IndexerSim sim;
 
     public Spindexer(SpindexerConfig config) {
         super(config);
