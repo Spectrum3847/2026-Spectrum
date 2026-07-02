@@ -59,7 +59,7 @@ public class RobotSim {
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
-    private static final Translation3d SHOOTER_HOOD_PIVOT_POINT =
+    private static final Translation3d SHOOTER_TURRET_PIVOT_POINT =
             new Translation3d(-Units.inchesToMeters(11.00), 0, Units.inchesToMeters(19.237));
 
     @Getter private FuelPhysicsSim ballSim;
@@ -97,13 +97,13 @@ public class RobotSim {
                         new Transform3d(
                                 new Translation3d(intakeExtensionPose, 0, 0), Rotation3d.kZero));
 
-        double hoodAngleDegrees = robotSuperStructure.getHood().getPositionDegrees();
-        var hoodPose3d =
+        double turretAngleDegrees = robotSuperStructure.getTurret().getPositionDegrees();
+        var turretPose3d =
                 Pose3d.kZero.rotateAround(
-                        SHOOTER_HOOD_PIVOT_POINT,
-                        new Rotation3d(0, -Math.toRadians(hoodAngleDegrees - 9), 0));
+                        SHOOTER_TURRET_PIVOT_POINT,
+                        new Rotation3d(0, -Math.toRadians(turretAngleDegrees - 9), 0));
 
-        Pose3d[] mechanismPoses = {intakePose3d, hoodPose3d};
+        Pose3d[] mechanismPoses = {intakePose3d, turretPose3d};
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }
@@ -166,8 +166,8 @@ public class RobotSim {
         return Commands.runOnce(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    double launchSpeed = params.exitSpeedMs();
-                    double launchAngle = Math.toRadians(90 - params.hoodAngle());
+                    double launchSpeed = params.flywheelSpeed();
+                    double launchAngle = Math.toRadians(90 - params.turretAngle().getDegrees());
                     double launchYaw =
                             Robot.getSwerve().getRobotPose().getRotation().getRadians()
                                     + Math.toRadians(180);

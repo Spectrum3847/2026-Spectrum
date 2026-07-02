@@ -1,17 +1,11 @@
 package frc.robot.subsystems.launcher;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleSubscriber;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import frc.robot.Robot;
-import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.*;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -33,10 +27,10 @@ public class Launcher extends Mechanism {
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double supplyCurrentLimiturrentLimit = 80;
-        @Getter private double statorCurrentLimitCurrentLimit = 100;
+        @Getter private double supplyCurrentLimit = 80;
+        @Getter private double statorCurrentLimit = 100;
         @Getter private double forwardStatorCurrentLimit = statorCurrentLimit;
-        @Getter private double reverseTorqueCurrentLimit = -10;
+        @Getter private double reverseStatorCurrentLimit = -10;
         @Getter private double lowerSupplyCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
@@ -59,7 +53,7 @@ public class Launcher extends Mechanism {
             configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimitCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
             configForwardTorqueCurrentLimit(forwardStatorCurrentLimit);
             configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
@@ -135,13 +129,13 @@ public class Launcher extends Mechanism {
     }
 
     @Getter private LauncherConfig config;
-    private LauncherSim sim;
+    // private LauncherSim sim;
 
     public Launcher(LauncherConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
+        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -158,31 +152,31 @@ public class Launcher extends Mechanism {
 
     // --------------------------------------------------------------------------------
     // Simulation
-    // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
+    // // --------------------------------------------------------------------------------
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
+    //     }
+    // }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class LauncherSim extends RollerSim {
-        public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY())
-                            .setMount(Robot.getHood().getSim()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class LauncherSim extends RollerSim {
+    //     public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getLauncherX(), config.getLauncherY())
+    //                         .setMount(Robot.getHood().getSim()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }

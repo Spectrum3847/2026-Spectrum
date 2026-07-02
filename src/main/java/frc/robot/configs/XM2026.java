@@ -20,6 +20,6 @@ public class XM2026 extends Config {
         intakeExtension.setAttached(false);
         launcher.setAttached(true);
         indexerTower.setAttached(true);
-        indexerBed.setAttached(true);
+        // indexerBed.setAttached(true);
     }
 }

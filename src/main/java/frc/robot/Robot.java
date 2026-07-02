@@ -1,7 +1,6 @@
 package frc.robot;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -35,8 +34,6 @@ import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.subsystems.hood.Hood;
-import frc.robot.subsystems.hood.Hood.HoodConfig;
 import frc.robot.subsystems.spindexer.Spindexer;
 import frc.robot.subsystems.spindexer.Spindexer.SpindexerConfig;
 import frc.robot.subsystems.indexerTower.IndexerTower;
@@ -48,6 +45,8 @@ import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
 import frc.robot.subsystems.leds.Leds;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveConfig;
+import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.TurretConfig;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.framework.SpectrumRobot;
@@ -72,7 +71,7 @@ import org.json.simple.parser.ParseException;
  * and manages all subsystems and their configurations.
  */
 public class Robot extends SpectrumRobot {
-    @Getter private static RobotSim robotSim;
+    // @Getter private static RobotSim robotSim;
     @Getter private static Config config;
     @Getter private static final Field2d field2d = new Field2d();
     public static Telemetry telemetry = new Telemetry();
@@ -87,8 +86,8 @@ public class Robot extends SpectrumRobot {
         public final IndexerTowerConfig indexerTower = new IndexerTowerConfig();
         public final SpindexerConfig spindexer = new SpindexerConfig();
         public final LauncherConfig launcher = new LauncherConfig();
-        public final HoodConfig hood = new HoodConfig();
         public final VisionConfig vision = new VisionConfig();
+        public final TurretConfig turret = new TurretConfig();
     }
 
     @Getter private static Swerve swerve;
@@ -99,10 +98,10 @@ public class Robot extends SpectrumRobot {
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
     @Getter private static Launcher launcher;
-    @Getter private static Hood hood;
     @Getter private static Vision vision;
     @Getter private static Leds leds;
     @Getter private static Auton auton;
+    @Getter private static Turret turret;
     @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
@@ -145,9 +144,6 @@ public class Robot extends SpectrumRobot {
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
 
-            hood = new Hood(config.hood);
-            Timer.delay(canInitDelay);
-
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
 
@@ -155,6 +151,9 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
 
             spindexer = new Spindexer(config.spindexer);
+            Timer.delay(canInitDelay);
+
+            turret = new Turret(config.turret);
             Timer.delay(canInitDelay);
 
             superStructure =
@@ -165,17 +164,17 @@ public class Robot extends SpectrumRobot {
                             indexerTower,
                             spindexer,
                             launcher,
-                            hood);
+                            turret);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
             // leds = new Leds();
 
-            if (Utils.isSimulation()) {
-                robotSim = new RobotSim(superStructure);
-                configureSimBindings();
-            }
+            // if (Utils.isSimulation()) {
+            //     robotSim = new RobotSim(superStructure);
+            //     configureSimBindings();
+            // }
 
             configureBindings();
 
@@ -253,10 +252,10 @@ public class Robot extends SpectrumRobot {
         pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
-        operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
-        operator.dPadRight.onTrue(ShotCalculator.decreaseDriveAngleOffset());
-        operator.dPadLeft.onTrue(ShotCalculator.increaseDriveAngleOffset());
+        // operator.dPadDown.onTrue(ShotCalculator.decreaseFlywheelSpeedOffset());
+        // operator.dPadUp.onTrue(ShotCalculator.increaseFlywheelSpeedOffset());
+        // operator.dPadRight.onTrue(ShotCalculator.decreaseTurretAngleOffsetDegrees());
+        // operator.dPadLeft.onTrue(ShotCalculator.increaseTurretAngleOffsetDegrees());
 
         // Reset hub shift timer when enabling
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
@@ -276,9 +275,9 @@ public class Robot extends SpectrumRobot {
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
 
-    public void configureSimBindings() {
-        RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
-    }
+    // public void configureSimBindings() {
+    //     RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
+    // }
 
     /** Sets up the SmartDashboard data for visualization. */
     public void setupSmartDashboardData() {
@@ -470,10 +469,10 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
-        if (Utils.isSimulation()) {
-            robotSim.getBallSim().clearBalls();
-            robotSim.getBallSim().placeFieldBalls();
-        }
+        // if (Utils.isSimulation()) {
+        //     robotSim.getBallSim().clearBalls();
+        //     robotSim.getBallSim().placeFieldBalls();
+        // }
         try {
             auton.init();
         } catch (Throwable t) {
@@ -566,8 +565,8 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
-        robotSim.updateArticulatedMechanisms();
-        Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
+        // robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        // robotSim.updateArticulatedMechanisms();
+        // Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
     }
 }

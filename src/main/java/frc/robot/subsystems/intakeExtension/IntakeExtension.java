@@ -3,17 +3,10 @@ package frc.robot.subsystems.intakeExtension;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.LinearConfig;
-import frc.spectrumLib.sim.LinearSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 import lombok.Setter;
@@ -182,7 +175,7 @@ public class IntakeExtension extends Mechanism {
     }
 
     @Getter private final IntakeExtensionConfig config;
-    @Getter private IntakeExtensionSim sim;
+    // @Getter private IntakeExtensionSim sim;
 
     @Getter @Setter private boolean inSpringyMode = false;
 
@@ -192,7 +185,7 @@ public class IntakeExtension extends Mechanism {
 
         setInitialPosition();
 
-        simulationInit();
+        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -234,36 +227,36 @@ public class IntakeExtension extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
+    //     }
+    // }
 
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class IntakeExtensionSim extends LinearSim {
-        public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
-            super(
-                    new LinearConfig(
-                                    config.getIntakeX(),
-                                    config.getIntakeY(),
-                                    config.getExtensionGearing(),
-                                    config.getDrumRadiusMeters())
-                            .setAngle(config.getAngle())
-                            .setMovingLength(config.getMovingLength())
-                            .setStaticLength(config.getStaticLength())
-                            .setMaxHeight(config.getMaxExtensionHeight())
-                            .setLineWidth(config.getLineWidth())
-                            .setColor(new Color8Bit(Color.kLightGray)),
-                    mech,
-                    intakeExtensionMotorSim,
-                    config.getName());
-        }
-    }
+    // class IntakeExtensionSim extends LinearSim {
+    //     public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
+    //         super(
+    //                 new LinearConfig(
+    //                                 config.getIntakeX(),
+    //                                 config.getIntakeY(),
+    //                                 config.getExtensionGearing(),
+    //                                 config.getDrumRadiusMeters())
+    //                         .setAngle(config.getAngle())
+    //                         .setMovingLength(config.getMovingLength())
+    //                         .setStaticLength(config.getStaticLength())
+    //                         .setMaxHeight(config.getMaxExtensionHeight())
+    //                         .setLineWidth(config.getLineWidth())
+    //                         .setColor(new Color8Bit(Color.kLightGray)),
+    //                 mech,
+    //                 intakeExtensionMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }

@@ -1,15 +1,9 @@
 package frc.robot.subsystems.fuelIntake;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import frc.robot.Robot;
-import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
-import frc.spectrumLib.sim.RollerConfig;
-import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
@@ -35,8 +29,8 @@ public class FuelIntake extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(supplyCurrentLimiturrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimitCurrentLimit, true);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
             configForwardTorqueCurrentLimit(statorCurrentLimit);
             configReverseTorqueCurrentLimit(statorCurrentLimit);
             configNeutralBrakeMode(false);
@@ -100,13 +94,13 @@ public class FuelIntake extends Mechanism {
     }
 
     @Getter private final FuelIntakeConfig config;
-    @Getter private FuelIntakeSim sim;
+    // @Getter private FuelIntakeSim sim;
 
     public FuelIntake(FuelIntakeConfig config) {
         super(config);
         this.config = config;
 
-        simulationInit();
+        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -128,31 +122,31 @@ public class FuelIntake extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
+    // public void simulationInit() {
+    //     if (isAttached()) {
+    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
+    //         sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
+    //     }
+    // }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
+    // // Must be called to enable the simulation
+    // // if roller position changes configure x and y to set position.
+    // @Override
+    // public void simulationPeriodic() {
+    //     if (isAttached()) {
+    //         sim.simulationPeriodic();
+    //     }
+    // }
 
-    class FuelIntakeSim extends RollerSim {
-        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY())
-                            .setMount(Robot.getIntakeExtension().getSim()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
-    }
+    // class FuelIntakeSim extends RollerSim {
+    //     public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    //         super(
+    //                 new RollerConfig(config.getWheelDiameter())
+    //                         .setPosition(config.getIntakeX(), config.getIntakeY())
+    //                         .setMount(Robot.getIntakeExtension().getSim()),
+    //                 mech,
+    //                 rollerMotorSim,
+    //                 config.getName());
+    //     }
+    // }
 }
