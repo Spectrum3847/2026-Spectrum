@@ -12,8 +12,8 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
-import frc.robot.subsystems.SuperStructure;
 import frc.robot.Robot;
+import frc.robot.subsystems.SuperStructure;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.text.DecimalFormat;
 
@@ -123,8 +123,7 @@ public class ShotCalculator {
         if (latestParameters != null) return latestParameters;
 
         // Target selection
-        boolean feed =
-                superStructure.isRobotInFeedZone();
+        boolean feed = superStructure.isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
@@ -208,7 +207,12 @@ public class ShotCalculator {
 
         latestParameters =
                 new ShootingParameters(
-                        isValid, turretAngle, turretAngularVelocityRotPerSec, flywheelSpeed, estimatedPose.getRotation(), robotRelativeVelocity.omegaRadiansPerSecond);
+                        isValid,
+                        turretAngle,
+                        turretAngularVelocityRotPerSec,
+                        flywheelSpeed,
+                        estimatedPose.getRotation(),
+                        robotRelativeVelocity.omegaRadiansPerSecond);
 
         Telemetry.log("ShotCalc/IsValid", isValid);
         Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadDistance));

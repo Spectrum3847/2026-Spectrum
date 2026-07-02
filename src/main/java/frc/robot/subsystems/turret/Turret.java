@@ -6,7 +6,6 @@ import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
-
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
@@ -17,10 +16,10 @@ import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.hardware.SpectrumCANcoder;
 import frc.spectrumLib.hardware.SpectrumCANcoderConfig;
-import frc.spectrumLib.telemetry.*;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
+import frc.spectrumLib.telemetry.*;
 import lombok.*;
 
 public class Turret extends Mechanism {
@@ -120,7 +119,7 @@ public class Turret extends Mechanism {
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
 
-        public void setWantedState(WantedState state) {
+    public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
 
@@ -133,7 +132,7 @@ public class Turret extends Mechanism {
         };
     }
 
-        @SuppressWarnings("unused")
+    @SuppressWarnings("unused")
     private void applyStates() {
         double wantedDegrees = 0;
         switch (systemState) {
@@ -144,7 +143,7 @@ public class Turret extends Mechanism {
                 wantedDegrees = 0;
                 break;
             case AIM_AT_TARGET:
-                var params = ShotCalculator.getInstance().getParameters(); 
+                var params = ShotCalculator.getInstance().getParameters();
                 wantedDegrees = params.turretAngle().getDegrees();
                 break;
         }
@@ -155,15 +154,19 @@ public class Turret extends Mechanism {
 
     @SuppressWarnings("unused")
     private TrapezoidProfile profile;
+
     @SuppressWarnings("unused")
     private TrapezoidProfile.State turretSetpoint;
+
     @SuppressWarnings("unused")
     private PositionTorqueCurrentFOC turretRequest = new PositionTorqueCurrentFOC(0);
 
     @Getter private TurretConfig config;
     @Getter private TurretSim sim;
+
     @SuppressWarnings("unused")
     private SpectrumCANcoder canCoder;
+
     private SpectrumCANcoderConfig canCoderConfig;
     CANcoderSimState canCoderSim;
 

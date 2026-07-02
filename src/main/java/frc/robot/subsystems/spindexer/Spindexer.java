@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 public class Spindexer extends Mechanism {
-    
+
     public static class SpindexerConfig extends Config {
 
         @Getter @Setter private double supplyCurrentLimit;
@@ -30,9 +30,9 @@ public class Spindexer extends Mechanism {
         }
     }
 
-     // ---- State Machine ----
+    // ---- State Machine ----
 
-     public enum WantedState {
+    public enum WantedState {
         OFF,
         INDEX_MAX,
         SLOW_INDEX,

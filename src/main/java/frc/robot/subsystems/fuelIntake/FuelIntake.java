@@ -124,7 +124,8 @@ public class FuelIntake extends Mechanism {
     // --------------------------------------------------------------------------------
     // public void simulationInit() {
     //     if (isAttached()) {
-    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
+    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+    // diameter
     //         sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
     //     }
     // }

@@ -4,8 +4,8 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import frc.spectrumLib.hardware.Rio;
-import frc.spectrumLib.telemetry.*;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.telemetry.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -74,7 +74,7 @@ public class Launcher extends Mechanism {
     }
 
     // ---- State Machine ----
-    
+
     public enum WantedState {
         OFF,
         IDLE_PREP,

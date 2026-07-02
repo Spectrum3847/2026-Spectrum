@@ -6,10 +6,10 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
-import frc.robot.subsystems.spindexer.Spindexer;
 import frc.robot.subsystems.indexerTower.IndexerTower;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.launcher.Launcher;
+import frc.robot.subsystems.spindexer.Spindexer;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.turret.Turret;
 import frc.spectrumLib.telemetry.Telemetry;
@@ -75,10 +75,10 @@ public class SuperStructure extends SubsystemBase {
         this.spindexer = spindexer;
         this.launcher = launcher;
         this.turret = turret;
-            }
-        
-            private final Timer intakeSqueezeTimer = new Timer();
-            private final double secondsToSqueeze = 1.0;
+    }
+
+    private final Timer intakeSqueezeTimer = new Timer();
+    private final double secondsToSqueeze = 1.0;
 
     private static boolean isSqueezeState(CurrentSuperState state) {
         return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
