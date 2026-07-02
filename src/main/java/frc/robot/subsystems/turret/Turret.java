@@ -144,7 +144,7 @@ public class Turret extends Mechanism {
                 break;
             case AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
-                wantedDegrees = params.turretAngle().getDegrees();
+                wantedDegrees = params.turretAngle();
                 break;
         }
         final double finalWantedDegrees = wantedDegrees;

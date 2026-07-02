@@ -167,7 +167,7 @@ public class RobotSim {
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
                     double launchSpeed = params.flywheelSpeed();
-                    double launchAngle = Math.toRadians(90 - params.turretAngle().getDegrees());
+                    double launchAngle = Math.toRadians(90 - params.turretAngle());
                     double launchYaw =
                             Robot.getSwerve().getRobotPose().getRotation().getRadians()
                                     + Math.toRadians(180);
