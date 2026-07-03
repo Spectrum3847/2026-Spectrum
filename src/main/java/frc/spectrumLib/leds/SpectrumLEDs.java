@@ -120,7 +120,7 @@ public class SpectrumLEDs implements Subsystem {
      * and configures its {@link CANdle}, or {@link #LedConfig(String, CANdle, int, int)} to share
      * an already-configured device across multiple subsystems targeting different LED segments.
      */
-    public static class LedConfig extends Config {
+    public static class CANdleConfig {
         /** Human-readable name used in telemetry. */
         @Getter private String name;
 
@@ -181,8 +181,7 @@ public class SpectrumLEDs implements Subsystem {
          * @param numLeds number of LEDs on the external strip (not counting the 8 onboard LEDs)
          * @param canBus CAN bus the CANdle is on
          */
-        public LedConfig(String name, int deviceId, int numLeds, CANBus canBus) {
-            super("Leds", 1, Rio.CANIVORE);
+        public CANdleConfig(String name, int deviceId, int numLeds, CANBus canBus) {
             this.name = name;
             this.deviceId = deviceId;
             this.numLeds = numLeds;
@@ -198,8 +197,7 @@ public class SpectrumLEDs implements Subsystem {
          * @param startIdx first LED index (inclusive) in the shared strip for this zone
          * @param numLeds number of LEDs in this zone
          */
-        public LedConfig(String name, CANdle sharedCandle, int startIdx, int numLeds) {
-            super("Leds", 1, Rio.CANIVORE);
+        public CANdleConfig(String name, CANdle sharedCandle, int startIdx, int numLeds) {
             this.name = name;
             this.sharedCandle = sharedCandle;
             this.startIdx = startIdx;
@@ -212,7 +210,7 @@ public class SpectrumLEDs implements Subsystem {
     // -------------------------------------------------------------------------
 
     /** Active configuration for this instance. */
-    @Getter private LedConfig config;
+    @Getter private CANdleConfig config;
 
     /** The {@link CANdle} device (owned or shared). */
     @Getter protected final CANdle candle;
@@ -265,7 +263,7 @@ public class SpectrumLEDs implements Subsystem {
      *
      * @param config the configuration describing the device, segment range, and strip type
      */
-    public SpectrumLEDs(LedConfig config) {
+    public SpectrumLEDs(CANdleConfig config) {
         super();
         this.config = config;
 
