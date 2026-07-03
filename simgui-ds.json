@@ -1,4 +1,14 @@
 {
+  "FMS": {
+    "window": {
+      "visible": false
+    }
+  },
+  "Joysticks": {
+    "window": {
+      "visible": false
+    }
+  },
   "System Joysticks": {
     "window": {
       "enabled": false

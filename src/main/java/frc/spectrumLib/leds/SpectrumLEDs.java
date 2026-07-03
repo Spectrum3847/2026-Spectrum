@@ -19,6 +19,8 @@ import com.ctre.phoenix6.signals.LarsonBounceValue;
 import com.ctre.phoenix6.signals.LossOfSignalBehaviorValue;
 import com.ctre.phoenix6.signals.RGBWColor;
 import com.ctre.phoenix6.signals.StripTypeValue;
+
+import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.AddressableLEDBufferView;
@@ -28,6 +30,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.subsystems.leds.Leds.LedConfig;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism.Config;
 import java.util.function.DoubleSupplier;
@@ -163,6 +166,35 @@ public class SpectrumLEDs implements Subsystem {
          * #sharedCandle} is set.
          */
         @Getter @Setter private double brightness = 1.0;
+
+        @Getter @Setter private AddressableLED led;
+        @Getter @Setter private AddressableLEDBuffer buffer;
+        @Getter @Setter private AddressableLEDBufferView view;
+        @Getter @Setter private int port = 0;
+        @Getter @Setter private int length;
+        // LED strip density
+        @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
+
+        // public Config(String name, int length) {
+        //     this.name = name;
+        //     this.length = length;
+        //     this.startingIndex = 0;
+        //     this.endingIndex = length - 1;
+        // }
+
+        // public Config(
+        //         String name,
+        //         AddressableLED l,
+        //         AddressableLEDBuffer lb,
+        //         int startingIndex,
+        //         int endingIndex) {
+        //     this.name = name;
+        //     this.led = l;
+        //     this.buffer = lb;
+        //     this.startingIndex = startingIndex;
+        //     this.endingIndex = endingIndex;
+        // }
+
 
         /**
          * Behavior of the strip when CAN signal is lost. Ignored when {@link #sharedCandle} is set.

@@ -12,6 +12,11 @@
       "window": {
         "visible": false
       }
+    },
+    "Timing": {
+      "window": {
+        "visible": false
+      }
     }
   },
   "NTProvider": {
@@ -43,16 +48,6 @@
       "/SmartDashboard/tagDistanceController": "PIDController"
     },
     "windows": {
-      "/SmartDashboard/Alerts": {
-        "window": {
-          "visible": true
-        }
-      },
-      "/SmartDashboard/Auto Chooser": {
-        "window": {
-          "visible": true
-        }
-      },
       "/SmartDashboard/Field2d": {
         "Auto Routine": {
           "arrows": false,
@@ -101,21 +96,6 @@
         "right": 3942,
         "top": 118,
         "width": 16.54119300842285,
-        "window": {
-          "visible": true
-        }
-      },
-      "/SmartDashboard/Scheduler": {
-        "window": {
-          "visible": true
-        }
-      },
-      "/SmartDashboard/Sim/LeftView": {
-        "window": {
-          "visible": true
-        }
-      },
-      "/SmartDashboard/Sim/TopView": {
         "window": {
           "visible": true
         }
@@ -187,5 +167,8 @@
       "open": true
     },
     "visible": true
+  },
+  "NetworkTables View": {
+    "visible": false
   }
 }

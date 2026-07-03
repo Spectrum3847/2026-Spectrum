@@ -1,8 +1,12 @@
 package frc.robot.subsystems.leds;
 
+import static edu.wpi.first.units.Units.Meters;
+
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.signals.LossOfSignalBehaviorValue;
-import com.ctre.phoenix6.signals.StripTypeValue;
+import edu.wpi.first.units.measure.Distance;
+import edu.wpi.first.wpilibj.AddressableLED;
+import edu.wpi.first.wpilibj.AddressableLEDBuffer;
+import edu.wpi.first.wpilibj.AddressableLEDBufferView;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.util.Color;
@@ -13,6 +17,8 @@ import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Robot LED subsystem for the 2026 REBUILT season.
@@ -34,7 +40,7 @@ public class Leds extends SpectrumLEDs {
     /** Number of external LEDs attached to the CANdle output (indices 8–27 on the device). */
     public static final int NUM_LEDS = 20;
 
-    public static class LedConfig {
+    public static class LedConfig extends CANdleConfig {
         @Getter private String name;
         @Getter @Setter private boolean attached = true;
         @Getter @Setter private AddressableLED led;
@@ -48,6 +54,7 @@ public class Leds extends SpectrumLEDs {
         @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
 
         public LedConfig(String name, int length) {
+            super("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
             this.name = name;
             this.length = length;
             this.startingIndex = 0;
@@ -60,6 +67,7 @@ public class Leds extends SpectrumLEDs {
                 AddressableLEDBuffer lb,
                 int startingIndex,
                 int endingIndex) {
+            super("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
             this.name = name;
             this.led = l;
             this.buffer = lb;
@@ -68,26 +76,10 @@ public class Leds extends SpectrumLEDs {
         }
     }
 
-    @Getter private Config config;
-
+    @Getter private static LedConfig ledsConfig;
     @Getter protected final AddressableLED led;
     @Getter protected final AddressableLEDBuffer ledBuffer;
     @Getter protected final AddressableLEDBufferView ledView;
-    private boolean mainView = false;
-    
-    /**
-     * Static hardware config. Set {@code startIdx = 8} to address only the external strip (skipping
-     * the 8 onboard CANdle LEDs); keep at {@code 0} to address all 20 LEDs starting from the first
-     * onboard LED.
-     */
-    public static final LedConfig ledsConfig;
-
-    static {
-        ledsConfig = new LedConfig("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
-        ledsConfig.setStripType(StripTypeValue.RGB);
-        ledsConfig.setBrightness(0.5);
-        ledsConfig.setLossOfSignalBehavior(LossOfSignalBehaviorValue.DisableLEDs);
-    }
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -95,10 +87,10 @@ public class Leds extends SpectrumLEDs {
 
     private SuperStructure robotSuperStructure;
 
-    public Leds(SuperStructure superStructure) {
+    public Leds(LedConfig config) {
         super(ledsConfig);
 
-        robotSuperStructure = superStructure;
+        config = ledsConfig;
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
 
         if (config.getLed() == null) {
@@ -106,7 +98,6 @@ public class Leds extends SpectrumLEDs {
             // Length is expensive to set, so only set it once, then just update data
             ledBuffer = new AddressableLEDBuffer(config.length);
             led.setLength(ledBuffer.getLength());
-            mainView = true;
         } else {
             led = config.getLed();
             ledBuffer = config.buffer;
@@ -164,7 +155,7 @@ public class Leds extends SpectrumLEDs {
                         return DriverStation.isAutonomous();
                     });
 
-    private Trigger bpsLow = new Trigger(() -> {})
+    // private Trigger bpsLow = new Trigger(() -> {})
 
     private Trigger launchingFuel =
             new Trigger(
@@ -195,7 +186,7 @@ public class Leds extends SpectrumLEDs {
     }
 
     void launchingLed(Trigger trigger, int priority) {
-        ledCommand("Leds.launching", rainbow(0.5), priority, trigger);
+        ledCommand("Leds.Launching", rainbow(0.5), priority, trigger);
     }
 
     private Trigger ledCommand(String name, CANdlePattern pattern, int priority, Trigger trigger) {
