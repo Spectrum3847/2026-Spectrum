@@ -18,5 +18,6 @@ public class FM2026 extends Config {
         indexerTower.setAttached(true);
         indexerBed.setAttached(true);
         hood.setAttached(true);
+        leds.setAttached(true);
     }
 }

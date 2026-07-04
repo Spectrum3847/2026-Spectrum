@@ -46,6 +46,7 @@ import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfi
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
 import frc.robot.subsystems.leds.Leds;
+import frc.robot.subsystems.leds.Leds.LedConfig;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveConfig;
 import frc.robot.subsystems.vision.Vision;
@@ -89,6 +90,7 @@ public class Robot extends SpectrumRobot {
         public final LauncherConfig launcher = new LauncherConfig();
         public final HoodConfig hood = new HoodConfig();
         public final VisionConfig vision = new VisionConfig();
+        public final LedConfig leds = new LedConfig();
     }
 
     @Getter private static Swerve swerve;

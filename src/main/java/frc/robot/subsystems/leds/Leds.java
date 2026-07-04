@@ -47,16 +47,14 @@ public class Leds extends SpectrumLEDs {
         @Getter @Setter private AddressableLEDBuffer buffer;
         @Getter @Setter private AddressableLEDBufferView view;
         @Getter @Setter private int startingIndex = 0;
-        @Getter @Setter private int endingIndex = 0;
-        @Getter @Setter private int port = 0;
+        @Getter @Setter private int endingIndex = 28;
+        @Getter @Setter private int port = 1;
         @Getter @Setter private int length;
         // LED strip density
         @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
 
-        public LedConfig(String name, int length) {
-            super("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
-            this.name = name;
-            this.length = length;
+        public LedConfig() {
+            super("Leds", 1, NUM_LEDS, new CANBus(Rio.RIO_CANBUS));
             this.startingIndex = 0;
             this.endingIndex = length - 1;
         }
@@ -67,7 +65,7 @@ public class Leds extends SpectrumLEDs {
                 AddressableLEDBuffer lb,
                 int startingIndex,
                 int endingIndex) {
-            super("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
+            super("Leds", 1, NUM_LEDS, new CANBus(Rio.RIO_CANBUS));
             this.name = name;
             this.led = l;
             this.buffer = lb;
@@ -76,10 +74,7 @@ public class Leds extends SpectrumLEDs {
         }
     }
 
-    @Getter private static LedConfig ledsConfig;
-    @Getter protected final AddressableLED led;
-    @Getter protected final AddressableLEDBuffer ledBuffer;
-    @Getter protected final AddressableLEDBufferView ledView;
+    @Getter protected LedConfig config;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -88,27 +83,16 @@ public class Leds extends SpectrumLEDs {
     private SuperStructure robotSuperStructure;
 
     public Leds(LedConfig config) {
-        super(ledsConfig);
+        super(config);
 
-        config = ledsConfig;
+        this.config = config;
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
 
-        if (config.getLed() == null) {
-            led = new AddressableLED(config.port);
-            // Length is expensive to set, so only set it once, then just update data
-            ledBuffer = new AddressableLEDBuffer(config.length);
-            led.setLength(ledBuffer.getLength());
-        } else {
-            led = config.getLed();
-            ledBuffer = config.buffer;
+        if (isAttached()) {
+            new LedSim(config);
         }
 
-        ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
-
-        // Set the data
-        led.setData(ledBuffer);
-        setPattern(defaultPattern);
-        led.start();
+        bindTriggers();
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -199,5 +183,41 @@ public class Leds extends SpectrumLEDs {
         Telemetry.log("Leds/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Leds/CommandPriority", getCommandPriority());
         Telemetry.log("Leds/IsAnimating", isAnimating());
+    }
+
+    // --------------------------------------------------------------------------------
+    // Simulation
+    // --------------------------------------------------------------------------------
+
+    public class LedSim {
+
+        @Getter protected final AddressableLED led;
+        @Getter protected final AddressableLEDBuffer ledBuffer;
+        @Getter protected final AddressableLEDBufferView ledView;
+
+        @SuppressWarnings("unused")
+        private boolean mainView = false;
+
+        public LedSim(LedConfig config) {
+
+            // Must be a PWM header, not MXP or DIO
+            if (config.getLed() == null) {
+                led = new AddressableLED(config.port);
+                // Length is expensive to set, so only set it once, then just update data
+                ledBuffer = new AddressableLEDBuffer(config.length);
+                led.setLength(ledBuffer.getLength());
+                mainView = true;
+            } else {
+                led = config.getLed();
+                ledBuffer = config.buffer;
+            }
+
+            ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
+
+            // Set the data
+            led.setData(ledBuffer);
+            setPattern(defaultPattern);
+            led.start();
+        }
     }
 }
