@@ -1,7 +1,12 @@
 package frc.robot.subsystems.spindexer;
 
+import com.ctre.phoenix6.sim.TalonFXSimState;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,6 +20,11 @@ public class Spindexer extends Mechanism {
         @Getter @Setter private double velocityKp;
         @Getter @Setter private double velocityKv;
         @Getter @Setter private double velocityKs;
+
+        /* Sim Configs */
+        @Getter @Setter private double spindexerX = RobotSim.topViewWidth / 2.0;
+        @Getter @Setter private double spindexerY = RobotSim.topViewHeight / 2.0;
+        @Getter @Setter private double spindexerDiameter = 12;
 
         public SpindexerConfig() {
             super("Spindexer", 8, Rio.CANIVORE);
@@ -84,12 +94,13 @@ public class Spindexer extends Mechanism {
     }
 
     @Getter private final SpindexerConfig config;
+    @Getter private SpindexerSim sim;
 
     public Spindexer(SpindexerConfig config) {
         super(config);
         this.config = config;
 
-        // simulationInit();
+        simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -106,5 +117,36 @@ public class Spindexer extends Mechanism {
         Telemetry.log("Spindexer/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Spindexer/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("Spindexer/Temp", getTemp(), "deg_C");
+    }
+
+    // --------------------------------------------------------------------------------
+    // Simulation
+    // --------------------------------------------------------------------------------
+    public void simulationInit() {
+        if (isAttached()) {
+            // Create a new RollerSim with the top view, the motor's sim state, and a 12 in
+            // diameter
+            sim = new SpindexerSim(RobotSim.topView, motor.getSimState());
+        }
+    }
+
+    // Must be called to enable the simulation
+    // if roller position changes configure x and y to set position.
+    @Override
+    public void simulationPeriodic() {
+        if (isAttached()) {
+            sim.simulationPeriodic();
+        }
+    }
+
+    class SpindexerSim extends RollerSim {
+        public SpindexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+            super(
+                    new RollerConfig(config.getSpindexerDiameter())
+                            .setPosition(config.getSpindexerX(), config.getSpindexerY()),
+                    mech,
+                    rollerMotorSim,
+                    config.getName());
+        }
     }
 }

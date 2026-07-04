@@ -13,6 +13,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -71,7 +72,7 @@ import org.json.simple.parser.ParseException;
  * and manages all subsystems and their configurations.
  */
 public class Robot extends SpectrumRobot {
-    // @Getter private static RobotSim robotSim;
+    @Getter private static RobotSim robotSim;
     @Getter private static Config config;
     @Getter private static final Field2d field2d = new Field2d();
     public static Telemetry telemetry = new Telemetry();
@@ -97,11 +98,11 @@ public class Robot extends SpectrumRobot {
     @Getter private static Spindexer spindexer;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
+    @Getter private static Turret turret;
     @Getter private static Launcher launcher;
     @Getter private static Vision vision;
     @Getter private static Leds leds;
     @Getter private static Auton auton;
-    @Getter private static Turret turret;
     @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
@@ -144,6 +145,9 @@ public class Robot extends SpectrumRobot {
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
 
+            turret = new Turret(config.turret);
+            Timer.delay(canInitDelay);
+
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
 
@@ -151,9 +155,6 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
 
             spindexer = new Spindexer(config.spindexer);
-            Timer.delay(canInitDelay);
-
-            turret = new Turret(config.turret);
             Timer.delay(canInitDelay);
 
             superStructure =
@@ -171,10 +172,9 @@ public class Robot extends SpectrumRobot {
             batteryLogger = new BatteryLogger();
             // leds = new Leds();
 
-            // if (Utils.isSimulation()) {
-            //     robotSim = new RobotSim(superStructure);
-            //     configureSimBindings();
-            // }
+            if (RobotBase.isSimulation()) {
+                robotSim = new RobotSim(superStructure);
+            }
 
             configureBindings();
 
@@ -565,8 +565,8 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        // robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
-        // robotSim.updateArticulatedMechanisms();
-        // Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
+        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        robotSim.updateArticulatedMechanisms();
+        Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
     }
 }

@@ -24,6 +24,7 @@ import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.CurrentSuperState;
+import frc.spectrumLib.sim.Circle;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
 import lombok.Getter;
@@ -42,6 +43,10 @@ public class RobotSim {
     public static final Mechanism2d leftView =
             new Mechanism2d(
                     Units.inchesToMeters(leftViewWidth), Units.inchesToMeters(leftViewHeight));
+
+    public static final Mechanism2d topView =
+            new Mechanism2d(
+                    Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
     public static Trigger simLaunching() {
         return new Trigger(
@@ -65,20 +70,19 @@ public class RobotSim {
     @Getter private FuelPhysicsSim ballSim;
     private int singleLaneBPS = 8;
     private double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
-    private double launcherWidth = 24;
-    private int numOfLanes = 4;
+    private double launcherWidth = 6;
+    private int numOfLanes = 1;
     private double laneWidth = launcherWidth / numOfLanes;
     private double lane1 = -2 * laneWidth / 2;
-    private double lane2 = -1 * laneWidth / 2;
-    private double lane3 = 1 * laneWidth / 2;
-    private double lane4 = 2 * laneWidth / 2;
 
     private SuperStructure robotSuperStructure;
 
     public RobotSim(SuperStructure superStructure) {
         this.robotSuperStructure = superStructure;
         SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
+        SmartDashboard.putData("Sim/TopView", RobotSim.topView);
         leftView.setBackgroundColor(new Color8Bit(Color.kLightGray));
+        topView.setBackgroundColor(new Color8Bit(Color.kLightGray));
         drawRobot();
 
         ballSim = new FuelPhysicsSim("Sim/Fuel");
@@ -110,6 +114,42 @@ public class RobotSim {
 
     public void drawRobot() {
         drawSideRobot();
+        drawTopRobot();
+    }
+
+    @SuppressWarnings("unused")
+    public void drawTurretCircle() {
+        MechanismRoot2d circleRoot =
+                topView.getRoot(
+                        "Turret Circle Root",
+                        Units.inchesToMeters(topViewHeight / 2 + 30),
+                        Units.inchesToMeters(topViewWidth / 2));
+        Circle circle = new Circle(50, 30, "Turret Circle", circleRoot, topView);
+    }
+
+    public void drawTopRobot() {
+        MechanismRoot2d robotRoot =
+                topView.getRoot(
+                        "Top Robot Root",
+                        Units.inchesToMeters(topViewWidth / 2.0 + 50),
+                        Units.inchesToMeters(topViewHeight / 2.0 - 25));
+
+        double rectWidthIn = 50.0;
+        double rectHeightIn = 80.0;
+        double rectWidthM = Units.inchesToMeters(rectWidthIn);
+        double rectHeightM = Units.inchesToMeters(rectHeightIn);
+
+        MechanismLigament2d tr =
+                robotRoot.append(new MechanismLigament2d("TopEdge", rectHeightM, 180.0));
+        MechanismLigament2d br = tr.append(new MechanismLigament2d("RightEdge", rectWidthM, 270.0));
+        MechanismLigament2d bl = br.append(new MechanismLigament2d("BottomEdge", rectHeightM, 270));
+        MechanismLigament2d ll = bl.append(new MechanismLigament2d("LeftEdge", rectWidthM, 270.0));
+
+        Color8Bit edgeColor = new Color8Bit(Color.kPurple);
+        tr.setColor(edgeColor);
+        br.setColor(edgeColor);
+        bl.setColor(edgeColor);
+        ll.setColor(edgeColor);
     }
 
     public void drawSideRobot() {
@@ -204,29 +244,7 @@ public class RobotSim {
                                 createSimBallLaunch(lane1),
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
-                    SequentialCommandGroup group2 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
-                    for (int i = 0; i < numToLaunchPerLane; i++) {
-                        group2.addCommands(
-                                createSimBallLaunch(lane2),
-                                Commands.waitSeconds(timeBetweenBallLaunches));
-                    }
-                    SequentialCommandGroup group3 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
-                    for (int i = 0; i < numToLaunchPerLane; i++) {
-                        group3.addCommands(
-                                createSimBallLaunch(lane3),
-                                Commands.waitSeconds(timeBetweenBallLaunches));
-                    }
-                    SequentialCommandGroup group4 =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
-                    for (int i = 0; i < numToLaunchPerLane; i++) {
-                        group4.addCommands(
-                                createSimBallLaunch(lane4),
-                                Commands.waitSeconds(timeBetweenBallLaunches));
-                    }
-                    return Commands.parallel(group1, group2, group3, group4)
-                            .withName("RobotSim.ballSimLaunchFuel");
+                    return Commands.parallel(group1).withName("RobotSim.ballSimLaunchFuel");
                 },
                 Set.of() // no subsystem requirements
                 );

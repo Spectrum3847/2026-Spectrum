@@ -215,7 +215,7 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     private void simulationInit() {
         if (isAttached()) {
-            sim = new TurretSim(RobotSim.leftView, motor.getSimState());
+            sim = new TurretSim(RobotSim.topView, motor.getSimState());
         }
     }
 
@@ -223,7 +223,6 @@ public class Turret extends Mechanism {
     public void simulationPeriodic() {
         if (isAttached()) {
             sim.simulationPeriodic();
-            // m_CANcoder.getSimState().setRawPosition(sim.getAngleRads() / 0.202);
         }
     }
 
