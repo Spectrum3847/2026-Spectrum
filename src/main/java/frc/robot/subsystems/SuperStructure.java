@@ -267,7 +267,6 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.UNJAM);
         spindexer.setWantedState(Spindexer.WantedState.UNJAM);
-        spindexer.setWantedState(Spindexer.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.OFF);
         turret.setWantedState(Turret.WantedState.HOME);

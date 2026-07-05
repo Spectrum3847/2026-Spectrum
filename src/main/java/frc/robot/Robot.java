@@ -24,7 +24,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.FM2026;
+import frc.robot.configs.OM2026;
 import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
 import frc.robot.operator.Operator;
@@ -126,7 +126,7 @@ public class Robot extends SpectrumRobot {
                     //     config = new FM2026();
                     //     break;
                 default: // SIM and UNKNOWN
-                    config = new FM2026();
+                    config = new OM2026();
                     break;
             }
 
@@ -246,6 +246,10 @@ public class Robot extends SpectrumRobot {
         pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
         pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        pilot.YButton.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
+        pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
@@ -275,9 +279,9 @@ public class Robot extends SpectrumRobot {
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
 
-    // public void configureSimBindings() {
-    //     RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
-    // }
+    public void configureSimBindings() {
+        RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
+    }
 
     /** Sets up the SmartDashboard data for visualization. */
     public void setupSmartDashboardData() {

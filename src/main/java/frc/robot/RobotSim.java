@@ -176,6 +176,9 @@ public class RobotSim {
         br.setColor(edgeColor);
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
+
+        MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
+        shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
     private void configBallSimRobot() {

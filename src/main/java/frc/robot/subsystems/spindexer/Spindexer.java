@@ -1,6 +1,7 @@
 package frc.robot.subsystems.spindexer;
 
 import com.ctre.phoenix6.sim.TalonFXSimState;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
@@ -15,15 +16,19 @@ public class Spindexer extends Mechanism {
 
     public static class SpindexerConfig extends Config {
 
-        @Getter @Setter private double supplyCurrentLimit;
-        @Getter @Setter private double statorCurrentLimit;
-        @Getter @Setter private double velocityKp;
-        @Getter @Setter private double velocityKv;
-        @Getter @Setter private double velocityKs;
+        @Getter @Setter private double supplyCurrentLimit = 40;
+        @Getter @Setter private double statorCurrentLimit = 80;
+        @Getter @Setter private double velocityKp = 5;
+        @Getter @Setter private double velocityKv = 10;
+        @Getter @Setter private double velocityKs = 15;
 
         /* Sim Configs */
-        @Getter @Setter private double spindexerX = RobotSim.topViewWidth / 2.0;
-        @Getter @Setter private double spindexerY = RobotSim.topViewHeight / 2.0;
+        @Getter @Setter
+        private double spindexerX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
+
+        @Getter @Setter
+        private double spindexerY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
+
         @Getter @Setter private double spindexerDiameter = 12;
 
         public SpindexerConfig() {
@@ -37,6 +42,11 @@ public class Spindexer extends Mechanism {
               - configClockwise_Positive()
               - follower?
             */
+            configPIDGains(velocityKp, 0, 0);
+            configFeedForwardGains(velocityKs, velocityKv, 0, 0);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configClockwise_Positive();
         }
     }
 
@@ -126,7 +136,7 @@ public class Spindexer extends Mechanism {
         if (isAttached()) {
             // Create a new RollerSim with the top view, the motor's sim state, and a 12 in
             // diameter
-            sim = new SpindexerSim(RobotSim.topView, motor.getSimState());
+            sim = new SpindexerSim(RobotSim.leftView, motor.getSimState());
         }
     }
 
