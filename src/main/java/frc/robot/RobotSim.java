@@ -115,6 +115,7 @@ public class RobotSim {
     public void drawRobot() {
         drawSideRobot();
         drawTopRobot();
+        drawTurretCircle();
     }
 
     @SuppressWarnings("unused")
@@ -207,7 +208,7 @@ public class RobotSim {
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
                     double launchSpeed = params.flywheelSpeed();
-                    double launchAngle = Math.toRadians(90 - params.turretAngle());
+                    double launchAngle = Math.toRadians(90 - params.turretAngle().getDegrees());
                     double launchYaw =
                             Robot.getSwerve().getRobotPose().getRotation().getRadians()
                                     + Math.toRadians(180);
