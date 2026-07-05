@@ -250,6 +250,9 @@ public class Robot extends SpectrumRobot {
                 superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
         pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        pilot.BButton.whileTrue(superStructure.setStateCommamd(WantedSuperState.INTAKE_FUEL));
+        pilot.BButtom.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
