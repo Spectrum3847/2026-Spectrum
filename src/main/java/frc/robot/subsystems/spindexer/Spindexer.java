@@ -33,15 +33,6 @@ public class Spindexer extends Mechanism {
 
         public SpindexerConfig() {
             super("Spindexer", 8, Rio.CANIVORE);
-            /*
-              Must add the following:
-              - configPIDGains()
-              - configFeedForwardGains()
-              - configSupplyCurrentLimits()
-              - configStatorCurrentLimit()
-              - configClockwise_Positive()
-              - follower?
-            */
             configPIDGains(velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
@@ -90,7 +81,7 @@ public class Spindexer extends Mechanism {
                 stop();
                 return;
             case INDEX_MAX:
-                wantedRPM = 5000;
+                wantedRPM = 3000;
                 break;
             case SLOW_INDEX:
                 wantedRPM = 1000;

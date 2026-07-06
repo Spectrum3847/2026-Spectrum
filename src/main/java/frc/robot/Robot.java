@@ -246,9 +246,11 @@ public class Robot extends SpectrumRobot {
         pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
         pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        pilot.YButton.whileTrue(
-                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
-        pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        if (RobotBase.isSimulation()) {
+            pilot.YButton.whileTrue(
+                    superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
+            pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        }
 
         pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
