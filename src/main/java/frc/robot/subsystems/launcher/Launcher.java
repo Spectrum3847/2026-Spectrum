@@ -5,6 +5,7 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -83,14 +84,12 @@ public class Launcher extends Mechanism {
     public enum WantedState {
         OFF,
         IDLE_PREP,
-        SLOW_LAUNCH,
         AIM_AT_TARGET,
     }
 
     public enum SystemState {
         OFF,
         IDLE_PREP,
-        SLOW_LAUNCH,
         AIM_AT_TARGET,
     }
 
@@ -106,7 +105,6 @@ public class Launcher extends Mechanism {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case IDLE_PREP -> SystemState.IDLE_PREP;
-            case SLOW_LAUNCH -> SystemState.SLOW_LAUNCH;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
     }
@@ -120,13 +118,11 @@ public class Launcher extends Mechanism {
                 stop();
                 return;
             case IDLE_PREP:
-                wantedRPM = 5000;
-                break;
-            case SLOW_LAUNCH:
-                wantedRPM = 1000;
+                wantedRPM = 700;
                 break;
             case AIM_AT_TARGET:
-                wantedRPM = -2000;
+                var params = ShotCalculator.getInstance().getParameters();
+                wantedRPM = params.flywheelSpeed();
                 break;
         }
         final double finalWantedRPM = wantedRPM;
