@@ -10,7 +10,6 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
@@ -21,6 +20,7 @@ import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.*;
 import lombok.*;
+import frc.rebuilt.ShotCalculator;
 
 public class Turret extends Mechanism {
 
@@ -54,7 +54,7 @@ public class Turret extends Mechanism {
         // rotations per second
         private final TrapezoidProfile.Constraints turretConstraints;
 
-        @Getter @Setter private double sensorToMechanismRatio = 45;
+        @Getter @Setter private double sensorToMechanismRatio = 22.4;
         @Getter @Setter private double rotorToSensorRatio = 1;
 
         /* Cancoder config settings */
@@ -70,7 +70,7 @@ public class Turret extends Mechanism {
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
         @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
-        @Getter private double simRatio = 22.4;
+        @Getter private double simRatio = sensorToMechanismRatio;
         @Getter private double length = 1;
 
         public TurretConfig() {
@@ -123,7 +123,6 @@ public class Turret extends Mechanism {
         this.wantedState = state;
     }
 
-    @SuppressWarnings("unused")
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -132,7 +131,6 @@ public class Turret extends Mechanism {
         };
     }
 
-    @SuppressWarnings("unused")
     private void applyStates() {
         double wantedDegrees = 0;
         switch (systemState) {
@@ -204,6 +202,9 @@ public class Turret extends Mechanism {
 
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
+        logBatteryUsage();
+        applyStates();
         Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Turret/Voltage", getVoltage());
         Telemetry.log("Turret/Current", getStatorCurrent());

@@ -190,7 +190,7 @@ public class SuperStructure extends SubsystemBase {
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         spindexer.setWantedState(Spindexer.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
     }
 
@@ -200,7 +200,7 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
-        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
 
         if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze)) {
@@ -218,7 +218,7 @@ public class SuperStructure extends SubsystemBase {
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
-        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
     }
 
@@ -229,7 +229,7 @@ public class SuperStructure extends SubsystemBase {
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
     }
 
@@ -257,7 +257,7 @@ public class SuperStructure extends SubsystemBase {
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         spindexer.setWantedState(Spindexer.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
     }
 

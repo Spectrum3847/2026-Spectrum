@@ -84,13 +84,13 @@ public class Launcher extends Mechanism {
     public enum WantedState {
         OFF,
         IDLE_PREP,
-        AIM_AT_TARGET,
+        LAUNCH,
     }
 
     public enum SystemState {
         OFF,
         IDLE_PREP,
-        AIM_AT_TARGET,
+        LAUNCH,
     }
 
     private WantedState wantedState = WantedState.OFF;
@@ -105,7 +105,7 @@ public class Launcher extends Mechanism {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case IDLE_PREP -> SystemState.IDLE_PREP;
-            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case LAUNCH -> SystemState.LAUNCH;
         };
     }
 
@@ -120,9 +120,9 @@ public class Launcher extends Mechanism {
             case IDLE_PREP:
                 wantedRPM = 700;
                 break;
-            case AIM_AT_TARGET:
+            case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
-                wantedRPM = params.flywheelSpeed();
+                wantedRPM = params.flywheelSpeed() + ShotCalculator.FLYWHEEL_SPEED_OFFSET;
                 break;
         }
         final double finalWantedRPM = wantedRPM;
@@ -142,7 +142,9 @@ public class Launcher extends Mechanism {
 
     @Override
     public void periodic() {
+        systemState = handleStateTransition();
         logBatteryUsage();
+        applyStates();
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
         Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
