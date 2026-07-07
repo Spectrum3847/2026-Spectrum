@@ -570,6 +570,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
+        configureSimBindings();
         SimulatedArena.getInstance().resetFieldForAuto();
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
