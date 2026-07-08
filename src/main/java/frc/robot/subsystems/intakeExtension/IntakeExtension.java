@@ -240,13 +240,6 @@ public class IntakeExtension extends Mechanism {
         }
     }
 
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
-
     class IntakeExtensionSim extends LinearSim {
         public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
             super(

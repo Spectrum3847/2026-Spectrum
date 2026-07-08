@@ -3,7 +3,6 @@ package frc.spectrumLib.sim;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -59,24 +58,18 @@ public class ArmSim implements Mount, Mountable {
                                 config.getMinAngle(),
                                 5.0,
                                 config.getColor()));
+
+        SimLoop.register(this::update);
     }
 
     /**
      * Advances the arm physics simulation by one robot period, updates the TalonFX rotor position
      * and velocity, and refreshes the Mechanism2d visualization.
      */
-    public void simulationPeriodic() {
-        // armMotorSim.setSupplyVoltage(RobotController.getBatteryVoltage());
+    public void update(double dt) {
         armSim.setInput(armMotorSim.getMotorVoltage());
-        armSim.update(TimedRobot.kDefaultPeriod);
+        armSim.update(dt);
 
-        // armMotorSim.setRawRotorPosition(
-        //         (armSim.getAngleRads() - config.getStartingAngle())
-        //                 * config.getRatio()
-        //                 / (2.0 * Math.PI));
-
-        // armMotorSim.setRotorVelocity(
-        //         armSim.getVelocityRadPerSec() * config.getRatio() / (2.0 * Math.PI));
         armMotorSim.setRawRotorPosition(
                 (Units.radiansToRotations(armSim.getAngleRads() - config.getStartingAngle()))
                         * config.getRatio());
@@ -84,7 +77,6 @@ public class ArmSim implements Mount, Mountable {
         armMotorSim.setRotorVelocity(
                 Units.radiansToRotations(armSim.getVelocityRadPerSec()) * config.getRatio());
 
-        // ------ Update viz based on sim
         if (config.isMounted()) {
             config.setPivotX(getUpdatedX(config));
             config.setPivotY(getUpdatedY(config));
@@ -138,7 +130,7 @@ public class ArmSim implements Mount, Mountable {
     public double getAngle() {
         if (config.isMounted()) {
             if (config.isAbsAngle()) {
-                return getAngleRads(); // + config.getMount().getAngle();
+                return getAngleRads();
             } else {
                 return getAngleRads() + config.getMount().getAngle();
             }

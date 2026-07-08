@@ -100,7 +100,6 @@ public class Launcher extends Mechanism {
         this.wantedState = state;
     }
 
-    @SuppressWarnings("unused")
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -109,8 +108,6 @@ public class Launcher extends Mechanism {
         };
     }
 
-    // TODO: add actual values when robot is built
-    @SuppressWarnings("unused")
     private void applyStates() {
         double wantedRPM = 0;
         switch (systemState) {
@@ -122,7 +119,7 @@ public class Launcher extends Mechanism {
                 break;
             case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
-                wantedRPM = params.flywheelSpeed() + ShotCalculator.FLYWHEEL_SPEED_OFFSET;
+                wantedRPM = params.flywheelSpeed();
                 break;
         }
         final double finalWantedRPM = wantedRPM;
@@ -159,15 +156,6 @@ public class Launcher extends Mechanism {
     public void simulationInit() {
         if (isAttached()) {
             sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
         }
     }
 

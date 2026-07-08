@@ -184,7 +184,7 @@ public class SuperStructure extends SubsystemBase {
     }
 
     private void trackTarget() {
-        swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
@@ -195,7 +195,7 @@ public class SuperStructure extends SubsystemBase {
     }
 
     private void launchWithSqueeze() {
-        swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
@@ -212,7 +212,7 @@ public class SuperStructure extends SubsystemBase {
     }
 
     private void launchWithSqueezeWithNoDelay() {
-        swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
@@ -223,7 +223,7 @@ public class SuperStructure extends SubsystemBase {
     }
 
     private void launchWithoutSqueeze() {
-        swerve.setWantedState(Swerve.WantedState.PILOT_AIM_AT_TARGET);
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
