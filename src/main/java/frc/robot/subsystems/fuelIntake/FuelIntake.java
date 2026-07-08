@@ -136,15 +136,6 @@ public class FuelIntake extends Mechanism {
         }
     }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
-
     class FuelIntakeSim extends RollerSim {
         public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(

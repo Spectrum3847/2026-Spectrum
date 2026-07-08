@@ -140,15 +140,6 @@ public class IndexerTower extends Mechanism {
         }
     }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
-
     class IndexerSim extends RollerSim {
         public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(

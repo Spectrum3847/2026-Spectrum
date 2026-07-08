@@ -159,15 +159,6 @@ public class Launcher extends Mechanism {
         }
     }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
-
     class LauncherSim extends RollerSim {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(

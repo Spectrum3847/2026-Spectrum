@@ -131,15 +131,6 @@ public class Spindexer extends Mechanism {
         }
     }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
-        }
-    }
-
     class SpindexerSim extends RollerSim {
         public SpindexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(

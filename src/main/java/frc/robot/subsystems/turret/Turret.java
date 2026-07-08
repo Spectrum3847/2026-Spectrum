@@ -41,20 +41,20 @@ public class Turret extends Mechanism {
 
         @Getter private final double currentLimit = 30;
         @Getter private final double torqueCurrentLimit = 60;
-        @Getter private final double positionKp = 700;
-        @Getter private final double positionKd = 25;
+        @Getter private final double positionKp = 500;
+        @Getter private final double positionKd = 100;
 
         // TODO: required for shoot on the move capability
         // additional current output per unit of velocity requested
         // needed because of the velocity setpoint used in the control request
         @Getter private final double positionKv = 0;
 
-        @Getter private final double positionKs = 2;
+        @Getter private final double positionKs = 10;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 2.5;
-        @Getter private final double mmAcceleration = 20;
-        @Getter private final double mmJerk = 200;
+        @Getter private final double mmCruiseVelocity = 0.5;
+        @Getter private final double mmAcceleration = 5;
+        @Getter private final double mmJerk = 0;
 
         @Getter private final double sensorToMechanismRatio = 45;
         @Getter private final double rotorToSensorRatio = 1;
@@ -187,14 +187,17 @@ public class Turret extends Mechanism {
         systemState = handleStateTransition();
         logBatteryUsage();
         applyStates();
+        Telemetry.log("Turret/WantedState", wantedState.toString());
+        Telemetry.log("Turret/SystemState", systemState.toString());
         Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Turret/Voltage", getVoltage());
-        Telemetry.log("Turret/Current", getStatorCurrent());
-        Telemetry.log("Turret/PositionDegrees", getPositionDegrees());
-        Telemetry.log("Turret/PositionRotations", getPositionRotations());
-        Telemetry.log("Turret/VelocityRPM", getVelocityRPM());
-        Telemetry.log("Turret/CommandedDegrees", commandedDegrees);
-        Telemetry.log("Turret/MechOmegaRotPerSec", mechOmegaRotPerSec);
+        Telemetry.log("Turret/Voltage", getVoltage(), "volts");
+        Telemetry.log("Turret/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Turret/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("Turret/Temp", getTemp(), "deg_C");
+        Telemetry.log("Turret/CommandedDegrees", commandedDegrees, "deg");
+        Telemetry.log("Turret/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.log("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
+        Telemetry.log("Turret/CommandedRotPerSec", mechOmegaRotPerSec, "rot/sec");
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
     }
@@ -323,13 +326,6 @@ public class Turret extends Mechanism {
     private void simulationInit() {
         if (isAttached()) {
             sim = new TurretSim(RobotSim.topView, motor.getSimState());
-        }
-    }
-
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
         }
     }
 
