@@ -10,6 +10,7 @@ import com.ctre.phoenix6.controls.MotionMagicTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -1014,6 +1015,27 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Closed-loop position control using {@link PositionTorqueCurrentFOC} with an explicit velocity
+     * feedforward. This is the correct primitive for tracking a continuously moving setpoint (e.g.
+     * a turret aiming at a target while the robot drives), where profiling would introduce
+     * steady-state lag.
+     *
+     * @param rotations the target position in mechanism rotations
+     * @param velocityRPS the velocity feedforward in mechanism rotations per second
+     */
+    protected void setPositionFocWithVelocity(
+            DoubleSupplier rotations, DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            PositionTorqueCurrentFOC req =
+                    config.positionTorqueFOC
+                            .withPosition(target)
+                            .withVelocity(velocityRPS.getAsDouble());
+            motor.setControl(req);
+        }
+    }
+
+    /**
      * Closed-loop position control using Dynamic Motion Magic with Torque Current FOC (requires
      * Phoenix Pro). Trajectory parameters can be changed every loop cycle.
      *
@@ -1469,6 +1491,9 @@ public abstract class Mechanism implements Subsystem {
 
         @Getter
         private MotionMagicTorqueCurrentFOC mmPositionFOC = new MotionMagicTorqueCurrentFOC(0);
+
+        @Getter
+        private PositionTorqueCurrentFOC positionTorqueFOC = new PositionTorqueCurrentFOC(0);
 
         @Getter
         private DynamicMotionMagicTorqueCurrentFOC dynamicMMPositionFOC =

@@ -48,6 +48,10 @@ public class ShotCalculator {
     public static final double STARTING_TURRET_ANGLE_OFFSET_DEGREES = 0;
     public static double TURRET_ANGLE_OFFSET_DEGREES = STARTING_TURRET_ANGLE_OFFSET_DEGREES;
 
+    // RPM subtracted per m/s of closing speed toward the target (moving in needs less RPM, moving
+    // out needs more). Start at 0 for distance-only behavior and tune on-robot.
+    public static final double RADIAL_RPM_PER_MPS = 0.0;
+
     public static void increaseFlywheelSpeedOffset() {
         FLYWHEEL_SPEED_OFFSET += 1;
     }
@@ -201,9 +205,20 @@ public class ShotCalculator {
         double turretAngularVelocityRotPerSec = turretOmegaFilter.calculate(rawOmega);
         lastTurretAngle = turretAngle;
 
-        // Flywheel from map + preference offset (%)
+        // Closing speed of the turret toward the target (positive = approaching).
+        double toTargetX = target.getX() - compensatedTurretTranslation.getX();
+        double toTargetY = target.getY() - compensatedTurretTranslation.getY();
+        double toTargetNorm = Math.hypot(toTargetX, toTargetY);
+        double radialClosingSpeed = 0.0;
+        if (toTargetNorm > 1e-6) {
+            radialClosingSpeed =
+                    (turretVelocityX * toTargetX + turretVelocityY * toTargetY) / toTargetNorm;
+        }
+
+        // Flywheel from map + preference offset (%) + radial-velocity compensation
         double flywheelSpeed = shotFlywheelSpeedMap.get(lookaheadDistance);
         flywheelSpeed += flywheelSpeed * (FLYWHEEL_SPEED_OFFSET / 100.0);
+        flywheelSpeed -= RADIAL_RPM_PER_MPS * radialClosingSpeed;
 
         boolean isValid = lookaheadDistance >= minDistance && lookaheadDistance <= maxDistance;
 
@@ -216,6 +231,7 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
         Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocityRotPerSec));
         Telemetry.log("ShotCalc/FlywheelSpeedRPM", df.format(flywheelSpeed));
+        Telemetry.log("ShotCalc/RadialClosingSpeedMPS", df.format(radialClosingSpeed));
         Telemetry.log("ShotCalc/TurretPose", turretPose);
         Telemetry.log("ShotCalc/LookaheadPose", compensatedTurretTranslation);
         Telemetry.log(

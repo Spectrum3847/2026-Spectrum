@@ -75,8 +75,8 @@ public class RobotSim {
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
-    private static final Translation3d SHOOTER_TURRET_PIVOT_POINT =
-            new Translation3d(-Units.inchesToMeters(11.00), 0, Units.inchesToMeters(19.237));
+    private static final Translation3d TURRET_PIVOT_POINT =
+            new Translation3d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7), 0);
 
     @Getter private FuelPhysicsSim ballSim;
     private int singleLaneBPS = 8;
@@ -115,8 +115,8 @@ public class RobotSim {
         double turretAngleDegrees = robotSuperStructure.getTurret().getPositionDegrees();
         var turretPose3d =
                 Pose3d.kZero.rotateAround(
-                        SHOOTER_TURRET_PIVOT_POINT,
-                        new Rotation3d(0, -Math.toRadians(turretAngleDegrees - 9), 0));
+                        TURRET_PIVOT_POINT,
+                        new Rotation3d(0, 0, Math.toRadians(turretAngleDegrees)));
 
         Pose3d[] mechanismPoses = {intakePose3d, turretPose3d};
 

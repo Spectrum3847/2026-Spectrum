@@ -2,12 +2,11 @@ package frc.robot.subsystems.turret;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
-import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.CANcoderSimState;
 import com.ctre.phoenix6.sim.TalonFXSimState;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
@@ -28,9 +27,11 @@ public class Turret extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private final double presetPosition = 90;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
+        @Getter private double unwrapExitMargin = 45;
+        @Getter private double shootOnMoveLatencySec = 0.03;
+        @Getter private double maxOmegaForShotRotPerSec = 0.75;
 
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
@@ -42,30 +43,26 @@ public class Turret extends Mechanism {
         @Getter private final double torqueCurrentLimit = 60;
         @Getter private final double positionKp = 700;
         @Getter private final double positionKd = 25;
+
+        // TODO: required for shoot on the move capability
+        // additional current output per unit of velocity requested
+        // needed because of the velocity setpoint used in the control request
         @Getter private final double positionKv = 0;
+
         @Getter private final double positionKs = 2;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 300;
-        @Getter private final double mmJerk = 1000;
+        @Getter private final double mmCruiseVelocity = 2.5;
+        @Getter private final double mmAcceleration = 20;
+        @Getter private final double mmJerk = 200;
 
-        // Trapezoidal profile constraints are in mechanism rotations and mechanism
-        // rotations per second
-        private final TrapezoidProfile.Constraints turretConstraints;
-
-        @Getter @Setter private double sensorToMechanismRatio = 22.4;
-        @Getter @Setter private double rotorToSensorRatio = 1;
-
-        /* Cancoder config settings */
-        @Getter @Setter private double CANcoderRotorToSensorRatio = 5;
-        // CANcoderRotorToSensorRatio / sensorToMechanismRatio;
-
-        @Getter @Setter private double CANcoderSensorToMechanismRatio = 9;
-
-        @Getter @Setter private double CANcoderOffset = -0.196533203125;
-        @Getter @Setter private boolean CANcoderAttached = true;
-        @Getter @Setter private boolean isCANcoderInverted = false;
+        @Getter private final double sensorToMechanismRatio = 45;
+        @Getter private final double rotorToSensorRatio = 1;
+        @Getter private final double CANcoderRotorToSensorRatio = 5;
+        @Getter private final double CANcoderSensorToMechanismRatio = 9;
+        @Getter private final double CANcoderOffset = -0.196533203125;
+        @Getter private final boolean CANcoderAttached = true;
+        @Getter private final boolean isCANcoderInverted = false;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
@@ -89,9 +86,7 @@ public class Turret extends Mechanism {
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configCounterClockwise_Positive();
-
-            turretConstraints = new TrapezoidProfile.Constraints(30, 40);
+            configClockwise_Positive();
         }
 
         public TurretConfig modifyMotorConfig(TalonFX motor) {
@@ -131,44 +126,33 @@ public class Turret extends Mechanism {
         };
     }
 
+    @Getter private boolean unwrapping = false;
+    @Getter private int unwrapDir = 0;
+    @Getter private double commandedDegrees = 0;
+    @Getter private double mechOmegaRotPerSec = 0;
+
     private void applyStates() {
-        double wantedDegrees = 0;
         switch (systemState) {
             case OFF:
+                unwrapping = false;
                 stop();
                 return;
             case HOME:
-                wantedDegrees = 0;
-                break;
+                unwrapping = false;
+                commandedDegrees = 0;
+                mechOmegaRotPerSec = 0;
+                setMMPositionFoc(() -> degreesToRotations(() -> 0.0));
+                return;
             case AIM_AT_TARGET:
-                var params = ShotCalculator.getInstance().getParameters();
-                wantedDegrees =
-                        params.turretAngle().getDegrees()
-                                + ShotCalculator.TURRET_ANGLE_OFFSET_DEGREES;
-                break;
+                applyAimAtTarget();
+                return;
         }
-        final double finalWantedDegrees = wantedDegrees;
-        final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
-        setMMPositionFoc(() -> finalWantedPosition);
     }
-
-    @SuppressWarnings("unused")
-    private TrapezoidProfile profile;
-
-    @SuppressWarnings("unused")
-    private TrapezoidProfile.State turretSetpoint;
-
-    @SuppressWarnings("unused")
-    private PositionTorqueCurrentFOC turretRequest = new PositionTorqueCurrentFOC(0);
 
     @Getter private TurretConfig config;
     @Getter private TurretSim sim;
-
-    @SuppressWarnings("unused")
-    private SpectrumCANcoder canCoder;
-
-    private SpectrumCANcoderConfig canCoderConfig;
-    CANcoderSimState canCoderSim;
+    @Getter private SpectrumCANcoder canCoder;
+    @Getter private SpectrumCANcoderConfig canCoderConfig;
 
     public Turret(TurretConfig config) {
         super(config);
@@ -191,10 +175,8 @@ public class Turret extends Mechanism {
                                 config,
                                 SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
             }
+            setInitialPosition();
         }
-
-        profile = new TrapezoidProfile(config.turretConstraints);
-        turretSetpoint = new TrapezoidProfile.State();
 
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -211,6 +193,128 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/PositionDegrees", getPositionDegrees());
         Telemetry.log("Turret/PositionRotations", getPositionRotations());
         Telemetry.log("Turret/VelocityRPM", getVelocityRPM());
+        Telemetry.log("Turret/CommandedDegrees", commandedDegrees);
+        Telemetry.log("Turret/MechOmegaRotPerSec", mechOmegaRotPerSec);
+        Telemetry.log("Turret/Unwrapping", unwrapping);
+        Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
+    }
+
+    private void setInitialPosition() {
+        if (canCoder != null) {
+            if (canCoder.isAttached()
+                    && canCoder.canCoderResponseOK(
+                            canCoder.getCanCoder().getAbsolutePosition().getStatus())) {
+                motor.setPosition(
+                        (canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
+                                / config.getCANcoderSensorToMechanismRatio()));
+            } else {
+                motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+            }
+        } else {
+            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+        }
+    }
+
+    private void applyAimAtTarget() {
+        var params = ShotCalculator.getInstance().getParameters();
+
+        // Convert FIELD-RELATIVE angle to MECHANISM-RELATIVE angle
+        double robotHeadingDeg = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+        double desiredMechDegrees =
+                params.turretAngle().getDegrees()
+                        - robotHeadingDeg
+                        - config.getZeroOffsetFromRobotFront().getDegrees();
+
+        double commanded = resolveTurretAngle(desiredMechDegrees);
+        commandedDegrees = commanded;
+
+        // Counter-rotate for the robot's own spin, so mechOmega = fieldOmega - robotOmega
+        ChassisSpeeds robotSpeeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        double robotOmegaRotPerSec = robotSpeeds.omegaRadiansPerSecond / (2.0 * Math.PI);
+        mechOmegaRotPerSec = params.turretAngularVelocityRotPerSec() - robotOmegaRotPerSec;
+
+        if (unwrapping) {
+            // Motion magic for smooth full-turn slew to the opposite winding, so the cable never
+            // binds
+            final double unwrapRot = degreesToRotations(() -> commandedDegrees);
+            setMMPositionFoc(() -> unwrapRot);
+            return;
+        }
+
+        // Lead the moving target by the actuation latency
+        double minDeg = config.getMinRotations() * 360.0;
+        double maxDeg = config.getMaxRotations() * 360.0;
+        double predictedDegrees =
+                MathUtil.clamp(
+                        commanded
+                                + (mechOmegaRotPerSec * 360.0) * config.getShootOnMoveLatencySec(),
+                        minDeg,
+                        maxDeg);
+
+        final double posRot = degreesToRotations(() -> predictedDegrees);
+        final double ffRps = mechOmegaRotPerSec;
+        setPositionFocWithVelocity(() -> posRot, () -> ffRps);
+    }
+
+    /**
+     * Picks the physically-equivalent turret angle (target direction ± whole turns) that best fits
+     * the limited travel range, and drives the proactive cable-unwrap hysteresis.
+     */
+    private double resolveTurretAngle(double desiredMechDegrees) {
+        double minDeg = config.getMinRotations() * 360.0;
+        double maxDeg = config.getMaxRotations() * 360.0;
+        double currentDeg = getPositionDegrees();
+
+        int nMin = (int) Math.ceil((minDeg - desiredMechDegrees) / 360.0);
+        int nMax = (int) Math.floor((maxDeg - desiredMechDegrees) / 360.0);
+
+        if (nMin > nMax) {
+            unwrapping = false;
+            return (Math.abs(currentDeg - minDeg) < Math.abs(currentDeg - maxDeg))
+                    ? minDeg
+                    : maxDeg;
+        }
+
+        int nClosest = (int) Math.round((currentDeg - desiredMechDegrees) / 360.0);
+        int n = Math.max(nMin, Math.min(nClosest, nMax));
+        double chosen = desiredMechDegrees + n * 360.0;
+
+        // While unwrapping, hold the committed winding until we physically arrive, so the direction
+        // can't flip mid-slew as the current position crosses the halfway point.
+        if (unwrapping) {
+            int nTarget = (unwrapDir < 0) ? nMin : nMax;
+            chosen = desiredMechDegrees + nTarget * 360.0;
+            if (nMin == nMax || Math.abs(currentDeg - chosen) <= config.getUnwrapExitMargin()) {
+                unwrapping = false;
+            }
+            return chosen;
+        }
+
+        // Proactive unwrap: trigger only if the nearest command is crowding a soft limit and the
+        // opposite winding is reachable, then commit to that winding.
+        if (nMin != nMax) {
+            if (maxDeg - chosen <= config.getUnwrapTolerance() && (n - 1) >= nMin) {
+                unwrapping = true;
+                unwrapDir = -1;
+                chosen = desiredMechDegrees + (n - 1) * 360.0;
+            } else if (chosen - minDeg <= config.getUnwrapTolerance() && (n + 1) <= nMax) {
+                unwrapping = true;
+                unwrapDir = +1;
+                chosen = desiredMechDegrees + (n + 1) * 360.0;
+            }
+        }
+        return chosen;
+    }
+
+    /**
+     * @return true when the turret is aiming, on target within tolerance, slewing slowly enough for
+     *     a stable shot, and not mid-unwrap. Use this to gate shooting while on the move.
+     */
+    public boolean isReadyToShoot() {
+        return systemState == SystemState.AIM_AT_TARGET
+                && !unwrapping
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= config.getTriggerTolerance()
+                && Math.abs(mechOmegaRotPerSec) <= config.getMaxOmegaForShotRotPerSec();
     }
 
     // --------------------------------------------------------------------------------
@@ -233,13 +337,14 @@ public class Turret extends Mechanism {
         public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
             super(
                     new ArmConfig(
-                            config.intakeX,
-                            config.intakeY,
-                            config.simRatio,
-                            config.length,
-                            -720,
-                            720,
-                            0),
+                                    config.intakeX,
+                                    config.intakeY,
+                                    config.simRatio,
+                                    config.length,
+                                    -720,
+                                    720,
+                                    0)
+                            .setSimulatedGravity(false),
                     mech,
                     turretMotorSim,
                     config.getName());
