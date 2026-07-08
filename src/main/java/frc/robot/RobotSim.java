@@ -1,11 +1,6 @@
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Inches;
-import static edu.wpi.first.units.Units.MetersPerSecond;
-
 import com.ctre.phoenix6.Utils;
-import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -15,7 +10,6 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
@@ -25,8 +19,6 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.subsystems.SuperStructure;
@@ -35,10 +27,6 @@ import frc.spectrumLib.sim.Circle;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
 import lombok.Getter;
-import org.ironmaple.simulation.IntakeSimulation;
-import org.ironmaple.simulation.SimulatedArena;
-import org.ironmaple.simulation.gamepieces.GamePieceProjectile;
-import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
 
 // General Sim principles
 // Always move the root/origin to change it's display position
@@ -59,19 +47,6 @@ public class RobotSim {
             new Mechanism2d(
                     Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
-    public static Trigger simLaunching() {
-        return new Trigger(
-                () ->
-                        Utils.isSimulation()
-                                && (Robot.getSuperStructure().getCurrentSuperState()
-                                                == CurrentSuperState.LAUNCH_WITH_SQUEEZE
-                                        || Robot.getSuperStructure().getCurrentSuperState()
-                                                == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
-                                        || Robot.getSuperStructure().getCurrentSuperState()
-                                                == CurrentSuperState
-                                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
-    }
-
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
@@ -79,12 +54,10 @@ public class RobotSim {
             new Translation3d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7), 0);
 
     @Getter private FuelPhysicsSim ballSim;
-    private int singleLaneBPS = 8;
-    private double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
-    private double launcherWidth = 6;
-    private int numOfLanes = 1;
-    private double laneWidth = launcherWidth / numOfLanes;
-    private double lane1 = -2 * laneWidth / 2;
+    private double ballsPerSecond = 15;
+    private double timeBetweenBallLaunches = 1.0 / ballsPerSecond;
+    private static final double LAUNCH_ELEVATION_DEGREES = 65;
+    private static final double LAUNCH_HEIGHT_INCHES = 27;
 
     private SuperStructure robotSuperStructure;
 
@@ -204,42 +177,48 @@ public class RobotSim {
                 simRobotWidth,
                 simRobotLength,
                 bumperHeight,
-                50,
-                () -> Robot.getSwerve().getRobotPose(),
-                () -> Robot.getSwerve().getCurrentRobotChassisSpeeds());
+                80,
+                () -> robotSuperStructure.getSwerve().getRobotPose(),
+                () -> robotSuperStructure.getSwerve().getCurrentRobotChassisSpeeds());
         ballSim.addIntakeZone(
                 intakeXMin,
                 intakeXMax,
                 intakeYMin,
                 intakeYMax,
-                () ->
-                        Robot.getSuperStructure().getCurrentSuperState()
-                                == CurrentSuperState.INTAKE_FUEL);
+                () -> robotSuperStructure.getCurrentSuperState() == CurrentSuperState.INTAKE_FUEL);
     }
 
-    private Command createSimBallLaunch(double laneOffset) {
+    private Command createSimBallLaunch() {
         return Commands.runOnce(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    double launchSpeed = params.flywheelSpeed();
-                    double launchAngle = Math.toRadians(90 - params.turretAngle().getDegrees());
-                    double launchYaw =
-                            Robot.getSwerve().getRobotPose().getRotation().getRadians()
-                                    + Math.toRadians(180);
-                    Rotation3d launchRotation = new Rotation3d(0, -launchAngle, launchYaw);
-                    Translation3d launchVelocity = new Translation3d(launchSpeed, launchRotation);
+                    var turret = robotSuperStructure.getTurret();
+                    Pose2d robotPos = robotSuperStructure.getSwerve().getRobotPose();
 
-                    Pose2d robotPos = Robot.getSwerve().getRobotPose();
-                    Transform2d robotToLauncher =
+                    Rotation2d turretFieldAngle =
+                            robotPos.getRotation()
+                                    .plus(turret.getConfig().getZeroOffsetFromRobotFront())
+                                    .plus(Rotation2d.fromDegrees(turret.getPositionDegrees()));
+                    Rotation3d launchRotation =
+                            new Rotation3d(
+                                    0,
+                                    -Math.toRadians(LAUNCH_ELEVATION_DEGREES),
+                                    turretFieldAngle.getRadians());
+                    Translation3d launchVelocity =
+                            new Translation3d(params.flywheelSpeed() * 0.0023, launchRotation);
+
+                    Transform2d robotToTurret =
                             new Transform2d(
                                     new Translation2d(
-                                            Units.inchesToMeters(-5.5),
-                                            Units.inchesToMeters(laneOffset)),
-                                    Rotation2d.k180deg);
+                                            TURRET_PIVOT_POINT.getX(), TURRET_PIVOT_POINT.getY()),
+                                    Rotation2d.kZero);
                     Translation3d launcherPose =
-                            new Translation3d(
-                                            robotPos.transformBy(robotToLauncher).getTranslation())
-                                    .plus(new Translation3d(0, 0, Units.inchesToMeters(17.5)));
+                            new Translation3d(robotPos.transformBy(robotToTurret).getTranslation())
+                                    .plus(
+                                            new Translation3d(
+                                                    0,
+                                                    0,
+                                                    Units.inchesToMeters(LAUNCH_HEIGHT_INCHES)));
                     ballSim.launchBall(launcherPose, launchVelocity, 500);
                 });
     }
@@ -251,84 +230,14 @@ public class RobotSim {
         return Commands.defer(
                 () -> {
                     int fuelCount = ballSim.getTotalIntaked();
-                    int numToLaunchPerLane = fuelCount / numOfLanes;
-                    SequentialCommandGroup group1 =
+                    SequentialCommandGroup stream =
                             new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
-                    for (int i = 0; i < numToLaunchPerLane; i++) {
-                        group1.addCommands(
-                                createSimBallLaunch(lane1),
+                    for (int i = 0; i < fuelCount; i++) {
+                        stream.addCommands(
+                                createSimBallLaunch(),
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
-                    return Commands.parallel(group1).withName("RobotSim.ballSimLaunchFuel");
-                },
-                Set.of() // no subsystem requirements
-                );
-    }
-
-    @Getter
-    private static final IntakeSimulation intakeSimulation =
-            RobotBase.isSimulation()
-                    ? IntakeSimulation.OverTheBumperIntake(
-                            "Fuel",
-                            Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-                            Inches.of(29),
-                            Inches.of(12),
-                            IntakeSimulation.IntakeSide.FRONT,
-                            80)
-                    : null;
-
-    public static Command mapleSimCreateFuelProjectile() {
-        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
-            return Commands.none();
-        }
-        return Commands.runOnce(
-                        () -> {
-                            var parameters = ShotCalculator.getInstance().getParameters();
-                            GamePieceProjectile fuelProjectile =
-                                    new RebuiltFuelOnFly(
-                                                    Robot.getSwerve()
-                                                            .getRobotPose()
-                                                            .getTranslation(),
-                                                    new Translation2d(),
-                                                    Robot.getSwerve()
-                                                            .getCurrentRobotChassisSpeeds(),
-                                                    parameters.turretAngle(),
-                                                    Inches.of(29),
-                                                    MetersPerSecond.of(
-                                                            parameters.flywheelSpeed() * 0.0025),
-                                                    Degrees.of(65))
-                                            .withProjectileTrajectoryDisplayCallBack(
-                                                    (pose3ds) ->
-                                                            DogLog.log(
-                                                                    "SimShot/FuelProjectileSuccessfulShot",
-                                                                    pose3ds.toArray(Pose3d[]::new)),
-                                                    (pose3ds) ->
-                                                            DogLog.log(
-                                                                    "SimShot/FuelProjectileUnsuccessfulShot",
-                                                                    pose3ds.toArray(
-                                                                            Pose3d[]::new)));
-                            SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
-                            RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-                        })
-                .withName("RobotSim.mapleSimCreateFuelProjectile");
-    }
-
-    public static Command mapleSimLaunchFuel() {
-        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
-            return Commands.none();
-        }
-        return Commands.defer(
-                () -> {
-                    if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
-                        return Commands.none();
-                    }
-
-                    int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
-                    SequentialCommandGroup group = new SequentialCommandGroup();
-                    for (int i = 0; i < fuelCount; i++) {
-                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.066));
-                    }
-                    return group.withName("RobotSim.mapleSimLaunchFuel");
+                    return stream.withName("RobotSim.ballSimLaunchFuel");
                 },
                 Set.of() // no subsystem requirements
                 );
