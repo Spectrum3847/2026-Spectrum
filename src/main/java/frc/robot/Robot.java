@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
@@ -256,13 +257,15 @@ public class Robot extends SpectrumRobot {
         pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        // operator.dPadDown.onTrue(ShotCalculator.decreaseFlywheelSpeedOffset());
-        // operator.dPadUp.onTrue(ShotCalculator.increaseFlywheelSpeedOffset());
-        // operator.dPadRight.onTrue(ShotCalculator.decreaseTurretAngleOffsetDegrees());
-        // operator.dPadLeft.onTrue(ShotCalculator.increaseTurretAngleOffsetDegrees());
+        operator.dPadDown.onTrue(
+                new InstantCommand(() -> ShotCalculator.decreaseFlywheelSpeedOffset()));
+        operator.dPadUp.onTrue(
+                new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
+        operator.dPadRight.onTrue(
+                new InstantCommand(() -> ShotCalculator.decreaseTurretAngleOffsetDegrees()));
+        operator.dPadLeft.onTrue(
+                new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffsetDegrees()));
 
-        // Reset hub shift timer when enabling
-        Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
 

@@ -1,11 +1,6 @@
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Inches;
-import static edu.wpi.first.units.Units.MetersPerSecond;
-
 import com.ctre.phoenix6.Utils;
-import dev.doglog.DogLog;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -15,7 +10,6 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
@@ -25,7 +19,6 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
@@ -35,10 +28,6 @@ import frc.spectrumLib.sim.Circle;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
 import lombok.Getter;
-import org.ironmaple.simulation.IntakeSimulation;
-import org.ironmaple.simulation.SimulatedArena;
-import org.ironmaple.simulation.gamepieces.GamePieceProjectile;
-import org.ironmaple.simulation.seasonspecific.rebuilt2026.RebuiltFuelOnFly;
 
 // General Sim principles
 // Always move the root/origin to change it's display position
@@ -260,75 +249,6 @@ public class RobotSim {
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
                     return Commands.parallel(group1).withName("RobotSim.ballSimLaunchFuel");
-                },
-                Set.of() // no subsystem requirements
-                );
-    }
-
-    @Getter
-    private static final IntakeSimulation intakeSimulation =
-            RobotBase.isSimulation()
-                    ? IntakeSimulation.OverTheBumperIntake(
-                            "Fuel",
-                            Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-                            Inches.of(29),
-                            Inches.of(12),
-                            IntakeSimulation.IntakeSide.FRONT,
-                            80)
-                    : null;
-
-    public static Command mapleSimCreateFuelProjectile() {
-        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
-            return Commands.none();
-        }
-        return Commands.runOnce(
-                        () -> {
-                            var parameters = ShotCalculator.getInstance().getParameters();
-                            GamePieceProjectile fuelProjectile =
-                                    new RebuiltFuelOnFly(
-                                                    Robot.getSwerve()
-                                                            .getRobotPose()
-                                                            .getTranslation(),
-                                                    new Translation2d(),
-                                                    Robot.getSwerve()
-                                                            .getCurrentRobotChassisSpeeds(),
-                                                    parameters.turretAngle(),
-                                                    Inches.of(29),
-                                                    MetersPerSecond.of(
-                                                            parameters.flywheelSpeed() * 0.0025),
-                                                    Degrees.of(65))
-                                            .withProjectileTrajectoryDisplayCallBack(
-                                                    (pose3ds) ->
-                                                            DogLog.log(
-                                                                    "SimShot/FuelProjectileSuccessfulShot",
-                                                                    pose3ds.toArray(Pose3d[]::new)),
-                                                    (pose3ds) ->
-                                                            DogLog.log(
-                                                                    "SimShot/FuelProjectileUnsuccessfulShot",
-                                                                    pose3ds.toArray(
-                                                                            Pose3d[]::new)));
-                            SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
-                            RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-                        })
-                .withName("RobotSim.mapleSimCreateFuelProjectile");
-    }
-
-    public static Command mapleSimLaunchFuel() {
-        if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
-            return Commands.none();
-        }
-        return Commands.defer(
-                () -> {
-                    if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) {
-                        return Commands.none();
-                    }
-
-                    int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
-                    SequentialCommandGroup group = new SequentialCommandGroup();
-                    for (int i = 0; i < fuelCount; i++) {
-                        group.addCommands(mapleSimCreateFuelProjectile(), new WaitCommand(0.066));
-                    }
-                    return group.withName("RobotSim.mapleSimLaunchFuel");
                 },
                 Set.of() // no subsystem requirements
                 );

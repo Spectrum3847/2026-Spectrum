@@ -1,0 +1,178 @@
+{
+  "hubs": [
+    {
+      "x": -8,
+      "y": -8,
+      "width": 1936,
+      "height": 1048,
+      "state": {
+        "sidebar": {
+          "width": 334,
+          "expanded": [
+            "/SmartDashboard/Sim",
+            "/SmartDashboard/MapleSim/MatchData",
+            "/Robot/SimShot",
+            "/SmartDashboard/MapleSim/MatchData/Breakdown",
+            "/SmartDashboard/MapleSim/MatchData/Breakdown/blue Alliance",
+            "/Robot/FieldSimulation",
+            "/Robot/FieldSimulation/SimRobotPose",
+            "/Robot/FieldSimulation/SimRobotPoseWithBump",
+            "/Robot/FieldSimulation/SimRobotPoseWithBump/rotation",
+            "/Robot/FieldSimulation/SimRobotPoseWithBump/rotation/q",
+            "/Robot/FieldSimulation/SimRobotPose/rotation",
+            "/Robot/Superstructure",
+            "/Robot/Target ID getReefZone",
+            "/Sim/Fuel",
+            "/Robot",
+            "/Sim/Fuel/Stats",
+            "/Robot/Hood",
+            "/Robot/Sim"
+          ]
+        },
+        "tabs": {
+          "selected": 3,
+          "tabs": [
+            {
+              "type": 0,
+              "title": "",
+              "controller": null,
+              "controllerUUID": "n0ilkkww0cjb3y0s6c3jycvmc288co6z",
+              "renderer": "",
+              "controlsHeight": 0
+            },
+            {
+              "type": 1,
+              "title": "Line Graph",
+              "controller": {
+                "leftSources": [],
+                "rightSources": [],
+                "discreteSources": [],
+                "leftLockedRange": null,
+                "rightLockedRange": null,
+                "leftUnitConversion": {
+                  "autoTarget": null,
+                  "preset": null
+                },
+                "rightUnitConversion": {
+                  "autoTarget": null,
+                  "preset": null
+                },
+                "leftFilter": 0,
+                "rightFilter": 0
+              },
+              "controllerUUID": "ymy0ce0vpb9tpe3vl7f4eh6oclm0c6ia",
+              "renderer": null,
+              "controlsHeight": 200
+            },
+            {
+              "type": 10,
+              "title": "Mechanism",
+              "controller": [
+                {
+                  "type": "mechanism",
+                  "logKey": "NT:/SmartDashboard/Sim/LeftView",
+                  "logType": "Mechanism2d",
+                  "visible": true,
+                  "options": {}
+                }
+              ],
+              "controllerUUID": "8x5r9tpkrt5x85mzz0uuj3gwdqd1qwzy",
+              "renderer": null,
+              "controlsHeight": 200
+            },
+            {
+              "type": 3,
+              "title": "3D Field",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "robot",
+                    "logKey": "NT:/Robot/Sim/RobotPose3d",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {
+                      "model": "3847 - PM"
+                    }
+                  },
+                  {
+                    "type": "component",
+                    "logKey": "NT:/Robot/Sim/Components",
+                    "logType": "Pose3d[]",
+                    "visible": true,
+                    "options": {}
+                  },
+                  {
+                    "type": "gamePiece",
+                    "logKey": "NT:Sim/Fuel/Positions",
+                    "logType": "Translation3d[]",
+                    "visible": true,
+                    "options": {
+                      "variant": "Fuel"
+                    }
+                  }
+                ],
+                "game": "FRC:2026 Field"
+              },
+              "controllerUUID": "1amtkucvvwtuj1q7z0e6rkfcgp1cfnhg",
+              "renderer": {
+                "cameraIndex": -1,
+                "orbitFov": 50,
+                "cameraPosition": [
+                  -3.3022221575556503,
+                  3.0069939305682825,
+                  5.432943392512464
+                ],
+                "cameraTarget": [
+                  -3.4582712997448435,
+                  2.119258167082097,
+                  1.3738810277593272
+                ]
+              },
+              "controlsHeight": 207
+            },
+            {
+              "type": 2,
+              "title": "2D Field",
+              "controller": {
+                "sources": [
+                  {
+                    "type": "robot",
+                    "logKey": "NT:/Robot/Swerve/Pose",
+                    "logType": "Pose2d",
+                    "visible": true,
+                    "options": {
+                      "bumpers": ""
+                    }
+                  }
+                ],
+                "field": "FRC:2025 Field (AndyMark)",
+                "orientation": 3,
+                "size": "large"
+              },
+              "controllerUUID": "t1whba8qra0vc9iqjxr7cnmasxq2l7zf",
+              "renderer": null,
+              "controlsHeight": 200
+            },
+            {
+              "type": 8,
+              "title": "Joysticks",
+              "controller": [
+                "None",
+                "None",
+                "None",
+                "None",
+                "None",
+                "None"
+              ],
+              "controllerUUID": "23r5466w9fbogud4fh5jfvz48tsz3gcc",
+              "renderer": null,
+              "controlsHeight": 85
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "satellites": [],
+  "version": "26.0.0"
+}
