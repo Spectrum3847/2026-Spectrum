@@ -48,19 +48,6 @@ public class RobotSim {
             new Mechanism2d(
                     Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
-    public static Trigger simLaunching() {
-        return new Trigger(
-                () ->
-                        Utils.isSimulation()
-                                && (Robot.getSuperStructure().getCurrentSuperState()
-                                                == CurrentSuperState.LAUNCH_WITH_SQUEEZE
-                                        || Robot.getSuperStructure().getCurrentSuperState()
-                                                == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
-                                        || Robot.getSuperStructure().getCurrentSuperState()
-                                                == CurrentSuperState
-                                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
-    }
-
     @Getter private static double simRobotWidth = Units.inchesToMeters(33);
     @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
 
@@ -68,12 +55,10 @@ public class RobotSim {
             new Translation3d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7), 0);
 
     @Getter private FuelPhysicsSim ballSim;
-    private int singleLaneBPS = 8;
-    private double timeBetweenBallLaunches = 1.0 / singleLaneBPS;
-    private double launcherWidth = 6;
-    private int numOfLanes = 1;
-    private double laneWidth = launcherWidth / numOfLanes;
-    private double lane1 = -2 * laneWidth / 2;
+    private double ballsPerSecond = 15;
+    private double timeBetweenBallLaunches = 1.0 / ballsPerSecond;
+    private static final double LAUNCH_ELEVATION_DEGREES = 65;
+    private static final double LAUNCH_HEIGHT_INCHES = 27;
 
     private SuperStructure robotSuperStructure;
 
@@ -193,42 +178,48 @@ public class RobotSim {
                 simRobotWidth,
                 simRobotLength,
                 bumperHeight,
-                50,
-                () -> Robot.getSwerve().getRobotPose(),
-                () -> Robot.getSwerve().getCurrentRobotChassisSpeeds());
+                80,
+                () -> robotSuperStructure.getSwerve().getRobotPose(),
+                () -> robotSuperStructure.getSwerve().getCurrentRobotChassisSpeeds());
         ballSim.addIntakeZone(
                 intakeXMin,
                 intakeXMax,
                 intakeYMin,
                 intakeYMax,
-                () ->
-                        Robot.getSuperStructure().getCurrentSuperState()
-                                == CurrentSuperState.INTAKE_FUEL);
+                () -> robotSuperStructure.getCurrentSuperState() == CurrentSuperState.INTAKE_FUEL);
     }
 
-    private Command createSimBallLaunch(double laneOffset) {
+    private Command createSimBallLaunch() {
         return Commands.runOnce(
                 () -> {
                     var params = ShotCalculator.getInstance().getParameters();
-                    double launchSpeed = params.flywheelSpeed();
-                    double launchAngle = Math.toRadians(90 - params.turretAngle().getDegrees());
-                    double launchYaw =
-                            Robot.getSwerve().getRobotPose().getRotation().getRadians()
-                                    + Math.toRadians(180);
-                    Rotation3d launchRotation = new Rotation3d(0, -launchAngle, launchYaw);
-                    Translation3d launchVelocity = new Translation3d(launchSpeed, launchRotation);
+                    var turret = robotSuperStructure.getTurret();
+                    Pose2d robotPos = robotSuperStructure.getSwerve().getRobotPose();
 
-                    Pose2d robotPos = Robot.getSwerve().getRobotPose();
-                    Transform2d robotToLauncher =
+                    Rotation2d turretFieldAngle =
+                            robotPos.getRotation()
+                                    .plus(turret.getConfig().getZeroOffsetFromRobotFront())
+                                    .plus(Rotation2d.fromDegrees(turret.getPositionDegrees()));
+                    Rotation3d launchRotation =
+                            new Rotation3d(
+                                    0,
+                                    -Math.toRadians(LAUNCH_ELEVATION_DEGREES),
+                                    turretFieldAngle.getRadians());
+                    Translation3d launchVelocity =
+                            new Translation3d(params.flywheelSpeed() * 0.0023, launchRotation);
+
+                    Transform2d robotToTurret =
                             new Transform2d(
                                     new Translation2d(
-                                            Units.inchesToMeters(-5.5),
-                                            Units.inchesToMeters(laneOffset)),
-                                    Rotation2d.k180deg);
+                                            TURRET_PIVOT_POINT.getX(), TURRET_PIVOT_POINT.getY()),
+                                    Rotation2d.kZero);
                     Translation3d launcherPose =
-                            new Translation3d(
-                                            robotPos.transformBy(robotToLauncher).getTranslation())
-                                    .plus(new Translation3d(0, 0, Units.inchesToMeters(17.5)));
+                            new Translation3d(robotPos.transformBy(robotToTurret).getTranslation())
+                                    .plus(
+                                            new Translation3d(
+                                                    0,
+                                                    0,
+                                                    Units.inchesToMeters(LAUNCH_HEIGHT_INCHES)));
                     ballSim.launchBall(launcherPose, launchVelocity, 500);
                 });
     }
@@ -240,15 +231,14 @@ public class RobotSim {
         return Commands.defer(
                 () -> {
                     int fuelCount = ballSim.getTotalIntaked();
-                    int numToLaunchPerLane = fuelCount / numOfLanes;
-                    SequentialCommandGroup group1 =
+                    SequentialCommandGroup stream =
                             new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
-                    for (int i = 0; i < numToLaunchPerLane; i++) {
-                        group1.addCommands(
-                                createSimBallLaunch(lane1),
+                    for (int i = 0; i < fuelCount; i++) {
+                        stream.addCommands(
+                                createSimBallLaunch(),
                                 Commands.waitSeconds(timeBetweenBallLaunches));
                     }
-                    return Commands.parallel(group1).withName("RobotSim.ballSimLaunchFuel");
+                    return stream.withName("RobotSim.ballSimLaunchFuel");
                 },
                 Set.of() // no subsystem requirements
                 );

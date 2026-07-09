@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
@@ -34,6 +35,7 @@ import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
@@ -291,7 +293,17 @@ public class Robot extends SpectrumRobot {
     }
 
     public void configureSimBindings() {
-        RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
+        Trigger simLaunching =
+                new Trigger(
+                        () ->
+                                (superStructure.getCurrentSuperState()
+                                                == CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                                        || superStructure.getCurrentSuperState()
+                                                == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                                        || superStructure.getCurrentSuperState()
+                                                == CurrentSuperState
+                                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
+        simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
     }
 
     /** Sets up the SmartDashboard data for visualization. */
