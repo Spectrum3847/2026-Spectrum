@@ -24,25 +24,28 @@ The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim`
 | `LinearSim` | A telescoping/sliding ligament — elevator, intake extension. |
 | `RollerSim` | A spinning indicator with direction + relative speed — intake roller, indexer wheels, launcher flywheel. |
 
+They mimic the behavior of the subsystem with a custom Sim class in different subsystem folders.
+
 These came from Team 604's sample project and were adapted; the principle of "always move the root/origin to change display position" (commented at the top of `RobotSim.java`) is the most useful thing to remember.
 
-## MapleSim Physics
+## AdvantageScope
 
-[MapleSim (IronMaple)](https://github.com/Shenzhen-Robotics-Alliance/maple-sim) handles the physics — drivetrain dynamics, game-piece interaction, projectile flight. [`RobotSim.intakeSimulation`](../../src/main/java/frc/robot/RobotSim.java) wires up an over-the-bumper fuel intake:
+We use AdvantageScope as a simulation tool in addition to a log analysis tool. Its main job during sim is the **3D Field** view: a better way to watch the robot drive around the field than staring at raw pose numbers.
 
-```java
-IntakeSimulation.OverTheBumperIntake(
-    "Fuel",
-    Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-    Inches.of(29),
-    Inches.of(12),
-    IntakeSimulation.IntakeSide.FRONT,
-    80); // max game pieces
-```
+Start the robot sim first (`./gradlew simulateJava` or `WPILib: Simulate Robot Code`), then open AdvantageScope and connect to `localhost`. The robot publishes [`Robot.field2d`](../../src/main/java/frc/robot/Robot.java) to `SmartDashboard/Field2d`, and `robotPeriodic()` updates it from `swerve.getRobotPose()`. In sim, that pose comes from MapleSim through `mapleSimDrive.getSimulatedDriveTrainPose()`, so the robot model in AdvantageScope is showing the drivetrain simulation, not a fake hand-entered pose.
 
-When the intake command starts, `mapleSimIntakeFuel()` calls `startIntake()` on the simulated intake; the moment a simulated fuel piece is in range, MapleSim transfers it to the robot. `mapleSimLaunchFuel()` reads the held-piece count and creates `RebuiltFuelOnFly` projectiles using the actual `ShotCalculator` outputs — same code path as match-day, so a shot that lands in sim should also land on the real field if the calibration is right.
+For the usual 3D field setup:
 
-The trajectory is published to NetworkTables under `SimShot/FuelProjectileSuccessfulShot` (or `…UnsuccessfulShot`). Drag those into Glass's `Field2d` overlay to see shots in flight.
+1. Open AdvantageScope's **3D Field** tab.
+2. Set the source to the live NetworkTables connection.
+3. Drag `SmartDashboard/Field2d/Robot` into the robot pose slot.
+4. If an auto is selected, drag `SmartDashboard/Field2d/Auto Routine` in as a trajectory/poses object so the planned path and simulated robot motion can be compared.
+
+You can also drive things like FuelInFlight and whatnot to simulate flying fuel.
+
+That view is especially useful for autos. Select the auto in Elastic or Glass, enable the simulated Driver Station, and watch whether the robot starts in the right place, follows the expected route, and ends with the correct heading. If the AdvantageScope robot jumps, drives mirrored from what you expected, or misses the drawn path, check pose reset first: autos seed pose through the swerve reset path, and in sim that also calls `mapleSimDrive.setSimulationWorldPose(...)`.
+
+AdvantageScope can also replay the same data from a `.wpilog` after the run. That makes the workflow: test the auto in sim, use 3D Field live while it runs, then open the saved log if you need to scrub frame-by-frame through the exact moment the path or pose estimate went sideways.
 
 ## What Simulation Catches (and Doesn't)
 
@@ -71,6 +74,5 @@ A few things to check first when a sim result doesn't match reality:
 
 ## See Also
 
-* [MapleSim dependency page](../dependencies/maple-sim.md) for the version we run.
 * [PathPlanner](../dependencies/pathplanner.md) for trajectory generation, which feeds into the sim swerve.
 * WPILib's [simulation docs](https://docs.wpilib.org/en/stable/docs/software/wpilib-tools/robot-simulation/index.html) for `Mechanism2d` and `Field2d` basics.
