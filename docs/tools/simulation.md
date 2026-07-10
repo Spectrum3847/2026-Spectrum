@@ -6,13 +6,13 @@ Running the robot code without a robot. Worth doing every time you push: it catc
 
 ## Launching the Sim
 
-The fast path is in VSCode: `Ctrl+Shift+P → WPILib: Simulate Robot Code`. Gradle builds, then prompts for `GUI Sim` or `Use Driver Station`. Pick `GUI Sim` for typical iteration — it launches `Glass`, which gives you joysticks, Field2d, and NetworkTables in one window.
+The fast path is in VSCode: `Ctrl+Shift+P → WPILib: Simulate Robot Code`. Gradle builds, then prompts for `GUI Sim` or `Use Driver Station`. Pick `GUI Sim` for typical iteration: it launches `Glass`, which gives you joysticks, Field2d, and NetworkTables in one window.
 
 From the terminal: `./gradlew simulateJava` does the same thing.
 
-Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriverstation()` from [`build.gradle`](../../build.gradle) wired up — Glass and the simulated DS come up by default. Elastic will also connect to `localhost` if you point it there.
+Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriverstation()` from [`build.gradle`](../../build.gradle) wired up: Glass and the simulated DS come up by default. Elastic will also connect to `localhost` if you point it there.
 
-## RobotSim — Our Side-View Drawing
+## RobotSim: Our Side-View Drawing
 
 [`frc.robot.RobotSim`](../../src/main/java/frc/robot/RobotSim.java) builds a `Mechanism2d` published to `SmartDashboard/Sim/LeftView`. Drag that into Glass and you get a 2D side-view of the robot rendered from `MechanismLigament2d` segments. Right now it draws an outline; adding subsystem-specific ligaments (hood angle, intake extension position) is how you make it actually useful.
 
@@ -20,9 +20,9 @@ The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim`
 
 | Helper | What it draws |
 | --- | --- |
-| `ArmSim` | A pivoting ligament — hood, shooter pivot, arm. |
-| `LinearSim` | A telescoping/sliding ligament — elevator, intake extension. |
-| `RollerSim` | A spinning indicator with direction + relative speed — intake roller, indexer wheels, launcher flywheel. |
+| `ArmSim` | A pivoting ligament: hood, shooter pivot, arm. |
+| `LinearSim` | A telescoping/sliding ligament: elevator, intake extension. |
+| `RollerSim` | A spinning indicator with direction + relative speed: intake roller, indexer wheels, launcher flywheel. |
 
 They mimic the behavior of the subsystem with a custom Sim class in different subsystem folders.
 
@@ -41,7 +41,7 @@ For the usual 3D field setup:
 3. Drag `SmartDashboard/Field2d/Robot` into the robot pose slot.
 4. If an auto is selected, drag `SmartDashboard/Field2d/Auto Routine` in as a trajectory/poses object so the planned path and simulated robot motion can be compared.
 
-You can also drive things like FuelInFlight and whatnot to simulate flying fuel.
+You can also drag `SimShot/FuelProjectileSuccessfulShot` (or `...UnsuccessfulShot`) into the 3D field to visualize flying fuel from `RobotSim.mapleSimCreateFuelProjectile()`.
 
 That view is especially useful for autos. Select the auto in Elastic or Glass, enable the simulated Driver Station, and watch whether the robot starts in the right place, follows the expected route, and ends with the correct heading. If the AdvantageScope robot jumps, drives mirrored from what you expected, or misses the drawn path, check pose reset first: autos seed pose through the swerve reset path, and in sim that also calls `mapleSimDrive.setSimulationWorldPose(...)`.
 
@@ -51,15 +51,15 @@ AdvantageScope can also replay the same data from a `.wpilog` after the run. Tha
 
 It catches:
 
-* State-machine bugs — a `Coordinator` state that forgets to set a default mechanism back, command interruptions, race conditions in `setupStates()`.
+* State-machine bugs: a `Coordinator` state that forgets to set a default mechanism back, command interruptions, race conditions in `setupStates()`.
 * PathPlanner trajectories that look fine in the editor but the chassis can't actually drive (over-aggressive velocities, infeasible turn angles).
-* Auto chooser plumbing — Elastic's chooser, auton command names, mirror flag.
+* Auto chooser plumbing: Elastic's chooser, auton command names, mirror flag.
 * Vision pose math, when paired with PhotonVisionSim (we don't currently wire that up, but the hook is there).
 
 It doesn't catch:
 
-* Mechanical fit — your hood can't actually swing through the intake.
-* PID feel — gains that move a sim mechanism smoothly may fight a real one with friction.
+* Mechanical fit: your hood can't actually swing through the intake.
+* PID feel: gains that move a sim mechanism smoothly may fight a real one with friction.
 * CAN bus saturation, brownouts, anything power-related.
 
 The sim is for *logic* validation. Mechanical and tuning validation happens on the real robot.
@@ -68,11 +68,12 @@ The sim is for *logic* validation. Mechanical and tuning validation happens on t
 
 A few things to check first when a sim result doesn't match reality:
 
-* `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere — the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
+* `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere: the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
 * `mapleSimDrive` is built from the per-robot swerve config. If you tweaked module positions in code but didn't redeploy/rebuild before running sim, MapleSim is still simulating yesterday's drivetrain.
 * `IntakeSimulation.OverTheBumperIntake` height/width are in `Inches`. Mixing units silently produces a sub-millimeter intake that catches nothing.
 
 ## See Also
 
+* [MapleSim dependency page](../dependencies/maple-sim.md) for the version we run and the physics internals (drivetrain dynamics, game-piece interaction, projectile flight).
 * [PathPlanner](../dependencies/pathplanner.md) for trajectory generation, which feeds into the sim swerve.
 * WPILib's [simulation docs](https://docs.wpilib.org/en/stable/docs/software/wpilib-tools/robot-simulation/index.html) for `Mechanism2d` and `Field2d` basics.
