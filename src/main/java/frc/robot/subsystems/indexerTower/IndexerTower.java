@@ -57,14 +57,14 @@ public class IndexerTower extends Mechanism {
     public enum WantedState {
         OFF,
         INDEX_MAX,
-        SLOW_INDEX,
+        IDLE_SLOW_INDEX,
         UNJAM,
     }
 
     public enum SystemState {
         OFF,
         INDEX_MAX,
-        SLOW_INDEX,
+        IDLE_SLOW_INDEX,
         UNJAM,
     }
 
@@ -79,7 +79,7 @@ public class IndexerTower extends Mechanism {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case INDEX_MAX -> SystemState.INDEX_MAX;
-            case SLOW_INDEX -> SystemState.SLOW_INDEX;
+            case IDLE_SLOW_INDEX -> SystemState.IDLE_SLOW_INDEX;
             case UNJAM -> SystemState.UNJAM;
         };
     }
@@ -93,7 +93,7 @@ public class IndexerTower extends Mechanism {
             case INDEX_MAX:
                 wantedRPM = 4000;
                 break;
-            case SLOW_INDEX:
+            case IDLE_SLOW_INDEX:
                 wantedRPM = 1000;
                 break;
             case UNJAM:

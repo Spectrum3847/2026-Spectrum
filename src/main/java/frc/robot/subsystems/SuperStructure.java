@@ -165,8 +165,8 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.OFF);
+        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
+        spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.HOME);
@@ -176,8 +176,8 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.SLOW_INDEX);
+        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
+        spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.HOME);
@@ -187,8 +187,8 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.OFF);
+        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
+        spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -197,7 +197,7 @@ public class SuperStructure extends SubsystemBase {
     private void launchWithSqueeze() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
-        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
@@ -214,7 +214,7 @@ public class SuperStructure extends SubsystemBase {
     private void launchWithSqueezeWithNoDelay() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
-        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
@@ -236,8 +236,8 @@ public class SuperStructure extends SubsystemBase {
     private void applyAutonIdle() {
         swerve.setWantedState(Swerve.WantedState.IDLE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.OFF);
+        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
+        spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.HOME);
@@ -245,8 +245,8 @@ public class SuperStructure extends SubsystemBase {
 
     private void autonIntakeFuel() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.SLOW_INDEX);
+        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
+        spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.HOME);
@@ -255,7 +255,7 @@ public class SuperStructure extends SubsystemBase {
     private void autonTrackTarget() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.OFF);
+        spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -278,9 +278,8 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         spindexer.setWantedState(Spindexer.WantedState.OFF);
-        spindexer.setWantedState(Spindexer.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_RETRACT);
-        launcher.setWantedState(Launcher.WantedState.OFF);
+        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.HOME);
     }
 
