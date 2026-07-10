@@ -41,7 +41,7 @@ For the usual 3D field setup:
 3. Drag `SmartDashboard/Field2d/Robot` into the robot pose slot.
 4. If an auto is selected, drag `SmartDashboard/Field2d/Auto Routine` in as a trajectory/poses object so the planned path and simulated robot motion can be compared.
 
-You can also drag `SimShot/FuelProjectileSuccessfulShot` (or `...UnsuccessfulShot`) into the 3D field to visualize flying fuel from `RobotSim.mapleSimCreateFuelProjectile()`.
+You can also visualize flying fuel projectiles: `RobotSim.mapleSimCreateFuelProjectile()` publishes them to NetworkTables, and you can drag those entries into the 3D field to watch shots in flight. (Exact NT path TBD.)
 
 That view is especially useful for autos. Select the auto in Elastic or Glass, enable the simulated Driver Station, and watch whether the robot starts in the right place, follows the expected route, and ends with the correct heading. If the AdvantageScope robot jumps, drives mirrored from what you expected, or misses the drawn path, check pose reset first: autos seed pose through the swerve reset path, and in sim that also calls `mapleSimDrive.setSimulationWorldPose(...)`.
 
@@ -74,6 +74,5 @@ A few things to check first when a sim result doesn't match reality:
 
 ## See Also
 
-* [MapleSim dependency page](../dependencies/maple-sim.md) for the version we run and the physics internals (drivetrain dynamics, game-piece interaction, projectile flight).
 * [PathPlanner](../dependencies/pathplanner.md) for trajectory generation, which feeds into the sim swerve.
 * WPILib's [simulation docs](https://docs.wpilib.org/en/stable/docs/software/wpilib-tools/robot-simulation/index.html) for `Mechanism2d` and `Field2d` basics.
