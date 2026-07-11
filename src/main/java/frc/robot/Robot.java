@@ -356,7 +356,6 @@ public class Robot extends SpectrumRobot {
 
             field2d.setRobotPose(swerve.getRobotPose());
 
-            ShotCalculator.getInstance().clearShootingParameters();
             Telemetry.timeEnd("Scheduler/robotPeriodic");
         } catch (Throwable t) {
             // intercept error and log it
