@@ -169,7 +169,7 @@ public class SuperStructure extends SubsystemBase {
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.HOME);
+        turret.setWantedState(Turret.WantedState.IDLE);
     }
 
     private void intakeFuel() {
@@ -180,7 +180,7 @@ public class SuperStructure extends SubsystemBase {
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.HOME);
+        turret.setWantedState(Turret.WantedState.IDLE);
     }
 
     private void trackTarget() {
@@ -240,7 +240,7 @@ public class SuperStructure extends SubsystemBase {
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.HOME);
+        turret.setWantedState(Turret.WantedState.IDLE);
     }
 
     private void autonIntakeFuel() {
@@ -249,7 +249,7 @@ public class SuperStructure extends SubsystemBase {
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.HOME);
+        turret.setWantedState(Turret.WantedState.IDLE);
     }
 
     private void autonTrackTarget() {
@@ -269,7 +269,7 @@ public class SuperStructure extends SubsystemBase {
         spindexer.setWantedState(Spindexer.WantedState.UNJAM);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.OFF);
-        turret.setWantedState(Turret.WantedState.HOME);
+        turret.setWantedState(Turret.WantedState.IDLE);
     }
 
     private void forceHome() {
