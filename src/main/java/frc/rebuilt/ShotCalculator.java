@@ -27,6 +27,12 @@ public class ShotCalculator {
                     new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0)),
                     new Rotation2d());
 
+    // Height of the turret's rotation axis above the point the chassis actually tips about
+    // (roughly bumper/floor contact height, NOT necessarily the robot's CG). The taller this
+    // is, the more a given pitch/roll angle shifts the turret horizontally. Measure this on
+    // the real robot and tune it - it matters a lot more than it looks like it should.
+    private static final double turretPivotHeightMeters = Units.inchesToMeters(24.0);
+
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
         return instance;
@@ -117,6 +123,47 @@ public class ShotCalculator {
         timeOfFlightMap.put(1.68, 0.76);
     }
 
+    /**
+     * Rotates the robot-frame turret offset (dx forward, dy left, dz up) by the full 3D orientation
+     * of the chassis (roll about X, then pitch about Y, then yaw about Z - standard body-to-world
+     * Tait-Bryan order) and returns the resulting horizontal (field X/Y) shift of the turret from
+     * the robot's origin.
+     *
+     * <p>This is what actually matters when the robot is tilted (stuck on a bump / game piece): a
+     * turret offset from center does NOT stay where the flat-ground math assumes it does once the
+     * chassis is tipped - it swings out in 3D, and only its horizontal projection is relevant for
+     * aiming.
+     */
+    private static Translation2d computeTiltCompensatedTurretOffset(
+            Rotation2d yaw, Rotation2d pitch, Rotation2d roll) {
+        double dx = robotToTurret.getTranslation().getX();
+        double dy = robotToTurret.getTranslation().getY();
+        double dz = turretPivotHeightMeters;
+
+        // Roll about robot X axis (forward axis) - side-to-side tip
+        double cr = roll.getCos();
+        double sr = roll.getSin();
+        double x1 = dx;
+        double y1 = dy * cr - dz * sr;
+        double z1 = dy * sr + dz * cr;
+
+        // Pitch about robot Y axis (left axis) - front-to-back tip
+        double cp = pitch.getCos();
+        double sp = pitch.getSin();
+        double x2 = x1 * cp + z1 * sp;
+        double y2 = y1;
+        // double z2 = -x1 * sp + z1 * cp; // resulting height offset - not used for aiming yet,
+        // but here if you later want to correct flywheel/ToF for launch-height changes too.
+
+        // Yaw about field Z axis - normal heading rotation
+        double cy = yaw.getCos();
+        double sy = yaw.getSin();
+        double fieldDx = x2 * cy - y2 * sy;
+        double fieldDy = x2 * sy + y2 * cy;
+
+        return new Translation2d(fieldDx, fieldDy);
+    }
+
     public ShootingParameters getParameters() {
         if (latestParameters != null) return latestParameters;
 
@@ -143,8 +190,20 @@ public class ShotCalculator {
                                 robotRelativeVelocity.vyMetersPerSecond * phaseDelay,
                                 robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
 
-        // Turret pose + base distance
-        Pose2d turretPose = estimatedPose.transformBy(robotToTurret);
+        // Chassis tilt (pitch about Y, roll about X) from the gyro. These MUST come from your
+        // real IMU (Pigeon2 / NavX) - wire getPitch()/getRoll() on your swerve subsystem if they
+        // don't exist yet. If your gyro reports degrees, wrap with Rotation2d.fromDegrees(...).
+        //TODO: test
+        Rotation2d robotPitch = Robot.getSwerve().getPitch();
+        Rotation2d robotRoll = Robot.getSwerve().getRoll();
+
+        // Turret pose + base distance, now tilt-compensated
+        Translation2d tiltCompensatedTurretOffset =
+                computeTiltCompensatedTurretOffset(
+                        estimatedPose.getRotation(), robotPitch, robotRoll);
+        Translation2d turretFieldTranslation =
+                estimatedPose.getTranslation().plus(tiltCompensatedTurretOffset);
+        Pose2d turretPose = new Pose2d(turretFieldTranslation, estimatedPose.getRotation());
         double turretToTargetDistance = target.getDistance(turretPose.getTranslation());
 
         // Field-relative velocity of robot
@@ -153,6 +212,9 @@ public class ShotCalculator {
                         robotRelativeVelocity, estimatedPose.getRotation());
 
         // Turret tangential velocity due to robot rotation about robot center
+        // (Left as a flat-ground approximation - the extra 3D component from
+        // pitch/roll rate is a fast transient and negligible for a robot that's
+        // stuck/tilted, as opposed to actively tipping.)
         double robotAngle = estimatedPose.getRotation().getRadians();
         double turretVelocityX =
                 fieldVelocity.vxMetersPerSecond
@@ -238,6 +300,11 @@ public class ShotCalculator {
                 "ShotCalc/TargetPose", new Pose2d(target.getX(), target.getY(), new Rotation2d()));
         Telemetry.log("ShotCalc/FlywheelSpeedOffset", FLYWHEEL_SPEED_OFFSET);
         Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET_DEGREES);
+        Telemetry.log("ShotCalc/RobotPitchDeg", df.format(robotPitch.getDegrees()));
+        Telemetry.log("ShotCalc/RobotRollDeg", df.format(robotRoll.getDegrees()));
+        Telemetry.log(
+                "ShotCalc/TiltTurretOffsetMeters",
+                df.format(tiltCompensatedTurretOffset.getNorm()));
 
         return latestParameters;
     }
