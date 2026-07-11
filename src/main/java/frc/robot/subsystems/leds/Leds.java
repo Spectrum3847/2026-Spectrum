@@ -49,14 +49,13 @@ public class Leds extends SpectrumLEDs {
         @Getter @Setter private int startingIndex = 0;
         @Getter @Setter private int endingIndex = 28;
         @Getter @Setter private int port = 1;
-        @Getter @Setter private int length;
         // LED strip density
         @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
 
         public LedConfig() {
             super("Leds", 1, NUM_LEDS, new CANBus(Rio.RIO_CANBUS));
             this.startingIndex = 0;
-            this.endingIndex = length - 1;
+            this.endingIndex = NUM_LEDS- 1; // 19, correct for 20 LEDs
         }
 
         public LedConfig(
@@ -204,7 +203,7 @@ public class Leds extends SpectrumLEDs {
             if (config.getLed() == null) {
                 led = new AddressableLED(config.port);
                 // Length is expensive to set, so only set it once, then just update data
-                ledBuffer = new AddressableLEDBuffer(config.length);
+                ledBuffer = new AddressableLEDBuffer(NUM_LEDS);
                 led.setLength(ledBuffer.getLength());
                 mainView = true;
             } else {

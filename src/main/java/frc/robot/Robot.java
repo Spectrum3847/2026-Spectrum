@@ -159,6 +159,9 @@ public class Robot extends SpectrumRobot {
             indexerBed = new IndexerBed(config.indexerBed);
             Timer.delay(canInitDelay);
 
+            leds = new Leds(config.leds);
+            Timer.delay(canInitDelay);
+
             superStructure =
                     new SuperStructure(
                             swerve,
