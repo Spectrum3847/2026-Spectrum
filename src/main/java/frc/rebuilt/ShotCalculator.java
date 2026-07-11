@@ -165,9 +165,7 @@ public class ShotCalculator {
     }
 
     public ShootingParameters getParameters() {
-        // Always recompute so the shooter never aims at a stale target.
-        // Callers that just want the last computed value (telemetry, dashboards)
-        // should use getLatestParameters() instead.
+        if (latestParameters != null) return latestParameters;
 
         // Target selection: use feed target in the feed zone, but only when not actively launching
         SuperStructure.CurrentSuperState state = Robot.getSuperStructure().getCurrentSuperState();
@@ -311,5 +309,10 @@ public class ShotCalculator {
     /** Returns the last computed parameters without recalculating. */
     public ShootingParameters getLatestParameters() {
         return latestParameters;
+    }
+
+    /** Clears the cached parameters so the next getParameters() call recomputes. */
+    public void clearShootingParameters() {
+        latestParameters = null;
     }
 }
