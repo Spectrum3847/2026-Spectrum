@@ -32,7 +32,7 @@ These came from Team 604's sample project and were adapted; the principle of "al
 
 We use AdvantageScope as a simulation tool in addition to a log analysis tool. Its main job during sim is the **3D Field** view: a better way to watch the robot drive around the field than staring at raw pose numbers.
 
-Start the robot sim first (`./gradlew simulateJava` or `WPILib: Simulate Robot Code`), then open AdvantageScope and connect to `localhost`. The robot publishes [`Robot.field2d`](../../src/main/java/frc/robot/Robot.java) to `SmartDashboard/Field2d`, and `robotPeriodic()` updates it from `swerve.getRobotPose()`. In sim, that pose comes from MapleSim through `mapleSimDrive.getSimulatedDriveTrainPose()`, so the robot model in AdvantageScope is showing the drivetrain simulation, not a fake hand-entered pose.
+Start the robot sim first (`./gradlew simulateJava` or `WPILib: Simulate Robot Code`), then open AdvantageScope and connect to `localhost`. The robot publishes [`Robot.field2d`](../../src/main/java/frc/robot/Robot.java) to `SmartDashboard/Field2d`, and `robotPeriodic()` updates it from `swerve.getRobotPose()`. In sim, that pose comes from the drivetrain simulation, so the robot model in AdvantageScope is showing the simulated drivetrain, not a fake hand-entered pose.
 
 For the usual 3D field setup:
 
@@ -41,9 +41,9 @@ For the usual 3D field setup:
 3. Drag `SmartDashboard/Field2d/Robot` into the robot pose slot.
 4. If an auto is selected, drag `SmartDashboard/Field2d/Auto Routine` in as a trajectory/poses object so the planned path and simulated robot motion can be compared.
 
-You can also visualize flying fuel projectiles: `RobotSim.mapleSimCreateFuelProjectile()` publishes them to NetworkTables, and you can drag those entries into the 3D field to watch shots in flight. (Exact NT path TBD.)
+You can also visualize flying fuel projectiles: `RobotSim.createFuelProjectile()` publishes them to NetworkTables under `Sim/Fuel/Positions`, and you can drag those entries into the 3D field to watch shots in flight.
 
-That view is especially useful for autos. Select the auto in Elastic or Glass, enable the simulated Driver Station, and watch whether the robot starts in the right place, follows the expected route, and ends with the correct heading. If the AdvantageScope robot jumps, drives mirrored from what you expected, or misses the drawn path, check pose reset first: autos seed pose through the swerve reset path, and in sim that also calls `mapleSimDrive.setSimulationWorldPose(...)`.
+That view is especially useful for autos. Select the auto in Elastic or Glass, enable the simulated Driver Station, and watch whether the robot starts in the right place, follows the expected route, and ends with the correct heading. If the AdvantageScope robot jumps, drives mirrored from what you expected, or misses the drawn path, check pose reset first: autos seed pose through the swerve reset path, and in sim that also calls the drivetrain sim's world pose reset.
 
 AdvantageScope can also replay the same data from a `.wpilog` after the run. That makes the workflow: test the auto in sim, use 3D Field live while it runs, then open the saved log if you need to scrub frame-by-frame through the exact moment the path or pose estimate went sideways.
 
@@ -69,7 +69,7 @@ The sim is for *logic* validation. Mechanical and tuning validation happens on t
 A few things to check first when a sim result doesn't match reality:
 
 * `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere: the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
-* `mapleSimDrive` is built from the per-robot swerve config. If you tweaked module positions in code but didn't redeploy/rebuild before running sim, MapleSim is still simulating yesterday's drivetrain.
+* The drivetrain sim is built from the per-robot swerve config. If you tweaked module positions in code but didn't redeploy/rebuild before running sim, the sim is still simulating yesterday's drivetrain.
 * `IntakeSimulation.OverTheBumperIntake` height/width are in `Inches`. Mixing units silently produces a sub-millimeter intake that catches nothing.
 
 ## See Also
