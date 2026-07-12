@@ -167,16 +167,13 @@ public class ShotCalculator {
     public ShootingParameters getParameters() {
         if (latestParameters != null) return latestParameters;
 
-        // Target selection
+        // Target selection: use feed target in the feed zone, but only when not actively launching
+        SuperStructure.CurrentSuperState state = Robot.getSuperStructure().getCurrentSuperState();
         boolean feed =
                 superStructure.isRobotInFeedZone()
-                        && (!SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE.equals(
-                                        Robot.getSuperStructure().getCurrentSuperState())
-                                || !SuperStructure.CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE.equals(
-                                        Robot.getSuperStructure().getCurrentSuperState())
-                                || !SuperStructure.CurrentSuperState
-                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
-                                        .equals(Robot.getSuperStructure().getCurrentSuperState()));
+                        && state != SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                        && state != SuperStructure.CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                        && state != SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
@@ -309,6 +306,12 @@ public class ShotCalculator {
         return latestParameters;
     }
 
+    /** Returns the last computed parameters without recalculating. */
+    public ShootingParameters getLatestParameters() {
+        return latestParameters;
+    }
+
+    /** Clears the cached parameters so the next getParameters() call recomputes. */
     public void clearShootingParameters() {
         latestParameters = null;
     }
