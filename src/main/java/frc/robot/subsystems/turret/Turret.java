@@ -146,7 +146,7 @@ public class Turret extends Mechanism {
                 mechOmegaRotPerSec = 0;
                 setMMPositionFoc(() -> degreesToRotations(() -> 0.0));
                 return;
-            case IDLE: 
+            case IDLE:
                 applyAimAtTarget();
                 return;
             case AIM_AT_TARGET:
