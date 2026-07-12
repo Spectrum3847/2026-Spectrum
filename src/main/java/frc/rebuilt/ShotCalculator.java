@@ -222,7 +222,7 @@ public class ShotCalculator {
                 fieldVelocity.vyMetersPerSecond
                         + fieldVelocity.omegaRadiansPerSecond
                                 * (robotToTurret.getX() * Math.cos(robotAngle)
-                                        + robotToTurret.getY() * Math.sin(robotAngle));
+                                        - robotToTurret.getY() * Math.sin(robotAngle));
 
         // Lookahead iteration: converge distance
         double lookaheadDistance = turretToTargetDistance;
