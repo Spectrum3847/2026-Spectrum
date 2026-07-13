@@ -38,15 +38,16 @@ public class Leds extends SpectrumLEDs {
     /** Number of external LEDs attached to the CANdle output (indices 8–27 on the device). */
     public static final int NUM_LEDS = 20;
 
+    @Getter @Setter protected AddressableLED led;
+    @Getter @Setter protected AddressableLEDBuffer buffer;
+    @Getter @Setter protected AddressableLEDBufferView view;
+
     public static class LedConfig extends CANdleConfig {
-        @Getter private String name;
-        @Getter @Setter private boolean attached = true;
-        @Getter @Setter private AddressableLED led;
-        @Getter @Setter private AddressableLEDBuffer buffer;
-        @Getter @Setter private AddressableLEDBufferView view;
-        @Getter @Setter private int startingIndex = 0;
-        @Getter @Setter private int endingIndex = 28;
-        @Getter @Setter private int port = 0;
+        @Getter protected String name;
+        @Getter @Setter protected boolean attached = true;
+        @Getter @Setter protected int startingIndex = 0;
+        @Getter @Setter protected int endingIndex = 28;
+        @Getter @Setter protected int port = 0;
 
         public LedConfig(
                 String name,
@@ -75,11 +76,27 @@ public class Leds extends SpectrumLEDs {
         this.config = config;
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
 
-        new LedSim(config);
-
         bindTriggers();
 
         Telemetry.print(getName() + " Subsystem Initialized");
+
+        if (config.getLed() == null) {
+                led = new AddressableLED(config.port);
+                // Length is expensive to set, so only set it once, then just update data
+                ledBuffer = new AddressableLEDBuffer(NUM_LEDS);
+                led.setLength(ledBuffer.getLength());
+                mainView = true;
+            } else {
+                led = config.getLed();
+                ledBuffer = config.buffer;
+            }
+
+            ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
+
+            // Set the data
+            led.setData(ledBuffer);
+            setPattern(defaultPattern);
+            led.start();
     }
 
     // TODO: add more patterns and include ones for bps
@@ -168,22 +185,18 @@ public class Leds extends SpectrumLEDs {
         Telemetry.log("Leds/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Leds/CommandPriority", getCommandPriority());
         Telemetry.log("Leds/IsAnimating", isAnimating());
+
+        if (mainView) {
+            led.setData(ledBuffer);
+        }
     }
 
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
 
-    public class LedSim {
-
-        @Getter protected final AddressableLED led;
-        @Getter protected final AddressableLEDBuffer ledBuffer;
-        @Getter protected final AddressableLEDBufferView ledView;
-
         @SuppressWarnings("unused")
         private boolean mainView = false;
-
-        public LedSim(LedConfig config) {
 
             // Must be a PWM header, not MXP or DIO
             if (config.getLed() == null) {
@@ -203,6 +216,46 @@ public class Leds extends SpectrumLEDs {
             led.setData(ledBuffer);
             setPattern(defaultPattern);
             led.start();
-        }
-    }
 }
+
+/*
+ *     @Getter protected final AddressableLED led;
+    @Getter protected final AddressableLEDBuffer ledBuffer;
+    @Getter protected final AddressableLEDBufferView ledView;
+    private boolean mainView = false;
+
+    protected final LEDPattern defaultPattern = blink(Color.kOrange, 1);
+
+    @Getter
+    protected Command defaultCommand =
+            setPattern(defaultPattern, -1).withName("LEDs.defaultCommand");
+
+    public final Trigger defaultTrigger = new Trigger(() -> defaultCommand.isScheduled());
+
+    @Getter @Setter private int commandPriority = 0;
+
+    public final Color purple = new Color(130, 103, 185);
+    public final Color white = Color.kWhite;
+
+    public SpectrumLEDs(Config config) {
+        this.config = config;
+
+        // Must be a PWM header, not MXP or DIO
+        if (config.getLed() == null) {
+            led = new AddressableLED(config.port);
+            // Length is expensive to set, so only set it once, then just update data
+            ledBuffer = new AddressableLEDBuffer(config.length);
+            led.setLength(ledBuffer.getLength());
+            mainView = true;
+        } else {
+            led = config.getLed();
+            ledBuffer = config.buffer;
+        }
+
+        ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
+
+        // Set the data
+        led.setData(ledBuffer);
+        setPattern(defaultPattern);
+        led.start();
+ */
