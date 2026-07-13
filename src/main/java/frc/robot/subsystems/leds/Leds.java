@@ -1,9 +1,6 @@
 package frc.robot.subsystems.leds;
 
-import static edu.wpi.first.units.Units.Meters;
-
 import com.ctre.phoenix6.CANBus;
-import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.AddressableLEDBufferView;
@@ -12,6 +9,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
+import frc.robot.Robot;
 import frc.robot.subsystems.SuperStructure;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.leds.SpectrumLEDs;
@@ -48,15 +46,7 @@ public class Leds extends SpectrumLEDs {
         @Getter @Setter private AddressableLEDBufferView view;
         @Getter @Setter private int startingIndex = 0;
         @Getter @Setter private int endingIndex = 28;
-        @Getter @Setter private int port = 1;
-        // LED strip density
-        @Getter @Setter private Distance ledSpacing = Meters.of(1 / 120.0);
-
-        public LedConfig() {
-            super("Leds", 1, NUM_LEDS, new CANBus(Rio.RIO_CANBUS));
-            this.startingIndex = 0;
-            this.endingIndex = NUM_LEDS- 1; // 19, correct for 20 LEDs
-        }
+        @Getter @Setter private int port = 0;
 
         public LedConfig(
                 String name,
@@ -79,17 +69,13 @@ public class Leds extends SpectrumLEDs {
     // Constructor
     // -------------------------------------------------------------------------
 
-    private SuperStructure robotSuperStructure;
-
     public Leds(LedConfig config) {
         super(config);
 
         this.config = config;
         setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
 
-        if (isAttached()) {
-            new LedSim(config);
-        }
+        new LedSim(config);
 
         bindTriggers();
 
@@ -143,12 +129,12 @@ public class Leds extends SpectrumLEDs {
     private Trigger launchingFuel =
             new Trigger(
                     () ->
-                            robotSuperStructure.getCurrentSuperState()
+                            Robot.getSuperStructure().getCurrentSuperState()
                                             == SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE
-                                    || robotSuperStructure.getCurrentSuperState()
+                                    || Robot.getSuperStructure().getCurrentSuperState()
                                             == SuperStructure.CurrentSuperState
                                                     .LAUNCH_WITHOUT_SQUEEZE
-                                    || robotSuperStructure.getCurrentSuperState()
+                                    || Robot.getSuperStructure().getCurrentSuperState()
                                             == SuperStructure.CurrentSuperState
                                                     .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY);
 
