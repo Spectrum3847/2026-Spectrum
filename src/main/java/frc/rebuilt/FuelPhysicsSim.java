@@ -608,6 +608,8 @@ public class FuelPhysicsSim {
 
         // Stuck-on-obstacle detection
         int elevatedSlowCounter;
+        Translation3d elevatedAnchorPos; // position when the current stuck-timer window started
+        boolean hadFieldContact;
 
         // Lifecycle flags
         boolean intaked;
@@ -1088,6 +1090,7 @@ public class FuelPhysicsSim {
 
         for (int i = 0; i < balls.size(); i++) {
             SimBall ball = balls.get(i);
+            ball.hadFieldContact = false;
             if (ball.intaked || ball.outOfBounds) continue;
             if (ball.sleeping && config.sleepingEnabled) continue;
 
@@ -1216,7 +1219,7 @@ public class FuelPhysicsSim {
                 ball.outOfBounds = true;
             }
             // Remove balls stuck on elevated obstacles
-            if (ball.pos.getZ() > BALL_RADIUS + 0.3 && ball.vel.getNorm() < 0.5) {
+            if (ball.hadFieldContact && ball.vel.getNorm() < 0.5) {
                 ball.elevatedSlowCounter++;
                 if (ball.elevatedSlowCounter > 250) {
                     ball.outOfBounds = true;
@@ -1531,6 +1534,7 @@ public class FuelPhysicsSim {
             c.normalImpulseAccum = 0;
             c.tangentImpulseAccum = 0;
             contacts.add(c);
+            ball.hadFieldContact = true;
         } else if (distSq < 1e-9) {
             // Ball center is inside AABB.
             Translation3d normal = computeEntryFaceNormal(ball.prevPos, ball.pos, aabb);
@@ -1686,6 +1690,7 @@ public class FuelPhysicsSim {
             c.normalImpulseAccum = 0;
             c.tangentImpulseAccum = 0;
             contacts.add(c);
+            ball.hadFieldContact = true;
         }
     }
 

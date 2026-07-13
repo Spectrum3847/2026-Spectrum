@@ -2,12 +2,15 @@
 // https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
 package frc.robot.subsystems.swerve;
 
+import static edu.wpi.first.units.Units.Degrees;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Seconds;
 
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
+import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveModule;
@@ -27,6 +30,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -59,12 +63,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     public enum WantedState {
         TELEOP_DRIVE,
         PILOT_AIM_AT_TARGET,
+        CENTER_ROTATION_CHANGE_LAUNCHING,
         IDLE
     }
 
     public enum SystemState {
         TELEOP_DRIVE,
         PILOT_AIM_AT_TARGET,
+        CENTER_ROTATION_CHANGE_LAUNCHING,
         IDLE
     }
 
@@ -75,6 +81,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     public static final double DRIVE_TO_POINT_STATIC_FRICTION_CONSTANT = 0.02;
     private static final double SKEW_COMPENSATION_SCALAR = -0.03;
 
+    // TODO: get actual values
+    private final Translation2d TURRET_PIVOT_POINT = new Translation2d(0, 0);
+
+    @Getter public final Pigeon2 pigeon = getPigeon2();
+
+    // Cache the signal objects once - don't call pigeon.getPitch() every loop,
+    // that re-allocates a request each time. Store these as fields and refresh them.
+    private final StatusSignal<Angle> pitchSignal = pigeon.getPitch();
+    private final StatusSignal<Angle> rollSignal = pigeon.getRoll();
+
     @Getter @Setter private double teleopVelocityCoefficient = 1.0;
     @Getter @Setter private double rotationVelocityCoefficient = 1.0;
 
@@ -82,6 +98,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private Notifier simNotifier = null;
 
     private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
+
+    public Rotation2d getPitch() {
+        return Rotation2d.fromDegrees(pitchSignal.refresh().getValue().in(Degrees));
+    }
+
+    public Rotation2d getRoll() {
+        return Rotation2d.fromDegrees(rollSignal.refresh().getValue().in(Degrees));
+    }
 
     private final SwerveRequest.ApplyRobotSpeeds AutoRequest =
             new SwerveRequest.ApplyRobotSpeeds()
@@ -206,6 +230,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
         Telemetry.log("Swerve/RotationVelocityCoefficient", getRotationVelocityCoefficient());
         logBatteryUsage();
+
         checkPigeonConnection();
 
         if (Utils.isSimulation()) {
@@ -250,6 +275,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         return switch (wantedState) {
             case TELEOP_DRIVE -> SystemState.TELEOP_DRIVE;
             case PILOT_AIM_AT_TARGET -> SystemState.PILOT_AIM_AT_TARGET;
+            case CENTER_ROTATION_CHANGE_LAUNCHING -> SystemState.CENTER_ROTATION_CHANGE_LAUNCHING;
             case IDLE -> SystemState.IDLE;
             default -> SystemState.IDLE;
         };
@@ -267,11 +293,18 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                         DRIVE_AT_ANGLE_REQUEST
                                 .withVelocityX(joystickSpeeds.vxMetersPerSecond)
                                 .withVelocityY(joystickSpeeds.vyMetersPerSecond)
-                                .withTargetDirection(params.driveAngle()));
+                                .withTargetDirection(params.turretAngle()));
 
                 break;
             case TELEOP_DRIVE:
                 setControl(FIELD_CENTRIC_DRIVE.withSpeeds(calculateSpeedsBasedOnJoystickInputs()));
+                break;
+                // TODO: Test this
+            case CENTER_ROTATION_CHANGE_LAUNCHING:
+                setControl(
+                        FIELD_CENTRIC_DRIVE
+                                .withSpeeds(calculateSpeedsBasedOnJoystickInputs())
+                                .withCenterOfRotation(TURRET_PIVOT_POINT));
                 break;
         }
     }
@@ -334,7 +367,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
      * in Elastic
      */
     private void checkPigeonConnection() {
-        if (getPigeon2() == null || !getPigeon2().isConnected()) {
+        if (getPigeon() == null || !getPigeon().isConnected()) {
             pigeonAlert.set(true);
         } else {
             pigeonAlert.set(false);

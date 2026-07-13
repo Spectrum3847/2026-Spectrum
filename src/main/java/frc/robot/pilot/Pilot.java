@@ -8,7 +8,7 @@ import frc.robot.Robot;
 import frc.spectrumLib.gamepads.Gamepad;
 import frc.spectrumLib.telemetry.Telemetry;
 
-/* A, B, X, Y, Left Bumper, Right Bumper = Buttons 1 to 6 in simulation */
+/* A, B, X, Y, Left Bumper, Right Bumper, Left Trigger, Right Trigger = Buttons 1 to 8 in simulation */
 public class Pilot extends Gamepad {
     public final Trigger LB = leftBumper;
     public final Trigger RB = rightBumper;

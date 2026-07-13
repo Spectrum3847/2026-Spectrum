@@ -1,9 +1,14 @@
 package frc.robot.subsystems.indexerTower;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
@@ -12,10 +17,10 @@ public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
         /* Indexer config values */
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 140;
-        @Getter private final double lowerCurrentLimit = 60;
-        @Getter private final double timeUntilLowerCurrent = 1;
+        @Getter private final double supplyCurrentLimit = 40;
+        @Getter private final double statorCurrentLimit = 180;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentTime = 0;
         @Getter private final double velocityKp = 50;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 40;
@@ -30,12 +35,12 @@ public class IndexerTower extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configLowerSupplyCurrentLimit(lowerCurrentLimit);
-            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(true);
             configClockwise_Positive();
             setFollowerConfigs(
@@ -52,14 +57,14 @@ public class IndexerTower extends Mechanism {
     public enum WantedState {
         OFF,
         INDEX_MAX,
-        SLOW_INDEX,
+        IDLE_SLOW_INDEX,
         UNJAM,
     }
 
     public enum SystemState {
         OFF,
         INDEX_MAX,
-        SLOW_INDEX,
+        IDLE_SLOW_INDEX,
         UNJAM,
     }
 
@@ -74,7 +79,7 @@ public class IndexerTower extends Mechanism {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case INDEX_MAX -> SystemState.INDEX_MAX;
-            case SLOW_INDEX -> SystemState.SLOW_INDEX;
+            case IDLE_SLOW_INDEX -> SystemState.IDLE_SLOW_INDEX;
             case UNJAM -> SystemState.UNJAM;
         };
     }
@@ -88,7 +93,7 @@ public class IndexerTower extends Mechanism {
             case INDEX_MAX:
                 wantedRPM = 4000;
                 break;
-            case SLOW_INDEX:
+            case IDLE_SLOW_INDEX:
                 wantedRPM = 1000;
                 break;
             case UNJAM:
@@ -100,13 +105,13 @@ public class IndexerTower extends Mechanism {
     }
 
     @Getter private final IndexerTowerConfig config;
-    // @Getter private IndexerSim sim;
+    @Getter private IndexerSim sim;
 
     public IndexerTower(IndexerTowerConfig config) {
         super(config);
         this.config = config;
 
-        // simulationInit();
+        simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -128,31 +133,21 @@ public class IndexerTower extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    // public void simulationInit() {
-    //     if (isAttached()) {
-    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-    // diameter
-    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
-    //     }
-    // }
+    public void simulationInit() {
+        if (isAttached()) {
+            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
+            sim = new IndexerSim(RobotSim.topView, motor.getSimState());
+        }
+    }
 
-    // // Must be called to enable the simulation
-    // // if roller position changes configure x and y to set position.
-    // @Override
-    // public void simulationPeriodic() {
-    //     if (isAttached()) {
-    //         sim.simulationPeriodic();
-    //     }
-    // }
-
-    // class IndexerSim extends RollerSim {
-    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-    //         super(
-    //                 new RollerConfig(config.getWheelDiameter())
-    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
-    //                 mech,
-    //                 rollerMotorSim,
-    //                 config.getName());
-    //     }
-    // }
+    class IndexerSim extends RollerSim {
+        public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+            super(
+                    new RollerConfig(config.getWheelDiameter())
+                            .setPosition(config.getIntakeX(), config.getIntakeY()),
+                    mech,
+                    rollerMotorSim,
+                    config.getName());
+        }
+    }
 }

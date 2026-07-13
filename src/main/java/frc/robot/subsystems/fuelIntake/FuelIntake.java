@@ -19,8 +19,8 @@ public class FuelIntake extends Mechanism {
     public static class FuelIntakeConfig extends Config {
 
         /* Intake config values */
-        @Getter private final double currentLimit = 70;
-        @Getter private final double torqueCurrentLimit = 180;
+        @Getter private final double supplyCurrentLimit = 70;
+        @Getter private final double statorCurrentLimit = 180;
         @Getter private final double velocityKp = 5;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 4;
@@ -31,14 +31,14 @@ public class FuelIntake extends Mechanism {
         @Getter private final double wheelDiameter = 6;
 
         public FuelIntakeConfig() {
-            super("Intake", 5, Rio.RIO_CANBUS);
+            super("Intake Left", 5, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
             configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
             setFollowerConfigs(
@@ -130,17 +130,9 @@ public class FuelIntake extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
+            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+            // diameter
             sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
         }
     }
 

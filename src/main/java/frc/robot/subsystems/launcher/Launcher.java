@@ -3,52 +3,65 @@ package frc.robot.subsystems.launcher;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
-import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.*;
 import lombok.Getter;
+import lombok.Setter;
 
-/** The Launcher subsystem. Four-motor flywheel that launches fuel at the hub. */
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        /* Launcher config values */
-        @Getter private final double currentLimit = 80;
-        @Getter private final double torqueCurrentLimit = 100;
-        @Getter private final double forwardTorqueCurrentLimit = torqueCurrentLimit;
-        @Getter private final double reverseTorqueCurrentLimit = 10;
-        @Getter private final double lowerCurrentLimit = 60;
-        @Getter private final double timeUntilLowerCurrent = 1;
-        @Getter private final double nominalVoltage = 16;
-        @Getter private final double velocityKp = 10;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 20;
+        // Intake Voltages and Current
+        @Getter @Setter private double LauncherVoltage = 9.0;
+        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
+        @Getter @Setter private double LauncherStatorCurrent = 85.0;
 
-        @Getter private final double onTargetToleranceRPM = 100;
+        @Getter @Setter private double idlingRPM = 700;
+        @Getter @Setter private double slowLaunchSpeed = 400;
+        @Getter @Setter private double autoTrenchLaunch = 1800;
+
+        @Getter
+        private final DoubleSubscriber onTheFlySpeed =
+                Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
+
+        /* Launcher config values */
+        @Getter private double supplyCurrentLimit = 80;
+        @Getter private double statorCurrentLimit = 100;
+        @Getter private double forwardStatorCurrentLimit = statorCurrentLimit;
+        @Getter private double reverseStatorCurrentLimit = -10;
+        @Getter private double lowerSupplyCurrentLimit = 60;
+        @Getter private double timeUntilLowerCurrent = 1;
+        @Getter private double nominalVoltage = 16;
+        @Getter private double velocityKp = 10;
+        @Getter private double velocityKv = 0;
+        @Getter private double velocityKs = 20;
+
+        @Getter private double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
-        @Getter private final double launcherX = Units.inchesToMeters(62.5);
-        @Getter private final double launcherY = Units.inchesToMeters(60);
-        @Getter private final double wheelDiameter = 4;
+        @Getter private double launcherX = Units.inchesToMeters(50);
+        @Getter private double launcherY = Units.inchesToMeters(63);
+        @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
             super("Launcher", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configLowerSupplyCurrentLimit(lowerCurrentLimit);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
-            configSupplyCurrentLimit(currentLimit, true);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
-            configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configForwardTorqueCurrentLimit(forwardStatorCurrentLimit);
+            configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);
@@ -71,15 +84,13 @@ public class Launcher extends Mechanism {
     public enum WantedState {
         OFF,
         IDLE_PREP,
-        SLOW_LAUNCH,
-        AIM_AT_TARGET,
+        LAUNCH,
     }
 
     public enum SystemState {
         OFF,
         IDLE_PREP,
-        SLOW_LAUNCH,
-        AIM_AT_TARGET,
+        LAUNCH,
     }
 
     private WantedState wantedState = WantedState.OFF;
@@ -93,8 +104,7 @@ public class Launcher extends Mechanism {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case IDLE_PREP -> SystemState.IDLE_PREP;
-            case SLOW_LAUNCH -> SystemState.SLOW_LAUNCH;
-            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case LAUNCH -> SystemState.LAUNCH;
         };
     }
 
@@ -107,10 +117,7 @@ public class Launcher extends Mechanism {
             case IDLE_PREP:
                 wantedRPM = 700;
                 break;
-            case SLOW_LAUNCH:
-                wantedRPM = 400;
-                break;
-            case AIM_AT_TARGET:
+            case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedRPM = params.flywheelSpeed();
                 break;
@@ -119,7 +126,7 @@ public class Launcher extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    @Getter private final LauncherConfig config;
+    @Getter private LauncherConfig config;
     @Getter private LauncherSim sim;
 
     public Launcher(LauncherConfig config) {
@@ -133,10 +140,8 @@ public class Launcher extends Mechanism {
     @Override
     public void periodic() {
         systemState = handleStateTransition();
-        applyStates();
         logBatteryUsage();
-        Telemetry.log("Launcher/WantedState", wantedState.toString());
-        Telemetry.log("Launcher/SystemState", systemState.toString());
+        applyStates();
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
         Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
@@ -147,19 +152,10 @@ public class Launcher extends Mechanism {
 
     // --------------------------------------------------------------------------------
     // Simulation
-    // --------------------------------------------------------------------------------
+    // // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
             sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
         }
     }
 
@@ -167,8 +163,7 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY())
-                            .setMount(Robot.getHood().getSim()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY()),
                     mech,
                     rollerMotorSim,
                     config.getName());

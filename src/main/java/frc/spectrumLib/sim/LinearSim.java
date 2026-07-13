@@ -2,7 +2,6 @@ package frc.spectrumLib.sim;
 
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -77,16 +76,8 @@ public class LinearSim implements Mount, Mountable {
                                 config.getAngle(),
                                 config.getLineWidth(),
                                 new Color8Bit(Color.kBlack)));
-    }
 
-    /**
-     * Returns the moving stage {@link MechanismLigament2d}, useful for attaching additional visual
-     * elements.
-     *
-     * @return the elevator moving-stage ligament
-     */
-    public MechanismLigament2d getElevatorMech2d() {
-        return m_elevatorMech2d;
+        SimLoop.register(this::update);
     }
 
     private double getRotationPerSec() {
@@ -103,9 +94,9 @@ public class LinearSim implements Mount, Mountable {
      * Advances the elevator physics simulation by one robot period, updates the TalonFX rotor
      * position and velocity, and refreshes both the static and moving Mechanism2d ligaments.
      */
-    public void simulationPeriodic() {
+    public void update(double dt) {
         elevatorSim.setInput(linearMotorSim.getMotorVoltage());
-        elevatorSim.update(TimedRobot.kDefaultPeriod);
+        elevatorSim.update(dt);
 
         linearMotorSim.setRotorVelocity(getRotationPerSec());
         linearMotorSim.setRawRotorPosition(getRotations());

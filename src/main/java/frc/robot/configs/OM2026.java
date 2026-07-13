@@ -2,14 +2,13 @@ package frc.robot.configs;
 
 import frc.robot.Robot.Config;
 
-public class FM2026 extends Config {
-
-    // Final Machine
-    public FM2026() {
+public class OM2026 extends Config {
+    public OM2026() {
         super();
-        swerve.configEncoderOffsets(-0.163818359375, 0.24902, 0.2724609375, -0.31005859375);
 
-        // Attached Mechanisms
+        // TODO: change when robot is built and can be updated
+        swerve.configEncoderOffsets(0, 0, 0, 0);
+
         pilot.setAttached(true);
         operator.setAttached(true);
         fuelIntake.setAttached(true);
@@ -17,6 +16,6 @@ public class FM2026 extends Config {
         launcher.setAttached(true);
         indexerTower.setAttached(true);
         spindexer.setAttached(true);
-        // hood.setAttached(true);
+        turret.setAttached(true);
     }
 }

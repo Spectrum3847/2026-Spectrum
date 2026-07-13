@@ -24,7 +24,8 @@ public enum Rio {
     // 2026 Robots
     PHOTON2026("032B4BB3", true),
     PM_2026("0329AD07", true),
-    // FM_2026("", true),
+    FM_2026("", true),
+    OM_2026("", true),
 
     // 2025 Robots
     FM_2025("0329F2D1", true),
