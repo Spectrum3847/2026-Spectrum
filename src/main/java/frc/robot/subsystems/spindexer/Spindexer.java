@@ -1,5 +1,6 @@
 package frc.robot.subsystems.spindexer;
 
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -32,12 +33,15 @@ public class Spindexer extends Mechanism {
         @Getter @Setter private double spindexerDiameter = 12;
 
         public SpindexerConfig() {
-            super("Spindexer", 8, Rio.CANIVORE);
+            super("Spindexer 1", 8, Rio.CANIVORE);
             configPIDGains(velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
             configClockwise_Positive();
+            setFollowerConfigs(
+                new FollowerConfig("Spindexer 2", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned)
+            );
         }
     }
 
