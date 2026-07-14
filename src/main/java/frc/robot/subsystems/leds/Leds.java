@@ -1,15 +1,14 @@
 package frc.robot.subsystems.leds;
 
+import com.ctre.phoenix6.CANBus;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.robot.Robot;
 import frc.robot.subsystems.SuperStructure;
+import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -35,9 +34,9 @@ public class Leds extends SpectrumLEDs {
     /** Number of external LEDs attached to the roboRIO PWM port. */
     public static final int NUM_LEDS = 20;
 
-    public static class LedConfig extends SpectrumLEDs.Config {
-        public LedConfig(String name, int length) {
-            super(name, length);
+    public static class LedConfig extends CANdleConfig {
+        public LedConfig() {
+            super("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
         }
 
         public LedConfig(
@@ -46,7 +45,7 @@ public class Leds extends SpectrumLEDs {
                 edu.wpi.first.wpilibj.AddressableLEDBuffer lb,
                 int startingIndex,
                 int endingIndex) {
-            super(name, l, lb, startingIndex, endingIndex);
+            super(name, 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
         }
     }
 
@@ -57,7 +56,7 @@ public class Leds extends SpectrumLEDs {
     // -------------------------------------------------------------------------
 
     /** Default pattern shown when no command is running. */
-    private final LEDPattern defaultPattern = breathe(purple, 2.0);
+    private final CANdlePattern defaultPattern = breathe(purple, 2.0);
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -112,8 +111,7 @@ public class Leds extends SpectrumLEDs {
                             })
                     .and(Util.teleop);
 
-    private Trigger autonomous =
-            new Trigger(() -> DriverStation.isAutonomous());
+    private Trigger autonomous = new Trigger(() -> DriverStation.isAutonomous());
 
     private Trigger launchingFuel =
             new Trigger(
@@ -151,7 +149,7 @@ public class Leds extends SpectrumLEDs {
         ledCommand("Leds.Launching", rainbow(0.5), priority, trigger);
     }
 
-    private Trigger ledCommand(String name, LEDPattern pattern, int priority, Trigger trigger) {
+    private Trigger ledCommand(String name, CANdlePattern pattern, int priority, Trigger trigger) {
         return trigger.and(checkPriority(priority))
                 .whileTrue(setPattern(pattern, priority).withName(name));
     }
