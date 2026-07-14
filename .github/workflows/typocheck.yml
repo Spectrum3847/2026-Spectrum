@@ -2,6 +2,7 @@ name: spell check
 
 on:
   pull_request:
+    branches: [ "main" ]
 
 permissions:
   contents: read
