@@ -1,9 +1,6 @@
 package frc.robot.subsystems.leds;
 
 import com.ctre.phoenix6.CANBus;
-import edu.wpi.first.wpilibj.AddressableLED;
-import edu.wpi.first.wpilibj.AddressableLEDBuffer;
-import edu.wpi.first.wpilibj.AddressableLEDBufferView;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.util.Color;
@@ -22,12 +19,11 @@ import lombok.Setter;
  * Robot LED subsystem for the 2026 REBUILT season.
  *
  * <p>Extends {@link SpectrumLEDs} to inherit the full pattern library (solid, stripe, blink,
- * breathe, rainbow, chase, bounce, gradient, ombre, wave, countdown, etc.) and the CANdle hardware
- * abstraction. Robot-specific convenience command methods are defined below; bind them via triggers
- * in {@code Robot.java} or {@code SuperStructure}.
+ * breathe, rainbow, chase, bounce, gradient, ombre, wave, countdown, etc.) and the AddressableLED
+ * hardware abstraction. Robot-specific convenience command methods are defined below; bind them via
+ * triggers in {@code Robot.java} or {@code SuperStructure}.
  *
- * <p>Hardware: CANdle device ID 1 on the CANivore bus, 20-LED RGB external strip at brightness 0.5.
- * LEDs are disabled on signal loss.
+ * <p>Hardware: PWM port 0, 20-LED RGB external strip.
  */
 public class Leds extends SpectrumLEDs {
 
@@ -35,36 +31,32 @@ public class Leds extends SpectrumLEDs {
     // Hardware configuration
     // -------------------------------------------------------------------------
 
-    /** Number of external LEDs attached to the CANdle output (indices 8–27 on the device). */
+    /** Number of external LEDs attached to the roboRIO PWM port. */
     public static final int NUM_LEDS = 20;
 
-    @Getter @Setter protected AddressableLED led;
-    @Getter @Setter protected AddressableLEDBuffer buffer;
-    @Getter @Setter protected AddressableLEDBufferView view;
-
     public static class LedConfig extends CANdleConfig {
-        @Getter protected String name;
-        @Getter @Setter protected boolean attached = true;
-        @Getter @Setter protected int startingIndex = 0;
-        @Getter @Setter protected int endingIndex = 28;
-        @Getter @Setter protected int port = 0;
+        public LedConfig() {
+            super("Leds", 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
+        }
 
         public LedConfig(
                 String name,
-                AddressableLED l,
-                AddressableLEDBuffer lb,
+                edu.wpi.first.wpilibj.AddressableLED l,
+                edu.wpi.first.wpilibj.AddressableLEDBuffer lb,
                 int startingIndex,
                 int endingIndex) {
-            super("Leds", 1, NUM_LEDS, new CANBus(Rio.RIO_CANBUS));
-            this.name = name;
-            this.led = l;
-            this.buffer = lb;
-            this.startingIndex = startingIndex;
-            this.endingIndex = endingIndex;
+            super(name, 1, NUM_LEDS, new CANBus(Rio.CANIVORE));
         }
     }
 
-    @Getter protected LedConfig config;
+    @Getter @Setter private LedConfig config;
+
+    // -------------------------------------------------------------------------
+    // Pattern state
+    // -------------------------------------------------------------------------
+
+    /** Default pattern shown when no command is running. */
+    private final CANdlePattern defaultPattern = breathe(purple, 2.0);
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -74,42 +66,26 @@ public class Leds extends SpectrumLEDs {
         super(config);
 
         this.config = config;
-        setDefaultCommand(setPattern(breathe(purple, 2.0), -1).withName("Leds.idle"));
+        setDefaultCommand(setPattern(defaultPattern, -1).withName("Leds.idle"));
 
         bindTriggers();
 
         Telemetry.print(getName() + " Subsystem Initialized");
-
-        if (config.getLed() == null) {
-                led = new AddressableLED(config.port);
-                // Length is expensive to set, so only set it once, then just update data
-                ledBuffer = new AddressableLEDBuffer(NUM_LEDS);
-                led.setLength(ledBuffer.getLength());
-                mainView = true;
-            } else {
-                led = config.getLed();
-                ledBuffer = config.buffer;
-            }
-
-            ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
-
-            // Set the data
-            led.setData(ledBuffer);
-            setPattern(defaultPattern);
-            led.start();
     }
 
-    // TODO: add more patterns and include ones for bps
+    // -------------------------------------------------------------------------
+    // Triggers and bindings
+    // -------------------------------------------------------------------------
 
     void bindTriggers() {
         launchingLed(launchingFuel, 1);
-        redShiftLed(redShfit, 2);
-        blueShiftLed(blueShfit, 2);
+        redShiftLed(redShift, 2);
+        blueShiftLed(blueShift, 2);
         bothHubsActiveLed(bothHubsActive, 2);
-        autonLed(autonomouns, 2);
+        autonLed(autonomous, 2);
     }
 
-    private Trigger redShfit =
+    private Trigger redShift =
             new Trigger(
                             () -> {
                                 double t = DriverStation.getMatchTime();
@@ -118,7 +94,7 @@ public class Leds extends SpectrumLEDs {
                             })
                     .and(Util.teleop);
 
-    private Trigger blueShfit =
+    private Trigger blueShift =
             new Trigger(
                             () -> {
                                 double t = DriverStation.getMatchTime();
@@ -135,13 +111,7 @@ public class Leds extends SpectrumLEDs {
                             })
                     .and(Util.teleop);
 
-    private Trigger autonomouns =
-            new Trigger(
-                    () -> {
-                        return DriverStation.isAutonomous();
-                    });
-
-    // private Trigger bpsLow = new Trigger(() -> {})
+    private Trigger autonomous = new Trigger(() -> DriverStation.isAutonomous());
 
     private Trigger launchingFuel =
             new Trigger(
@@ -154,6 +124,10 @@ public class Leds extends SpectrumLEDs {
                                     || Robot.getSuperStructure().getCurrentSuperState()
                                             == SuperStructure.CurrentSuperState
                                                     .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY);
+
+    // -------------------------------------------------------------------------
+    // Pattern bindings
+    // -------------------------------------------------------------------------
 
     void redShiftLed(Trigger trigger, int priority) {
         ledCommand("Leds.Red_Shift", switchCountdown(Color.kRed), priority, trigger);
@@ -179,83 +153,4 @@ public class Leds extends SpectrumLEDs {
         return trigger.and(checkPriority(priority))
                 .whileTrue(setPattern(pattern, priority).withName(name));
     }
-
-    @Override
-    public void periodic() {
-        Telemetry.log("Leds/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Leds/CommandPriority", getCommandPriority());
-        Telemetry.log("Leds/IsAnimating", isAnimating());
-
-        if (mainView) {
-            led.setData(ledBuffer);
-        }
-    }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-
-        @SuppressWarnings("unused")
-        private boolean mainView = false;
-
-            // Must be a PWM header, not MXP or DIO
-            if (config.getLed() == null) {
-                led = new AddressableLED(config.port);
-                // Length is expensive to set, so only set it once, then just update data
-                ledBuffer = new AddressableLEDBuffer(NUM_LEDS);
-                led.setLength(ledBuffer.getLength());
-                mainView = true;
-            } else {
-                led = config.getLed();
-                ledBuffer = config.buffer;
-            }
-
-            ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
-
-            // Set the data
-            led.setData(ledBuffer);
-            setPattern(defaultPattern);
-            led.start();
 }
-
-/*
- *     @Getter protected final AddressableLED led;
-    @Getter protected final AddressableLEDBuffer ledBuffer;
-    @Getter protected final AddressableLEDBufferView ledView;
-    private boolean mainView = false;
-
-    protected final LEDPattern defaultPattern = blink(Color.kOrange, 1);
-
-    @Getter
-    protected Command defaultCommand =
-            setPattern(defaultPattern, -1).withName("LEDs.defaultCommand");
-
-    public final Trigger defaultTrigger = new Trigger(() -> defaultCommand.isScheduled());
-
-    @Getter @Setter private int commandPriority = 0;
-
-    public final Color purple = new Color(130, 103, 185);
-    public final Color white = Color.kWhite;
-
-    public SpectrumLEDs(Config config) {
-        this.config = config;
-
-        // Must be a PWM header, not MXP or DIO
-        if (config.getLed() == null) {
-            led = new AddressableLED(config.port);
-            // Length is expensive to set, so only set it once, then just update data
-            ledBuffer = new AddressableLEDBuffer(config.length);
-            led.setLength(ledBuffer.getLength());
-            mainView = true;
-        } else {
-            led = config.getLed();
-            ledBuffer = config.buffer;
-        }
-
-        ledView = ledBuffer.createView(config.startingIndex, config.endingIndex);
-
-        // Set the data
-        led.setData(ledBuffer);
-        setPattern(defaultPattern);
-        led.start();
- */

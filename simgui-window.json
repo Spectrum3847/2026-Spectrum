@@ -5,7 +5,7 @@
       "DockNode          ID=0x00000003 Pos=242,452 Size=877,514 Split=X",
       "DockNode        ID=0x00000004 Parent=0x00000003 SizeRef=238,497 Selected=0xFA2A8FFA",
       "DockNode        ID=0x00000006 Parent=0x00000003 SizeRef=235,497 Selected=0xA6A62DF3",
-      "DockNode          ID=0x00000005 Pos=9,29 Size=2242,790 Split=X",
+      "DockNode          ID=0x00000005 Pos=1,197 Size=2242,790 Split=X",
       "DockNode        ID=0x00000011 Parent=0x00000005 SizeRef=1872,784 Split=X",
       "DockNode      ID=0x00000008 Parent=0x00000011 SizeRef=322,445 Split=Y Selected=0x39AD1970",
       "DockNode    ID=0x0000000A Parent=0x00000008 SizeRef=187,370 Split=Y Selected=0x39AD1970",
@@ -25,12 +25,12 @@
       "font": "Proggy Dotted",
       "fps": "120",
       "height": "961",
-      "maximized": "0",
+      "maximized": "1",
       "style": "0",
       "userScale": "2",
       "width": "279",
-      "xpos": "2",
-      "ypos": "45"
+      "xpos": "0",
+      "ypos": "34"
     }
   },
   "Table": {
@@ -67,7 +67,7 @@
     "###/SmartDashboard/Field2d": {
       "Collapsed": "0",
       "DockId": "0x00000009,0",
-      "Pos": "397,29",
+      "Pos": "389,197",
       "Size": "1854,790"
     },
     "###/SmartDashboard/Scheduler": {
@@ -101,13 +101,13 @@
     "###FMS": {
       "Collapsed": "0",
       "DockId": "0x0000000C,0",
-      "Pos": "9,29",
+      "Pos": "1,197",
       "Size": "386,467"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "26,752",
-      "Size": "273,202"
+      "Size": "1156,202"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -151,7 +151,7 @@
     "Robot State": {
       "Collapsed": "0",
       "DockId": "0x0000000D,0",
-      "Pos": "9,498",
+      "Pos": "1,666",
       "Size": "386,321"
     }
   }
