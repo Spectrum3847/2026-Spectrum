@@ -1,7 +1,6 @@
 package frc.robot;
 
 import com.ctre.phoenix6.CANBus;
-import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -14,6 +13,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -21,39 +21,46 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
 import frc.robot.configs.FM2026;
+import frc.robot.configs.OM2026;
 import frc.robot.configs.PHOTON2026;
 import frc.robot.configs.PM2026;
-import frc.robot.fuelIntake.FuelIntake;
-import frc.robot.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.hood.Hood;
-import frc.robot.hood.Hood.HoodConfig;
-import frc.robot.indexerBed.IndexerBed;
-import frc.robot.indexerBed.IndexerBed.IndexerBedConfig;
-import frc.robot.indexerTower.IndexerTower;
-import frc.robot.indexerTower.IndexerTower.IndexerTowerConfig;
-import frc.robot.intakeExtension.IntakeExtension;
-import frc.robot.intakeExtension.IntakeExtension.IntakeExtensionConfig;
-import frc.robot.launcher.Launcher;
-import frc.robot.launcher.Launcher.LauncherConfig;
 import frc.robot.operator.Operator;
 import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
-import frc.robot.swerve.Swerve;
-import frc.robot.swerve.SwerveConfig;
-import frc.robot.vision.Vision;
-import frc.robot.vision.Vision.VisionConfig;
-import frc.robot.vision.VisionSystem;
-import frc.spectrumLib.BatteryLogger;
-import frc.spectrumLib.Rio;
-import frc.spectrumLib.SpectrumRobot;
-import frc.spectrumLib.Telemetry;
-import frc.spectrumLib.Telemetry.PrintPriority;
+import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.CurrentSuperState;
+import frc.robot.subsystems.SuperStructure.WantedSuperState;
+import frc.robot.subsystems.fuelIntake.FuelIntake;
+import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.subsystems.indexerTower.IndexerTower;
+import frc.robot.subsystems.indexerTower.IndexerTower.IndexerTowerConfig;
+import frc.robot.subsystems.intakeExtension.IntakeExtension;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
+import frc.robot.subsystems.launcher.Launcher;
+import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
+import frc.robot.subsystems.leds.Leds;
+import frc.robot.subsystems.spindexer.Spindexer;
+import frc.robot.subsystems.spindexer.Spindexer.SpindexerConfig;
+import frc.robot.subsystems.swerve.Swerve;
+import frc.robot.subsystems.swerve.SwerveConfig;
+import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.TurretConfig;
+import frc.robot.subsystems.vision.Vision;
+import frc.robot.subsystems.vision.Vision.VisionConfig;
+import frc.spectrumLib.framework.SpectrumRobot;
+import frc.spectrumLib.hardware.Rio;
+import frc.spectrumLib.telemetry.BatteryLogger;
+import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import frc.spectrumLib.util.CrashTracker;
+import frc.spectrumLib.util.Util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -76,31 +83,31 @@ public class Robot extends SpectrumRobot {
     public static boolean autonWarmedUp = false;
 
     public static class Config {
-        public SwerveConfig swerve = new SwerveConfig();
-        public PilotConfig pilot = new PilotConfig();
-        public OperatorConfig operator = new OperatorConfig();
-        public FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
-        public IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public IndexerTowerConfig indexerTower = new IndexerTowerConfig();
-        public IndexerBedConfig indexerBed = new IndexerBedConfig();
-        public LauncherConfig launcher = new LauncherConfig();
-        public HoodConfig hood = new HoodConfig();
-        public VisionConfig vision = new VisionConfig();
+        public final SwerveConfig swerve = new SwerveConfig();
+        public final PilotConfig pilot = new PilotConfig();
+        public final OperatorConfig operator = new OperatorConfig();
+        public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
+        public final IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
+        public final IndexerTowerConfig indexerTower = new IndexerTowerConfig();
+        public final SpindexerConfig spindexer = new SpindexerConfig();
+        public final LauncherConfig launcher = new LauncherConfig();
+        public final VisionConfig vision = new VisionConfig();
+        public final TurretConfig turret = new TurretConfig();
     }
 
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
     @Getter private static IntakeExtension intakeExtension;
     @Getter private static IndexerTower indexerTower;
-    @Getter private static IndexerBed indexerBed;
+    @Getter private static Spindexer spindexer;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
-    @Getter private static VisionSystem visionSystem;
+    @Getter private static Turret turret;
     @Getter private static Launcher launcher;
-    @Getter private static Hood hood;
     @Getter private static Vision vision;
+    @Getter private static Leds leds;
     @Getter private static Auton auton;
-    @Getter private static Coordinator coordinator;
+    @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
 
@@ -119,48 +126,65 @@ public class Robot extends SpectrumRobot {
                 case PM_2026:
                     config = new PM2026();
                     break;
-                    // case FM_2026:
-                    //     config = new FM2026();
-                    //     break;
-                default: // SIM and UNKNOWN
+                case FM_2026:
                     config = new FM2026();
+                    break;
+                case OM_2026:
+                    config = new OM2026();
+                    break;
+                default: // SIM and UNKNOWN
+                    config = new OM2026();
                     break;
             }
 
-            /*
-             * Initialize the Subsystems of the robot. Subsystems are how we divide up the robot
-             * code. Anything with an output that needs to be independently controlled is a
-             * subsystem Something that don't have an output are also subsystems.
-             */
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
             mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
 
-            coordinator = new Coordinator();
-            operator = new Operator(config.operator);
             pilot = new Pilot(config.pilot);
+            operator = new Operator(config.operator);
+
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
-            vision = new Vision(config.vision);
-            Timer.delay(canInitDelay);
+
             intakeExtension = new IntakeExtension(config.intakeExtension);
             Timer.delay(canInitDelay);
+
             fuelIntake = new FuelIntake(config.fuelIntake);
             Timer.delay(canInitDelay);
-            hood = new Hood(config.hood);
+
+            turret = new Turret(config.turret);
             Timer.delay(canInitDelay);
+
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
+
             indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);
-            indexerBed = new IndexerBed(config.indexerBed);
-            auton = new Auton();
-            batteryLogger = new BatteryLogger();
 
-            if (Utils.isSimulation()) {
-                robotSim = new RobotSim();
+            spindexer = new Spindexer(config.spindexer);
+            Timer.delay(canInitDelay);
+
+            superStructure =
+                    new SuperStructure(
+                            swerve,
+                            fuelIntake,
+                            intakeExtension,
+                            indexerTower,
+                            spindexer,
+                            launcher,
+                            turret);
+
+            auton = new Auton(superStructure);
+            vision = new Vision(config.vision);
+            batteryLogger = new BatteryLogger();
+            // leds = new Leds();
+
+            if (RobotBase.isSimulation()) {
+                robotSim = new RobotSim(superStructure);
             }
 
-            setupDefaultCommands();
+            configureBindings();
+
             batteryLogger.setEnabled(true);
 
             Telemetry.print("--- Robot Init Complete ---");
@@ -187,45 +211,99 @@ public class Robot extends SpectrumRobot {
                 });
     }
 
-    /**
-     * This method cancels all commands and returns subsystems to their default commands and the
-     * gamepad configs are reset so that new bindings can be assigned based on mode. This method
-     * should be called when each mode is initialized.
-     *
-     * <p><b>Warning:</b> This method will cause a very large loop overrun, as it rebinds all states
-     * to their triggers. Be careful when you call this as it will cause delays in the robot code.
-     * It is recommended to call this method at the end of disabledInit and teleopInit, as those are
-     * the most common places to need to reset commands and bindings.
-     */
-    public void resetCommandsAndButtons() {
-        CommandScheduler.getInstance().cancelAll(); // Disable any currently running commands
-        CommandScheduler.getInstance().getActiveButtonLoop().clear();
+    public void configureBindings() {
+        // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
+        pilot.LT.onTrue(
+                Commands.either(
+                        superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
+                        Commands.none(),
+                        pilot.RT.negate()));
 
-        // Reset Config for all gamepads and other button bindings
-        pilot.resetConfig();
-        operator.resetConfig();
+        // RT alone → launch; do nothing if LT is already held (RT+LT handled below)
+        pilot.RT.onTrue(
+                Commands.either(
+                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
+                        Commands.none(),
+                        pilot.LT.negate()));
 
-        // Bind Triggers for all subsystems
-        setupStates();
-        RobotStates.setupStates();
+        // RT + LT both held → launch (intake stays extended; resolves to LAUNCH_WITHOUT_SQUEEZE)
+        pilot.RT
+                .and(pilot.LT)
+                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE));
+
+        // LT released while RT still held → launch (no delay; resolves to
+        // LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)
+        pilot.LT.onFalse(
+                Commands.either(
+                        superStructure.setStateCommand(
+                                WantedSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
+                        Commands.none(),
+                        pilot.RT));
+
+        // RT released while LT still held → resume intaking
+        pilot.RT.onFalse(
+                Commands.either(
+                        superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
+                        Commands.none(),
+                        pilot.LT));
+
+        // Both released → idle
+        pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
+        pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
+        pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        operator.dPadDown.onTrue(
+                new InstantCommand(() -> ShotCalculator.decreaseFlywheelSpeedOffset()));
+        operator.dPadUp.onTrue(
+                new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
+        operator.dPadRight.onTrue(
+                new InstantCommand(() -> ShotCalculator.decreaseTurretAngleOffsetDegrees()));
+        operator.dPadLeft.onTrue(
+                new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffsetDegrees()));
+
+        Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
+        Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
+
+        // Auton Triggers
+        Auton.autonIntake.onTrue(
+                superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
+        Auton.autonShotPrep.onTrue(
+                superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
+        Auton.autonUnjam.onTrue(
+                Commands.sequence(
+                        superStructure.setStateCommand(WantedSuperState.UNJAM),
+                        Commands.waitSeconds(1),
+                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
+        Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
+
+        if (RobotBase.isSimulation()) {
+            pilot.YButton.whileTrue(
+                    superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
+            pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+            pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
+            pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        }
     }
 
-    /**
-     * This method cancels all commands and returns subsystems to their default commands. This
-     * method should be called when each mode is initialized.
-     *
-     * <p><b>Warning:</b> This method will cause a very large loop overrun, as it rebinds all states
-     * to their triggers. Be careful when you call this as it will cause delays in the robot code.
-     * It is recommended to call this method at the end of disabledInit and teleopInit, as those are
-     * the most common places to need to reset commands and bindings.
-     */
-    public void clearCommandsAndButtons() {
-        CommandScheduler.getInstance().cancelAll(); // Disable any currently running commands
-        CommandScheduler.getInstance().getActiveButtonLoop().clear();
-
-        // Bind Triggers for all subsystems
-        setupStates();
-        RobotStates.setupStates();
+    public void configureSimBindings() {
+        Trigger simLaunching =
+                new Trigger(
+                        () ->
+                                (superStructure.getCurrentSuperState()
+                                                == CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                                        || superStructure.getCurrentSuperState()
+                                                == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                                        || superStructure.getCurrentSuperState()
+                                                == CurrentSuperState
+                                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
+        simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
     }
 
     /** Sets up the SmartDashboard data for visualization. */
@@ -264,7 +342,6 @@ public class Robot extends SpectrumRobot {
                     "Match Data/TimeLeftInShift",
                     ShiftHelpers.getOfficialShiftInfo().remainingTime(),
                     "seconds");
-            Telemetry.log("Applied State", RobotStates.getAppliedState().toString());
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
@@ -291,8 +368,6 @@ public class Robot extends SpectrumRobot {
     @Override
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
-        clearCommandsAndButtons();
-        resetCommandsAndButtons();
 
         if (!autonWarmedUp) {
             Command autonStartCommand =
@@ -315,30 +390,30 @@ public class Robot extends SpectrumRobot {
 
     @Override
     public void disabledPeriodic() {
-        String newAutoName;
-        boolean leftStart = true;
+        String fullAutoName = auton.getAutonomousCommand().getName();
+        boolean leftStart = !fullAutoName.endsWith(" - Right");
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();
-        newAutoName = auton.getAutonomousCommand().getName();
-        leftStart = !newAutoName.endsWith(" - Right");
 
-        if (newAutoName.equals("Do Nothing")) {
+        if (fullAutoName.equals("Do Nothing")) {
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
-            autoName = newAutoName;
+            autoName = fullAutoName;
             return;
         }
 
-        // Remove " - Left" or " - Right" suffix if present
-        if (newAutoName.endsWith(" - Left") || newAutoName.endsWith(" - Right")) {
-            newAutoName = newAutoName.substring(0, newAutoName.lastIndexOf(" - "));
+        // Strip " - Left" / " - Right" suffix to get the base path name
+        String baseAutoName = fullAutoName;
+        if (baseAutoName.endsWith(" - Left") || baseAutoName.endsWith(" - Right")) {
+            baseAutoName = baseAutoName.substring(0, baseAutoName.lastIndexOf(" - "));
         }
 
-        if (!autoName.equals(newAutoName)) {
-            autoName = newAutoName;
+        // Reload whenever the full name changes — catches both auto switches and side switches
+        if (!autoName.equals(fullAutoName)) {
+            autoName = fullAutoName;
             Telemetry.log("Auton Warmed Up", false);
 
-            if (AutoBuilder.getAllAutoNames().contains(autoName)) {
+            if (AutoBuilder.getAllAutoNames().contains(baseAutoName)) {
                 try {
-                    pathPlannerPaths = PathPlannerAuto.getPathGroupFromAutoFile(autoName);
+                    pathPlannerPaths = PathPlannerAuto.getPathGroupFromAutoFile(baseAutoName);
                 } catch (IOException | ParseException e) {
                     Telemetry.print("Could not load path planner paths");
                 }
@@ -360,23 +435,31 @@ public class Robot extends SpectrumRobot {
                                     .collect(Collectors.toList());
                 }
 
-                // Set the robot pose to the starting pose of the first path
-                swerve.resetPose(
-                        pathPlannerPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+                if (!pathPlannerPaths.isEmpty()) {
+                    // Set the robot pose to the starting pose of the first path
+                    swerve.resetPose(
+                            pathPlannerPaths
+                                    .get(0)
+                                    .getStartingHolonomicPose()
+                                    .orElse(new Pose2d()));
 
-                // Warm up the starting path
-                Command warmUpPath =
-                        Commands.sequence(
-                                        AutoBuilder.followPath(pathPlannerPaths.get(0))
-                                                .withTimeout(0.5),
-                                        Commands.runOnce(
-                                                () -> {
-                                                    Telemetry.print(
-                                                            "Auton Warmed Up", PrintPriority.HIGH);
-                                                    Telemetry.log("Auton Warmed Up", true);
-                                                }))
-                                .ignoringDisable(true);
-                CommandScheduler.getInstance().schedule(warmUpPath);
+                    // Warm up the starting path
+                    Command warmUpPath =
+                            Commands.sequence(
+                                            AutoBuilder.followPath(pathPlannerPaths.get(0))
+                                                    .withTimeout(0.5),
+                                            Commands.runOnce(
+                                                    () -> {
+                                                        Telemetry.print(
+                                                                "Auton Warmed Up",
+                                                                PrintPriority.HIGH);
+                                                        Telemetry.log("Auton Warmed Up", true);
+                                                    }))
+                                    .ignoringDisable(true);
+                    CommandScheduler.getInstance().schedule(warmUpPath);
+                } else {
+                    Telemetry.print("Warning: No paths loaded for auto: " + baseAutoName);
+                }
 
                 // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
@@ -413,9 +496,10 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
-        if (Utils.isSimulation()) {
-            SimulatedArena.getInstance().resetFieldForAuto();
-        }
+        // if (Utils.isSimulation()) {
+        //     robotSim.getBallSim().clearBalls();
+        //     robotSim.getBallSim().placeFieldBalls();
+        // }
         try {
             auton.init();
         } catch (Throwable t) {
@@ -438,7 +522,7 @@ public class Robot extends SpectrumRobot {
     public void teleopInit() {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
-            RobotStates.clearState();
+
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
@@ -474,7 +558,6 @@ public class Robot extends SpectrumRobot {
         try {
 
             Telemetry.print("~~~ Test Init Starting ~~~ ");
-            resetCommandsAndButtons();
 
             Telemetry.print("~~~ Test Init Complete ~~~ ");
         } catch (Throwable t) {
@@ -502,6 +585,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
+        configureSimBindings();
         SimulatedArena.getInstance().resetFieldForAuto();
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
@@ -509,7 +593,8 @@ public class Robot extends SpectrumRobot {
     /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        SmartDashboard.putNumber(
-                "Sim/FuelCount", RobotSim.getIntakeSimulation().getGamePiecesAmount());
+        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        robotSim.updateArticulatedMechanisms();
+        Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
     }
 }
