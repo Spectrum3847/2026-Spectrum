@@ -40,8 +40,8 @@ public class Spindexer extends Mechanism {
             configStatorCurrentLimit(statorCurrentLimit, true);
             configClockwise_Positive();
             setFollowerConfigs(
-                new FollowerConfig("Spindexer 2", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned)
-            );
+                    new FollowerConfig(
+                            "Spindexer 2", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned));
         }
     }
 

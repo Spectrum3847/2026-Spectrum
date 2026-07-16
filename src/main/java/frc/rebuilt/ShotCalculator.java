@@ -173,7 +173,9 @@ public class ShotCalculator {
                 superStructure.isRobotInFeedZone()
                         && state != SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE
                         && state != SuperStructure.CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
-                        && state != SuperStructure.CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
+                        && state
+                                != SuperStructure.CurrentSuperState
+                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
 
@@ -218,7 +220,7 @@ public class ShotCalculator {
                         + fieldVelocity.omegaRadiansPerSecond
                                 * (robotToTurret.getY() * Math.cos(robotAngle)
                                         - robotToTurret.getX() * Math.sin(robotAngle));
-        double turretVelocityY = 
+        double turretVelocityY =
                 fieldVelocity.vyMetersPerSecond
                         + fieldVelocity.omegaRadiansPerSecond
                                 * (robotToTurret.getX() * Math.cos(robotAngle)

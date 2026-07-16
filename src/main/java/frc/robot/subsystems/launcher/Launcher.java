@@ -72,11 +72,9 @@ public class Launcher extends Mechanism {
                     new FollowerConfig(
                             "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
                     new FollowerConfig(
-                            "Launcher Bottom Right",
-                            49,
-                            Rio.CANIVORE,
-                            MotorAlignmentValue.Opposed),
-                    new FollowerConfig("Launcher Another One", 99, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Bottom Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed),
+                    new FollowerConfig(
+                            "Launcher Another One", 99, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 

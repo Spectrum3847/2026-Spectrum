@@ -6,7 +6,6 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
-import frc.robot.subsystems.indexerTower.IndexerTower;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.spindexer.Spindexer;
@@ -21,7 +20,6 @@ public class SuperStructure extends SubsystemBase {
     @Getter private final Swerve swerve;
     @Getter private final FuelIntake fuelIntake;
     @Getter private final IntakeExtension intakeExtension;
-    @Getter private final IndexerTower indexerTower;
     @Getter private final Spindexer spindexer;
     @Getter private final Launcher launcher;
     @Getter private final Turret turret;
@@ -64,14 +62,12 @@ public class SuperStructure extends SubsystemBase {
             Swerve swerve,
             FuelIntake fuelIntake,
             IntakeExtension intakeExtension,
-            IndexerTower indexerTower,
             Spindexer spindexer,
             Launcher launcher,
             Turret turret) {
         this.swerve = swerve;
         this.fuelIntake = fuelIntake;
         this.intakeExtension = intakeExtension;
-        this.indexerTower = indexerTower;
         this.spindexer = spindexer;
         this.launcher = launcher;
         this.turret = turret;
@@ -165,7 +161,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
@@ -176,7 +171,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
@@ -187,7 +181,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
@@ -198,7 +191,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -215,7 +207,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
@@ -226,7 +217,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
@@ -236,7 +226,6 @@ public class SuperStructure extends SubsystemBase {
     private void applyAutonIdle() {
         swerve.setWantedState(Swerve.WantedState.IDLE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
@@ -245,7 +234,6 @@ public class SuperStructure extends SubsystemBase {
 
     private void autonIntakeFuel() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        indexerTower.setWantedState(IndexerTower.WantedState.IDLE_SLOW_INDEX);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
@@ -254,7 +242,6 @@ public class SuperStructure extends SubsystemBase {
 
     private void autonTrackTarget() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
@@ -265,7 +252,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.UNJAM);
         spindexer.setWantedState(Spindexer.WantedState.UNJAM);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.OFF);
@@ -276,7 +262,6 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        indexerTower.setWantedState(IndexerTower.WantedState.OFF);
         spindexer.setWantedState(Spindexer.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_RETRACT);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);

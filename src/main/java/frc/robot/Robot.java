@@ -159,13 +159,7 @@ public class Robot extends SpectrumRobot {
 
             superStructure =
                     new SuperStructure(
-                            swerve,
-                            fuelIntake,
-                            intakeExtension,
-                            indexerTower,
-                            spindexer,
-                            launcher,
-                            turret);
+                            swerve, fuelIntake, intakeExtension, spindexer, launcher, turret);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
