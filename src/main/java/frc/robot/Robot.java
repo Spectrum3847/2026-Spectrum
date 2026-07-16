@@ -39,8 +39,6 @@ import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
-import frc.robot.subsystems.indexerTower.IndexerTower;
-import frc.robot.subsystems.indexerTower.IndexerTower.IndexerTowerConfig;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.subsystems.launcher.Launcher;
@@ -88,7 +86,6 @@ public class Robot extends SpectrumRobot {
         public final OperatorConfig operator = new OperatorConfig();
         public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public final IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public final IndexerTowerConfig indexerTower = new IndexerTowerConfig();
         public final SpindexerConfig spindexer = new SpindexerConfig();
         public final LauncherConfig launcher = new LauncherConfig();
         public final VisionConfig vision = new VisionConfig();
@@ -98,7 +95,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static Swerve swerve;
     @Getter private static FuelIntake fuelIntake;
     @Getter private static IntakeExtension intakeExtension;
-    @Getter private static IndexerTower indexerTower;
     @Getter private static Spindexer spindexer;
     @Getter private static Operator operator;
     @Getter private static Pilot pilot;
@@ -156,9 +152,6 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
 
             launcher = new Launcher(config.launcher);
-            Timer.delay(canInitDelay);
-
-            indexerTower = new IndexerTower(config.indexerTower);
             Timer.delay(canInitDelay);
 
             spindexer = new Spindexer(config.spindexer);

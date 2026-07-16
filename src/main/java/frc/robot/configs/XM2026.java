@@ -19,7 +19,7 @@ public class XM2026 extends Config {
         fuelIntake.setAttached(true);
         intakeExtension.setAttached(false);
         launcher.setAttached(true);
-        indexerTower.setAttached(true);
+        // indexerTower.setAttached(true);
         // indexerBed.setAttached(true);
     }
 }

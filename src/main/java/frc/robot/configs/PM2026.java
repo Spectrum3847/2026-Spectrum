@@ -16,7 +16,7 @@ public class PM2026 extends Config {
         fuelIntake.setAttached(true);
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
-        indexerTower.setAttached(true);
+        // indexerTower.setAttached(true);
         // indexerBed.setAttached(true);
     }
 }

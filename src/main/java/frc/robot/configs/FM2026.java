@@ -15,7 +15,7 @@ public class FM2026 extends Config {
         fuelIntake.setAttached(true);
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
-        indexerTower.setAttached(true);
+        // indexerTower.setAttached(true);
         spindexer.setAttached(true);
         // hood.setAttached(true);
     }

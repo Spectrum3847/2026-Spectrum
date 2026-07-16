@@ -14,7 +14,6 @@ public class OM2026 extends Config {
         fuelIntake.setAttached(true);
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
-        indexerTower.setAttached(true);
         spindexer.setAttached(true);
         turret.setAttached(true);
     }
