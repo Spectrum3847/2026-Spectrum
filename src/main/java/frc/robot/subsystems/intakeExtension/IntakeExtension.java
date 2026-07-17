@@ -61,7 +61,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double mmCruiseVelocity = 100;
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
-        
+
         // TODO: change up to line 75
         @Getter private final double sensorToMechanismRatio = 11.25;
         @Getter private final double rotorToSensorRatio = 1;

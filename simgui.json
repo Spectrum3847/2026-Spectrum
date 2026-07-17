@@ -105,11 +105,6 @@
           "visible": true
         }
       },
-      "/SmartDashboard/Scheduler": {
-        "window": {
-          "visible": true
-        }
-      },
       "/SmartDashboard/Sim/LeftView": {
         "window": {
           "visible": true
