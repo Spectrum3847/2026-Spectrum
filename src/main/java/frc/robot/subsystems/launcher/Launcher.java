@@ -20,10 +20,12 @@ public class Launcher extends Mechanism {
     public static class LauncherConfig extends Config {
 
         // Intake Voltages and Current
+        // keep
         @Getter @Setter private double LauncherVoltage = 9.0;
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
         @Getter @Setter private double LauncherStatorCurrent = 85.0;
 
+        // tune
         @Getter @Setter private double idlingRPM = 700;
         @Getter @Setter private double slowLaunchSpeed = 400;
         @Getter @Setter private double autoTrenchLaunch = 1800;
@@ -40,6 +42,7 @@ public class Launcher extends Mechanism {
         @Getter private double lowerSupplyCurrentLimit = 60;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
+        // TODO: tune
         @Getter private double velocityKp = 10;
         @Getter private double velocityKv = 0;
         @Getter private double velocityKs = 20;

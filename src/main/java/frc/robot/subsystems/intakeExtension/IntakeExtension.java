@@ -30,6 +30,7 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
+        // TODO: tune
         @Getter private final double maxRotations = 2.779053;
         @Getter private final double minRotations = 0.0;
 
@@ -40,14 +41,15 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double atPoseTolerance = 10;
         @Getter private final double springyPoseTolerance = 20;
 
+        // keep
         @Getter private final double positiveVoltageOut = 10;
         @Getter private final double negativeVoltageOut = -10;
-
+        // keep
         @Getter private final double normalSupplyCurrentLimit = 40;
         @Getter private final double normalStatorCurrentLimit = 80;
         @Getter private final double springyModeSupplyCurrentLimit = 5;
         @Getter private final double springyModeStatorCurrentLimit = 20;
-
+        // TODO: tune
         @Getter private final double positionKp = 10;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
@@ -59,7 +61,8 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double mmCruiseVelocity = 100;
         @Getter private final double mmAcceleration = 300;
         @Getter private final double mmJerk = 1000;
-
+        
+        // TODO: change up to line 75
         @Getter private final double sensorToMechanismRatio = 11.25;
         @Getter private final double rotorToSensorRatio = 1;
 

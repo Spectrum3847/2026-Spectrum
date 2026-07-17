@@ -19,8 +19,10 @@ public class FuelIntake extends Mechanism {
     public static class FuelIntakeConfig extends Config {
 
         /* Intake config values */
+        // Likely keep current limits
         @Getter private final double supplyCurrentLimit = 70;
         @Getter private final double statorCurrentLimit = 180;
+        // TODO: tune
         @Getter private final double velocityKp = 5;
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 4;

@@ -26,6 +26,7 @@ public class Turret extends Mechanism {
     public static class TurretConfig extends Config {
         @Getter @Setter private boolean reversed = false;
 
+        // TODO: update if needed until line 41
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
@@ -41,10 +42,11 @@ public class Turret extends Mechanism {
 
         @Getter private final double currentLimit = 30;
         @Getter private final double torqueCurrentLimit = 60;
+        // TODO: update
         @Getter private final double positionKp = 500;
         @Getter private final double positionKd = 100;
 
-        // TODO: required for shoot on the move capability
+        // TODO: required for shoot on the move capability update until line 67
         // additional current output per unit of velocity requested
         // needed because of the velocity setpoint used in the control request
         @Getter private final double positionKv = 0;

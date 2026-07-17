@@ -19,6 +19,7 @@ public class Spindexer extends Mechanism {
 
         @Getter @Setter private double supplyCurrentLimit = 40;
         @Getter @Setter private double statorCurrentLimit = 80;
+        // TODO: tune
         @Getter @Setter private double velocityKp = 5;
         @Getter @Setter private double velocityKv = 10;
         @Getter @Setter private double velocityKs = 15;
