@@ -37,9 +37,13 @@ public class Spindexer extends Mechanism {
             super("Spindexer 1", 8, Rio.CANIVORE);
             configPIDGains(velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
+            configGearRatio(1);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
-            configClockwise_Positive();
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configNeutralBrakeMode(false);
+            configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
                             "Spindexer 2", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned));

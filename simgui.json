@@ -150,10 +150,22 @@
     },
     "transitory": {
       "Robot": {
+        "DogLog": {
+          "open": true
+        },
         "FieldSimulation": {
           "open": true
         },
+        "FuelIntake": {
+          "open": true
+        },
         "Match Data": {
+          "open": true
+        },
+        "ShotCalc": {
+          "open": true
+        },
+        "Sim": {
           "open": true
         },
         "open": true
