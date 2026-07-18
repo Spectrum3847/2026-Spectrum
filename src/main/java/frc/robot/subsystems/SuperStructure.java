@@ -265,7 +265,7 @@ public class SuperStructure extends SubsystemBase {
         spindexer.setWantedState(Spindexer.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_RETRACT);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.HOME);
+        turret.setWantedState(Turret.WantedState.IDLE);
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────

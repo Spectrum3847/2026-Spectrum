@@ -103,14 +103,12 @@ public class Turret extends Mechanism {
 
     public enum WantedState {
         OFF,
-        HOME,
         IDLE,
         AIM_AT_TARGET,
     }
 
     public enum SystemState {
         OFF,
-        HOME,
         IDLE,
         AIM_AT_TARGET,
     }
@@ -125,7 +123,6 @@ public class Turret extends Mechanism {
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
-            case HOME -> SystemState.HOME;
             case IDLE -> SystemState.IDLE;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
@@ -142,14 +139,11 @@ public class Turret extends Mechanism {
                 unwrapping = false;
                 stop();
                 return;
-            case HOME:
+            case IDLE:
                 unwrapping = false;
                 commandedDegrees = 0;
                 mechOmegaRotPerSec = 0;
                 setMMPositionFoc(() -> degreesToRotations(() -> 0.0));
-                return;
-            case IDLE:
-                applyAimAtTarget();
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget();
