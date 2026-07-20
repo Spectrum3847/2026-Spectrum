@@ -1,11 +1,11 @@
 {
   "Docking": {
     "Data": [
-      "DockNode          ID=0x00000001 Pos=164,819 Size=983,148 Selected=0x48913727",
-      "DockNode          ID=0x00000003 Pos=1018,541 Size=877,514 Split=X",
+      "DockNode          ID=0x00000001 Pos=175,804 Size=983,148 Selected=0x48913727",
+      "DockNode          ID=0x00000003 Pos=937,497 Size=877,514 Split=X",
       "DockNode        ID=0x00000004 Parent=0x00000003 SizeRef=238,497 Selected=0xFA2A8FFA",
       "DockNode        ID=0x00000006 Parent=0x00000003 SizeRef=235,497 Selected=0xA6A62DF3",
-      "DockNode          ID=0x00000005 Pos=7,32 Size=1905,667 Split=X",
+      "DockNode          ID=0x00000005 Pos=6,33 Size=1905,667 Split=X",
       "DockNode        ID=0x00000011 Parent=0x00000005 SizeRef=1872,784 Split=X",
       "DockNode      ID=0x00000008 Parent=0x00000011 SizeRef=322,445 Split=Y Selected=0x39AD1970",
       "DockNode    ID=0x0000000A Parent=0x00000008 SizeRef=187,370 Split=Y Selected=0x39AD1970",
@@ -16,10 +16,10 @@
       "DockNode  ID=0x0000000F Parent=0x0000000B SizeRef=385,300 Selected=0xD58031C5",
       "DockNode      ID=0x00000009 Parent=0x00000011 SizeRef=1548,445 Selected=0x1D2CCB5F",
       "DockNode        ID=0x00000012 Parent=0x00000005 SizeRef=368,784 Split=Y Selected=0x7BD1C6E1",
-      "DockNode      ID=0x00000013 Parent=0x00000012 SizeRef=320,173 Split=Y Selected=0x949F284C",
-      "DockNode    ID=0x00000002 Parent=0x00000013 SizeRef=313,375 Selected=0x949F284C",
-      "DockNode    ID=0x00000007 Parent=0x00000013 SizeRef=313,290 Selected=0x6AE6D891",
-      "DockNode      ID=0x00000014 Parent=0x00000012 SizeRef=320,573 Selected=0x7BD1C6E1"
+      "DockNode      ID=0x00000013 Parent=0x00000012 SizeRef=320,426 Split=Y Selected=0x949F284C",
+      "DockNode    ID=0x00000002 Parent=0x00000013 SizeRef=313,126 Selected=0x949F284C",
+      "DockNode    ID=0x00000007 Parent=0x00000013 SizeRef=313,298 Selected=0x6AE6D891",
+      "DockNode      ID=0x00000014 Parent=0x00000012 SizeRef=320,239 Selected=0x7BD1C6E1"
     ]
   },
   "MainWindow": {
@@ -27,10 +27,10 @@
       "font": "Proggy Dotted",
       "fps": "120",
       "height": "961",
-      "maximized": "1",
+      "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "266",
+      "width": "956",
       "xpos": "0",
       "ypos": "34"
     }
@@ -57,37 +57,37 @@
     "###/SmartDashboard/Alerts": {
       "Collapsed": "0",
       "DockId": "0x00000002,0",
-      "Pos": "1599,32",
-      "Size": "313,375"
+      "Pos": "1598,33",
+      "Size": "313,198"
     },
     "###/SmartDashboard/Auto Chooser": {
       "Collapsed": "0",
       "DockId": "0x0000000E,0",
-      "Pos": "7,364",
+      "Pos": "6,365",
       "Size": "273,66"
     },
     "###/SmartDashboard/Field2d": {
       "Collapsed": "0",
       "DockId": "0x00000009,0",
-      "Pos": "282,32",
+      "Pos": "281,33",
       "Size": "1315,667"
     },
     "###/SmartDashboard/Scheduler": {
       "Collapsed": "0",
       "DockId": "0x00000014,0",
-      "Pos": "1598,181",
-      "Size": "313,511"
+      "Pos": "1598,461",
+      "Size": "313,239"
     },
     "###/SmartDashboard/Sim/LeftView": {
       "Collapsed": "0",
       "DockId": "0x00000006,0",
-      "Pos": "1460,541",
+      "Pos": "1379,497",
       "Size": "435,514"
     },
     "###/SmartDashboard/Sim/TopView": {
       "Collapsed": "0",
       "DockId": "0x00000004,0",
-      "Pos": "1018,541",
+      "Pos": "937,497",
       "Size": "440,514"
     },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
@@ -103,13 +103,13 @@
     "###FMS": {
       "Collapsed": "0",
       "DockId": "0x0000000C,0",
-      "Pos": "7,32",
+      "Pos": "6,33",
       "Size": "273,194"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "11,717",
-      "Size": "1156,202"
+      "Size": "950,202"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -124,25 +124,25 @@
     "###NetworkTables": {
       "Collapsed": "0",
       "DockId": "0x00000001,0",
-      "Pos": "164,819",
+      "Pos": "175,804",
       "Size": "983,148"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
       "DockId": "0x00000001,1",
-      "Pos": "164,819",
+      "Pos": "175,804",
       "Size": "983,148"
     },
     "###System Joysticks": {
       "Collapsed": "0",
       "DockId": "0x00000007,0",
-      "Pos": "1599,409",
-      "Size": "313,290"
+      "Pos": "1598,233",
+      "Size": "313,467"
     },
     "###Timing": {
       "Collapsed": "0",
       "DockId": "0x0000000F,0",
-      "Pos": "7,432",
+      "Pos": "6,433",
       "Size": "273,267"
     },
     "Debug##Default": {
@@ -153,7 +153,7 @@
     "Robot State": {
       "Collapsed": "0",
       "DockId": "0x0000000D,0",
-      "Pos": "7,228",
+      "Pos": "6,229",
       "Size": "273,134"
     }
   }

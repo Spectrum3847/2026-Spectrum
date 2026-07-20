@@ -34,6 +34,7 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITH_SQUEEZE,
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
+        LAUNCH_WITH_BRAKE,
         AUTON_TRACK_TARGET,
         AUTON_INTAKE_FUEL,
         UNJAM,
@@ -47,6 +48,7 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITH_SQUEEZE,
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
+        LAUNCH_WITH_BRAKE,
         AUTON_IDLE,
         AUTON_TRACK_TARGET,
         AUTON_INTAKE_FUEL,
@@ -110,6 +112,7 @@ public class SuperStructure extends SubsystemBase {
             case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> CurrentSuperState
                     .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
             case LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE;
+            case LAUNCH_WITH_BRAKE -> CurrentSuperState.LAUNCH_WITH_BRAKE;
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
             case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
@@ -136,6 +139,9 @@ public class SuperStructure extends SubsystemBase {
                 break;
             case LAUNCH_WITHOUT_SQUEEZE:
                 launchWithoutSqueeze();
+                break;
+            case LAUNCH_WITH_BRAKE:
+                launchWithBrake();
                 break;
             case AUTON_IDLE:
                 applyAutonIdle();
@@ -223,6 +229,15 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
     }
 
+    private void launchWithBrake() {
+        swerve.setWantedState(Swerve.WantedState.X_BRAKE);
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        spindexer.setWantedState(Spindexer.WantedState.INDEX_MAX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+    }
+
     private void applyAutonIdle() {
         swerve.setWantedState(Swerve.WantedState.IDLE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
@@ -244,7 +259,7 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         spindexer.setWantedState(Spindexer.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
     }
 
@@ -254,7 +269,7 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         spindexer.setWantedState(Spindexer.WantedState.UNJAM);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.OFF);
+        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         turret.setWantedState(Turret.WantedState.IDLE);
     }
 

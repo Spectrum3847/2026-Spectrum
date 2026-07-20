@@ -227,6 +227,11 @@ public class Robot extends SpectrumRobot {
                         Commands.none(),
                         pilot.RT));
 
+        pilot.RT
+                .and(pilot.LB)
+                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_BRAKE));
+        pilot.RT.and(pilot.LB).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         // RT released while LT still held → resume intaking
         pilot.RT.onFalse(
                 Commands.either(
@@ -269,14 +274,6 @@ public class Robot extends SpectrumRobot {
                         Commands.waitSeconds(1),
                         superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
-
-        if (RobotBase.isSimulation()) {
-            pilot.YButton.whileTrue(
-                    superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
-            pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
-            pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
-            pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
-        }
     }
 
     public void configureSimBindings() {
@@ -291,6 +288,14 @@ public class Robot extends SpectrumRobot {
                                                 == CurrentSuperState
                                                         .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
+
+        pilot.YButton.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
+        pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
+        pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.LB.onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_BRAKE));
+        pilot.LB.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
 
     /** Sets up the SmartDashboard data for visualization. */

@@ -64,6 +64,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         TELEOP_DRIVE,
         PILOT_AIM_AT_TARGET,
         CENTER_ROTATION_CHANGE_LAUNCHING,
+        X_BRAKE,
         IDLE
     }
 
@@ -71,6 +72,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         TELEOP_DRIVE,
         PILOT_AIM_AT_TARGET,
         CENTER_ROTATION_CHANGE_LAUNCHING,
+        X_BRAKE,
         IDLE
     }
 
@@ -122,6 +124,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             new SwerveRequest.FieldCentricFacingAngle()
                     .withDriveRequestType(SwerveModule.DriveRequestType.Velocity)
                     .withSteerRequestType(SwerveModule.SteerRequestType.Position);
+
+    private final SwerveRequest.SwerveDriveBrake X_BRAKE = new SwerveRequest.SwerveDriveBrake();
 
     /**
      * Constructs a new Swerve drive subsystem.
@@ -276,6 +280,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             case TELEOP_DRIVE -> SystemState.TELEOP_DRIVE;
             case PILOT_AIM_AT_TARGET -> SystemState.PILOT_AIM_AT_TARGET;
             case CENTER_ROTATION_CHANGE_LAUNCHING -> SystemState.CENTER_ROTATION_CHANGE_LAUNCHING;
+            case X_BRAKE -> SystemState.X_BRAKE;
             case IDLE -> SystemState.IDLE;
             default -> SystemState.IDLE;
         };
@@ -305,6 +310,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                         FIELD_CENTRIC_DRIVE
                                 .withSpeeds(calculateSpeedsBasedOnJoystickInputs())
                                 .withCenterOfRotation(TURRET_PIVOT_POINT));
+                break;
+            case X_BRAKE:
+                setControl(X_BRAKE);
                 break;
         }
     }
