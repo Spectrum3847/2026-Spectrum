@@ -1,0 +1,4 @@
+# Pin the JDK this project builds with (WPILib 2026 targets Java 17).
+# With sdkman installed, run `sdk env` in this dir (or enable auto-env) to switch.
+# On a fresh machine, `sdk env install` installs it.
+java=17.0.19-tem

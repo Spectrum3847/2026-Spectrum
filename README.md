@@ -24,6 +24,15 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 * **Git Lens:** lets you see who committed changes and more
 * **SpellRight:** Spell Check for VSCode
 
+### Verify Locally
+
+Run the same checks CI runs before you push:
+
+```bash
+scripts/verify.sh        # formatting, static analysis, compile, and tests
+scripts/verify.sh --fix  # auto-format first, then verify
+```
+
 ### Dependencies
 
 * WPILib 2026

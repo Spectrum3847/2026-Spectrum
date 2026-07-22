@@ -2,11 +2,16 @@
 
 name: CI
 
-# Triggers on push to main, and on ANY pull request regardless of target branch.
+# Triggers on push to ANY branch, and on ANY pull request regardless of target branch.
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "**" ]
   pull_request:
+
+# Cancel superseded runs on the same ref so we don't burn CI minutes on stale commits.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -26,6 +31,10 @@ jobs:
       - name: Add repository to git safe directories
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      # Caches the Gradle dependency and build caches so most runs skip re-downloading.
+      - name: Set up Gradle caching
+        uses: gradle/actions/setup-gradle@v4
+
       # Grant execute permission for gradlew
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -34,6 +43,18 @@ jobs:
       - name: Check Java formatting (Spotless)
         run: ./gradlew spotlessCheck
 
-      # Runs a single command using the runners shell
-      - name: Compile and run tests on robot code
+      # Compile, run SpotBugs static analysis, and run the JUnit tests.
+      - name: Build, static analysis and tests
         run: ./gradlew build
+
+      # Keep the verification reports so a failed run is debuggable without re-running locally.
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-reports
+          path: |
+            build/reports/
+            build/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
