@@ -43,7 +43,7 @@ import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
-import frc.robot.subsystems.leds.Leds;
+// import frc.robot.subsystems.leds.Leds;
 import frc.robot.subsystems.spindexer.Spindexer;
 import frc.robot.subsystems.spindexer.Spindexer.SpindexerConfig;
 import frc.robot.subsystems.swerve.Swerve;
@@ -101,7 +101,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Turret turret;
     @Getter private static Launcher launcher;
     @Getter private static Vision vision;
-    @Getter private static Leds leds;
+    // @Getter private static Leds leds;
     @Getter private static Auton auton;
     @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
@@ -289,6 +289,7 @@ public class Robot extends SpectrumRobot {
                                                         .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
 
+        // Sim bindings for when people with just keyboards at home are doing sim at home
         pilot.YButton.whileTrue(
                 superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
         pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));

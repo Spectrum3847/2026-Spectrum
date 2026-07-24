@@ -47,6 +47,7 @@ import lombok.Getter;
  */
 public class Vision implements Subsystem {
 
+    // TODO: new limelight configs
     // =========================================================================
     // Configuration
     // =========================================================================
@@ -104,6 +105,7 @@ public class Vision implements Subsystem {
 
         // -- Turret geometry --------------------------------------------------
 
+        // TODO: edit
         /** Robot-centre to turret pivot offset (metres). */
         @Getter
         final Translation2d robotToTurretCenter =
@@ -158,6 +160,7 @@ public class Vision implements Subsystem {
     // Fields
     // =========================================================================
 
+    // TODO: edit
     /** Rear-facing Limelight instance. */
     @Getter public final Limelight backLL;
 
@@ -208,6 +211,7 @@ public class Vision implements Subsystem {
      *
      * @param config the static configuration object
      */
+    // TODO: edit
     public Vision(VisionConfig config) {
         this.config = config;
 
@@ -286,6 +290,7 @@ public class Vision implements Subsystem {
             rightLogger.getMegaPose();
         }
 
+        // TODO: edit
         // Update Field2d visualization (null-safe; returns Pose2d.kZero when no data)
         Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
         Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
