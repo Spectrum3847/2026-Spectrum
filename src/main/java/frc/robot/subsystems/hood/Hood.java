@@ -19,8 +19,8 @@ public class Hood extends Mechanism {
 
         @Getter private final double initPosition = 9;
 
-        @Getter @Setter private double maxRotations = 0.137;
-        @Getter @Setter private double minRotations = 0.024;
+        @Getter @Setter private double maxRotations = 0.825;
+        @Getter @Setter private double minRotations = 0.0;
 
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 40;
@@ -35,17 +35,17 @@ public class Hood extends Mechanism {
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
 
-        @Getter private final double gearRatio = 51.667;
+        @Getter private final double gearRatio = 8.49;
         @Getter private final double mmCruiseVelocity = 50;
         @Getter private final double mmAcceleration = 200;
         @Getter private final double mmJerk = 1000;
         @Getter private final double holdMaxSpeedRPM = 18;
 
         /* Sim Configs */
-        @Getter private final double hoodX = Units.inchesToMeters(62.5);
-        @Getter private final double hoodY = Units.inchesToMeters(50);
-        @Getter private final double simRatio = 51.667;
-        @Getter private final double length = Units.inchesToMeters(10);
+        @Getter private final double hoodX = Units.inchesToMeters(50);
+        @Getter private final double hoodY = Units.inchesToMeters(65);
+        @Getter private final double simRatio = 8.49;
+        @Getter private final double length = Units.inchesToMeters(7.735);
 
         public HoodConfig() {
             super("Hood", 60, Rio.CANIVORE);

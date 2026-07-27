@@ -60,7 +60,7 @@ public class RobotSim {
     private double ballsPerSecond = 15;
     private double timeBetweenBallLaunches = 1.0 / ballsPerSecond;
     private static final double LAUNCH_ELEVATION_DEGREES = 65;
-    private static final double LAUNCH_HEIGHT_INCHES = 27;
+    private static final double LAUNCH_HEIGHT_INCHES = 19.5;
 
     private SuperStructure robotSuperStructure;
 
@@ -169,8 +169,8 @@ public class RobotSim {
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
 
-        MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
-        shooter.setColor(new Color8Bit(Color.kBlack));
+        // MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
+        // shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
     private void configBallSimRobot() {

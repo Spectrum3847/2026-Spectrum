@@ -53,7 +53,7 @@ public class Launcher extends Mechanism {
 
         /* Sim Configs */
         @Getter private double launcherX = Units.inchesToMeters(50);
-        @Getter private double launcherY = Units.inchesToMeters(63);
+        @Getter private double launcherY = Units.inchesToMeters(65);
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
