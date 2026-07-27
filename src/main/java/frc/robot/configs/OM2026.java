@@ -16,5 +16,6 @@ public class OM2026 extends Config {
         launcher.setAttached(true);
         spindexer.setAttached(true);
         turret.setAttached(true);
+        hood.setAttached(true);
     }
 }

@@ -236,7 +236,7 @@ public class Turret extends Mechanism {
         // Counter-rotate for the robot's own spin, so mechOmega = fieldOmega - robotOmega
         ChassisSpeeds robotSpeeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
         double robotOmegaRotPerSec = robotSpeeds.omegaRadiansPerSecond / (2.0 * Math.PI);
-        mechOmegaRotPerSec = params.turretAngularVelocityRotPerSec() - robotOmegaRotPerSec;
+        mechOmegaRotPerSec = params.turretAngularVelocity() - robotOmegaRotPerSec;
 
         if (unwrapping) {
             // Motion magic for smooth full-turn slew to the opposite winding, so the cable never

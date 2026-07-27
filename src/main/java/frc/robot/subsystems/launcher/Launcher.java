@@ -55,7 +55,7 @@ public class Launcher extends Mechanism {
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher", 46, Rio.CANIVORE);
+            super("Launcher Front Left", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -68,17 +68,11 @@ public class Launcher extends Mechanism {
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(nominalVoltage);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
-                    new FollowerConfig(
-                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
-                    new FollowerConfig(
-                            "Launcher Bottom Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed),
-                    new FollowerConfig(
-                            "Launcher Another One", 50, Rio.CANIVORE, MotorAlignmentValue.Opposed));
-        }
+                            "Launcher Front Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                    }
     }
 
     // ---- State Machine ----

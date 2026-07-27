@@ -39,6 +39,8 @@ import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
+import frc.robot.subsystems.hood.Hood;
+import frc.robot.subsystems.hood.Hood.HoodConfig;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.subsystems.launcher.Launcher;
@@ -90,6 +92,7 @@ public class Robot extends SpectrumRobot {
         public final LauncherConfig launcher = new LauncherConfig();
         public final VisionConfig vision = new VisionConfig();
         public final TurretConfig turret = new TurretConfig();
+        public final HoodConfig hood = new HoodConfig();
     }
 
     @Getter private static Swerve swerve;
@@ -100,6 +103,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Pilot pilot;
     @Getter private static Turret turret;
     @Getter private static Launcher launcher;
+    @Getter private static Hood hood;
     @Getter private static Vision vision;
     // @Getter private static Leds leds;
     @Getter private static Auton auton;
@@ -152,6 +156,9 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
 
             launcher = new Launcher(config.launcher);
+            Timer.delay(canInitDelay);
+
+            hood = new Hood(config.hood);
             Timer.delay(canInitDelay);
 
             spindexer = new Spindexer(config.spindexer);
@@ -252,13 +259,13 @@ public class Robot extends SpectrumRobot {
         pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         operator.dPadDown.onTrue(
-                new InstantCommand(() -> ShotCalculator.decreaseFlywheelSpeedOffset()));
+                new InstantCommand(() -> ShotCalculator.decreaseHoodAngleOffset()));
         operator.dPadUp.onTrue(
-                new InstantCommand(() -> ShotCalculator.increaseFlywheelSpeedOffset()));
+                new InstantCommand(() -> ShotCalculator.increaseHoodAngleOffset()));
         operator.dPadRight.onTrue(
-                new InstantCommand(() -> ShotCalculator.decreaseTurretAngleOffsetDegrees()));
+                new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffset()));
         operator.dPadLeft.onTrue(
-                new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffsetDegrees()));
+                new InstantCommand(() -> ShotCalculator.decreaseTurretAngleOffset()));
 
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
