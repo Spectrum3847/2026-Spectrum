@@ -83,7 +83,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     public static final double DRIVE_TO_POINT_STATIC_FRICTION_CONSTANT = 0.02;
     private static final double SKEW_COMPENSATION_SCALAR = -0.03;
 
-    // TODO: get actual values
     private final Translation2d TURRET_PIVOT_POINT = new Translation2d(0, 0);
 
     @Getter public final Pigeon2 pigeon = getPigeon2();

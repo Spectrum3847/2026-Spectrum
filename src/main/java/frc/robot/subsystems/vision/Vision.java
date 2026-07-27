@@ -107,9 +107,7 @@ public class Vision implements Subsystem {
 
         // TODO: edit
         /** Robot-centre to turret pivot offset (metres). */
-        @Getter
-        final Translation2d robotToTurretCenter =
-                new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7));
+        @Getter final Translation2d robotToTurretCenter = Translation2d.kZero;
 
         /** Turret pivot to camera offset (metres). */
         @Getter

@@ -1,8 +1,8 @@
 {
   "Docking": {
     "Data": [
-      "DockNode          ID=0x00000001 Pos=175,804 Size=983,148 Selected=0x48913727",
-      "DockNode          ID=0x00000003 Pos=937,497 Size=877,514 Split=X",
+      "DockNode          ID=0x00000001 Pos=157,438 Size=983,148 Selected=0x48913727",
+      "DockNode          ID=0x00000003 Pos=177,438 Size=877,514 Split=X",
       "DockNode        ID=0x00000004 Parent=0x00000003 SizeRef=238,497 Selected=0xFA2A8FFA",
       "DockNode        ID=0x00000006 Parent=0x00000003 SizeRef=235,497 Selected=0xA6A62DF3",
       "DockNode          ID=0x00000005 Pos=6,33 Size=1905,667 Split=X",
@@ -27,10 +27,10 @@
       "font": "Proggy Dotted",
       "fps": "120",
       "height": "961",
-      "maximized": "0",
+      "maximized": "1",
       "style": "0",
       "userScale": "2",
-      "width": "956",
+      "width": "716",
       "xpos": "0",
       "ypos": "34"
     }
@@ -81,13 +81,13 @@
     "###/SmartDashboard/Sim/LeftView": {
       "Collapsed": "0",
       "DockId": "0x00000006,0",
-      "Pos": "1379,497",
+      "Pos": "619,438",
       "Size": "435,514"
     },
     "###/SmartDashboard/Sim/TopView": {
       "Collapsed": "0",
       "DockId": "0x00000004,0",
-      "Pos": "937,497",
+      "Pos": "177,438",
       "Size": "440,514"
     },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
@@ -108,8 +108,8 @@
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "11,717",
-      "Size": "950,202"
+      "Pos": "11,438",
+      "Size": "1156,202"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -124,13 +124,13 @@
     "###NetworkTables": {
       "Collapsed": "0",
       "DockId": "0x00000001,0",
-      "Pos": "175,804",
+      "Pos": "157,438",
       "Size": "983,148"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
       "DockId": "0x00000001,1",
-      "Pos": "175,804",
+      "Pos": "157,438",
       "Size": "983,148"
     },
     "###System Joysticks": {

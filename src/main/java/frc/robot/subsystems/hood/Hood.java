@@ -14,9 +14,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 public class Hood extends Mechanism {
-    
+
     public static class HoodConfig extends Config {
-        
+
         @Getter private final double initPosition = 9;
 
         @Getter @Setter private double maxRotations = 0.137;
@@ -49,8 +49,22 @@ public class Hood extends Mechanism {
 
         public HoodConfig() {
             super("Hood", 60, Rio.CANIVORE);
+            configMinMaxRotations(minRotations, maxRotations);
+            configPIDGains(0, positionKp, positionKi, positionKd);
+            configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
+            configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+            configGearRatio(gearRatio);
+            configSupplyCurrentLimit(supplyCurrentLimit, true);
+            configStatorCurrentLimit(statorCurrentLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configForwardSoftLimit(maxRotations, true);
+            configReverseSoftLimit(minRotations, true);
+            configNeutralBrakeMode(true);
+            configClockwise_Positive();
         }
-
     }
 
     public enum WantedState {
@@ -60,11 +74,10 @@ public class Hood extends Mechanism {
     }
 
     public enum SystemState {
-        HOME, 
+        HOME,
         STOPPED,
         AIM_AT_TARGET
     }
-
 
     private WantedState wantedState = WantedState.HOME;
     private SystemState systemState = SystemState.HOME;
@@ -78,7 +91,6 @@ public class Hood extends Mechanism {
             case HOME -> SystemState.HOME;
             case STOPPED -> SystemState.STOPPED;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
-
         };
     }
 

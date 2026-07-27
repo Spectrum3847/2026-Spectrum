@@ -11,11 +11,14 @@
 //  * Robot LED subsystem for the 2026 REBUILT season.
 //  *
 //  * <p>Extends {@link SpectrumLEDs} to inherit the full pattern library (solid, stripe, blink,
-//  * breathe, rainbow, chase, bounce, gradient, ombre, wave, countdown, etc.) and the CANdle hardware
-//  * abstraction. Robot-specific convenience command methods are defined below; bind them via triggers
+//  * breathe, rainbow, chase, bounce, gradient, ombre, wave, countdown, etc.) and the CANdle
+// hardware
+//  * abstraction. Robot-specific convenience command methods are defined below; bind them via
+// triggers
 //  * in {@code Robot.java} or {@code SuperStructure}.
 //  *
-//  * <p>Hardware: CANdle device ID 1 on the CANivore bus, 20-LED RGB external strip at brightness 0.5.
+//  * <p>Hardware: CANdle device ID 1 on the CANivore bus, 20-LED RGB external strip at brightness
+// 0.5.
 //  * LEDs are disabled on signal loss.
 //  */
 // public class Leds extends SpectrumLEDs {
@@ -28,8 +31,10 @@
 //     public static final int NUM_LEDS = 20;
 
 //     /**
-//      * Static hardware config. Set {@code startIdx = 8} to address only the external strip (skipping
-//      * the 8 onboard CANdle LEDs); keep at {@code 0} to address all 20 LEDs starting from the first
+//      * Static hardware config. Set {@code startIdx = 8} to address only the external strip
+// (skipping
+//      * the 8 onboard CANdle LEDs); keep at {@code 0} to address all 20 LEDs starting from the
+// first
 //      * onboard LED.
 //      */
 //     public static final Config ledsConfig;

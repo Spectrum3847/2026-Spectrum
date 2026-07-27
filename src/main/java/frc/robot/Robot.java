@@ -166,7 +166,7 @@ public class Robot extends SpectrumRobot {
 
             superStructure =
                     new SuperStructure(
-                            swerve, fuelIntake, intakeExtension, spindexer, launcher, turret);
+                            swerve, fuelIntake, intakeExtension, spindexer, launcher, turret, hood);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
@@ -260,8 +260,7 @@ public class Robot extends SpectrumRobot {
 
         operator.dPadDown.onTrue(
                 new InstantCommand(() -> ShotCalculator.decreaseHoodAngleOffset()));
-        operator.dPadUp.onTrue(
-                new InstantCommand(() -> ShotCalculator.increaseHoodAngleOffset()));
+        operator.dPadUp.onTrue(new InstantCommand(() -> ShotCalculator.increaseHoodAngleOffset()));
         operator.dPadRight.onTrue(
                 new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffset()));
         operator.dPadLeft.onTrue(

@@ -47,11 +47,14 @@ public class RobotSim {
             new Mechanism2d(
                     Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
-    @Getter private static double simRobotWidth = Units.inchesToMeters(33);
-    @Getter private static double simRobotLength = Units.inchesToMeters(32.75);
+    @Getter private static double simRobotWidth = Units.inchesToMeters(25.5);
+    @Getter private static double simRobotLength = Units.inchesToMeters(31.854);
 
     private static final Translation3d TURRET_PIVOT_POINT =
-            new Translation3d(Units.inchesToMeters(-5.5), Units.inchesToMeters(4.7), 0);
+            new Translation3d(0, 0, Units.inchesToMeters(19.324));
+
+    private static final Translation3d HOOD_PIVOT_POINT =
+            new Translation3d(0, 0, Units.inchesToMeters(19.5));
 
     @Getter private FuelPhysicsSim ballSim;
     private double ballsPerSecond = 15;
@@ -91,7 +94,12 @@ public class RobotSim {
                         TURRET_PIVOT_POINT,
                         new Rotation3d(0, 0, Math.toRadians(turretAngleDegrees)));
 
-        Pose3d[] mechanismPoses = {intakePose3d, turretPose3d};
+        double hoodAngleDegrees = robotSuperStructure.getHood().getPositionDegrees();
+        var hoodPose3d =
+                Pose3d.kZero.rotateAround(
+                        HOOD_PIVOT_POINT, new Rotation3d(0, 0, Math.toRadians(hoodAngleDegrees)));
+
+        Pose3d[] mechanismPoses = {intakePose3d, turretPose3d, hoodPose3d};
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }

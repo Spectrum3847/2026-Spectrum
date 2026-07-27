@@ -49,6 +49,8 @@ public class Launcher extends Mechanism {
 
         @Getter private double onTargetToleranceRPM = 100;
 
+        @Getter private double gearRatio = 1.833;
+
         /* Sim Configs */
         @Getter private double launcherX = Units.inchesToMeters(50);
         @Getter private double launcherY = Units.inchesToMeters(63);
@@ -58,7 +60,7 @@ public class Launcher extends Mechanism {
             super("Launcher Front Left", 46, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
-            configGearRatio(1);
+            configGearRatio(gearRatio);
             configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
@@ -72,7 +74,7 @@ public class Launcher extends Mechanism {
             setFollowerConfigs(
                     new FollowerConfig(
                             "Launcher Front Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed));
-                    }
+        }
     }
 
     // ---- State Machine ----

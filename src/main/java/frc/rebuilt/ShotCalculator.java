@@ -1,9 +1,5 @@
 package frc.rebuilt;
 
-import edu.wpi.first.math.util.Units;
-
-import org.dyn4j.geometry.Rotation;
-
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -28,14 +24,9 @@ public class ShotCalculator {
     private static ShotCalculator instance;
 
     /** Robot-centre to launcher offset. Zero = launcher is at robot centre. */
-    // TODO: edit
     private static final Transform2d robotToLauncher = Transform2d.kZero;
 
-    // TODO: edit
-    private static final Transform2d robotToTurret =
-            new Transform2d(
-                    new Translation2d(Units.inchesToMeters(-5.5), Units.inchesToMeters(5.0)),
-                    new Rotation2d());
+    private static final Transform2d robotToTurret = Transform2d.kZero;
 
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
@@ -59,7 +50,7 @@ public class ShotCalculator {
             double hoodVelocity,
             /** Commanded turret angle (degrees), including {@link #TURRET_ANGLE_OFFSET}. */
             Rotation2d turretAngle,
-            /** Rate of change of {@code turretAngle} (deg/s) for turret*/
+            /** Rate of change of {@code turretAngle} (deg/s) for turret */
             double turretAngularVelocity,
             /** Commanded flywheel speed (RPM). */
             double flywheelSpeed,
@@ -87,7 +78,7 @@ public class ShotCalculator {
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
-    public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0; 
+    public static final double STARTING_FLYWHEEL_SPEED_OFFSET = 0;
     public static double FLYWHEEL_SPEED_OFFSET = STARTING_FLYWHEEL_SPEED_OFFSET;
 
     public static Command increaseHoodAngleOffset() {
@@ -119,7 +110,6 @@ public class ShotCalculator {
      * hub and feed models.
      */
     private static final double MPS_FACTOR = 0.8;
-
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
     private static final double RPM_PER_MPS = 255.0;
 
@@ -193,6 +183,7 @@ public class ShotCalculator {
                     });
 
     /** 3 meter ceiling hub model - used when the robot is testing at home */
+    @SuppressWarnings("unused")
     private static final PolyModel CEILING_3M_HUB_MODEL =
             new PolyModel(
                     "3 Meter Ceiling Hub Model",
@@ -403,6 +394,7 @@ public class ShotCalculator {
         if (lastDriveAngle == null) lastDriveAngle = driveAngle;
         double deltaRot =
                 MathUtil.inputModulus(driveAngle.minus(lastDriveAngle).getRotations(), -0.5, 0.5);
+        @SuppressWarnings("unused")
         double driveAngularVelocity = driveAngleFilter.calculate(deltaRot / LOOP_PERIOD_SECS);
         lastDriveAngle = driveAngle;
 
@@ -431,7 +423,7 @@ public class ShotCalculator {
         Pose2d turretPose = estimatedPose.transformBy(robotToTurret);
         double turretToTargetDistance = target.getDistance(turretPose.getTranslation());
 
-         double turretVelocityX =
+        double turretVelocityX =
                 fieldVelocity.vxMetersPerSecond
                         + fieldVelocity.omegaRadiansPerSecond
                                 * (robotToTurret.getY() * Math.cos(robotAngle)
@@ -480,7 +472,8 @@ public class ShotCalculator {
         double turretAngularVelocity = turretOmegaFilter.calculate(rawOmega);
         lastTurretAngle = turretAngle;
 
-        boolean isValid = distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
+        boolean isValid =
+                distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
         latestParameters =
                 new ShootingParameters(
                         isValid,
