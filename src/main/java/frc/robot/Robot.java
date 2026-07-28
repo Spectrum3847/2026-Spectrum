@@ -155,10 +155,10 @@ public class Robot extends SpectrumRobot {
             turret = new Turret(config.turret);
             Timer.delay(canInitDelay);
 
-            launcher = new Launcher(config.launcher);
+            hood = new Hood(config.hood);
             Timer.delay(canInitDelay);
 
-            hood = new Hood(config.hood);
+            launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
 
             spindexer = new Spindexer(config.spindexer);

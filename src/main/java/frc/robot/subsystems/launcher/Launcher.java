@@ -6,6 +6,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
+import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -117,7 +118,7 @@ public class Launcher extends Mechanism {
                 break;
             case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
-                wantedRPM = params.flywheelSpeed();
+                wantedRPM = params.launcherSpeed();
                 break;
         }
         final double finalWantedRPM = wantedRPM;
@@ -161,7 +162,8 @@ public class Launcher extends Mechanism {
         public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
                     new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getLauncherX(), config.getLauncherY()),
+                            .setPosition(config.getLauncherX(), config.getLauncherY())
+                            .setMount(Robot.getHood().getSim()),
                     mech,
                     rollerMotorSim,
                     config.getName());

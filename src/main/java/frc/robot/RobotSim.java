@@ -213,7 +213,7 @@ public class RobotSim {
                                     -Math.toRadians(LAUNCH_ELEVATION_DEGREES),
                                     turretFieldAngle.getRadians());
                     Translation3d launchVelocity =
-                            new Translation3d(params.flywheelSpeed() * 0.0023, launchRotation);
+                            new Translation3d(params.launcherSpeed() * 0.0023, launchRotation);
 
                     Transform2d robotToTurret =
                             new Transform2d(
