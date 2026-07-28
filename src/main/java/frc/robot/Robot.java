@@ -39,6 +39,8 @@ import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
 import frc.robot.subsystems.dyeRotor.DyeRotor.DyeRotorConfig;
+import frc.robot.subsystems.dyeRotor.DyeRotor.Feeder.FeederConfig;
+import frc.robot.subsystems.dyeRotor.DyeRotor.Rotor.RotorConfig;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.subsystems.hood.Hood;
@@ -47,6 +49,8 @@ import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
+import frc.robot.subsystems.launcher.LauncherTower;
+import frc.robot.subsystems.launcher.LauncherTower.LauncherTowerConfig;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveConfig;
 import frc.robot.subsystems.turret.Turret;
@@ -87,11 +91,14 @@ public class Robot extends SpectrumRobot {
         public final OperatorConfig operator = new OperatorConfig();
         public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig();
         public final IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
-        public final DyeRotorConfig dyeRotor = new DyeRotorConfig();
+        public final RotorConfig rotorC = new RotorConfig();
+        public final FeederConfig feederC = new FeederConfig();
+        public final DyeRotorConfig dyeRotor = new DyeRotorConfig(rotorC, feederC);
         public final LauncherConfig launcher = new LauncherConfig();
         public final VisionConfig vision = new VisionConfig();
         public final TurretConfig turret = new TurretConfig();
         public final HoodConfig hood = new HoodConfig();
+        public final LauncherTowerConfig launcherTower = new LauncherTowerConfig();
     }
 
     @Getter private static Swerve swerve;
@@ -102,6 +109,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Pilot pilot;
     @Getter private static Turret turret;
     @Getter private static Launcher launcher;
+    @Getter private static LauncherTower launcherTower;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
     // @Getter private static Leds leds;
@@ -160,12 +168,22 @@ public class Robot extends SpectrumRobot {
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
 
+            launcherTower = new LauncherTower(config.launcherTower);
+            Timer.delay(canInitDelay);
+
             dyeRotor = new DyeRotor(config.dyeRotor);
             Timer.delay(canInitDelay);
 
             superStructure =
                     new SuperStructure(
-                            swerve, fuelIntake, intakeExtension, dyeRotor, launcher, turret, hood);
+                            swerve,
+                            fuelIntake,
+                            intakeExtension,
+                            dyeRotor,
+                            launcher,
+                            launcherTower,
+                            turret,
+                            hood);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);

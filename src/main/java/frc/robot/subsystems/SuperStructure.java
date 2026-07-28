@@ -10,6 +10,7 @@ import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.hood.Hood;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.launcher.Launcher;
+import frc.robot.subsystems.launcher.LauncherTower;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.turret.Turret;
 import frc.spectrumLib.telemetry.Telemetry;
@@ -23,6 +24,7 @@ public class SuperStructure extends SubsystemBase {
     @Getter private final IntakeExtension intakeExtension;
     @Getter private final DyeRotor dyeRotor;
     @Getter private final Launcher launcher;
+    @Getter private final LauncherTower launcherTower;
     @Getter private final Turret turret;
     @Getter private final Hood hood;
 
@@ -68,6 +70,7 @@ public class SuperStructure extends SubsystemBase {
             IntakeExtension intakeExtension,
             DyeRotor dyeRotor,
             Launcher launcher,
+            LauncherTower launcherTower,
             Turret turret,
             Hood hood) {
         this.swerve = swerve;
@@ -75,6 +78,7 @@ public class SuperStructure extends SubsystemBase {
         this.intakeExtension = intakeExtension;
         this.dyeRotor = dyeRotor;
         this.launcher = launcher;
+        this.launcherTower = launcherTower;
         this.turret = turret;
         this.hood = hood;
     }
@@ -174,7 +178,8 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        launcherTower.setWantedState(LauncherTower.WantedState.OFF);
+        turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
@@ -185,7 +190,8 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
+        turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
@@ -196,6 +202,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -206,6 +213,7 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
 
@@ -224,6 +232,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -235,6 +244,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -245,6 +255,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -255,6 +266,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        launcherTower.setWantedState(LauncherTower.WantedState.OFF);
         turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
@@ -264,6 +276,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
         turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
@@ -273,6 +286,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -284,6 +298,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.UNJAM);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        launcherTower.setWantedState(LauncherTower.WantedState.UNJAM);
         turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
@@ -295,6 +310,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_RETRACT);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        launcherTower.setWantedState(LauncherTower.WantedState.OFF);
         turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
