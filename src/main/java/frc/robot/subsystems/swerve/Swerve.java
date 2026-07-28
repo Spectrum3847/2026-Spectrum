@@ -439,10 +439,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                                 maxYmeter));
     }
 
-    private static final double FIELD_LENGTH_METERS = Units.feetToMeters(54.0);
-    private static final double FIELD_WIDTH_METERS = Units.feetToMeters(27.0);
+    private static final double FIELD_LENGTH_METERS = Field.fieldLength;
+    private static final double FIELD_WIDTH_METERS = Field.fieldWidth;
     private static final double NEUTRAL_DEPTH_METERS = Units.inchesToMeters(283.0);
-    private static final double NEUTRAL_LENGTH_METERS = Units.inchesToMeters(317.7);
+    private static final double NEUTRAL_LENGTH_METERS = Field.fieldWidth;
     private static final double ENEMY_ALLIANCE_DEPTH_METERS = Units.inchesToMeters(180.0);
 
     private static final Rectangle2d NEUTRAL_ZONE =
