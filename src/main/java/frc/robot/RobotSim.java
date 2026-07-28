@@ -54,7 +54,7 @@ public class RobotSim {
             new Translation3d(0, 0, Units.inchesToMeters(19.324));
 
     private static final Translation3d HOOD_PIVOT_POINT =
-            new Translation3d(0, 0, Units.inchesToMeters(19.5));
+            new Translation3d(0, -(7.735 / 2), Units.inchesToMeters(19.5));
 
     @Getter private FuelPhysicsSim ballSim;
     private double ballsPerSecond = 15;

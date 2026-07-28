@@ -31,6 +31,7 @@ public class ShotCalculator {
             Rotation2d turretAngle,
             double turretAngularVelocity,
             double hoodAngle,
+            double hoodVelocity,
             double launcherSpeed) {}
 
     private ShootingParameters latestParameters = null;
@@ -65,7 +66,7 @@ public class ShotCalculator {
     // ===== Config / maps =====
     private static double minDistance;
     private static double maxDistance;
-    private static double phaseDelay;
+    private static double PHASE_DELAY_SECS;
 
     private static final InterpolatingDoubleTreeMap shotLauncherSpeedMap =
             new InterpolatingDoubleTreeMap();
@@ -78,10 +79,13 @@ public class ShotCalculator {
     // ===== Turret angular velocity calculation =====
     // If you have a known loop period constant, swap it in here.
     // WPILib TimedRobot default is 0.02s, but use your actual period.
-    private static final double loopPeriodSecs = 0.02;
+    private static final double LOOP_PERIOD_SECS = 0.02;
 
     private final LinearFilter turretOmegaFilter =
-            LinearFilter.movingAverage((int) (0.1 / loopPeriodSecs)); // ~100ms window
+            LinearFilter.movingAverage((int) (0.1 / LOOP_PERIOD_SECS)); // ~100ms window
+
+    private final LinearFilter hoodAngleFilter =
+            LinearFilter.movingAverage((int) (0.1 / LOOP_PERIOD_SECS)); // ~100 ms window
 
     private Rotation2d lastTurretAngle = null;
     private double lastHoodAngle = Double.NaN;
@@ -90,7 +94,7 @@ public class ShotCalculator {
         minDistance = 1.34;
         maxDistance = 5.60;
 
-        phaseDelay = 0.03;
+        PHASE_DELAY_SECS = 0.03;
 
         // TODO: tune
         // Launcher map
@@ -106,7 +110,7 @@ public class ShotCalculator {
         shotLauncherSpeedMap.put(4.20, 3650.0 + 100);
         shotLauncherSpeedMap.put(5.00, 4000.0 + 100);
 
-        hoodAngleMap.put(1.5, 20.0);
+        hoodAngleMap.put(1.50, 20.0);
 
         // TOF map
         timeOfFlightMap.put(3.41, 1.10);
@@ -131,9 +135,9 @@ public class ShotCalculator {
         estimatedPose =
                 estimatedPose.exp(
                         new Twist2d(
-                                robotRelativeVelocity.vxMetersPerSecond * phaseDelay,
-                                robotRelativeVelocity.vyMetersPerSecond * phaseDelay,
-                                robotRelativeVelocity.omegaRadiansPerSecond * phaseDelay));
+                                robotRelativeVelocity.vxMetersPerSecond * PHASE_DELAY_SECS,
+                                robotRelativeVelocity.vyMetersPerSecond * PHASE_DELAY_SECS,
+                                robotRelativeVelocity.omegaRadiansPerSecond * PHASE_DELAY_SECS));
 
         // Turret pose + base distance
         Pose2d turretPose = estimatedPose.transformBy(robotToTurret);
@@ -194,13 +198,15 @@ public class ShotCalculator {
         double deltaRotTurret =
                 MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
 
-        double rawOmegaTurret = deltaRotTurret / loopPeriodSecs;
+        double rawOmegaTurret = deltaRotTurret / LOOP_PERIOD_SECS;
         double turretAngularVelocity = turretOmegaFilter.calculate(rawOmegaTurret);
         lastTurretAngle = turretAngle;
 
         double rawHoodAngle = hoodAngleMap.get(lookaheadDistance);
 
         if (Double.isNaN(lastHoodAngle)) lastHoodAngle = rawHoodAngle;
+        double hoodVelocity =
+                hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
         lastHoodAngle = rawHoodAngle;
         double hoodAngle = Math.max(rawHoodAngle + HOOD_ANGLE_OFFSET, 9);
 
@@ -212,12 +218,17 @@ public class ShotCalculator {
 
         latestParameters =
                 new ShootingParameters(
-                        isValid, turretAngle, turretAngularVelocity, hoodAngle, launcherSpeed);
+                        isValid,
+                        turretAngle,
+                        turretAngularVelocity,
+                        hoodAngle,
+                        hoodVelocity,
+                        launcherSpeed);
 
         Telemetry.log("ShotCalc/IsValid", isValid);
         Telemetry.log("ShotCalc/DistanceMeters", df.format(lookaheadDistance));
         Telemetry.log("ShotCalc/TurretAngleDeg", df.format(turretAngle.getDegrees()));
-        Telemetry.log("ShotCalc/TurretOmegaRadPerSec", df.format(turretAngularVelocity));
+        Telemetry.log("ShotCalc/TurretOmegaRotPerSec", df.format(turretAngularVelocity));
         Telemetry.log("ShotCalc/LauncherSpeedRPM", df.format(launcherSpeed));
         Telemetry.log("ShotCalc/TurretPose", turretPose);
         Telemetry.log("ShotCalc/LookaheadPose", compensatedTurretTranslation);

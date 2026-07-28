@@ -16,7 +16,7 @@ import lombok.Setter;
 public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
-
+        // TODO: tune
         @Getter private final double initPosition = 9;
 
         @Getter @Setter private double maxRotations = 0.825;
