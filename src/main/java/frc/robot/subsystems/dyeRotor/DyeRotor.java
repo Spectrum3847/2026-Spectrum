@@ -1,18 +1,31 @@
 package frc.robot.subsystems.dyeRotor;
 
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.RobotSim;
-import frc.robot.subsystems.dyeRotor.DyeRotor.Rotor.RotorConfig;
 import frc.robot.subsystems.dyeRotor.DyeRotor.Feeder.FeederConfig;
+import frc.robot.subsystems.dyeRotor.DyeRotor.Rotor.RotorConfig;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
+import frc.spectrumLib.sim.RollerConfig;
+import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 import lombok.Setter;
 
-public class DyeRotor {
+/**
+ * The dye rotor: a spinning rotor that agitates fuel plus a feeder that indexes it toward the
+ * launcher. Both are driven together by this class's state machine.
+ *
+ * <p>This is a container for two independent {@link Mechanism}s rather than a {@code Mechanism}
+ * itself, so it implements {@link Subsystem} and registers directly. Without that registration the
+ * scheduler would never call {@link #periodic()} and the state machine would never run.
+ */
+public class DyeRotor implements Subsystem {
 
-    public class Rotor extends Mechanism {
+    public static class Rotor extends Mechanism {
 
         public static class RotorConfig extends Config {
 
@@ -23,7 +36,7 @@ public class DyeRotor {
 
             // TODO: tune
             @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 10;
+            @Getter @Setter private double velocityKv = 0;
             @Getter @Setter private double velocityKs = 15;
 
             /* Sim Configs */
@@ -50,10 +63,13 @@ public class DyeRotor {
         }
 
         @Getter private final RotorConfig config;
+        @Getter private RotorSim sim;
 
         public Rotor(RotorConfig config) {
             super(config);
             this.config = config;
+
+            simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
@@ -75,9 +91,27 @@ public class DyeRotor {
         public void rotorStop() {
             stop();
         }
+
+        public void simulationInit() {
+            if (isAttached()) {
+                sim = new RotorSim(RobotSim.leftView, motor.getSimState());
+            }
+        }
+
+        class RotorSim extends RollerSim {
+            public RotorSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+                super(
+                        new RollerConfig(config.getRotorDiameter())
+                                .setPosition(config.getRotorX(), config.getRotorY())
+                                .setGearRatio(config.getGearRatio()),
+                        mech,
+                        rollerMotorSim,
+                        config.getName());
+            }
+        }
     }
 
-    public class Feeder extends Mechanism {
+    public static class Feeder extends Mechanism {
 
         public static class FeederConfig extends Config {
 
@@ -86,7 +120,7 @@ public class DyeRotor {
 
             // TODO: tune
             @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 10;
+            @Getter @Setter private double velocityKv = 0;
             @Getter @Setter private double velocityKs = 15;
 
             private final double gearRatio = 1.833;
@@ -142,7 +176,6 @@ public class DyeRotor {
             this.rotorConfig = rotorConfig;
             this.feederConfig = feederConfig;
         }
-
     }
 
     // ---- State Machine ----
@@ -187,15 +220,15 @@ public class DyeRotor {
                 feeder.feederStop();
                 return;
             case INDEX_MAX:
-                wantedRPMSpin = 3000;
+                wantedRPMSpin = 100;
                 wantedRPMIndex = 3000;
                 break;
             case IDLE_SLOW_INDEX:
-                wantedRPMSpin = 1000;
-                wantedRPMIndex = 1000;
+                wantedRPMSpin = -20;
+                wantedRPMIndex = -1000;
                 break;
             case UNJAM:
-                wantedRPMSpin = -2000;
+                wantedRPMSpin = 0;
                 wantedRPMIndex = -2000;
                 break;
         }
@@ -205,42 +238,25 @@ public class DyeRotor {
         feeder.setFeederRpm(finalWantedRPMIndex);
     }
 
-    @Getter private Rotor rotor;
-    @Getter private Feeder feeder;
-    @Getter private DyeRotorConfig config;
-    // @Getter private RotorSim sim;
+    @Getter private final Rotor rotor;
+    @Getter private final Feeder feeder;
+    @Getter private final DyeRotorConfig config;
 
     public DyeRotor(DyeRotorConfig config) {
         this.config = config;
+        this.rotor = new Rotor(config.getRotorConfig());
+        this.feeder = new Feeder(config.getFeederConfig());
 
-        // simulationInit();
+        this.register();
         Telemetry.print("Dye Rotor Subsystem Initialized");
     }
 
+    @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
+
+        Telemetry.log("DyeRotor/WantedState", wantedState.toString());
+        Telemetry.log("DyeRotor/SystemState", systemState.toString());
     }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    // public void simulationInit() {
-    //     if (rotor.isAttached()) {
-    //         // Create a new RollerSim with the top view, the motor's sim state, and a 12 in
-    //         // diameter
-    //         sim = new RotorSim(RobotSim.leftView, motor.getSimState());
-    //     }
-    // }
-
-    // class RotorSim extends RollerSim {
-    //     public RotorSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-    //         super(
-    //                 new RollerConfig(rotorConfig.getRotorDiameter())
-    //                         .setPosition(rotorConfig.getRotorX(), rotorConfig.getRotorY()),
-    //                 mech,
-    //                 rollerMotorSim,
-    //                 rotorConfig.getName());
-    //     }
-    // }
 }

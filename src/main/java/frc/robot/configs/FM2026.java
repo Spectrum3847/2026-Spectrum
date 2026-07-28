@@ -16,7 +16,8 @@ public class FM2026 extends Config {
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
         // indexerTower.setAttached(true);
-        spindexer.setAttached(true);
+        rotorC.setAttached(true);
+        feederC.setAttached(true);
         // hood.setAttached(true);
     }
 }
