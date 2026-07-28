@@ -74,6 +74,14 @@ public class ShotCalculator {
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
+    /**
+     * Sim-only scale on the time-of-flight used for shoot-on-move lead. The sim's ball flight is
+     * quicker than the fitted TOF, so leading by the full value over-counter-aims; dial this until
+     * simulated moving shots land. Scales the whole lead (aim-point shift, yaw correction, and
+     * reported flight time) so they stay consistent. Has no effect on the real robot.
+     */
+    public static double SIM_TOF_SCALAR = 0.4;
+
     public static Command increaseHoodAngleOffset() {
         return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
     }
@@ -125,6 +133,10 @@ public class ShotCalculator {
      * @param speedCoeffs exit-speed coefficients in the monomial basis 1, d, v, d², d·v, v², d³,
      *     d²·v, d·v², v³
      * @param angleCoeffs launch-angle coefficients in the same basis
+     * @param tofCoeffs time-of-flight coefficients (seconds) in the same basis; read this instead
+     *     of simulating or estimating flight time when solving the virtual target. Null when the
+     *     model was fitted without a flight-time output, in which case the solver falls back to a
+     *     drag-free kinematic estimate.
      */
     private record PolyModel(
             String name,
@@ -137,10 +149,11 @@ public class ShotCalculator {
             double vMean,
             double vStd,
             double[] speedCoeffs,
-            double[] angleCoeffs) {}
+            double[] angleCoeffs,
+            double[] tofCoeffs) {}
 
     /** Hub-shot model — used when the robot is in a scoring zone. */
-    private static final PolyModel NO_CEILING_HUB_MODEL =
+    private static final PolyModel HUB_MODEL =
             new PolyModel(
                     "No Ceiling Hub Model",
                     1.5, // distMin (m)
@@ -152,28 +165,40 @@ public class ShotCalculator {
                     -0.0808823529, // vMean
                     1.9705745171, // vStd
                     new double[] {
-                        /* 1    */ 9.4808087843e+0,
-                        /* d    */ 1.5863141017e+0,
-                        /* v    */ -1.7719538139e+0,
-                        /* d²   */ 1.5935526957e-1,
-                        /* d·v  */ -7.7598049499e-2,
-                        /* v²   */ -6.1476953429e-2,
-                        /* d³   */ -5.3055707891e-2,
-                        /* d²·v */ -1.5105348088e-1,
-                        /* d·v² */ 1.0029855931e-1,
-                        /* v³   */ 2.0939312404e-1
+                        /* 1    */ 9.4913945634e+0,
+                        /* d    */ 1.6537445477e+0,
+                        /* v    */ -1.7241818573e+0,
+                        /* d²   */ 1.3831911088e-1,
+                        /* d·v  */ -3.8132583276e-2,
+                        /* v²   */ -3.6027845385e-2,
+                        /* d³   */ -9.4815161267e-2,
+                        /* d²·v */ -9.8905876874e-2,
+                        /* d·v² */ 8.4171094158e-2,
+                        /* v³   */ 1.5667670376e-1
                     },
                     new double[] {
-                        /* 1    */ 6.7125256559e+1,
-                        /* d    */ -1.9123086140e+0,
-                        /* v    */ 5.5563652874e+0,
-                        /* d²   */ 1.5494062236e+0,
-                        /* d·v  */ -8.5813952802e-1,
-                        /* v²   */ -7.8644976757e-1,
-                        /* d³   */ -6.7442518882e-1,
-                        /* d²·v */ -5.6684392430e-1,
-                        /* d·v² */ 1.0834081188e+0,
-                        /* v³   */ 6.3724546139e-1
+                        /* 1    */ 6.7148106203e+1,
+                        /* d    */ -1.8755189845e+0,
+                        /* v    */ 5.5988307381e+0,
+                        /* d²   */ 1.5170142533e+0,
+                        /* d·v  */ -7.0971996428e-1,
+                        /* v²   */ -6.1935424997e-1,
+                        /* d³   */ -7.1916259693e-1,
+                        /* d²·v */ -3.6499963826e-1,
+                        /* d·v² */ 1.0534259064e+0,
+                        /* v³   */ 4.8011508185e-1
+                    },
+                    new double[] {
+                        /* 1    */ 1.5339171616e+0,
+                        /* d    */ 2.8197518906e-1,
+                        /* v    */ -2.4847729715e-1,
+                        /* d²   */ 2.4918872691e-2,
+                        /* d·v  */ 2.6962100375e-2,
+                        /* v²   */ -4.6144611911e-2,
+                        /* d³   */ -2.2832527755e-2,
+                        /* d²·v */ -3.5839964885e-2,
+                        /* d·v² */ 3.5468556379e-2,
+                        /* v³   */ 3.7823545109e-2
                     });
 
     /** 3 meter ceiling hub model - used when the robot is testing at home */
@@ -189,34 +214,46 @@ public class ShotCalculator {
                     -0.0808823529, // vMean
                     1.9705745171, // vStd
                     new double[] {
-                        /* 1    */ 8.9009110528e+0,
-                        /* d    */ 1.3529080973e+0,
-                        /* v    */ -1.0940426893e+0,
-                        /* d²   */ -1.0603732127e-1,
-                        /* d·v  */ -8.0783506354e-4,
-                        /* v²   */ 4.1114510233e-2,
-                        /* d³   */ -1.0472409654e-1,
-                        /* d²·v */ -3.1049132730e-2,
-                        /* d·v² */ 8.8698302579e-2,
-                        /* v³   */ 1.1306215407e-2
+                        /* 1    */ 8.7963133789e+0,
+                        /* d    */ 1.1951603207e+0,
+                        /* v    */ -1.1069879388e+0,
+                        /* d²   */ -8.7791981659e-2,
+                        /* d·v  */ -3.7029252318e-2,
+                        /* v²   */ 3.1929955472e-2,
+                        /* d³   */ -3.2965513546e-2,
+                        /* d²·v */ -3.0624443563e-2,
+                        /* d·v² */ 6.9040866571e-2,
+                        /* v³   */ 2.1341472621e-2
                     },
                     new double[] {
-                        /* 1    */ 6.2065694833e+1,
-                        /* d    */ -5.0007714147e+0,
-                        /* v    */ 1.0770747163e+1,
-                        /* d²   */ -5.8756872976e-1,
-                        /* d·v  */ -5.6652782738e-1,
-                        /* v²   */ 1.5707900653e-1,
-                        /* d³   */ -1.2431833294e+0,
-                        /* d²·v */ -8.6287641206e-1,
-                        /* d·v² */ 1.6030720931e+0,
-                        /* v³   */ -5.1017644668e-1
+                        /* 1    */ 6.0223997922e+1,
+                        /* d    */ -8.3303295646e+0,
+                        /* v    */ 1.0091287979e+1,
+                        /* d²   */ -3.6385265944e-1,
+                        /* d·v  */ -1.1510410447e+0,
+                        /* v²   */ 9.2100949639e-2,
+                        /* d³   */ -1.0315777427e-1,
+                        /* d²·v */ -1.0030994978e+0,
+                        /* d·v² */ 1.6204499882e+0,
+                        /* v³   */ -1.3083914733e-1
+                    },
+                    new double[] {
+                        /* 1    */ 1.2901109428e+0,
+                        /* d    */ 7.3269523909e-2,
+                        /* v    */ -4.3816902018e-2,
+                        /* d²   */ -5.2525932813e-2,
+                        /* d·v  */ 3.7797567390e-2,
+                        /* v²   */ -2.8695676372e-2,
+                        /* d³   */ -5.4873215203e-4,
+                        /* d²·v */ -3.0552109674e-2,
+                        /* d·v² */ 4.6814046679e-2,
+                        /* v³   */ 3.1845113863e-3
                     });
 
-    /** Feed-shot model — used when the robot is in a feed zone. */
+    /** Feed-shot model — floor target, optimised for maximum robustness. */
     private static final PolyModel FEED_MODEL =
             new PolyModel(
-                    "Feed Model",
+                    "Feed Shot Model",
                     5.0, // distMin (m)
                     10.0, // distMax (m)
                     -3.0, // rvMin (m/s)
@@ -226,31 +263,43 @@ public class ShotCalculator {
                     0.0000000000, // vMean
                     2.0000000000, // vStd
                     new double[] {
-                        /* 1    */ 8.8895297764e+0,
-                        /* d    */ 1.1819083840e+0,
-                        /* v    */ -1.4689777292e+0,
-                        /* d²   */ -7.2679959558e-2,
-                        /* d·v  */ -9.4108087065e-2,
-                        /* v²   */ 2.5641025641e-1,
-                        /* d³   */ -4.5671770573e-2,
-                        /* d²·v */ -3.7127276946e-2,
-                        /* d·v² */ -1.4130343403e-2,
-                        /* v³   */ 1.7094017094e-2
+                        /* 1    */ 8.9574914779e+0,
+                        /* d    */ 1.2320032575e+0,
+                        /* v    */ -1.3282274119e+0,
+                        /* d²   */ -9.0580610943e-2,
+                        /* d·v  */ -4.1967119907e-2,
+                        /* v²   */ 1.9536019536e-1,
+                        /* d³   */ -8.4567038602e-2,
+                        /* d²·v */ -3.7665953956e-2,
+                        /* d·v² */ 4.0977995869e-2,
+                        /* v³   */ -7.9772079772e-2
                     },
                     new double[] {
-                        /* 1    */ 4.4556592644e+1,
-                        /* d    */ 1.1495781344e+0,
-                        /* v    */ 2.1597654794e+0,
-                        /* d²   */ -7.2910546467e-1,
-                        /* d·v  */ -9.7880549625e-1,
-                        /* v²   */ 2.2580512821e+0,
-                        /* d³   */ -4.6161906648e-1,
-                        /* d²·v */ -7.2988513749e-1,
-                        /* d·v² */ -5.8568803850e-1,
-                        /* v³   */ 6.7391452991e-1
+                        /* 1    */ 4.4856254322e+1,
+                        /* d    */ 1.6637913478e+0,
+                        /* v    */ 3.7355931469e+0,
+                        /* d²   */ -5.7584406544e-1,
+                        /* d·v  */ -3.3044655869e-1,
+                        /* v²   */ 1.4309743590e+0,
+                        /* d³   */ -1.0899200445e+0,
+                        /* d²·v */ -3.1788374521e-1,
+                        /* d·v² */ 3.5247632927e-1,
+                        /* v³   */ -7.6581196581e-1
+                    },
+                    new double[] {
+                        /* 1    */ 1.3453977447e+0,
+                        /* d    */ 1.7869716357e-1,
+                        /* v    */ -1.0562802078e-1,
+                        /* d²   */ -2.3670760612e-2,
+                        /* d·v  */ -7.3999477975e-3,
+                        /* v²   */ 4.6025396825e-2,
+                        /* d³   */ -2.6904794466e-2,
+                        /* d²·v */ -9.7571644042e-3,
+                        /* d·v² */ 1.2178208201e-2,
+                        /* v³   */ -2.3703703704e-2
                     });
 
-    private static final PolyModel WANTED_HUB_MODEL = NO_CEILING_HUB_MODEL;
+    private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
 
     // =========================================================================
     // State — Velocity Derivative Filters
@@ -448,10 +497,9 @@ public class ShotCalculator {
     /**
      * 1690 Orbit iterative virtual-target solver.
      *
-     * <p>Each pass evaluates the polynomial at the current virtual aim point, estimates
-     * time-of-flight from horizontal kinematics, shifts the aim point by how far the launcher moves
-     * during that flight, and repeats until TOF converges. Terminates in ≤ 5 iterations (typically
-     * 2–3).
+     * <p>Each pass evaluates the polynomial at the current virtual aim point, reads the fitted
+     * time-of-flight, shifts the aim point by how far the launcher moves during that flight, and
+     * repeats until TOF converges. Terminates in ≤ 5 iterations (typically 2–3).
      *
      * @param model the polynomial model (hub or feed) to evaluate against
      * @param distance horizontal distance to goal centre (metres)
@@ -469,6 +517,7 @@ public class ShotCalculator {
      */
     private static double[] solveVirtualTarget(
             PolyModel model, double distance, double radialVelocity, double tangentialVelocity) {
+        double tofScalar = Robot.isSimulation() ? SIM_TOF_SCALAR : 1.0;
         double vdx = distance; // virtual aim point — radial component (m)
         double vdz = 0.0; // virtual aim point — lateral component (m)
         double tof = 0.0;
@@ -480,10 +529,8 @@ public class ShotCalculator {
             // Evaluate polynomial at virtual point with rv = 0 (robot motion is
             // already encoded in the shifted aim point)
             double[] raw = evalPolyRaw(model, vDist, 0.0);
-            double speed = raw[0] * MPS_FACTOR;
-            double cosA = Math.cos(raw[1] * Math.PI / 180.0);
             double prevTof = tof;
-            tof = vDist / Math.max(speed * cosA, 0.5); // guard against div-by-zero
+            tof = raw[2] * tofScalar;
 
             // Shift aim point: where the target will be relative to the launcher
             // when the ball arrives
@@ -504,7 +551,7 @@ public class ShotCalculator {
             result[1], // launchAngle_deg
             yawOffsetDeg, // yaw correction (degrees)
             virtualDist, // converged lookahead distance (m)
-            tof // converged time of flight (s)
+            result[2] * tofScalar // time of flight at the converged aim point (s)
         };
     }
 
@@ -517,7 +564,7 @@ public class ShotCalculator {
      * @param model the polynomial model (hub or feed) to evaluate
      * @param distance horizontal distance to the aim point (metres)
      * @param radialVel radial velocity (m/s)
-     * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg }
+     * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg, tof_s }
      */
     private static double[] evalPolyRaw(PolyModel model, double distance, double radialVel) {
         double d_raw = Math.max(model.distMin(), Math.min(model.distMax(), distance));
@@ -545,11 +592,13 @@ public class ShotCalculator {
 
         double[] speedCoeffs = model.speedCoeffs();
         double[] angleCoeffs = model.angleCoeffs();
-        double exitSpeed = 0.0, launchAngle = 0.0;
+        double[] tofCoeffs = model.tofCoeffs();
+        double exitSpeed = 0.0, launchAngle = 0.0, tof = 0.0;
         for (int i = 0; i < terms.length; i++) {
             exitSpeed += speedCoeffs[i] * terms[i];
             launchAngle += angleCoeffs[i] * terms[i];
+            if (tofCoeffs != null) tof += tofCoeffs[i] * terms[i];
         }
-        return new double[] {exitSpeed, launchAngle};
+        return new double[] {exitSpeed, launchAngle, tof};
     }
 }
