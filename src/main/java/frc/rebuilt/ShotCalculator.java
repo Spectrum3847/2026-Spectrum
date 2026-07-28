@@ -45,7 +45,7 @@ public class ShotCalculator {
             boolean isValid,
             /** Field-relative heading the robot must face to aim at the goal. */
             Rotation2d turretAngle,
-            /** Rate of change of {@code turretAngle} (rad/s) for heading feedforward. */
+            /** Rate of change of {@code turretAngle} (rotations/s) for heading feedforward. */
             double turretAngularVelocity,
             /** Commanded hood/pivot angle (degrees), including {@link #HOOD_ANGLE_OFFSET}. */
             double hoodAngle,
@@ -80,7 +80,7 @@ public class ShotCalculator {
      * simulated moving shots land. Scales the whole lead (aim-point shift, yaw correction, and
      * reported flight time) so they stay consistent. Has no effect on the real robot.
      */
-    public static double SIM_TOF_SCALAR = 0.4;
+    public static final double SIM_TOF_SCALAR = 0.4;
 
     public static Command increaseHoodAngleOffset() {
         return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
@@ -426,7 +426,7 @@ public class ShotCalculator {
                                                 launcherVelocityY * tofFinal)),
                         turretAngle);
 
-        // Turret angular velocity (rad/s) for heading feedforward
+        // Turret angular velocity (rotations/s) for heading feedforward
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
         double deltaRot =
                 MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);

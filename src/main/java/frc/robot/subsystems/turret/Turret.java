@@ -24,8 +24,6 @@ import lombok.*;
 public class Turret extends Mechanism {
 
     public static class TurretConfig extends Config {
-        @Getter @Setter private boolean reversed = false;
-
         // TODO: update if needed until line 41
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
@@ -35,10 +33,6 @@ public class Turret extends Mechanism {
         @Getter private double maxOmegaForShotRotPerSec = 0.75;
 
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
-
-        /* Turret config settings */
-        @Getter private final double zeroSpeed = -0.1;
-        @Getter private final double holdMaxSpeedRPM = 18;
 
         @Getter private final double currentLimit = 30;
         @Getter private final double torqueCurrentLimit = 60;
@@ -67,8 +61,8 @@ public class Turret extends Mechanism {
         @Getter private final boolean isCANcoderInverted = false;
 
         /* Sim Configs */
-        @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
-        @Getter private double intakeY = Units.inchesToMeters(75); // Horizontal Center
+        @Getter private double turretX = Units.inchesToMeters(105); // Vertical Center
+        @Getter private double turretY = Units.inchesToMeters(75); // Horizontal Center
         @Getter private double simRatio = sensorToMechanismRatio;
         @Getter private double length = 1;
 
@@ -129,7 +123,7 @@ public class Turret extends Mechanism {
     }
 
     @Getter private boolean unwrapping = false;
-    @Getter private int unwrapDir = 0;
+    @Getter private int unwrapTargetN = 0;
     @Getter private double commandedDegrees = 0;
     @Getter private double mechOmegaRotPerSec = 0;
 
@@ -287,7 +281,7 @@ public class Turret extends Mechanism {
         // While unwrapping, hold the committed winding until we physically arrive, so the direction
         // can't flip mid-slew as the current position crosses the halfway point.
         if (unwrapping) {
-            int nTarget = (unwrapDir < 0) ? nMin : nMax;
+            int nTarget = Math.max(nMin, Math.min(unwrapTargetN, nMax));
             chosen = desiredMechDegrees + nTarget * 360.0;
             if (nMin == nMax || Math.abs(currentDeg - chosen) <= config.getUnwrapExitMargin()) {
                 unwrapping = false;
@@ -296,16 +290,18 @@ public class Turret extends Mechanism {
         }
 
         // Proactive unwrap: trigger only if the nearest command is crowding a soft limit and the
-        // opposite winding is reachable, then commit to that winding.
+        // opposite winding is reachable, then commit to that winding. Unwinding by a single turn
+        // clears the limit; slewing all the way to nMin/nMax would land on the opposite limit and
+        // immediately re-trigger an unwrap back the other way.
         if (nMin != nMax) {
             if (maxDeg - chosen <= config.getUnwrapTolerance() && (n - 1) >= nMin) {
                 unwrapping = true;
-                unwrapDir = -1;
-                chosen = desiredMechDegrees + (n - 1) * 360.0;
+                unwrapTargetN = n - 1;
+                chosen = desiredMechDegrees + unwrapTargetN * 360.0;
             } else if (chosen - minDeg <= config.getUnwrapTolerance() && (n + 1) <= nMax) {
                 unwrapping = true;
-                unwrapDir = +1;
-                chosen = desiredMechDegrees + (n + 1) * 360.0;
+                unwrapTargetN = n + 1;
+                chosen = desiredMechDegrees + unwrapTargetN * 360.0;
             }
         }
         return chosen;
@@ -335,12 +331,12 @@ public class Turret extends Mechanism {
         public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
             super(
                     new ArmConfig(
-                                    config.intakeX,
-                                    config.intakeY,
+                                    config.turretX,
+                                    config.turretY,
                                     config.simRatio,
                                     config.length,
-                                    -720,
-                                    720,
+                                    config.getMinRotations() * 360.0,
+                                    config.getMaxRotations() * 360.0,
                                     0)
                             .setSimulatedGravity(false),
                     mech,
