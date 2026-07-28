@@ -1,4 +1,4 @@
-package frc.robot.subsystems.spindexer;
+package frc.robot.subsystems.dyeRotor;
 
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
@@ -11,33 +11,32 @@ import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
-public class Spindexer extends Mechanism {
+public class DyeRotor extends Mechanism {
 
-    public static class SpindexerConfig extends Config {
+    public static class DyeRotorConfig extends Config {
 
-        @Getter @Setter private double supplyCurrentLimit = 40;
-        @Getter @Setter private double statorCurrentLimit = 80;
+        @Getter private final double supplyCurrentLimit = 40;
+        @Getter private final double statorCurrentLimit = 80;
+        @Getter private final double gearRatio = 36.4;
         // TODO: tune
-        @Getter @Setter private double velocityKp = 5;
-        @Getter @Setter private double velocityKv = 10;
-        @Getter @Setter private double velocityKs = 15;
+        @Getter private final double velocityKp = 5;
+        @Getter private final double velocityKv = 10;
+        @Getter private final double velocityKs = 15;
 
         /* Sim Configs */
-        @Getter @Setter
-        private double spindexerX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
+        @Getter private final double rotorX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
 
-        @Getter @Setter
-        private double spindexerY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
+        @Getter private final double rotorY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
 
-        @Getter @Setter private double spindexerDiameter = 12;
+        @Getter private final double simGearRatio = gearRatio;
+        @Getter private final double rotorDiameter = 12;
 
-        public SpindexerConfig() {
-            super("Spindexer 1", 8, Rio.CANIVORE);
+        public DyeRotorConfig() {
+            super("DyeRotor 1", 8, Rio.CANIVORE);
             configPIDGains(velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
-            configGearRatio(1);
+            configGearRatio(gearRatio);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
             configForwardTorqueCurrentLimit(statorCurrentLimit);
@@ -45,8 +44,7 @@ public class Spindexer extends Mechanism {
             configNeutralBrakeMode(false);
             configCounterClockwise_Positive();
             setFollowerConfigs(
-                    new FollowerConfig(
-                            "Spindexer 2", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned));
+                    new FollowerConfig("DyeRotor 2", 9, Rio.CANIVORE, MotorAlignmentValue.Aligned));
         }
     }
 
@@ -90,23 +88,23 @@ public class Spindexer extends Mechanism {
                 stop();
                 return;
             case INDEX_MAX:
-                wantedRPM = 3000;
+                wantedRPM = 130;
                 break;
             case IDLE_SLOW_INDEX:
-                wantedRPM = 1000;
+                wantedRPM = -20;
                 break;
             case UNJAM:
-                wantedRPM = -2000;
+                wantedRPM = 0;
                 break;
         }
         final double finalWantedRPM = wantedRPM;
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    @Getter private final SpindexerConfig config;
-    @Getter private SpindexerSim sim;
+    @Getter private final DyeRotorConfig config;
+    @Getter private DyeRotorSim sim;
 
-    public Spindexer(SpindexerConfig config) {
+    public DyeRotor(DyeRotorConfig config) {
         super(config);
         this.config = config;
 
@@ -119,14 +117,14 @@ public class Spindexer extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("Spindexer/WantedState", wantedState.toString());
-        Telemetry.log("Spindexer/SystemState", systemState.toString());
-        Telemetry.log("Spindexer/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Spindexer/Voltage", getVoltage(), "volts");
-        Telemetry.log("Spindexer/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("Spindexer/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("Spindexer/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("Spindexer/Temp", getTemp(), "deg_C");
+        Telemetry.log("DyeRotor/WantedState", wantedState.toString());
+        Telemetry.log("DyeRotor/SystemState", systemState.toString());
+        Telemetry.log("DyeRotor/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("DyeRotor/Voltage", getVoltage(), "volts");
+        Telemetry.log("DyeRotor/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("DyeRotor/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("DyeRotor/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("DyeRotor/Temp", getTemp(), "deg_C");
     }
 
     // --------------------------------------------------------------------------------
@@ -134,17 +132,16 @@ public class Spindexer extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            // Create a new RollerSim with the top view, the motor's sim state, and a 12 in
-            // diameter
-            sim = new SpindexerSim(RobotSim.leftView, motor.getSimState());
+            sim = new DyeRotorSim(RobotSim.leftView, motor.getSimState());
         }
     }
 
-    class SpindexerSim extends RollerSim {
-        public SpindexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+    class DyeRotorSim extends RollerSim {
+        public DyeRotorSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
             super(
-                    new RollerConfig(config.getSpindexerDiameter())
-                            .setPosition(config.getSpindexerX(), config.getSpindexerY()),
+                    new RollerConfig(config.getRotorDiameter())
+                            .setPosition(config.getRotorX(), config.getRotorY())
+                            .setGearRatio(config.getSimGearRatio()),
                     mech,
                     rollerMotorSim,
                     config.getName());

@@ -17,7 +17,7 @@ public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
 
-        @Getter private final double initPosition = 9;
+        @Getter private final double initPosition = 0;
 
         @Getter @Setter private double maxRotations = 0.825;
         @Getter @Setter private double minRotations = 0.0;

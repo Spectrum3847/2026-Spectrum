@@ -988,7 +988,7 @@ public class FuelPhysicsSim {
         lastLaunchSpeed = vel.getNorm();
 
         // Predict the trajectory arc for Field3d visualization (20 points, gravity + drag only)
-        lastShotArc = predictArc(pos, vel, 20, 0.05);
+        lastShotArc = predictArc(pos, vel, 200, 0.05);
 
         // Wake nearby sleeping balls
         if (config.sleepingEnabled) {

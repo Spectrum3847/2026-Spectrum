@@ -42,7 +42,6 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.rebuilt.RobotBumpSim;
-import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.spectrumLib.swerve.MapleSimSwerveDrivetrain;
 import frc.spectrumLib.telemetry.Telemetry;
@@ -289,16 +288,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         switch (systemState) {
             default:
             case IDLE:
-                break;
-            case PILOT_AIM_AT_TARGET:
-                var params = ShotCalculator.getInstance().getParameters();
-                ChassisSpeeds joystickSpeeds = calculateSpeedsBasedOnJoystickInputs();
-                setControl(
-                        DRIVE_AT_ANGLE_REQUEST
-                                .withVelocityX(joystickSpeeds.vxMetersPerSecond)
-                                .withVelocityY(joystickSpeeds.vyMetersPerSecond)
-                                .withTargetDirection(params.turretAngle()));
-
                 break;
             case TELEOP_DRIVE:
                 setControl(FIELD_CENTRIC_DRIVE.withSpeeds(calculateSpeedsBasedOnJoystickInputs()));

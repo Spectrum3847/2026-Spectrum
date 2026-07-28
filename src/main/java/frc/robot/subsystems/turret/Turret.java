@@ -34,7 +34,7 @@ public class Turret extends Mechanism {
         @Getter private double shootOnMoveLatencySec = 0.03;
         @Getter private double maxOmegaForShotRotPerSec = 0.75;
 
-        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
+        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
@@ -82,7 +82,7 @@ public class Turret extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-0.54, 0.50);
+            configMinMaxRotations(-1, 1);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);

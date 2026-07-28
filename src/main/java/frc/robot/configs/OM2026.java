@@ -14,7 +14,7 @@ public class OM2026 extends Config {
         fuelIntake.setAttached(true);
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
-        spindexer.setAttached(true);
+        dyeRotor.setAttached(true);
         turret.setAttached(true);
         hood.setAttached(true);
     }

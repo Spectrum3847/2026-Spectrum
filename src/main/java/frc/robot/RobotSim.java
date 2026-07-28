@@ -47,19 +47,16 @@ public class RobotSim {
             new Mechanism2d(
                     Units.inchesToMeters(topViewWidth), Units.inchesToMeters(topViewHeight));
 
-    @Getter private static double simRobotWidth = Units.inchesToMeters(25.5);
-    @Getter private static double simRobotLength = Units.inchesToMeters(31.854);
+    @Getter private static double simRobotWidth = Units.inchesToMeters(31.36);
+    @Getter private static double simRobotLength = Units.inchesToMeters(37.86);
 
-    private static final Translation3d TURRET_PIVOT_POINT =
-            new Translation3d(0, 0, Units.inchesToMeters(19.324));
-
-    private static final Translation3d HOOD_PIVOT_POINT =
-            new Translation3d(0, 0, Units.inchesToMeters(19.5));
+    private static final Translation3d TURRET_PIVOT_POINT = Translation3d.kZero;
+    private static final Translation3d HOOD_PIVOT_POINT = new Translation3d(0.0, 0.0, 0.487);
+    private static final double INTAKE_DEPLOY_ANGLE_DEGREES = -12;
 
     @Getter private FuelPhysicsSim ballSim;
     private double ballsPerSecond = 15;
     private double timeBetweenBallLaunches = 1.0 / ballsPerSecond;
-    private static final double LAUNCH_ELEVATION_DEGREES = 65;
     private static final double LAUNCH_HEIGHT_INCHES = 19.5;
 
     private SuperStructure robotSuperStructure;
@@ -79,16 +76,26 @@ public class RobotSim {
     }
 
     public void updateArticulatedMechanisms() {
-        double intakeExtensionPose =
+        double intakeExtensionMeters =
                 Units.inchesToMeters(12)
                         * robotSuperStructure.getIntakeExtension().getPositionPercentage()
                         / 100;
+        var intakeDeployRotation =
+                new Rotation3d(0, -Math.toRadians(INTAKE_DEPLOY_ANGLE_DEGREES), 0);
         var intakePose3d =
                 Pose3d.kZero.plus(
                         new Transform3d(
-                                new Translation3d(intakeExtensionPose, 0, 0), Rotation3d.kZero));
+                                new Translation3d(intakeExtensionMeters, 0, 0)
+                                        .rotateBy(intakeDeployRotation),
+                                Rotation3d.kZero));
 
-        double turretAngleDegrees = robotSuperStructure.getTurret().getPositionDegrees();
+        double turretAngleDegrees =
+                robotSuperStructure.getTurret().getPositionDegrees()
+                        + robotSuperStructure
+                                .getTurret()
+                                .getConfig()
+                                .getZeroOffsetFromRobotFront()
+                                .getDegrees();
         var turretPose3d =
                 Pose3d.kZero.rotateAround(
                         TURRET_PIVOT_POINT,
@@ -96,10 +103,18 @@ public class RobotSim {
 
         double hoodAngleDegrees = robotSuperStructure.getHood().getPositionDegrees();
         var hoodPose3d =
-                Pose3d.kZero.rotateAround(
-                        HOOD_PIVOT_POINT, new Rotation3d(0, 0, Math.toRadians(hoodAngleDegrees)));
+                Pose3d.kZero
+                        .rotateAround(
+                                HOOD_PIVOT_POINT,
+                                new Rotation3d(0, Math.toRadians(hoodAngleDegrees), 0))
+                        .rotateBy(new Rotation3d(0, 0, Math.toRadians(turretAngleDegrees)));
 
-        Pose3d[] mechanismPoses = {intakePose3d, turretPose3d, hoodPose3d};
+        double dyeRotorDegrees = robotSuperStructure.getDyeRotor().getPositionDegrees();
+        var dyeRotorPose3d =
+                Pose3d.kZero.rotateAround(
+                        TURRET_PIVOT_POINT, new Rotation3d(0, 0, Math.toRadians(dyeRotorDegrees)));
+
+        Pose3d[] mechanismPoses = {intakePose3d, turretPose3d, hoodPose3d, dyeRotorPose3d};
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }
@@ -174,9 +189,9 @@ public class RobotSim {
     }
 
     private void configBallSimRobot() {
-        double bumperHeight = Units.inchesToMeters(4.56);
-        double intakeWidth = Units.inchesToMeters(10);
-        double intakeLength = Units.inchesToMeters(28.5);
+        double bumperHeight = Units.inchesToMeters(5);
+        double intakeWidth = Units.inchesToMeters(8.275);
+        double intakeLength = Units.inchesToMeters(32.2);
         double intakeXMin = Units.inchesToMeters(0);
         double intakeXMax = simRobotWidth / 2 + intakeWidth;
         double intakeYMin = -intakeLength / 2;
@@ -207,13 +222,14 @@ public class RobotSim {
                             robotPos.getRotation()
                                     .plus(turret.getConfig().getZeroOffsetFromRobotFront())
                                     .plus(Rotation2d.fromDegrees(turret.getPositionDegrees()));
+                    double launchElevationDegrees = 90 - params.hoodAngle();
                     Rotation3d launchRotation =
                             new Rotation3d(
                                     0,
-                                    -Math.toRadians(LAUNCH_ELEVATION_DEGREES),
+                                    -Math.toRadians(launchElevationDegrees),
                                     turretFieldAngle.getRadians());
                     Translation3d launchVelocity =
-                            new Translation3d(params.launcherSpeed() * 0.0023, launchRotation);
+                            new Translation3d(params.exitSpeedMs(), launchRotation);
 
                     Transform2d robotToTurret =
                             new Transform2d(
