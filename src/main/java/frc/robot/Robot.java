@@ -45,6 +45,8 @@ import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
+import frc.robot.subsystems.launcher.LauncherTower;
+import frc.robot.subsystems.launcher.LauncherTower.LauncherTowerConfig;
 // import frc.robot.subsystems.leds.Leds;
 import frc.robot.subsystems.spindexer.Spindexer;
 import frc.robot.subsystems.spindexer.Spindexer.SpindexerConfig;
@@ -93,6 +95,7 @@ public class Robot extends SpectrumRobot {
         public final VisionConfig vision = new VisionConfig();
         public final TurretConfig turret = new TurretConfig();
         public final HoodConfig hood = new HoodConfig();
+        public final LauncherTowerConfig launcherTower = new LauncherTowerConfig();
     }
 
     @Getter private static Swerve swerve;
@@ -103,6 +106,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static Pilot pilot;
     @Getter private static Turret turret;
     @Getter private static Launcher launcher;
+    @Getter private static LauncherTower launcherTower;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
     // @Getter private static Leds leds;
@@ -161,12 +165,22 @@ public class Robot extends SpectrumRobot {
             launcher = new Launcher(config.launcher);
             Timer.delay(canInitDelay);
 
+            launcherTower = new LauncherTower(config.launcherTower);
+            Timer.delay(canInitDelay);
+
             spindexer = new Spindexer(config.spindexer);
             Timer.delay(canInitDelay);
 
             superStructure =
                     new SuperStructure(
-                            swerve, fuelIntake, intakeExtension, spindexer, launcher, turret, hood);
+                            swerve,
+                            fuelIntake,
+                            intakeExtension,
+                            spindexer,
+                            launcher,
+                            launcherTower,
+                            turret,
+                            hood);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);

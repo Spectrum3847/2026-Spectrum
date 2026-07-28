@@ -1,7 +1,7 @@
 {
   "Docking": {
     "Data": [
-      "DockNode          ID=0x00000001 Pos=176,790 Size=983,148 Selected=0x48913727",
+      "DockNode          ID=0x00000001 Pos=176,456 Size=983,148 Selected=0x48913727",
       "DockNode          ID=0x00000003 Pos=937,444 Size=877,514 Split=X",
       "DockNode        ID=0x00000004 Parent=0x00000003 SizeRef=436,497 Selected=0xFA2A8FFA",
       "DockNode        ID=0x00000006 Parent=0x00000003 SizeRef=439,497 Selected=0xA6A62DF3",
@@ -26,13 +26,13 @@
     "GLOBAL": {
       "font": "Proggy Dotted",
       "fps": "120",
-      "height": "961",
+      "height": "475",
       "maximized": "0",
       "style": "0",
       "userScale": "2",
       "width": "956",
-      "xpos": "0",
-      "ypos": "34"
+      "xpos": "962",
+      "ypos": "567"
     }
   },
   "Table": {
@@ -108,7 +108,7 @@
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "3,728",
+      "Pos": "3,456",
       "Size": "950,202"
     },
     "###Keyboard 0 Settings": {
@@ -124,13 +124,13 @@
     "###NetworkTables": {
       "Collapsed": "0",
       "DockId": "0x00000001,0",
-      "Pos": "176,790",
+      "Pos": "176,456",
       "Size": "983,148"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
       "DockId": "0x00000001,1",
-      "Pos": "176,790",
+      "Pos": "176,456",
       "Size": "983,148"
     },
     "###System Joysticks": {

@@ -118,7 +118,7 @@ public class Launcher extends Mechanism {
                 break;
             case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
-                wantedRPM = params.launcherSpeed();
+                wantedRPM = params.flywheelSpeed();
                 break;
         }
         final double finalWantedRPM = wantedRPM;
