@@ -1,15 +1,9 @@
 package frc.robot.subsystems.spindexer;
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
-import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.robot.RobotSim;
-import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
-import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionRight.RightConfig;
-import frc.robot.subsystems.spindexer.Spindexer.SpindexerFront.FrontConfig;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
@@ -58,25 +52,17 @@ public class Spindexer extends Mechanism {
     public static class SpindexerFront extends Mechanism {
         public static class FrontConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 40;
-            @Getter @Setter private double statorCurrentLimit = 80;
+            private final double gearRatio = 1.833;
 
-            @Getter @Setter private double gearRatio = 1.833;
-
-            // TODO: tune
-            @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 10;
-            @Getter @Setter private double velocityKs = 15;
-
-            public FrontConfig() {
+            public FrontConfig(SpindexerConfig back) {
                 super("Spindexer Front", 9, Rio.CANIVORE);
-                configPIDGains(velocityKp, 0, 0);
-                configFeedForwardGains(velocityKs, velocityKv, 0, 0);
+                configPIDGains(back.velocityKp, 0, 0);
+                configFeedForwardGains(back.velocityKs, back.velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configSupplyCurrentLimit(back.supplyCurrentLimit, true);
+                configStatorCurrentLimit(back.statorCurrentLimit, true);
+                configForwardTorqueCurrentLimit(back.statorCurrentLimit);
+                configReverseTorqueCurrentLimit(back.statorCurrentLimit);
                 configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
             }
