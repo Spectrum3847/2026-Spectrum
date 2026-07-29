@@ -49,7 +49,7 @@ public class Hood extends Mechanism {
         @Getter private final double length = Units.inchesToMeters(7.735);
 
         public HoodConfig() {
-            super("Hood", 60, Rio.CANIVORE);
+            super("Hood", 19, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
@@ -132,14 +132,14 @@ public class Hood extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("FuelIntake/WantedState", wantedState.toString());
-        Telemetry.log("FuelIntake/SystemState", systemState.toString());
-        Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
-        Telemetry.log("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
+        Telemetry.log("Hood/WantedState", wantedState.toString());
+        Telemetry.log("Hood/SystemState", systemState.toString());
+        Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("Hood/Voltage", getVoltage(), "volts");
+        Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
     }
 
     // --------------------------------------------------------------------------------

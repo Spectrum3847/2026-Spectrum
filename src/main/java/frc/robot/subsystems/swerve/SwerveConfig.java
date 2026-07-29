@@ -43,7 +43,7 @@ public class SwerveConfig {
     @Getter @Setter private double steerGearRatio = 12.1;
 
     // Estimated at first, then fudge-factored to make odom match record
-    @Getter @Setter private Distance wheelRadius = Inches.of(1.978); 
+    @Getter @Setter private Distance wheelRadius = Inches.of(1.978);
 
     // Theoretical translational free speed (ft/s) at 12v applied output;
     @Getter @Setter private LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);

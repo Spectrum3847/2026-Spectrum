@@ -4,8 +4,11 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
+import frc.robot.subsystems.fuelIntake.FuelIntake.IntakeKicker.IntakeKickerConfig;
+import frc.robot.subsystems.fuelIntake.FuelIntake.IntakeRoller.IntakeRollerConfig;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
@@ -13,42 +16,190 @@ import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Fuel Intake subsystem. Responsible for intake and handling of fuel elements. */
-public class FuelIntake extends Mechanism {
+/**
+ * The Fuel Intake subsystem. Responsible for intake and handling of fuel elements.
+ *
+ * <p>Made up of the main roller pair that picks fuel off the floor plus a kicker bar that pulls it
+ * off the rollers and into the robot. Both are driven together by this class's state machine.
+ *
+ * <p>This is a container for two independent {@link Mechanism}s rather than a {@code Mechanism}
+ * itself, so it implements {@link Subsystem} and registers directly. Without that registration the
+ * scheduler would never call {@link #periodic()} and the state machine would never run.
+ */
+public class FuelIntake implements Subsystem {
 
-    public static class FuelIntakeConfig extends Config {
+    /** The main intake roller pair: a leader plus an opposed follower on the far side. */
+    public static class IntakeRoller extends Mechanism {
 
-        // Likely keep current limits
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 80;
-        @Getter private final double lowerSupplyCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentTime = 1;
-        // TODO: tune
-        @Getter private final double velocityKp = 0.3;
-        @Getter private final double velocityKv = 0.23728813559;
-        @Getter private final double velocityKs = 0;
+        public static class IntakeRollerConfig extends Config {
 
-        /* Sim Configs */
-        @Getter private final double intakeX = Units.inchesToMeters(15);
-        @Getter private final double intakeY = Units.inchesToMeters(23);
-        @Getter private final double wheelDiameter = 6;
+            // Likely keep current limits
+            @Getter private final double supplyCurrentLimit = 80;
+            @Getter private final double statorCurrentLimit = 80;
+            @Getter private final double lowerSupplyCurrentLimit = 40;
+            @Getter private final double lowerSupplyCurrentTime = 1;
+            // TODO: tune
+            @Getter private final double velocityKp = 0.3;
+            @Getter private final double velocityKv = 0.23728813559;
+            @Getter private final double velocityKs = 0;
 
-        public FuelIntakeConfig() {
-            super("Intake Left", 5, Rio.RIO_CANBUS);
-            configPIDGains(0, velocityKp, 0, 0);
-            configFeedForwardGains(velocityKs, velocityKv, 0, 0);
-            configGearRatio(1);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
-            configNeutralBrakeMode(false);
-            configCounterClockwise_Positive();
-            setFollowerConfigs(
-                    new FollowerConfig(
-                            "Intake Right", 6, Rio.RIO_CANBUS, MotorAlignmentValue.Opposed));
+            /* kV above was characterized at this ratio; keep the two in sync */
+            @Getter private final double gearRatio = 2.33;
+
+            /* Sim Configs */
+            @Getter private final double intakeX = Units.inchesToMeters(15);
+            @Getter private final double intakeY = Units.inchesToMeters(23);
+            @Getter private final double wheelDiameter = 6;
+
+            public IntakeRollerConfig() {
+                super("Intake Roller Left", 6, Rio.RIO_CANBUS);
+                configPIDGains(0, velocityKp, 0, 0);
+                configFeedForwardGains(velocityKs, velocityKv, 0, 0);
+                configGearRatio(gearRatio);
+                configSupplyCurrentLimit(supplyCurrentLimit, true);
+                configStatorCurrentLimit(statorCurrentLimit, true);
+                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+                configForwardTorqueCurrentLimit(statorCurrentLimit);
+                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configNeutralBrakeMode(false);
+                configCounterClockwise_Positive();
+                setFollowerConfigs(
+                        new FollowerConfig(
+                                "Intake Roller Right",
+                                7,
+                                Rio.RIO_CANBUS,
+                                MotorAlignmentValue.Opposed));
+            }
+        }
+
+        @Getter private final IntakeRollerConfig config;
+        @Getter private IntakeRollerSim sim;
+
+        public IntakeRoller(IntakeRollerConfig config) {
+            super(config);
+            this.config = config;
+
+            simulationInit();
+            Telemetry.print(getName() + " Subsystem Initialized");
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            Telemetry.log("IntakeRoller/CurrentCommand", getCurrentCommandName());
+            Telemetry.log("IntakeRoller/Voltage", getVoltage(), "volts");
+            Telemetry.log("IntakeRoller/StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log("IntakeRoller/SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log("IntakeRoller/RPM", getVelocityRPM(), "RPM");
+            Telemetry.log("IntakeRoller/Temp", getTemp(), "deg_C");
+        }
+
+        public void setRollerVoltage(double volts) {
+            setVoltageOutput(() -> volts);
+        }
+
+        public void rollerStop() {
+            stop();
+        }
+
+        // ----------------------------------------------------------------------------
+        // Simulation
+        // ----------------------------------------------------------------------------
+        public void simulationInit() {
+            if (isAttached()) {
+                // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
+                // diameter
+                sim = new IntakeRollerSim(RobotSim.leftView, motor.getSimState());
+            }
+        }
+
+        class IntakeRollerSim extends RollerSim {
+            public IntakeRollerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+                super(
+                        new RollerConfig(config.getWheelDiameter())
+                                .setPosition(config.getIntakeX(), config.getIntakeY())
+                                .setGearRatio(config.getGearRatio())
+                                .setMount(Robot.getIntakeExtension().getSim()),
+                        mech,
+                        rollerMotorSim,
+                        config.getName());
+            }
+        }
+    }
+
+    /** The kicker bar that helps kick fuel through the intake up into the hopper. */
+    public static class IntakeKicker extends Mechanism {
+
+        public static class IntakeKickerConfig extends Config {
+
+            // TODO: set real limits once the kicker bar is built
+            @Getter private final double supplyCurrentLimit = 40;
+            @Getter private final double statorCurrentLimit = 80;
+            @Getter private final double lowerSupplyCurrentLimit = 40;
+            @Getter private final double lowerSupplyCurrentTime = 1;
+            // TODO: tune
+            @Getter private final double velocityKp = 0.3;
+            @Getter private final double velocityKv = 0.23728813559;
+            @Getter private final double velocityKs = 0;
+
+            /* kV above was characterized at this ratio; keep the two in sync */
+            @Getter private final double gearRatio = 2.33;
+
+            public IntakeKickerConfig() {
+                super("Intake Kicker", 8, Rio.CANIVORE);
+                configPIDGains(0, velocityKp, 0, 0);
+                configFeedForwardGains(velocityKs, velocityKv, 0, 0);
+                configGearRatio(gearRatio);
+                configSupplyCurrentLimit(supplyCurrentLimit, true);
+                configStatorCurrentLimit(statorCurrentLimit, true);
+                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+                configForwardTorqueCurrentLimit(statorCurrentLimit);
+                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configNeutralBrakeMode(false);
+                // Counter-rotates against the rollers, so it takes the opposite sense
+                configClockwise_Positive();
+            }
+        }
+
+        @Getter private final IntakeKickerConfig config;
+
+        public IntakeKicker(IntakeKickerConfig config) {
+            super(config);
+            this.config = config;
+
+            Telemetry.print(getName() + " Subsystem Initialized");
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            Telemetry.log("IntakeKicker/CurrentCommand", getCurrentCommandName());
+            Telemetry.log("IntakeKicker/Voltage", getVoltage(), "volts");
+            Telemetry.log("IntakeKicker/StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log("IntakeKicker/SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log("IntakeKicker/RPM", getVelocityRPM(), "RPM");
+            Telemetry.log("IntakeKicker/Temp", getTemp(), "deg_C");
+        }
+
+        public void setKickerVoltage(double volts) {
+            setVoltageOutput(() -> volts);
+        }
+
+        public void kickerStop() {
+            stop();
+        }
+    }
+
+    public static class FuelIntakeConfig {
+
+        @Getter private final IntakeRollerConfig rollerConfig;
+        @Getter private final IntakeKickerConfig kickerConfig;
+
+        public FuelIntakeConfig(IntakeRollerConfig rollerConfig, IntakeKickerConfig kickerConfig) {
+            this.rollerConfig = rollerConfig;
+            this.kickerConfig = kickerConfig;
         }
     }
 
@@ -84,72 +235,53 @@ public class FuelIntake extends Mechanism {
         };
     }
 
+    // TODO: get actual kicker voltages when the robot is built
     private void applyStates() {
-        double wantedVoltage = 0;
+        double wantedRollerVoltage = 0;
+        double wantedKickerVoltage = 0;
         switch (systemState) {
             case NEUTRAL:
-                wantedVoltage = 0;
+                wantedRollerVoltage = 0;
+                wantedKickerVoltage = 0;
                 break;
             case INTAKE:
-                wantedVoltage = 12;
+                wantedRollerVoltage = 12;
+                wantedKickerVoltage = 12;
                 break;
             case SLOW_INTAKE:
-                wantedVoltage = 6;
+                wantedRollerVoltage = 6;
+                wantedKickerVoltage = 6;
                 break;
             case OFF:
-                stop();
+                roller.rollerStop();
+                kicker.kickerStop();
                 return;
         }
-        final double finalWantedVoltage = wantedVoltage;
-        setVoltageOutput(() -> finalWantedVoltage);
+        final double finalRollerVoltage = wantedRollerVoltage;
+        final double finalKickerVoltage = wantedKickerVoltage;
+        roller.setRollerVoltage(finalRollerVoltage);
+        kicker.setKickerVoltage(finalKickerVoltage);
     }
 
+    @Getter private final IntakeRoller roller;
+    @Getter private final IntakeKicker kicker;
     @Getter private final FuelIntakeConfig config;
-    @Getter private FuelIntakeSim sim;
 
     public FuelIntake(FuelIntakeConfig config) {
-        super(config);
         this.config = config;
+        this.roller = new IntakeRoller(config.getRollerConfig());
+        this.kicker = new IntakeKicker(config.getKickerConfig());
 
-        simulationInit();
-        Telemetry.print(getName() + " Subsystem Initialized");
+        this.register();
+        Telemetry.print("Fuel Intake Subsystem Initialized");
     }
 
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
+
         Telemetry.log("FuelIntake/WantedState", wantedState.toString());
         Telemetry.log("FuelIntake/SystemState", systemState.toString());
-        Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
-        Telemetry.log("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
-    }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-            // diameter
-            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    class FuelIntakeSim extends RollerSim {
-        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-            super(
-                    new RollerConfig(config.getWheelDiameter())
-                            .setPosition(config.getIntakeX(), config.getIntakeY())
-                            .setMount(Robot.getIntakeExtension().getSim()),
-                    mech,
-                    rollerMotorSim,
-                    config.getName());
-        }
     }
 }

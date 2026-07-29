@@ -50,7 +50,7 @@ public class DyeRotor implements Subsystem {
             @Getter @Setter private double rotorDiameter = 12;
 
             public RotorConfig() {
-                super("Rotor", 8, Rio.CANIVORE);
+                super("Rotor", 9, Rio.CANIVORE);
                 configPIDGains(velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
@@ -130,7 +130,7 @@ public class DyeRotor implements Subsystem {
             private final double gearRatio = 3.67;
 
             public FeederConfig() {
-                super("Feeder", 9, Rio.CANIVORE);
+                super("Feeder", 10, Rio.CANIVORE);
                 configPIDGains(velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);

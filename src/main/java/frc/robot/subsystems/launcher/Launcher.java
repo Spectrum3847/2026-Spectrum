@@ -51,7 +51,7 @@ public class Launcher extends Mechanism {
         @Getter private double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher Front Left", 46, Rio.CANIVORE);
+            super("Launcher Front Left", 15, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(gearRatio);
@@ -67,7 +67,7 @@ public class Launcher extends Mechanism {
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Front Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Front Right", 16, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 

@@ -12,7 +12,7 @@ public class LauncherTower extends Mechanism {
     public static class LauncherTowerConfig extends Config {
         /* Launcher Tower config values */
         // TODO: edit
-        @Getter private final double supplyCurrentLimit =80;
+        @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 80;
         @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double lowerSupplyCurrentTime = 1;
@@ -21,7 +21,7 @@ public class LauncherTower extends Mechanism {
         @Getter private final double velocityKs = 0;
 
         public LauncherTowerConfig() {
-            super("LauncherTower Front", 51, Rio.CANIVORE);
+            super("LauncherTower Front", 17, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
@@ -35,7 +35,7 @@ public class LauncherTower extends Mechanism {
             configCounterClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "LauncherTower Back", 52, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "LauncherTower Back", 18, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 

@@ -13,8 +13,6 @@ import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
-import frc.spectrumLib.hardware.SpectrumCANcoder;
-import frc.spectrumLib.hardware.SpectrumCANcoderConfig;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
@@ -64,13 +62,6 @@ public class Turret extends Mechanism {
         @Getter private final double forwardLimitDegrees = 350.0;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
-        // TODO: figure out lines 64-9 and change if relevant and necessary
-        @Getter private final double rotorToSensorRatio = 1;
-        @Getter private final double CANcoderRotorToSensorRatio = 5;
-        @Getter private final double CANcoderSensorToMechanismRatio = 9;
-        @Getter private final double CANcoderOffset = -0.196533203125;
-        @Getter private final boolean CANcoderAttached = true;
-        @Getter private final boolean isCANcoderInverted = false;
 
         /* Sim Configs */
         @Getter private double intakeX = Units.inchesToMeters(105); // Vertical Center
@@ -79,7 +70,7 @@ public class Turret extends Mechanism {
         @Getter private double length = 1;
 
         public TurretConfig() {
-            super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
+            super("Turret", 14, Rio.CANIVORE); // Rio.CANIVORE);
             configPIDGains(0, positionKp, positionKi, 0);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
@@ -163,30 +154,12 @@ public class Turret extends Mechanism {
 
     @Getter private TurretConfig config;
     @Getter private TurretSim sim;
-    @Getter private SpectrumCANcoder canCoder;
-    @Getter private SpectrumCANcoderConfig canCoderConfig;
 
     public Turret(TurretConfig config) {
         super(config);
         this.config = config;
 
         if (isAttached()) {
-            if (config.isCANcoderAttached() && !Robot.isSimulation()) {
-                canCoderConfig =
-                        new SpectrumCANcoderConfig(
-                                config.getCANcoderRotorToSensorRatio(),
-                                config.getCANcoderSensorToMechanismRatio(),
-                                config.getCANcoderOffset(),
-                                config.isCANcoderAttached(),
-                                config.isCANcoderInverted());
-                canCoder =
-                        new SpectrumCANcoder(
-                                44,
-                                canCoderConfig,
-                                motor,
-                                config,
-                                SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
-            }
             setInitialPosition();
         }
 
@@ -215,19 +188,7 @@ public class Turret extends Mechanism {
     }
 
     private void setInitialPosition() {
-        if (canCoder != null) {
-            if (canCoder.isAttached()
-                    && canCoder.canCoderResponseOK(
-                            canCoder.getCanCoder().getAbsolutePosition().getStatus())) {
-                motor.setPosition(
-                        (canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
-                                / config.getCANcoderSensorToMechanismRatio()));
-            } else {
-                motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-            }
-        } else {
-            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-        }
+        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
     }
 
     private void applyAimAtTarget() {
