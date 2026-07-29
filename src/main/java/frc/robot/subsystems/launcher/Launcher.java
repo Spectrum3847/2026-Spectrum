@@ -22,40 +22,40 @@ public class Launcher extends Mechanism {
 
         // Intake Voltages and Current
         // keep
-        @Getter @Setter private double LauncherVoltage = 9.0;
-        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
-        @Getter @Setter private double LauncherStatorCurrent = 85.0;
+        @Getter private final double LauncherVoltage = 9.0;
+        @Getter private final double LauncherSupplyCurrent = 30.0;
+        @Getter private final double LauncherStatorCurrent = 85.0;
 
         // tune
-        @Getter @Setter private double idlingRPM = 700;
-        @Getter @Setter private double slowLaunchSpeed = 400;
-        @Getter @Setter private double autoTrenchLaunch = 1800;
+        @Getter private final double idlingRPM = 700;
+        @Getter private final double slowLaunchSpeed = 400;
+        @Getter private final double autoTrenchLaunch = 1800;
 
         @Getter
         private final DoubleSubscriber onTheFlySpeed =
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private double supplyCurrentLimit = 80;
-        @Getter private double statorCurrentLimit = 100;
-        @Getter private double forwardStatorCurrentLimit = statorCurrentLimit;
-        @Getter private double reverseStatorCurrentLimit = -10;
-        @Getter private double lowerSupplyCurrentLimit = 60;
-        @Getter private double timeUntilLowerCurrent = 1;
-        @Getter private double nominalVoltage = 16;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 100;
+        @Getter private final double forwardStatorCurrentLimit = statorCurrentLimit;
+        @Getter private final double reverseStatorCurrentLimit = -10;
+        @Getter private final double lowerSupplyCurrentLimit = 60;
+        @Getter private final double timeUntilLowerCurrent = 1;
+        @Getter private final double nominalVoltage = 16;
         // TODO: tune
-        @Getter private double velocityKp = 10;
-        @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 20;
+        @Getter private final double velocityKp = 10;
+        @Getter private final double velocityKv = 0;
+        @Getter private final double velocityKs = 20;
 
-        @Getter private double onTargetToleranceRPM = 100;
+        @Getter private final double onTargetToleranceRPM = 100;
 
-        @Getter private double gearRatio = 1.833;
+        @Getter private final double gearRatio = 1.833;
 
         /* Sim Configs */
-        @Getter private double launcherX = Units.inchesToMeters(50);
-        @Getter private double launcherY = Units.inchesToMeters(65);
-        @Getter private double wheelDiameter = 4;
+        @Getter private final double launcherX = Units.inchesToMeters(50);
+        @Getter private final double launcherY = Units.inchesToMeters(65);
+        @Getter private final double wheelDiameter = 4;
 
         public LauncherConfig() {
             super("Launcher Front Left", 46, Rio.CANIVORE);
@@ -125,7 +125,7 @@ public class Launcher extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    @Getter private LauncherConfig config;
+    @Getter private final LauncherConfig config;
     @Getter private LauncherSim sim;
 
     public Launcher(LauncherConfig config) {
@@ -163,6 +163,7 @@ public class Launcher extends Mechanism {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getLauncherX(), config.getLauncherY())
+                            .setGearRatio(config.getGearRatio())
                             .setMount(Robot.getHood().getSim()),
                     mech,
                     motor,

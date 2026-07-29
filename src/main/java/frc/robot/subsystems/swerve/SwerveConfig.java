@@ -35,30 +35,30 @@ public class SwerveConfig {
 
     @Getter private final double simLoopPeriod = 0.005; // 5 ms
 
-    @Getter @Setter private double deadband = 0.05; // 5% input deadband for the joysticks
-    @Getter @Setter private double aimDeadband = 0.01; // 1% input deadband for aiming modes
+    @Getter private final double deadband = 0.05; // 5% input deadband for the joysticks
+    @Getter private final double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
     // TODO: update if needed
-    @Getter @Setter private double driveGearRatio = 6.03;
-    @Getter @Setter private double steerGearRatio = 26.09;
+    @Getter private final double driveGearRatio = 6.03;
+    @Getter private final double steerGearRatio = 26.09;
 
     // Estimated at first, then fudge-factored to make odom match record
     // TODO: update if needed
-    @Getter @Setter private Distance wheelRadius = Inches.of(1.964); // 0.0499 m
+    @Getter private final Distance wheelRadius = Inches.of(1.964); // 0.0499 m
 
     // Theoretical translational free speed (ft/s) at 12v applied output;
-    @Getter @Setter private LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);
+    @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);
 
     // Theoretical rotational free speed (ft/s) at 12v applied output;
-    @Getter @Setter private AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
+    @Getter private final AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
 
     // -----------------------------------------------------------------------
     // PID Controller Constants
     // -----------------------------------------------------------------------
     // TODO: tune
-    @Getter private double kPRotationController = 5.0;
-    @Getter private double kIRotationController = 0.0;
-    @Getter private double kDRotationController = 0.0;
+    @Getter private final double kPRotationController = 5.0;
+    @Getter private final double kIRotationController = 0.0;
+    @Getter private final double kDRotationController = 0.0;
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.kZero;
@@ -96,7 +96,7 @@ public class SwerveConfig {
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
     // TODO: tune
-    @Getter @Setter private Current slipCurrent = Amps.of(80);
+    @Getter private final Current slipCurrent = Amps.of(80);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
     // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
@@ -122,28 +122,28 @@ public class SwerveConfig {
                                     .withStatorCurrentLimit(Amps.of(60))
                                     .withStatorCurrentLimitEnable(true));
 
-    @Getter private CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
+    @Getter private final CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
 
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
-    @Getter private Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();
+    @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    @Getter private double coupleRatio = 4.5;
+    @Getter private final double coupleRatio = 4.5;
 
-    @Getter @Setter private boolean steerMotorReversed = false;
-    @Getter @Setter private boolean invertLeftSide = false;
-    @Getter @Setter private boolean invertRightSide = true;
+    @Getter private final boolean steerMotorReversed = false;
+    @Getter private final boolean invertLeftSide = false;
+    @Getter private final boolean invertRightSide = true;
 
-    @Getter @Setter private CANBus canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
-    @Getter private int pigeonId = 0;
+    @Getter private final CANBus canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
+    @Getter private final int pigeonId = 0;
 
     // These are only used for simulation
-    @Getter private double steerInertia = 0.01;
-    @Getter private double driveInertia = 0.01;
+    @Getter private final double steerInertia = 0.01;
+    @Getter private final double driveInertia = 0.01;
     // Simulated voltage necessary to overcome friction
-    @Getter private Voltage steerFrictionVoltage = Volts.of(0.25);
-    @Getter private Voltage driveFrictionVoltage = Volts.of(0.25);
+    @Getter private final Voltage steerFrictionVoltage = Volts.of(0.25);
+    @Getter private final Voltage driveFrictionVoltage = Volts.of(0.25);
 
     @Getter private SwerveDrivetrainConstants drivetrainConstants;
 
@@ -166,46 +166,46 @@ public class SwerveConfig {
 
     // TODO: update offsets
     // Front Left
-    @Getter private int frontLeftDriveMotorId = 1;
-    @Getter private int frontLeftSteerMotorId = 2;
-    @Getter private int frontLeftEncoderId = 3;
+    @Getter private final int frontLeftDriveMotorId = 1;
+    @Getter private final int frontLeftSteerMotorId = 2;
+    @Getter private final int frontLeftEncoderId = 3;
     @Getter private Angle frontLeftEncoderOffset = Rotations.of(-0.83544921875);
-    @Getter private boolean frontLeftSteerInverted = false;
+    @Getter private final boolean frontLeftSteerInverted = false;
 
-    @Getter private Distance frontLeftXPos = Inches.of(wheelBaseInches / 2);
-    @Getter private Distance frontLeftYPos = Inches.of(trackWidthInches / 2);
+    @Getter private final Distance frontLeftXPos = Inches.of(wheelBaseInches / 2);
+    @Getter private final Distance frontLeftYPos = Inches.of(trackWidthInches / 2);
 
     // Front Right
-    @Getter private int frontRightDriveMotorId = 11;
-    @Getter private int frontRightSteerMotorId = 12;
-    @Getter private int frontRightEncoderId = 13;
+    @Getter private final int frontRightDriveMotorId = 11;
+    @Getter private final int frontRightSteerMotorId = 12;
+    @Getter private final int frontRightEncoderId = 13;
     @Getter private Angle frontRightEncoderOffset = Rotations.of(-0.15234375);
-    @Getter private boolean frontRightSteerInverted = false;
+    @Getter private final boolean frontRightSteerInverted = false;
 
-    @Getter private Distance frontRightXPos = Inches.of(wheelBaseInches / 2);
-    @Getter private Distance frontRightYPos = Inches.of(-trackWidthInches / 2);
+    @Getter private final Distance frontRightXPos = Inches.of(wheelBaseInches / 2);
+    @Getter private final Distance frontRightYPos = Inches.of(-trackWidthInches / 2);
 
     // Back Left
-    @Getter private int backLeftDriveMotorId = 21;
-    @Getter private int backLeftSteerMotorId = 22;
-    @Getter private int backLeftEncoderId = 23;
+    @Getter private final int backLeftDriveMotorId = 21;
+    @Getter private final int backLeftSteerMotorId = 22;
+    @Getter private final int backLeftEncoderId = 23;
     @Getter private Angle backLeftEncoderOffset = Rotations.of(-0.4794921875);
-    @Getter private boolean backLeftSteerInverted = false;
+    @Getter private final boolean backLeftSteerInverted = false;
 
-    @Getter private Distance backLeftXPos = Inches.of(-wheelBaseInches / 2);
-    @Getter private Distance backLeftYPos = Inches.of(trackWidthInches / 2);
+    @Getter private final Distance backLeftXPos = Inches.of(-wheelBaseInches / 2);
+    @Getter private final Distance backLeftYPos = Inches.of(trackWidthInches / 2);
 
     // Back Right
-    @Getter private int backRightDriveMotorId = 31;
-    @Getter private int backRightSteerMotorId = 32;
-    @Getter private int backRightEncoderId = 33;
+    @Getter private final int backRightDriveMotorId = 31;
+    @Getter private final int backRightSteerMotorId = 32;
+    @Getter private final int backRightEncoderId = 33;
     @Getter private Angle backRightEncoderOffset = Rotations.of(-0.84130859375);
-    @Getter private boolean backRightSteerInverted = false;
+    @Getter private final boolean backRightSteerInverted = false;
 
-    @Getter private Distance backRightXPos = Inches.of(-wheelBaseInches / 2);
-    @Getter private Distance backRightYPos = Inches.of(-trackWidthInches / 2);
+    @Getter private final Distance backRightXPos = Inches.of(-wheelBaseInches / 2);
+    @Getter private final Distance backRightYPos = Inches.of(-trackWidthInches / 2);
 
-    @Getter @Setter private double targetHeading = 0;
+    @Getter private final double targetHeading = 0;
 
     @Getter
     private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>

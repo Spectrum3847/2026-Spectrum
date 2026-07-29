@@ -11,7 +11,6 @@ import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
 public class Hood extends Mechanism {
 
@@ -19,8 +18,8 @@ public class Hood extends Mechanism {
 
         @Getter private final double initPosition = 0;
 
-        @Getter @Setter private double maxRotations = 0.825;
-        @Getter @Setter private double minRotations = 0.0;
+        @Getter private final double maxRotations = 5.6925;
+        @Getter private final double minRotations = 0.0;
 
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 40;
@@ -35,11 +34,10 @@ public class Hood extends Mechanism {
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
 
-        @Getter private final double gearRatio = 8.49;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double holdMaxSpeedRPM = 18;
+        @Getter private final double gearRatio = 59.4;
+        @Getter private final double mmCruiseVelocity = 2;
+        @Getter private final double mmAcceleration = 20;
+        @Getter private final double mmJerk = 0;
 
         /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(50);

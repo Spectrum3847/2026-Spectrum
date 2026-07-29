@@ -25,13 +25,13 @@ public class Turret extends Mechanism {
     public static class TurretConfig extends Config {
         // TODO: update if needed until line 41
         @Getter private final double initPosition = 0;
-        @Getter private double triggerTolerance = 5;
-        @Getter private double unwrapTolerance = 10;
-        @Getter private double unwrapExitMargin = 45;
-        @Getter private double shootOnMoveLatencySec = 0.03;
-        @Getter private double maxOmegaForShotRotPerSec = 0.75;
+        @Getter private final double triggerTolerance = 5;
+        @Getter private final double unwrapTolerance = 10;
+        @Getter private final double unwrapExitMargin = 45;
+        @Getter private final double shootOnMoveLatencySec = 0.03;
+        @Getter private final double maxOmegaForShotRotPerSec = 0.75;
 
-        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
+        @Getter private final Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
 
         @Getter private final double currentLimit = 30;
         @Getter private final double torqueCurrentLimit = 60;
@@ -60,10 +60,10 @@ public class Turret extends Mechanism {
         @Getter private final boolean isCANcoderInverted = false;
 
         /* Sim Configs */
-        @Getter private double turretX = Units.inchesToMeters(105); // Vertical Center
-        @Getter private double turretY = Units.inchesToMeters(75); // Horizontal Center
-        @Getter private double simRatio = sensorToMechanismRatio;
-        @Getter private double length = 1;
+        @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
+        @Getter private final double turretY = Units.inchesToMeters(75); // Horizontal Center
+        @Getter private final double simRatio = sensorToMechanismRatio;
+        @Getter private final double length = 1;
 
         public TurretConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
@@ -144,7 +144,7 @@ public class Turret extends Mechanism {
         }
     }
 
-    @Getter private TurretConfig config;
+    @Getter private final TurretConfig config;
     @Getter private TurretSim sim;
     @Getter private SpectrumCANcoder canCoder;
     @Getter private SpectrumCANcoderConfig canCoderConfig;

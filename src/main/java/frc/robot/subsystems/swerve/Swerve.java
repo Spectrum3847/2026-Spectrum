@@ -94,7 +94,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     @Getter @Setter private double teleopVelocityCoefficient = 1.0;
     @Getter @Setter private double teleopRotationVelocityCoefficient = 1.0;
 
-    @Getter private SwerveConfig config;
+    @Getter private final SwerveConfig config;
     private Notifier simNotifier = null;
 
     private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);

@@ -29,24 +29,22 @@ public class DyeRotor implements Subsystem {
 
         public static class RotorConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 40;
-            @Getter @Setter private double statorCurrentLimit = 80;
+            @Getter private final double supplyCurrentLimit = 40;
+            @Getter private final double statorCurrentLimit = 80;
 
-            @Getter @Setter private double gearRatio = 37.5;
+            @Getter private final double gearRatio = 37.5;
 
             // TODO: tune
-            @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 0;
-            @Getter @Setter private double velocityKs = 15;
+            @Getter private final double velocityKp = 5;
+            @Getter private final double velocityKv = 0;
+            @Getter private final double velocityKs = 15;
 
             /* Sim Configs */
-            @Getter @Setter
-            private double rotorX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
+            @Getter private final double rotorX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
 
-            @Getter @Setter
-            private double rotorY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
+            @Getter private final double rotorY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
 
-            @Getter @Setter private double rotorDiameter = 12;
+            @Getter private final double rotorDiameter = 12;
 
             public RotorConfig() {
                 super("Rotor", 8, Rio.CANIVORE);
@@ -115,13 +113,13 @@ public class DyeRotor implements Subsystem {
 
         public static class FeederConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 40;
-            @Getter @Setter private double statorCurrentLimit = 80;
+            @Getter private final double supplyCurrentLimit = 40;
+            @Getter private final double statorCurrentLimit = 80;
 
             // TODO: tune
-            @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 0;
-            @Getter @Setter private double velocityKs = 15;
+            @Getter private final double velocityKp = 5;
+            @Getter private final double velocityKv = 0;
+            @Getter private final double velocityKs = 15;
 
             private final double gearRatio = 1.833;
 

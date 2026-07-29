@@ -31,12 +31,13 @@ public class FuelIntake extends Mechanism {
         @Getter private final double intakeX = Units.inchesToMeters(15);
         @Getter private final double intakeY = Units.inchesToMeters(23);
         @Getter private final double wheelDiameter = 6;
+        @Getter private final double gearRatio = 1;
 
         public FuelIntakeConfig() {
             super("Intake Left", 5, Rio.RIO_CANBUS);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
-            configGearRatio(1);
+            configGearRatio(gearRatio);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
             configForwardTorqueCurrentLimit(statorCurrentLimit);
@@ -143,6 +144,7 @@ public class FuelIntake extends Mechanism {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getIntakeX(), config.getIntakeY())
+                            .setGearRatio(config.getGearRatio())
                             .setMount(Robot.getIntakeExtension().getSim()),
                     mech,
                     motor,
