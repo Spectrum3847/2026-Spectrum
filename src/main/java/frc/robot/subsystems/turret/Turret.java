@@ -58,6 +58,7 @@ public class Turret extends Mechanism {
         @Getter private final double mmCruiseVelocity = 0.25;
         @Getter private final double mmAcceleration = 0.5;
         @Getter private final double mmJerk = 0;
+        @Getter private final double peakVoltage = 6;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
         // TODO: figure out lines 64-9 and change if relevant and necessary
@@ -79,6 +80,8 @@ public class Turret extends Mechanism {
             configPIDGains(0, positionKp, positionKi, 0);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+            configForwardVoltageLimit(peakVoltage);
+            configReverseVoltageLimit(-peakVoltage);
             configGearRatio(sensorToMechanismRatio);
             configSupplyCurrentLimit(currentLimit, true);
             configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
@@ -148,7 +151,7 @@ public class Turret extends Mechanism {
                 unwrapping = false;
                 commandedDegrees = 0;
                 mechOmegaRotPerSec = 0;
-                setMMPositionFoc(() -> degreesToRotations(() -> 0.0));
+                setPosition(() -> degreesToRotations(() -> 0.0));
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget();
@@ -247,7 +250,7 @@ public class Turret extends Mechanism {
             // Motion magic for smooth full-turn slew to the opposite winding, so the cable never
             // binds
             final double unwrapRot = degreesToRotations(() -> commandedDegrees);
-            setMMPositionFoc(() -> unwrapRot);
+            setMMPosition(() -> unwrapRot);
             return;
         }
 
@@ -263,7 +266,7 @@ public class Turret extends Mechanism {
 
         final double posRot = degreesToRotations(() -> predictedDegrees);
         final double ffRps = mechOmegaRotPerSec;
-        setPositionFocWithVelocity(() -> posRot, () -> ffRps);
+        setPositionWithVelocity(() -> posRot, () -> ffRps);
     }
 
     /**

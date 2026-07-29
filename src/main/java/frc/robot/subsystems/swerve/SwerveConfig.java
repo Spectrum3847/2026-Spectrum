@@ -5,6 +5,7 @@ import static edu.wpi.first.units.Units.DegreesPerSecond;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.CANBus;
@@ -81,13 +82,11 @@ public class SwerveConfig {
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
-    @Getter
-    private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
+    @Getter private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.Voltage;
 
     // The closed-loop output type to use for the drive motors;
     // This affects the PID/FF gains for the drive motors
-    @Getter
-    private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
+    @Getter private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.Voltage;
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
@@ -100,11 +99,12 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(80.0))
+                                    .withStatorCurrentLimit(slipCurrent)
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLimit(Amps.of(70.0))
                                     .withSupplyCurrentLimitEnable(true)
-                                    .withSupplyCurrentLowerLimit(Amps.of(40.0)));
+                                    .withSupplyCurrentLowerLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLowerTime(Seconds.of(1.0)));
 
     // Swerve azimuth does not require much torque output, so we can set a
     // relatively low stator current limit to help avoid
@@ -115,7 +115,11 @@ public class SwerveConfig {
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
                                     .withStatorCurrentLimit(Amps.of(60))
-                                    .withStatorCurrentLimitEnable(true));
+                                    .withStatorCurrentLimitEnable(true)
+                                    .withSupplyCurrentLimit(Amps.of(70.0))
+                                    .withSupplyCurrentLimitEnable(true)
+                                    .withSupplyCurrentLowerLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLowerTime(Seconds.of(1.0)));
 
     @Getter private CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
 

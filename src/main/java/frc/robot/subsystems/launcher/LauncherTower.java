@@ -18,7 +18,7 @@ public class LauncherTower extends Mechanism {
         @Getter private final double lowerSupplyCurrentTime = 1;
         @Getter private final double velocityKp = 0.1;
         @Getter private final double velocityKv = 0.0978;
-        @Getter private final double velocityKs = 40;
+        @Getter private final double velocityKs = 0;
 
         public LauncherTowerConfig() {
             super("LauncherTower Front", 51, Rio.CANIVORE);
@@ -88,7 +88,7 @@ public class LauncherTower extends Mechanism {
                 break;
         }
         final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        setVelocityRPM(() -> finalWantedRPM);
     }
 
     @Getter private final LauncherTowerConfig config;

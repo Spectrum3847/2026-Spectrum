@@ -88,7 +88,7 @@ public class DyeRotor implements Subsystem {
         }
 
         public void setRotorRpm(double rpm) {
-            setVelocityTCFOCrpm(() -> rpm);
+            setVelocityRPM(() -> rpm);
         }
 
         public void rotorStop() {
@@ -165,7 +165,7 @@ public class DyeRotor implements Subsystem {
         }
 
         public void setFeederRpm(double rpm) {
-            setVelocityTCFOCrpm(() -> rpm);
+            setVelocityRPM(() -> rpm);
         }
 
         public void feederStop() {

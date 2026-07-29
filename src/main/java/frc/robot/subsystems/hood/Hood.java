@@ -17,7 +17,7 @@ public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
         // TODO: tune
-        @Getter private final double initPosition = 9;
+        @Getter private final double initPosition = 0.0;
 
         @Getter @Setter private double maxRotations = 5.6925;
         @Getter @Setter private double minRotations = 0.0;
@@ -37,9 +37,9 @@ public class Hood extends Mechanism {
 
         @Getter private final double gearRatio = 59.4;
         @Getter private final double mmCruiseVelocity = 0.1;
-        @Getter private final double mmAcceleration = 20.4;
-        @Getter private final double mmJerk = 0; //1000
-        // @Getter private final double holdMaxSpeedRPM = 18;
+        @Getter private final double mmAcceleration = 0.4;
+        @Getter private final double mmJerk = 0;
+        @Getter private final double peakVoltage = 3;
 
         /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(50);
@@ -53,6 +53,8 @@ public class Hood extends Mechanism {
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+            configForwardVoltageLimit(peakVoltage);
+            configReverseVoltageLimit(-peakVoltage);
             configGearRatio(gearRatio);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
@@ -110,7 +112,7 @@ public class Hood extends Mechanism {
         }
         final double finalWantedDegrees = wantedDegrees;
         final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
-        setMMPositionFoc(() -> finalWantedPosition);
+        setPosition(() -> finalWantedPosition);
     }
 
     @Getter private final HoodConfig config;

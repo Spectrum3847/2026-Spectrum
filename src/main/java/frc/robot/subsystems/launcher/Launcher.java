@@ -20,15 +20,9 @@ public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        // Intake Voltages and Current
-        @Getter @Setter private double LauncherVoltage = 9.0;
-        @Getter @Setter private double LauncherSupplyCurrent = 30.0;
-        @Getter @Setter private double LauncherStatorCurrent = 85.0;
-
         // tune
         @Getter @Setter private double idlingRPM = 700;
         @Getter @Setter private double slowLaunchSpeed = 400;
-        @Getter @Setter private double autoTrenchLaunch = 1800;
 
         @Getter
         private final DoubleSubscriber onTheFlySpeed =
@@ -69,7 +63,7 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
-            configReverseVoltageLimit(nominalVoltage);
+            configReverseVoltageLimit(-nominalVoltage);
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
@@ -121,7 +115,7 @@ public class Launcher extends Mechanism {
                 break;
         }
         final double finalWantedRPM = wantedRPM;
-        setVoltageOutput(() -> finalWantedRPM);
+        setVelocityRPM(() -> finalWantedRPM);
     }
 
     @Getter private LauncherConfig config;

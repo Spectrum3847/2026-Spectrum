@@ -18,14 +18,15 @@ public class FuelIntake extends Mechanism {
 
     public static class FuelIntakeConfig extends Config {
 
-        /* Intake config values */
         // Likely keep current limits
-        @Getter private final double supplyCurrentLimit = 70;
-        @Getter private final double statorCurrentLimit = 180;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 80;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentTime = 1;
         // TODO: tune
-        @Getter private final double velocityKp = 5;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 4;
+        @Getter private final double velocityKp = 0.3;
+        @Getter private final double velocityKv = 0.23728813559;
+        @Getter private final double velocityKs = 0;
 
         /* Sim Configs */
         @Getter private final double intakeX = Units.inchesToMeters(15);
@@ -39,6 +40,8 @@ public class FuelIntake extends Mechanism {
             configGearRatio(1);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configForwardTorqueCurrentLimit(statorCurrentLimit);
             configReverseTorqueCurrentLimit(statorCurrentLimit);
             configNeutralBrakeMode(false);
@@ -82,23 +85,23 @@ public class FuelIntake extends Mechanism {
     }
 
     private void applyStates() {
-        double wantedTorqueCurrent = 0;
+        double wantedVoltage = 0;
         switch (systemState) {
             case NEUTRAL:
-                wantedTorqueCurrent = 0;
+                wantedVoltage = 0;
                 break;
             case INTAKE:
-                wantedTorqueCurrent = 130;
+                wantedVoltage = 12;
                 break;
             case SLOW_INTAKE:
-                wantedTorqueCurrent = 45;
+                wantedVoltage = 6;
                 break;
             case OFF:
                 stop();
                 return;
         }
-        final double finalWantedTorqueCurrent = wantedTorqueCurrent;
-        setTorqueCurrentFoc(() -> finalWantedTorqueCurrent);
+        final double finalWantedVoltage = wantedVoltage;
+        setVoltageOutput(() -> finalWantedVoltage);
     }
 
     @Getter private final FuelIntakeConfig config;
