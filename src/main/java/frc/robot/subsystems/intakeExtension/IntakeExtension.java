@@ -38,36 +38,40 @@ public class IntakeExtension extends Mechanism {
     public static class IntakeExtensionConfig extends Config {
 
         @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 5;
+        @Getter private final double triggerTolerance = 0.317637;
 
         /* Intake Extension config settings */
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double maxRotations = 2.8;
+        /* 11.5 in of travel over a 0.5010597711 in pitch radius */
+        @Getter private final double maxRotations = 3.652821;
         @Getter private final double minRotations = 0.0;
 
-        @Getter private final double supplyCurrentLimit = 20;
-        @Getter private final double statorCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentLimit = 20;
-        @Getter private final double lowerSupplyCurrentTime = 0;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 80;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double lowerSupplyCurrentTime = 1;
 
-        @Getter private final double positionKp = 13;
+        @Getter private final double positionKp = 4.2;
         @Getter private final double positionKi = 0;
         @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 1.0;
-        @Getter private final double positionKs = 2.0;
+        @Getter private final double positionKv = 0.39;
+        @Getter private final double positionKs = 0;
         @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = 0;
-        @Getter private final double gearRatio = 11.25;
-        @Getter private final double mmCruiseVelocity = 100;
-        @Getter private final double mmAcceleration = 300;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double slowMmCruiseVelocity = 4;
-        @Getter private final double slowMmAcceleration = 20;
-        @Getter private final double slowMmJerk = 1000;
+        @Getter private final double positionKg = -0.017;
+        @Getter private final double gearRatio = 3.5;
+        @Getter private final double rampPeriod = 0.02;
 
-        @Getter private final double sensorToMechanismRatio = 11.25;
+        /* 4 ft/s, 20 ft/s^2 (fast extend) and 2 ft/s, 10 ft/s^2 (everything else) */
+        @Getter private final double mmCruiseVelocity = 15.246559;
+        @Getter private final double mmAcceleration = 76.232794;
+        @Getter private final double mmJerk = 0;
+        @Getter private final double slowMmCruiseVelocity = 7.623279;
+        @Getter private final double slowMmAcceleration = 38.116397;
+        @Getter private final double slowMmJerk = 0;
+
+        @Getter private final double sensorToMechanismRatio = 3.5;
         @Getter private final double rotorToSensorRatio = 1;
         @Getter private final double CANcoderRotorToSensorRatio = 1.7;
         @Getter private final double CANcoderSensorToMechanismRatio = 1;
@@ -85,8 +89,8 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double intakeX = Units.inchesToMeters(70);
         @Getter private final double intakeY = Units.inchesToMeters(23);
         @Getter private final double extensionMass = 10.0;
-        @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-        @Getter private final double extensionGearing = 11.25;
+        @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.5010597711);
+        @Getter private final double extensionGearing = 3.5;
         @Getter private final double angle = 180;
         @Getter private final double staticLength = 10;
         @Getter private final double movingLength = 55;
@@ -99,6 +103,9 @@ public class IntakeExtension extends Mechanism {
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+            configGravityType(false);
+            configOpenLoopRamps(rampPeriod);
+            configClosedLoopRamps(rampPeriod);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
             configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
@@ -108,7 +115,7 @@ public class IntakeExtension extends Mechanism {
             configReverseTorqueCurrentLimit(statorCurrentLimit);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
-            configNeutralBrakeMode(true);
+            configNeutralBrakeMode(false);
             configClockwise_Positive();
         }
 
@@ -148,6 +155,9 @@ public class IntakeExtension extends Mechanism {
                         left.getPositionKg());
                 configMotionMagic(
                         left.getMmCruiseVelocity(), left.getMmAcceleration(), left.getMmJerk());
+                configGravityType(false);
+                configOpenLoopRamps(left.getRampPeriod());
+                configClosedLoopRamps(left.getRampPeriod());
                 configSupplyCurrentLimit(left.getSupplyCurrentLimit(), true);
                 configStatorCurrentLimit(left.getStatorCurrentLimit(), true);
                 configLowerSupplyCurrentLimit(left.getLowerSupplyCurrentLimit());
@@ -157,7 +167,7 @@ public class IntakeExtension extends Mechanism {
                 configReverseTorqueCurrentLimit(left.getStatorCurrentLimit());
                 configForwardSoftLimit(left.getMaxRotations(), true);
                 configReverseSoftLimit(left.getMinRotations(), true);
-                configNeutralBrakeMode(true);
+                configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
             }
         }

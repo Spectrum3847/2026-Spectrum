@@ -12,6 +12,7 @@ import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -1041,6 +1042,48 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Closed-loop velocity control with voltage compensation, taking RPM. The RPM value is
+     * converted to RPS internally before being sent to the motor.
+     *
+     * @param velocityRPM the target velocity in revolutions per minute
+     */
+    protected void setVelocityRPM(DoubleSupplier velocityRPM) {
+        setVelocity(() -> Conversions.RPMtoRPS(velocityRPM.getAsDouble()));
+    }
+
+    /**
+     * Closed-loop position control with voltage compensation.
+     *
+     * @param rotations the target position in rotations
+     */
+    protected void setPosition(DoubleSupplier rotations) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            PositionVoltage output = config.positionControl.withPosition(target).withVelocity(0);
+            motor.setControl(output);
+        }
+    }
+
+    /**
+     * Closed-loop position control with voltage compensation and an explicit velocity feedforward.
+     * This is the correct primitive for tracking a continuously moving setpoint (e.g. a turret
+     * aiming at a target while the robot drives), where profiling would introduce steady-state lag.
+     *
+     * @param rotations the target position in mechanism rotations
+     * @param velocityRPS the velocity feedforward in mechanism rotations per second
+     */
+    protected void setPositionWithVelocity(DoubleSupplier rotations, DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            PositionVoltage output =
+                    config.positionControl
+                            .withPosition(target)
+                            .withVelocity(velocityRPS.getAsDouble());
+            motor.setControl(output);
+        }
+    }
+
+    /**
      * Closed-loop position control using Motion Magic with Torque Current FOC (requires Phoenix
      * Pro).
      *
@@ -1553,6 +1596,7 @@ public abstract class Mechanism implements Subsystem {
 
         @Getter private VoltageOut voltageControl = new VoltageOut(0);
         @Getter private VelocityVoltage velocityControl = new VelocityVoltage(0);
+        @Getter private PositionVoltage positionControl = new PositionVoltage(0);
 
         @Getter
         private VelocityTorqueCurrentFOC velocityTorqueCurrentFOC = new VelocityTorqueCurrentFOC(0);
@@ -1688,6 +1732,28 @@ public abstract class Mechanism implements Subsystem {
                 currentLimit = -currentLimit;
             }
             talonConfig.TorqueCurrent.PeakForwardTorqueCurrent = currentLimit;
+        }
+
+        /**
+         * Sets the open-loop ramp period for duty cycle, voltage, and torque control.
+         *
+         * @param seconds time to ramp from neutral to full output
+         */
+        public void configOpenLoopRamps(double seconds) {
+            talonConfig.OpenLoopRamps.DutyCycleOpenLoopRampPeriod = seconds;
+            talonConfig.OpenLoopRamps.VoltageOpenLoopRampPeriod = seconds;
+            talonConfig.OpenLoopRamps.TorqueOpenLoopRampPeriod = seconds;
+        }
+
+        /**
+         * Sets the closed-loop ramp period for duty cycle, voltage, and torque control.
+         *
+         * @param seconds time to ramp from neutral to full output
+         */
+        public void configClosedLoopRamps(double seconds) {
+            talonConfig.ClosedLoopRamps.DutyCycleClosedLoopRampPeriod = seconds;
+            talonConfig.ClosedLoopRamps.VoltageClosedLoopRampPeriod = seconds;
+            talonConfig.ClosedLoopRamps.TorqueClosedLoopRampPeriod = seconds;
         }
 
         /**
