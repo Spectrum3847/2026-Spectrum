@@ -19,26 +19,58 @@ import frc.spectrumLib.sim.LinearSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/**
- * The Intake Extension subsystem. Extends and retracts the fuel intake.
- *
- * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (CAN id 4) and a
- * right axis (CAN id 5). Each side runs its own closed-loop position control rather than one
- * following the other, so a side that skips teeth on the rack can be driven on its own to resync.
- *
- * <p>Normal deploy/retract states command both axes to the same setpoint. The {@code RESYNC} state
- * re-establishes truth by driving each side independently into the fully-extended hard stop (using
- * a soft-limit-bypassing voltage), detecting the stall, and re-zeroing that side's encoder at
- * {@code maxRotations}. This recovers from a tooth skip, which otherwise leaves the motor encoder
- * reading a position the rack is no longer at.
- *
- * <p>This is a container for two independent {@link Mechanism}s rather than a {@code Mechanism}
- * itself, so it implements {@link Subsystem} and registers directly. Without that registration the
- * scheduler would never call {@link #periodic()} and the state machine would never run.
- */
 public class IntakeExtension implements Subsystem {
 
-    public static class Left extends Mechanism {
+    public abstract static class IntakeExtensionAxis extends Mechanism {
+
+        public IntakeExtensionAxis(Config config) {
+            super(config);
+        }
+
+        public void goToRotations(double rotations) {
+            setMMPosition(() -> rotations);
+        }
+
+        public void goToRotationsSlow(
+                double rotations, double cruiseVelocity, double acceleration, double jerk) {
+            setDynMMPositionVoltage(
+                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
+        }
+
+        public void driveHomingVoltage(double volts) {
+            setVoltageOutputNoSoftLimit(() -> volts);
+        }
+
+        public void setInitialPosition(double rotations) {
+            if (isAttached()) {
+                motor.setPosition(rotations);
+            }
+        }
+
+        public void zeroAtMax() {
+            setMotorPosition(() -> config.getMaxRotations());
+        }
+
+        @Override
+        public void stop() {
+            super.stop();
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            String prefix = getName() + "/";
+            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
+            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
+            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
+            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
+            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
+        }
+    }
+
+    public static class Left extends IntakeExtensionAxis {
 
         public static class LeftConfig extends Config {
 
@@ -124,46 +156,6 @@ public class IntakeExtension implements Subsystem {
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
-        public void goToRotations(double rotations) {
-            setMMPosition(() -> rotations);
-        }
-
-        public void goToRotationsSlow(
-                double rotations, double cruiseVelocity, double acceleration, double jerk) {
-            setDynMMPositionVoltage(
-                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
-        }
-
-        public void driveHomingVoltage(double volts) {
-            setVoltageOutputNoSoftLimit(() -> volts);
-        }
-
-        public void setInitialPosition(double rotations) {
-            if (isAttached()) {
-                motor.setPosition(rotations);
-            }
-        }
-
-        public void zeroAtMax() {
-            setMotorPosition(() -> config.getMaxRotations());
-        }
-
-        public void stopAxis() {
-            stop();
-        }
-
-        @Override
-        public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("IntakeExtensionLeft/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("IntakeExtensionLeft/Voltage", getVoltage(), "volts");
-            Telemetry.log("IntakeExtensionLeft/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("IntakeExtensionLeft/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("IntakeExtensionLeft/Position", getPositionRotations(), "rotations");
-            Telemetry.log("IntakeExtensionLeft/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("IntakeExtensionLeft/Temp", getTemp(), "deg_C");
-        }
-
         public void simulationInit() {
             if (isAttached()) {
                 sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
@@ -191,9 +183,16 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
-    public static class Right extends Mechanism {
+    public static class Right extends IntakeExtensionAxis {
 
         public static class RightConfig extends Config {
+
+            @Getter private final double homingStallRPM;
+            @Getter private final double homingMinTimeSecs;
+            @Getter private final double homingStallDebounceSecs;
+            @Getter private final double homingTimeoutSecs;
+            @Getter private final double homingVoltage;
+
             public RightConfig(LeftConfig left) {
                 super("IntakeExtensionRight", 5, Rio.CANIVORE);
                 setAttached(left.isAttached());
@@ -220,6 +219,12 @@ public class IntakeExtension implements Subsystem {
                 configReverseSoftLimit(left.getMinRotations(), true);
                 configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
+
+                this.homingStallRPM = left.getHomingStallRPM();
+                this.homingMinTimeSecs = left.getHomingMinTimeSecs();
+                this.homingStallDebounceSecs = left.getHomingStallDebounceSecs();
+                this.homingTimeoutSecs = left.getHomingTimeoutSecs();
+                this.homingVoltage = left.getHomingVoltage();
             }
         }
 
@@ -229,46 +234,6 @@ public class IntakeExtension implements Subsystem {
             super(config);
             this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
-        }
-
-        public void goToRotations(double rotations) {
-            setMMPosition(() -> rotations);
-        }
-
-        public void goToRotationsSlow(
-                double rotations, double cruiseVelocity, double acceleration, double jerk) {
-            setDynMMPositionVoltage(
-                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
-        }
-
-        public void driveHomingVoltage(double volts) {
-            setVoltageOutputNoSoftLimit(() -> volts);
-        }
-
-        public void setInitialPosition(double rotations) {
-            if (isAttached()) {
-                motor.setPosition(rotations);
-            }
-        }
-
-        public void zeroAtMax() {
-            setMotorPosition(() -> config.getMaxRotations());
-        }
-
-        public void stopAxis() {
-            stop();
-        }
-
-        @Override
-        public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("IntakeExtensionRight/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("IntakeExtensionRight/Voltage", getVoltage(), "volts");
-            Telemetry.log("IntakeExtensionRight/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("IntakeExtensionRight/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("IntakeExtensionRight/Position", getPositionRotations(), "rotations");
-            Telemetry.log("IntakeExtensionRight/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("IntakeExtensionRight/Temp", getTemp(), "deg_C");
         }
     }
 
@@ -345,8 +310,8 @@ public class IntakeExtension implements Subsystem {
                 applyHoming();
                 break;
             case STOPPED:
-                left.stopAxis();
-                right.stopAxis();
+                left.stop();
+                right.stop();
                 return;
         }
     }
@@ -391,17 +356,21 @@ public class IntakeExtension implements Subsystem {
         double homingVoltage = config.getLeftConfig().getHomingVoltage();
         boolean timedOut = homingTimer.get() >= homingTimeout;
 
-        if (!leftHomed) {
-            if (detectLeftStall() || timedOut) {
-                if (timedOut) Telemetry.print("IntakeExtension: LEFT resync timed out");
-                left.zeroAtMax();
-                left.stopAxis();
-                leftHomed = true;
+        if (left.isAttached()) {
+            if (!leftHomed) {
+                if (detectLeftStall() || timedOut) {
+                    if (timedOut) Telemetry.print("IntakeExtension: LEFT resync timed out");
+                    left.zeroAtMax();
+                    left.stop();
+                    leftHomed = true;
+                } else {
+                    left.driveHomingVoltage(homingVoltage);
+                }
             } else {
-                left.driveHomingVoltage(homingVoltage);
+                left.stop();
             }
         } else {
-            left.stopAxis();
+            leftHomed = true;
         }
 
         if (right.isAttached()) {
@@ -409,13 +378,13 @@ public class IntakeExtension implements Subsystem {
                 if (detectRightStall() || timedOut) {
                     if (timedOut) Telemetry.print("IntakeExtension: RIGHT resync timed out");
                     right.zeroAtMax();
-                    right.stopAxis();
+                    right.stop();
                     rightHomed = true;
                 } else {
                     right.driveHomingVoltage(homingVoltage);
                 }
             } else {
-                right.stopAxis();
+                right.stop();
             }
         } else {
             rightHomed = true;
@@ -424,29 +393,27 @@ public class IntakeExtension implements Subsystem {
 
     private boolean detectLeftStall() {
         double now = homingTimer.get();
-        double stallRPM = config.getLeftConfig().getHomingStallRPM();
-        if (Math.abs(left.getVelocityRPM()) >= stallRPM) {
+        LeftConfig cfg = config.getLeftConfig();
+        if (Math.abs(left.getVelocityRPM()) >= cfg.getHomingStallRPM()) {
             leftLastMoving = now;
         }
-        return isStalled(now, leftLastMoving);
+        return isStalled(now, leftLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
     private boolean detectRightStall() {
         double now = homingTimer.get();
-        double stallRPM = config.getLeftConfig().getHomingStallRPM();
-        if (Math.abs(right.getVelocityRPM()) >= stallRPM) {
+        RightConfig cfg = config.getRightConfig();
+        if (Math.abs(right.getVelocityRPM()) >= cfg.getHomingStallRPM()) {
             rightLastMoving = now;
         }
-        return isStalled(now, rightLastMoving);
+        return isStalled(now, rightLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
-    private boolean isStalled(double now, double lastMoving) {
-        double minTime = config.getLeftConfig().getHomingMinTimeSecs();
-        double debounce = config.getLeftConfig().getHomingStallDebounceSecs();
-        if (now < minTime) {
+    private boolean isStalled(double now, double lastMoving, double minTimeSecs, double stallDebounceSecs) {
+        if (now < minTimeSecs) {
             return false;
         }
-        return (now - lastMoving) >= debounce;
+        return (now - lastMoving) >= stallDebounceSecs;
     }
 
     public boolean isResyncComplete() {
