@@ -60,6 +60,9 @@ public class Turret extends Mechanism {
         @Getter private final double mmJerk = 0;
         @Getter private final double peakVoltage = 6;
 
+        @Getter private final double reverseLimitDegrees = -35.0;
+        @Getter private final double forwardLimitDegrees = 350.0;
+
         @Getter private final double sensorToMechanismRatio = 39.78;
         // TODO: figure out lines 64-9 and change if relevant and necessary
         @Getter private final double rotorToSensorRatio = 1;
@@ -89,8 +92,7 @@ public class Turret extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            // TODO: update
-            configMinMaxRotations(-0.54, 0.50);
+            configMinMaxRotations(reverseLimitDegrees / 360.0, forwardLimitDegrees / 360.0);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
