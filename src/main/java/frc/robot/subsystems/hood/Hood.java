@@ -98,10 +98,10 @@ public class Hood extends Mechanism {
     }
 
     private void applyStates() {
-        double wantedDegrees = 9;
+        double wantedDegrees = 0;
         switch (systemState) {
             case HOME:
-                wantedDegrees = 9.0;
+                wantedDegrees = 0.0;
                 break;
             case STOPPED:
                 stop();
@@ -159,8 +159,8 @@ public class Hood extends Mechanism {
                                     config.hoodY,
                                     config.simRatio,
                                     config.length,
-                                    90,
-                                    180 - 9,
+                                    180 - config.getMaxRotations() * 360,
+                                    180 - config.getMinRotations() * 360,
                                     180 - 9)
                             .setSimulatedGravity(false),
                     mech,
