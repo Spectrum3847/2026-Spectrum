@@ -2,6 +2,7 @@ package frc.spectrumLib.mechanism;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.DynamicMotionMagicTorqueCurrentFOC;
@@ -21,6 +22,11 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Current;
+import edu.wpi.first.units.measure.Temperature;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -29,6 +35,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
+import frc.spectrumLib.hardware.PhoenixUtil;
 import frc.spectrumLib.hardware.TalonFXFactory;
 import frc.spectrumLib.util.CachedDouble;
 import frc.spectrumLib.util.CanDeviceId;
@@ -93,6 +100,18 @@ public abstract class Mechanism implements Subsystem {
     /** The last closed-loop velocity setpoint (in rotations per second) sent to the motor. */
     private double velocityTarget = 0;
 
+    // Status signals held once at construction and refreshed as one batch each loop by
+    // PhoenixUtil.refreshAll().
+    private StatusSignal<Angle> positionSignal;
+    private StatusSignal<AngularVelocity> velocitySignal;
+    private StatusSignal<Current> statorCurrentSignal;
+    private StatusSignal<Current> supplyCurrentSignal;
+    private StatusSignal<Voltage> motorVoltageSignal;
+    private StatusSignal<Temperature> deviceTempSignal;
+
+    /** Follower supply-current signals, the only follower signal this class consumes. */
+    private BaseStatusSignal[] followerSupplyCurrentSignals = new BaseStatusSignal[0];
+
     // Cached sensor readings — updated lazily each loop via CachedDouble
     private final CachedDouble cachedRotations;
     private final CachedDouble cachedPercentage;
@@ -117,37 +136,56 @@ public abstract class Mechanism implements Subsystem {
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
+
+            positionSignal = motor.getPosition();
+            velocitySignal = motor.getVelocity();
+            statorCurrentSignal = motor.getStatorCurrent();
+            supplyCurrentSignal = motor.getSupplyCurrent();
+            motorVoltageSignal = motor.getMotorVoltage();
+            deviceTempSignal = motor.getDeviceTemp();
+
             BaseStatusSignal.setUpdateFrequencyForAll(
-                    250,
+                    PhoenixUtil.FAST_SIGNAL_HZ, positionSignal, velocitySignal);
+            BaseStatusSignal.setUpdateFrequencyForAll(
+                    PhoenixUtil.SLOW_SIGNAL_HZ,
+                    statorCurrentSignal,
+                    supplyCurrentSignal,
+                    motorVoltageSignal,
                     motor.getDutyCycle(),
-                    motor.getMotorVoltage(),
-                    motor.getTorqueCurrent(),
-                    motor.getStatorCurrent(),
-                    motor.getSupplyCurrent(),
-                    motor.getPosition(),
-                    motor.getVelocity(),
-                    motor.getDeviceTemp());
+                    motor.getTorqueCurrent());
+            deviceTempSignal.setUpdateFrequency(PhoenixUtil.TEMP_SIGNAL_HZ);
             motor.optimizeBusUtilization();
 
+            String leaderBus = config.id.getBus();
+            PhoenixUtil.registerSignals(leaderBus, positionSignal, velocitySignal);
+            PhoenixUtil.registerSlowSignals(
+                    leaderBus,
+                    statorCurrentSignal,
+                    supplyCurrentSignal,
+                    motorVoltageSignal,
+                    deviceTempSignal);
+
             followerMotors = new TalonFX[config.followerConfigs.length];
+            followerSupplyCurrentSignals = new BaseStatusSignal[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
                 followerMotors[i] =
                         TalonFXFactory.createPermanentFollowerTalon(
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
-                BaseStatusSignal.setUpdateFrequencyForAll(
-                        250,
-                        followerMotors[i].getDutyCycle(),
-                        followerMotors[i].getMotorVoltage(),
-                        followerMotors[i].getTorqueCurrent(),
-                        followerMotors[i].getStatorCurrent(),
-                        followerMotors[i].getSupplyCurrent(),
-                        followerMotors[i].getPosition(),
-                        followerMotors[i].getVelocity(),
-                        followerMotors[i].getDeviceTemp());
+
+                // Supply current is the only follower signal this class reads, for battery logging.
+                StatusSignal<Current> followerSupplyCurrent = followerMotors[i].getSupplyCurrent();
+                followerSupplyCurrent.setUpdateFrequency(PhoenixUtil.SLOW_SIGNAL_HZ);
                 followerMotors[i].optimizeBusUtilization();
+
+                followerSupplyCurrentSignals[i] = followerSupplyCurrent;
+                PhoenixUtil.registerSlowSignals(
+                        config.followerConfigs[i].id.getBus(), followerSupplyCurrent);
             }
+        } else {
+            // Non-null when unattached so getFollowerMotors() and iteration over it stay safe.
+            followerMotors = new TalonFX[0];
         }
 
         cachedStatorCurrent = new CachedDouble(this::updateStatorCurrent);
@@ -222,10 +260,10 @@ public abstract class Mechanism implements Subsystem {
      */
     public void logBatteryUsage() {
         if (isAttached()) {
-            double motorCurrent = motor.getSupplyCurrent().getValueAsDouble();
+            double motorCurrent = supplyCurrentSignal.getValueAsDouble();
             double followersCurrent = 0;
-            for (TalonFX follower : followerMotors) {
-                followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
+            for (BaseStatusSignal followerSupplyCurrent : followerSupplyCurrentSignals) {
+                followersCurrent += followerSupplyCurrent.getValueAsDouble();
             }
             Robot.getBatteryLogger()
                     .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
@@ -527,7 +565,7 @@ public abstract class Mechanism implements Subsystem {
      */
     public double updateStatorCurrent() {
         if (config.attached) {
-            return motor.getStatorCurrent().getValueAsDouble();
+            return statorCurrentSignal.getValueAsDouble();
         }
         return 0;
     }
@@ -548,7 +586,7 @@ public abstract class Mechanism implements Subsystem {
      */
     public double updateSupplyCurrent() {
         if (config.attached) {
-            return motor.getSupplyCurrent().getValueAsDouble();
+            return supplyCurrentSignal.getValueAsDouble();
         }
         return 0;
     }
@@ -569,7 +607,7 @@ public abstract class Mechanism implements Subsystem {
      */
     public double updateVoltage() {
         if (config.attached) {
-            return motor.getMotorVoltage().getValueAsDouble();
+            return motorVoltageSignal.getValueAsDouble();
         }
         return 0;
     }
@@ -590,7 +628,7 @@ public abstract class Mechanism implements Subsystem {
      */
     public double updateTemp() {
         if (config.attached) {
-            return motor.getDeviceTemp().getValueAsDouble();
+            return deviceTempSignal.getValueAsDouble();
         }
         return 0;
     }
@@ -658,13 +696,15 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
-     * Reads the motor position directly from hardware.
+     * Reads the motor position from the last refresh, extrapolated forward by the signal's age
+     * using the measured velocity.
      *
      * @return motor position in rotations, or {@code 0} if not attached
      */
     private double updatePositionRotations() {
         if (config.attached) {
-            return motor.getPosition().getValueAsDouble();
+            return BaseStatusSignal.getLatencyCompensatedValueAsDouble(
+                    positionSignal, velocitySignal);
         }
         return 0;
     }
@@ -706,13 +746,13 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
-     * Reads the motor velocity directly from hardware in rotations per second (CTRE native units).
+     * Reads the motor velocity from the last refresh, in rotations per second (CTRE native units).
      *
      * @return motor velocity in rotations per second, or {@code 0} if not attached
      */
     private double updateVelocityRPS() {
         if (config.attached) {
-            return motor.getVelocity().getValueAsDouble();
+            return velocitySignal.getValueAsDouble();
         }
         return 0;
     }

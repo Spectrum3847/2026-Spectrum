@@ -26,6 +26,14 @@ public class TalonFXFactory {
     private static double neutralDeadband = 0.04;
     private static double supplyCurrentLimit = 40;
 
+    /**
+     * Number of attempts made for each configurator call before giving up and reporting an error.
+     */
+    private static final int CONFIG_ATTEMPTS = 5;
+
+    /** Per-attempt timeout for configurator calls, in seconds. */
+    private static final double CONFIG_TIMEOUT_SEC = 0.25;
+
     /** Utility class — not instantiable. */
     private TalonFXFactory() {}
 
@@ -36,13 +44,12 @@ public class TalonFXFactory {
      * @return the configured TalonFX
      */
     public static TalonFX createDefaultTalon(CanDeviceId id) {
-        var talon = createTalon(id);
-        talon.getConfigurator().apply(getDefaultConfig());
-        return talon;
+        return createConfigTalon(id, getDefaultConfig());
     }
 
     /**
-     * Creates a TalonFX and applies the supplied configuration.
+     * Creates a TalonFX and applies the supplied configuration, retrying until the device
+     * acknowledges it.
      *
      * @param id CAN device identifier
      * @param config The {@link TalonFXConfiguration} to apply
@@ -50,7 +57,10 @@ public class TalonFXFactory {
      */
     public static TalonFX createConfigTalon(CanDeviceId id, TalonFXConfiguration config) {
         var talon = createTalon(id);
-        talon.getConfigurator().apply(config);
+        PhoenixUtil.tryUntilOk(
+                "TalonFX " + id.getDeviceNumber() + " (" + id.getBus() + ") config apply",
+                CONFIG_ATTEMPTS,
+                () -> talon.getConfigurator().apply(config, CONFIG_TIMEOUT_SEC));
         return talon;
     }
 
@@ -73,8 +83,15 @@ public class TalonFXFactory {
                     "Leader and Follower Talons must be on the same CAN bus");
         }
 
+        // The follower is configured from a read-back of the leader's own configuration.
         TalonFXConfiguration followerConfig = getDefaultConfig();
-        leaderTalonFX.getConfigurator().refresh(followerConfig);
+        PhoenixUtil.tryUntilOk(
+                "TalonFX "
+                        + leaderId
+                        + " config read-back for follower "
+                        + followerId.getDeviceNumber(),
+                CONFIG_ATTEMPTS,
+                () -> leaderTalonFX.getConfigurator().refresh(followerConfig, CONFIG_TIMEOUT_SEC));
         final TalonFX talon = createConfigTalon(followerId, followerConfig);
 
         talon.setControl(new Follower(leaderId, motorAlignment));

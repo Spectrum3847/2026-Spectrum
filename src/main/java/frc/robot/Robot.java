@@ -58,10 +58,13 @@ import frc.robot.subsystems.turret.Turret.TurretConfig;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.framework.SpectrumRobot;
+import frc.spectrumLib.hardware.PhoenixUtil;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.BatteryLogger;
+import frc.spectrumLib.telemetry.LoopTimingStats;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
+import frc.spectrumLib.util.CachedDouble;
 import frc.spectrumLib.util.CrashTracker;
 import frc.spectrumLib.util.Util;
 import java.io.IOException;
@@ -84,6 +87,10 @@ public class Robot extends SpectrumRobot {
     @Getter private static final Field2d field2d = new Field2d();
     public static Telemetry telemetry = new Telemetry();
     public static boolean autonWarmedUp = false;
+
+    /** Rolling five seconds of robotPeriodic durations at the default 50 Hz loop. */
+    private static final LoopTimingStats loopStats =
+            new LoopTimingStats("LoopTiming/robotPeriodic", 250);
 
     public static class Config {
         public final SwerveConfig swerve = new SwerveConfig();
@@ -344,6 +351,11 @@ public class Robot extends SpectrumRobot {
     public void robotPeriodic() {
         try {
             Telemetry.time("Scheduler/robotPeriodic");
+            double loopStartSeconds = Timer.getFPGATimestamp();
+
+            PhoenixUtil.refreshAll();
+            CachedDouble.invalidateAll();
+
             /*
              * Runs the Scheduler. This is responsible for polling buttons, adding newly-scheduled
              * commands, running already-scheduled commands, removing finished or interrupted
@@ -370,9 +382,23 @@ public class Robot extends SpectrumRobot {
             Telemetry.log("CANivore/ReceiveErrorCounter", canInfo.REC);
             Telemetry.log("CANivore/TransmitErrorCounter", canInfo.TEC);
 
+            var rioCanInfo = RobotController.getCANStatus();
+            Telemetry.log("RioCAN/BusUtilization", rioCanInfo.percentBusUtilization * 100, "%");
+            Telemetry.log("RioCAN/BusOffCount", rioCanInfo.busOffCount);
+            Telemetry.log("RioCAN/TxFullCount", rioCanInfo.txFullCount);
+            Telemetry.log("RioCAN/ReceiveErrorCounter", rioCanInfo.receiveErrorCount);
+            Telemetry.log("RioCAN/TransmitErrorCounter", rioCanInfo.transmitErrorCount);
+
+            Telemetry.log("Phoenix/FastSignalCount", PhoenixUtil.getFastSignalCount());
+            Telemetry.log("Phoenix/SlowSignalCount", PhoenixUtil.getSlowSignalCount());
+            Telemetry.log("Phoenix/CachedDoubleCount", CachedDouble.getInstanceCount());
+
             field2d.setRobotPose(swerve.getRobotPose());
 
             ShotCalculator.getInstance().clearShootingParameters();
+
+            loopStats.update((Timer.getFPGATimestamp() - loopStartSeconds) * 1000.0);
+            loopStats.log();
             Telemetry.timeEnd("Scheduler/robotPeriodic");
         } catch (Throwable t) {
             // intercept error and log it
