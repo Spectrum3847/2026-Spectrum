@@ -121,7 +121,7 @@ public class Launcher extends Mechanism {
                 break;
         }
         final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        setVoltageOutput(() -> finalWantedRPM);
     }
 
     @Getter private LauncherConfig config;

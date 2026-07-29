@@ -118,15 +118,16 @@ public class DyeRotor implements Subsystem {
 
         public static class FeederConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 40;
-            @Getter @Setter private double statorCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+            @Getter @Setter private double supplyCurrentLowerTime = 1.0;
+            @Getter @Setter private double statorCurrentLimit = 120;
 
-            // TODO: tune
-            @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 0;
-            @Getter @Setter private double velocityKs = 15;
+            @Getter @Setter private double velocityKp = 0.5;
+            @Getter @Setter private double velocityKv = 0.434;
+            @Getter @Setter private double velocityKs = 0;
 
-            private final double gearRatio = 1.833;
+            private final double gearRatio = 3.67;
 
             public FeederConfig() {
                 super("Feeder", 9, Rio.CANIVORE);
@@ -135,6 +136,8 @@ public class DyeRotor implements Subsystem {
                 configGearRatio(gearRatio);
                 configSupplyCurrentLimit(supplyCurrentLimit, true);
                 configStatorCurrentLimit(statorCurrentLimit, true);
+                configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
+                configLowerSupplyCurrentTime(supplyCurrentLowerTime);
                 configForwardTorqueCurrentLimit(statorCurrentLimit);
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
                 configNeutralBrakeMode(false);
