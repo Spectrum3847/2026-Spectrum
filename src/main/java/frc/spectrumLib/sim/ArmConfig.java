@@ -95,6 +95,21 @@ public class ArmConfig {
      * @param color the color to use
      * @return this config for chaining
      */
+    /** True when the sim geometry travels opposite the motor's positive direction. */
+    @Getter private boolean reversedLinkage = false;
+
+    /**
+     * Mirrors the simulated motor so the sim's travel matches the motor's positive direction. See
+     * {@link SimMotor#simState(com.ctre.phoenix6.hardware.TalonFX, boolean)}.
+     *
+     * @param reversedLinkage true when the sim travels opposite the motor
+     * @return this config, for chaining
+     */
+    public ArmConfig setReversedLinkage(boolean reversedLinkage) {
+        this.reversedLinkage = reversedLinkage;
+        return this;
+    }
+
     public ArmConfig setColor(Color8Bit color) {
         this.color = color;
         return this;

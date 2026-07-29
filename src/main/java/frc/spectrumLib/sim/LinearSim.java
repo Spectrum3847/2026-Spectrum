@@ -1,5 +1,6 @@
 package frc.spectrumLib.sim;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
@@ -40,10 +41,9 @@ public class LinearSim implements Mount, Mountable {
      * @param linearMotorSim the TalonFX sim state of the motor driving the stage
      * @param name unique name prefix used for Mechanism2d element labels
      */
-    public LinearSim(
-            LinearConfig config, Mechanism2d mech, TalonFXSimState linearMotorSim, String name) {
+    public LinearSim(LinearConfig config, Mechanism2d mech, TalonFX motor, String name) {
         this.config = config;
-        this.linearMotorSim = linearMotorSim;
+        this.linearMotorSim = SimMotor.simState(motor, config.isReversedLinkage());
 
         this.elevatorSim =
                 new ElevatorSim(

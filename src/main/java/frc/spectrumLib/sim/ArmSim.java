@@ -1,5 +1,6 @@
 package frc.spectrumLib.sim;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
@@ -35,9 +36,9 @@ public class ArmSim implements Mount, Mountable {
      * @param armMotorSim the TalonFX sim state of the motor driving the arm
      * @param name unique name prefix used for Mechanism2d element labels
      */
-    public ArmSim(ArmConfig config, Mechanism2d mech, TalonFXSimState armMotorSim, String name) {
+    public ArmSim(ArmConfig config, Mechanism2d mech, TalonFX motor, String name) {
         this.config = config;
-        this.armMotorSim = armMotorSim;
+        this.armMotorSim = SimMotor.simState(motor, config.isReversedLinkage());
         armSim =
                 new SingleJointedArmSim(
                         DCMotor.getKrakenX60Foc(config.getNumMotors()),

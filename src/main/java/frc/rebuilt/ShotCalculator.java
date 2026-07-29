@@ -74,14 +74,6 @@ public class ShotCalculator {
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
-    /**
-     * Sim-only scale on the time-of-flight used for shoot-on-move lead. The sim's ball flight is
-     * quicker than the fitted TOF, so leading by the full value over-counter-aims; dial this until
-     * simulated moving shots land. Scales the whole lead (aim-point shift, yaw correction, and
-     * reported flight time) so they stay consistent. Has no effect on the real robot.
-     */
-    public static final double SIM_TOF_SCALAR = 0.4;
-
     public static Command increaseHoodAngleOffset() {
         return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
     }
@@ -114,6 +106,13 @@ public class ShotCalculator {
 
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
     private static final double RPM_PER_MPS = 255.0;
+
+    /**
+     * Per-second rate at which drag bleeds off the chassis velocity the ball inherits. Drives
+     * {@link #driftEfficiency(double)}; raise it if shoot-on-move still over-counter-aims, lower it
+     * if it under-corrects. Applies on the real robot too, since the drag is real.
+     */
+    private static final double LEAD_DRAG_BLEED_PER_SEC = 0.085;
 
     /**
      * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are
@@ -517,10 +516,10 @@ public class ShotCalculator {
      */
     private static double[] solveVirtualTarget(
             PolyModel model, double distance, double radialVelocity, double tangentialVelocity) {
-        double tofScalar = Robot.isSimulation() ? SIM_TOF_SCALAR : 1.0;
         double vdx = distance; // virtual aim point — radial component (m)
         double vdz = 0.0; // virtual aim point — lateral component (m)
         double tof = 0.0;
+        double lead = 0.0; // effective lead time after drag bleed (s)
 
         for (int iter = 0; iter < 5; iter++) {
             double vDist = Math.sqrt(vdx * vdx + vdz * vdz);
@@ -530,19 +529,20 @@ public class ShotCalculator {
             // already encoded in the shifted aim point)
             double[] raw = evalPolyRaw(model, vDist, 0.0);
             double prevTof = tof;
-            tof = raw[2] * tofScalar;
+            tof = raw[2];
+            lead = tof * driftEfficiency(tof);
 
             // Shift aim point: where the target will be relative to the launcher
             // when the ball arrives
-            vdx = distance - radialVelocity * tof;
-            vdz = -tangentialVelocity * tof;
+            vdx = distance - radialVelocity * lead;
+            vdz = -tangentialVelocity * lead;
 
             if (iter > 0 && Math.abs(tof - prevTof) < 0.002) break;
         }
 
         double virtualDist = Math.sqrt(vdx * vdx + vdz * vdz);
         double yawOffsetDeg =
-                Math.atan2(-tangentialVelocity * tof, distance - radialVelocity * tof)
+                Math.atan2(-tangentialVelocity * lead, distance - radialVelocity * lead)
                         * (180.0 / Math.PI);
 
         double[] result = evalPolyRaw(model, virtualDist, 0.0);
@@ -551,8 +551,24 @@ public class ShotCalculator {
             result[1], // launchAngle_deg
             yawOffsetDeg, // yaw correction (degrees)
             virtualDist, // converged lookahead distance (m)
-            result[2] * tofScalar // time of flight at the converged aim point (s)
+            result[2] // time of flight at the converged aim point (s)
         };
+    }
+
+    /**
+     * Fraction of the chassis velocity the ball inherits that actually survives to the target.
+     *
+     * <p>Drag bleeds off the inherited velocity during flight, so the ball drifts less than {@code
+     * velocity * timeOfFlight}. Leading by the full product over-counter-aims by an amount that
+     * grows with both robot speed and flight time. Measured against the ball sim at 0.89 / 0.86 /
+     * 0.82 for 4 / 6 / 8 m shots — independent of robot speed, and close enough to linear in flight
+     * time to model with a single coefficient.
+     *
+     * @param tofSeconds ball time of flight (seconds)
+     * @return drift efficiency in [0, 1]
+     */
+    private static double driftEfficiency(double tofSeconds) {
+        return MathUtil.clamp(1.0 - LEAD_DRAG_BLEED_PER_SEC * tofSeconds, 0.0, 1.0);
     }
 
     /**

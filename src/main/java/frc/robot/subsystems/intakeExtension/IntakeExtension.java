@@ -3,7 +3,6 @@ package frc.robot.subsystems.intakeExtension;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -492,12 +491,12 @@ public class IntakeExtension extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
+            sim = new IntakeExtensionSim(RobotSim.leftView, motor);
         }
     }
 
     class IntakeExtensionSim extends LinearSim {
-        public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
+        public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new LinearConfig(
                                     config.getIntakeX(),
@@ -509,9 +508,10 @@ public class IntakeExtension extends Mechanism {
                             .setStaticLength(config.getStaticLength())
                             .setMaxHeight(config.getMaxExtensionHeight())
                             .setLineWidth(config.getLineWidth())
-                            .setColor(new Color8Bit(Color.kLightGray)),
+                            .setColor(new Color8Bit(Color.kLightGray))
+                            .setReversedLinkage(true),
                     mech,
-                    intakeExtensionMotorSim,
+                    motor,
                     config.getName());
         }
     }

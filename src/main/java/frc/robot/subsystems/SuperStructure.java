@@ -29,7 +29,10 @@ public class SuperStructure extends SubsystemBase {
     @Getter private final Hood hood;
 
     private static final double REGULAR_TELEOP_TRANSLATION_COEFFICIENT = 1.0;
-    private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.1;
+    private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.2;
+
+    private static final double REGULAR_TELEOP_ROTATION_COEFFICIENT = 1.0;
+    private static final double SHOOTING_TELEOP_ROTATION_COEFFICIENT = 0.2;
 
     public enum WantedSuperState {
         IDLE,
@@ -40,6 +43,8 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITHOUT_SQUEEZE,
         LAUNCH_WITH_BRAKE,
         AUTON_TRACK_TARGET,
+        AUTON_LAUNCH_WITH_SQUEEZE,
+        AUTON_LAUNCH_WITHOUT_SQUEEZE,
         AUTON_INTAKE_FUEL,
         UNJAM,
         FORCE_HOME,
@@ -55,6 +60,8 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITH_BRAKE,
         AUTON_IDLE,
         AUTON_TRACK_TARGET,
+        AUTON_LAUNCH_WITH_SQUEEZE,
+        AUTON_LAUNCH_WITHOUT_SQUEEZE,
         AUTON_INTAKE_FUEL,
         UNJAM,
         FORCE_HOME,
@@ -85,6 +92,20 @@ public class SuperStructure extends SubsystemBase {
 
     private final Timer intakeSqueezeTimer = new Timer();
     private final double secondsToSqueeze = 1.0;
+
+    public boolean currentStateIsLaunching() {
+        return currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                || currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
+                || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
+    }
+
+    public boolean currentStateIsIntaking() {
+        return currentSuperState == CurrentSuperState.INTAKE_FUEL
+                || currentSuperState == CurrentSuperState.AUTON_INTAKE_FUEL
+                || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
+    }
 
     private static boolean isSqueezeState(CurrentSuperState state) {
         return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
@@ -122,6 +143,8 @@ public class SuperStructure extends SubsystemBase {
             case LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE;
             case LAUNCH_WITH_BRAKE -> CurrentSuperState.LAUNCH_WITH_BRAKE;
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
+            case AUTON_LAUNCH_WITH_SQUEEZE -> CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE;
+            case AUTON_LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
             case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
@@ -157,6 +180,12 @@ public class SuperStructure extends SubsystemBase {
             case AUTON_INTAKE_FUEL:
                 autonIntakeFuel();
                 break;
+            case AUTON_LAUNCH_WITHOUT_SQUEEZE:
+                autonLaunchWithoutSqueeze();
+                break;
+            case AUTON_LAUNCH_WITH_SQUEEZE:
+                autonLaunchWithSqueeze();
+                break;
             case AUTON_TRACK_TARGET:
                 autonTrackTarget();
                 break;
@@ -174,30 +203,33 @@ public class SuperStructure extends SubsystemBase {
     private void applyIdle() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.OFF);
-        turret.setWantedState(Turret.WantedState.IDLE);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
     private void intakeFuel() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.IDLE);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
     private void trackTarget() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
@@ -210,6 +242,7 @@ public class SuperStructure extends SubsystemBase {
     private void launchWithSqueeze() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
@@ -228,6 +261,7 @@ public class SuperStructure extends SubsystemBase {
     private void launchWithSqueezeWithNoDelay() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
@@ -240,6 +274,7 @@ public class SuperStructure extends SubsystemBase {
     private void launchWithoutSqueeze() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
@@ -267,7 +302,7 @@ public class SuperStructure extends SubsystemBase {
         intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.OFF);
-        turret.setWantedState(Turret.WantedState.IDLE);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
@@ -277,7 +312,7 @@ public class SuperStructure extends SubsystemBase {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.IDLE);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
@@ -287,6 +322,24 @@ public class SuperStructure extends SubsystemBase {
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+    }
+
+    private void autonLaunchWithoutSqueeze() {
+        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
+        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+    }
+
+    private void autonLaunchWithSqueeze() {
+        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
+        launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -306,6 +359,7 @@ public class SuperStructure extends SubsystemBase {
     private void forceHome() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.OFF);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_RETRACT);

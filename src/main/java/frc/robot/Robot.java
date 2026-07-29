@@ -35,7 +35,6 @@ import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.subsystems.SuperStructure;
-import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
 import frc.robot.subsystems.dyeRotor.DyeRotor.DyeRotorConfig;
@@ -300,16 +299,7 @@ public class Robot extends SpectrumRobot {
     }
 
     public void configureSimBindings() {
-        Trigger simLaunching =
-                new Trigger(
-                        () ->
-                                (superStructure.getCurrentSuperState()
-                                                == CurrentSuperState.LAUNCH_WITH_SQUEEZE
-                                        || superStructure.getCurrentSuperState()
-                                                == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
-                                        || superStructure.getCurrentSuperState()
-                                                == CurrentSuperState
-                                                        .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY));
+        Trigger simLaunching = new Trigger(superStructure::currentStateIsLaunching);
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
 
         // Sim bindings for when people with just keyboards at home are doing sim at home

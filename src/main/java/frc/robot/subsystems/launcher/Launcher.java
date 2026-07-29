@@ -1,7 +1,7 @@
 package frc.robot.subsystems.launcher;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -154,18 +154,18 @@ public class Launcher extends Mechanism {
     // // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
+            sim = new LauncherSim(RobotSim.leftView, motor);
         }
     }
 
     class LauncherSim extends RollerSim {
-        public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+        public LauncherSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getLauncherX(), config.getLauncherY())
                             .setMount(Robot.getHood().getSim()),
                     mech,
-                    rollerMotorSim,
+                    motor,
                     config.getName());
         }
     }

@@ -1,7 +1,7 @@
 package frc.robot.subsystems.fuelIntake;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.robot.Robot;
@@ -134,18 +134,18 @@ public class FuelIntake extends Mechanism {
         if (isAttached()) {
             // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
             // diameter
-            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
+            sim = new FuelIntakeSim(RobotSim.leftView, motor);
         }
     }
 
     class FuelIntakeSim extends RollerSim {
-        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+        public FuelIntakeSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getIntakeX(), config.getIntakeY())
                             .setMount(Robot.getIntakeExtension().getSim()),
                     mech,
-                    rollerMotorSim,
+                    motor,
                     config.getName());
         }
     }

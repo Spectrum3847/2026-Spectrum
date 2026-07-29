@@ -3,7 +3,6 @@ package frc.robot.subsystems.turret;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -48,7 +47,7 @@ public class Turret extends Mechanism {
         @Getter private final double positionKs = 10;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 0.5;
+        @Getter private final double mmCruiseVelocity = 1;
         @Getter private final double mmAcceleration = 5;
         @Getter private final double mmJerk = 0;
 
@@ -323,12 +322,12 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     private void simulationInit() {
         if (isAttached()) {
-            sim = new TurretSim(RobotSim.topView, motor.getSimState());
+            sim = new TurretSim(RobotSim.topView, motor);
         }
     }
 
     class TurretSim extends ArmSim {
-        public TurretSim(Mechanism2d mech, TalonFXSimState turretMotorSim) {
+        public TurretSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new ArmConfig(
                                     config.turretX,
@@ -340,7 +339,7 @@ public class Turret extends Mechanism {
                                     0)
                             .setSimulatedGravity(false),
                     mech,
-                    turretMotorSim,
+                    motor,
                     config.getName());
         }
     }

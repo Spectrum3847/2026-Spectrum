@@ -53,6 +53,21 @@ public class RollerConfig {
      * @param ratio gear ratio (motor rotations per roller rotation)
      * @return this config for chaining
      */
+    /** True when the sim geometry travels opposite the motor's positive direction. */
+    @Getter private boolean reversedLinkage = false;
+
+    /**
+     * Mirrors the simulated motor so the sim's travel matches the motor's positive direction. See
+     * {@link SimMotor#simState(com.ctre.phoenix6.hardware.TalonFX, boolean)}.
+     *
+     * @param reversedLinkage true when the sim travels opposite the motor
+     * @return this config, for chaining
+     */
+    public RollerConfig setReversedLinkage(boolean reversedLinkage) {
+        this.reversedLinkage = reversedLinkage;
+        return this;
+    }
+
     public RollerConfig setGearRatio(double ratio) {
         gearRatio = ratio;
         return this;

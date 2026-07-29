@@ -92,7 +92,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private final StatusSignal<Angle> rollSignal = pigeon.getRoll();
 
     @Getter @Setter private double teleopVelocityCoefficient = 1.0;
-    @Getter @Setter private double rotationVelocityCoefficient = 1.0;
+    @Getter @Setter private double teleopRotationVelocityCoefficient = 1.0;
 
     @Getter private SwerveConfig config;
     private Notifier simNotifier = null;
@@ -230,7 +230,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
-        Telemetry.log("Swerve/RotationVelocityCoefficient", getRotationVelocityCoefficient());
+        Telemetry.log(
+                "Swerve/TeleopRotationVelocityCoefficient", getTeleopRotationVelocityCoefficient());
         logBatteryUsage();
 
         checkPigeonConnection();
@@ -326,7 +327,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                                 ? yMagnitude
                                 : -yMagnitude)
                         * teleopVelocityCoefficient;
-        double angularVelocity = angularMagnitude * rotationVelocityCoefficient;
+        double angularVelocity = angularMagnitude * teleopRotationVelocityCoefficient;
 
         Rotation2d skewCompensationFactor =
                 Rotation2d.fromRadians(

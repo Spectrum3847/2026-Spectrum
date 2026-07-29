@@ -966,9 +966,16 @@ public class FuelPhysicsSim {
      * @param spinRPM backspin in RPM (positive = backspin = Magnus lift)
      */
     public void launchBall(Translation3d pos, Translation3d vel, double spinRPM) {
-        // Convert RPM to 3D omega: backspin is rotation around -Y axis
-        double omegaY = -spinRPM * 2.0 * Math.PI / 60.0;
-        Translation3d omega = new Translation3d(0, omegaY, 0);
+        // Backspin axis is horizontal and perpendicular to the launch heading, so omega x v lifts
+        // for any heading. Pinning it to a fixed axis would give no lift when firing along that
+        // axis and invert the lift when firing against it.
+        double omegaMag = spinRPM * 2.0 * Math.PI / 60.0;
+        double hLen = Math.hypot(vel.getX(), vel.getY());
+        Translation3d omega =
+                hLen < 1e-6
+                        ? new Translation3d(0, -omegaMag, 0)
+                        : new Translation3d(
+                                omegaMag * vel.getY() / hLen, -omegaMag * vel.getX() / hLen, 0);
         launchBall(pos, vel, omega);
     }
 
@@ -987,8 +994,8 @@ public class FuelPhysicsSim {
         totalIntaked--;
         lastLaunchSpeed = vel.getNorm();
 
-        // Predict the trajectory arc for Field3d visualization (20 points, gravity + drag only)
-        lastShotArc = predictArc(pos, vel, 200, 0.05);
+        // Predict the trajectory arc for Field3d visualization (up to 10 s, sampled every 50 ms)
+        lastShotArc = predictArc(pos, vel, omega, 200, 0.05);
 
         // Wake nearby sleeping balls
         if (config.sleepingEnabled) {
@@ -2267,25 +2274,71 @@ public class FuelPhysicsSim {
     // Trajectory prediction
 
     /**
-     * Predict where a shot will go (gravity + drag only, no collisions). Returns points you can
-     * plot in AdvantageScope Field3d. Stops at the ground.
+     * Predict where a shot will go (gravity, drag, and Magnus; no collisions). Integrates with the
+     * same forces and substep as the live sim so the drawn arc tracks the ball's actual path, and
+     * emits one point every {@code sampleDt} seconds. Returns points you can plot in AdvantageScope
+     * Field3d. Stops at the ground.
      */
-    private Translation3d[] predictArc(Translation3d pos, Translation3d vel, int steps, double dt) {
+    private Translation3d[] predictArc(
+            Translation3d pos,
+            Translation3d vel,
+            Translation3d omega,
+            int maxPoints,
+            double sampleDt) {
+        double subDt = PERIOD / Math.max(1, config.subticks);
+        int stepsPerPoint = Math.max(1, (int) Math.round(sampleDt / subDt));
+
         List<Translation3d> arc = new ArrayList<>();
         arc.add(pos);
         double px = pos.getX(), py = pos.getY(), pz = pos.getZ();
         double vx = vel.getX(), vy = vel.getY(), vz = vel.getZ();
-        for (int i = 0; i < steps; i++) {
-            double speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
-            double drag = config.dragEnabled && speed > 1e-6 ? DRAG_ACCEL_FACTOR * speed : 0;
-            vx -= drag * vx * dt;
-            vy -= drag * vy * dt;
-            vz -= (GRAVITY + drag * vz) * dt;
-            px += vx * dt;
-            py += vy * dt;
-            pz += vz * dt;
-            if (pz < BALL_RADIUS) break;
-            arc.add(new Translation3d(px, py, pz));
+        double wx = omega.getX(), wy = omega.getY(), wz = omega.getZ();
+        boolean landed = false;
+
+        for (int p = 0; p < maxPoints && !landed; p++) {
+            for (int s = 0; s < stepsPerPoint; s++) {
+                double speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+                double ax = 0, ay = 0, az = -GRAVITY;
+
+                if (config.dragEnabled && speed > 1e-6) {
+                    ax -= DRAG_ACCEL_FACTOR * speed * vx;
+                    ay -= DRAG_ACCEL_FACTOR * speed * vy;
+                    az -= DRAG_ACCEL_FACTOR * speed * vz;
+                }
+
+                // Matches computeAcceleration: Magnus only once airborne
+                if (config.magnusEnabled
+                        && speed > 1e-6
+                        && pz > BALL_RADIUS + 0.01
+                        && (wx * wx + wy * wy + wz * wz) > 1e-6) {
+                    ax += MAGNUS_ACCEL_FACTOR * (wy * vz - wz * vy);
+                    ay += MAGNUS_ACCEL_FACTOR * (wz * vx - wx * vz);
+                    az += MAGNUS_ACCEL_FACTOR * (wx * vy - wy * vx);
+                }
+
+                // Symplectic Euler, same ordering as stepSubtick
+                vx += ax * subDt;
+                vy += ay * subDt;
+                vz += az * subDt;
+                px += vx * subDt;
+                py += vy * subDt;
+                pz += vz * subDt;
+
+                if (config.spinDecayEnabled) {
+                    double decay = Math.exp(-subDt / config.spinDecayTau);
+                    wx *= decay;
+                    wy *= decay;
+                    wz *= decay;
+                }
+
+                if (pz < BALL_RADIUS) {
+                    landed = true;
+                    break;
+                }
+            }
+            if (!landed) {
+                arc.add(new Translation3d(px, py, pz));
+            }
         }
         return arc.toArray(new Translation3d[0]);
     }

@@ -1,6 +1,6 @@
 package frc.robot.subsystems.dyeRotor;
 
-import com.ctre.phoenix6.sim.TalonFXSimState;
+import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Subsystem;
@@ -94,18 +94,18 @@ public class DyeRotor implements Subsystem {
 
         public void simulationInit() {
             if (isAttached()) {
-                sim = new RotorSim(RobotSim.leftView, motor.getSimState());
+                sim = new RotorSim(RobotSim.leftView, motor);
             }
         }
 
         class RotorSim extends RollerSim {
-            public RotorSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+            public RotorSim(Mechanism2d mech, TalonFX motor) {
                 super(
                         new RollerConfig(config.getRotorDiameter())
                                 .setPosition(config.getRotorX(), config.getRotorY())
                                 .setGearRatio(config.getGearRatio()),
                         mech,
-                        rollerMotorSim,
+                        motor,
                         config.getName());
             }
         }

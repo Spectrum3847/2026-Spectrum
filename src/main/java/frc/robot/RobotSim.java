@@ -9,6 +9,7 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -22,7 +23,6 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.subsystems.SuperStructure;
-import frc.robot.subsystems.SuperStructure.CurrentSuperState;
 import frc.spectrumLib.sim.Circle;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
@@ -51,7 +51,7 @@ public class RobotSim {
     @Getter private static double simRobotLength = Units.inchesToMeters(37.86);
 
     private static final Translation3d TURRET_PIVOT_POINT = Translation3d.kZero;
-    private static final Translation3d HOOD_PIVOT_POINT = new Translation3d(0.0, 0.0, 0.487);
+    private static final Translation3d HOOD_PIVOT_POINT = new Translation3d(0.083, 0.0, 0.487);
     private static final double INTAKE_DEPLOY_ANGLE_DEGREES = -12;
 
     @Getter private FuelPhysicsSim ballSim;
@@ -208,7 +208,7 @@ public class RobotSim {
                 intakeXMax,
                 intakeYMin,
                 intakeYMax,
-                () -> robotSuperStructure.getCurrentSuperState() == CurrentSuperState.INTAKE_FUEL);
+                robotSuperStructure::currentStateIsIntaking);
     }
 
     private Command createSimBallLaunch() {
@@ -228,8 +228,17 @@ public class RobotSim {
                                     0,
                                     -Math.toRadians(launchElevationDegrees),
                                     turretFieldAngle.getRadians());
+                    ChassisSpeeds fieldSpeeds =
+                            ChassisSpeeds.fromRobotRelativeSpeeds(
+                                    robotSuperStructure.getSwerve().getCurrentRobotChassisSpeeds(),
+                                    robotPos.getRotation());
                     Translation3d launchVelocity =
-                            new Translation3d(params.exitSpeedMs(), launchRotation);
+                            new Translation3d(params.exitSpeedMs(), launchRotation)
+                                    .plus(
+                                            new Translation3d(
+                                                    fieldSpeeds.vxMetersPerSecond,
+                                                    fieldSpeeds.vyMetersPerSecond,
+                                                    0));
 
                     Transform2d robotToTurret =
                             new Transform2d(
@@ -243,7 +252,13 @@ public class RobotSim {
                                                     0,
                                                     0,
                                                     Units.inchesToMeters(LAUNCH_HEIGHT_INCHES)));
-                    ballSim.launchBall(launcherPose, launchVelocity, 500);
+                    double spinRadPerSec = 500 * 2 * Math.PI / 60.0;
+                    Translation3d backspin =
+                            new Translation3d(
+                                    Math.sin(turretFieldAngle.getRadians()) * spinRadPerSec,
+                                    -Math.cos(turretFieldAngle.getRadians()) * spinRadPerSec,
+                                    0);
+                    ballSim.launchBall(launcherPose, launchVelocity, backspin);
                 });
     }
 
