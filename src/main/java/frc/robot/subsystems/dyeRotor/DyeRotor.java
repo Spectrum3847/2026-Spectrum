@@ -29,15 +29,16 @@ public class DyeRotor implements Subsystem {
 
         public static class RotorConfig extends Config {
 
-            @Getter private final double supplyCurrentLimit = 40;
-            @Getter private final double statorCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+            @Getter @Setter private double supplyCurrentLowerTime = 1.0;
+            @Getter @Setter private double statorCurrentLimit = 80;
 
             @Getter private final double gearRatio = 37.5;
 
-            // TODO: tune
-            @Getter private final double velocityKp = 5;
-            @Getter private final double velocityKv = 0;
-            @Getter private final double velocityKs = 15;
+            @Getter @Setter private double velocityKp = 5;
+            @Getter @Setter private double velocityKv = 4.38;
+            @Getter @Setter private double velocityKs = 0;
 
             /* Sim Configs */
             @Getter private final double rotorX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
@@ -47,11 +48,13 @@ public class DyeRotor implements Subsystem {
             @Getter private final double rotorDiameter = 12;
 
             public RotorConfig() {
-                super("Rotor", 8, Rio.CANIVORE);
+                super("Rotor", 9, Rio.CANIVORE);
                 configPIDGains(velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
                 configSupplyCurrentLimit(supplyCurrentLimit, true);
+                configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
+                configLowerSupplyCurrentTime(supplyCurrentLowerTime);
                 configStatorCurrentLimit(statorCurrentLimit, true);
                 configForwardTorqueCurrentLimit(statorCurrentLimit);
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
@@ -83,7 +86,7 @@ public class DyeRotor implements Subsystem {
         }
 
         public void setRotorRpm(double rpm) {
-            setVelocityTCFOCrpm(() -> rpm);
+            setVelocityRPM(() -> rpm);
         }
 
         public void rotorStop() {
@@ -113,23 +116,26 @@ public class DyeRotor implements Subsystem {
 
         public static class FeederConfig extends Config {
 
-            @Getter private final double supplyCurrentLimit = 40;
-            @Getter private final double statorCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+            @Getter @Setter private double supplyCurrentLowerTime = 1.0;
+            @Getter @Setter private double statorCurrentLimit = 120;
 
-            // TODO: tune
-            @Getter private final double velocityKp = 5;
-            @Getter private final double velocityKv = 0;
-            @Getter private final double velocityKs = 15;
+            @Getter @Setter private double velocityKp = 0.5;
+            @Getter @Setter private double velocityKv = 0.434;
+            @Getter @Setter private double velocityKs = 0;
 
-            private final double gearRatio = 1.833;
+            private final double gearRatio = 3.67;
 
             public FeederConfig() {
-                super("Feeder", 9, Rio.CANIVORE);
+                super("Feeder", 10, Rio.CANIVORE);
                 configPIDGains(velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
                 configSupplyCurrentLimit(supplyCurrentLimit, true);
                 configStatorCurrentLimit(statorCurrentLimit, true);
+                configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
+                configLowerSupplyCurrentTime(supplyCurrentLowerTime);
                 configForwardTorqueCurrentLimit(statorCurrentLimit);
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
                 configNeutralBrakeMode(false);
@@ -157,7 +163,7 @@ public class DyeRotor implements Subsystem {
         }
 
         public void setFeederRpm(double rpm) {
-            setVelocityTCFOCrpm(() -> rpm);
+            setVelocityRPM(() -> rpm);
         }
 
         public void feederStop() {
@@ -219,7 +225,7 @@ public class DyeRotor implements Subsystem {
                 return;
             case INDEX_MAX:
                 wantedRPMSpin = 100;
-                wantedRPMIndex = 3000;
+                wantedRPMIndex = 2500;
                 break;
             case IDLE_SLOW_INDEX:
                 wantedRPMSpin = -20;
@@ -227,7 +233,7 @@ public class DyeRotor implements Subsystem {
                 break;
             case UNJAM:
                 wantedRPMSpin = 0;
-                wantedRPMIndex = -2000;
+                wantedRPMIndex = -1000;
                 break;
         }
         final double finalWantedRPMSpin = wantedRPMSpin;

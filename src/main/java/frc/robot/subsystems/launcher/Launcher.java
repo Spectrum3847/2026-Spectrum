@@ -20,12 +20,6 @@ public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        // Intake Voltages and Current
-        // keep
-        @Getter private final double LauncherVoltage = 9.0;
-        @Getter private final double LauncherSupplyCurrent = 30.0;
-        @Getter private final double LauncherStatorCurrent = 85.0;
-
         // tune
         @Getter private final double idlingRPM = 700;
         @Getter private final double slowLaunchSpeed = 400;
@@ -37,20 +31,20 @@ public class Launcher extends Mechanism {
 
         /* Launcher config values */
         @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 100;
+        @Getter private final double statorCurrentLimit = 80;
         @Getter private final double forwardStatorCurrentLimit = statorCurrentLimit;
         @Getter private final double reverseStatorCurrentLimit = -10;
-        @Getter private final double lowerSupplyCurrentLimit = 60;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double timeUntilLowerCurrent = 1;
         @Getter private final double nominalVoltage = 16;
         // TODO: tune
-        @Getter private final double velocityKp = 10;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 20;
+        @Getter private double velocityKp = 0.5;
+        @Getter private double velocityKv = 0.1425;
+        @Getter private double velocityKs = 0;
 
-        @Getter private final double onTargetToleranceRPM = 100;
+        @Getter private double onTargetToleranceRPM = 200;
 
-        @Getter private final double gearRatio = 1.833;
+        @Getter private double gearRatio = 1.38;
 
         /* Sim Configs */
         @Getter private final double launcherX = Units.inchesToMeters(50);
@@ -58,7 +52,7 @@ public class Launcher extends Mechanism {
         @Getter private final double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher Front Left", 46, Rio.CANIVORE);
+            super("Launcher Front Left", 15, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(gearRatio);
@@ -70,11 +64,11 @@ public class Launcher extends Mechanism {
             configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
-            configReverseVoltageLimit(nominalVoltage);
+            configReverseVoltageLimit(-nominalVoltage);
             configClockwise_Positive();
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Front Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                            "Launcher Front Right", 16, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -122,7 +116,7 @@ public class Launcher extends Mechanism {
                 break;
         }
         final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        setVelocityRPM(() -> finalWantedRPM);
     }
 
     @Getter private final LauncherConfig config;

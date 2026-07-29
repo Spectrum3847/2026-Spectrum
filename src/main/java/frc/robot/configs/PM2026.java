@@ -13,7 +13,8 @@ public class PM2026 extends Config {
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(true);
+        intakeRoller.setAttached(true);
+        intakeKicker.setAttached(true);
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
         // indexerTower.setAttached(true);

@@ -12,8 +12,6 @@ import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
 import frc.spectrumLib.hardware.Rio;
-import frc.spectrumLib.hardware.SpectrumCANcoder;
-import frc.spectrumLib.hardware.SpectrumCANcoderConfig;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
@@ -31,33 +29,36 @@ public class Turret extends Mechanism {
         @Getter private final double shootOnMoveLatencySec = 0.03;
         @Getter private final double maxOmegaForShotRotPerSec = 0.75;
 
-        @Getter private final Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
+        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
 
-        @Getter private final double currentLimit = 30;
-        @Getter private final double torqueCurrentLimit = 60;
-        // TODO: update
-        @Getter private final double positionKp = 500;
-        @Getter private final double positionKd = 100;
+        /* Turret config settings */
+        @Getter private final double zeroSpeed = -0.1;
+        @Getter private final double holdMaxSpeedRPM = 18;
 
-        // TODO: required for shoot on the move capability update until line 67
+        @Getter private final double currentLimit = 80;
+        @Getter private final double supplyCurrentLowerLimit = 40;
+        @Getter private final double supplyCurrentLowerTime = 1.0;
+        @Getter private final double torqueCurrentLimit = 80;
+        @Getter private final double positionKp = 800;
+        @Getter private final double positionKi = 100;
+
+        // required for shoot on the move capability update until line 67
         // additional current output per unit of velocity requested
         // needed because of the velocity setpoint used in the control request
-        @Getter private final double positionKv = 0;
+        @Getter private final double positionKv = 10;
 
-        @Getter private final double positionKs = 10;
+        @Getter private final double positionKs = 0.6;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 1;
-        @Getter private final double mmAcceleration = 5;
+        @Getter private final double mmCruiseVelocity = 0.25;
+        @Getter private final double mmAcceleration = 0.5;
         @Getter private final double mmJerk = 0;
+        @Getter private final double peakVoltage = 6;
 
-        @Getter private final double sensorToMechanismRatio = 45;
-        @Getter private final double rotorToSensorRatio = 1;
-        @Getter private final double CANcoderRotorToSensorRatio = 5;
-        @Getter private final double CANcoderSensorToMechanismRatio = 9;
-        @Getter private final double CANcoderOffset = -0.196533203125;
-        @Getter private final boolean CANcoderAttached = true;
-        @Getter private final boolean isCANcoderInverted = false;
+        @Getter private final double reverseLimitDegrees = -35.0;
+        @Getter private final double forwardLimitDegrees = 350.0;
+
+        @Getter private final double sensorToMechanismRatio = 39.78;
 
         /* Sim Configs */
         @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
@@ -66,16 +67,20 @@ public class Turret extends Mechanism {
         @Getter private final double length = 1;
 
         public TurretConfig() {
-            super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
-            configPIDGains(0, positionKp, 0, positionKd);
+            super("Turret", 14, Rio.CANIVORE); // Rio.CANIVORE);
+            configPIDGains(0, positionKp, positionKi, 0);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+            configForwardVoltageLimit(peakVoltage);
+            configReverseVoltageLimit(-peakVoltage);
             configGearRatio(sensorToMechanismRatio);
             configSupplyCurrentLimit(currentLimit, true);
+            configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
+            configLowerSupplyCurrentTime(supplyCurrentLowerTime);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(-1, 1);
+            configMinMaxRotations(reverseLimitDegrees / 360.0, forwardLimitDegrees / 360.0);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
@@ -136,7 +141,7 @@ public class Turret extends Mechanism {
                 unwrapping = false;
                 commandedDegrees = 0;
                 mechOmegaRotPerSec = 0;
-                setMMPositionFoc(() -> degreesToRotations(() -> 0.0));
+                setPosition(() -> degreesToRotations(() -> 0.0));
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget();
@@ -146,30 +151,12 @@ public class Turret extends Mechanism {
 
     @Getter private final TurretConfig config;
     @Getter private TurretSim sim;
-    @Getter private SpectrumCANcoder canCoder;
-    @Getter private SpectrumCANcoderConfig canCoderConfig;
 
     public Turret(TurretConfig config) {
         super(config);
         this.config = config;
 
         if (isAttached()) {
-            if (config.isCANcoderAttached() && !Robot.isSimulation()) {
-                canCoderConfig =
-                        new SpectrumCANcoderConfig(
-                                config.getCANcoderRotorToSensorRatio(),
-                                config.getCANcoderSensorToMechanismRatio(),
-                                config.getCANcoderOffset(),
-                                config.isCANcoderAttached(),
-                                config.isCANcoderInverted());
-                canCoder =
-                        new SpectrumCANcoder(
-                                44,
-                                canCoderConfig,
-                                motor,
-                                config,
-                                SpectrumCANcoder.CANCoderFeedbackType.FusedCANcoder);
-            }
             setInitialPosition();
         }
 
@@ -198,19 +185,7 @@ public class Turret extends Mechanism {
     }
 
     private void setInitialPosition() {
-        if (canCoder != null) {
-            if (canCoder.isAttached()
-                    && canCoder.canCoderResponseOK(
-                            canCoder.getCanCoder().getAbsolutePosition().getStatus())) {
-                motor.setPosition(
-                        (canCoder.getCanCoder().getAbsolutePosition().getValueAsDouble()
-                                / config.getCANcoderSensorToMechanismRatio()));
-            } else {
-                motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-            }
-        } else {
-            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-        }
+        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
     }
 
     private void applyAimAtTarget() {
@@ -235,7 +210,7 @@ public class Turret extends Mechanism {
             // Motion magic for smooth full-turn slew to the opposite winding, so the cable never
             // binds
             final double unwrapRot = degreesToRotations(() -> commandedDegrees);
-            setMMPositionFoc(() -> unwrapRot);
+            setMMPosition(() -> unwrapRot);
             return;
         }
 
@@ -251,7 +226,7 @@ public class Turret extends Mechanism {
 
         final double posRot = degreesToRotations(() -> predictedDegrees);
         final double ffRps = mechOmegaRotPerSec;
-        setPositionFocWithVelocity(() -> posRot, () -> ffRps);
+        setPositionWithVelocity(() -> posRot, () -> ffRps);
     }
 
     /**

@@ -5,6 +5,7 @@ import static edu.wpi.first.units.Units.DegreesPerSecond;
 import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.Seconds;
 import static edu.wpi.first.units.Units.Volts;
 
 import com.ctre.phoenix6.CANBus;
@@ -38,13 +39,11 @@ public class SwerveConfig {
     @Getter private final double deadband = 0.05; // 5% input deadband for the joysticks
     @Getter private final double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
-    // TODO: update if needed
-    @Getter private final double driveGearRatio = 6.03;
-    @Getter private final double steerGearRatio = 26.09;
+    @Getter @Setter private double driveGearRatio = 7.67;
+    @Getter @Setter private double steerGearRatio = 12.1;
 
     // Estimated at first, then fudge-factored to make odom match record
-    // TODO: update if needed
-    @Getter private final Distance wheelRadius = Inches.of(1.964); // 0.0499 m
+    @Getter @Setter private Distance wheelRadius = Inches.of(1.978);
 
     // Theoretical translational free speed (ft/s) at 12v applied output;
     @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);
@@ -66,32 +65,28 @@ public class SwerveConfig {
     @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.k180deg;
 
     // Both sets of gains need to be tuned to your individual robot.
-    // TODO: tune
     @Getter
     private Slot0Configs steerGains =
             new Slot0Configs()
-                    .withKP(500)
+                    .withKP(100)
                     .withKI(0)
-                    .withKD(20)
-                    .withKS(0.15)
-                    .withKV(1.0)
+                    .withKD(0.5)
+                    .withKS(0.1)
+                    .withKV(1.5)
                     .withKA(0)
                     .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
-    // TODO: tune
     @Getter
     private Slot0Configs driveGains =
-            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4.0).withKV(0.0);
+            new Slot0Configs().withKP(0.5).withKI(0.0).withKD(0.0).withKS(0.25918).withKV(0.73);
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
-    @Getter
-    private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
+    @Getter private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.Voltage;
 
     // The closed-loop output type to use for the drive motors;
     // This affects the PID/FF gains for the drive motors
-    @Getter
-    private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
+    @Getter private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.Voltage;
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
@@ -105,11 +100,12 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(80.0))
+                                    .withStatorCurrentLimit(slipCurrent)
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLimit(Amps.of(70.0))
                                     .withSupplyCurrentLimitEnable(true)
-                                    .withSupplyCurrentLowerLimit(Amps.of(40.0)));
+                                    .withSupplyCurrentLowerLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLowerTime(Seconds.of(1.0)));
 
     // Swerve azimuth does not require much torque output, so we can set a
     // relatively low stator current limit to help avoid
@@ -120,7 +116,11 @@ public class SwerveConfig {
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
                                     .withStatorCurrentLimit(Amps.of(60))
-                                    .withStatorCurrentLimitEnable(true));
+                                    .withStatorCurrentLimitEnable(true)
+                                    .withSupplyCurrentLimit(Amps.of(70.0))
+                                    .withSupplyCurrentLimitEnable(true)
+                                    .withSupplyCurrentLowerLimit(Amps.of(40.0))
+                                    .withSupplyCurrentLowerTime(Seconds.of(1.0)));
 
     @Getter private final CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
 

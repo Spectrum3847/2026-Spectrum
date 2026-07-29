@@ -2,41 +2,38 @@
 
 name: CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the main branch.
+# Triggers on push to main, and on ANY pull request regardless of target branch.
 on:
   push:
-  # This will run when a push to main is made
     branches: [ "main" ]
-  # This will run when a pull request to main is created
   pull_request:
-    branches: [ "main" ]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: read
+
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     # This grabs the WPILib docker container
     container: wpilib/roborio-cross-ubuntu:2025-24.04
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v6
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v6
 
-    # Declares the repository safe and not under dubious ownership.
-    - name: Add repository to git safe directories
-      run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      # Declares the repository safe and not under dubious ownership.
+      - name: Add repository to git safe directories
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    # Grant execute permission for gradlew
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      # Grant execute permission for gradlew
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-    # Runs a single command using the runners shell
-    - name: Compile and run tests on robot code
-      run: ./gradlew build
+      # Check Java formatting (Spotless)
+      - name: Check Java formatting (Spotless)
+        run: ./gradlew spotlessCheck
+
+      # Runs a single command using the runners shell
+      - name: Compile and run tests on robot code
+        run: ./gradlew build

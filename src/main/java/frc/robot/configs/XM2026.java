@@ -16,7 +16,8 @@ public class XM2026 extends Config {
         // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(true);
+        intakeRoller.setAttached(true);
+        intakeKicker.setAttached(true);
         intakeExtension.setAttached(false);
         launcher.setAttached(true);
         // indexerTower.setAttached(true);

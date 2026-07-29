@@ -439,7 +439,11 @@ public class ShotCalculator {
         double hoodVelocity =
                 hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
         lastHoodAngle = rawHoodAngle;
-        double hoodAngle = Math.max(rawHoodAngle + HOOD_ANGLE_OFFSET, 9);
+        double hoodAngle =
+                MathUtil.clamp(
+                        rawHoodAngle + HOOD_ANGLE_OFFSET,
+                        Robot.getHood().getConfig().getMinRotations() * 360.0,
+                        Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
         // ── Flywheel speed: exit speed (m/s) → RPM ───────────────────────────
         double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
