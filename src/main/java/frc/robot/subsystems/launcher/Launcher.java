@@ -21,7 +21,6 @@ public class Launcher extends Mechanism {
     public static class LauncherConfig extends Config {
 
         // Intake Voltages and Current
-        // keep
         @Getter @Setter private double LauncherVoltage = 9.0;
         @Getter @Setter private double LauncherSupplyCurrent = 30.0;
         @Getter @Setter private double LauncherStatorCurrent = 85.0;
@@ -37,20 +36,20 @@ public class Launcher extends Mechanism {
 
         /* Launcher config values */
         @Getter private double supplyCurrentLimit = 80;
-        @Getter private double statorCurrentLimit = 100;
+        @Getter private double statorCurrentLimit = 80;
         @Getter private double forwardStatorCurrentLimit = statorCurrentLimit;
         @Getter private double reverseStatorCurrentLimit = -10;
-        @Getter private double lowerSupplyCurrentLimit = 60;
+        @Getter private double lowerSupplyCurrentLimit = 40;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
         // TODO: tune
-        @Getter private double velocityKp = 10;
-        @Getter private double velocityKv = 0;
-        @Getter private double velocityKs = 20;
+        @Getter private double velocityKp = 0.5;
+        @Getter private double velocityKv = 0.1425;
+        @Getter private double velocityKs = 0;
 
-        @Getter private double onTargetToleranceRPM = 100;
+        @Getter private double onTargetToleranceRPM = 200;
 
-        @Getter private double gearRatio = 1.833;
+        @Getter private double gearRatio = 1.38;
 
         /* Sim Configs */
         @Getter private double launcherX = Units.inchesToMeters(50);

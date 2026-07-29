@@ -29,15 +29,16 @@ public class DyeRotor implements Subsystem {
 
         public static class RotorConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 40;
+            @Getter @Setter private double supplyCurrentLimit = 80;
+            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+            @Getter @Setter private double supplyCurrentLowerTime = 1.0;
             @Getter @Setter private double statorCurrentLimit = 80;
 
             @Getter @Setter private double gearRatio = 37.5;
 
-            // TODO: tune
             @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 0;
-            @Getter @Setter private double velocityKs = 15;
+            @Getter @Setter private double velocityKv = 4.38;
+            @Getter @Setter private double velocityKs = 0;
 
             /* Sim Configs */
             @Getter @Setter
@@ -54,6 +55,8 @@ public class DyeRotor implements Subsystem {
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
                 configSupplyCurrentLimit(supplyCurrentLimit, true);
+                configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
+                configLowerSupplyCurrentTime(supplyCurrentLowerTime);
                 configStatorCurrentLimit(statorCurrentLimit, true);
                 configForwardTorqueCurrentLimit(statorCurrentLimit);
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
@@ -221,7 +224,7 @@ public class DyeRotor implements Subsystem {
                 return;
             case INDEX_MAX:
                 wantedRPMSpin = 100;
-                wantedRPMIndex = 3000;
+                wantedRPMIndex = 2500;
                 break;
             case IDLE_SLOW_INDEX:
                 wantedRPMSpin = -20;
@@ -229,7 +232,7 @@ public class DyeRotor implements Subsystem {
                 break;
             case UNJAM:
                 wantedRPMSpin = 0;
-                wantedRPMIndex = -2000;
+                wantedRPMIndex = -1000;
                 break;
         }
         final double finalWantedRPMSpin = wantedRPMSpin;

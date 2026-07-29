@@ -34,31 +34,33 @@ public class Turret extends Mechanism {
         @Getter private double shootOnMoveLatencySec = 0.03;
         @Getter private double maxOmegaForShotRotPerSec = 0.75;
 
-        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
+        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double currentLimit = 30;
-        @Getter private final double torqueCurrentLimit = 60;
-        // TODO: update
-        @Getter private final double positionKp = 500;
-        @Getter private final double positionKd = 100;
+        @Getter private final double currentLimit = 80;
+        @Getter private final double supplyCurrentLowerLimit = 40;
+        @Getter private final double supplyCurrentLowerTime = 1.0;
+        @Getter private final double torqueCurrentLimit = 80;
+        @Getter private final double positionKp = 800;
+        @Getter private final double positionKi = 100;
 
-        // TODO: required for shoot on the move capability update until line 67
+        // required for shoot on the move capability update until line 67
         // additional current output per unit of velocity requested
         // needed because of the velocity setpoint used in the control request
-        @Getter private final double positionKv = 0;
+        @Getter private final double positionKv = 10;
 
-        @Getter private final double positionKs = 10;
+        @Getter private final double positionKs = 0.6;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 0.5;
-        @Getter private final double mmAcceleration = 5;
+        @Getter private final double mmCruiseVelocity = 0.25;
+        @Getter private final double mmAcceleration = 0.5;
         @Getter private final double mmJerk = 0;
 
-        @Getter private final double sensorToMechanismRatio = 45;
+        @Getter private final double sensorToMechanismRatio = 39.78;
+        // TODO: figure out lines 64-9 and change if relevant and necessary
         @Getter private final double rotorToSensorRatio = 1;
         @Getter private final double CANcoderRotorToSensorRatio = 5;
         @Getter private final double CANcoderSensorToMechanismRatio = 9;
@@ -74,14 +76,17 @@ public class Turret extends Mechanism {
 
         public TurretConfig() {
             super("Turret", 44, Rio.CANIVORE); // Rio.CANIVORE);
-            configPIDGains(0, positionKp, 0, positionKd);
+            configPIDGains(0, positionKp, positionKi, 0);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configGearRatio(sensorToMechanismRatio);
             configSupplyCurrentLimit(currentLimit, true);
+            configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
+            configLowerSupplyCurrentTime(supplyCurrentLowerTime);
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            // TODO: update
             configMinMaxRotations(-0.54, 0.50);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);

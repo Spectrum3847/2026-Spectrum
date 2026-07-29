@@ -19,27 +19,27 @@ public class Hood extends Mechanism {
         // TODO: tune
         @Getter private final double initPosition = 9;
 
-        @Getter @Setter private double maxRotations = 0.825;
+        @Getter @Setter private double maxRotations = 5.6925;
         @Getter @Setter private double minRotations = 0.0;
 
         /* Hood config values */
-        @Getter private final double supplyCurrentLimit = 40;
-        @Getter private final double statorCurrentLimit = 60;
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 80;
         @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double lowerSupplyCurrentTime = 1;
-        @Getter private final double positionKp = 3000;
+        @Getter private final double positionKp = 2750;
         @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 220;
-        @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 25;
+        @Getter private final double positionKd = 0;
+        @Getter private final double positionKv = 10.22819093986847;
+        @Getter private final double positionKs = 0.49;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
 
-        @Getter private final double gearRatio = 8.49;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double holdMaxSpeedRPM = 18;
+        @Getter private final double gearRatio = 59.4;
+        @Getter private final double mmCruiseVelocity = 0.1;
+        @Getter private final double mmAcceleration = 20.4;
+        @Getter private final double mmJerk = 0; //1000
+        // @Getter private final double holdMaxSpeedRPM = 18;
 
         /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(50);
