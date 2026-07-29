@@ -397,7 +397,8 @@ public class IntakeExtension implements Subsystem {
         if (Math.abs(left.getVelocityRPM()) >= cfg.getHomingStallRPM()) {
             leftLastMoving = now;
         }
-        return isStalled(now, leftLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
+        return isStalled(
+                now, leftLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
     private boolean detectRightStall() {
@@ -406,10 +407,12 @@ public class IntakeExtension implements Subsystem {
         if (Math.abs(right.getVelocityRPM()) >= cfg.getHomingStallRPM()) {
             rightLastMoving = now;
         }
-        return isStalled(now, rightLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
+        return isStalled(
+                now, rightLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
-    private boolean isStalled(double now, double lastMoving, double minTimeSecs, double stallDebounceSecs) {
+    private boolean isStalled(
+            double now, double lastMoving, double minTimeSecs, double stallDebounceSecs) {
         if (now < minTimeSecs) {
             return false;
         }
