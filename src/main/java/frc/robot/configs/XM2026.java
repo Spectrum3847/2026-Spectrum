@@ -18,7 +18,8 @@ public class XM2026 extends Config {
         operator.setAttached(true);
         intakeRoller.setAttached(true);
         intakeKicker.setAttached(true);
-        intakeExtension.setAttached(false);
+        intakeExtensionLeft.setAttached(false);
+        intakeExtensionRight.setAttached(false);
         launcher.setAttached(true);
         // indexerTower.setAttached(true);
         // indexerBed.setAttached(true);

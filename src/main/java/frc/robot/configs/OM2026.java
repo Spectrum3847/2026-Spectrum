@@ -13,7 +13,8 @@ public class OM2026 extends Config {
         operator.setAttached(true);
         intakeRoller.setAttached(true);
         intakeKicker.setAttached(true);
-        intakeExtension.setAttached(true);
+        intakeExtensionLeft.setAttached(true);
+        intakeExtensionRight.setAttached(true);
         launcher.setAttached(true);
         rotor.setAttached(true);
         feeder.setAttached(true);

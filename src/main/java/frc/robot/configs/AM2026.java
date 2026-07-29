@@ -14,7 +14,8 @@ public class AM2026 extends Config {
         operator.setAttached(true);
         intakeRoller.setAttached(false);
         intakeKicker.setAttached(false);
-        intakeExtension.setAttached(false);
+        intakeExtensionLeft.setAttached(false);
+        intakeExtensionRight.setAttached(false);
         // indexerTower.setAttached(false);
         launcher.setAttached(false);
     }

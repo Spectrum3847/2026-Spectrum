@@ -49,6 +49,8 @@ import frc.robot.subsystems.hood.Hood;
 import frc.robot.subsystems.hood.Hood.HoodConfig;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
 import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.Left.LeftConfig;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.Right.RightConfig;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
 import frc.robot.subsystems.launcher.LauncherTower;
@@ -94,7 +96,10 @@ public class Robot extends SpectrumRobot {
         public final IntakeRollerConfig intakeRoller = new IntakeRollerConfig();
         public final IntakeKickerConfig intakeKicker = new IntakeKickerConfig();
         public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig(intakeRoller, intakeKicker);
-        public final IntakeExtensionConfig intakeExtension = new IntakeExtensionConfig();
+        public final LeftConfig intakeExtensionLeft = new LeftConfig();
+        public final RightConfig intakeExtensionRight = new RightConfig(intakeExtensionLeft);
+        public final IntakeExtensionConfig intakeExtension =
+                new IntakeExtensionConfig(intakeExtensionLeft, intakeExtensionRight);
         public final RotorConfig rotor = new RotorConfig();
         public final FeederConfig feeder = new FeederConfig();
         public final DyeRotorConfig dyeRotor = new DyeRotorConfig(rotor, feeder);
