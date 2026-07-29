@@ -14,7 +14,6 @@ import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.*;
 import lombok.Getter;
-import lombok.Setter;
 
 public class Launcher extends Mechanism {
 

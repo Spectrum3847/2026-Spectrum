@@ -41,9 +41,11 @@ public class DyeRotor implements Subsystem {
             @Getter @Setter private double velocityKs = 0;
 
             /* Sim Configs */
-            @Getter private final double rotorX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
+            @Getter
+            private final double rotorX = Units.inchesToMeters(RobotSim.leftViewWidth / 2.0);
 
-            @Getter private final double rotorY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
+            @Getter
+            private final double rotorY = Units.inchesToMeters(RobotSim.leftViewHeight / 2.0);
 
             @Getter private final double rotorDiameter = 12;
 

@@ -122,7 +122,8 @@ public class SwerveConfig {
                                     .withSupplyCurrentLowerLimit(Amps.of(40.0))
                                     .withSupplyCurrentLowerTime(Seconds.of(1.0)));
 
-    @Getter private final CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
+    @Getter
+    private final CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
 
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
     @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();

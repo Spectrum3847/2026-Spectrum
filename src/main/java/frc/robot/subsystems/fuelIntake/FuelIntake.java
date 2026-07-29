@@ -110,12 +110,12 @@ public class FuelIntake implements Subsystem {
             if (isAttached()) {
                 // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
                 // diameter
-                sim = new IntakeRollerSim(RobotSim.leftView, motor.getSimState());
+                sim = new IntakeRollerSim(RobotSim.leftView, motor);
             }
         }
 
         class IntakeRollerSim extends RollerSim {
-            public IntakeRollerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+            public IntakeRollerSim(Mechanism2d mech, TalonFX rollerMotorSim) {
                 super(
                         new RollerConfig(config.getWheelDiameter())
                                 .setPosition(config.getIntakeX(), config.getIntakeY())

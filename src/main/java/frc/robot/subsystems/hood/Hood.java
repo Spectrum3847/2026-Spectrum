@@ -19,8 +19,8 @@ public class Hood extends Mechanism {
         @Getter private final double initPosition = 0.0;
 
         /* 34.5 deg of travel */
-        @Getter @Setter private double maxRotations = 0.095833;
-        @Getter @Setter private double minRotations = 0.0;
+        @Getter private final double maxRotations = 0.095833;
+        @Getter private final double minRotations = 0.0;
 
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 80;
