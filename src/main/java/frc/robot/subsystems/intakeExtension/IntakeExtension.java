@@ -1,6 +1,6 @@
 package frc.robot.subsystems.intakeExtension;
 
-import com.ctre.phoenix6.sim.TalonFXSimState;
+import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -173,7 +173,7 @@ public class IntakeExtension implements Subsystem {
         /** Initializes the left extension axis simulation when the mechanism is attached. */
         public void simulationInit() {
             if (isAttached()) {
-                sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
+                sim = new IntakeExtensionSim(RobotSim.leftView, motor);
             }
         }
 
@@ -182,9 +182,9 @@ public class IntakeExtension implements Subsystem {
              * Initializes the intake extension simulation model.
              *
              * @param mech the mechanism visualization to bind to the simulation
-             * @param motorSim the motor simulation state driving the model
+             * @param motor the motor simulation state driving the model
              */
-            public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState motorSim) {
+            public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
                 super(
                         new LinearConfig(
                                         config.getIntakeX(),
@@ -196,9 +196,10 @@ public class IntakeExtension implements Subsystem {
                                 .setStaticLength(config.getStaticLength())
                                 .setMaxHeight(config.getMaxExtensionHeight())
                                 .setLineWidth(config.getLineWidth())
-                                .setColor(new Color8Bit(Color.kLightGray)),
+                                .setColor(new Color8Bit(Color.kLightGray))
+                                .setReversedLinkage(true),
                         mech,
-                        motorSim,
+                        motor,
                         config.getName());
             }
         }

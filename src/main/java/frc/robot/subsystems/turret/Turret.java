@@ -310,8 +310,8 @@ public class Turret extends Mechanism {
                                     config.turretY,
                                     config.simRatio,
                                     config.length,
-                                    config.getMinRotations() * 360.0,
-                                    config.getMaxRotations() * 360.0,
+                                    -360,
+                                    360,
                                     0)
                             .setSimulatedGravity(false),
                     mech,
