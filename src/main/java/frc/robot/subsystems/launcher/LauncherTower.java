@@ -11,7 +11,6 @@ public class LauncherTower extends Mechanism {
 
     public static class LauncherTowerConfig extends Config {
         /* Launcher Tower config values */
-        // TODO: edit
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 80;
         @Getter private final double lowerSupplyCurrentLimit = 40;
@@ -71,6 +70,7 @@ public class LauncherTower extends Mechanism {
         };
     }
 
+    // TODO: test
     private void applyStates() {
         double wantedRPM = 0;
         switch (systemState) {

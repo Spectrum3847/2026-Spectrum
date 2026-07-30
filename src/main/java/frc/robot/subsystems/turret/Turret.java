@@ -24,7 +24,6 @@ public class Turret extends Mechanism {
     public static class TurretConfig extends Config {
         @Getter @Setter private boolean reversed = false;
 
-        // TODO: update if needed until line 41
         @Getter private final double initPosition = 0;
         @Getter private double triggerTolerance = 5;
         @Getter private double unwrapTolerance = 10;
