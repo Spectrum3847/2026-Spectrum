@@ -334,6 +334,23 @@ public class Vision implements Subsystem {
     }
 
     /**
+     * Marks every chassis Limelight except {@code bestLimelight} as not integrating.
+     *
+     * <p>Integration status is only written by the rejection pipeline, which runs for the selected
+     * camera alone. Without this the unselected cameras would keep reporting whatever status they
+     * had from the last loop that happened to select them.
+     *
+     * @param bestLimelight the camera being integrated this loop, left untouched
+     */
+    private void markUnselectedLimelights(Limelight bestLimelight) {
+        for (Limelight limelight : swerveLimelights) {
+            if (limelight != bestLimelight) {
+                limelight.sendInvalidStatus("Not best Limelight");
+            }
+        }
+    }
+
+    /**
      * Logs connection status, integration status, tag status, MT1 poses, tag count, and target size
      * for each Limelight via their {@link VisionLogger}. MT2 poses are only logged while disabled
      * (they are unreliable when moving). Also updates the {@code Field2d} widget with the MT1 pose
@@ -397,6 +414,7 @@ public class Vision implements Subsystem {
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
+            markUnselectedLimelights(bestLimelight);
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, true));
             integrateSingleEstimate(getMT2VisionEstimate(bestLimelight));
 
@@ -415,6 +433,7 @@ public class Vision implements Subsystem {
                 || Auton.autonPoseUpdate.getAsBoolean()
                 || Auton.autonLaunching.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
+            markUnselectedLimelights(bestLimelight);
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, false));
 
             if (turretEstimatesAvailable()) {
