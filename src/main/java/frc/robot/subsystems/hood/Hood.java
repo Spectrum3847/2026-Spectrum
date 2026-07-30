@@ -16,7 +16,7 @@ import lombok.Setter;
 public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
- 
+
         @Getter private final double initPosition = 0.0;
 
         /* 34.5 deg of travel */

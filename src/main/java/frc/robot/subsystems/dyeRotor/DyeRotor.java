@@ -258,8 +258,6 @@ public class DyeRotor implements Subsystem {
         Telemetry.print("Dye Rotor Subsystem Initialized");
     }
 
-
-
     @Override
     public void periodic() {
         systemState = handleStateTransition();
