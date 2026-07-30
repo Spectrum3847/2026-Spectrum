@@ -108,11 +108,6 @@ public class IntakeExtension implements Subsystem {
         }
 
         @Override
-        public void stop() {
-            super.stop();
-        }
-
-        @Override
         public void periodic() {
             logBatteryUsage();
             String prefix = getName() + "/";
@@ -125,28 +120,38 @@ public class IntakeExtension implements Subsystem {
             Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
         }
 
+        /** Closed-loop Motion Magic to an absolute rotation target. */
         public void goToRotations(double rotations) {
             setMMPosition(() -> rotations);
         }
 
+        /** Slow (dynamic Motion Magic voltage) move to a rotation target. */
         public void goToRotationsSlow(
                 double rotations, double cruiseVelocity, double acceleration, double jerk) {
             setDynMMPositionVoltage(
                     () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
         }
 
+        /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
         public void driveHomingVoltage(double volts) {
             setVoltageOutputNoSoftLimit(() -> volts);
         }
 
+        /** Seeds this axis's encoder to a known starting position (rotations). */
         public void setInitialPosition(double rotations) {
             if (isAttached()) {
                 motor.setPosition(rotations);
             }
         }
 
+        /** Re-zeroes this axis at the fully-extended hard stop. */
         public void zeroAtMax() {
             setMotorPosition(() -> config.getMaxRotations());
+        }
+
+        /** Holds the axis (neutral output). */
+        public void leftStop() {
+            stop();
         }
 
         public void simulationInit() {
@@ -230,11 +235,6 @@ public class IntakeExtension implements Subsystem {
         }
 
         @Override
-        public void stop() {
-            super.stop();
-        }
-
-        @Override
         public void periodic() {
             logBatteryUsage();
             String prefix = getName() + "/";
@@ -247,28 +247,38 @@ public class IntakeExtension implements Subsystem {
             Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
         }
 
+        /** Closed-loop Motion Magic to an absolute rotation target. */
         public void goToRotations(double rotations) {
             setMMPosition(() -> rotations);
         }
 
+        /** Slow (dynamic Motion Magic voltage) move to a rotation target. */
         public void goToRotationsSlow(
                 double rotations, double cruiseVelocity, double acceleration, double jerk) {
             setDynMMPositionVoltage(
                     () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
         }
 
+        /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
         public void driveHomingVoltage(double volts) {
             setVoltageOutputNoSoftLimit(() -> volts);
         }
 
+        /** Seeds this axis's encoder to a known starting position (rotations). */
         public void setInitialPosition(double rotations) {
             if (isAttached()) {
                 motor.setPosition(rotations);
             }
         }
 
+        /** Re-zeroes this axis at the fully-extended hard stop. */
         public void zeroAtMax() {
             setMotorPosition(() -> config.getMaxRotations());
+        }
+
+        /** Holds the axis (neutral output). */
+        public void rightStop() {
+            stop();
         }
     }
 
@@ -345,8 +355,8 @@ public class IntakeExtension implements Subsystem {
                 applyHoming();
                 break;
             case STOPPED:
-                left.stop();
-                right.stop();
+                left.leftStop();
+                right.rightStop();
                 return;
         }
     }
@@ -396,13 +406,13 @@ public class IntakeExtension implements Subsystem {
                 if (detectLeftStall() || timedOut) {
                     if (timedOut) Telemetry.print("IntakeExtension: LEFT resync timed out");
                     left.zeroAtMax();
-                    left.stop();
+                    left.leftStop();
                     leftHomed = true;
                 } else {
                     left.driveHomingVoltage(homingVoltage);
                 }
             } else {
-                left.stop();
+                left.leftStop();
             }
         } else {
             leftHomed = true;
@@ -413,13 +423,13 @@ public class IntakeExtension implements Subsystem {
                 if (detectRightStall() || timedOut) {
                     if (timedOut) Telemetry.print("IntakeExtension: RIGHT resync timed out");
                     right.zeroAtMax();
-                    right.stop();
+                    right.rightStop();
                     rightHomed = true;
                 } else {
                     right.driveHomingVoltage(homingVoltage);
                 }
             } else {
-                right.stop();
+                right.rightStop();
             }
         } else {
             rightHomed = true;
