@@ -4,7 +4,9 @@ import frc.robot.Robot.Config;
 
 public class FM2026 extends Config {
 
-    // Final Machine
+    /**
+     * Initializes the Final Machine configuration, including swerve encoder offsets and attached mechanisms.
+     */
     public FM2026() {
         super();
         swerve.configEncoderOffsets(-0.163818359375, 0.24902, 0.2724609375, -0.31005859375);

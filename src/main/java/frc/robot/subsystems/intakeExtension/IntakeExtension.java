@@ -73,6 +73,10 @@ public class IntakeExtension implements Subsystem {
             @Getter private final double lineWidth = 20;
             @Getter private final double maxExtensionHeight = 40;
 
+            /**
+             * Initializes the left intake extension motor configuration, including motion control,
+             * current limits, soft limits, braking, gearing, and positive rotation direction.
+             */
             public LeftConfig() {
                 super("IntakeExtensionLeft", 4, Rio.CANIVORE);
                 configMinMaxRotations(minRotations, maxRotations);
@@ -99,6 +103,11 @@ public class IntakeExtension implements Subsystem {
         @Getter private final LeftConfig config;
         @Getter private IntakeExtensionSim sim;
 
+        /**
+         * Creates and initializes the left intake extension axis.
+         *
+         * @param config configuration for the left intake extension axis
+         */
         public Left(LeftConfig config) {
             super(config);
             this.config = config;
@@ -125,7 +134,14 @@ public class IntakeExtension implements Subsystem {
             setMMPosition(() -> rotations);
         }
 
-        /** Slow (dynamic Motion Magic voltage) move to a rotation target. */
+        /**
+         * Moves the axis to a rotation target using a dynamic motion profile.
+         *
+         * @param rotations       the target position in rotations
+         * @param cruiseVelocity  the motion profile's cruise velocity
+         * @param acceleration    the motion profile's acceleration
+         * @param jerk            the motion profile's jerk
+         */
         public void goToRotationsSlow(
                 double rotations, double cruiseVelocity, double acceleration, double jerk) {
             setDynMMPositionVoltage(
@@ -154,6 +170,9 @@ public class IntakeExtension implements Subsystem {
             stop();
         }
 
+        /**
+         * Initializes the left extension axis simulation when the mechanism is attached.
+         */
         public void simulationInit() {
             if (isAttached()) {
                 sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
@@ -161,6 +180,12 @@ public class IntakeExtension implements Subsystem {
         }
 
         class IntakeExtensionSim extends LinearSim {
+            /**
+             * Initializes the intake extension simulation model.
+             *
+             * @param mech the mechanism visualization to bind to the simulation
+             * @param motorSim the motor simulation state driving the model
+             */
             public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState motorSim) {
                 super(
                         new LinearConfig(
@@ -191,6 +216,11 @@ public class IntakeExtension implements Subsystem {
             @Getter private final double homingTimeoutSecs;
             @Getter private final double homingVoltage;
 
+            /**
+             * Creates a right-axis configuration using the left-axis control and homing settings.
+             *
+             * @param left the left-axis configuration supplying shared settings
+             */
             public RightConfig(LeftConfig left) {
                 super("IntakeExtensionRight", 5, Rio.CANIVORE);
                 setAttached(left.isAttached());
@@ -287,6 +317,12 @@ public class IntakeExtension implements Subsystem {
         @Getter private final LeftConfig leftConfig;
         @Getter private final RightConfig rightConfig;
 
+        /**
+         * Creates an intake extension configuration from the configurations for both axes.
+         *
+         * @param leftConfig  the left-axis configuration
+         * @param rightConfig the right-axis configuration
+         */
         public IntakeExtensionConfig(LeftConfig leftConfig, RightConfig rightConfig) {
             this.leftConfig = leftConfig;
             this.rightConfig = rightConfig;
@@ -340,6 +376,9 @@ public class IntakeExtension implements Subsystem {
         };
     }
 
+    /**
+     * Applies the outputs associated with the current system state.
+     */
     private void applyStates() {
         switch (systemState) {
             case FULL_EXTEND:
@@ -361,6 +400,12 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
+    /**
+     * Commands both intake extension axes to the specified extension percentage.
+     *
+     * @param percent the target extension percentage
+     * @param slow    whether to use the slow motion profile
+     */
     private void commandBoth(double percent, boolean slow) {
         final double rotations = left.percentToRotations(() -> percent);
         if (slow) {
@@ -388,6 +433,10 @@ public class IntakeExtension implements Subsystem {
     private double leftLastMoving = 0;
     private double rightLastMoving = 0;
 
+    /**
+     * Drives both extension axes through the homing process and marks each axis complete when
+     * a stall is detected, the homing timeout is reached, or the axis is unattached.
+     */
     private void applyHoming() {
         if (previousSystemState != SystemState.HOMING) {
             homingTimer.restart();
@@ -436,6 +485,12 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
+    /**
+     * Determines whether the left extension is stalled according to its homing thresholds.
+     *
+     * @return {@code true} if the minimum homing time has elapsed and the axis has remained below
+     *         the stall velocity threshold for the debounce period, {@code false} otherwise
+     */
     private boolean detectLeftStall() {
         double now = homingTimer.get();
         LeftConfig cfg = config.getLeftConfig();
@@ -446,6 +501,12 @@ public class IntakeExtension implements Subsystem {
                 now, leftLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
+    /**
+     * Determines whether the right extension axis has stalled during homing.
+     *
+     * @return {@code true} if the axis has remained below the stall velocity threshold
+     *         for the required debounce period after the minimum homing time; {@code false} otherwise
+     */
     private boolean detectRightStall() {
         double now = homingTimer.get();
         RightConfig cfg = config.getRightConfig();
@@ -456,6 +517,15 @@ public class IntakeExtension implements Subsystem {
                 now, rightLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
+    /**
+     * Determines whether motion has remained below the stall threshold for the required duration.
+     *
+     * @param now               the current homing time in seconds
+     * @param lastMoving        the most recent time motion was detected in seconds
+     * @param minTimeSecs       the minimum elapsed time before stall detection begins
+     * @param stallDebounceSecs the required duration without motion before reporting a stall
+     * @return                  {@code true} if the minimum time has elapsed and the debounce duration has passed, {@code false} otherwise
+     */
     private boolean isStalled(
             double now, double lastMoving, double minTimeSecs, double stallDebounceSecs) {
         if (now < minTimeSecs) {
@@ -464,10 +534,20 @@ public class IntakeExtension implements Subsystem {
         return (now - lastMoving) >= stallDebounceSecs;
     }
 
+    /**
+     * Determines whether resynchronization has completed for both extension axes.
+     *
+     * @return {@code true} if the system is homing and both axes are homed, {@code false} otherwise
+     */
     public boolean isResyncComplete() {
         return systemState == SystemState.HOMING && leftHomed && rightHomed;
     }
 
+    /**
+     * Creates a command that resynchronizes both intake extension axes and stops them when complete.
+     *
+     * @return the resynchronization command
+     */
     public Command resyncCommand() {
         return startEnd(
                         () -> setWantedState(WantedState.RESYNC),
@@ -482,6 +562,11 @@ public class IntakeExtension implements Subsystem {
     @Getter private final Right right;
     @Getter private final IntakeExtensionConfig config;
 
+    /**
+     * Initializes the intake extension subsystem with its left and right axis configurations.
+     *
+     * @param config the configuration for both intake extension axes
+     */
     public IntakeExtension(IntakeExtensionConfig config) {
         this.config = config;
         this.left = new Left(config.getLeftConfig());
@@ -493,6 +578,9 @@ public class IntakeExtension implements Subsystem {
         Telemetry.print("Intake Extension Subsystem Initialized");
     }
 
+    /**
+     * Sets the initial encoder position for both extension axes from the configured position.
+     */
     private void setInitialPosition() {
         double initialRotations =
                 left.degreesToRotations(() -> config.getLeftConfig().getInitPosition());
@@ -500,28 +588,56 @@ public class IntakeExtension implements Subsystem {
         right.setInitialPosition(initialRotations);
     }
 
+    /**
+     * Resets both extension axes to their maximum positions.
+     */
     public void resetCurrentPositionToMax() {
         left.zeroAtMax();
         right.zeroAtMax();
     }
 
+    /**
+     * Creates a command that resets both extension axes to their maximum positions.
+     *
+     * @return a command that performs the position reset once
+     */
     public Command resetCurrentPositionToMaxCommand() {
         return new InstantCommand(this::resetCurrentPositionToMax);
     }
 
+    /**
+     * Creates a command that resets both extension axes to their initial positions.
+     *
+     * @return a command that sets the initial encoder positions
+     */
     public Command resetToInitialPos() {
         return new InstantCommand(this::setInitialPosition);
     }
 
+    /**
+     * Sets the brake mode for both intake extension axes.
+     *
+     * @param isInBrake whether to enable brake mode
+     */
     public void setBrakeMode(boolean isInBrake) {
         left.setBrakeMode(isInBrake);
         right.setBrakeMode(isInBrake);
     }
 
+    /**
+     * Provides the simulation model for the left intake extension axis.
+     *
+     * @return the left intake extension simulation model
+     */
     public Left.IntakeExtensionSim getSim() {
         return left.getSim();
     }
 
+    /**
+     * Reports the extension position as a percentage of its configured range.
+     *
+     * @return the current extension position percentage
+     */
     public double getPositionPercentage() {
         return left.getPositionPercentage();
     }

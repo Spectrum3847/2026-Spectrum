@@ -249,6 +249,11 @@ public class DyeRotor implements Subsystem {
     @Getter private final Feeder feeder;
     @Getter private final DyeRotorConfig config;
 
+    /**
+     * Creates and registers the dye rotor subsystem with the specified configuration.
+     *
+     * @param config configuration for the rotor and feeder mechanisms
+     */
     public DyeRotor(DyeRotorConfig config) {
         this.config = config;
         this.rotor = new Rotor(config.getRotorConfig());
@@ -258,6 +263,10 @@ public class DyeRotor implements Subsystem {
         Telemetry.print("Dye Rotor Subsystem Initialized");
     }
 
+    /**
+     * Updates the internal state, applies the corresponding rotor and feeder commands,
+     * and records the requested and active states in telemetry.
+     */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
