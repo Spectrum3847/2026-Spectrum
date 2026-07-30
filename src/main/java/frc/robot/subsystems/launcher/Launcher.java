@@ -35,7 +35,7 @@ public class Launcher extends Mechanism {
         @Getter private double lowerSupplyCurrentLimit = 40;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
-        
+
         @Getter private double velocityKp = 0.5;
         @Getter private double velocityKv = 0.1425;
         @Getter private double velocityKs = 0;
