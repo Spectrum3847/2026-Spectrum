@@ -264,8 +264,8 @@ public class DyeRotor implements Subsystem {
     }
 
     /**
-     * Updates the internal state, applies the corresponding rotor and feeder commands,
-     * and records the requested and active states in telemetry.
+     * Updates the internal state, applies the corresponding rotor and feeder commands, and records
+     * the requested and active states in telemetry.
      */
     @Override
     public void periodic() {

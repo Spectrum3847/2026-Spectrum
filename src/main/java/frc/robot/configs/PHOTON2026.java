@@ -5,8 +5,8 @@ import frc.robot.Robot.Config;
 public class PHOTON2026 extends Config {
 
     /**
-     * Initializes the Photon Machine robot configuration, including swerve encoder offsets
-     * and attached mechanisms.
+     * Initializes the Photon Machine robot configuration, including swerve encoder offsets and
+     * attached mechanisms.
      */
     public PHOTON2026() {
         super();

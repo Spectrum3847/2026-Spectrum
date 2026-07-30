@@ -4,9 +4,7 @@ import frc.robot.Robot.Config;
 
 public class XM2026 extends Config {
 
-    /**
-     * Configures the Experimental Machine robot and its attached mechanisms.
-     */
+    /** Configures the Experimental Machine robot and its attached mechanisms. */
     public XM2026() {
         super();
         swerve.configEncoderOffsets(

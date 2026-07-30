@@ -137,10 +137,10 @@ public class IntakeExtension implements Subsystem {
         /**
          * Moves the axis to a rotation target using a dynamic motion profile.
          *
-         * @param rotations       the target position in rotations
-         * @param cruiseVelocity  the motion profile's cruise velocity
-         * @param acceleration    the motion profile's acceleration
-         * @param jerk            the motion profile's jerk
+         * @param rotations the target position in rotations
+         * @param cruiseVelocity the motion profile's cruise velocity
+         * @param acceleration the motion profile's acceleration
+         * @param jerk the motion profile's jerk
          */
         public void goToRotationsSlow(
                 double rotations, double cruiseVelocity, double acceleration, double jerk) {
@@ -170,9 +170,7 @@ public class IntakeExtension implements Subsystem {
             stop();
         }
 
-        /**
-         * Initializes the left extension axis simulation when the mechanism is attached.
-         */
+        /** Initializes the left extension axis simulation when the mechanism is attached. */
         public void simulationInit() {
             if (isAttached()) {
                 sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
@@ -320,7 +318,7 @@ public class IntakeExtension implements Subsystem {
         /**
          * Creates an intake extension configuration from the configurations for both axes.
          *
-         * @param leftConfig  the left-axis configuration
+         * @param leftConfig the left-axis configuration
          * @param rightConfig the right-axis configuration
          */
         public IntakeExtensionConfig(LeftConfig leftConfig, RightConfig rightConfig) {
@@ -376,9 +374,7 @@ public class IntakeExtension implements Subsystem {
         };
     }
 
-    /**
-     * Applies the outputs associated with the current system state.
-     */
+    /** Applies the outputs associated with the current system state. */
     private void applyStates() {
         switch (systemState) {
             case FULL_EXTEND:
@@ -404,7 +400,7 @@ public class IntakeExtension implements Subsystem {
      * Commands both intake extension axes to the specified extension percentage.
      *
      * @param percent the target extension percentage
-     * @param slow    whether to use the slow motion profile
+     * @param slow whether to use the slow motion profile
      */
     private void commandBoth(double percent, boolean slow) {
         final double rotations = left.percentToRotations(() -> percent);
@@ -434,8 +430,8 @@ public class IntakeExtension implements Subsystem {
     private double rightLastMoving = 0;
 
     /**
-     * Drives both extension axes through the homing process and marks each axis complete when
-     * a stall is detected, the homing timeout is reached, or the axis is unattached.
+     * Drives both extension axes through the homing process and marks each axis complete when a
+     * stall is detected, the homing timeout is reached, or the axis is unattached.
      */
     private void applyHoming() {
         if (previousSystemState != SystemState.HOMING) {
@@ -489,7 +485,7 @@ public class IntakeExtension implements Subsystem {
      * Determines whether the left extension is stalled according to its homing thresholds.
      *
      * @return {@code true} if the minimum homing time has elapsed and the axis has remained below
-     *         the stall velocity threshold for the debounce period, {@code false} otherwise
+     *     the stall velocity threshold for the debounce period, {@code false} otherwise
      */
     private boolean detectLeftStall() {
         double now = homingTimer.get();
@@ -504,8 +500,8 @@ public class IntakeExtension implements Subsystem {
     /**
      * Determines whether the right extension axis has stalled during homing.
      *
-     * @return {@code true} if the axis has remained below the stall velocity threshold
-     *         for the required debounce period after the minimum homing time; {@code false} otherwise
+     * @return {@code true} if the axis has remained below the stall velocity threshold for the
+     *     required debounce period after the minimum homing time; {@code false} otherwise
      */
     private boolean detectRightStall() {
         double now = homingTimer.get();
@@ -520,11 +516,12 @@ public class IntakeExtension implements Subsystem {
     /**
      * Determines whether motion has remained below the stall threshold for the required duration.
      *
-     * @param now               the current homing time in seconds
-     * @param lastMoving        the most recent time motion was detected in seconds
-     * @param minTimeSecs       the minimum elapsed time before stall detection begins
+     * @param now the current homing time in seconds
+     * @param lastMoving the most recent time motion was detected in seconds
+     * @param minTimeSecs the minimum elapsed time before stall detection begins
      * @param stallDebounceSecs the required duration without motion before reporting a stall
-     * @return                  {@code true} if the minimum time has elapsed and the debounce duration has passed, {@code false} otherwise
+     * @return {@code true} if the minimum time has elapsed and the debounce duration has passed,
+     *     {@code false} otherwise
      */
     private boolean isStalled(
             double now, double lastMoving, double minTimeSecs, double stallDebounceSecs) {
@@ -544,7 +541,8 @@ public class IntakeExtension implements Subsystem {
     }
 
     /**
-     * Creates a command that resynchronizes both intake extension axes and stops them when complete.
+     * Creates a command that resynchronizes both intake extension axes and stops them when
+     * complete.
      *
      * @return the resynchronization command
      */
@@ -578,9 +576,7 @@ public class IntakeExtension implements Subsystem {
         Telemetry.print("Intake Extension Subsystem Initialized");
     }
 
-    /**
-     * Sets the initial encoder position for both extension axes from the configured position.
-     */
+    /** Sets the initial encoder position for both extension axes from the configured position. */
     private void setInitialPosition() {
         double initialRotations =
                 left.degreesToRotations(() -> config.getLeftConfig().getInitPosition());
@@ -588,9 +584,7 @@ public class IntakeExtension implements Subsystem {
         right.setInitialPosition(initialRotations);
     }
 
-    /**
-     * Resets both extension axes to their maximum positions.
-     */
+    /** Resets both extension axes to their maximum positions. */
     public void resetCurrentPositionToMax() {
         left.zeroAtMax();
         right.zeroAtMax();
