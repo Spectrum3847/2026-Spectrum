@@ -87,8 +87,9 @@ public class DyeRotor implements Subsystem {
             Telemetry.log("Rotor/Temp", getTemp(), "deg_C");
         }
 
-        public void setRotorRpm(double rpm) {
-            setVelocityRPM(() -> rpm);
+        public void setRotorVelocity(double rpm) {
+            double rps = rpm / 60;
+            setVelocity(() -> rps);
         }
 
         public void rotorStop() {
@@ -216,7 +217,7 @@ public class DyeRotor implements Subsystem {
         };
     }
 
-    // TODO: get actual values when robot is built
+    // TODO: test
     private void applyStates() {
         double wantedRPMSpin = 0;
         double wantedRPMIndex = 0;
@@ -240,7 +241,7 @@ public class DyeRotor implements Subsystem {
         }
         final double finalWantedRPMSpin = wantedRPMSpin;
         final double finalWantedRPMIndex = wantedRPMIndex;
-        rotor.setRotorRpm(finalWantedRPMSpin);
+        rotor.setRotorVelocity(finalWantedRPMSpin);
         feeder.setFeederRpm(finalWantedRPMIndex);
     }
 
@@ -256,6 +257,8 @@ public class DyeRotor implements Subsystem {
         this.register();
         Telemetry.print("Dye Rotor Subsystem Initialized");
     }
+
+
 
     @Override
     public void periodic() {

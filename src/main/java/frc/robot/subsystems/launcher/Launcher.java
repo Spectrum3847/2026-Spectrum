@@ -20,7 +20,6 @@ public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        // tune
         @Getter @Setter private double idlingRPM = 700;
         @Getter @Setter private double slowLaunchSpeed = 400;
 
@@ -36,7 +35,7 @@ public class Launcher extends Mechanism {
         @Getter private double lowerSupplyCurrentLimit = 40;
         @Getter private double timeUntilLowerCurrent = 1;
         @Getter private double nominalVoltage = 16;
-        // TODO: tune
+        
         @Getter private double velocityKp = 0.5;
         @Getter private double velocityKv = 0.1425;
         @Getter private double velocityKs = 0;
