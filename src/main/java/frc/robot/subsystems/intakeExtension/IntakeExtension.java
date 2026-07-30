@@ -1,8 +1,6 @@
 package frc.robot.subsystems.intakeExtension;
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
-import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -10,7 +8,10 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.RobotSim;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.Left.LeftConfig;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.Right.RightConfig;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
@@ -18,131 +19,207 @@ import frc.spectrumLib.sim.LinearSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/**
- * The Intake Extension subsystem. Extends and retracts the fuel intake.
- *
- * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class, CAN
- * id 7) and a right axis ({@link IntakeExtensionRight}, CAN id 6). Each side runs its own
- * closed-loop position control rather than one following the other, so a side that skips teeth on
- * the rack can be driven on its own to resync.
- *
- * <p>Normal deploy/retract states command both axes to the same setpoint. The {@code RESYNC} state
- * re-establishes truth by driving each side independently into the fully-extended hard stop (using
- * a soft-limit-bypassing voltage), detecting the stall, and re-zeroing that side's encoder at
- * {@code maxRotations}. This recovers from a tooth skip, which otherwise leaves the motor encoder
- * reading a position the rack is no longer at.
- */
-public class IntakeExtension extends Mechanism {
+public class IntakeExtension implements Subsystem {
 
-    public static class IntakeExtensionConfig extends Config {
+    public static class Left extends Mechanism {
 
-        @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 0.317637;
+        public static class LeftConfig extends Config {
 
-        /* Intake Extension config settings */
-        @Getter private final double zeroSpeed = -0.1;
-        @Getter private final double holdMaxSpeedRPM = 18;
+            @Getter private final double initPosition = 0;
+            @Getter private final double triggerTolerance = 0.317637;
 
-        /* 11.5 in of travel over a 0.5010597711 in pitch radius */
-        @Getter private final double maxRotations = 3.652821;
-        @Getter private final double minRotations = 0.0;
+            @Getter private final double zeroSpeed = -0.1;
+            @Getter private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 80;
-        @Getter private final double lowerSupplyCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentTime = 1;
+            @Getter private final double maxRotations = 3.652821;
+            @Getter private final double minRotations = 0.0;
 
-        @Getter private final double positionKp = 4.2;
-        @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 0.39;
-        @Getter private final double positionKs = 0;
-        @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = -0.017;
-        @Getter private final double gearRatio = 3.5;
-        @Getter private final double rampPeriod = 0.02;
+            @Getter private final double supplyCurrentLimit = 80;
+            @Getter private final double statorCurrentLimit = 80;
+            @Getter private final double lowerSupplyCurrentLimit = 40;
+            @Getter private final double lowerSupplyCurrentTime = 1;
 
-        /* 4 ft/s, 20 ft/s^2 (fast extend) and 2 ft/s, 10 ft/s^2 (everything else) */
-        @Getter private final double mmCruiseVelocity = 15.246559;
-        @Getter private final double mmAcceleration = 76.232794;
-        @Getter private final double mmJerk = 0;
-        @Getter private final double slowMmCruiseVelocity = 7.623279;
-        @Getter private final double slowMmAcceleration = 38.116397;
-        @Getter private final double slowMmJerk = 0;
+            @Getter private final double positionKp = 4.2;
+            @Getter private final double positionKi = 0;
+            @Getter private final double positionKd = 0;
+            @Getter private final double positionKv = 0.39;
+            @Getter private final double positionKs = 0;
+            @Getter private final double positionKa = 0;
+            @Getter private final double positionKg = -0.017;
+            @Getter private final double gearRatio = 3.5;
+            @Getter private final double rampPeriod = 0.02;
 
-        @Getter private final double sensorToMechanismRatio = 3.5;
-        @Getter private final double rotorToSensorRatio = 1;
-        @Getter private final double CANcoderRotorToSensorRatio = 1.7;
-        @Getter private final double CANcoderSensorToMechanismRatio = 1;
-        @Getter private final double CANcoderOffset = 0;
-        @Getter private final boolean CANcoderAttached = false;
+            @Getter private final double mmCruiseVelocity = 15.246559;
+            @Getter private final double mmAcceleration = 76.232794;
+            @Getter private final double mmJerk = 0;
+            @Getter private final double slowMmCruiseVelocity = 7.623279;
+            @Getter private final double slowMmAcceleration = 38.116397;
+            @Getter private final double slowMmJerk = 0;
 
-        /* Resync / stall-homing settings (toward the fully-extended hard stop) */
-        @Getter private final double homingVoltage = 6;
-        @Getter private final double homingStallRPM = 50.0;
-        @Getter private final double homingMinTimeSecs = 0.3;
-        @Getter private final double homingStallDebounceSecs = 0.15;
-        @Getter private final double homingTimeoutSecs = 3.0;
+            @Getter private final double homingVoltage = 6;
+            @Getter private final double homingStallRPM = 50.0;
+            @Getter private final double homingMinTimeSecs = 0.3;
+            @Getter private final double homingStallDebounceSecs = 0.15;
+            @Getter private final double homingTimeoutSecs = 3.0;
 
-        /* Sim Configs */
-        @Getter private final double intakeX = Units.inchesToMeters(70);
-        @Getter private final double intakeY = Units.inchesToMeters(23);
-        @Getter private final double extensionMass = 10.0;
-        @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.5010597711);
-        @Getter private final double extensionGearing = 3.5;
-        @Getter private final double angle = 180;
-        @Getter private final double staticLength = 10;
-        @Getter private final double movingLength = 55;
-        @Getter private final double lineWidth = 20;
-        @Getter private final double maxExtensionHeight = 40;
+            @Getter private final double intakeX = Units.inchesToMeters(70);
+            @Getter private final double intakeY = Units.inchesToMeters(23);
+            @Getter private final double extensionMass = 10.0;
+            @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.5010597711);
+            @Getter private final double extensionGearing = 3.5;
+            @Getter private final double angle = 180;
+            @Getter private final double staticLength = 10;
+            @Getter private final double movingLength = 55;
+            @Getter private final double lineWidth = 20;
+            @Getter private final double maxExtensionHeight = 40;
 
-        public IntakeExtensionConfig() {
-            super("IntakeExtension", 4, Rio.CANIVORE);
-            configMinMaxRotations(minRotations, maxRotations);
-            configPIDGains(0, positionKp, positionKi, positionKd);
-            configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
-            configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configGravityType(false);
-            configOpenLoopRamps(rampPeriod);
-            configClosedLoopRamps(rampPeriod);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configGearRatio(gearRatio);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
-            configForwardSoftLimit(maxRotations, true);
-            configReverseSoftLimit(minRotations, true);
-            configNeutralBrakeMode(false);
-            configClockwise_Positive();
+            /**
+             * Initializes the left intake extension motor configuration, including motion control,
+             * current limits, soft limits, braking, gearing, and positive rotation direction.
+             */
+            public LeftConfig() {
+                super("IntakeExtensionLeft", 4, Rio.CANIVORE);
+                configMinMaxRotations(minRotations, maxRotations);
+                configPIDGains(0, positionKp, positionKi, positionKd);
+                configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
+                configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+                configGravityType(false);
+                configOpenLoopRamps(rampPeriod);
+                configClosedLoopRamps(rampPeriod);
+                configSupplyCurrentLimit(supplyCurrentLimit, true);
+                configStatorCurrentLimit(statorCurrentLimit, true);
+                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
+                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+                configGearRatio(gearRatio);
+                configForwardTorqueCurrentLimit(statorCurrentLimit);
+                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configForwardSoftLimit(maxRotations, true);
+                configReverseSoftLimit(minRotations, true);
+                configNeutralBrakeMode(false);
+                configClockwise_Positive();
+            }
         }
 
-        public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
-            TalonFXConfigurator configurator = motor.getConfigurator();
-            TalonFXConfiguration talonConfigMod = getTalonConfig();
+        @Getter private final LeftConfig config;
+        @Getter private IntakeExtensionSim sim;
 
-            configurator.apply(talonConfigMod);
-            talonConfig = talonConfigMod;
-            return this;
+        /**
+         * Creates and initializes the left intake extension axis.
+         *
+         * @param config configuration for the left intake extension axis
+         */
+        public Left(LeftConfig config) {
+            super(config);
+            this.config = config;
+
+            simulationInit();
+            Telemetry.print(getName() + " Subsystem Initialized");
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            String prefix = getName() + "/";
+            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
+            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
+            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
+            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
+            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
+        }
+
+        /** Closed-loop Motion Magic to an absolute rotation target. */
+        public void goToRotations(double rotations) {
+            setMMPosition(() -> rotations);
+        }
+
+        /**
+         * Moves the axis to a rotation target using a dynamic motion profile.
+         *
+         * @param rotations the target position in rotations
+         * @param cruiseVelocity the motion profile's cruise velocity
+         * @param acceleration the motion profile's acceleration
+         * @param jerk the motion profile's jerk
+         */
+        public void goToRotationsSlow(
+                double rotations, double cruiseVelocity, double acceleration, double jerk) {
+            setDynMMPositionVoltage(
+                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
+        }
+
+        /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
+        public void driveHomingVoltage(double volts) {
+            setVoltageOutputNoSoftLimit(() -> volts);
+        }
+
+        /** Seeds this axis's encoder to a known starting position (rotations). */
+        public void setInitialPosition(double rotations) {
+            if (isAttached()) {
+                motor.setPosition(rotations);
+            }
+        }
+
+        /** Re-zeroes this axis at the fully-extended hard stop. */
+        public void zeroAtMax() {
+            setMotorPosition(() -> config.getMaxRotations());
+        }
+
+        /** Holds the axis (neutral output). */
+        public void leftStop() {
+            stop();
+        }
+
+        /** Initializes the left extension axis simulation when the mechanism is attached. */
+        public void simulationInit() {
+            if (isAttached()) {
+                sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
+            }
+        }
+
+        class IntakeExtensionSim extends LinearSim {
+            /**
+             * Initializes the intake extension simulation model.
+             *
+             * @param mech the mechanism visualization to bind to the simulation
+             * @param motorSim the motor simulation state driving the model
+             */
+            public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState motorSim) {
+                super(
+                        new LinearConfig(
+                                        config.getIntakeX(),
+                                        config.getIntakeY(),
+                                        config.getExtensionGearing(),
+                                        config.getDrumRadiusMeters())
+                                .setAngle(config.getAngle())
+                                .setMovingLength(config.getMovingLength())
+                                .setStaticLength(config.getStaticLength())
+                                .setMaxHeight(config.getMaxExtensionHeight())
+                                .setLineWidth(config.getLineWidth())
+                                .setColor(new Color8Bit(Color.kLightGray)),
+                        mech,
+                        motorSim,
+                        config.getName());
+            }
         }
     }
 
-    // ================================================================================
-    // Right Axis — independent, closed-loop, mirror-mounted
-    // ================================================================================
-
-    /**
-     * The right deploy axis. A standalone {@link Mechanism} (not a follower) so it can be driven
-     * independently of the left during a resync. Gains, limits, and geometry mirror the left
-     * config; only the CAN id, name, and motor inversion differ (the right gearbox is mirrored, so
-     * it is {@code Clockwise_Positive} where the left is {@code CounterClockwise_Positive}, giving
-     * both axes the same "positive = extend" convention).
-     */
-    public static class IntakeExtensionRight extends Mechanism {
+    public static class Right extends Mechanism {
 
         public static class RightConfig extends Config {
-            public RightConfig(IntakeExtensionConfig left) {
+
+            @Getter private final double homingStallRPM;
+            @Getter private final double homingMinTimeSecs;
+            @Getter private final double homingStallDebounceSecs;
+            @Getter private final double homingTimeoutSecs;
+            @Getter private final double homingVoltage;
+
+            /**
+             * Creates a right-axis configuration using the left-axis control and homing settings.
+             *
+             * @param left the left-axis configuration supplying shared settings
+             */
+            public RightConfig(LeftConfig left) {
                 super("IntakeExtensionRight", 5, Rio.CANIVORE);
                 setAttached(left.isAttached());
                 configMinMaxRotations(left.getMinRotations(), left.getMaxRotations());
@@ -168,15 +245,34 @@ public class IntakeExtension extends Mechanism {
                 configReverseSoftLimit(left.getMinRotations(), true);
                 configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
+
+                this.homingStallRPM = left.getHomingStallRPM();
+                this.homingMinTimeSecs = left.getHomingMinTimeSecs();
+                this.homingStallDebounceSecs = left.getHomingStallDebounceSecs();
+                this.homingTimeoutSecs = left.getHomingTimeoutSecs();
+                this.homingVoltage = left.getHomingVoltage();
             }
         }
 
-        @Getter private final RightConfig rightConfig;
+        @Getter private final RightConfig config;
 
-        public IntakeExtensionRight(IntakeExtensionConfig leftConfig) {
-            super(new RightConfig(leftConfig));
-            this.rightConfig = (RightConfig) super.config;
+        public Right(RightConfig config) {
+            super(config);
+            this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            String prefix = getName() + "/";
+            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
+            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
+            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
+            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
+            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
         }
 
         /** Closed-loop Motion Magic to an absolute rotation target. */
@@ -205,72 +301,30 @@ public class IntakeExtension extends Mechanism {
 
         /** Re-zeroes this axis at the fully-extended hard stop. */
         public void zeroAtMax() {
-            setMotorPosition(() -> rightConfig.getMaxRotations());
+            setMotorPosition(() -> config.getMaxRotations());
         }
 
         /** Holds the axis (neutral output). */
-        public void stopAxis() {
+        public void rightStop() {
             stop();
         }
+    }
 
-        @Override
-        public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("IntakeExtensionRight/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("IntakeExtensionRight/Voltage", getVoltage(), "volts");
-            Telemetry.log("IntakeExtensionRight/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("IntakeExtensionRight/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("IntakeExtensionRight/Position", getPositionRotations(), "rotations");
-            Telemetry.log("IntakeExtensionRight/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("IntakeExtensionRight/Temp", getTemp(), "deg_C");
+    public static class IntakeExtensionConfig {
+
+        @Getter private final LeftConfig leftConfig;
+        @Getter private final RightConfig rightConfig;
+
+        /**
+         * Creates an intake extension configuration from the configurations for both axes.
+         *
+         * @param leftConfig the left-axis configuration
+         * @param rightConfig the right-axis configuration
+         */
+        public IntakeExtensionConfig(LeftConfig leftConfig, RightConfig rightConfig) {
+            this.leftConfig = leftConfig;
+            this.rightConfig = rightConfig;
         }
-    }
-
-    // ---- Subsystem plumbing ----
-
-    @Getter private final IntakeExtensionConfig config;
-    @Getter private IntakeExtensionSim sim;
-    private final IntakeExtensionRight right;
-
-    public IntakeExtension(IntakeExtensionConfig config) {
-        super(config);
-        this.config = config;
-        this.right = new IntakeExtensionRight(config);
-
-        setInitialPosition();
-
-        simulationInit();
-        Telemetry.print(getName() + " Subsystem Initialized");
-    }
-
-    private void setInitialPosition() {
-        if (isAttached()) {
-            double initialRotations = degreesToRotations(() -> config.getInitPosition());
-            motor.setPosition(initialRotations);
-            right.setInitialPosition(initialRotations);
-        }
-    }
-
-    public void resetCurrentPositionToMax() {
-        if (isAttached()) {
-            motor.setPosition(config.getMaxRotations());
-        }
-        if (right.isAttached()) right.zeroAtMax();
-    }
-
-    public Command resetCurrentPositionToMaxCommand() {
-        return new InstantCommand(this::resetCurrentPositionToMax);
-    }
-
-    public Command resetToInitialPos() {
-        return new InstantCommand(this::setInitialPosition);
-    }
-
-    /** Sets brake mode on both deploy axes. */
-    @Override
-    public void setBrakeMode(boolean isInBrake) {
-        super.setBrakeMode(isInBrake);
-        if (right.isAttached()) right.setBrakeMode(isInBrake);
     }
 
     // ---- State Machine ----
@@ -320,6 +374,7 @@ public class IntakeExtension extends Mechanism {
         };
     }
 
+    /** Applies the outputs associated with the current system state. */
     private void applyStates() {
         switch (systemState) {
             case FULL_EXTEND:
@@ -335,36 +390,34 @@ public class IntakeExtension extends Mechanism {
                 applyHoming();
                 break;
             case STOPPED:
-                stop();
-                if (right.isAttached()) right.stopAxis();
+                left.leftStop();
+                right.rightStop();
                 return;
         }
     }
 
     /**
-     * Commands both axes to the same position.
+     * Commands both intake extension axes to the specified extension percentage.
      *
-     * @param percent target as a percentage of max rotations (0–100)
-     * @param slow whether to use the slow (dynamic Motion Magic voltage) profile
+     * @param percent the target extension percentage
+     * @param slow whether to use the slow motion profile
      */
     private void commandBoth(double percent, boolean slow) {
-        final double rotations = percentToRotations(() -> percent);
+        final double rotations = left.percentToRotations(() -> percent);
         if (slow) {
-            setDynMMPositionVoltage(
-                    () -> rotations,
-                    () -> config.getSlowMmCruiseVelocity(),
-                    () -> config.getSlowMmAcceleration(),
-                    () -> config.getSlowMmJerk());
-            if (right.isAttached()) {
-                right.goToRotationsSlow(
-                        rotations,
-                        config.getSlowMmCruiseVelocity(),
-                        config.getSlowMmAcceleration(),
-                        config.getSlowMmJerk());
-            }
+            left.goToRotationsSlow(
+                    rotations,
+                    config.getLeftConfig().getSlowMmCruiseVelocity(),
+                    config.getLeftConfig().getSlowMmAcceleration(),
+                    config.getLeftConfig().getSlowMmJerk());
+            right.goToRotationsSlow(
+                    rotations,
+                    config.getLeftConfig().getSlowMmCruiseVelocity(),
+                    config.getLeftConfig().getSlowMmAcceleration(),
+                    config.getLeftConfig().getSlowMmJerk());
         } else {
-            setMMPosition(() -> rotations);
-            if (right.isAttached()) right.goToRotations(rotations);
+            left.goToRotations(rotations);
+            right.goToRotations(rotations);
         }
     }
 
@@ -373,19 +426,14 @@ public class IntakeExtension extends Mechanism {
     private final Timer homingTimer = new Timer();
     private boolean leftHomed = false;
     private boolean rightHomed = false;
-    // Timestamp (homingTimer seconds) each side was last seen moving above the stall speed.
     private double leftLastMoving = 0;
     private double rightLastMoving = 0;
 
     /**
-     * Drives each side independently into the fully-extended hard stop, re-zeroing that side's
-     * encoder at {@code maxRotations} once it stalls. A tooth skip corrupts the motor encoder, so
-     * the hard stop is the only reliable position truth; homing uses a soft-limit-bypassing voltage
-     * so it can reach the physical stop even when the (stale) encoder thinks the soft limit is
-     * already reached.
+     * Drives both extension axes through the homing process and marks each axis complete when a
+     * stall is detected, the homing timeout is reached, or the axis is unattached.
      */
     private void applyHoming() {
-        // Re-arm on entry to the HOMING state.
         if (previousSystemState != SystemState.HOMING) {
             homingTimer.restart();
             leftHomed = false;
@@ -394,79 +442,109 @@ public class IntakeExtension extends Mechanism {
             rightLastMoving = 0;
         }
 
-        boolean timedOut = homingTimer.get() >= config.getHomingTimeoutSecs();
+        double homingTimeout = config.getLeftConfig().getHomingTimeoutSecs();
+        double homingVoltage = config.getLeftConfig().getHomingVoltage();
+        boolean timedOut = homingTimer.get() >= homingTimeout;
 
-        // ── Left side (this mechanism) ──
-        if (!leftHomed) {
-            if (detectLeftStall() || timedOut) {
-                if (timedOut) Telemetry.print("IntakeExtension: LEFT resync timed out");
-                setMotorPosition(() -> config.getMaxRotations());
-                stop();
-                leftHomed = true;
+        if (left.isAttached()) {
+            if (!leftHomed) {
+                if (detectLeftStall() || timedOut) {
+                    if (timedOut) Telemetry.print("IntakeExtension: LEFT resync timed out");
+                    left.zeroAtMax();
+                    left.leftStop();
+                    leftHomed = true;
+                } else {
+                    left.driveHomingVoltage(homingVoltage);
+                }
             } else {
-                setVoltageOutputNoSoftLimit(() -> config.getHomingVoltage());
+                left.leftStop();
             }
         } else {
-            stop();
+            leftHomed = true;
         }
 
-        // ── Right side (independent axis) ──
         if (right.isAttached()) {
             if (!rightHomed) {
                 if (detectRightStall() || timedOut) {
                     if (timedOut) Telemetry.print("IntakeExtension: RIGHT resync timed out");
                     right.zeroAtMax();
-                    right.stopAxis();
+                    right.rightStop();
                     rightHomed = true;
                 } else {
-                    right.driveHomingVoltage(config.getHomingVoltage());
+                    right.driveHomingVoltage(homingVoltage);
                 }
             } else {
-                right.stopAxis();
+                right.rightStop();
             }
         } else {
-            rightHomed = true; // no right axis attached → nothing to resync
+            rightHomed = true;
         }
-    }
-
-    private boolean detectLeftStall() {
-        double now = homingTimer.get();
-        if (Math.abs(getVelocityRPM()) >= config.getHomingStallRPM()) {
-            leftLastMoving = now;
-        }
-        return isStalled(now, leftLastMoving);
-    }
-
-    private boolean detectRightStall() {
-        double now = homingTimer.get();
-        if (Math.abs(right.getVelocityRPM()) >= config.getHomingStallRPM()) {
-            rightLastMoving = now;
-        }
-        return isStalled(now, rightLastMoving);
     }
 
     /**
-     * A side is stalled once it has gone the debounce window without moving above the stall speed,
-     * but only after the minimum drive time has elapsed (so the initial pre-motion zero velocity is
-     * not mistaken for a stall).
+     * Determines whether the left extension is stalled according to its homing thresholds.
+     *
+     * @return {@code true} if the minimum homing time has elapsed and the axis has remained below
+     *     the stall velocity threshold for the debounce period, {@code false} otherwise
      */
-    private boolean isStalled(double now, double lastMoving) {
-        if (now < config.getHomingMinTimeSecs()) {
-            return false;
+    private boolean detectLeftStall() {
+        double now = homingTimer.get();
+        LeftConfig cfg = config.getLeftConfig();
+        if (Math.abs(left.getVelocityRPM()) >= cfg.getHomingStallRPM()) {
+            leftLastMoving = now;
         }
-        return (now - lastMoving) >= config.getHomingStallDebounceSecs();
+        return isStalled(
+                now, leftLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
     }
 
-    /** Whether the most recent resync has finished homing both sides. */
+    /**
+     * Determines whether the right extension axis has stalled during homing.
+     *
+     * @return {@code true} if the axis has remained below the stall velocity threshold for the
+     *     required debounce period after the minimum homing time; {@code false} otherwise
+     */
+    private boolean detectRightStall() {
+        double now = homingTimer.get();
+        RightConfig cfg = config.getRightConfig();
+        if (Math.abs(right.getVelocityRPM()) >= cfg.getHomingStallRPM()) {
+            rightLastMoving = now;
+        }
+        return isStalled(
+                now, rightLastMoving, cfg.getHomingMinTimeSecs(), cfg.getHomingStallDebounceSecs());
+    }
+
+    /**
+     * Determines whether motion has remained below the stall threshold for the required duration.
+     *
+     * @param now the current homing time in seconds
+     * @param lastMoving the most recent time motion was detected in seconds
+     * @param minTimeSecs the minimum elapsed time before stall detection begins
+     * @param stallDebounceSecs the required duration without motion before reporting a stall
+     * @return {@code true} if the minimum time has elapsed and the debounce duration has passed,
+     *     {@code false} otherwise
+     */
+    private boolean isStalled(
+            double now, double lastMoving, double minTimeSecs, double stallDebounceSecs) {
+        if (now < minTimeSecs) {
+            return false;
+        }
+        return (now - lastMoving) >= stallDebounceSecs;
+    }
+
+    /**
+     * Determines whether resynchronization has completed for both extension axes.
+     *
+     * @return {@code true} if the system is homing and both axes are homed, {@code false} otherwise
+     */
     public boolean isResyncComplete() {
         return systemState == SystemState.HOMING && leftHomed && rightHomed;
     }
 
     /**
-     * Runs a full resync: drives both sides into the extended hard stop, re-zeros each, then
-     * returns the subsystem to {@code STOPPED}.
+     * Creates a command that resynchronizes both intake extension axes and stops them when
+     * complete.
      *
-     * @return a command that completes once both sides are re-zeroed
+     * @return the resynchronization command
      */
     public Command resyncCommand() {
         return startEnd(
@@ -476,53 +554,98 @@ public class IntakeExtension extends Mechanism {
                 .withName("IntakeExtension.resync");
     }
 
+    // ---- Subsystem plumbing ----
+
+    @Getter private final Left left;
+    @Getter private final Right right;
+    @Getter private final IntakeExtensionConfig config;
+
+    /**
+     * Initializes the intake extension subsystem with its left and right axis configurations.
+     *
+     * @param config the configuration for both intake extension axes
+     */
+    public IntakeExtension(IntakeExtensionConfig config) {
+        this.config = config;
+        this.left = new Left(config.getLeftConfig());
+        this.right = new Right(config.getRightConfig());
+
+        setInitialPosition();
+
+        this.register();
+        Telemetry.print("Intake Extension Subsystem Initialized");
+    }
+
+    /** Sets the initial encoder position for both extension axes from the configured position. */
+    private void setInitialPosition() {
+        double initialRotations =
+                left.degreesToRotations(() -> config.getLeftConfig().getInitPosition());
+        left.setInitialPosition(initialRotations);
+        right.setInitialPosition(initialRotations);
+    }
+
+    /** Resets both extension axes to their maximum positions. */
+    public void resetCurrentPositionToMax() {
+        left.zeroAtMax();
+        right.zeroAtMax();
+    }
+
+    /**
+     * Creates a command that resets both extension axes to their maximum positions.
+     *
+     * @return a command that performs the position reset once
+     */
+    public Command resetCurrentPositionToMaxCommand() {
+        return new InstantCommand(this::resetCurrentPositionToMax);
+    }
+
+    /**
+     * Creates a command that resets both extension axes to their initial positions.
+     *
+     * @return a command that sets the initial encoder positions
+     */
+    public Command resetToInitialPos() {
+        return new InstantCommand(this::setInitialPosition);
+    }
+
+    /**
+     * Sets the brake mode for both intake extension axes.
+     *
+     * @param isInBrake whether to enable brake mode
+     */
+    public void setBrakeMode(boolean isInBrake) {
+        left.setBrakeMode(isInBrake);
+        right.setBrakeMode(isInBrake);
+    }
+
+    /**
+     * Provides the simulation model for the left intake extension axis.
+     *
+     * @return the left intake extension simulation model
+     */
+    public Left.IntakeExtensionSim getSim() {
+        return left.getSim();
+    }
+
+    /**
+     * Reports the extension position as a percentage of its configured range.
+     *
+     * @return the current extension position percentage
+     */
+    public double getPositionPercentage() {
+        return left.getPositionPercentage();
+    }
+
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
+
         Telemetry.log("IntakeExtension/WantedState", wantedState.toString());
         Telemetry.log("IntakeExtension/SystemState", systemState.toString());
-        Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
-        Telemetry.log("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("IntakeExtension/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
-        Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
         Telemetry.log("IntakeExtension/LeftHomed", leftHomed);
         Telemetry.log("IntakeExtension/RightHomed", rightHomed);
 
         previousSystemState = systemState;
-    }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            sim = new IntakeExtensionSim(RobotSim.leftView, motor);
-        }
-    }
-
-    class IntakeExtensionSim extends LinearSim {
-        public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
-            super(
-                    new LinearConfig(
-                                    config.getIntakeX(),
-                                    config.getIntakeY(),
-                                    config.getExtensionGearing(),
-                                    config.getDrumRadiusMeters())
-                            .setAngle(config.getAngle())
-                            .setMovingLength(config.getMovingLength())
-                            .setStaticLength(config.getStaticLength())
-                            .setMaxHeight(config.getMaxExtensionHeight())
-                            .setLineWidth(config.getLineWidth())
-                            .setColor(new Color8Bit(Color.kLightGray))
-                            .setReversedLinkage(true),
-                    mech,
-                    motor,
-                    config.getName());
-        }
     }
 }

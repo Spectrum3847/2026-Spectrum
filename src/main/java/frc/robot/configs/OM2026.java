@@ -3,6 +3,9 @@ package frc.robot.configs;
 import frc.robot.Robot.Config;
 
 public class OM2026 extends Config {
+    /**
+     * Initializes the 2026 robot configuration with attached subsystems and swerve encoder offsets.
+     */
     public OM2026() {
         super();
 
@@ -13,7 +16,8 @@ public class OM2026 extends Config {
         operator.setAttached(true);
         intakeRoller.setAttached(true);
         intakeKicker.setAttached(true);
-        intakeExtension.setAttached(true);
+        intakeExtensionLeft.setAttached(true);
+        intakeExtensionRight.setAttached(true);
         launcher.setAttached(true);
         rotor.setAttached(true);
         feeder.setAttached(true);

@@ -87,8 +87,9 @@ public class DyeRotor implements Subsystem {
             Telemetry.log("Rotor/Temp", getTemp(), "deg_C");
         }
 
-        public void setRotorRpm(double rpm) {
-            setVelocityRPM(() -> rpm);
+        public void setRotorVelocity(double rpm) {
+            double rps = rpm / 60;
+            setVelocity(() -> rps);
         }
 
         public void rotorStop() {
@@ -216,7 +217,7 @@ public class DyeRotor implements Subsystem {
         };
     }
 
-    // TODO: get actual values when robot is built
+    // TODO: test
     private void applyStates() {
         double wantedRPMSpin = 0;
         double wantedRPMIndex = 0;
@@ -240,7 +241,7 @@ public class DyeRotor implements Subsystem {
         }
         final double finalWantedRPMSpin = wantedRPMSpin;
         final double finalWantedRPMIndex = wantedRPMIndex;
-        rotor.setRotorRpm(finalWantedRPMSpin);
+        rotor.setRotorVelocity(finalWantedRPMSpin);
         feeder.setFeederRpm(finalWantedRPMIndex);
     }
 
@@ -248,6 +249,11 @@ public class DyeRotor implements Subsystem {
     @Getter private final Feeder feeder;
     @Getter private final DyeRotorConfig config;
 
+    /**
+     * Creates and registers the dye rotor subsystem with the specified configuration.
+     *
+     * @param config configuration for the rotor and feeder mechanisms
+     */
     public DyeRotor(DyeRotorConfig config) {
         this.config = config;
         this.rotor = new Rotor(config.getRotorConfig());
@@ -257,6 +263,10 @@ public class DyeRotor implements Subsystem {
         Telemetry.print("Dye Rotor Subsystem Initialized");
     }
 
+    /**
+     * Updates the internal state, applies the corresponding rotor and feeder commands, and records
+     * the requested and active states in telemetry.
+     */
     @Override
     public void periodic() {
         systemState = handleStateTransition();

@@ -4,7 +4,10 @@ import frc.robot.Robot.Config;
 
 public class PM2026 extends Config {
 
-    // Final Machine
+    /**
+     * Initializes the Practice Machine configuration, including swerve encoder offsets and attached
+     * mechanisms.
+     */
     public PM2026() {
         super();
         swerve.configEncoderOffsets(
@@ -15,7 +18,8 @@ public class PM2026 extends Config {
         operator.setAttached(true);
         intakeRoller.setAttached(true);
         intakeKicker.setAttached(true);
-        intakeExtension.setAttached(true);
+        intakeExtensionLeft.setAttached(true);
+        intakeExtensionRight.setAttached(true);
         launcher.setAttached(true);
         // indexerTower.setAttached(true);
         // indexerBed.setAttached(true);

@@ -21,7 +21,8 @@ import lombok.*;
 public class Turret extends Mechanism {
 
     public static class TurretConfig extends Config {
-        // TODO: update if needed until line 41
+        @Getter @Setter private boolean reversed = false;
+
         @Getter private final double initPosition = 0;
         @Getter private final double triggerTolerance = 5;
         @Getter private final double unwrapTolerance = 10;

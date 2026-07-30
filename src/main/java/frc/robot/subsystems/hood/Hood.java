@@ -15,7 +15,7 @@ import lombok.Getter;
 public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
-        // TODO: tune
+
         @Getter private final double initPosition = 0.0;
 
         /* 34.5 deg of travel */
@@ -44,7 +44,7 @@ public class Hood extends Mechanism {
         /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(50);
         @Getter private final double hoodY = Units.inchesToMeters(65);
-        @Getter private final double simRatio = 8.49;
+        @Getter private final double simRatio = gearRatio;
         @Getter private final double length = Units.inchesToMeters(7.735);
 
         public HoodConfig() {
