@@ -21,56 +21,7 @@ import lombok.Getter;
 
 public class IntakeExtension implements Subsystem {
 
-    public abstract static class IntakeExtensionAxis extends Mechanism {
-
-        public IntakeExtensionAxis(Config config) {
-            super(config);
-        }
-
-        public void goToRotations(double rotations) {
-            setMMPosition(() -> rotations);
-        }
-
-        public void goToRotationsSlow(
-                double rotations, double cruiseVelocity, double acceleration, double jerk) {
-            setDynMMPositionVoltage(
-                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
-        }
-
-        public void driveHomingVoltage(double volts) {
-            setVoltageOutputNoSoftLimit(() -> volts);
-        }
-
-        public void setInitialPosition(double rotations) {
-            if (isAttached()) {
-                motor.setPosition(rotations);
-            }
-        }
-
-        public void zeroAtMax() {
-            setMotorPosition(() -> config.getMaxRotations());
-        }
-
-        @Override
-        public void stop() {
-            super.stop();
-        }
-
-        @Override
-        public void periodic() {
-            logBatteryUsage();
-            String prefix = getName() + "/";
-            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
-            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
-            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
-            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
-            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
-        }
-    }
-
-    public static class Left extends IntakeExtensionAxis {
+    public static class Left extends Mechanism {
 
         public static class LeftConfig extends Config {
 
@@ -156,6 +107,48 @@ public class IntakeExtension implements Subsystem {
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
+        @Override
+        public void stop() {
+            super.stop();
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            String prefix = getName() + "/";
+            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
+            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
+            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
+            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
+            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
+        }
+
+        public void goToRotations(double rotations) {
+            setMMPosition(() -> rotations);
+        }
+
+        public void goToRotationsSlow(
+                double rotations, double cruiseVelocity, double acceleration, double jerk) {
+            setDynMMPositionVoltage(
+                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
+        }
+
+        public void driveHomingVoltage(double volts) {
+            setVoltageOutputNoSoftLimit(() -> volts);
+        }
+
+        public void setInitialPosition(double rotations) {
+            if (isAttached()) {
+                motor.setPosition(rotations);
+            }
+        }
+
+        public void zeroAtMax() {
+            setMotorPosition(() -> config.getMaxRotations());
+        }
+
         public void simulationInit() {
             if (isAttached()) {
                 sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
@@ -183,7 +176,7 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
-    public static class Right extends IntakeExtensionAxis {
+    public static class Right extends Mechanism {
 
         public static class RightConfig extends Config {
 
@@ -234,6 +227,48 @@ public class IntakeExtension implements Subsystem {
             super(config);
             this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
+        }
+
+        @Override
+        public void stop() {
+            super.stop();
+        }
+
+        @Override
+        public void periodic() {
+            logBatteryUsage();
+            String prefix = getName() + "/";
+            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
+            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
+            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
+            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
+            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
+            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
+            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
+        }
+
+        public void goToRotations(double rotations) {
+            setMMPosition(() -> rotations);
+        }
+
+        public void goToRotationsSlow(
+                double rotations, double cruiseVelocity, double acceleration, double jerk) {
+            setDynMMPositionVoltage(
+                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
+        }
+
+        public void driveHomingVoltage(double volts) {
+            setVoltageOutputNoSoftLimit(() -> volts);
+        }
+
+        public void setInitialPosition(double rotations) {
+            if (isAttached()) {
+                motor.setPosition(rotations);
+            }
+        }
+
+        public void zeroAtMax() {
+            setMotorPosition(() -> config.getMaxRotations());
         }
     }
 
