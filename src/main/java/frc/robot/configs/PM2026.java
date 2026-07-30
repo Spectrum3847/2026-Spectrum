@@ -5,7 +5,7 @@ import frc.robot.Robot.Config;
 public class PM2026 extends Config {
 
     /**
-     * Initializes the final machine configuration, including swerve encoder offsets and attached
+     * Initializes the Practice Machine configuration, including swerve encoder offsets and attached
      * mechanisms.
      */
     public PM2026() {
