@@ -25,7 +25,7 @@ public class ShiftHelpers {
         AUTO,
         DISABLED;
     }
-
+    /** Shift info. */
     public record ShiftInfo(
             ShiftEnum currentShift, double elapsedTime, double remainingTime, boolean active) {}
 
@@ -44,12 +44,30 @@ public class ShiftHelpers {
     private static final boolean[] inactiveSchedule = {true, false, true, false, true, true};
     private static final double timeResetThreshold = 3.0;
     private static double shiftTimerOffset = 0.0;
+    /**
+     * Returns the alliance win override.
+     *
+     * @return the alliance win override
+     */
     @Setter private static Supplier<Optional<Boolean>> allianceWinOverride = () -> Optional.empty();
 
     public static Optional<Boolean> getAllianceWinOverride() {
         return allianceWinOverride.get();
     }
 
+    /**
+     * Returns the current alliance-win override supplier.
+     *
+     * <p>Package-private so tests can restore the exact supplier instance.
+     */
+    static Supplier<Optional<Boolean>> getAllianceWinOverrideSupplier() {
+        return allianceWinOverride;
+    }
+    /**
+     * Returns the first active alliance.
+     *
+     * @return the first active alliance
+     */
     public static Alliance getFirstActiveAlliance() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
@@ -81,7 +99,11 @@ public class ShiftHelpers {
         shiftTimerOffset = 0;
         shiftTimer.restart();
     }
-
+    /**
+     * Returns the schedule.
+     *
+     * @return the schedule
+     */
     private static boolean[] getSchedule() {
         boolean[] currentSchedule;
         Alliance startAlliance = getFirstActiveAlliance();
@@ -91,7 +113,11 @@ public class ShiftHelpers {
                         : inactiveSchedule;
         return currentSchedule;
     }
-
+    /**
+     * Returns the shift info.
+     *
+     * @return the shift info
+     */
     private static ShiftInfo getShiftInfo(
             boolean[] currentSchedule, double[] shiftStartTimes, double[] shiftEndTimes) {
         double timerValue = shiftTimer.get();
@@ -152,11 +178,19 @@ public class ShiftHelpers {
                 new ShiftInfo(currentShift, stateTimeElapsed, stateTimeRemaining, active);
         return shiftInfo;
     }
-
+    /**
+     * Returns the official shift info.
+     *
+     * @return the official shift info
+     */
     public static ShiftInfo getOfficialShiftInfo() {
         return getShiftInfo(getSchedule(), shiftStartTimes, shiftEndTimes);
     }
-
+    /**
+     * Returns the shifted shift info.
+     *
+     * @return the shifted shift info
+     */
     public static ShiftInfo getShiftedShiftInfo() {
         boolean[] shiftSchedule = getSchedule();
         // Starting active

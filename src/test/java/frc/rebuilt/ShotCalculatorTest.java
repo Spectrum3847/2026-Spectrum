@@ -13,7 +13,7 @@ public class ShotCalculatorTest {
 
     private Double originalHoodAngleOffset;
     private Double originalTurretAngleOffset;
-
+    /** Restore static state. */
     @AfterEach
     void restoreStaticState() {
         if (originalHoodAngleOffset != null) {
@@ -25,7 +25,7 @@ public class ShotCalculatorTest {
             originalTurretAngleOffset = null;
         }
     }
-
+    /** Verifies shooting parameters record. */
     @Test
     @DisplayName("Test ShootingParameters record properties")
     void testShootingParametersRecord() {
@@ -53,7 +53,7 @@ public class ShotCalculatorTest {
         assertEquals(4.8, params.distanceNoLookahead(), 1e-6);
         assertEquals(1.2, params.timeOfFlight(), 1e-6);
     }
-
+    /** Verifies hood angle offset commands. */
     @Test
     @DisplayName("Test Hood angle offset increment and decrement commands")
     void testHoodAngleOffsetCommands() {
@@ -66,7 +66,7 @@ public class ShotCalculatorTest {
         ShotCalculator.decreaseHoodAngleOffset().initialize();
         assertEquals(initialOffset, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-6);
     }
-
+    /** Verifies turret angle offset commands. */
     @Test
     @DisplayName("Test Turret angle offset increment and decrement commands")
     void testTurretAngleOffsetCommands() {
@@ -79,7 +79,7 @@ public class ShotCalculatorTest {
         ShotCalculator.decreaseTurretAngleOffset().initialize();
         assertEquals(initialOffset, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-6);
     }
-
+    /** Verifies singleton. */
     @Test
     @DisplayName("Test ShotCalculator singleton instance")
     void testSingleton() {

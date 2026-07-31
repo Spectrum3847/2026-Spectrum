@@ -46,7 +46,9 @@ public class Launcher extends Mechanism {
         @Getter private double gearRatio = 1.38;
 
         /* Sim Configs */
+        /** Creates a new LauncherConfig instance. */
         @Getter private final double launcherX = Units.inchesToMeters(50);
+
         @Getter private final double launcherY = Units.inchesToMeters(65);
         @Getter private final double wheelDiameter = 4;
 
@@ -87,11 +89,15 @@ public class Launcher extends Mechanism {
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -99,7 +105,7 @@ public class Launcher extends Mechanism {
             case LAUNCH -> SystemState.LAUNCH;
         };
     }
-
+    /** Applies the states. */
     private void applyStates() {
         double wantedRPM = 0;
         switch (systemState) {
@@ -119,8 +125,14 @@ public class Launcher extends Mechanism {
     }
 
     @Getter private final LauncherConfig config;
+
     @Getter private LauncherSim sim;
 
+    /**
+     * Creates a new Launcher instance.
+     *
+     * @param config the config
+     */
     public Launcher(LauncherConfig config) {
         super(config);
         this.config = config;
@@ -128,7 +140,7 @@ public class Launcher extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
@@ -145,6 +157,7 @@ public class Launcher extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // // --------------------------------------------------------------------------------
+    /** Simulation init. */
     public void simulationInit() {
         if (isAttached()) {
             sim = new LauncherSim(RobotSim.leftView, motor);
@@ -152,6 +165,12 @@ public class Launcher extends Mechanism {
     }
 
     class LauncherSim extends RollerSim {
+        /**
+         * Creates a new LauncherSim instance.
+         *
+         * @param mech the mech
+         * @param motor the motor
+         */
         public LauncherSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new RollerConfig(config.getWheelDiameter())

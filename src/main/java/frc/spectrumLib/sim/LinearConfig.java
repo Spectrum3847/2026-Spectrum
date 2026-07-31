@@ -98,7 +98,11 @@ public class LinearConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
-
+    /**
+     * Sets the num motors.
+     *
+     * @param numMotors the num motors
+     */
     public LinearConfig setNumMotors(int numMotors) {
         this.numMotors = numMotors;
         return this;

@@ -56,8 +56,7 @@ public class ShiftHelpersTest {
     @Test
     @DisplayName("Test alliance win override setter and getter")
     void testAllianceWinOverride() {
-        Optional<Boolean> originalValue = ShiftHelpers.getAllianceWinOverride();
-        originalAllianceWinOverride = () -> originalValue;
+        originalAllianceWinOverride = ShiftHelpers.getAllianceWinOverrideSupplier();
 
         ShiftHelpers.setAllianceWinOverride(() -> Optional.of(true));
         assertEquals(Optional.of(true), ShiftHelpers.getAllianceWinOverride());

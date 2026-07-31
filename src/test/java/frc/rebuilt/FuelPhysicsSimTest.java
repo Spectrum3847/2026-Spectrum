@@ -22,6 +22,27 @@ public class FuelPhysicsSimTest {
         assertTrue(config.frictionEnabled);
         assertEquals(4, config.solverIterations);
 
+        // Assign distinct non-default values so copy() must carry every field to pass.
+        config.dragEnabled = false;
+        config.magnusEnabled = false;
+        config.frictionEnabled = false;
+        config.spinTransferEnabled = false;
+        config.sleepingEnabled = false;
+        config.ccdEnabled = false;
+        config.velocityDependentCOR = false;
+        config.spinDecayEnabled = false;
+        config.solverIterations = 8;
+        config.subticks = 3;
+        config.spinDecayTau = 1.5;
+        config.sleepVelocityThreshold = 0.05;
+        config.sleepFrameThreshold = 4;
+        config.ccdSpeedThreshold = 7.5;
+        config.baumgarteBeta = 0.8;
+        config.baumgarteSlop = 0.01;
+        config.deterministic = true;
+        config.deterministicSeed = 1234L;
+        config.conservationMonitor = true;
+
         FuelPhysicsSim.PhysicsConfig copy = config.copy();
         assertEquals(config.dragEnabled, copy.dragEnabled);
         assertEquals(config.magnusEnabled, copy.magnusEnabled);

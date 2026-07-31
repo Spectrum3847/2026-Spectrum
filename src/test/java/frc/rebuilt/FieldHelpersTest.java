@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class FieldHelpersTest {
-
+    /** Verifies flip angle. */
     @Test
     @DisplayName("Test flipAngle with degrees and Rotation2d")
     void testFlipAngle() {
@@ -23,7 +23,7 @@ public class FieldHelpersTest {
         Rotation2d flipped = FieldHelpers.flipAngle(rot);
         assertEquals(-135.0, flipped.getDegrees(), 1e-6);
     }
-
+    /** Verifies flip xand y. */
     @Test
     @DisplayName("Test flipX and flipY")
     void testFlipXandY() {
@@ -33,7 +33,7 @@ public class FieldHelpersTest {
         assertEquals(expectedFlippedX, FieldHelpers.flipX(5.0), 1e-6);
         assertEquals(expectedFlippedY, FieldHelpers.flipY(3.0), 1e-6);
     }
-
+    /** Verifies normalize angle. */
     @Test
     @DisplayName("Test normalizeAngle radians")
     void testNormalizeAngle() {
@@ -42,7 +42,7 @@ public class FieldHelpersTest {
         assertEquals(-Math.PI / 2.0, FieldHelpers.normalizeAngle(3.0 * Math.PI / 2.0), 1e-6);
         assertEquals(0.0, FieldHelpers.normalizeAngle(2 * Math.PI), 1e-6);
     }
-
+    /** Verifies pose out of field. */
     @Test
     @DisplayName("Test poseOutOfField for Pose2d and Pose3d")
     void testPoseOutOfField() {
@@ -65,5 +65,22 @@ public class FieldHelpersTest {
 
         Pose2d tooLargeY = new Pose2d(5.0, Field.fieldWidth + 0.1, Rotation2d.kZero);
         assertTrue(FieldHelpers.poseOutOfField(tooLargeY));
+
+        // Poses exactly on the field boundaries are also out of field
+        Pose2d zeroX = new Pose2d(0.0, 3.0, Rotation2d.kZero);
+        assertTrue(FieldHelpers.poseOutOfField(zeroX));
+        assertTrue(FieldHelpers.poseOutOfField(new Pose3d(zeroX)));
+
+        Pose2d fieldLengthX = new Pose2d(Field.fieldLength, 3.0, Rotation2d.kZero);
+        assertTrue(FieldHelpers.poseOutOfField(fieldLengthX));
+        assertTrue(FieldHelpers.poseOutOfField(new Pose3d(fieldLengthX)));
+
+        Pose2d zeroY = new Pose2d(5.0, 0.0, Rotation2d.kZero);
+        assertTrue(FieldHelpers.poseOutOfField(zeroY));
+        assertTrue(FieldHelpers.poseOutOfField(new Pose3d(zeroY)));
+
+        Pose2d fieldWidthY = new Pose2d(5.0, Field.fieldWidth, Rotation2d.kZero);
+        assertTrue(FieldHelpers.poseOutOfField(fieldWidthY));
+        assertTrue(FieldHelpers.poseOutOfField(new Pose3d(fieldWidthY)));
     }
 }

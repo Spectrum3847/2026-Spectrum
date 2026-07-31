@@ -84,10 +84,13 @@ public class CurveTest {
         curve.setScalar(1.0);
         curve.setOffset(0.0);
 
+        // Single-point sampling uses the center of the input range; a nonzero offset must show up
+        curve.setOffset(0.5);
         double[][] single = curve.getCurvePoints(1);
+        curve.setOffset(0.0);
         assertEquals(1, single.length);
         assertEquals(0.0, single[0][0], 1e-6);
-        assertEquals(0.0, single[0][1], 1e-6);
+        assertEquals(0.5, single[0][1], 1e-6);
 
         double[][] points = curve.getCurvePoints(5);
         assertEquals(5, points.length);

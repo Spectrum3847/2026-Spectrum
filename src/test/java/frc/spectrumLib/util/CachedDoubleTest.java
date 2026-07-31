@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 public class CachedDoubleTest {
 
     private CachedDouble cachedDouble;
-
+    /** Cleanup. */
     @AfterEach
     void cleanup() {
         if (cachedDouble != null) {
@@ -19,7 +19,7 @@ public class CachedDoubleTest {
             cachedDouble = null;
         }
     }
-
+    /** Verifies caching and invalidation. */
     @Test
     @DisplayName("Test CachedDouble caches value within same iteration and invalidates on periodic")
     void testCachingAndInvalidation() {

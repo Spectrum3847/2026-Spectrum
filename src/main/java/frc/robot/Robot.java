@@ -122,10 +122,12 @@ public class Robot extends SpectrumRobot {
     @Getter private static Vision vision;
     // @Getter private static Leds leds;
     @Getter private static Auton auton;
+
     @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
 
+    /** Creates a new Robot instance. */
     public Robot() {
         super();
         Telemetry.start(true, true, false, true, false, true, PrintPriority.NORMAL);
@@ -229,7 +231,7 @@ public class Robot extends SpectrumRobot {
                     default -> "Unknown";
                 });
     }
-
+    /** Configures the bindings. */
     public void configureBindings() {
         // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
         pilot.LT.onTrue(
@@ -306,7 +308,7 @@ public class Robot extends SpectrumRobot {
                         superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
-
+    /** Configures the sim bindings. */
     public void configureSimBindings() {
         Trigger simLaunching = new Trigger(superStructure::currentStateIsLaunching);
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
@@ -325,7 +327,7 @@ public class Robot extends SpectrumRobot {
     public void setupSmartDashboardData() {
         SmartDashboard.putData("Field2d", field2d);
     }
-
+    /** Robot init. */
     @Override
     public void robotInit() {
         setupSmartDashboardData();
@@ -379,7 +381,7 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
-
+    /** Disabled init. */
     @Override
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
@@ -402,7 +404,7 @@ public class Robot extends SpectrumRobot {
     }
 
     String autoName = "";
-
+    /** Disabled periodic. */
     @Override
     public void disabledPeriodic() {
         String fullAutoName = auton.getAutonomousCommand().getName();
@@ -495,7 +497,7 @@ public class Robot extends SpectrumRobot {
             }
         }
     }
-
+    /** Disabled exit. */
     @Override
     public void disabledExit() {
         Telemetry.print("### Disabled Exit### ");
@@ -523,16 +525,16 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
-
+    /** Autonomous periodic. */
     @Override
     public void autonomousPeriodic() {}
-
+    /** Autonomous exit. */
     @Override
     public void autonomousExit() {
         auton.exit();
         Telemetry.print("@@@ Auton Exit @@@ ");
     }
-
+    /** Teleop init. */
     @Override
     public void teleopInit() {
         try {
@@ -547,10 +549,10 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
-
+    /** Teleop periodic. */
     @Override
     public void teleopPeriodic() {}
-
+    /** Teleop exit. */
     @Override
     public void teleopExit() {
         if (DriverStation.isFMSAttached()) {
@@ -581,10 +583,10 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
-
+    /** Test periodic. */
     @Override
     public void testPeriodic() {}
-
+    /** Test exit. */
     @Override
     public void testExit() {
         Telemetry.print("~~~ Test Exit ~~~ ");

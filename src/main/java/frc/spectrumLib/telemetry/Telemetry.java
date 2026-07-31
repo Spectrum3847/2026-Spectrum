@@ -97,7 +97,11 @@ public class Telemetry extends DogLog implements Subsystem {
         /* Display the currently running commands on SmartDashboard*/
         SmartDashboard.putData(CommandScheduler.getInstance());
     }
-
+    /**
+     * Sets the priority.
+     *
+     * @param priority the priority
+     */
     private static void setPriority(PrintPriority priority) {
         Telemetry.priority = priority;
     }
@@ -146,7 +150,7 @@ public class Telemetry extends DogLog implements Subsystem {
         logAlertType(ntInstance, "warnings", "WARNING");
         logAlertType(ntInstance, "infos", "INFO");
     }
-
+    /** Logs the alert type. */
     private static void logAlertType(NetworkTableInstance ntInstance, String key, String prefix) {
         String[] alertStrings =
                 ntInstance

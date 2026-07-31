@@ -123,7 +123,7 @@ public class BatteryLogger {
             totalCurrent = 0.0;
         }
     }
-
+    /** Joules to watt hours. */
     private double joulesToWattHours(double joules) {
         return joules / 3600.0;
     }

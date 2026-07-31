@@ -321,7 +321,7 @@ public abstract class Gamepad implements Subsystem {
 
         CommandScheduler.getInstance().registerSubsystem(this);
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         configure();
@@ -333,6 +333,7 @@ public abstract class Gamepad implements Subsystem {
      * Called automatically by {@link #periodic()}.
      */
     // Configure the pilot controller
+    /** Configure. */
     public void configure() {
         if (config.isAttached()) {
             disconnectedAlert.set(!isConnected()); // Display if the controller is disconnected
@@ -597,7 +598,7 @@ public abstract class Gamepad implements Subsystem {
         return new Trigger(
                 () -> Math.abs(getLeftX()) >= threshold || Math.abs(getLeftY()) >= threshold);
     }
-
+    /** Axis trigger. */
     private Trigger axisTrigger(Threshold t, double threshold, DoubleSupplier v) {
         return new Trigger(
                 () -> {

@@ -227,7 +227,11 @@ public class SwerveConfig {
     private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
                     []
             modules;
-
+    /**
+     * Returns the modules.
+     *
+     * @return the modules
+     */
     @SuppressWarnings("unchecked")
     public SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             [] getModules() {
@@ -238,11 +242,11 @@ public class SwerveConfig {
         }
         return modules;
     }
-
+    /** Creates a new SwerveConfig instance. */
     public SwerveConfig() {
         updateConfig();
     }
-
+    /** Updates the config. */
     public SwerveConfig updateConfig() {
         drivetrainConstants =
                 new SwerveDrivetrainConstants()
@@ -322,7 +326,7 @@ public class SwerveConfig {
 
         return this;
     }
-
+    /** Config encoder offsets. */
     public SwerveConfig configEncoderOffsets(
             double frontLeft, double frontRight, double backLeft, double backRight) {
         frontLeftEncoderOffset = Rotations.of(frontLeft);

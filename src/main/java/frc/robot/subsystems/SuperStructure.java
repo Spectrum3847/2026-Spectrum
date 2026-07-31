@@ -70,7 +70,18 @@ public class SuperStructure extends SubsystemBase {
     @Getter private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
     @Getter private CurrentSuperState currentSuperState = CurrentSuperState.IDLE;
     private CurrentSuperState previousSuperState = CurrentSuperState.IDLE;
-
+    /**
+     * Creates a new SuperStructure instance.
+     *
+     * @param swerve the swerve
+     * @param fuelIntake the fuelIntake
+     * @param intakeExtension the intakeExtension
+     * @param dyeRotor the dyeRotor
+     * @param launcher the launcher
+     * @param launcherTower the launcherTower
+     * @param turret the turret
+     * @param hood the hood
+     */
     public SuperStructure(
             Swerve swerve,
             FuelIntake fuelIntake,
@@ -92,25 +103,29 @@ public class SuperStructure extends SubsystemBase {
 
     private final Timer intakeSqueezeTimer = new Timer();
     private final double secondsToSqueeze = 1.0;
-
+    /** Current state is launching. */
     public boolean currentStateIsLaunching() {
         return currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
                 || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
-
+    /** Current state is intaking. */
     public boolean currentStateIsIntaking() {
         return currentSuperState == CurrentSuperState.INTAKE_FUEL
                 || currentSuperState == CurrentSuperState.AUTON_INTAKE_FUEL
                 || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
-
+    /**
+     * Returns {@code true} if the squeeze state condition is met.
+     *
+     * @return {@code true} if the squeeze state condition is met
+     */
     private static boolean isSqueezeState(CurrentSuperState state) {
         return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         currentSuperState = handleStateTransitions();
@@ -129,7 +144,7 @@ public class SuperStructure extends SubsystemBase {
         Telemetry.log(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
     }
-
+    /** Handles the state transitions. */
     private CurrentSuperState handleStateTransitions() {
         return switch (wantedSuperState) {
             case IDLE -> Util.autoMode.getAsBoolean() || Util.disabled.getAsBoolean()
@@ -150,7 +165,7 @@ public class SuperStructure extends SubsystemBase {
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
         };
     }
-
+    /** Applies the states. */
     private void applyStates() {
         switch (currentSuperState) {
             case IDLE:
@@ -199,7 +214,7 @@ public class SuperStructure extends SubsystemBase {
     }
 
     // ── State methods ──────────────────────────────────────────────────────────
-
+    /** Applies the idle. */
     private void applyIdle() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -212,7 +227,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
-
+    /** Intake fuel. */
     private void intakeFuel() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -225,7 +240,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
-
+    /** Track target. */
     private void trackTarget() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -238,7 +253,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Launches with squeeze. */
     private void launchWithSqueeze() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
@@ -257,7 +272,7 @@ public class SuperStructure extends SubsystemBase {
             intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         }
     }
-
+    /** Launches with squeeze with no delay. */
     private void launchWithSqueezeWithNoDelay() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
@@ -270,7 +285,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Launches without squeeze. */
     private void launchWithoutSqueeze() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
@@ -283,7 +298,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Launches with brake. */
     private void launchWithBrake() {
         swerve.setWantedState(Swerve.WantedState.X_BRAKE);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
@@ -294,7 +309,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Applies the auton idle. */
     private void applyAutonIdle() {
         swerve.setWantedState(Swerve.WantedState.IDLE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
@@ -305,7 +320,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
-
+    /** Auton intake fuel. */
     private void autonIntakeFuel() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
@@ -315,7 +330,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.HOME);
     }
-
+    /** Auton track target. */
     private void autonTrackTarget() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
@@ -325,7 +340,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Auton launch without squeeze. */
     private void autonLaunchWithoutSqueeze() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
@@ -334,7 +349,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Auton launch with squeeze. */
     private void autonLaunchWithSqueeze() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
@@ -343,7 +358,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
-
+    /** Unjam. */
     private void unjam() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -355,7 +370,7 @@ public class SuperStructure extends SubsystemBase {
         turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
-
+    /** Force home. */
     private void forceHome() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
@@ -372,43 +387,69 @@ public class SuperStructure extends SubsystemBase {
     // ── Public API ─────────────────────────────────────────────────────────────
 
     // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
+    /**
+     * Returns {@code true} if the robot in neutral zone condition is met.
+     *
+     * @return {@code true} if the robot in neutral zone condition is met
+     */
     public boolean isRobotInNeutralZone() {
         return swerve.isInNeutralZone();
     }
-
+    /**
+     * Returns {@code true} if the robot in enemy zone condition is met.
+     *
+     * @return {@code true} if the robot in enemy zone condition is met
+     */
     public boolean isRobotInEnemyZone() {
         return swerve.isInEnemyAllianceZone();
     }
-
+    /**
+     * Returns {@code true} if the robot in feed zone condition is met.
+     *
+     * @return {@code true} if the robot in feed zone condition is met
+     */
     public boolean isRobotInFeedZone() {
         return isRobotInEnemyZone() || isRobotInNeutralZone();
     }
-
+    /**
+     * Returns {@code true} if the robot in score zone condition is met.
+     *
+     * @return {@code true} if the robot in score zone condition is met
+     */
     public boolean isRobotInScoreZone() {
         return !isRobotInFeedZone();
     }
 
     // Trigger factories — use these for binding-time composition only.
+    /** Robot in neutral zone. */
     public Trigger robotInNeutralZone() {
         return new Trigger(this::isRobotInNeutralZone);
     }
-
+    /** Robot in enemy zone. */
     public Trigger robotInEnemyZone() {
         return new Trigger(this::isRobotInEnemyZone);
     }
-
+    /** Robot in feed zone. */
     public Trigger robotInFeedZone() {
         return new Trigger(this::isRobotInFeedZone);
     }
-
+    /** Robot in score zone. */
     public Trigger robotInScoreZone() {
         return new Trigger(this::isRobotInScoreZone);
     }
-
+    /**
+     * Sets the wanted super state.
+     *
+     * @param state the wanted super state
+     */
     public void setWantedSuperState(WantedSuperState state) {
         this.wantedSuperState = state;
     }
-
+    /**
+     * Sets the state command.
+     *
+     * @param state the state command
+     */
     public Command setStateCommand(WantedSuperState state) {
         return new InstantCommand(() -> setWantedSuperState(state));
     }

@@ -88,11 +88,15 @@ public class SpectrumLEDs implements Subsystem {
      */
     private static final class HardwareAnimPattern implements CANdlePattern {
         private final CANdlePattern impl;
-
+        /**
+         * Creates a new HardwareAnimPattern instance.
+         *
+         * @param impl the impl
+         */
         HardwareAnimPattern(CANdlePattern impl) {
             this.impl = impl;
         }
-
+        /** Apply to. */
         @Override
         public void applyTo(CANdle candle, int startIdx, int numLeds) {
             impl.applyTo(candle, startIdx, numLeds);

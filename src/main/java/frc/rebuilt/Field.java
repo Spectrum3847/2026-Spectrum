@@ -448,7 +448,11 @@ public class Field {
 
         private volatile AprilTagFieldLayout layout;
         private volatile String layoutString;
-
+        /**
+         * Returns the layout.
+         *
+         * @return the layout
+         */
         public AprilTagFieldLayout getLayout() {
             if (layout == null) {
                 synchronized (this) {
@@ -479,7 +483,11 @@ public class Field {
             }
             return layout;
         }
-
+        /**
+         * Returns the layout string.
+         *
+         * @return the layout string
+         */
         public String getLayoutString() {
             if (layoutString == null) {
                 getLayout();

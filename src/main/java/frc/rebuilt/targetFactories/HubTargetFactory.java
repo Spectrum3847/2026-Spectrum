@@ -27,7 +27,7 @@ public class HubTargetFactory {
     }
 
     static Double kXDistanceOffset = Units.inchesToMeters(0);
-
+    /** Generate. */
     public static Translation3d generate() {
         Translation3d hubPose = Field.isRed() ? Field.getRedHubCenter() : Field.getBlueHubCenter();
 

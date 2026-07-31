@@ -67,7 +67,11 @@ public class RollerConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
-
+    /**
+     * Sets the gear ratio.
+     *
+     * @param ratio the gear ratio
+     */
     public RollerConfig setGearRatio(double ratio) {
         gearRatio = ratio;
         return this;

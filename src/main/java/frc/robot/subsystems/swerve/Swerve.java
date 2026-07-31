@@ -98,11 +98,19 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private Notifier simNotifier = null;
 
     private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
-
+    /**
+     * Returns the pitch.
+     *
+     * @return the pitch
+     */
     public Rotation2d getPitch() {
         return Rotation2d.fromDegrees(pitchSignal.refresh().getValue().in(Degrees));
     }
-
+    /**
+     * Returns the roll.
+     *
+     * @return the roll
+     */
     public Rotation2d getRoll() {
         return Rotation2d.fromDegrees(rollSignal.refresh().getValue().in(Degrees));
     }
@@ -175,14 +183,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Periodic and Setup Methods
     // --------------------------------------------------------------------------------
-
+    /** Log. */
     protected void log(SwerveDriveState state) {
         Telemetry.log("Swerve/State/Pose", state.Pose);
         Telemetry.log("Swerve/State/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/State/MeasuredStates", state.ModuleStates);
         Telemetry.log("Swerve/State/MeasuredSpeeds", state.Speeds);
     }
-
+    /** Logs the battery usage. */
     protected void logBatteryUsage() {
         double steerMotorCurrent = getSteerMotorSupplyCurrents();
         double driveMotorCurrent = getDriveMotorSupplyCurrents();
@@ -194,25 +202,41 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Telemetry.log("Swerve/Currents/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
         Telemetry.log("Swerve/Currents/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
     }
-
+    /**
+     * Returns the drive motor stator currents.
+     *
+     * @return the drive motor stator currents
+     */
     protected double getDriveMotorStatorCurrents() {
         return Arrays.stream(getModules())
                 .mapToDouble(module -> module.getDriveMotor().getStatorCurrent().getValueAsDouble())
                 .sum();
     }
-
+    /**
+     * Returns the steer motor stator currents.
+     *
+     * @return the steer motor stator currents
+     */
     protected double getSteerMotorStatorCurrents() {
         return Arrays.stream(getModules())
                 .mapToDouble(module -> module.getSteerMotor().getStatorCurrent().getValueAsDouble())
                 .sum();
     }
-
+    /**
+     * Returns the drive motor supply currents.
+     *
+     * @return the drive motor supply currents
+     */
     protected double getDriveMotorSupplyCurrents() {
         return Arrays.stream(getModules())
                 .mapToDouble(module -> module.getDriveMotor().getSupplyCurrent().getValueAsDouble())
                 .sum();
     }
-
+    /**
+     * Returns the steer motor supply currents.
+     *
+     * @return the steer motor supply currents
+     */
     protected double getSteerMotorSupplyCurrents() {
         return Arrays.stream(getModules())
                 .mapToDouble(module -> module.getSteerMotor().getSupplyCurrent().getValueAsDouble())
@@ -264,7 +288,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // -----------------------------------------------------------------------
     // Subsystem Setup
     // -----------------------------------------------------------------------
-
+    /**
+     * Returns the current command name.
+     *
+     * @return the current command name
+     */
     protected String getCurrentCommandName() {
         Command currentCommand = this.getCurrentCommand();
         if (currentCommand != null) {
@@ -273,7 +301,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         return "none";
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case TELEOP_DRIVE -> SystemState.TELEOP_DRIVE;
@@ -284,7 +312,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             default -> SystemState.IDLE;
         };
     }
-
+    /** Applies the states. */
     private void applyStates() {
         switch (systemState) {
             default:
@@ -305,7 +333,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 break;
         }
     }
-
+    /** Calculates the speeds based on joystick inputs. */
     private ChassisSpeeds calculateSpeedsBasedOnJoystickInputs() {
         if (DriverStation.getAlliance().isEmpty()) {
             return new ChassisSpeeds(0, 0, 0);
@@ -382,7 +410,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         return sampled.orElse(getRobotPose());
     }
-
+    /** Resets the pose. */
     @Override
     public void resetPose(Pose2d pose) {
         if (this.mapleSimSwerveDrivetrain != null) {
@@ -395,12 +423,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Zone Triggers
     // --------------------------------------------------------------------------------
-
+    /** In xzone. */
     public Trigger inXzone(double minXmeter, double maxXmeter) {
         return new Trigger(
                 () -> Util.inRange(() -> getRobotPose().getX(), () -> minXmeter, () -> maxXmeter));
     }
-
+    /** In yzone. */
     public Trigger inYzone(double minYmeter, double maxYmeter) {
         return new Trigger(
                 () -> Util.inRange(() -> getRobotPose().getY(), () -> minYmeter, () -> maxYmeter));
@@ -474,22 +502,22 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 new Translation2d(
                         FieldHelpers.flipXifRed(getRobotPose().getX()), getRobotPose().getY()));
     }
-
+    /** In neutral zone. */
     public Trigger inNeutralZone() {
         return new Trigger(this::isInNeutralZone);
     }
-
+    /** In enemy alliance zone. */
     public Trigger inEnemyAllianceZone() {
         return new Trigger(this::isInEnemyAllianceZone);
     }
-
+    /** In field right. */
     public Trigger inFieldRight() {
         final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
         final double halfWidth = fieldWidthMeters / 2.0;
 
         return new Trigger(() -> getRobotPose().getY() < halfWidth);
     }
-
+    /** In field left. */
     public Trigger inFieldLeft() {
         final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
         final double halfWidth = fieldWidthMeters / 2.0;
@@ -500,17 +528,25 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Speed Checks
     // --------------------------------------------------------------------------------
-
+    /**
+     * Returns {@code true} if the going too fast condition is met.
+     *
+     * @return {@code true} if the going too fast condition is met
+     */
     public boolean isGoingTooFast(double thresholdSpeed) {
         ChassisSpeeds speeds = getCurrentRobotChassisSpeeds();
         double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
         return linearSpeed > thresholdSpeed;
     }
-
+    /** Over speed trigger. */
     public Trigger overSpeedTrigger(double thresholdSpeed) {
         return new Trigger(() -> isGoingTooFast(thresholdSpeed));
     }
-
+    /**
+     * Returns the current robot chassis speeds.
+     *
+     * @return the current robot chassis speeds
+     */
     public ChassisSpeeds getCurrentRobotChassisSpeeds() {
         return getKinematics().toChassisSpeeds(getState().ModuleStates);
     }
@@ -518,7 +554,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Reorientation Methods
     // --------------------------------------------------------------------------------
-
+    /** Reorient. */
     protected void reorient(double angleDegrees) {
         resetPose(
                 new Pose2d(
@@ -526,7 +562,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                         getRobotPose().getY(),
                         Rotation2d.fromDegrees(angleDegrees)));
     }
-
+    /** Reorient pilot angle. */
     protected Command reorientPilotAngle(double angleDegrees) {
         return runOnce(
                 () -> {
@@ -534,7 +570,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     reorient(output);
                 });
     }
-
+    /**
+     * Returns the closest cardinal.
+     *
+     * @return the closest cardinal
+     */
     protected double getClosestCardinal() {
         double heading = getRotation().getRadians();
         if (heading > -Math.PI / 4 && heading <= Math.PI / 4) {
@@ -547,7 +587,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             return 270;
         }
     }
-
+    /** Cardinal reorient. */
     protected Command cardinalReorient() {
         return runOnce(
                 () -> {
@@ -555,7 +595,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     reorient(angleDegrees);
                 });
     }
-
+    /** Front closest to angle. */
     public boolean frontClosestToAngle(double angleDegrees) {
         double heading = getRotation().getDegrees();
         double flippedHeading;
@@ -571,6 +611,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     }
 
     // Helper method to calculate the shortest angle difference
+    /**
+     * Returns the rotation difference.
+     *
+     * @return the rotation difference
+     */
     public double getRotationDifference(double angle1, double angle2) {
         double diff = Math.abs(angle1 - angle2) % 360;
         return diff > 180 ? 360 - diff : diff;
@@ -579,11 +624,19 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Rotation Controller
     // --------------------------------------------------------------------------------
-
+    /**
+     * Returns the rotation.
+     *
+     * @return the rotation
+     */
     Rotation2d getRotation() {
         return getRobotPose().getRotation();
     }
-
+    /**
+     * Returns the rotation radians.
+     *
+     * @return the rotation radians
+     */
     double getRotationRadians() {
         return getRobotPose().getRotation().getRadians();
     }
@@ -594,20 +647,33 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     // Used to set a control request to the swerve module, ignores disable so commands are
     // continuous.
+    /** Applies the request. */
     Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
         return run(() -> this.setControl(requestSupplier.get())).ignoringDisable(true);
     }
 
     // ── Public state setters ───────────────────────────────────────────────────────────
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /**
+     * Returns {@code true} if the at desired rotation condition is met.
+     *
+     * @return {@code true} if the at desired rotation condition is met
+     */
     public boolean isAtDesiredRotation() {
         return isAtDesiredRotation(Units.degreesToRadians(10.0));
     }
-
+    /**
+     * Returns {@code true} if the at desired rotation condition is met.
+     *
+     * @return {@code true} if the at desired rotation condition is met
+     */
     public boolean isAtDesiredRotation(double toleranceRadians) {
         return Math.abs(DRIVE_AT_ANGLE_REQUEST.HeadingController.getPositionError())
                 < toleranceRadians;
@@ -616,7 +682,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Path Planner Configuration
     // --------------------------------------------------------------------------------
-
+    /** Configures the path planner. */
     private void configurePathPlanner() {
         // Seed robot to in front of blue hub (Paths will change this starting position)
         resetPose(
@@ -661,8 +727,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-
+    /** Starts the sim thread. */
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
+
     @Getter private RobotBumpSim robotBumpSim = null;
     @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
 

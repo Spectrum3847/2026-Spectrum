@@ -3,6 +3,7 @@ package frc.rebuilt;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
@@ -57,11 +58,18 @@ public class RobotBumpSimTest {
 
         RobotBumpSim bumpSim = new RobotBumpSim(moduleLocations);
 
-        Pose2d maplePose = new Pose2d(2.0, 3.0, Rotation2d.fromDegrees(90.0));
+        // Drive into the bump so the frictionless slide sim owns the field-X position
+        Pose2d maplePose = new Pose2d(3.8, 3.0, Rotation2d.fromDegrees(90.0));
+        ChassisSpeeds speeds = new ChassisSpeeds(1.0, 0.0, 0.0);
+        Pose3d simulated = bumpSim.update(maplePose, speeds, 5);
+
+        assertTrue(bumpSim.isOnRamp());
+
         Pose2d worldPose = bumpSim.getSimWorldPose(maplePose);
 
-        // X comes from the frictionless simXPos (initial value 0.0), not the MapleSim pose X (2.0)
-        assertEquals(0.0, worldPose.getX(), 1e-6);
+        // X comes from the frictionless simXPos advanced by update(), not the MapleSim pose X
+        assertEquals(simulated.getX(), worldPose.getX(), 1e-6);
+        assertTrue(worldPose.getX() > 0.0);
         assertEquals(3.0, worldPose.getY(), 1e-6);
         assertEquals(90.0, worldPose.getRotation().getDegrees(), 1e-6);
     }
