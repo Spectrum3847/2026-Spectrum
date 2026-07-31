@@ -47,13 +47,7 @@ public class Circle {
             String name,
             MechanismRoot2d root,
             Mechanism2d mech) {
-        this.backgroundLines = backgroundLines;
-        this.diameterInches = diameterInches;
-        this.name = name;
-        this.root = root;
-        this.circleBackground = new MechanismLigament2d[this.backgroundLines];
-        this.rollerAxle = mech.getRoot(name + " Axle", 0.0, 0.0);
-        drawCircle();
+        this(mech, backgroundLines, diameterInches, name, root, new Color8Bit(Color.kBlack));
     }
 
     /**
@@ -73,8 +67,14 @@ public class Circle {
             String name,
             MechanismRoot2d root,
             Color8Bit color) {
-        this(backgroundLines, diameterInches, name, root, mech);
+        this.backgroundLines = backgroundLines;
+        this.diameterInches = diameterInches;
+        this.name = name;
+        this.root = root;
+        this.circleBackground = new MechanismLigament2d[this.backgroundLines];
+        this.rollerAxle = mech.getRoot(name + " Axle", 0.0, 0.0);
         this.color = color;
+        drawCircle();
     }
 
     /**
