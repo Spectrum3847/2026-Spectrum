@@ -75,8 +75,8 @@ public abstract class Curve {
     }
 
     /**
-     * Returns a set of points of length <code>pointCount</code> on the curve. With
-     * <code>pointCount</code> of 1, the single point is the center of the input range.
+     * Returns a set of points of length <code>pointCount</code> on the curve. With <code>pointCount
+     * </code> of 1, the single point is the center of the input range.
      *
      * @param pointCount the amount of points on the curve
      * @return a 2D double array of points on the curve
