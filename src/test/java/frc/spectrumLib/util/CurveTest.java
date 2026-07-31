@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 public class CurveTest {
 
     private static class TestCurve extends Curve {
+        /** Applies the full deadzone-scalar-offset pipeline. */
         @Override
         public double calculate(double input) {
             double deadbandVal = calculateDeadzone(input);
@@ -16,6 +17,7 @@ public class CurveTest {
         }
     }
 
+    /** Verifies Curve getters and setters, including negative deadzone handling. */
     @Test
     @DisplayName("Test Curve getters and setters")
     void testGettersAndSetters() {
@@ -33,6 +35,7 @@ public class CurveTest {
         assertEquals(0.2, curve.getDeadzone(), 1e-6);
     }
 
+    /** Verifies the deadzone remapping of inputs inside and outside the deadband. */
     @Test
     @DisplayName("Test Curve deadzone calculation")
     void testDeadzoneCalculation() {
@@ -58,6 +61,7 @@ public class CurveTest {
         assertEquals(-1.0, curve.calculate(-1.0), 1e-6);
     }
 
+    /** Verifies scalar multiplication and offset addition in the curve. */
     @Test
     @DisplayName("Test Curve scalar and offset")
     void testScalarAndOffset() {
@@ -71,6 +75,7 @@ public class CurveTest {
         assertEquals(-1.0, curve.calculate(-1.0), 1e-6);
     }
 
+    /** Verifies getCurvePoints sampling, including the single-point case. */
     @Test
     @DisplayName("Test getCurvePoints generation")
     void testGetCurvePoints() {
@@ -78,6 +83,11 @@ public class CurveTest {
         curve.setDeadzone(0.0);
         curve.setScalar(1.0);
         curve.setOffset(0.0);
+
+        double[][] single = curve.getCurvePoints(1);
+        assertEquals(1, single.length);
+        assertEquals(0.0, single[0][0], 1e-6);
+        assertEquals(0.0, single[0][1], 1e-6);
 
         double[][] points = curve.getCurvePoints(5);
         assertEquals(5, points.length);

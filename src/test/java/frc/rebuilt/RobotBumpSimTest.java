@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 public class RobotBumpSimTest {
 
+    /** Verifies initialization and flat-ground pose output of the bump sim. */
     @Test
     @DisplayName("Test RobotBumpSim initialization and flat ground update")
     void testFlatGroundUpdate() {
@@ -42,6 +43,7 @@ public class RobotBumpSimTest {
         assertFalse(bumpSim.isOnRamp());
     }
 
+    /** Verifies getSimWorldPose substitutes simXPos for X while keeping Y and rotation. */
     @Test
     @DisplayName("Test RobotBumpSim getSimWorldPose")
     void testGetSimWorldPose() {
@@ -58,6 +60,8 @@ public class RobotBumpSimTest {
         Pose2d maplePose = new Pose2d(2.0, 3.0, Rotation2d.fromDegrees(90.0));
         Pose2d worldPose = bumpSim.getSimWorldPose(maplePose);
 
+        // X comes from the frictionless simXPos (initial value 0.0), not the MapleSim pose X (2.0)
+        assertEquals(0.0, worldPose.getX(), 1e-6);
         assertEquals(3.0, worldPose.getY(), 1e-6);
         assertEquals(90.0, worldPose.getRotation().getDegrees(), 1e-6);
     }

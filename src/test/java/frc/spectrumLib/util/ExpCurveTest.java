@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 public class ExpCurveTest {
 
+    /** Verifies ExpCurve default constructor values. */
     @Test
     @DisplayName("Test ExpCurve default constructor values")
     void testDefaultConstructor() {
@@ -17,6 +18,7 @@ public class ExpCurveTest {
         assertEquals(0.0, expCurve.getDeadzone(), 1e-6);
     }
 
+    /** Verifies ExpCurve parameterized constructor values. */
     @Test
     @DisplayName("Test ExpCurve parameterized constructor")
     void testParameterizedConstructor() {
@@ -27,6 +29,7 @@ public class ExpCurveTest {
         assertEquals(0.05, expCurve.getDeadzone(), 1e-6);
     }
 
+    /** Verifies non-positive expVal values fall back to 1.0. */
     @Test
     @DisplayName("Test ExpCurve setExpVal non-positive handling")
     void testSetExpValNonPositive() {
@@ -38,6 +41,7 @@ public class ExpCurveTest {
         assertEquals(1.0, expCurve.getExpVal(), 1e-6);
     }
 
+    /** Verifies ExpCurve is linear when expVal is 1.0. */
     @Test
     @DisplayName("Test ExpCurve calculate with linear response (expVal = 1.0)")
     void testCalculateLinear() {
@@ -49,6 +53,7 @@ public class ExpCurveTest {
         assertEquals(-1.0, expCurve.calculate(-1.0), 1e-6);
     }
 
+    /** Verifies the exponential response and the deadzone-scalar-offset pipeline. */
     @Test
     @DisplayName("Test ExpCurve calculate with non-linear expVal")
     void testCalculateExponential() {
@@ -63,5 +68,24 @@ public class ExpCurveTest {
         // For input = 1.0: (3^1 - 1) / 2 = 1.0
         assertEquals(1.0, expCurve.calculate(1.0), 1e-6);
         assertEquals(-1.0, expCurve.calculate(-1.0), 1e-6);
+
+        // Non-zero deadzone, scalar, and offset
+        double deadzone = 0.2;
+        double scalar = 1.5;
+        double offset = 0.5;
+        ExpCurve expCurve2 = new ExpCurve(expVal, offset, scalar, deadzone);
+
+        double deadRadius = deadzone / 2.0;
+        // Deadzone: (1 / (1 - 0.1)) * (0.5 - 0.1) = 0.4 / 0.9
+        double deadbanded05 = (1.0 / (1.0 - deadRadius)) * (0.5 - deadRadius);
+        double expectedFull05 =
+                ((Math.pow(expVal, deadbanded05) - 1.0) / (expVal - 1.0)) * scalar + offset;
+        assertEquals(expectedFull05, expCurve2.calculate(0.5), 1e-6);
+
+        double deadbandedNeg05 = (1.0 / (1.0 - deadRadius)) * (-0.5 + deadRadius);
+        double expectedFullNeg05 =
+                -((Math.pow(expVal, Math.abs(deadbandedNeg05)) - 1.0) / (expVal - 1.0)) * scalar
+                        + offset;
+        assertEquals(expectedFullNeg05, expCurve2.calculate(-0.5), 1e-6);
     }
 }

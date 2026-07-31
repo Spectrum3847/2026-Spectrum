@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 public class FuelPhysicsSimTest {
 
+    /** Verifies PhysicsConfig defaults and that copy() preserves every field. */
     @Test
     @DisplayName("Test PhysicsConfig default values and copy")
     void testPhysicsConfig() {
@@ -23,9 +24,27 @@ public class FuelPhysicsSimTest {
 
         FuelPhysicsSim.PhysicsConfig copy = config.copy();
         assertEquals(config.dragEnabled, copy.dragEnabled);
+        assertEquals(config.magnusEnabled, copy.magnusEnabled);
+        assertEquals(config.frictionEnabled, copy.frictionEnabled);
+        assertEquals(config.spinTransferEnabled, copy.spinTransferEnabled);
+        assertEquals(config.sleepingEnabled, copy.sleepingEnabled);
+        assertEquals(config.ccdEnabled, copy.ccdEnabled);
+        assertEquals(config.velocityDependentCOR, copy.velocityDependentCOR);
+        assertEquals(config.spinDecayEnabled, copy.spinDecayEnabled);
         assertEquals(config.solverIterations, copy.solverIterations);
+        assertEquals(config.subticks, copy.subticks);
+        assertEquals(config.spinDecayTau, copy.spinDecayTau, 1e-9);
+        assertEquals(config.sleepVelocityThreshold, copy.sleepVelocityThreshold, 1e-9);
+        assertEquals(config.sleepFrameThreshold, copy.sleepFrameThreshold);
+        assertEquals(config.ccdSpeedThreshold, copy.ccdSpeedThreshold, 1e-9);
+        assertEquals(config.baumgarteBeta, copy.baumgarteBeta, 1e-9);
+        assertEquals(config.baumgarteSlop, copy.baumgarteSlop, 1e-9);
+        assertEquals(config.deterministic, copy.deterministic);
+        assertEquals(config.deterministicSeed, copy.deterministicSeed);
+        assertEquals(config.conservationMonitor, copy.conservationMonitor);
     }
 
+    /** Verifies SimBall spin RPM conversion from angular velocity. */
     @Test
     @DisplayName("Test SimBall creation and spin RPM calculation")
     void testSimBall() {
@@ -41,6 +60,7 @@ public class FuelPhysicsSimTest {
         assertEquals(expectedRPM, ball.getSpinRPM(), 1e-4);
     }
 
+    /** Verifies ScoringTarget detects top-down entry and ignores rising balls. */
     @Test
     @DisplayName("Test ScoringTarget scoring detection")
     void testScoringTarget() {
@@ -66,6 +86,7 @@ public class FuelPhysicsSimTest {
         assertFalse(target.didScore(risingBall));
     }
 
+    /** Verifies a FuelPhysicsSim can be constructed with a table key. */
     @Test
     @DisplayName("Test FuelPhysicsSim instantiation")
     void testFuelPhysicsSimInstantiation() {

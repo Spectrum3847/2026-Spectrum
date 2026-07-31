@@ -15,6 +15,7 @@ public class ShiftHelpersTest {
 
     private Supplier<Optional<Boolean>> originalAllianceWinOverride;
 
+    /** Verifies the ShiftEnum values and their ordering. */
     @Test
     @DisplayName("Test ShiftEnum values and ordering")
     void testShiftEnum() {
@@ -30,6 +31,7 @@ public class ShiftHelpersTest {
         assertEquals(ShiftHelpers.ShiftEnum.DISABLED, values[7]);
     }
 
+    /** Verifies ShiftInfo record accessors. */
     @Test
     @DisplayName("Test ShiftInfo record instantiation")
     void testShiftInfoRecord() {
@@ -41,6 +43,7 @@ public class ShiftHelpersTest {
         assertTrue(info.active());
     }
 
+    /** Restores the alliance-win override to its pre-test value after each test. */
     @AfterEach
     void restoreStaticState() {
         if (originalAllianceWinOverride != null) {
@@ -49,10 +52,12 @@ public class ShiftHelpersTest {
         }
     }
 
+    /** Verifies the alliance-win override setter and getter round-trip. */
     @Test
     @DisplayName("Test alliance win override setter and getter")
     void testAllianceWinOverride() {
-        originalAllianceWinOverride = () -> ShiftHelpers.getAllianceWinOverride();
+        Optional<Boolean> originalValue = ShiftHelpers.getAllianceWinOverride();
+        originalAllianceWinOverride = () -> originalValue;
 
         ShiftHelpers.setAllianceWinOverride(() -> Optional.of(true));
         assertEquals(Optional.of(true), ShiftHelpers.getAllianceWinOverride());
@@ -61,6 +66,7 @@ public class ShiftHelpersTest {
         assertFalse(ShiftHelpers.getAllianceWinOverride().isPresent());
     }
 
+    /** Verifies getOfficialShiftInfo returns a valid ShiftInfo. */
     @Test
     @DisplayName("Test getOfficialShiftInfo non-null response")
     void testGetOfficialShiftInfo() {
