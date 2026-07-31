@@ -46,12 +46,12 @@ public class Launcher extends Mechanism {
         @Getter private double gearRatio = 1.38;
 
         /* Sim Configs */
-        /** Creates a new LauncherConfig instance. */
         @Getter private final double launcherX = Units.inchesToMeters(50);
 
         @Getter private final double launcherY = Units.inchesToMeters(65);
         @Getter private final double wheelDiameter = 4;
 
+        /** Creates a new LauncherConfig instance. */
         public LauncherConfig() {
             super("Launcher Front Left", 15, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);

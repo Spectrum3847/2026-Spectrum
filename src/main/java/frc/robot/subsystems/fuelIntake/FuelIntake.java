@@ -47,12 +47,12 @@ public class FuelIntake implements Subsystem {
             @Getter private final double gearRatio = 2.33;
 
             /* Sim Configs */
-            /** Creates a new IntakeRollerConfig instance. */
             @Getter private final double intakeX = Units.inchesToMeters(15);
 
             @Getter private final double intakeY = Units.inchesToMeters(23);
             @Getter private final double wheelDiameter = 6;
 
+            /** Creates a new IntakeRollerConfig instance. */
             public IntakeRollerConfig() {
                 super("Intake Roller Left", 6, Rio.RIO_CANBUS);
                 configPIDGains(0, velocityKp, 0, 0);

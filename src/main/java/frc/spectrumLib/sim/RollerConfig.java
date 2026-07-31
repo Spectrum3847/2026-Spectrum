@@ -70,7 +70,8 @@ public class RollerConfig {
     /**
      * Sets the gear ratio.
      *
-     * @param ratio the gear ratio
+     * @param ratio the ratio of motor speed to roller speed
+     * @return this config, for chaining
      */
     public RollerConfig setGearRatio(double ratio) {
         gearRatio = ratio;

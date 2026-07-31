@@ -42,13 +42,13 @@ public class Hood extends Mechanism {
         @Getter private final double peakVoltage = 3;
 
         /* Sim Configs */
-        /** Creates a new HoodConfig instance. */
         @Getter private final double hoodX = Units.inchesToMeters(50);
 
         @Getter private final double hoodY = Units.inchesToMeters(65);
         @Getter private final double simRatio = gearRatio;
         @Getter private final double length = Units.inchesToMeters(7.735);
 
+        /** Creates a new HoodConfig instance. */
         public HoodConfig() {
             super("Hood", 19, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);

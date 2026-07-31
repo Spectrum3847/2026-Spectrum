@@ -85,9 +85,9 @@ public class Pilot extends Gamepad {
 
     // Positive is forward, up on the left stick is positive
     /**
-     * Returns the drive fwd positive.
+     * Returns the signed chassis forward velocity.
      *
-     * @return the drive fwd positive
+     * @return the forward velocity, positive when driving forward
      */
     public double getDriveFwdPositive() {
         double fwdPositive = leftStickCurve.calculate(-1 * getLeftY());
@@ -96,9 +96,9 @@ public class Pilot extends Gamepad {
 
     // Positive is left, left on the left stick is positive
     /**
-     * Returns the drive left positive.
+     * Returns the signed chassis left velocity.
      *
-     * @return the drive left positive
+     * @return the left velocity, positive when driving left
      */
     public double getDriveLeftPositive() {
         double leftPositive = -1 * leftStickCurve.calculate(getLeftX());
@@ -107,18 +107,18 @@ public class Pilot extends Gamepad {
 
     // Positive is counter-clockwise, left Trigger is positive
     /**
-     * Returns the drive ccw positive.
+     * Returns the signed chassis rotational velocity.
      *
-     * @return the drive ccw positive
+     * @return the rotational velocity, positive counter-clockwise
      */
     public double getDriveCCWPositive() {
         double ccwPositive = rightStickCurve.calculate(getRightX());
         return -1 * ccwPositive; // invert the value
     }
     /**
-     * Returns the pilot stick angle.
+     * Returns the pilot stick direction angle in radians.
      *
-     * @return the pilot stick angle
+     * @return the stick angle in radians, not a raw joystick axis
      */
     public double getPilotStickAngle() {
         return getLeftStickDirection().getRadians();

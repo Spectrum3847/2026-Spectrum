@@ -1276,6 +1276,7 @@ public class LimelightHelpers {
     /**
      * Returns the limelight nt table.
      *
+     * @param tableName the limelight name
      * @return the limelight nt table
      */
     public static NetworkTable getLimelightNTTable(String tableName) {
@@ -1288,6 +1289,8 @@ public class LimelightHelpers {
     /**
      * Returns the limelight nt table entry.
      *
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
      * @return the limelight nt table entry
      */
     public static NetworkTableEntry getLimelightNTTableEntry(String tableName, String entryName) {
@@ -1296,6 +1299,8 @@ public class LimelightHelpers {
     /**
      * Returns the limelight double array entry.
      *
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
      * @return the limelight double array entry
      */
     public static DoubleArrayEntry getLimelightDoubleArrayEntry(
@@ -1311,7 +1316,9 @@ public class LimelightHelpers {
     /**
      * Returns the limelight nt double.
      *
-     * @return the limelight nt double
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
+     * @return the limelight nt double value
      */
     public static double getLimelightNTDouble(String tableName, String entryName) {
         return getLimelightNTTableEntry(tableName, entryName).getDouble(0.0);
@@ -1319,7 +1326,9 @@ public class LimelightHelpers {
     /**
      * Sets the limelight nt double.
      *
-     * @param tableName the limelight nt double
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
+     * @param val the value to set
      */
     public static void setLimelightNTDouble(String tableName, String entryName, double val) {
         getLimelightNTTableEntry(tableName, entryName).setDouble(val);
@@ -1327,7 +1336,9 @@ public class LimelightHelpers {
     /**
      * Sets the limelight nt double array.
      *
-     * @param tableName the limelight nt double array
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
+     * @param val the array to set
      */
     public static void setLimelightNTDoubleArray(String tableName, String entryName, double[] val) {
         getLimelightNTTableEntry(tableName, entryName).setDoubleArray(val);
@@ -1335,7 +1346,9 @@ public class LimelightHelpers {
     /**
      * Returns the limelight nt double array.
      *
-     * @return the limelight nt double array
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
+     * @return the limelight nt double array value
      */
     public static double[] getLimelightNTDoubleArray(String tableName, String entryName) {
         return getLimelightNTTableEntry(tableName, entryName).getDoubleArray(new double[0]);
@@ -1343,7 +1356,9 @@ public class LimelightHelpers {
     /**
      * Returns the limelight nt string.
      *
-     * @return the limelight nt string
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
+     * @return the limelight nt string value
      */
     public static String getLimelightNTString(String tableName, String entryName) {
         return getLimelightNTTableEntry(tableName, entryName).getString("");
@@ -1351,7 +1366,9 @@ public class LimelightHelpers {
     /**
      * Returns the limelight nt string array.
      *
-     * @return the limelight nt string array
+     * @param tableName the limelight name
+     * @param entryName the network table entry name
+     * @return the limelight nt string array value
      */
     public static String[] getLimelightNTStringArray(String tableName, String entryName) {
         return getLimelightNTTableEntry(tableName, entryName).getStringArray(new String[0]);
@@ -2170,7 +2187,8 @@ public class LimelightHelpers {
     /**
      * Sets the python script data.
      *
-     * @param limelightName the python script data
+     * @param limelightName the limelight name
+     * @param outgoingPythonData the data to pass to the python script
      */
     public static void setPythonScriptData(String limelightName, double[] outgoingPythonData) {
         setLimelightNTDoubleArray(limelightName, "llrobot", outgoingPythonData);

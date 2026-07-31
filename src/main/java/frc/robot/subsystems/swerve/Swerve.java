@@ -203,9 +203,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Telemetry.log("Swerve/Currents/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
     }
     /**
-     * Returns the drive motor stator currents.
+     * Returns the sum of the drive motor stator currents.
      *
-     * @return the drive motor stator currents
+     * @return the sum of the drive motor stator currents across all modules
      */
     protected double getDriveMotorStatorCurrents() {
         return Arrays.stream(getModules())
@@ -213,9 +213,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 .sum();
     }
     /**
-     * Returns the steer motor stator currents.
+     * Returns the sum of the steer motor stator currents.
      *
-     * @return the steer motor stator currents
+     * @return the sum of the steer motor stator currents across all modules
      */
     protected double getSteerMotorStatorCurrents() {
         return Arrays.stream(getModules())
@@ -223,9 +223,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 .sum();
     }
     /**
-     * Returns the drive motor supply currents.
+     * Returns the sum of the drive motor supply currents.
      *
-     * @return the drive motor supply currents
+     * @return the sum of the drive motor supply currents across all modules
      */
     protected double getDriveMotorSupplyCurrents() {
         return Arrays.stream(getModules())
@@ -233,9 +233,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 .sum();
     }
     /**
-     * Returns the steer motor supply currents.
+     * Returns the sum of the steer motor supply currents.
      *
-     * @return the steer motor supply currents
+     * @return the sum of the steer motor supply currents across all modules
      */
     protected double getSteerMotorSupplyCurrents() {
         return Arrays.stream(getModules())
@@ -727,12 +727,13 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
-    /** Starts the sim thread. */
+    // Simulated drivetrain used for robot bump simulation.
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
 
     @Getter private RobotBumpSim robotBumpSim = null;
     @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
 
+    /** Starts the sim thread. */
     @SuppressWarnings("unchecked")
     private void startSimThread() {
         mapleSimSwerveDrivetrain =

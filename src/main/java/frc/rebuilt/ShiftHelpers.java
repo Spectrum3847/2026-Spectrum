@@ -44,13 +44,14 @@ public class ShiftHelpers {
     private static final boolean[] inactiveSchedule = {true, false, true, false, true, true};
     private static final double timeResetThreshold = 3.0;
     private static double shiftTimerOffset = 0.0;
+    // Override source for alliance win detection; empty when not overridden.
+    @Setter private static Supplier<Optional<Boolean>> allianceWinOverride = () -> Optional.empty();
+
     /**
      * Returns the alliance win override.
      *
-     * @return the alliance win override
+     * @return the current alliance win override, or empty when unset
      */
-    @Setter private static Supplier<Optional<Boolean>> allianceWinOverride = () -> Optional.empty();
-
     public static Optional<Boolean> getAllianceWinOverride() {
         return allianceWinOverride.get();
     }

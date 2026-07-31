@@ -332,8 +332,6 @@ public abstract class Gamepad implements Subsystem {
      * confirmation message. Also raises a {@link Alert} whenever the controller is disconnected.
      * Called automatically by {@link #periodic()}.
      */
-    // Configure the pilot controller
-    /** Configure. */
     public void configure() {
         if (config.isAttached()) {
             disconnectedAlert.set(!isConnected()); // Display if the controller is disconnected

@@ -62,13 +62,13 @@ public class Turret extends Mechanism {
         @Getter private final double sensorToMechanismRatio = 39.78;
 
         /* Sim Configs */
-        /** Creates a new TurretConfig instance. */
         @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
 
         @Getter private final double turretY = Units.inchesToMeters(75); // Horizontal Center
         @Getter private final double simRatio = sensorToMechanismRatio;
         @Getter private final double length = 1;
 
+        /** Creates a new TurretConfig instance. */
         public TurretConfig() {
             super("Turret", 14, Rio.CANIVORE); // Rio.CANIVORE);
             configPIDGains(0, positionKp, positionKi, 0);
@@ -132,13 +132,14 @@ public class Turret extends Mechanism {
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
     }
-    /** Applies the states. */
+    // Whether the turret is unwrapping to avoid wire wrap.
     @Getter private boolean unwrapping = false;
 
     @Getter private int unwrapTargetN = 0;
     @Getter private double commandedDegrees = 0;
     @Getter private double mechOmegaRotPerSec = 0;
 
+    /** Applies the states. */
     private void applyStates() {
         switch (systemState) {
             case OFF:

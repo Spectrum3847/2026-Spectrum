@@ -99,9 +99,10 @@ public class LinearConfig {
         return this;
     }
     /**
-     * Sets the num motors.
+     * Sets the number of motors.
      *
-     * @param numMotors the num motors
+     * @param numMotors the number of motors
+     * @return this config, for chaining
      */
     public LinearConfig setNumMotors(int numMotors) {
         this.numMotors = numMotors;

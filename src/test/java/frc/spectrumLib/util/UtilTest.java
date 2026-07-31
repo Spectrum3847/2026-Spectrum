@@ -48,7 +48,7 @@ public class UtilTest {
         assertEquals(10.0, Util.interpolate(10.0, 20.0, -0.5), 1e-6);
         assertEquals(20.0, Util.interpolate(10.0, 20.0, 1.5), 1e-6);
     }
-    /** Verifies join strings. */
+    /** Verifies joining strings with a delimiter. */
     @Test
     @DisplayName("Test joinStrings method")
     void testJoinStrings() {
@@ -69,7 +69,7 @@ public class UtilTest {
         assertTrue(Util.epsilonEquals(10, 12, 2));
         assertFalse(Util.epsilonEquals(10, 13, 2));
     }
-    /** Verifies all close to. */
+    /** Verifies the allCloseTo list comparison. */
     @Test
     @DisplayName("Test allCloseTo list method")
     void testAllCloseTo() {

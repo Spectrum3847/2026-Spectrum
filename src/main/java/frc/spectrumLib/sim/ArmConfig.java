@@ -113,15 +113,17 @@ public class ArmConfig {
      * Sets the color.
      *
      * @param color the color
+     * @return this config, for chaining
      */
     public ArmConfig setColor(Color8Bit color) {
         this.color = color;
         return this;
     }
     /**
-     * Sets the simulated gravity.
+     * Sets whether simulated gravity is applied.
      *
-     * @param simulateGravity the simulated gravity
+     * @param simulateGravity whether to apply simulated gravity
+     * @return this config, for chaining
      */
     public ArmConfig setSimulatedGravity(boolean simulateGravity) {
         this.simulateGravity = simulateGravity;

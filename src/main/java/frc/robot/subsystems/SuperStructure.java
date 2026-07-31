@@ -103,14 +103,25 @@ public class SuperStructure extends SubsystemBase {
 
     private final Timer intakeSqueezeTimer = new Timer();
     private final double secondsToSqueeze = 1.0;
-    /** Current state is launching. */
+    /**
+     * Returns {@code true} if the current super state is one of the launch states.
+     *
+     * @return {@code true} when the current super state is a launch-with-squeeze or
+     *     launch-without-squeeze state
+     */
     public boolean currentStateIsLaunching() {
         return currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
                 || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
-    /** Current state is intaking. */
+    /**
+     * Returns {@code true} if the current super state is an intake state or a launch-without-
+     * squeeze state (the launch-without-squeeze states are included intentionally).
+     *
+     * @return {@code true} when the current super state is an intake or launch-without-squeeze
+     *     state
+     */
     public boolean currentStateIsIntaking() {
         return currentSuperState == CurrentSuperState.INTAKE_FUEL
                 || currentSuperState == CurrentSuperState.AUTON_INTAKE_FUEL
@@ -404,17 +415,17 @@ public class SuperStructure extends SubsystemBase {
         return swerve.isInEnemyAllianceZone();
     }
     /**
-     * Returns {@code true} if the robot in feed zone condition is met.
+     * Returns {@code true} if the robot is in the feed zone.
      *
-     * @return {@code true} if the robot in feed zone condition is met
+     * @return {@code true} when the robot is in the enemy or neutral zone (the feed zone)
      */
     public boolean isRobotInFeedZone() {
         return isRobotInEnemyZone() || isRobotInNeutralZone();
     }
     /**
-     * Returns {@code true} if the robot in score zone condition is met.
+     * Returns {@code true} if the robot is in the score zone.
      *
-     * @return {@code true} if the robot in score zone condition is met
+     * @return {@code true} when the robot is not in the feed zone
      */
     public boolean isRobotInScoreZone() {
         return !isRobotInFeedZone();

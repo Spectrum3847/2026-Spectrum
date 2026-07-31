@@ -23,7 +23,7 @@ public class FieldHelpersTest {
         Rotation2d flipped = FieldHelpers.flipAngle(rot);
         assertEquals(-135.0, flipped.getDegrees(), 1e-6);
     }
-    /** Verifies flip xand y. */
+    /** Verifies flipping the X and Y coordinates. */
     @Test
     @DisplayName("Test flipX and flipY")
     void testFlipXandY() {

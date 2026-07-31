@@ -15,7 +15,7 @@ public class TrioTest {
         assertEquals(123, trio.getSecond());
         assertEquals(4.56, trio.getThird(), 1e-6);
     }
-    /** Verifies trio of factory. */
+    /** Verifies the Trio.of factory method. */
     @Test
     @DisplayName("Test Trio.of factory method")
     void testTrioOfFactory() {
