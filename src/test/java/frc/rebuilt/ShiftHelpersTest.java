@@ -6,10 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
+import java.util.function.Supplier;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class ShiftHelpersTest {
+
+    private Supplier<Optional<Boolean>> originalAllianceWinOverride;
 
     @Test
     @DisplayName("Test ShiftEnum values and ordering")
@@ -37,9 +41,19 @@ public class ShiftHelpersTest {
         assertTrue(info.active());
     }
 
+    @AfterEach
+    void restoreStaticState() {
+        if (originalAllianceWinOverride != null) {
+            ShiftHelpers.setAllianceWinOverride(originalAllianceWinOverride);
+            originalAllianceWinOverride = null;
+        }
+    }
+
     @Test
     @DisplayName("Test alliance win override setter and getter")
     void testAllianceWinOverride() {
+        originalAllianceWinOverride = () -> ShiftHelpers.getAllianceWinOverride();
+
         ShiftHelpers.setAllianceWinOverride(() -> Optional.of(true));
         assertEquals(Optional.of(true), ShiftHelpers.getAllianceWinOverride());
 

@@ -2,17 +2,29 @@ package frc.spectrumLib.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class CachedDoubleTest {
 
+    private CachedDouble cachedDouble;
+
+    @AfterEach
+    void cleanup() {
+        if (cachedDouble != null) {
+            CommandScheduler.getInstance().unregisterSubsystem(cachedDouble);
+            cachedDouble = null;
+        }
+    }
+
     @Test
     @DisplayName("Test CachedDouble caches value within same iteration and invalidates on periodic")
     void testCachingAndInvalidation() {
         AtomicInteger callCounter = new AtomicInteger(0);
-        CachedDouble cachedDouble =
+        cachedDouble =
                 new CachedDouble(
                         () -> {
                             callCounter.incrementAndGet();

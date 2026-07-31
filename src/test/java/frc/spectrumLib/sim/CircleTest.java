@@ -39,6 +39,11 @@ public class CircleTest {
 
         Circle circle = new Circle(mech, 4, 4.0, "TestCircle", root, colorRed);
 
+        // Assert initial background is red as specified in constructor
+        for (int i = 0; i < 4; i++) {
+            assertEquals(colorRed, circle.getCircleBackground()[i].getColor());
+        }
+
         circle.setBackgroundColor(colorBlue);
         for (int i = 0; i < 4; i++) {
             assertEquals(colorBlue, circle.getCircleBackground()[i].getColor());

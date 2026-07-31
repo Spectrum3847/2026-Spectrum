@@ -1,13 +1,30 @@
 package frc.rebuilt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.wpi.first.math.geometry.Rotation2d;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class ShotCalculatorTest {
+
+    private Double originalHoodAngleOffset;
+    private Double originalTurretAngleOffset;
+
+    @AfterEach
+    void restoreStaticState() {
+        if (originalHoodAngleOffset != null) {
+            ShotCalculator.HOOD_ANGLE_OFFSET = originalHoodAngleOffset;
+            originalHoodAngleOffset = null;
+        }
+        if (originalTurretAngleOffset != null) {
+            ShotCalculator.TURRET_ANGLE_OFFSET = originalTurretAngleOffset;
+            originalTurretAngleOffset = null;
+        }
+    }
 
     @Test
     @DisplayName("Test ShootingParameters record properties")
@@ -40,6 +57,7 @@ public class ShotCalculatorTest {
     @Test
     @DisplayName("Test Hood angle offset increment and decrement commands")
     void testHoodAngleOffsetCommands() {
+        originalHoodAngleOffset = ShotCalculator.HOOD_ANGLE_OFFSET;
         double initialOffset = ShotCalculator.HOOD_ANGLE_OFFSET;
 
         ShotCalculator.increaseHoodAngleOffset().initialize();
@@ -52,6 +70,7 @@ public class ShotCalculatorTest {
     @Test
     @DisplayName("Test Turret angle offset increment and decrement commands")
     void testTurretAngleOffsetCommands() {
+        originalTurretAngleOffset = ShotCalculator.TURRET_ANGLE_OFFSET;
         double initialOffset = ShotCalculator.TURRET_ANGLE_OFFSET;
 
         ShotCalculator.increaseTurretAngleOffset().initialize();
@@ -66,7 +85,7 @@ public class ShotCalculatorTest {
     void testSingleton() {
         ShotCalculator instance1 = ShotCalculator.getInstance();
         ShotCalculator instance2 = ShotCalculator.getInstance();
-        assertEquals(instance1, instance2);
+        assertSame(instance1, instance2);
 
         instance1.clearShootingParameters();
     }
