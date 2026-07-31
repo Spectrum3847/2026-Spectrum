@@ -1,10 +1,10 @@
 {
   "Docking": {
     "Data": [
-      "DockNode          ID=0x00000001 Pos=176,456 Size=983,148 Selected=0x48913727",
-      "DockNode          ID=0x00000003 Pos=1279,673 Size=584,318 Split=X Selected=0xA6A62DF3",
-      "DockNode        ID=0x00000004 Parent=0x00000003 SizeRef=292,318 Selected=0xFA2A8FFA",
-      "DockNode        ID=0x00000006 Parent=0x00000003 SizeRef=290,318 Selected=0xA6A62DF3",
+      "DockNode          ID=0x00000001 Pos=129,456 Size=983,148 Selected=0x48913727",
+      "DockNode          ID=0x00000004 Pos=285,701 Size=698,563 Split=X",
+      "DockNode        ID=0x00000006 Parent=0x00000004 SizeRef=145,318 Selected=0xFA2A8FFA",
+      "DockNode        ID=0x00000010 Parent=0x00000004 SizeRef=150,318 Selected=0xA6A62DF3",
       "DockNode          ID=0x00000005 Pos=4,25 Size=1905,667 Split=X",
       "DockNode        ID=0x00000011 Parent=0x00000005 SizeRef=1872,784 Split=X",
       "DockNode      ID=0x00000008 Parent=0x00000011 SizeRef=322,445 Split=Y Selected=0x39AD1970",
@@ -26,13 +26,13 @@
     "GLOBAL": {
       "font": "Proggy Dotted",
       "fps": "120",
-      "height": "1001",
-      "maximized": "1",
+      "height": "1405",
+      "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "1920",
+      "width": "304",
       "xpos": "0",
-      "ypos": "34"
+      "ypos": "29"
     }
   },
   "Table": {
@@ -80,19 +80,19 @@
     },
     "###/SmartDashboard/Sim/LeftView": {
       "Collapsed": "0",
-      "DockId": "0x00000006,0",
-      "Pos": "1573,673",
-      "Size": "290,318"
+      "DockId": "0x00000010,0",
+      "Pos": "629,701",
+      "Size": "354,563"
     },
     "###/SmartDashboard/Sim/TopView": {
       "Collapsed": "0",
-      "DockId": "0x00000004,0",
-      "Pos": "1279,673",
-      "Size": "292,318"
+      "DockId": "0x00000006,0",
+      "Pos": "285,701",
+      "Size": "342,563"
     },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
       "Collapsed": "0",
-      "Pos": "157,167",
+      "Pos": "129,167",
       "Size": "513,250"
     },
     "###Addressable LEDs": {
@@ -109,7 +109,7 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "2,700",
-      "Size": "976,179"
+      "Size": "298,278"
     },
     "###Keyboard 0 Settings": {
       "Collapsed": "0",
@@ -124,13 +124,13 @@
     "###NetworkTables": {
       "Collapsed": "0",
       "DockId": "0x00000001,0",
-      "Pos": "176,456",
+      "Pos": "129,456",
       "Size": "983,148"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
       "DockId": "0x00000001,1",
-      "Pos": "176,456",
+      "Pos": "129,456",
       "Size": "983,148"
     },
     "###System Joysticks": {

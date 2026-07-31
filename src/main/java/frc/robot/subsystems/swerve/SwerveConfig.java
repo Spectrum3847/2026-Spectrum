@@ -153,7 +153,7 @@ public class SwerveConfig {
                     TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             constantCreator;
 
-    // TODO: update if needed until line 162
+    // TODO: update if needed until line 158 ask big A
     private final double wheelBaseInches = 21.75;
     private final double trackWidthInches = 21.75;
 
