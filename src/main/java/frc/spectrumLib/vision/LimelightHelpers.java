@@ -1269,7 +1269,12 @@ public class LimelightHelpers {
             System.out.println();
         }
     }
-    /** Valid pose estimate. */
+    /**
+     * Returns {@code true} if the pose estimate is valid.
+     *
+     * @param pose the pose estimate to check
+     * @return {@code true} if the pose is non-null and contains at least one raw fiducial
+     */
     public static Boolean validPoseEstimate(PoseEstimate pose) {
         return pose != null && pose.rawFiducials != null && pose.rawFiducials.length != 0;
     }
@@ -1569,7 +1574,7 @@ public class LimelightHelpers {
     /**
      * Switch to getBotPose
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     @Deprecated
@@ -1580,7 +1585,7 @@ public class LimelightHelpers {
     /**
      * Switch to getBotPose_wpiRed
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     @Deprecated
@@ -1591,7 +1596,7 @@ public class LimelightHelpers {
     /**
      * Switch to getBotPose_wpiBlue
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     @Deprecated
@@ -1601,6 +1606,7 @@ public class LimelightHelpers {
     /**
      * Returns the bot pose.
      *
+     * @param limelightName the Limelight table name
      * @return the bot pose
      */
     public static double[] getBotPose(String limelightName) {
@@ -1609,6 +1615,7 @@ public class LimelightHelpers {
     /**
      * Returns the bot pose wpi red.
      *
+     * @param limelightName the Limelight table name
      * @return the bot pose wpi red
      */
     public static double[] getBotPose_wpiRed(String limelightName) {
@@ -1617,6 +1624,7 @@ public class LimelightHelpers {
     /**
      * Returns the bot pose wpi blue.
      *
+     * @param limelightName the Limelight table name
      * @return the bot pose wpi blue
      */
     public static double[] getBotPose_wpiBlue(String limelightName) {
@@ -1625,6 +1633,7 @@ public class LimelightHelpers {
     /**
      * Returns the bot pose target space.
      *
+     * @param limelightName the Limelight table name
      * @return the bot pose target space
      */
     public static double[] getBotPose_TargetSpace(String limelightName) {
@@ -1641,6 +1650,7 @@ public class LimelightHelpers {
     /**
      * Returns the target pose camera space.
      *
+     * @param limelightName the Limelight table name
      * @return the target pose camera space
      */
     public static double[] getTargetPose_CameraSpace(String limelightName) {
@@ -1649,6 +1659,7 @@ public class LimelightHelpers {
     /**
      * Returns the target pose robot space.
      *
+     * @param limelightName the Limelight table name
      * @return the target pose robot space
      */
     public static double[] getTargetPose_RobotSpace(String limelightName) {
@@ -1667,6 +1678,7 @@ public class LimelightHelpers {
     /**
      * Returns the fiducial id.
      *
+     * @param limelightName the Limelight table name
      * @return the fiducial id
      */
     public static double getFiducialID(String limelightName) {
@@ -1705,6 +1717,7 @@ public class LimelightHelpers {
     /**
      * Returns the bot pose 3d.
      *
+     * @param limelightName the Limelight table name
      * @return the bot pose 3d
      */
     public static Pose3d getBotPose3d(String limelightName) {
@@ -1799,7 +1812,7 @@ public class LimelightHelpers {
     /**
      * Gets the Pose2d for easy use with Odometry vision pose estimator (addVisionMeasurement)
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static Pose2d getBotPose2d_wpiBlue(String limelightName) {
@@ -1812,7 +1825,7 @@ public class LimelightHelpers {
      * Gets the MegaTag1 Pose2d and timestamp for use with WPILib pose estimator
      * (addVisionMeasurement) in the WPILib Blue alliance coordinate system.
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static PoseEstimate getBotPoseEstimate_wpiBlue(String limelightName) {
@@ -1824,7 +1837,7 @@ public class LimelightHelpers {
      * (addVisionMeasurement) in the WPILib Blue alliance coordinate system. Make sure you are
      * calling setRobotOrientation() before calling this method.
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static PoseEstimate getBotPoseEstimate_wpiBlue_MegaTag2(String limelightName) {
@@ -1834,7 +1847,7 @@ public class LimelightHelpers {
     /**
      * Gets the Pose2d for easy use with Odometry vision pose estimator (addVisionMeasurement)
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static Pose2d getBotPose2d_wpiRed(String limelightName) {
@@ -1847,7 +1860,7 @@ public class LimelightHelpers {
      * Gets the Pose2d and timestamp for use with WPILib pose estimator (addVisionMeasurement) when
      * you are on the RED alliance
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static PoseEstimate getBotPoseEstimate_wpiRed(String limelightName) {
@@ -1858,7 +1871,7 @@ public class LimelightHelpers {
      * Gets the Pose2d and timestamp for use with WPILib pose estimator (addVisionMeasurement) when
      * you are on the RED alliance
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static PoseEstimate getBotPoseEstimate_wpiRed_MegaTag2(String limelightName) {
@@ -1868,7 +1881,7 @@ public class LimelightHelpers {
     /**
      * Gets the Pose2d for easy use with Odometry vision pose estimator (addVisionMeasurement)
      *
-     * @param limelightName
+     * @param limelightName the Limelight table name
      * @return
      */
     public static Pose2d getBotPose2d(String limelightName) {
@@ -1898,7 +1911,8 @@ public class LimelightHelpers {
     /**
      * Sets the pipeline index.
      *
-     * @param limelightName the pipeline index
+     * @param limelightName the Limelight table name
+     * @param pipelineIndex the pipeline index to set
      */
     public static void setPipelineIndex(String limelightName, int pipelineIndex) {
         setLimelightNTDouble(limelightName, "pipeline", pipelineIndex);
@@ -1906,7 +1920,8 @@ public class LimelightHelpers {
     /**
      * Sets the priority tag id.
      *
-     * @param limelightName the priority tag id
+     * @param limelightName the Limelight table name
+     * @param ID the priority tag ID
      */
     public static void setPriorityTagID(String limelightName, int ID) {
         setLimelightNTDouble(limelightName, "priorityid", ID);
@@ -1923,7 +1938,7 @@ public class LimelightHelpers {
     /**
      * Sets the led mode force off.
      *
-     * @param limelightName the led mode force off
+     * @param limelightName the Limelight table name
      */
     public static void setLEDMode_ForceOff(String limelightName) {
         setLimelightNTDouble(limelightName, "ledMode", 1);
@@ -1931,7 +1946,7 @@ public class LimelightHelpers {
     /**
      * Sets the led mode force blink.
      *
-     * @param limelightName the led mode force blink
+     * @param limelightName the Limelight table name
      */
     public static void setLEDMode_ForceBlink(String limelightName) {
         setLimelightNTDouble(limelightName, "ledMode", 2);
@@ -1939,7 +1954,7 @@ public class LimelightHelpers {
     /**
      * Sets the led mode force on.
      *
-     * @param limelightName the led mode force on
+     * @param limelightName the Limelight table name
      */
     public static void setLEDMode_ForceOn(String limelightName) {
         setLimelightNTDouble(limelightName, "ledMode", 3);
@@ -2041,7 +2056,11 @@ public class LimelightHelpers {
         SetRobotOrientation_INTERNAL(
                 limelightName, yaw, yawRate, pitch, pitchRate, roll, rollRate, true);
     }
-    /** Set robot orientation no flush. */
+    /**
+     * Sets robot orientation values without flushing.
+     *
+     * @param limelightName the Limelight table name
+     */
     public static void SetRobotOrientation_NoFlush(
             String limelightName,
             double yaw,
@@ -2196,6 +2215,7 @@ public class LimelightHelpers {
     /**
      * Returns the python script data.
      *
+     * @param limelightName the Limelight table name
      * @return the python script data
      */
     public static double[] getPythonScriptData(String limelightName) {

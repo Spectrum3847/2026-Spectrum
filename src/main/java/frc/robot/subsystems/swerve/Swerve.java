@@ -529,16 +529,22 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // Speed Checks
     // --------------------------------------------------------------------------------
     /**
-     * Returns {@code true} if the going too fast condition is met.
+     * Returns {@code true} if the robot is moving faster than the threshold.
      *
-     * @return {@code true} if the going too fast condition is met
+     * @param thresholdSpeed the speed threshold in meters per second
+     * @return {@code true} if the current linear speed exceeds the threshold
      */
     public boolean isGoingTooFast(double thresholdSpeed) {
         ChassisSpeeds speeds = getCurrentRobotChassisSpeeds();
         double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
         return linearSpeed > thresholdSpeed;
     }
-    /** Over speed trigger. */
+    /**
+     * Returns a trigger that activates when the robot exceeds the speed threshold.
+     *
+     * @param thresholdSpeed the speed threshold in meters per second
+     * @return a trigger active while {@code isGoingTooFast(thresholdSpeed)} returns {@code true}
+     */
     public Trigger overSpeedTrigger(double thresholdSpeed) {
         return new Trigger(() -> isGoingTooFast(thresholdSpeed));
     }
@@ -571,9 +577,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 });
     }
     /**
-     * Returns the closest cardinal.
+     * Returns the nearest cardinal heading.
      *
-     * @return the closest cardinal
+     * @return the nearest cardinal angle in degrees (0, 90, 180, or 270)
      */
     protected double getClosestCardinal() {
         double heading = getRotation().getRadians();
@@ -595,7 +601,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     reorient(angleDegrees);
                 });
     }
-    /** Front closest to angle. */
+    /**
+     * Returns {@code true} if the normal heading is closer to the target than the flipped heading.
+     *
+     * @param angleDegrees the target angle in degrees
+     * @return {@code true} if the front heading is closer to the target than the flipped heading
+     */
     public boolean frontClosestToAngle(double angleDegrees) {
         double heading = getRotation().getDegrees();
         double flippedHeading;
@@ -612,9 +623,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     // Helper method to calculate the shortest angle difference
     /**
-     * Returns the rotation difference.
+     * Returns the shortest absolute difference between two angles.
      *
-     * @return the rotation difference
+     * @param angle1 the first angle in degrees
+     * @param angle2 the second angle in degrees
+     * @return the shortest difference between the angles, in the range 0-180 degrees
      */
     public double getRotationDifference(double angle1, double angle2) {
         double diff = Math.abs(angle1 - angle2) % 360;
@@ -670,9 +683,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         return isAtDesiredRotation(Units.degreesToRadians(10.0));
     }
     /**
-     * Returns {@code true} if the at desired rotation condition is met.
+     * Returns {@code true} if the heading controller position error is within tolerance.
      *
-     * @return {@code true} if the at desired rotation condition is met
+     * @param toleranceRadians the allowed heading error in radians
+     * @return {@code true} if the heading controller position error is below the tolerance
      */
     public boolean isAtDesiredRotation(double toleranceRadians) {
         return Math.abs(DRIVE_AT_ANGLE_REQUEST.HeadingController.getPositionError())
