@@ -93,7 +93,7 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(5.375), // ahead
                                 Units.inchesToMeters(0.0), // left
                                 Units.inchesToMeters(18.632)) // up
-                        .withRotation(0, 30, 0);
+                        .withRotation(0, 60, 0);
 
         // -- Turret geometry --------------------------------------------------
 
