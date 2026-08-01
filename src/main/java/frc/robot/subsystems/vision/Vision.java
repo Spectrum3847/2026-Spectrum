@@ -90,9 +90,9 @@ public class Vision implements Subsystem {
         final LimelightConfig turretConfig =
                 new LimelightConfig(turretLL)
                         .withTranslation(
-                                Units.inchesToMeters(5.360),
-                                Units.inchesToMeters(0.0),
-                                Units.inchesToMeters(21.212))
+                                Units.inchesToMeters(5.375), // ahead
+                                Units.inchesToMeters(0.0), // left
+                                Units.inchesToMeters(18.632)) // up
                         .withRotation(0, 30, 0);
 
         // -- Turret geometry --------------------------------------------------
