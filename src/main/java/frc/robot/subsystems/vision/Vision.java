@@ -60,67 +60,9 @@ public class Vision implements Subsystem {
     // Configuration
     // =========================================================================
 
-    /**
-     * Static configuration for the Vision subsystem, including Limelight identifiers,
-     * camera-to-robot transforms, pipeline indices, and pose estimation covariance parameters.
-     */
     public static class VisionConfig {
 
         @Getter final String name = "Vision";
-
-        // -- Back Limelight ---------------------------------------------------
-
-        /** NetworkTables hostname for the rear-facing Limelight. */
-        @Getter final String backLL = "limelight-back";
-
-        /**
-         * Robot-relative pose of the rear Limelight. Translation in metres (x, y, z); rotation in
-         * degrees (roll, pitch, yaw).
-         *
-         * <p>Detached — this camera is not mounted on the current robot.
-         */
-        @Getter
-        final LimelightConfig backConfig =
-                new LimelightConfig(backLL)
-                        .withTranslation(-0.3084987734, 0.2134100126, 0.6502249886)
-                        .withRotation(0, 0, 180)
-                        .setAttached(false);
-
-        // -- Left Limelight ---------------------------------------------------
-
-        /** NetworkTables hostname for the left-facing Limelight. */
-        @Getter final String leftLL = "limelight-left";
-
-        /**
-         * Robot-relative pose of the left Limelight. Translation in metres (x, y, z); rotation in
-         * degrees (roll, pitch, yaw).
-         *
-         * <p>Detached — this camera is not mounted on the current robot.
-         */
-        @Getter
-        final LimelightConfig leftConfig =
-                new LimelightConfig(leftLL)
-                        .withTranslation(0, 0.215, 0.188)
-                        .withRotation(0, 0, 90)
-                        .setAttached(false);
-
-        // -- Right Limelight --------------------------------------------------
-
-        /** NetworkTables hostname for the right-facing Limelight. */
-        @Getter final String rightLL = "limelight-right";
-
-        /**
-         * Robot-relative pose of the right Limelight. Translation in metres (x, y, z); rotation in
-         * degrees (roll, pitch, yaw).
-         *
-         * <p>Detached — this camera is not mounted on the current robot.
-         */
-        @Getter
-        final LimelightConfig rightConfig =
-                new LimelightConfig(rightLL)
-                        .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
-                        .withRotation(0, 0, -90)
-                        .setAttached(false);
 
         // -- Turret Limelight -------------------------------------------------
 
@@ -165,9 +107,6 @@ public class Vision implements Subsystem {
 
         // -- Pipeline indices -------------------------------------------------
 
-        @Getter final int backTagPipeline = 0;
-        @Getter final int leftTagPipeline = 0;
-        @Getter final int rightTagPipeline = 0;
         @Getter final int turretTagPipeline = 0;
 
         // -- Pose estimation covariance ---------------------------------------
@@ -208,28 +147,13 @@ public class Vision implements Subsystem {
     // Fields
     // =========================================================================
 
-    /** Rear-facing Limelight instance. */
-    @Getter public final Limelight backLL;
-
-    /** Left-facing Limelight instance. */
-    @Getter public final Limelight leftLL;
-
-    /** Right-facing Limelight instance. */
-    @Getter public final Limelight rightLL;
-
     /** Turret-mounted Limelight instance; its frame rotates with the turret. */
     @Getter public final Limelight turretLL;
-
-    /** Chassis-mounted (non-turret) Limelights, whose reported pose is already the robot pose. */
-    public final Limelight[] swerveLimelights;
 
     /** All Limelights in one array for bulk operations. */
     public final Limelight[] allLimelights;
 
     /* Vision loggers — one per Limelight */
-    private final VisionLogger backLogger;
-    private final VisionLogger leftLogger;
-    private final VisionLogger rightLogger;
     private final VisionLogger turretLogger;
 
     /** All loggers in one array for bulk telemetry loops. */
@@ -274,24 +198,12 @@ public class Vision implements Subsystem {
     public Vision(VisionConfig config) {
         this.config = config;
 
-        backLL = new Limelight(config.backLL, config.backTagPipeline, config.backConfig);
-        leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
-        rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
         turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
 
-        swerveLimelights = new Limelight[] {backLL, leftLL, rightLL};
-        allLimelights = new Limelight[] {backLL, leftLL, rightLL, turretLL};
+        allLimelights = new Limelight[] {turretLL};
 
-        backLogger = new VisionLogger("BackLL", backLL);
-        leftLogger = new VisionLogger("LeftLL", leftLL);
-        rightLogger = new VisionLogger("RightLL", rightLL);
         turretLogger = new VisionLogger("TurretLL", turretLL);
-        allLoggers = new VisionLogger[] {backLogger, leftLogger, rightLogger, turretLogger};
-
-        for (Limelight limelight : swerveLimelights) {
-            limelight.setLEDMode(false);
-            setImuModeIfChanged(limelight, 1);
-        }
+        allLoggers = new VisionLogger[] {turretLogger};
 
         // The turret camera's yaw is robot yaw + turret angle, so it runs on its internal IMU
         // rather than the robot heading we push to the chassis cameras.
@@ -342,13 +254,13 @@ public class Vision implements Subsystem {
      *
      * @param bestLimelight the camera being integrated this loop, left untouched
      */
-    private void markUnselectedLimelights(Limelight bestLimelight) {
-        for (Limelight limelight : swerveLimelights) {
-            if (limelight != bestLimelight) {
-                limelight.sendInvalidStatus("Not best Limelight");
-            }
-        }
-    }
+    // private void markUnselectedLimelights(Limelight bestLimelight) {
+    //     for (Limelight limelight : swerveLimelights) {
+    //         if (limelight != bestLimelight) {
+    //             limelight.sendInvalidStatus("Not best Limelight");
+    //         }
+    //     }
+    // }
 
     /**
      * Logs connection status, integration status, tag status, MT1 poses, tag count, and target size
@@ -368,16 +280,16 @@ public class Vision implements Subsystem {
         }
 
         // MT2 poses are only reliable when the robot is stationary
-        if (Util.disabled.getAsBoolean()) {
-            backLogger.getMegaPose();
-            leftLogger.getMegaPose();
-            rightLogger.getMegaPose();
-        }
+        // if (Util.disabled.getAsBoolean()) {
+        //     backLogger.getMegaPose();
+        //     leftLogger.getMegaPose();
+        //     rightLogger.getMegaPose();
+        // }
 
         // Update Field2d visualization (null-safe; returns Pose2d.kZero when no data)
-        Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
-        Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
-        Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
+        // Robot.getField2d().getObject(backLL.getCameraName()).setPose(getBackMegaTag1Pose());
+        // Robot.getField2d().getObject(leftLL.getCameraName()).setPose(getLeftMegaTag1Pose());
+        // Robot.getField2d().getObject(rightLL.getCameraName()).setPose(getRightMegaTag1Pose());
         // The turret camera reports its own field pose; show the turret-corrected robot pose
         Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretRobotPose());
 
@@ -400,9 +312,9 @@ public class Vision implements Subsystem {
      */
     private void setLimeLightOrientation() {
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
-        for (Limelight limelight : swerveLimelights) {
-            limelight.setRobotOrientation(yaw);
-        }
+        // for (Limelight limelight : swerveLimelights) {
+        //     limelight.setRobotOrientation(yaw);
+        // }
         turretLL.setRobotOrientation(yaw + turretRotationSupplier.getAsDouble());
     }
 
@@ -414,7 +326,6 @@ public class Vision implements Subsystem {
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
-            markUnselectedLimelights(bestLimelight);
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, true));
             integrateSingleEstimate(getMT2VisionEstimate(bestLimelight));
 
@@ -433,7 +344,7 @@ public class Vision implements Subsystem {
                 || Auton.autonPoseUpdate.getAsBoolean()
                 || Auton.autonLaunching.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
-            markUnselectedLimelights(bestLimelight);
+
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, false));
 
             if (turretEstimatesAvailable()) {
@@ -826,28 +737,28 @@ public class Vision implements Subsystem {
      * Returns the MegaTag1 (MT1) pose from the back Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getBackMegaTag1Pose() {
-        Pose2d pose = backLL.getMegaTag1_Pose3d().toPose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
+    // public Pose2d getBackMegaTag1Pose() {
+    //     Pose2d pose = backLL.getMegaTag1_Pose3d().toPose2d();
+    //     return pose != null ? pose : Pose2d.kZero;
+    // }
 
     /**
      * Returns the MegaTag1 (MT1) pose from the left Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getLeftMegaTag1Pose() {
-        Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
+    // public Pose2d getLeftMegaTag1Pose() {
+    //     Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
+    //     return pose != null ? pose : Pose2d.kZero;
+    // }
 
     /**
      * Returns the MegaTag1 (MT1) pose from the right Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getRightMegaTag1Pose() {
-        Pose2d pose = rightLL.getMegaTag1_Pose3d().toPose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
+    // public Pose2d getRightMegaTag1Pose() {
+    //     Pose2d pose = rightLL.getMegaTag1_Pose3d().toPose2d();
+    //     return pose != null ? pose : Pose2d.kZero;
+    // }
 
     /**
      * Returns the raw MegaTag1 (MT1) pose reported by the turret Limelight — i.e., the
@@ -884,28 +795,28 @@ public class Vision implements Subsystem {
      * Returns the MegaTag2 (MT2) pose from the back Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getBackMegaTag2Pose() {
-        Pose2d pose = backLL.getMegaTag2_Pose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
+    // public Pose2d getBackMegaTag2Pose() {
+    //     Pose2d pose = backLL.getMegaTag2_Pose2d();
+    //     return pose != null ? pose : Pose2d.kZero;
+    // }
 
     /**
      * Returns the MegaTag2 (MT2) pose from the left Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getLeftMegaTag2Pose() {
-        Pose2d pose = leftLL.getMegaTag2_Pose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
+    // public Pose2d getLeftMegaTag2Pose() {
+    //     Pose2d pose = leftLL.getMegaTag2_Pose2d();
+    //     return pose != null ? pose : Pose2d.kZero;
+    // }
 
     /**
      * Returns the MegaTag2 (MT2) pose from the right Limelight, or {@link Pose2d#kZero} if no
      * estimate is available.
      */
-    public Pose2d getRightMegaTag2Pose() {
-        Pose2d pose = rightLL.getMegaTag2_Pose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
+    // public Pose2d getRightMegaTag2Pose() {
+    //     Pose2d pose = rightLL.getMegaTag2_Pose2d();
+    //     return pose != null ? pose : Pose2d.kZero;
+    // }
 
     /**
      * Selects and returns the chassis Limelight with the highest combined score of visible tag
@@ -918,16 +829,7 @@ public class Vision implements Subsystem {
      * @return the chassis Limelight currently offering the best view of AprilTags
      */
     public Limelight getBestLimelight() {
-        Limelight bestLimelight = backLL;
-        double bestScore = 0;
-        for (Limelight limelight : swerveLimelights) {
-            double score = limelight.getTagCountInView() + limelight.getTargetSize();
-            if (score > bestScore) {
-                bestScore = score;
-                bestLimelight = limelight;
-            }
-        }
-        return bestLimelight;
+        return turretLL;
     }
 
     /**
