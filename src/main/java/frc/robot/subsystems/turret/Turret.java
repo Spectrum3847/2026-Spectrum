@@ -63,10 +63,12 @@ public class Turret extends Mechanism {
 
         /* Sim Configs */
         @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
+
         @Getter private final double turretY = Units.inchesToMeters(75); // Horizontal Center
         @Getter private final double simRatio = sensorToMechanismRatio;
         @Getter private final double length = 1;
 
+        /** Creates a new TurretConfig instance. */
         public TurretConfig() {
             super("Turret", 14, Rio.CANIVORE); // Rio.CANIVORE);
             configPIDGains(0, positionKp, positionKi, 0);
@@ -89,7 +91,7 @@ public class Turret extends Mechanism {
             configGravityType(false);
             configClockwise_Positive();
         }
-
+        /** Modify motor config. */
         public TurretConfig modifyMotorConfig(TalonFX motor) {
             TalonFXConfigurator configurator = motor.getConfigurator();
             TalonFXConfiguration talonConfigMod = getTalonConfig();
@@ -114,11 +116,15 @@ public class Turret extends Mechanism {
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -126,12 +132,14 @@ public class Turret extends Mechanism {
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
     }
-
+    // Whether the turret is unwrapping to avoid wire wrap.
     @Getter private boolean unwrapping = false;
+
     @Getter private int unwrapTargetN = 0;
     @Getter private double commandedDegrees = 0;
     @Getter private double mechOmegaRotPerSec = 0;
 
+    /** Applies the states. */
     private void applyStates() {
         switch (systemState) {
             case OFF:
@@ -151,8 +159,14 @@ public class Turret extends Mechanism {
     }
 
     @Getter private final TurretConfig config;
+
     @Getter private TurretSim sim;
 
+    /**
+     * Creates a new Turret instance.
+     *
+     * @param config the config
+     */
     public Turret(TurretConfig config) {
         super(config);
         this.config = config;
@@ -164,7 +178,7 @@ public class Turret extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
@@ -184,11 +198,11 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
     }
-
+    /** Sets the initial position. */
     private void setInitialPosition() {
         motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
     }
-
+    /** Applies the aim at target. */
     private void applyAimAtTarget() {
         var params = ShotCalculator.getInstance().getParameters();
 
@@ -296,6 +310,7 @@ public class Turret extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
+    /** Simulation init. */
     private void simulationInit() {
         if (isAttached()) {
             sim = new TurretSim(RobotSim.topView, motor);
@@ -303,6 +318,12 @@ public class Turret extends Mechanism {
     }
 
     class TurretSim extends ArmSim {
+        /**
+         * Creates a new TurretSim instance.
+         *
+         * @param mech the mech
+         * @param motor the motor
+         */
         public TurretSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new ArmConfig(

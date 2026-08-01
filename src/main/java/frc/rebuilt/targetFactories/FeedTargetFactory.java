@@ -21,7 +21,7 @@ public class FeedTargetFactory {
     }
 
     static Double kXDistanceOffset = Units.inchesToMeters(0);
-
+    /** Generate. */
     public static Translation2d generate() {
         boolean inFieldLeft = swerve.inFieldLeft().getAsBoolean();
         boolean inOpposingAllianceZone = swerve.inEnemyAllianceZone().getAsBoolean();

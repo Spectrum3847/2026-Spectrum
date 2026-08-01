@@ -28,7 +28,7 @@ public class Operator extends Gamepad {
     public final Trigger dPadRight = rightDpad;
 
     public static class OperatorConfig extends Config {
-
+        /** Creates a new OperatorConfig instance. */
         public OperatorConfig() {
             super("Operator", 1);
             setTriggersDeadzone(0.0);
@@ -37,7 +37,11 @@ public class Operator extends Gamepad {
 
     @SuppressWarnings("unused")
     private OperatorConfig config;
-
+    /**
+     * Creates a new Operator instance.
+     *
+     * @param config the config
+     */
     public Operator(OperatorConfig config) {
         super(config);
         this.config = config;

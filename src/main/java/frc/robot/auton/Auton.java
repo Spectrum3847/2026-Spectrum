@@ -78,13 +78,17 @@ public class Auton {
     }
 
     private SuperStructure robotSuperStructure;
-
+    /**
+     * Creates a new Auton instance.
+     *
+     * @param robotSuperStructure the robotSuperStructure
+     */
     public Auton(SuperStructure robotSuperStructure) {
         this.robotSuperStructure = robotSuperStructure;
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized");
     }
-
+    /** Init. */
     public void init() {
         Command autonCommand = getAutonomousCommand();
 
@@ -95,15 +99,15 @@ public class Auton {
             Telemetry.print("No Auton Command Found");
         }
     }
-
+    /** Exit. */
     public void exit() {
         printAutoDuration();
     }
-
+    /** Do nothing. */
     public Command doNothing() {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
     }
-
+    /** Launch. */
     public Command launch() {
         return Commands.sequence(
                         autonLaunching.setTrue(),
@@ -113,7 +117,7 @@ public class Auton {
                         autonLaunching.setFalse())
                 .withName("Auton.launch");
     }
-
+    /** Second man tbtb. */
     public Command secondMan_TBTB(boolean mirrored) {
         return Commands.sequence(
                         Commands.waitSeconds(SECOND_MAN_DELAY),
@@ -125,7 +129,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("2nd-TBTB Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Second man bbd. */
     public Command secondMan_BBD(boolean mirrored) {
         return Commands.sequence(
                         Commands.waitSeconds(SECOND_MAN_DELAY),
@@ -137,7 +141,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("2nd-BBD Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Optional tbt. */
     public Command optional_TBT(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("Option TBT 1", mirrored),
@@ -150,7 +154,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("Option TBT Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Optional bbb. */
     public Command optional_BBB(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("Option BBB 1", mirrored),
@@ -163,7 +167,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("Option BBB Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Builds the TBTB auto sequence command. */
     public Command TBTB(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("TBTB 1", mirrored),
@@ -176,7 +180,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("TBTB Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Builds the TBTT auto sequence command. */
     public Command TBTT(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("TBTT 1", mirrored),
@@ -189,7 +193,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("TBTT Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Builds the TTTT auto sequence command. */
     public Command TTTT(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("TTTT 1", mirrored),
@@ -202,7 +206,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    /** Builds the BBBB auto sequence command. */
     public Command BBBB(boolean mirrored) {
         return Commands.sequence(
                         SpectrumAuton("BBBB 1", mirrored),
@@ -229,7 +233,7 @@ public class Auton {
         Command autoCommand = new PathPlannerAuto(autoName, mirrored);
         return Commands.waitSeconds(0.01).andThen(autoCommand).withName(autoName);
     }
-
+    /** Spectrum auton. */
     public Command SpectrumAuton(String autoName, boolean mirrored, double duration) {
         Command autoCommand = new PathPlannerAuto(autoName, mirrored);
         return Commands.waitSeconds(0.01)
@@ -283,7 +287,7 @@ public class Auton {
             }
         }
     }
-
+    /** Follow single path. */
     public static Command followSinglePath(String pathName) {
         // Load the path you want to follow using its name in the GUI
         PathPlannerPath path;
@@ -298,7 +302,7 @@ public class Auton {
         }
         return new PrintCommand("ERROR LOADING PATH");
     }
-
+    /** Pathfinding command to pose. */
     public static Command pathfindingCommandToPose(
             double xPos, double yPos, double rotation, double vel, double accel) {
         // Since we are using a holonomic drivetrain, the rotation component of this pose
@@ -319,6 +323,7 @@ public class Auton {
         return pathfindingCommand;
     }
     // Log Command
+    /** Log. */
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);
     }

@@ -115,7 +115,7 @@ public class IntakeExtension implements Subsystem {
             simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
-
+        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logBatteryUsage();
@@ -257,12 +257,17 @@ public class IntakeExtension implements Subsystem {
 
         @Getter private final RightConfig config;
 
+        /**
+         * Creates a new Right instance.
+         *
+         * @param config the config
+         */
         public Right(RightConfig config) {
             super(config);
             this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
         }
-
+        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logBatteryUsage();
@@ -351,11 +356,15 @@ public class IntakeExtension implements Subsystem {
     private SystemState systemState = SystemState.STOPPED;
     private SystemState previousSystemState = SystemState.STOPPED;
     private boolean sentOutByIntakeState = false;
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case STOPPED -> SystemState.STOPPED;
@@ -636,7 +645,7 @@ public class IntakeExtension implements Subsystem {
     public double getPositionPercentage() {
         return left.getPositionPercentage();
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();

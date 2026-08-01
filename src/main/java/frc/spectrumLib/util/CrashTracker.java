@@ -32,11 +32,12 @@ public class CrashTracker {
     }
 
     // used to just log a message to the file
+    /** Logs the marker. */
     @SuppressWarnings("unused")
     private static void logMarker(String mark) {
         logMarker(mark, null);
     }
-
+    /** Logs the marker. */
     private static void logMarker(String mark, Throwable nullableException) {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filePath, true))) {
             writer.print(RUN_INSTANCE_UUID.toString());

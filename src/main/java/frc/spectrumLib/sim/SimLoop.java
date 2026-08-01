@@ -21,7 +21,7 @@ public final class SimLoop {
     private static final List<DoubleConsumer> steps = new CopyOnWriteArrayList<>();
     private static Notifier notifier;
     private static double lastTime;
-
+    /** Creates a new SimLoop instance. */
     private SimLoop() {}
 
     /**
@@ -42,7 +42,7 @@ public final class SimLoop {
             notifier = started;
         }
     }
-
+    /** Tick. */
     private static void tick() {
         double now = Utils.getCurrentTimeSeconds();
         double dt = now - lastTime;

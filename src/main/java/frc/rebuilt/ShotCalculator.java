@@ -26,7 +26,11 @@ public class ShotCalculator {
 
     /** Robot-centre to launcher offset. Zero = launcher is at robot centre. */
     private static final Transform2d robotToLauncher = Transform2d.kZero;
-
+    /**
+     * Returns the instance.
+     *
+     * @return the instance
+     */
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
         return instance;
@@ -73,19 +77,19 @@ public class ShotCalculator {
 
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
-
+    /** Increase hood angle offset. */
     public static Command increaseHoodAngleOffset() {
         return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
     }
-
+    /** Decrease hood angle offset. */
     public static Command decreaseHoodAngleOffset() {
         return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= 0.1).ignoringDisable(true);
     }
-
+    /** Increase turret angle offset. */
     public static Command increaseTurretAngleOffset() {
         return Commands.runOnce(() -> TURRET_ANGLE_OFFSET += 1).ignoringDisable(true);
     }
-
+    /** Decrease turret angle offset. */
     public static Command decreaseTurretAngleOffset() {
         return Commands.runOnce(() -> TURRET_ANGLE_OFFSET -= 1).ignoringDisable(true);
     }

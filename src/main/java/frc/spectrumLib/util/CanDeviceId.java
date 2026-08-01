@@ -59,7 +59,7 @@ public class CanDeviceId {
     public boolean equals(CanDeviceId other) {
         return equals((Object) other);
     }
-
+    /** Returns a hash code for this object. */
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -68,7 +68,7 @@ public class CanDeviceId {
         result = prime * result + ((mBus == null) ? 0 : mBus.hashCode());
         return result;
     }
-
+    /** Compares this object to another for equality. */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;

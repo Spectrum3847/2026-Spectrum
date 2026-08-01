@@ -79,12 +79,20 @@ public class LinearSim implements Mount, Mountable {
 
         SimLoop.register(this::update);
     }
-
+    /**
+     * Returns the rotation per sec.
+     *
+     * @return the rotation per sec
+     */
     private double getRotationPerSec() {
         return (elevatorSim.getVelocityMetersPerSecond() / (2 * Math.PI * config.getDrumRadius()))
                 * config.getElevatorGearing();
     }
-
+    /**
+     * Returns the rotations.
+     *
+     * @return the rotations
+     */
     private double getRotations() {
         return (elevatorSim.getPositionMeters() / (2 * Math.PI * config.getDrumRadius()))
                 * config.getElevatorGearing();

@@ -48,9 +48,11 @@ public class FuelIntake implements Subsystem {
 
             /* Sim Configs */
             @Getter private final double intakeX = Units.inchesToMeters(15);
+
             @Getter private final double intakeY = Units.inchesToMeters(23);
             @Getter private final double wheelDiameter = 6;
 
+            /** Creates a new IntakeRollerConfig instance. */
             public IntakeRollerConfig() {
                 super("Intake Roller Left", 6, Rio.RIO_CANBUS);
                 configPIDGains(0, velocityKp, 0, 0);
@@ -74,8 +76,14 @@ public class FuelIntake implements Subsystem {
         }
 
         @Getter private final IntakeRollerConfig config;
+
         @Getter private IntakeRollerSim sim;
 
+        /**
+         * Creates a new IntakeRoller instance.
+         *
+         * @param config the config
+         */
         public IntakeRoller(IntakeRollerConfig config) {
             super(config);
             this.config = config;
@@ -83,7 +91,7 @@ public class FuelIntake implements Subsystem {
             simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
-
+        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logBatteryUsage();
@@ -94,11 +102,15 @@ public class FuelIntake implements Subsystem {
             Telemetry.log("IntakeRoller/RPM", getVelocityRPM(), "RPM");
             Telemetry.log("IntakeRoller/Temp", getTemp(), "deg_C");
         }
-
+        /**
+         * Sets the roller voltage.
+         *
+         * @param volts the roller voltage
+         */
         public void setRollerVoltage(double volts) {
             setVoltageOutput(() -> volts);
         }
-
+        /** Roller stop. */
         public void rollerStop() {
             stop();
         }
@@ -106,6 +118,7 @@ public class FuelIntake implements Subsystem {
         // ----------------------------------------------------------------------------
         // Simulation
         // ----------------------------------------------------------------------------
+        /** Simulation init. */
         public void simulationInit() {
             if (isAttached()) {
                 // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
@@ -115,6 +128,12 @@ public class FuelIntake implements Subsystem {
         }
 
         class IntakeRollerSim extends RollerSim {
+            /**
+             * Creates a new IntakeRollerSim instance.
+             *
+             * @param mech the mech
+             * @param rollerMotorSim the rollerMotorSim
+             */
             public IntakeRollerSim(Mechanism2d mech, TalonFX rollerMotorSim) {
                 super(
                         new RollerConfig(config.getWheelDiameter())
@@ -146,6 +165,7 @@ public class FuelIntake implements Subsystem {
             /* kV above was characterized at this ratio; keep the two in sync */
             @Getter private final double gearRatio = 2.33;
 
+            /** Creates a new IntakeKickerConfig instance. */
             public IntakeKickerConfig() {
                 super("Intake Kicker", 8, Rio.CANIVORE);
                 configPIDGains(0, velocityKp, 0, 0);
@@ -165,13 +185,18 @@ public class FuelIntake implements Subsystem {
 
         @Getter private final IntakeKickerConfig config;
 
+        /**
+         * Creates a new IntakeKicker instance.
+         *
+         * @param config the config
+         */
         public IntakeKicker(IntakeKickerConfig config) {
             super(config);
             this.config = config;
 
             Telemetry.print(getName() + " Subsystem Initialized");
         }
-
+        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logBatteryUsage();
@@ -182,21 +207,31 @@ public class FuelIntake implements Subsystem {
             Telemetry.log("IntakeKicker/RPM", getVelocityRPM(), "RPM");
             Telemetry.log("IntakeKicker/Temp", getTemp(), "deg_C");
         }
-
+        /**
+         * Sets the kicker voltage.
+         *
+         * @param volts the kicker voltage
+         */
         public void setKickerVoltage(double volts) {
             setVoltageOutput(() -> volts);
         }
-
+        /** Kicker stop. */
         public void kickerStop() {
             stop();
         }
     }
 
     public static class FuelIntakeConfig {
-
         @Getter private final IntakeRollerConfig rollerConfig;
+
         @Getter private final IntakeKickerConfig kickerConfig;
 
+        /**
+         * Creates a new FuelIntakeConfig instance.
+         *
+         * @param rollerConfig the rollerConfig
+         * @param kickerConfig the kickerConfig
+         */
         public FuelIntakeConfig(IntakeRollerConfig rollerConfig, IntakeKickerConfig kickerConfig) {
             this.rollerConfig = rollerConfig;
             this.kickerConfig = kickerConfig;
@@ -221,11 +256,15 @@ public class FuelIntake implements Subsystem {
 
     private WantedState wantedState = WantedState.NEUTRAL;
     private SystemState systemState = SystemState.NEUTRAL;
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case NEUTRAL -> SystemState.NEUTRAL;
@@ -236,6 +275,7 @@ public class FuelIntake implements Subsystem {
     }
 
     // TODO: get actual kicker voltages when the robot is built
+    /** Applies the states. */
     private void applyStates() {
         double wantedRollerVoltage = 0;
         double wantedKickerVoltage = 0;
@@ -264,9 +304,15 @@ public class FuelIntake implements Subsystem {
     }
 
     @Getter private final IntakeRoller roller;
+
     @Getter private final IntakeKicker kicker;
     @Getter private final FuelIntakeConfig config;
 
+    /**
+     * Creates a new FuelIntake instance.
+     *
+     * @param config the config
+     */
     public FuelIntake(FuelIntakeConfig config) {
         this.config = config;
         this.roller = new IntakeRoller(config.getRollerConfig());
@@ -275,7 +321,7 @@ public class FuelIntake implements Subsystem {
         this.register();
         Telemetry.print("Fuel Intake Subsystem Initialized");
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();

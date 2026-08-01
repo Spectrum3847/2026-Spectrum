@@ -6,7 +6,7 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 
 /** Shared wiring between a {@link TalonFX} and the WPILib physics sims in this package. */
 public final class SimMotor {
-
+    /** Creates a new SimMotor instance. */
     private SimMotor() {}
 
     /**

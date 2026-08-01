@@ -614,7 +614,13 @@ public class FuelPhysicsSim {
         // Lifecycle flags
         boolean intaked;
         boolean outOfBounds;
-
+        /**
+         * Creates a new SimBall instance.
+         *
+         * @param pos the pos
+         * @param vel the vel
+         * @param omega the omega
+         */
         SimBall(Translation3d pos, Translation3d vel, Translation3d omega) {
             this.pos = pos;
             this.vel = vel;
@@ -627,11 +633,20 @@ public class FuelPhysicsSim {
             this.intaked = false;
             this.outOfBounds = false;
         }
-
+        /**
+         * Creates a new SimBall instance.
+         *
+         * @param pos the pos
+         * @param vel the vel
+         */
         SimBall(Translation3d pos, Translation3d vel) {
             this(pos, vel, new Translation3d());
         }
-
+        /**
+         * Creates a new SimBall instance.
+         *
+         * @param pos the pos
+         */
         SimBall(Translation3d pos) {
             this(pos, new Translation3d(), new Translation3d());
         }
@@ -654,7 +669,7 @@ public class FuelPhysicsSim {
         double restitution; // effective COR for this pair
         double friction; // Coulomb mu for this pair
         double restitutionVelocity; // target bounce-back speed, set once before solving
-
+        /** Creates a new Contact instance. */
         Contact() {
             normal = new Translation3d();
             contactPoint = new Translation3d();
@@ -667,14 +682,24 @@ public class FuelPhysicsSim {
         final Translation3d exit;
         final int exitVelXSign; // +1 for blue (exits toward red), -1 for red
         int score;
-
+        /**
+         * Creates a new ScoringTarget instance.
+         *
+         * @param center the center
+         * @param exit the exit
+         * @param exitVelXSign the exitVelXSign
+         */
         ScoringTarget(Translation2d center, Translation3d exit, int exitVelXSign) {
             this.center = center;
             this.exit = exit;
             this.exitVelXSign = exitVelXSign;
             this.score = 0;
         }
-
+        /**
+         * Returns whether the score occurred.
+         *
+         * @return whether the score occurred
+         */
         boolean didScore(SimBall ball) {
             double dist2d = ball.pos.toTranslation2d().getDistance(center);
             if (dist2d > HUB_ENTRY_RADIUS) return false;
@@ -683,7 +708,11 @@ public class FuelPhysicsSim {
             // Only count balls falling through the opening (top-down entry)
             return prevZ > HUB_ENTRY_HEIGHT && currZ <= HUB_ENTRY_HEIGHT;
         }
-
+        /**
+         * Returns the dispersal velocity.
+         *
+         * @return the dispersal velocity
+         */
         Translation3d getDispersalVelocity(Random rng) {
             double vx = exitVelXSign * (rng.nextDouble() + 0.1) * 1.5;
             double vy = rng.nextDouble() * 2.0 - 1.0;
@@ -694,7 +723,7 @@ public class FuelPhysicsSim {
         public int getScore() {
             return score;
         }
-
+        /** Resets the score. */
         void resetScore() {
             score = 0;
         }
@@ -705,7 +734,16 @@ public class FuelPhysicsSim {
         final double xMin, xMax, yMin, yMax;
         final BooleanSupplier active;
         final Runnable callback;
-
+        /**
+         * Creates a new IntakeZone instance.
+         *
+         * @param xMin the xMin
+         * @param xMax the xMax
+         * @param yMin the yMin
+         * @param yMax the yMax
+         * @param active the active
+         * @param callback the callback
+         */
         IntakeZone(
                 double xMin,
                 double xMax,
@@ -720,7 +758,11 @@ public class FuelPhysicsSim {
             this.active = active;
             this.callback = callback;
         }
-
+        /**
+         * Returns {@code true} if the intake condition is met.
+         *
+         * @return {@code true} if the intake condition is met
+         */
         boolean shouldIntake(SimBall ball, Pose2d robotPose, double bumperHeight) {
             if (!active.getAsBoolean() || ball.pos.getZ() > bumperHeight) return false;
             Translation2d relPos =
@@ -1089,7 +1131,7 @@ public class FuelPhysicsSim {
     }
 
     // Core physics pipeline
-
+    /** Step subtick. */
     private void stepSubtick(double subDt) {
         // Reset contact list
         contactPoolIndex = 0;
@@ -1420,7 +1462,7 @@ public class FuelPhysicsSim {
     }
 
     // Broadphase (spatial hash)
-
+    /** Builds the spatial hash. */
     private void buildSpatialHash() {
         for (int i = 0; i < GRID_COLS; i++) {
             for (int j = 0; j < GRID_ROWS; j++) {
@@ -1440,7 +1482,7 @@ public class FuelPhysicsSim {
     }
 
     // Narrowphase contact generation
-
+    /** Generates the ball ball contacts. */
     private void generateBallBallContacts() {
         for (int i = 0; i < balls.size(); i++) {
             SimBall ballA = balls.get(i);
@@ -1498,7 +1540,7 @@ public class FuelPhysicsSim {
             }
         }
     }
-
+    /** Generates the ball field contacts. */
     private void generateBallFieldContacts() {
         for (int i = 0; i < balls.size(); i++) {
             SimBall ball = balls.get(i);
@@ -1516,7 +1558,7 @@ public class FuelPhysicsSim {
             }
         }
     }
-
+    /** Generates the sphere aabb contact. */
     private void generateSphereAABBContact(int ballIndex, SimBall ball, AABB aabb) {
         // Find nearest point on AABB to sphere center
         double cx = Math.max(aabb.minX(), Math.min(ball.pos.getX(), aabb.maxX()));
@@ -1658,7 +1700,7 @@ public class FuelPhysicsSim {
 
         return bestNormal != null ? bestNormal : computeAABBNormal(to, aabb);
     }
-
+    /** Generates the sphere cylinder contact. */
     private void generateSphereCylinderContact(int ballIndex, SimBall ball, CylinderObstacle cyl) {
         if (cyl.abLenSq() < 1e-12) return;
 
@@ -1738,7 +1780,7 @@ public class FuelPhysicsSim {
             applyPositionCorrection(contacts.get(i));
         }
     }
-
+    /** Solve contact. */
     private void solveContact(Contact c) {
         SimBall ballA = balls.get(c.ballIndexA);
         Translation3d relVel;
@@ -1844,7 +1886,7 @@ public class FuelPhysicsSim {
     }
 
     // Wall and ground handling
-
+    /** Handles the wall bounce. */
     private void handleWallBounce(SimBall ball) {
         double z = ball.pos.getZ();
 
@@ -1902,7 +1944,7 @@ public class FuelPhysicsSim {
             }
         }
     }
-
+    /** Handles the ground contact. */
     private void handleGroundContact(SimBall ball, double subDt) {
         if (ball.pos.getZ() < BALL_RADIUS) {
             ball.pos = new Translation3d(ball.pos.getX(), ball.pos.getY(), BALL_RADIUS);
@@ -2028,7 +2070,7 @@ public class FuelPhysicsSim {
     }
 
     // Hub scoring
-
+    /** Handles the hub scoring. */
     private void handleHubScoring(SimBall ball) {
         if (blueHub.didScore(ball)) {
             ball.pos = blueHub.exit;
@@ -2069,7 +2111,7 @@ public class FuelPhysicsSim {
                             -ball.vel.getX() * COR_NET, ball.vel.getY() * COR_NET, ball.vel.getZ());
         }
     }
-
+    /** Handles the robot collision. */
     private void handleRobotCollision(SimBall ball, Pose2d robotPose, Translation2d robotVel) {
         if (ball.pos.getZ() > bumperHeight) return;
 
@@ -2124,7 +2166,7 @@ public class FuelPhysicsSim {
             ball.vel = ball.vel.minus(normal3d.times((1 + COR_BUMPER) * closingVel));
         }
     }
-
+    /** Handles the intake pickup. */
     private void handleIntakePickup(SimBall ball, Pose2d robotPose) {
         if (totalIntaked >= hopperSize) return; // hopper is full
         for (IntakeZone intake : intakes) {
@@ -2137,7 +2179,7 @@ public class FuelPhysicsSim {
     }
 
     // Sleeping
-
+    /** Updates the sleep state. */
     private void updateSleepState(SimBall ball) {
         double speed = ball.vel.getNorm();
         double omegaMag = ball.omega.getNorm();
@@ -2156,7 +2198,7 @@ public class FuelPhysicsSim {
             ball.sleeping = false;
         }
     }
-
+    /** Wake ball. */
     private void wakeBall(SimBall ball) {
         ball.sleeping = false;
         ball.sleepCounter = 0;
@@ -2178,7 +2220,7 @@ public class FuelPhysicsSim {
     }
 
     // Conservation monitor
-
+    /** Computes the conservation quantities. */
     private void computeConservationQuantities() {
         totalKE = 0;
         totalPE = 0;
@@ -2380,12 +2422,21 @@ public class FuelPhysicsSim {
         computeConservationQuantities();
         totalEnergyPub.set(totalKE + totalPE);
     }
-
+    /**
+     * Returns the ball count.
+     *
+     * @return the ball count
+     */
     public int getBallCount() {
         return balls.size();
     }
 
     // Only counts balls above ground level + small margin
+    /**
+     * Returns the balls in flight.
+     *
+     * @return the balls in flight
+     */
     public int getBallsInFlight() {
         int count = 0;
         for (SimBall ball : balls) {
@@ -2393,7 +2444,11 @@ public class FuelPhysicsSim {
         }
         return count;
     }
-
+    /**
+     * Returns the balls on ground.
+     *
+     * @return the balls on ground
+     */
     public int getBallsOnGround() {
         int count = 0;
         for (SimBall ball : balls) {
@@ -2401,7 +2456,11 @@ public class FuelPhysicsSim {
         }
         return count;
     }
-
+    /**
+     * Returns the ball positions.
+     *
+     * @return the ball positions
+     */
     public List<Translation3d> getBallPositions() {
         List<Translation3d> positions = new ArrayList<>(balls.size());
         for (SimBall ball : balls) {
@@ -2409,7 +2468,11 @@ public class FuelPhysicsSim {
         }
         return positions;
     }
-
+    /**
+     * Returns the ball velocities.
+     *
+     * @return the ball velocities
+     */
     public List<Translation3d> getBallVelocities() {
         List<Translation3d> velocities = new ArrayList<>(balls.size());
         for (SimBall ball : balls) {
@@ -2417,7 +2480,11 @@ public class FuelPhysicsSim {
         }
         return velocities;
     }
-
+    /**
+     * Returns the ball omegas.
+     *
+     * @return the ball omegas
+     */
     public List<Translation3d> getBallOmegas() {
         List<Translation3d> omegas = new ArrayList<>(balls.size());
         for (SimBall ball : balls) {
@@ -2425,11 +2492,19 @@ public class FuelPhysicsSim {
         }
         return omegas;
     }
-
+    /**
+     * Returns the config.
+     *
+     * @return the config
+     */
     public PhysicsConfig getConfig() {
         return config;
     }
-
+    /**
+     * Sets the config.
+     *
+     * @param config the config
+     */
     public void setConfig(PhysicsConfig config) {
         this.config = config;
         if (config.deterministic) {
@@ -2445,58 +2520,112 @@ public class FuelPhysicsSim {
     }
 
     // Translational + rotational KE
+    /**
+     * Returns the total kinetic energy.
+     *
+     * @return the total kinetic energy
+     */
     public double getTotalKineticEnergy() {
         computeConservationQuantities();
         return totalKE;
     }
-
+    /**
+     * Returns the total potential energy.
+     *
+     * @return the total potential energy
+     */
     public double getTotalPotentialEnergy() {
         computeConservationQuantities();
         return totalPE;
     }
-
+    /**
+     * Returns the total momentum.
+     *
+     * @return the total momentum
+     */
     public Translation3d getTotalMomentum() {
         computeConservationQuantities();
         return totalMomentum;
     }
-
+    /**
+     * Returns the total launched.
+     *
+     * @return the total launched
+     */
     public int getTotalLaunched() {
         return totalLaunched;
     }
-
+    /**
+     * Returns the total scored.
+     *
+     * @return the total scored
+     */
     public int getTotalScored() {
         return totalScored;
     }
-
+    /**
+     * Returns the total intaked.
+     *
+     * @return the total intaked
+     */
     public int getTotalIntaked() {
         return totalIntaked;
     }
-
+    /**
+     * Returns the last launch speed.
+     *
+     * @return the last launch speed
+     */
     public double getLastLaunchSpeed() {
         return lastLaunchSpeed;
     }
-
+    /**
+     * Returns the blue score.
+     *
+     * @return the blue score
+     */
     public int getBlueScore() {
         return blueHub.score;
     }
-
+    /**
+     * Returns the red score.
+     *
+     * @return the red score
+     */
     public int getRedScore() {
         return redHub.score;
     }
-
+    /**
+     * Returns the blue hub.
+     *
+     * @return the blue hub
+     */
     public ScoringTarget getBlueHub() {
         return blueHub;
     }
-
+    /**
+     * Returns the red hub.
+     *
+     * @return the red hub
+     */
     public ScoringTarget getRedHub() {
         return redHub;
     }
 
     // Package-private, for tests
+    /**
+     * Returns the balls.
+     *
+     * @return the balls
+     */
     List<SimBall> getBalls() {
         return balls;
     }
-
+    /**
+     * Returns the sleeping ball count.
+     *
+     * @return the sleeping ball count
+     */
     public int getSleepingBallCount() {
         int count = 0;
         for (SimBall ball : balls) {
@@ -2504,43 +2633,79 @@ public class FuelPhysicsSim {
         }
         return count;
     }
-
+    /**
+     * Returns the field length.
+     *
+     * @return the field length
+     */
     public static double getFieldLength() {
         return FIELD_LENGTH;
     }
-
+    /**
+     * Returns the field width.
+     *
+     * @return the field width
+     */
     public static double getFieldWidth() {
         return FIELD_WIDTH;
     }
-
+    /**
+     * Returns the ball radius.
+     *
+     * @return the ball radius
+     */
     public static double getBallRadius() {
         return BALL_RADIUS;
     }
-
+    /**
+     * Returns the ball mass.
+     *
+     * @return the ball mass
+     */
     public static double getBallMass() {
         return BALL_MASS;
     }
-
+    /**
+     * Returns the moment of inertia.
+     *
+     * @return the moment of inertia
+     */
     public static double getMomentOfInertia() {
         return BALL_MOMENT_OF_INERTIA;
     }
-
+    /**
+     * Returns the drag accel factor.
+     *
+     * @return the drag accel factor
+     */
     public static double getDragAccelFactor() {
         return DRAG_ACCEL_FACTOR;
     }
-
+    /**
+     * Returns the magnus accel factor.
+     *
+     * @return the magnus accel factor
+     */
     public static double getMagnusAccelFactor() {
         return MAGNUS_ACCEL_FACTOR;
     }
-
+    /**
+     * Returns the field cor.
+     *
+     * @return the field cor
+     */
     public static double getFieldCOR() {
         return COR_CARPET;
     }
-
+    /**
+     * Returns the ball ball cor.
+     *
+     * @return the ball ball cor
+     */
     public static double getBallBallCOR() {
         return COR_BALL_BALL;
     }
-
+    /** Resets the counters. */
     public void resetCounters() {
         totalLaunched = 0;
         totalScored = 0;
