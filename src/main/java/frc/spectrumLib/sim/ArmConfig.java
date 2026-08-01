@@ -109,12 +109,22 @@ public class ArmConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
-
+    /**
+     * Sets the color.
+     *
+     * @param color the color
+     * @return this config, for chaining
+     */
     public ArmConfig setColor(Color8Bit color) {
         this.color = color;
         return this;
     }
-
+    /**
+     * Sets whether simulated gravity is applied.
+     *
+     * @param simulateGravity whether to apply simulated gravity
+     * @return this config, for chaining
+     */
     public ArmConfig setSimulatedGravity(boolean simulateGravity) {
         this.simulateGravity = simulateGravity;
         return this;

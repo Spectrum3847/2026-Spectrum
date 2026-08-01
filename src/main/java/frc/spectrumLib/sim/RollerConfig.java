@@ -67,7 +67,12 @@ public class RollerConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
-
+    /**
+     * Sets the gear ratio.
+     *
+     * @param ratio the ratio of motor speed to roller speed
+     * @return this config, for chaining
+     */
     public RollerConfig setGearRatio(double ratio) {
         gearRatio = ratio;
         return this;

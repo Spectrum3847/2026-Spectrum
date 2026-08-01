@@ -174,7 +174,7 @@ public abstract class Mechanism implements Subsystem {
         // constructor decides whether to create the motor hardware based on the flag.
         this(applyAttachedOverride(config, attached));
     }
-
+    /** Applies the attached override. */
     private static Config applyAttachedOverride(Config config, boolean attached) {
         config.attached = attached;
         return config;
@@ -256,7 +256,11 @@ public abstract class Mechanism implements Subsystem {
     public Trigger runningDefaultCommand() {
         return new Trigger(this::isRunningDefaultCommand);
     }
-
+    /**
+     * Returns {@code true} if the running default command condition is met.
+     *
+     * @return {@code true} if the running default command condition is met
+     */
     private boolean isRunningDefaultCommand() {
         return this.getCurrentCommand() == this.getDefaultCommand();
     }

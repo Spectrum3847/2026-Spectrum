@@ -59,12 +59,17 @@ public enum Rio {
 
     private final String serialNumber;
     private final boolean isRio2;
-
+    /**
+     * Creates a new Rio instance.
+     *
+     * @param serialNumber the serialNumber
+     * @param isRio2 the isRio2
+     */
     private Rio(String serialNumber, boolean isRio2) {
         this.serialNumber = serialNumber;
         this.isRio2 = isRio2;
     }
-
+    /** Checks the id. */
     private static Rio checkID() {
         rioIdAlert.set(false);
         rioIdUnknown.set(false);

@@ -60,7 +60,11 @@ public class RobotSim {
     private static final double LAUNCH_HEIGHT_INCHES = 19.5;
 
     private SuperStructure robotSuperStructure;
-
+    /**
+     * Creates a new RobotSim instance.
+     *
+     * @param superStructure the superStructure
+     */
     public RobotSim(SuperStructure superStructure) {
         this.robotSuperStructure = superStructure;
         SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
@@ -74,7 +78,7 @@ public class RobotSim {
         ballSim.placeFieldBalls(); // spawns all the game pieces
         configBallSimRobot();
     }
-
+    /** Updates the articulated mechanisms. */
     public void updateArticulatedMechanisms() {
         double intakeExtensionMeters =
                 Units.inchesToMeters(12)
@@ -118,13 +122,13 @@ public class RobotSim {
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }
-
+    /** Draw robot. */
     public void drawRobot() {
         drawSideRobot();
         drawTopRobot();
         drawTurretCircle();
     }
-
+    /** Draw turret circle. */
     @SuppressWarnings("unused")
     public void drawTurretCircle() {
         MechanismRoot2d circleRoot =
@@ -134,7 +138,7 @@ public class RobotSim {
                         Units.inchesToMeters(topViewWidth / 2));
         Circle circle = new Circle(50, 30, "Turret Circle", circleRoot, topView);
     }
-
+    /** Draw top robot. */
     public void drawTopRobot() {
         MechanismRoot2d robotRoot =
                 topView.getRoot(
@@ -159,7 +163,7 @@ public class RobotSim {
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
     }
-
+    /** Draw side robot. */
     public void drawSideRobot() {
         MechanismRoot2d robotRoot =
                 leftView.getRoot(
@@ -187,7 +191,7 @@ public class RobotSim {
         // MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
         // shooter.setColor(new Color8Bit(Color.kBlack));
     }
-
+    /** Config ball sim robot. */
     private void configBallSimRobot() {
         double bumperHeight = Units.inchesToMeters(5);
         double intakeWidth = Units.inchesToMeters(8.275);
@@ -210,7 +214,7 @@ public class RobotSim {
                 intakeYMax,
                 robotSuperStructure::currentStateIsIntaking);
     }
-
+    /** Creates the sim ball launch. */
     private Command createSimBallLaunch() {
         return Commands.runOnce(
                 () -> {
@@ -261,7 +265,7 @@ public class RobotSim {
                     ballSim.launchBall(launcherPose, launchVelocity, backspin);
                 });
     }
-
+    /** Ball sim launch fuel. */
     public Command ballSimLaunchFuel() {
         if (!Utils.isSimulation()) {
             return Commands.none();

@@ -49,6 +49,7 @@ public class DyeRotor implements Subsystem {
 
             @Getter private final double rotorDiameter = 12;
 
+            /** Creates a new RotorConfig instance. */
             public RotorConfig() {
                 super("Rotor", 9, Rio.CANIVORE);
                 configPIDGains(velocityKp, 0, 0);
@@ -66,8 +67,14 @@ public class DyeRotor implements Subsystem {
         }
 
         @Getter private final RotorConfig config;
+
         @Getter private RotorSim sim;
 
+        /**
+         * Creates a new Rotor instance.
+         *
+         * @param config the config
+         */
         public Rotor(RotorConfig config) {
             super(config);
             this.config = config;
@@ -75,7 +82,7 @@ public class DyeRotor implements Subsystem {
             simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
-
+        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logBatteryUsage();
@@ -86,16 +93,20 @@ public class DyeRotor implements Subsystem {
             Telemetry.log("Rotor/RPM", getVelocityRPM(), "RPM");
             Telemetry.log("Rotor/Temp", getTemp(), "deg_C");
         }
-
+        /**
+         * Sets the rotor velocity.
+         *
+         * @param rpm the rotor velocity
+         */
         public void setRotorVelocity(double rpm) {
             double rps = rpm / 60;
             setVelocity(() -> rps);
         }
-
+        /** Rotor stop. */
         public void rotorStop() {
             stop();
         }
-
+        /** Simulation init. */
         public void simulationInit() {
             if (isAttached()) {
                 sim = new RotorSim(RobotSim.leftView, motor);
@@ -103,6 +114,12 @@ public class DyeRotor implements Subsystem {
         }
 
         class RotorSim extends RollerSim {
+            /**
+             * Creates a new RotorSim instance.
+             *
+             * @param mech the mech
+             * @param motor the motor
+             */
             public RotorSim(Mechanism2d mech, TalonFX motor) {
                 super(
                         new RollerConfig(config.getRotorDiameter())
@@ -129,7 +146,7 @@ public class DyeRotor implements Subsystem {
             @Getter @Setter private double velocityKs = 0;
 
             private final double gearRatio = 3.67;
-
+            /** Creates a new FeederConfig instance. */
             public FeederConfig() {
                 super("Feeder", 10, Rio.CANIVORE);
                 configPIDGains(velocityKp, 0, 0);
@@ -148,12 +165,17 @@ public class DyeRotor implements Subsystem {
 
         @Getter private final FeederConfig config;
 
+        /**
+         * Creates a new Feeder instance.
+         *
+         * @param config the config
+         */
         public Feeder(FeederConfig config) {
             super(config);
             this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
         }
-
+        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logBatteryUsage();
@@ -164,21 +186,31 @@ public class DyeRotor implements Subsystem {
             Telemetry.log("Feeder/RPM", getVelocityRPM(), "RPM");
             Telemetry.log("Feeder/Temp", getTemp(), "deg_C");
         }
-
+        /**
+         * Sets the feeder rpm.
+         *
+         * @param rpm the feeder rpm
+         */
         public void setFeederRpm(double rpm) {
             setVelocityRPM(() -> rpm);
         }
-
+        /** Feeder stop. */
         public void feederStop() {
             stop();
         }
     }
 
     public static class DyeRotorConfig {
-
         @Getter private final RotorConfig rotorConfig;
+
         @Getter private final FeederConfig feederConfig;
 
+        /**
+         * Creates a new DyeRotorConfig instance.
+         *
+         * @param rotorConfig the rotorConfig
+         * @param feederConfig the feederConfig
+         */
         public DyeRotorConfig(RotorConfig rotorConfig, FeederConfig feederConfig) {
             this.rotorConfig = rotorConfig;
             this.feederConfig = feederConfig;
@@ -203,11 +235,15 @@ public class DyeRotor implements Subsystem {
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -218,6 +254,7 @@ public class DyeRotor implements Subsystem {
     }
 
     // TODO: test
+    /** Applies the states. */
     private void applyStates() {
         double wantedRPMSpin = 0;
         double wantedRPMIndex = 0;

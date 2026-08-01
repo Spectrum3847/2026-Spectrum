@@ -98,7 +98,12 @@ public class LinearConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
-
+    /**
+     * Sets the number of motors.
+     *
+     * @param numMotors the number of motors
+     * @return this config, for chaining
+     */
     public LinearConfig setNumMotors(int numMotors) {
         this.numMotors = numMotors;
         return this;

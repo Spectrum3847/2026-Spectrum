@@ -33,7 +33,7 @@ public class Pilot extends Gamepad {
 
     public static class PilotConfig extends Config {
         private double deadzone = 0.10;
-
+        /** Creates a new PilotConfig instance. */
         public PilotConfig() {
             super("Pilot", 0);
 
@@ -66,33 +66,60 @@ public class Pilot extends Gamepad {
 
         Telemetry.print("Pilot Subsystem Initialized: ");
     }
-
+    /**
+     * Sets the max velocity.
+     *
+     * @param maxVelocity the max velocity
+     */
     public void setMaxVelocity(double maxVelocity) {
         leftStickCurve.setScalar(maxVelocity);
     }
-
+    /**
+     * Sets the max rotational velocity.
+     *
+     * @param maxRotationalVelocity the max rotational velocity
+     */
     public void setMaxRotationalVelocity(double maxRotationalVelocity) {
         rightStickCurve.setScalar(maxRotationalVelocity);
     }
 
     // Positive is forward, up on the left stick is positive
+    /**
+     * Returns the signed chassis forward velocity.
+     *
+     * @return the forward velocity, positive when driving forward
+     */
     public double getDriveFwdPositive() {
         double fwdPositive = leftStickCurve.calculate(-1 * getLeftY());
         return fwdPositive;
     }
 
     // Positive is left, left on the left stick is positive
+    /**
+     * Returns the signed chassis left velocity.
+     *
+     * @return the left velocity, positive when driving left
+     */
     public double getDriveLeftPositive() {
         double leftPositive = -1 * leftStickCurve.calculate(getLeftX());
         return leftPositive;
     }
 
     // Positive is counter-clockwise, left Trigger is positive
+    /**
+     * Returns the signed chassis rotational velocity.
+     *
+     * @return the rotational velocity, positive counter-clockwise
+     */
     public double getDriveCCWPositive() {
         double ccwPositive = rightStickCurve.calculate(getRightX());
         return -1 * ccwPositive; // invert the value
     }
-
+    /**
+     * Returns the pilot stick direction angle in radians.
+     *
+     * @return the stick angle in radians, not a raw joystick axis
+     */
     public double getPilotStickAngle() {
         return getLeftStickDirection().getRadians();
     }

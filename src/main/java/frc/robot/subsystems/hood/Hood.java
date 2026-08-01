@@ -43,10 +43,12 @@ public class Hood extends Mechanism {
 
         /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(50);
+
         @Getter private final double hoodY = Units.inchesToMeters(65);
         @Getter private final double simRatio = gearRatio;
         @Getter private final double length = Units.inchesToMeters(7.735);
 
+        /** Creates a new HoodConfig instance. */
         public HoodConfig() {
             super("Hood", 19, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
@@ -83,11 +85,15 @@ public class Hood extends Mechanism {
 
     private WantedState wantedState = WantedState.HOME;
     private SystemState systemState = SystemState.HOME;
-
+    /**
+     * Sets the wanted state.
+     *
+     * @param state the wanted state
+     */
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-
+    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case HOME -> SystemState.HOME;
@@ -95,7 +101,7 @@ public class Hood extends Mechanism {
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
     }
-
+    /** Applies the states. */
     private void applyStates() {
         double wantedDegrees = 0;
         switch (systemState) {
@@ -116,8 +122,14 @@ public class Hood extends Mechanism {
     }
 
     @Getter private final HoodConfig config;
+
     @Getter private HoodSim sim;
 
+    /**
+     * Creates a new Hood instance.
+     *
+     * @param config the config
+     */
     public Hood(HoodConfig config) {
         super(config);
         this.config = config;
@@ -125,7 +137,7 @@ public class Hood extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
-
+    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
@@ -144,6 +156,7 @@ public class Hood extends Mechanism {
     // --------------------------------------------------------------------------------
     // Simulation
     // --------------------------------------------------------------------------------
+    /** Simulation init. */
     public void simulationInit() {
         if (isAttached()) {
             sim = new HoodSim(RobotSim.leftView, motor);
@@ -151,6 +164,12 @@ public class Hood extends Mechanism {
     }
 
     class HoodSim extends ArmSim {
+        /**
+         * Creates a new HoodSim instance.
+         *
+         * @param mech the mech
+         * @param motor the motor
+         */
         public HoodSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new ArmConfig(
