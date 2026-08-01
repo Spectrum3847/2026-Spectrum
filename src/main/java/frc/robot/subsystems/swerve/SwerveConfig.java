@@ -39,14 +39,14 @@ public class SwerveConfig {
     @Getter private final double deadband = 0.05; // 5% input deadband for the joysticks
     @Getter private final double aimDeadband = 0.01; // 1% input deadband for aiming modes
 
-    @Getter @Setter private double driveGearRatio = 7.67;
-    @Getter @Setter private double steerGearRatio = 12.1;
+    @Getter @Setter private double driveGearRatio = 7.03;
+    @Getter @Setter private double steerGearRatio = 26.09;
 
     // Estimated at first, then fudge-factored to make odom match record
     @Getter @Setter private Distance wheelRadius = Inches.of(1.978);
 
     // Theoretical translational free speed (ft/s) at 12v applied output;
-    @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(5.12);
+    @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(4.5);
 
     // Theoretical rotational free speed (ft/s) at 12v applied output;
     @Getter private final AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
@@ -68,29 +68,30 @@ public class SwerveConfig {
     @Getter
     private Slot0Configs steerGains =
             new Slot0Configs()
-                    .withKP(100)
+                    .withKP(500)
                     .withKI(0)
-                    .withKD(0.5)
-                    .withKS(0.1)
-                    .withKV(1.5)
+                    .withKD(20)
+                    .withKS(0.15)
+                    .withKV(1.0)
                     .withKA(0)
                     .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign);
 
     @Getter
     private Slot0Configs driveGains =
-            new Slot0Configs().withKP(0.5).withKI(0.0).withKD(0.0).withKS(0.25918).withKV(0.73);
+            new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4).withKV(0.0);
 
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
-    @Getter private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.Voltage;
+    @Getter
+    private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
 
     // The closed-loop output type to use for the drive motors;
     // This affects the PID/FF gains for the drive motors
-    @Getter private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.Voltage;
+    @Getter
+    private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
 
     // The stator current at which the wheels start to slip;
     // This needs to be tuned to your individual robot
-    // TODO: tune
     @Getter private final Current slipCurrent = Amps.of(80);
 
     // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
@@ -130,7 +131,7 @@ public class SwerveConfig {
 
     // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
     // This may need to be tuned to your individual robot
-    @Getter private final double coupleRatio = 4.5;
+    @Getter private final double coupleRatio = 3.375;
 
     @Getter private final boolean steerMotorReversed = false;
     @Getter private final boolean invertLeftSide = false;
