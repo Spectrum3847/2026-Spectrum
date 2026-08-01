@@ -353,9 +353,9 @@ public class ShotCalculator {
         // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
         double[] poly =
                 solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
-        double exitSpeedMs = poly[0];
+        double exitSpeedMs = poly[0] + 100;
         double rawHoodAngle = 90 - poly[1]; // degrees, before HOOD_ANGLE_OFFSET
-        double yawOffsetDeg = poly[2];
+        double yawOffsetDeg = poly[2] + 10;
         double lookaheadDist = poly[3];
         double tofFinal = poly[4];
 
