@@ -11,6 +11,7 @@ import frc.spectrumLib.telemetry.Telemetry;
 /* A, B, X, Y, Left Bumper, Right Bumper, Left Trigger, Right Trigger = Buttons 1 to 8 in simulation */
 public class Pilot extends Gamepad {
     public final Trigger LB = leftBumper;
+    public final Trigger noLB = LB.negate();
     public final Trigger RB = rightBumper;
     public final Trigger LT = leftTrigger;
     public final Trigger RT = rightTrigger;
@@ -30,6 +31,20 @@ public class Pilot extends Gamepad {
     public final Trigger dPadDown = downDpad;
     public final Trigger dPadLeft = leftDpad;
     public final Trigger dPadRight = rightDpad;
+
+    /* LB + dPad reorients the robot front to a cardinal heading */
+    public final Trigger upReorient = dPadUp.and(LB).and(teleop);
+    public final Trigger leftReorient = dPadLeft.and(LB).and(teleop);
+    public final Trigger downReorient = dPadDown.and(LB).and(teleop);
+    public final Trigger rightReorient = dPadRight.and(LB).and(teleop);
+
+    /* Coast/brake are pit controls, only live while disabled */
+    public final Trigger coastA = AButton.and(disabled);
+    public final Trigger brakeB = BButton.and(disabled);
+
+    /* Pose reset works in every mode, so plain Select has to exclude LB to stay unambiguous */
+    public final Trigger visionPoseReset_LB_Select = LB.and(selectButton);
+    public final Trigger home_select = selectButton.and(noLB);
 
     public static class PilotConfig extends Config {
         private double deadzone = 0.10;
@@ -63,6 +78,8 @@ public class Pilot extends Gamepad {
                 Robot.getConfig().swerve.getAngularSpeedAt12Volts().in(RadiansPerSecond));
         leftStickCurve.setScalar(config.getLeftStickScalar());
         rightStickCurve.setScalar(config.getRightStickScalar());
+
+        setDefaultCommand(rumbleCommand(0, 1).withName("Pilot.noRumble"));
 
         Telemetry.print("Pilot Subsystem Initialized: ");
     }

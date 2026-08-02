@@ -601,6 +601,43 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     reorient(angleDegrees);
                 });
     }
+
+    /**
+     * Reorients the robot front away from the driver station. Angles are blue-origin and get
+     * flipped on red.
+     *
+     * @return the reorient command
+     */
+    public Command reorientForward() {
+        return reorientPilotAngle(0).withName("Swerve.reorientForward");
+    }
+
+    /**
+     * Reorients the robot front to the driver's left.
+     *
+     * @return the reorient command
+     */
+    public Command reorientLeft() {
+        return reorientPilotAngle(90).withName("Swerve.reorientLeft");
+    }
+
+    /**
+     * Reorients the robot front back toward the driver station.
+     *
+     * @return the reorient command
+     */
+    public Command reorientBack() {
+        return reorientPilotAngle(180).withName("Swerve.reorientBack");
+    }
+
+    /**
+     * Reorients the robot front to the driver's right.
+     *
+     * @return the reorient command
+     */
+    public Command reorientRight() {
+        return reorientPilotAngle(270).withName("Swerve.reorientRight");
+    }
     /**
      * Returns {@code true} if the normal heading is closer to the target than the flipped heading.
      *

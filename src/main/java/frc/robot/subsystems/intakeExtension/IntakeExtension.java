@@ -56,6 +56,15 @@ public class IntakeExtension implements Subsystem {
             @Getter private final double slowMmAcceleration = 38.116397;
             @Getter private final double slowMmJerk = 0;
 
+            /*
+             * Agitate oscillates the extension while launching to shake fuel loose. The low end is
+             * where each cycle starts and settles back to; the high end is how far it reaches back
+             * out.
+             */
+            @Getter private final double agitateLowPercent = 40;
+            @Getter private final double agitateHighPercent = 70;
+            @Getter private final double agitateHalfPeriodSecs = 0.25;
+
             @Getter private final double homingVoltage = 6;
             @Getter private final double homingStallRPM = 50.0;
             @Getter private final double homingMinTimeSecs = 0.3;
@@ -341,6 +350,7 @@ public class IntakeExtension implements Subsystem {
         CONDITIONAL_EXTEND,
         FULL_RETRACT,
         SLOW_CLOSE,
+        AGITATE,
         RESYNC,
     }
 
@@ -349,6 +359,7 @@ public class IntakeExtension implements Subsystem {
         FULL_EXTEND,
         FULL_RETRACT,
         SLOW_CLOSE,
+        AGITATE,
         HOMING,
     }
 
@@ -380,6 +391,7 @@ public class IntakeExtension implements Subsystem {
                 yield SystemState.FULL_RETRACT;
             }
             case SLOW_CLOSE -> SystemState.SLOW_CLOSE;
+            case AGITATE -> SystemState.AGITATE;
             case RESYNC -> SystemState.HOMING;
         };
     }
@@ -394,7 +406,10 @@ public class IntakeExtension implements Subsystem {
                 commandBoth(0, false);
                 break;
             case SLOW_CLOSE:
-                commandBoth(25, true);
+                commandBoth(60, true);
+                break;
+            case AGITATE:
+                applyAgitate();
                 break;
             case HOMING:
                 applyHoming();
@@ -429,6 +444,32 @@ public class IntakeExtension implements Subsystem {
             left.goToRotations(rotations);
             right.goToRotations(rotations);
         }
+    }
+
+    // ---- Agitate ----
+
+    private final Timer agitateTimer = new Timer();
+    private boolean agitateOut = false;
+
+    /**
+     * Oscillates both axes between the agitate low and high positions, flipping the target every
+     * half period. Restarts from the low end each time the state is entered so the phase never
+     * depends on how the previous agitate happened to end.
+     */
+    private void applyAgitate() {
+        LeftConfig cfg = config.getLeftConfig();
+
+        if (previousSystemState != SystemState.AGITATE) {
+            agitateTimer.restart();
+            agitateOut = false;
+        }
+
+        if (agitateTimer.hasElapsed(cfg.getAgitateHalfPeriodSecs())) {
+            agitateOut = !agitateOut;
+            agitateTimer.restart();
+        }
+
+        commandBoth(agitateOut ? cfg.getAgitateHighPercent() : cfg.getAgitateLowPercent(), true);
     }
 
     // ---- Resync / stall homing ----
@@ -619,6 +660,29 @@ public class IntakeExtension implements Subsystem {
     }
 
     /**
+     * Creates a command that drops both extension axes into coast so the mechanism can be moved by
+     * hand. Runs while disabled, which is the only time it is useful.
+     *
+     * @return the coast-mode command
+     */
+    public Command coastModeCommand() {
+        return new InstantCommand(() -> setBrakeMode(false))
+                .ignoringDisable(true)
+                .withName("IntakeExtension.coastMode");
+    }
+
+    /**
+     * Creates a command that puts both extension axes back into brake.
+     *
+     * @return the brake-mode command
+     */
+    public Command brakeModeCommand() {
+        return new InstantCommand(() -> setBrakeMode(true))
+                .ignoringDisable(true)
+                .withName("IntakeExtension.brakeMode");
+    }
+
+    /**
      * Sets the brake mode for both intake extension axes.
      *
      * @param isInBrake whether to enable brake mode
@@ -655,6 +719,7 @@ public class IntakeExtension implements Subsystem {
         Telemetry.log("IntakeExtension/SystemState", systemState.toString());
         Telemetry.log("IntakeExtension/LeftHomed", leftHomed);
         Telemetry.log("IntakeExtension/RightHomed", rightHomed);
+        Telemetry.log("IntakeExtension/AgitateOut", agitateOut);
 
         previousSystemState = systemState;
     }

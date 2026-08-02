@@ -106,13 +106,14 @@ public class SuperStructure extends SubsystemBase {
     /**
      * Returns {@code true} if the current super state is one of the launch states.
      *
-     * @return {@code true} when the current super state is a launch-with-squeeze or
-     *     launch-without-squeeze state
+     * @return {@code true} when the current super state is a launch-with-squeeze,
+     *     launch-without-squeeze, or launch-with-brake state
      */
     public boolean currentStateIsLaunching() {
         return currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
                 || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                || currentSuperState == CurrentSuperState.LAUNCH_WITH_BRAKE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
     /**
@@ -277,7 +278,7 @@ public class SuperStructure extends SubsystemBase {
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
 
         if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze)) {
-            intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
+            intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
             intakeSqueezeTimer.stop();
         } else {
             intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
@@ -290,7 +291,7 @@ public class SuperStructure extends SubsystemBase {
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -314,7 +315,7 @@ public class SuperStructure extends SubsystemBase {
         swerve.setWantedState(Swerve.WantedState.X_BRAKE);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -364,7 +365,7 @@ public class SuperStructure extends SubsystemBase {
     private void autonLaunchWithSqueeze() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.SLOW_CLOSE);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);

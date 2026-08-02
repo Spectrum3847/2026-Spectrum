@@ -1,6 +1,7 @@
 package frc.robot;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
 import com.pathplanner.lib.commands.PathPlannerAuto;
@@ -73,7 +74,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
 /**
@@ -277,13 +277,17 @@ public class Robot extends SpectrumRobot {
         pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
-        pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.XButton.onFalse(
+                Commands.either(
+                        Commands.none(),
+                        superStructure.setStateCommand(WantedSuperState.IDLE),
+                        superStructure::currentStateIsLaunching));
 
         pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
-        pilot.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.home_select.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
+        pilot.home_select.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         operator.dPadDown.onTrue(
                 new InstantCommand(() -> ShotCalculator.decreaseHoodAngleOffset()));
@@ -292,6 +296,21 @@ public class Robot extends SpectrumRobot {
                 new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffset()));
         operator.dPadLeft.onTrue(
                 new InstantCommand(() -> ShotCalculator.decreaseTurretAngleOffset()));
+
+        pilot.upReorient.onTrue(swerve.reorientForward());
+        pilot.leftReorient.onTrue(swerve.reorientLeft());
+        pilot.downReorient.onTrue(swerve.reorientBack());
+        pilot.rightReorient.onTrue(swerve.reorientRight());
+
+        pilot.upReorient
+                .or(pilot.leftReorient)
+                .or(pilot.downReorient)
+                .or(pilot.rightReorient)
+                .onTrue(pilot.rumbleCommand(1, 0.5).withName("Pilot.reorientRumble"));
+
+        pilot.coastA.onTrue(intakeExtension.coastModeCommand());
+        pilot.brakeB.onTrue(intakeExtension.brakeModeCommand());
+        pilot.visionPoseReset_LB_Select.onTrue(vision.resetVisionPoseCommand());
 
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
@@ -513,10 +532,12 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
-        // if (Utils.isSimulation()) {
-        //     robotSim.getBallSim().clearBalls();
-        //     robotSim.getBallSim().placeFieldBalls();
-        // }
+
+        if (Utils.isSimulation()) {
+            robotSim.getBallSim().clearBalls();
+            robotSim.getBallSim().placeFieldBalls();
+        }
+
         try {
             auton.init();
         } catch (Throwable t) {
@@ -525,9 +546,11 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
+
     /** Autonomous periodic. */
     @Override
     public void autonomousPeriodic() {}
+
     /** Autonomous exit. */
     @Override
     public void autonomousExit() {
@@ -603,7 +626,6 @@ public class Robot extends SpectrumRobot {
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
         configureSimBindings();
-        SimulatedArena.getInstance().resetFieldForAuto();
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
 
