@@ -1,4 +1,4 @@
-# Agent Instructions for 2026-Spectrum
+# Agent Instructions
 
 ## Project Overview
 
@@ -9,6 +9,10 @@ The robot is a swerve-drive robot with a fuel launcher, turret, indexer, intake,
 ---
 
 ## Build & Development
+
+### Java 17
+
+This repo uses Java 17. If Java 17 is not the default Java version, check if the host has sdkman, and use that. The fallback is to download an archvie of Java 17 from Eclipse Temurin to a temp directory.
 
 ### Build Command
 
@@ -66,53 +70,43 @@ GitHub Actions (`.github/workflows/main.yml`) runs `./gradlew build` on every pu
 ## Repository Structure
 
 ```
-src/main/java/frc/
-├── robot/              # Main robot application code
-│   ├── Robot.java      # Entry point — subsystem init, mode handlers (teleop/auton/test/sim)
-│   ├── RobotContainer.java  # (not present — see Robot.java + Coordinator.java)
-│   ├── RobotStates.java     # High-level trigger/state setup called each mode
-│   ├── Coordinator.java     # Maps robot states → subsystem commands
-│   ├── State.java           # Robot state enum (21 states)
-│   ├── RobotSim.java        # Simulation integration
-│   ├── Main.java            # WPILib entry point
-│   ├── auton/          # Autonomous routines (PathPlanner integration)
-│   ├── configs/        # Robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026)
-│   ├── swerve/         # Swerve drive subsystem + controllers
-│   ├── vision/         # PhotonVision / Limelight vision subsystem
-│   ├── launcher/       # Fuel launcher mechanism
-│   ├── indexerTower/   # Vertical fuel indexer
-│   ├── indexerBed/     # Horizontal fuel indexer
-│   ├── fuelIntake/     # Ground intake
-│   ├── intakeExtension/# Intake arm extension
-│   ├── hood/           # Hood mechanism
-│   ├── leds/           # CANdle LED control
-│   ├── pilot/          # Pilot gamepad bindings
-│   └── operator/       # Operator gamepad bindings
-├── spectrumLib/        # Shared Spectrum team utilities (base classes, wrappers)
-│   ├── SpectrumRobot.java      # Base robot class (extends TimedRobot)
-│   ├── SpectrumSubsystem.java  # Base subsystem interface
-│   ├── Mechanism.java          # Base class for TalonFX-driven mechanisms
-│   ├── Rio.java                # Maps RoboRIO serial numbers to robot identity
-│   ├── Telemetry.java          # Centralized DogLog telemetry
-│   ├── TuneValue.java          # Runtime-tunable parameter
-│   ├── gamepads/Gamepad.java   # Gamepad abstraction
-│   ├── leds/                   # LED management
-│   ├── vision/                 # Limelight helpers
-│   ├── talonFX/                # TalonFX motor factory
-│   ├── sim/                    # Physics sim helpers (Arm, Linear, Roller)
-│   └── util/                   # Conversions, curves, CAN IDs, crash tracking
-└── rebuilt/            # Field/targeting helpers
-    ├── ShotCalculator.java     # Trajectory calculations
-    ├── Field.java              # Field layout (AprilTags, zones)
-    ├── FieldHelpers.java
-    ├── Zones.java              # Game zone definitions
-    ├── ShiftHelpers.java       # Match timing
-    ├── TagProperties.java
-    ├── targetFactories/        # Hub/Feed target factories
-    └── offsets/HomeOffsets.java
-
-src/main/deploy/
-└── pathplanner/        # PathPlanner paths (.path), autos (.auto), settings, navgrid
+src
+├── main: main source code
+│   ├── java: Java source files
+│   │   └── frc: all FRC application code
+│   │       ├── robot: main robot application and subsystems
+│   │       │   ├── auton: autonomous routines and PathPlanner integration
+│   │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
+│   │       │   ├── swerve: swerve drive subsystem and controllers
+│   │       │   ├── vision: PhotonVision and Limelight vision subsystem
+│   │       │   ├── launcher: fuel launcher mechanism
+│   │       │   ├── indexerTower: vertical fuel indexer mechanism
+│   │       │   ├── indexerBed: horizontal fuel indexer mechanism
+│   │       │   ├── fuelIntake: ground intake mechanism
+│   │       │   ├── intakeExtension: intake arm extension mechanism
+│   │       │   ├── hood: launcher hood pivot mechanism
+│   │       │   ├── leds: CANdle LED control and animation
+│   │       │   ├── pilot: pilot gamepad bindings and commands
+│   │       │   └── operator: operator gamepad bindings and commands
+│   │       ├── spectrumLib: reusable Spectrum team utilities (year-to-year code)
+│   │       │   ├── gamepads: gamepad abstraction layer
+│   │       │   ├── leds: LED management utilities
+│   │       │   ├── mechanism: motor and mechanism base classes
+│   │       │   ├── sim: physics simulation helpers
+│   │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
+│   │       │   ├── talonFX: TalonFX motor factory and wrappers
+│   │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
+│   │       │   │   └── exceptions: custom exception classes
+│   │       │   └── vision: vision utilities (Limelight helpers)
+│   │       └── rebuilt: 2026 game-specific field and targeting helpers
+│   │           ├── launchingMaps: distance/angle lookup maps for launcher tuning
+│   │           ├── offsets: home offsets and calibration data
+│   │           └── targetFactories: target factory implementations
+│   └── deploy: files deployed to RoboRIO
+│       └── pathplanner: PathPlanner autonomous paths and settings
+│           ├── paths: individual path trajectory files
+│           └── autos: autonomous routine configurations
+└── vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
 ```
 
 ---
@@ -129,6 +123,8 @@ e.g., `IDLE`, `INTAKE_FUEL`, `LAUNCHER_TRACK`, `LAUNCER_TRACK_WITH_LAUNCH`, `UNJ
   `setupStates()` is called at the start of each robot mode (teleop, auton, test).
 - **`Coordinator.java`**: Maps each `State` to specific subsystem commands. This is the central
   orchestration layer — edit this when adding new robot behaviors.
+
+> Note: on branch `2026-offseason-bot`, we are testing a new State Machine architecture that we will adopt in the future.
 
 ### 2. Subsystem Pattern
 
@@ -198,7 +194,7 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 |---------|---------|
 | `WPILibNewCommands.json` | WPILib command-based framework (vendored copy with Spectrum patches) |
 | `PathplannerLib-2026.1.2.json` | Path following & autonomous |
-| `Phoenix6-26.1.3.json` | CTR Talon FX motor controllers & CTRE Swerve |
+| `Phoenix6-26.3.0.json` | CTR Talon FX motor controllers & CTRE Swerve |
 | `maple-sim.json` | Physics-based swerve simulation |
 | `DogLog.json` | Telemetry and logging |
 | `photonlib.json` | PhotonVision camera integration |
@@ -239,25 +235,7 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 
 ---
 
-## Subagents
-
-Subagents are small, focused prompt templates used by subagents to perform repeatable repository tasks (searches, scaffolding, small patches, audits). We keep templates as separate Markdown files so they are discoverable and easily updated.
-
-- Location: `.github/agents/`.
-- Usage: When a user request maps to an existing template, prefer invoking that subagent. If no agent exists for a recurring task, propose creating one and ask before applying any changes.
-- Adding a new subagent template:
-  1. Add the new Markdown template to `.github/agents/` with YAML frontmatter including `name` and `description`.
-  2. Add a one-line entry to `.github/agents/README.md` describing the template and example usage.
-  3. Update this file (`.github/copilot-instructions.md`) with a short bullet referencing the new template (path + purpose).
-  4. Use `apply_patch` for edits and include a one-line rationale for each patch hunk. Do not edit generated files like `src/main/java/frc/robot/BuildConstants.java`.
-  5. Keep `.github/agents/README.md` in sync with new templates when they are added.
-- Example agent template: `.github/agents/add_robot_state.md` — Add a new high-level robot state and wire it into `State.java`, `RobotStates.java`, and `Coordinator.java`.
-- Permissions & behavior:
-  - Copilot is allowed to create and edit subagent template files and to update `copilot-instructions.md` when new agents are added, but must never add secrets or sensitive data.
-  - For code changes produced by subagents, produce `apply_patch` patches and do not automatically commit without human review.
-  - Keep subagent templates minimal, with clear inputs/outputs and explicit instructions for `apply_patch` output when code changes are expected.
-
-## Important Notes for Agents
+## Important Notes
 
 1. **Always run `./gradlew build` after making Java changes** — Spotless will auto-format, and
    SpotBugs + ErrorProne will catch issues. If the build fails due to formatting, re-run it.
