@@ -68,7 +68,7 @@ public class ShotCalculator {
     // Runtime-Adjustable Offsets
     // =========================================================================
 
-    public static final double STARTING_HOOD_ANGLE_OFFSET = -1; // degrees
+    public static final double STARTING_HOOD_ANGLE_OFFSET = -2; // degrees
     public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
     public static final double STARTING_DRIVE_ANGLE_OFFSET = 0; // degrees

@@ -37,6 +37,7 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITH_SQUEEZE,
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
+        LAUNCH_WITH_BRAKE,
         AUTON_TRACK_TARGET,
         AUTON_INTAKE_FUEL,
         UNJAM,
@@ -51,6 +52,7 @@ public class SuperStructure extends SubsystemBase {
         LAUNCH_WITH_SQUEEZE,
         LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
         LAUNCH_WITHOUT_SQUEEZE,
+        LAUNCH_WITH_BRAKE,
         AUTON_IDLE,
         AUTON_TRACK_TARGET,
         AUTON_INTAKE_FUEL,
@@ -117,6 +119,7 @@ public class SuperStructure extends SubsystemBase {
             case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> CurrentSuperState
                     .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
             case LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE;
+            case LAUNCH_WITH_BRAKE -> CurrentSuperState.LAUNCH_WITH_BRAKE;
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
             case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
@@ -144,6 +147,9 @@ public class SuperStructure extends SubsystemBase {
                 break;
             case LAUNCH_WITHOUT_SQUEEZE:
                 launchWithoutSqueeze();
+                break;
+            case LAUNCH_WITH_BRAKE:
+                launchWithBrake();
                 break;
             case AUTON_IDLE:
                 applyAutonIdle();
@@ -235,7 +241,16 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
+        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+    }
+
+    private void launchWithBrake() {
+        swerve.setWantedState(Swerve.WantedState.X_BRAKE);
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
+        indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
