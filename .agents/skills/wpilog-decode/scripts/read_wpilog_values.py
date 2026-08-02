@@ -5,8 +5,13 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from wpilog_common import wpilib_root, wpilib_version
 
 
 JAVA_SOURCE = r'''
@@ -249,22 +254,6 @@ public class ReadWpilogValues {
     }
 }
 '''
-
-
-def wpilib_root() -> Path:
-    roots = sorted((Path.home() / "wpilib").glob("*"), reverse=True)
-    for root in roots:
-        if (root / "jdk").is_dir() and (root / "maven").is_dir():
-            return root
-    raise SystemExit("Could not find WPILib install under ~/wpilib")
-
-
-def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
-    base = root / "maven" / group_path / artifact
-    versions = sorted([p.name for p in base.iterdir() if p.is_dir()])
-    if not versions:
-        raise SystemExit(f"No versions found for {artifact} under {base}")
-    return versions[-1]
 
 
 def resolve_log(path: Path) -> Path:

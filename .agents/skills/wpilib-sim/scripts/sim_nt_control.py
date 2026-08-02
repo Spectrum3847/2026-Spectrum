@@ -4,17 +4,21 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import tempfile
 from pathlib import Path
 
-from run_auto_sim import classpath, extract_natives, wpilib_root
+from run_auto_sim import compile_client, wpilib_root
 
 
 JAVA_SOURCE = r'''
 import edu.wpi.first.networktables.NetworkTable;
+import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class SimNtControlClient {
     public static void main(String[] args) throws Exception {
@@ -42,6 +46,13 @@ public class SimNtControlClient {
 
         NetworkTable sim = inst.getTable("SimAgent");
         NetworkTable ds = sim.getSubTable("DriverStation");
+        List<NetworkTableEntry> entries = new ArrayList<>();
+        entries.add(ds.getEntry("AllianceStation"));
+        entries.add(ds.getEntry("DsAttached"));
+        entries.add(ds.getEntry("FmsAttached"));
+        entries.add(ds.getEntry("Enabled"));
+        entries.add(ds.getEntry("Autonomous"));
+        entries.add(ds.getEntry("Test"));
         ds.getEntry("AllianceStation").setString(alliance);
         ds.getEntry("DsAttached").setBoolean(true);
         ds.getEntry("FmsAttached").setBoolean(false);
@@ -57,14 +68,26 @@ public class SimNtControlClient {
             joystick.getEntry("IsXbox").setBoolean(true);
             joystick.getEntry("Type").setInteger(1);
             joystick.getEntry("Name").setString("SimAgent Xbox Controller");
+            entries.add(joystick.getEntry("Axes"));
+            entries.add(joystick.getEntry("Buttons"));
+            entries.add(joystick.getEntry("POVs"));
+            entries.add(joystick.getEntry("IsXbox"));
+            entries.add(joystick.getEntry("Type"));
+            entries.add(joystick.getEntry("Name"));
         }
 
         if (exit) {
-            sim.getSubTable("Control").getEntry("Exit").setBoolean(true);
+            NetworkTableEntry exitEntry = sim.getSubTable("Control").getEntry("Exit");
+            exitEntry.setBoolean(true);
+            entries.add(exitEntry);
         }
 
         inst.flush();
         Thread.sleep(250);
+        // Retained topics survive the client disconnect; the sim server keeps reading them.
+        for (NetworkTableEntry entry : entries) {
+            entry.getTopic().setRetained(true);
+        }
         inst.stopClient();
         System.out.println("wroteSimAgentState=true");
     }
@@ -107,26 +130,13 @@ def main() -> None:
 
     root = wpilib_root()
     with tempfile.TemporaryDirectory(prefix="wpilib-sim-control-") as tmpdir:
-        tmp = Path(tmpdir)
-        source = tmp / "SimNtControlClient.java"
-        classes = tmp / "classes"
-        native_root = tmp / "native"
-        classes.mkdir()
-        native_root.mkdir()
-        source.write_text(JAVA_SOURCE)
-        native_dir = extract_natives(root, native_root)
-        cp = classpath(root)
-        subprocess.run(
-            [str(root / "jdk/bin/javac"), "-cp", cp, "-d", str(classes), str(source)],
-            cwd=Path(args.repo).resolve(),
-            check=True,
-        )
+        classes, cp, native_dir = compile_client(root, Path(tmpdir), "SimNtControlClient", JAVA_SOURCE)
         subprocess.run(
             [
                 str(root / "jdk/bin/java"),
                 f"-Djava.library.path={native_dir}",
                 "-cp",
-                f"{classes}:{cp}",
+                os.pathsep.join([str(classes), cp]),
                 "SimNtControlClient",
                 args.host,
                 args.alliance,
