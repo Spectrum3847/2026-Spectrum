@@ -41,7 +41,7 @@ For the usual 3D field setup:
 3. Drag `SmartDashboard/Field2d/Robot` into the robot pose slot.
 4. If an auto is selected, drag `SmartDashboard/Field2d/Auto Routine` in as a trajectory/poses object so the planned path and simulated robot motion can be compared.
 
-You can also visualize flying fuel projectiles: `RobotSim.createFuelProjectile()` publishes them to NetworkTables under `Sim/Fuel/Positions`, and you can drag those entries into the 3D field to watch shots in flight.
+You can also visualize flying fuel projectiles: `RobotSim.mapleSimCreateFuelProjectile()` attaches a trajectory-display callback that logs the projectile path to `SimShot/FuelProjectileSuccessfulShot` / `SimShot/FuelProjectileUnsuccessfulShot` (DogLog), and you can drag those entries into the 3D field to watch shots in flight.
 
 That view is especially useful for autos. Select the auto in Elastic or Glass, enable the simulated Driver Station, and watch whether the robot starts in the right place, follows the expected route, and ends with the correct heading. If the AdvantageScope robot jumps, drives mirrored from what you expected, or misses the drawn path, check pose reset first: autos seed pose through the swerve reset path, and in sim that also calls the drivetrain sim's world pose reset.
 

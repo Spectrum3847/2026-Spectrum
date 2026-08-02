@@ -75,7 +75,7 @@ Everything else — pipeline contents, camera intrinsics calibration, AprilTag m
 
 ## Game-Piece Detection (Future Work)
 
-We don't currently run a fuel-detection pipeline. PhotonVision on an Orange Pi was a 2025 experiment for that; the option to revive it for 2026 is open. The plumbing — a `frc.spectrumLib.vision.PhotonVision` wrapper, similar to `Limelight` — is in `spectrumLib` but not wired into a `Vision` config.
+We don't currently run a fuel-detection pipeline. PhotonVision on an Orange Pi was a 2025 experiment for that; the option to revive it for 2026 is open. PhotonVision currently shows up only as a sim dependency (`VisionSystemSim` in `VisionSystem.java`) — there's no real-camera PhotonVision wrapper in `spectrumLib`.
 
 ## QuestNav
 

@@ -4,7 +4,7 @@
 
 Phoenix 6 is CTRE's API for the Kraken X60 / Falcon 500 (TalonFX), CANcoder, Pigeon 2, and CANdle. It's a clean rewrite of the older Phoenix v5 — same vendor, totally different classes. We're all-in on Phoenix 6; nothing in this repo still uses v5.
 
-Pinned to 26.1.3 in [`vendordeps/Phoenix6-26.1.3.json`](../../vendordeps/Phoenix6-26.1.3.json).
+Pinned to 26.3.0 in [`vendordeps/Phoenix6-26.3.0.json`](../../vendordeps/Phoenix6-26.3.0.json).
 
 ## Where It Shows Up
 
@@ -48,7 +48,7 @@ For routing: `Rio.CANIVORE` is the magic string `"*"` (use the first CANivore bu
 
 ## Status Signals
 
-Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus — the bus is updated in the background, and `.getValue()` just returns the latest cached sample. The catch is that you need to call `refresh` to update the cache, and you should do it *once* per loop: `Mechanism.refreshSignals()` batches the calls via `BaseStatusSignal.refreshAll(...)` inside `periodic()`. Calling it again from the same loop is a small but real waste.
+Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus — the bus is updated in the background, and `.getValue()` just returns the latest cached sample. `Mechanism` reads its signals through `CachedDouble` wrappers (`getRotations()`, `getVelocityRPM()`, etc.), which compute the value at most once per scheduler loop. The constructor sets the signal update frequency once via `BaseStatusSignal.setUpdateFrequencyForAll(100, ...)` and then calls `optimizeBusUtilization()`, so reads within the same loop are free.
 
 For one-off reads outside the periodic loop (say, during init), `signal.refresh().getValue()` is fine.
 

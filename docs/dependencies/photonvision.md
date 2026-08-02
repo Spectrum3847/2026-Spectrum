@@ -50,7 +50,7 @@ public void simulationPeriodic() {
 }
 ```
 
-`getSimPose` is `swerve::getRobotPose`, passed in from `Robot.java`. If you ever construct `VisionSystem` somewhere else, pass an equivalent pose supplier or the sim goes silent.
+`getSimPose` is a `Pose2dSupplier` passed to the `VisionSystem` constructor — note that `VisionSystem` is currently declared in `Robot.java` but never constructed, so the sim camera isn't wired up yet. When you construct it, pass an equivalent pose supplier or the sim goes silent.
 
 The commented-out blocks in `VisionSystem.java` show what real-camera wiring looks like: `PhotonCameraSim`, `enableDrawWireframe`, `visionSim.addCamera(...)`. Uncomment those when you commit to a camera name. `enableDrawWireframe(true)` is great for debugging but expensive to render — leave it off for normal sim runs.
 

@@ -23,7 +23,7 @@ The exclude list lives in [`excludeFilter-spotbugs.xml`](../../excludeFilter-spo
 
 * The entire `PERFORMANCE` category is suppressed — micro-perf is rarely the right thing to chase on robot code.
 * `EI_EXPOSE_REP` / `EI_EXPOSE_REP2` (returning mutable internal arrays) are suppressed — WPILib APIs leak mutable buffers everywhere, and the warnings drown out signal.
-* `LimelightHelpers` and `RobotLogger` are excluded wholesale because they're third-party / glue code we don't own.
+* `LimelightHelpers` is excluded wholesale because it's third-party glue code we don't own.
 
 If you legitimately want to silence a finding, prefer fixing it. If a fix is impractical, add a narrowly-scoped `<Match>` block to the exclude file with a comment explaining why, rather than disabling the rule everywhere.
 
