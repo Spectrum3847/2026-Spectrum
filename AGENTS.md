@@ -12,7 +12,7 @@ The robot is a swerve-drive robot with a fuel launcher, turret, indexer, intake,
 
 ### Java 17
 
-This repo uses Java 17. If Java 17 is not the default Java version, check if the host has sdkman, and use that. The fallback is to download an archvie of Java 17 from Eclipse Temurin to a temp directory.
+This repo uses Java 17. If Java 17 is not the default Java version, check if the host has sdkman, and use that. The fallback is to download an archive of Java 17 from Eclipse Temurin to a temp directory.
 
 ### Build Command
 
