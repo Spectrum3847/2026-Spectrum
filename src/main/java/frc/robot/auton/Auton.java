@@ -22,6 +22,7 @@ import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.spectrumLib.framework.SpectrumState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
+import lombok.Getter;
 import org.json.simple.parser.ParseException;
 
 public class Auton {
@@ -35,7 +36,7 @@ public class Auton {
     public static final EventTrigger autonUnjam = new EventTrigger("unjam");
     public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 
-    private final SendableChooser<Command> pathChooser = new SendableChooser<>();
+    @Getter private final SendableChooser<Command> pathChooser = new SendableChooser<>();
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 

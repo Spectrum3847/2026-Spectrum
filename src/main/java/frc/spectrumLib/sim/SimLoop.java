@@ -51,4 +51,16 @@ public final class SimLoop {
             step.accept(dt);
         }
     }
+
+    /**
+     * Clears registered step callbacks and stops the notifier thread. Intended for unit/simulation
+     * tests.
+     */
+    public static synchronized void reset() {
+        steps.clear();
+        if (notifier != null) {
+            notifier.close();
+            notifier = null;
+        }
+    }
 }

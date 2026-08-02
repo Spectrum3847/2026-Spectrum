@@ -56,7 +56,8 @@ import lombok.Setter;
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
  * in command-based projects easily.
  */
-public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
+public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
+        implements Subsystem, AutoCloseable {
 
     // ── State machine ──────────────────────────────────────────────────────────────────
     public enum WantedState {
@@ -771,5 +772,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         /* Run simulation at a faster rate so PID gains behave more reasonably */
         simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
         simNotifier.startPeriodic(config.getSimLoopPeriod());
+    }
+
+    /** Stops the simulation thread and cleans up resources. */
+    @Override
+    public void close() {
+        if (simNotifier != null) {
+            simNotifier.close();
+            simNotifier = null;
+        }
     }
 }

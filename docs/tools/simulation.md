@@ -47,6 +47,25 @@ That view is especially useful for autos. Select the auto in Elastic or Glass, e
 
 AdvantageScope can also replay the same data from a `.wpilog` after the run. That makes the workflow: test the auto in sim, use 3D Field live while it runs, then open the saved log if you need to scrub frame-by-frame through the exact moment the path or pose estimate went sideways.
 
+## Automated Simulation Testing in CI/CD
+
+In addition to interactive debugging in Glass and AdvantageScope, the repository runs automated JUnit 5 simulation integration tests as part of `./gradlew build` and GitHub Actions CI.
+
+The simulation test suite lives under [`src/test/java/frc/robot/sim/`](../../src/test/java/frc/robot/sim/) and is built around [`SimTestBase`](../../src/test/java/frc/robot/sim/SimTestBase.java), which handles:
+
+* Initializing WPILib's Hardware Abstraction Layer (HAL) in simulation mode (`HAL.initialize(50, 0)`).
+* Managing `DriverStationSim` state transitions (teleop and autonomous modes).
+* Stepping simulation timing deterministically via `SimHooks.stepTiming(...)` and executing the `CommandScheduler`.
+* Resetting scheduler, notifier, and DriverStation state between test runs so tests remain isolated.
+
+In CI (`CI=true`) or when `-Pheadless=true` is passed to Gradle, `wpi.sim.addGui().defaultEnabled` and `wpi.sim.addDriverstation().defaultEnabled` are automatically set to `false`, allowing simulation tests to run in headless Ubuntu Linux containers without requiring X11 display servers.
+
+You can run the full verification suite locally using:
+
+```bash
+scripts/verify.sh
+```
+
 ## What Simulation Catches (and Doesn't)
 
 It catches:
