@@ -4,6 +4,17 @@ import edu.wpi.first.hal.HAL;
 import edu.wpi.first.wpilibj.simulation.DriverStationSim;
 import edu.wpi.first.wpilibj.simulation.SimHooks;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.Robot;
+import frc.robot.configs.OM2026;
+import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.dyeRotor.DyeRotor;
+import frc.robot.subsystems.fuelIntake.FuelIntake;
+import frc.robot.subsystems.hood.Hood;
+import frc.robot.subsystems.intakeExtension.IntakeExtension;
+import frc.robot.subsystems.launcher.Launcher;
+import frc.robot.subsystems.launcher.LauncherTower;
+import frc.robot.subsystems.swerve.Swerve;
+import frc.robot.subsystems.turret.Turret;
 import frc.spectrumLib.sim.SimLoop;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -11,6 +22,88 @@ import org.junit.jupiter.api.BeforeEach;
 
 /** Base test fixture for WPILib simulation integration tests. */
 public abstract class SimTestBase {
+
+    /**
+     * Helper class to hold the full robot stack components for simulation tests.
+     * Resources are owned by the caller and must be closed appropriately.
+     */
+    public static class RobotStack {
+        public final Robot.Config config;
+        public final Swerve swerve;
+        public final FuelIntake fuelIntake;
+        public final IntakeExtension intakeExtension;
+        public final DyeRotor dyeRotor;
+        public final Launcher launcher;
+        public final LauncherTower launcherTower;
+        public final Turret turret;
+        public final Hood hood;
+        public final SuperStructure superStructure;
+
+        public RobotStack(
+                Robot.Config config,
+                Swerve swerve,
+                FuelIntake fuelIntake,
+                IntakeExtension intakeExtension,
+                DyeRotor dyeRotor,
+                Launcher launcher,
+                LauncherTower launcherTower,
+                Turret turret,
+                Hood hood,
+                SuperStructure superStructure) {
+            this.config = config;
+            this.swerve = swerve;
+            this.fuelIntake = fuelIntake;
+            this.intakeExtension = intakeExtension;
+            this.dyeRotor = dyeRotor;
+            this.launcher = launcher;
+            this.launcherTower = launcherTower;
+            this.turret = turret;
+            this.hood = hood;
+            this.superStructure = superStructure;
+        }
+    }
+
+    /**
+     * Creates a full robot stack with OM2026 configuration for simulation testing.
+     * The caller is responsible for closing the Swerve resource (use try-with-resources).
+     *
+     * @return a RobotStack containing all configured subsystems and SuperStructure
+     */
+    protected static RobotStack createRobotStack() {
+        Robot.Config config = new OM2026();
+
+        Swerve swerve = new Swerve(config.swerve);
+        FuelIntake fuelIntake = new FuelIntake(config.fuelIntake);
+        IntakeExtension intakeExtension = new IntakeExtension(config.intakeExtension);
+        DyeRotor dyeRotor = new DyeRotor(config.dyeRotor);
+        Launcher launcher = new Launcher(config.launcher);
+        LauncherTower launcherTower = new LauncherTower(config.launcherTower);
+        Turret turret = new Turret(config.turret);
+        Hood hood = new Hood(config.hood);
+
+        SuperStructure superStructure =
+                new SuperStructure(
+                        swerve,
+                        fuelIntake,
+                        intakeExtension,
+                        dyeRotor,
+                        launcher,
+                        launcherTower,
+                        turret,
+                        hood);
+
+        return new RobotStack(
+                config,
+                swerve,
+                fuelIntake,
+                intakeExtension,
+                dyeRotor,
+                launcher,
+                launcherTower,
+                turret,
+                hood,
+                superStructure);
+    }
 
     /** Initializes WPILib HAL for simulation. */
     @BeforeAll

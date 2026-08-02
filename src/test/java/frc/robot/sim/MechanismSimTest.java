@@ -49,8 +49,14 @@ public class MechanismSimTest extends SimTestBase {
     void testIntakeExtensionSimPeriodic() {
         assertDoesNotThrow(
                 () -> {
+                    IntakeExtension.Left.LeftConfig leftConfig =
+                            new IntakeExtension.Left.LeftConfig();
+                    IntakeExtension.Right.RightConfig rightConfig =
+                            new IntakeExtension.Right.RightConfig(leftConfig);
                     IntakeExtension intakeExtension =
-                            new IntakeExtension(new IntakeExtension.IntakeExtensionConfig());
+                            new IntakeExtension(
+                                    new IntakeExtension.IntakeExtensionConfig(
+                                            leftConfig, rightConfig));
                     CommandScheduler.getInstance().registerSubsystem(intakeExtension);
 
                     enableTeleopSim();
