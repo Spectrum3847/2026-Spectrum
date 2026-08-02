@@ -114,7 +114,8 @@ public class SuperStructure extends SubsystemBase {
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
                 || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_BRAKE
-                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
+                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE
+                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE;
     }
     /**
      * Returns {@code true} if the current super state is an intake state or a launch-without-
@@ -358,6 +359,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
@@ -367,6 +369,7 @@ public class SuperStructure extends SubsystemBase {
         dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
+        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }

@@ -204,7 +204,7 @@ public class Vision implements Subsystem {
         turretLogger = new VisionLogger("TurretLL", turretLL);
         allLoggers = new VisionLogger[] {turretLogger};
 
-        setImuModeIfChanged(turretLL, 2);
+        setImuModeIfChanged(turretLL, 0);
 
         tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
@@ -308,9 +308,6 @@ public class Vision implements Subsystem {
      */
     private void setLimeLightOrientation() {
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
-        // for (Limelight limelight : swerveLimelights) {
-        //     limelight.setRobotOrientation(yaw);
-        // }
         turretLL.setRobotOrientation(yaw + turretRotationSupplier.getAsDouble());
     }
 
@@ -331,9 +328,7 @@ public class Vision implements Subsystem {
      * MegaTag1 estimate from the turret Limelight.
      */
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean()
-                || Auton.autonPoseUpdate.getAsBoolean()
-                || Auton.autonLaunching.getAsBoolean()) {
+        if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(getMT1TurretEstimate(turretLL, false));
             }

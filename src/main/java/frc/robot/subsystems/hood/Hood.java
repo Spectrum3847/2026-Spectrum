@@ -67,7 +67,7 @@ public class Hood extends Mechanism {
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
     }
 

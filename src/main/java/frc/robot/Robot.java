@@ -22,15 +22,11 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.auton.Auton;
-import frc.robot.configs.FM2026;
 import frc.robot.configs.OM2026;
-import frc.robot.configs.PHOTON2026;
-import frc.robot.configs.PM2026;
 import frc.robot.operator.Operator;
 import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
@@ -137,19 +133,7 @@ public class Robot extends SpectrumRobot {
 
             // Set up the config
             switch (Rio.id) {
-                case PHOTON2026:
-                    config = new PHOTON2026();
-                    break;
-                case PM_2026:
-                    config = new PM2026();
-                    break;
-                case FM_2026:
-                    config = new FM2026();
-                    break;
-                case OM_2026:
-                    config = new OM2026();
-                    break;
-                default: // SIM and UNKNOWN
+                default:
                     config = new OM2026();
                     break;
             }
@@ -289,13 +273,10 @@ public class Robot extends SpectrumRobot {
         pilot.home_select.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.home_select.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        operator.dPadDown.onTrue(
-                new InstantCommand(() -> ShotCalculator.decreaseHoodAngleOffset()));
-        operator.dPadUp.onTrue(new InstantCommand(() -> ShotCalculator.increaseHoodAngleOffset()));
-        operator.dPadRight.onTrue(
-                new InstantCommand(() -> ShotCalculator.increaseTurretAngleOffset()));
-        operator.dPadLeft.onTrue(
-                new InstantCommand(() -> ShotCalculator.decreaseTurretAngleOffset()));
+        operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
+        operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
+        operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
+        operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
 
         pilot.upReorient.onTrue(swerve.reorientForward());
         pilot.leftReorient.onTrue(swerve.reorientLeft());
@@ -320,6 +301,8 @@ public class Robot extends SpectrumRobot {
                 superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
         Auton.autonShotPrep.onTrue(
                 superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
+        Auton.autonShoot.onTrue(
+                superStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         superStructure.setStateCommand(WantedSuperState.UNJAM),

@@ -9,8 +9,8 @@ public class OM2026 extends Config {
     public OM2026() {
         super();
 
-        // TODO: change when robot is built and can be updated
-        swerve.configEncoderOffsets(0, 0, 0, 0);
+        swerve.configEncoderOffsets(
+                -0.47216796875 + 0.5, -0.126220703125, -0.122802734375 + 0.5, -0.2744140625);
 
         pilot.setAttached(true);
         operator.setAttached(true);

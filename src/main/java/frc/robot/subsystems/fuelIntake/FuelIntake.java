@@ -38,7 +38,7 @@ public class FuelIntake implements Subsystem {
             @Getter private final double statorCurrentLimit = 80;
             @Getter private final double lowerSupplyCurrentLimit = 40;
             @Getter private final double lowerSupplyCurrentTime = 1;
-            // TODO: tune
+
             @Getter private final double velocityKp = 0.3;
             @Getter private final double velocityKv = 0.23728813559;
             @Getter private final double velocityKs = 0;
@@ -152,12 +152,11 @@ public class FuelIntake implements Subsystem {
 
         public static class IntakeKickerConfig extends Config {
 
-            // TODO: set real limits once the kicker bar is built
             @Getter private final double supplyCurrentLimit = 40;
             @Getter private final double statorCurrentLimit = 80;
             @Getter private final double lowerSupplyCurrentLimit = 40;
             @Getter private final double lowerSupplyCurrentTime = 1;
-            // TODO: tune
+
             @Getter private final double velocityKp = 0.3;
             @Getter private final double velocityKv = 0.23728813559;
             @Getter private final double velocityKs = 0;
@@ -178,7 +177,6 @@ public class FuelIntake implements Subsystem {
                 configForwardTorqueCurrentLimit(statorCurrentLimit);
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
                 configNeutralBrakeMode(false);
-                // Counter-rotates against the rollers, so it takes the opposite sense
                 configClockwise_Positive();
             }
         }
@@ -274,7 +272,6 @@ public class FuelIntake implements Subsystem {
         };
     }
 
-    // TODO: get actual kicker voltages when the robot is built
     /** Applies the states. */
     private void applyStates() {
         double wantedRollerVoltage = 0;

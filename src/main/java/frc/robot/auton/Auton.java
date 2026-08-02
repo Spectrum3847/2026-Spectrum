@@ -18,15 +18,11 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.subsystems.SuperStructure;
-import frc.robot.subsystems.SuperStructure.WantedSuperState;
-import frc.spectrumLib.framework.SpectrumState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
 public class Auton {
-
-    public static final SpectrumState autonLaunching = new SpectrumState("AutonLaunching");
 
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
@@ -39,9 +35,6 @@ public class Auton {
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 
-    private final double SECOND_MAN_DELAY = 1.0;
-    private final double OPTIONAL_DELAY = 1.0;
-
     /**
      * This method configures the available autonomous routines that can be selected from the
      * SmartDashboard.
@@ -50,34 +43,14 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", doNothing());
 
-        pathChooser.addOption("TBTB Left", TBTB(false));
-        pathChooser.addOption("TBTB Right", TBTB(true));
-
-        pathChooser.addOption("TBTT Left", TBTT(false));
-        pathChooser.addOption("TBTT Right", TBTT(true));
-
-        pathChooser.addOption("TTTT Left", TTTT(false));
-        pathChooser.addOption("TTTT Right", TTTT(true));
-
-        pathChooser.addOption("BBBB Left", BBBB(false));
-        pathChooser.addOption("BBBB Right", BBBB(true));
-
-        pathChooser.addOption("Optional - Left TBT", optional_TBT(false));
-        pathChooser.addOption("Optional - Right TBT", optional_TBT(true));
-
-        pathChooser.addOption("Optional - Left BBB", optional_BBB(false));
-        pathChooser.addOption("Optional - Right BBB", optional_BBB(true));
-
-        pathChooser.addOption("2nd Man - TBTB Left", secondMan_TBTB(false));
-        pathChooser.addOption("2nd Man - TBTB Right", secondMan_TBTB(true));
-
-        pathChooser.addOption("2nd Man - BBD Left", secondMan_BBD(false));
-        pathChooser.addOption("2nd Man - BBD Right", secondMan_BBD(true));
+        pathChooser.addOption("OSTBTB Left", OSTBTB(false));
+        pathChooser.addOption("OSTBTB Right", OSTBTB(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
     private SuperStructure robotSuperStructure;
+
     /**
      * Creates a new Auton instance.
      *
@@ -88,6 +61,7 @@ public class Auton {
         setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized");
     }
+
     /** Init. */
     public void init() {
         Command autonCommand = getAutonomousCommand();
@@ -99,124 +73,23 @@ public class Auton {
             Telemetry.print("No Auton Command Found");
         }
     }
+
     /** Exit. */
     public void exit() {
         printAutoDuration();
     }
+
     /** Do nothing. */
     public Command doNothing() {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
     }
-    /** Launch. */
-    public Command launch() {
-        return Commands.sequence(
-                        autonLaunching.setTrue(),
-                        robotSuperStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
-                        Commands.waitSeconds(2.5),
-                        robotSuperStructure.setStateCommand(WantedSuperState.IDLE),
-                        autonLaunching.setFalse())
-                .withName("Auton.launch");
-    }
-    /** Second man tbtb. */
-    public Command secondMan_TBTB(boolean mirrored) {
-        return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
-                        SpectrumAuton("2nd-TBTB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("2nd-TBTB 2", mirrored))
+
+    public Command OSTBTB(boolean mirrored) {
+        return Commands.sequence(SpectrumAuton("OSTBTB Full", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("2nd-TBTB Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Second man bbd. */
-    public Command secondMan_BBD(boolean mirrored) {
-        return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
-                        SpectrumAuton("2nd-BBD 1", mirrored),
-                        launch(),
-                        SpectrumAuton("2nd-BBD 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("2nd-BBD Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Optional tbt. */
-    public Command optional_TBT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("Option TBT 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
-                        SpectrumAuton("Option TBT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("Option TBT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("Option TBT Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Optional bbb. */
-    public Command optional_BBB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("Option BBB 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
-                        SpectrumAuton("Option BBB 2", mirrored),
-                        launch(),
-                        SpectrumAuton("Option BBB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("Option BBB Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Builds the TBTB auto sequence command. */
-    public Command TBTB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TBTB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTB 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TBTB Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Builds the TBTT auto sequence command. */
-    public Command TBTT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TBTT 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TBTT Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Builds the TTTT auto sequence command. */
-    public Command TTTT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TTTT 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TTTT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TTTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
-    }
-    /** Builds the BBBB auto sequence command. */
-    public Command BBBB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("BBBB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("BBBB 2", mirrored),
-                        launch())
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
+                .withName("OSTBTB Full - " + (mirrored ? "Right" : "Left"));
     }
 
     /**

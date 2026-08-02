@@ -104,7 +104,7 @@ public class IntakeExtension implements Subsystem {
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
                 configForwardSoftLimit(maxRotations, true);
                 configReverseSoftLimit(minRotations, true);
-                configNeutralBrakeMode(false);
+                configNeutralBrakeMode(true);
                 configClockwise_Positive();
             }
         }
@@ -253,7 +253,7 @@ public class IntakeExtension implements Subsystem {
                 configReverseTorqueCurrentLimit(left.getStatorCurrentLimit());
                 configForwardSoftLimit(left.getMaxRotations(), true);
                 configReverseSoftLimit(left.getMinRotations(), true);
-                configNeutralBrakeMode(false);
+                configNeutralBrakeMode(true);
                 configCounterClockwise_Positive();
 
                 this.homingStallRPM = left.getHomingStallRPM();

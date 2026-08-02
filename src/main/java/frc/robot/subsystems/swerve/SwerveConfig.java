@@ -54,7 +54,6 @@ public class SwerveConfig {
     // -----------------------------------------------------------------------
     // PID Controller Constants
     // -----------------------------------------------------------------------
-    // TODO: tune
     @Getter private final double kPRotationController = 5.0;
     @Getter private final double kIRotationController = 0.0;
     @Getter private final double kDRotationController = 0.0;
@@ -103,7 +102,7 @@ public class SwerveConfig {
                             new CurrentLimitsConfigs()
                                     .withStatorCurrentLimit(slipCurrent)
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(70.0))
+                                    .withSupplyCurrentLimit(Amps.of(40.0))
                                     .withSupplyCurrentLimitEnable(true)
                                     .withSupplyCurrentLowerLimit(Amps.of(40.0))
                                     .withSupplyCurrentLowerTime(Seconds.of(1.0)));
@@ -116,9 +115,9 @@ public class SwerveConfig {
             new TalonFXConfiguration()
                     .withCurrentLimits(
                             new CurrentLimitsConfigs()
-                                    .withStatorCurrentLimit(Amps.of(60))
+                                    .withStatorCurrentLimit(Amps.of(60.0))
                                     .withStatorCurrentLimitEnable(true)
-                                    .withSupplyCurrentLimit(Amps.of(70.0))
+                                    .withSupplyCurrentLimit(Amps.of(40.0))
                                     .withSupplyCurrentLimitEnable(true)
                                     .withSupplyCurrentLowerLimit(Amps.of(40.0))
                                     .withSupplyCurrentLowerTime(Seconds.of(1.0)));
@@ -154,7 +153,6 @@ public class SwerveConfig {
                     TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             constantCreator;
 
-    // TODO: update if needed until line 158 ask big A
     private final double wheelBaseInches = 21.75;
     private final double trackWidthInches = 21.75;
 
@@ -166,7 +164,6 @@ public class SwerveConfig {
     @Getter
     private final double drivebaseRadiusMeters = Units.inchesToMeters(drivebaseRadiusInches);
 
-    // TODO: update offsets
     // Front Left
     @Getter private final int frontLeftDriveMotorId = 1;
     @Getter private final int frontLeftSteerMotorId = 2;
@@ -174,8 +171,8 @@ public class SwerveConfig {
     @Getter private Angle frontLeftEncoderOffset = Rotations.of(-0.83544921875);
     @Getter private final boolean frontLeftSteerInverted = false;
 
-    @Getter private final Distance frontLeftXPos = Inches.of(wheelBaseInches / 2);
-    @Getter private final Distance frontLeftYPos = Inches.of(trackWidthInches / 2);
+    @Getter private final Distance frontLeftXPos = Inches.of(10.25);
+    @Getter private final Distance frontLeftYPos = Inches.of(13.375);
 
     // Front Right
     @Getter private final int frontRightDriveMotorId = 11;
@@ -184,8 +181,8 @@ public class SwerveConfig {
     @Getter private Angle frontRightEncoderOffset = Rotations.of(-0.15234375);
     @Getter private final boolean frontRightSteerInverted = false;
 
-    @Getter private final Distance frontRightXPos = Inches.of(wheelBaseInches / 2);
-    @Getter private final Distance frontRightYPos = Inches.of(-trackWidthInches / 2);
+    @Getter private final Distance frontRightXPos = Inches.of(10.25);
+    @Getter private final Distance frontRightYPos = Inches.of(-13.375);
 
     // Back Left
     @Getter private final int backLeftDriveMotorId = 21;
@@ -194,8 +191,8 @@ public class SwerveConfig {
     @Getter private Angle backLeftEncoderOffset = Rotations.of(-0.4794921875);
     @Getter private final boolean backLeftSteerInverted = false;
 
-    @Getter private final Distance backLeftXPos = Inches.of(-wheelBaseInches / 2);
-    @Getter private final Distance backLeftYPos = Inches.of(trackWidthInches / 2);
+    @Getter private final Distance backLeftXPos = Inches.of(-7.368);
+    @Getter private final Distance backLeftYPos = Inches.of(13.25);
 
     // Back Right
     @Getter private final int backRightDriveMotorId = 31;
@@ -204,8 +201,8 @@ public class SwerveConfig {
     @Getter private Angle backRightEncoderOffset = Rotations.of(-0.84130859375);
     @Getter private final boolean backRightSteerInverted = false;
 
-    @Getter private final Distance backRightXPos = Inches.of(-wheelBaseInches / 2);
-    @Getter private final Distance backRightYPos = Inches.of(-trackWidthInches / 2);
+    @Getter private final Distance backRightXPos = Inches.of(-7.368);
+    @Getter private final Distance backRightYPos = Inches.of(-13.25);
 
     @Getter private final double targetHeading = 0;
 

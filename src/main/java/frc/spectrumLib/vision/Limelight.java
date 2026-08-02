@@ -525,6 +525,20 @@ public class Limelight {
         LimelightHelpers.SetRobotOrientation(config.name, degrees, 0, 0, 0, 0, 0);
     }
 
+    public void updateCameraPose(Pose3d pose) {
+        if (!isAttached()) {
+            return;
+        }
+        LimelightHelpers.setCameraPose_RobotSpace(
+                config.name,
+                pose.getX(),
+                -pose.getY(),
+                pose.getZ(),
+                Units.radiansToDegrees(pose.getRotation().getX()),
+                Units.radiansToDegrees(pose.getRotation().getY()),
+                Units.radiansToDegrees(pose.getRotation().getZ()));
+    }
+
     /**
      * Sets the robot orientation and yaw rate for the Limelight's internal IMU fusion (MegaTag2).
      *

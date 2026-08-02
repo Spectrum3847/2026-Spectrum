@@ -72,7 +72,7 @@ public class ShotCalculator {
     // Runtime-Adjustable Offsets
     // =========================================================================
 
-    public static final double STARTING_HOOD_ANGLE_OFFSET = -1; // degrees
+    public static final double STARTING_HOOD_ANGLE_OFFSET = -2; // degrees
     public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
@@ -109,7 +109,7 @@ public class ShotCalculator {
     private static final double MPS_FACTOR = 1;
 
     /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
-    private static final double RPM_PER_MPS = 255.0;
+    private static final double RPM_PER_MPS = 365.0;
 
     /**
      * Per-second rate at which drag bleeds off the chassis velocity the ball inherits. Drives

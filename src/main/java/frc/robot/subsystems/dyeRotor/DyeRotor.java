@@ -137,7 +137,7 @@ public class DyeRotor implements Subsystem {
         public static class FeederConfig extends Config {
 
             @Getter @Setter private double supplyCurrentLimit = 80;
-            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+            @Getter @Setter private double supplyCurrentLowerLimit = 0;
             @Getter @Setter private double supplyCurrentLowerTime = 1.0;
             @Getter @Setter private double statorCurrentLimit = 120;
 
@@ -146,6 +146,7 @@ public class DyeRotor implements Subsystem {
             @Getter @Setter private double velocityKs = 0;
 
             private final double gearRatio = 3.67;
+
             /** Creates a new FeederConfig instance. */
             public FeederConfig() {
                 super("Feeder", 10, Rio.CANIVORE);
@@ -159,7 +160,7 @@ public class DyeRotor implements Subsystem {
                 configForwardTorqueCurrentLimit(statorCurrentLimit);
                 configReverseTorqueCurrentLimit(statorCurrentLimit);
                 configNeutralBrakeMode(false);
-                configCounterClockwise_Positive();
+                configClockwise_Positive();
             }
         }
 
@@ -269,7 +270,7 @@ public class DyeRotor implements Subsystem {
                 break;
             case IDLE_SLOW_INDEX:
                 wantedRPMSpin = -20;
-                wantedRPMIndex = -1000;
+                wantedRPMIndex = 0;
                 break;
             case UNJAM:
                 wantedRPMSpin = 0;

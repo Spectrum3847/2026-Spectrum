@@ -83,13 +83,13 @@ public class Turret extends Mechanism {
             configStatorCurrentLimit(torqueCurrentLimit, true);
             configForwardTorqueCurrentLimit(torqueCurrentLimit);
             configReverseTorqueCurrentLimit(torqueCurrentLimit);
-            configMinMaxRotations(reverseLimitDegrees / 360.0, forwardLimitDegrees / 360.0);
+            configMinMaxRotations(-0.6, 0.5);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
             configNeutralBrakeMode(true);
             configContinuousWrap(false);
             configGravityType(false);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
         /** Modify motor config. */
         public TurretConfig modifyMotorConfig(TalonFX motor) {
