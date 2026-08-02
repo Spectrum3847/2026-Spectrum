@@ -40,7 +40,7 @@ Avoid imperative logic in `Robot`. Keep it declarative.
 ### Constants
 
 - Use `public static final`. Group by subsystem or mode.
-- Use `import static Constants.OIConstants.*` to avoid repeating the class name.
+- Use `import static frc.robot.Constants.OIConstants.*` (replace `frc.robot` with your project package) to avoid repeating the class name.
 
 ---
 
@@ -65,7 +65,7 @@ When a command is reused (teleop bindings, autonomous, self-test), avoid duplica
 ```java
 // In Intake subsystem
 public Command runIntakeCommand(double percent) {
-  return this.startEnd(() -> this.set(percent), () -> this.set(0.0));
+    return this.startEnd(() -> this.set(percent), () -> this.set(0.0));
 }
 ```
 
@@ -77,10 +77,10 @@ Use: `intakeButton.whileTrue(intake.runIntakeCommand(1.0));` or in sequences. **
 
 ```java
 public static Command driveAndIntake(Drivetrain drivetrain, Intake intake) {
-  return Commands.sequence(
-    Commands.parallel(drivetrain.driveCommand(0.5, 0.5), intake.runIntakeCommand(1.0)).withTimeout(5.0),
-    Commands.parallel(drivetrain.stopCommand(), intake.stopCommand())
-  );
+    return Commands.sequence(
+        Commands.parallel(drivetrain.driveCommand(0.5, 0.5), intake.runIntakeCommand(1.0)).withTimeout(5.0),
+        Commands.parallel(drivetrain.stopCommand(), intake.stopCommand())
+    );
 }
 ```
 
@@ -90,20 +90,20 @@ public static Command driveAndIntake(Drivetrain drivetrain, Intake intake) {
 
 ```java
 public class AutoRoutines {
-  private final Drivetrain drivetrain;
-  private final Intake intake;
+    private final Drivetrain drivetrain;
+    private final Intake intake;
 
-  public AutoRoutines(Drivetrain drivetrain, Intake intake) {
-    this.drivetrain = drivetrain;
-    this.intake = intake;
-  }
+    public AutoRoutines(Drivetrain drivetrain, Intake intake) {
+        this.drivetrain = drivetrain;
+        this.intake = intake;
+    }
 
-  public Command driveAndIntake() {
-    return Commands.sequence(
-      Commands.parallel(drivetrain.driveCommand(0.5, 0.5), intake.runIntakeCommand(1.0)).withTimeout(5.0),
-      Commands.parallel(drivetrain.stopCommand(), intake.stopCommand())
-    );
-  }
+    public Command driveAndIntake() {
+        return Commands.sequence(
+            Commands.parallel(drivetrain.driveCommand(0.5, 0.5), intake.runIntakeCommand(1.0)).withTimeout(5.0),
+            Commands.parallel(drivetrain.stopCommand(), intake.stopCommand())
+        );
+    }
 }
 ```
 
@@ -113,11 +113,11 @@ public class AutoRoutines {
 
 ```java
 public Command turnToAngle(double targetDegrees) {
-  PIDController controller = new PIDController(Constants.kP, 0, 0);
-  controller.setPositionTolerance(Constants.kTolerance);
-  return run(() -> arcadeDrive(0, -controller.calculate(gyro.getHeading(), targetDegrees)))
-      .until(controller::atSetpoint)
-      .andThen(runOnce(() -> arcadeDrive(0, 0)));
+    PIDController controller = new PIDController(Constants.kP, 0, 0);
+    controller.setPositionTolerance(Constants.kTolerance);
+    return run(() -> arcadeDrive(0, -controller.calculate(gyro.getHeading(), targetDegrees)))
+        .until(controller::atSetpoint)
+        .andThen(runOnce(() -> arcadeDrive(0, 0)));
 }
 ```
 
@@ -127,28 +127,28 @@ public Command turnToAngle(double targetDegrees) {
 
 ```java
 public class TurnToAngleCommand extends Command {
-  private final Drivetrain drivetrain;
-  private final PIDController controller;
-  private final double targetDegrees;
+    private final Drivetrain drivetrain;
+    private final PIDController controller;
+    private final double targetDegrees;
 
-  public TurnToAngleCommand(Drivetrain drivetrain, double targetDegrees) {
-    this.drivetrain = drivetrain;
-    this.targetDegrees = targetDegrees;
-    this.controller = new PIDController(Constants.kP, 0, 0);
-    controller.setPositionTolerance(Constants.kTolerance);
-    addRequirements(drivetrain);
-  }
+    public TurnToAngleCommand(Drivetrain drivetrain, double targetDegrees) {
+        this.drivetrain = drivetrain;
+        this.targetDegrees = targetDegrees;
+        this.controller = new PIDController(Constants.kP, 0, 0);
+        controller.setPositionTolerance(Constants.kTolerance);
+        addRequirements(drivetrain);
+    }
 
-  @Override
-  public void execute() {
-    drivetrain.arcadeDrive(0, -controller.calculate(drivetrain.getHeading(), targetDegrees));
-  }
+    @Override
+    public void execute() {
+        drivetrain.arcadeDrive(0, -controller.calculate(drivetrain.getHeading(), targetDegrees));
+    }
 
-  @Override
-  public boolean isFinished() { return controller.atSetpoint(); }
+    @Override
+    public boolean isFinished() { return controller.atSetpoint(); }
 
-  @Override
-  public void end(boolean interrupted) { drivetrain.arcadeDrive(0, 0); }
+    @Override
+    public void end(boolean interrupted) { drivetrain.arcadeDrive(0, 0); }
 }
 ```
 
@@ -159,22 +159,22 @@ public class TurnToAngleCommand extends Command {
 ```java
 // Prefer this (factory):
 public static Command scoreCoral(Drivetrain drive, Intake intake, Shooter shooter) {
-  return Commands.sequence(
-    drive.driveToPositionCommand(Constants.kScoringPos),
-    intake.feedCommand(),
-    shooter.fireCommand()
-  );
+    return Commands.sequence(
+        drive.driveToPositionCommand(Constants.kScoringPos),
+        intake.feedCommand(),
+        shooter.fireCommand()
+    );
 }
 
 // Avoid this (subclass adds no value here):
 public class ScoreCoralCommand extends SequentialCommandGroup {
-  public ScoreCoralCommand(Drivetrain drive, Intake intake, Shooter shooter) {
-    addCommands(
-      drive.driveToPositionCommand(Constants.kScoringPos),
-      intake.feedCommand(),
-      shooter.fireCommand()
-    );
-  }
+    public ScoreCoralCommand(Drivetrain drive, Intake intake, Shooter shooter) {
+        addCommands(
+            drive.driveToPositionCommand(Constants.kScoringPos),
+            intake.feedCommand(),
+            shooter.fireCommand()
+        );
+    }
 }
 ```
 

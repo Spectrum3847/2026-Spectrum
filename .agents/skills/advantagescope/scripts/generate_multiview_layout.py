@@ -54,6 +54,7 @@ def main() -> None:
     parser.add_argument("--field", required=True, help="AdvantageScope 3D field id")
     parser.add_argument("--robot", required=True, help="AdvantageScope robot model name")
     parser.add_argument("--pose-topic", default="/RealOutputs/Swerve/Odometry/Robot", help="Pose2d/Pose3d topic")
+    parser.add_argument("--topic-type", default="Pose2d", choices=["Pose2d", "Pose3d"], help="Robot source log type")
     parser.add_argument("--left-topic", action="append", required=True, help="Numeric topic for the graph left axis")
     parser.add_argument("--right-topic", action="append", default=[], help="Numeric topic for the graph right axis")
     parser.add_argument("--discrete-topic", action="append", default=[], help="Boolean/discrete graph topic")
@@ -80,7 +81,7 @@ def main() -> None:
             {
                 "type": "robot",
                 "logKey": args.pose_topic,
-                "logType": "Pose2d",
+                "logType": args.topic_type,
                 "visible": True,
                 "options": {
                     "model": args.robot,

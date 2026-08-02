@@ -31,7 +31,8 @@ Each call to `run()` executes in this order:
 1. Rejects commands that are part of a composition
 2. No-ops if: scheduler is disabled, command is already scheduled, or robot is disabled and command doesn't have `runsWhenDisabled`
 3. Checks requirement conflicts with currently running commands
-4. Interrupts conflicting commands (calls `end(true)`) before calling `initialize()` on the new command
+4. If any conflicting command is non-interruptible (`kCancelIncoming`), the incoming command is **not** scheduled
+5. Interrupts interruptible conflicts (calls `end(true)`) before calling `initialize()` on the new command
 
 **Interrupt order**: `end(true)` of the interrupted command completes before `initialize()` of the incoming command.
 
@@ -60,7 +61,7 @@ Hook into scheduler events for logging or telemetry:
 
 | Method | Effect |
 | ------ | ------ |
-| `disable()` | Pauses all scheduling (commands mid-run continue until finished) |
+| `disable()` | Stops the scheduler: `run()` and `schedule()` become no-ops while disabled, and already scheduled commands stop executing until `enable()` is called |
 | `enable()` | Resumes scheduling |
 | `cancel(command)` | Explicitly stops a running command; calls `end(true)` |
 

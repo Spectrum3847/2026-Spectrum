@@ -182,9 +182,10 @@ def main() -> None:
     if not manifest.exists():
         raise SystemExit(f"Export completed but manifest was not found: {manifest}")
     data = json.loads(manifest.read_text())
-    ready = data.get("status", {}).get("rendererState", {}).get("liveStatus", {}).get("ready")
-    missing_sources = data.get("status", {}).get("rendererState", {}).get("liveStatus", {}).get("missingSources", [])
-    missing_assets = data.get("status", {}).get("rendererState", {}).get("liveStatus", {}).get("missingAssets", [])
+    live_status = data.get("status", {}).get("rendererState", {}).get("liveStatus", {})
+    ready = live_status.get("ready")
+    missing_sources = live_status.get("missingSources", [])
+    missing_assets = live_status.get("missingAssets", [])
     video = data.get("video")
     webm = data.get("webm")
     mode = data.get("mode")

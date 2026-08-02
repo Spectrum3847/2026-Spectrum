@@ -37,9 +37,9 @@ Compositions combine commands into a single command object. They can be nested r
 
 ```java
 Commands.sequence(
-  intake.runIntakeCommand(1.0).withTimeout(2.0),
-  shooter.spinUpCommand(),
-  shooter.fireCommand()
+    intake.runIntakeCommand(1.0).withTimeout(2.0),
+    shooter.spinUpCommand(),
+    shooter.fireCommand()
 )
 ```
 
@@ -47,8 +47,8 @@ Commands.sequence(
 
 ```java
 Commands.parallel(
-  drivetrain.driveCommand(0.5, 0.5),
-  intake.runIntakeCommand(1.0)
+    drivetrain.driveCommand(0.5, 0.5),
+    intake.runIntakeCommand(1.0)
 ).withTimeout(3.0)
 ```
 

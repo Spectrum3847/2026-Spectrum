@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import tempfile
 import zipfile
@@ -29,12 +30,28 @@ def wpilib_root() -> Path:
     )
 
 
+def _version_key(name: str) -> tuple[int, ...]:
+    """Sort WPILib artifact versions, ranking beta < rc < stable."""
+    key: list[int] = []
+    for part in name.split("."):
+        for token in re.split(r"[-_]", part):
+            if token.isdigit():
+                key.append(int(token))
+            elif token == "beta":
+                key.append(-2)
+            elif token == "rc":
+                key.append(-1)
+            else:
+                key.append(-1)
+    return tuple(key)
+
+
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
     directory = root / "maven" / group_path / artifact
-    versions = sorted((path.name for path in directory.glob("*") if path.is_dir()), reverse=True)
+    versions = sorted((path.name for path in directory.glob("*") if path.is_dir()), key=_version_key)
     if not versions:
         raise SystemExit(f"Could not find WPILib artifact {artifact} under {directory}")
-    return versions[0]
+    return versions[-1]
 
 
 def classpath(root: Path) -> str:
@@ -46,7 +63,7 @@ def classpath(root: Path) -> str:
     missing = [str(jar) for jar in jars if not jar.exists()]
     if missing:
         raise SystemExit("Missing WPILib Java dependency jars:\n" + "\n".join(missing))
-    return ":".join(str(jar) for jar in jars)
+    return os.pathsep.join(str(jar) for jar in jars)
 
 
 def extract_natives(root: Path, target: Path) -> Path:
@@ -81,7 +98,7 @@ def compile_and_run(java_source: str, class_name: str, args: list[str]) -> int:
         cp = classpath(root)
         native_dir = extract_natives(root, native_root)
         subprocess.run([str(root / "jdk/bin/javac"), "-cp", cp, "-d", str(classes), str(source)], check=True)
-        run_cp = f"{classes}:{cp}"
+        run_cp = os.pathsep.join([str(classes), cp])
         command = [
             str(root / "jdk/bin/java"),
             f"-Djava.library.path={native_dir}",

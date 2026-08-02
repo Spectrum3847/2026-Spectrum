@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -74,12 +76,27 @@ def wpilib_root() -> Path:
     return roots[0]
 
 
+def _version_key(name: str) -> tuple[int, ...]:
+    key: list[int] = []
+    for part in name.split("."):
+        for token in re.split(r"[-_]", part):
+            if token.isdigit():
+                key.append(int(token))
+            elif token == "beta":
+                key.append(-2)
+            elif token == "rc":
+                key.append(-1)
+            else:
+                key.append(-1)
+    return tuple(key)
+
+
 def wpilib_version(root: Path) -> str:
     base = root / "maven/edu/wpi/first/wpiutil/wpiutil-java"
-    versions = sorted((p for p in base.iterdir() if p.is_dir()), key=lambda p: p.name)
+    versions = sorted((p.name for p in base.iterdir() if p.is_dir()), key=_version_key)
     if not versions:
         raise SystemExit(f"No wpiutil-java versions found in {base}")
-    return versions[-1].name
+    return versions[-1]
 
 
 def topic_names(repo: Path, log: Path) -> set[str]:
@@ -95,7 +112,7 @@ def topic_names(repo: Path, log: Path) -> set[str]:
         wpiutil = root / f"maven/edu/wpi/first/wpiutil/wpiutil-java/{version}/wpiutil-java-{version}.jar"
         subprocess.run([str(java_home / "bin/javac"), "-cp", str(wpiutil), "-d", str(classes), str(source)], cwd=repo, check=True)
         result = subprocess.run(
-            [str(java_home / "bin/java"), "-cp", f"{classes}:{wpiutil}", "ListTopicNames", str(log)],
+            [str(java_home / "bin/java"), "-cp", os.pathsep.join([str(classes), str(wpiutil)]), "ListTopicNames", str(log)],
             cwd=repo,
             check=True,
             text=True,

@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import queue
 import re
 import subprocess
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -31,19 +33,29 @@ def post(port: int, token: str, payload: dict) -> dict:
 def wait_for_control(process: subprocess.Popen[str]) -> tuple[int, str]:
     port: int | None = None
     token: str | None = None
+    output: queue.Queue[str] = queue.Queue()
+
+    def reader() -> None:
+        if process.stdout is not None:
+            for line in process.stdout:
+                output.put(line)
+
+    threading.Thread(target=reader, daemon=True).start()
     start = time.time()
     while time.time() - start < 30 and (port is None or token is None):
-        line = process.stdout.readline() if process.stdout is not None else ""
-        if line:
-            print(line, end="")
-            port_match = re.search(r"127\.0\.0\.1:(\d+)", line)
-            if port_match:
-                port = int(port_match.group(1))
-            token_match = re.search(r"AdvantageScope agent token: (\S+)", line)
-            if token_match:
-                token = token_match.group(1)
-        elif process.poll() is not None:
-            raise SystemExit(f"AdvantageScope exited early with code {process.returncode}")
+        try:
+            line = output.get(timeout=0.5)
+        except queue.Empty:
+            if process.poll() is not None:
+                raise SystemExit(f"AdvantageScope exited early with code {process.returncode}")
+            continue
+        print(line, end="")
+        port_match = re.search(r"127\.0\.0\.1:(\d+)", line)
+        if port_match:
+            port = int(port_match.group(1))
+        token_match = re.search(r"AdvantageScope agent token: (\S+)", line)
+        if token_match:
+            token = token_match.group(1)
     if port is None or token is None:
         raise SystemExit("Timed out waiting for AdvantageScope agent control port/token")
     return port, token
