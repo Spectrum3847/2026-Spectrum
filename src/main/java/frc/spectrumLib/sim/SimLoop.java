@@ -43,9 +43,8 @@ public final class SimLoop {
         }
     }
     /**
-     * Advances the simulation loop and notifies each registered callback of the elapsed time.
-     *
-     * @param dt the elapsed time in seconds since the previous update
+     * Advances the simulation loop and notifies each registered callback of the computed elapsed
+     * time.
      */
     private static void tick() {
         double now = Utils.getCurrentTimeSeconds();

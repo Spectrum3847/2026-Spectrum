@@ -87,36 +87,41 @@ public abstract class SimTestBase {
         Robot.Config config = new OM2026();
 
         Swerve swerve = new Swerve(config.swerve);
-        FuelIntake fuelIntake = new FuelIntake(config.fuelIntake);
-        IntakeExtension intakeExtension = new IntakeExtension(config.intakeExtension);
-        DyeRotor dyeRotor = new DyeRotor(config.dyeRotor);
-        Launcher launcher = new Launcher(config.launcher);
-        LauncherTower launcherTower = new LauncherTower(config.launcherTower);
-        Turret turret = new Turret(config.turret);
-        Hood hood = new Hood(config.hood);
+        try {
+            FuelIntake fuelIntake = new FuelIntake(config.fuelIntake);
+            IntakeExtension intakeExtension = new IntakeExtension(config.intakeExtension);
+            DyeRotor dyeRotor = new DyeRotor(config.dyeRotor);
+            Launcher launcher = new Launcher(config.launcher);
+            LauncherTower launcherTower = new LauncherTower(config.launcherTower);
+            Turret turret = new Turret(config.turret);
+            Hood hood = new Hood(config.hood);
 
-        SuperStructure superStructure =
-                new SuperStructure(
-                        swerve,
-                        fuelIntake,
-                        intakeExtension,
-                        dyeRotor,
-                        launcher,
-                        launcherTower,
-                        turret,
-                        hood);
+            SuperStructure superStructure =
+                    new SuperStructure(
+                            swerve,
+                            fuelIntake,
+                            intakeExtension,
+                            dyeRotor,
+                            launcher,
+                            launcherTower,
+                            turret,
+                            hood);
 
-        return new RobotStack(
-                config,
-                swerve,
-                fuelIntake,
-                intakeExtension,
-                dyeRotor,
-                launcher,
-                launcherTower,
-                turret,
-                hood,
-                superStructure);
+            return new RobotStack(
+                    config,
+                    swerve,
+                    fuelIntake,
+                    intakeExtension,
+                    dyeRotor,
+                    launcher,
+                    launcherTower,
+                    turret,
+                    hood,
+                    superStructure);
+        } catch (Exception e) {
+            swerve.close();
+            throw e;
+        }
     }
 
     /** Initializes WPILib HAL for simulation. */

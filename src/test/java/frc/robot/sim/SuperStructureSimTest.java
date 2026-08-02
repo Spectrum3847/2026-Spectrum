@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.subsystems.SuperStructure;
-import frc.robot.subsystems.swerve.Swerve;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +18,7 @@ public class SuperStructureSimTest extends SimTestBase {
         assertDoesNotThrow(
                 () -> {
                     RobotStack stack = createRobotStack();
-                    try (Swerve swerve = stack.swerve) {
+                    try (stack.swerve) {
                         CommandScheduler.getInstance().registerSubsystem(stack.superStructure);
 
                         enableTeleopSim();

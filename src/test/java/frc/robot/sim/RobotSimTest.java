@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.RobotSim;
-import frc.robot.subsystems.swerve.Swerve;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +17,7 @@ public class RobotSimTest extends SimTestBase {
         assertDoesNotThrow(
                 () -> {
                     RobotStack stack = createRobotStack();
-                    try (Swerve swerve = stack.swerve) {
+                    try (stack.swerve) {
                         RobotSim robotSim = new RobotSim(stack.superStructure);
                         CommandScheduler.getInstance().registerSubsystem(stack.superStructure);
 
