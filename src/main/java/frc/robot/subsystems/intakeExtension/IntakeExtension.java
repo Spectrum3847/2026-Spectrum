@@ -23,9 +23,9 @@ import lombok.Getter;
  * The Intake Extension subsystem. Extends and retracts the fuel intake.
  *
  * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class, CAN
- * id 7) and a right axis ({@link IntakeExtensionRight}, CAN id 6). Each side runs its own
- * closed-loop position control rather than one following the other, so a side that skips teeth on
- * the rack can be driven on its own to resync.
+ * id 4, Clockwise_Positive) and a right axis ({@link IntakeExtensionRight}, CAN id 5,
+ * CounterClockwise_Positive). Each side runs its own closed-loop position control rather than one
+ * following the other, so a side that skips teeth on the rack can be driven on its own to resync.
  *
  * <p>Normal deploy/retract states command both axes to the same setpoint. The {@code RESYNC} state
  * re-establishes truth by driving each side independently into the fully-extended hard stop (using
@@ -112,7 +112,7 @@ public class IntakeExtension extends Mechanism {
             configClockwise_Positive();
         }
 
-        public IntakeExtensionConfig modifyMotorConfig(TalonFX motor) {
+        public IntakeExtensionConfig applyMotorConfig(TalonFX motor) {
             TalonFXConfigurator configurator = motor.getConfigurator();
             TalonFXConfiguration talonConfigMod = getTalonConfig();
 
@@ -130,7 +130,7 @@ public class IntakeExtension extends Mechanism {
      * The right deploy axis. A standalone {@link Mechanism} (not a follower) so it can be driven
      * independently of the left during a resync. Gains, limits, and geometry mirror the left
      * config; only the CAN id, name, and motor inversion differ (the right gearbox is mirrored, so
-     * it is {@code Clockwise_Positive} where the left is {@code CounterClockwise_Positive}, giving
+     * it is {@code CounterClockwise_Positive} where the left is {@code Clockwise_Positive}, giving
      * both axes the same "positive = extend" convention).
      */
     public static class IntakeExtensionRight extends Mechanism {
@@ -236,7 +236,7 @@ public class IntakeExtension extends Mechanism {
 
     private void setInitialPosition() {
         if (isAttached()) {
-            double initialRotations = degreesToRotations(() -> config.getInitPosition());
+            double initialRotations = config.getInitPosition();
             motor.setPosition(initialRotations);
             right.setInitialPosition(initialRotations);
         }
@@ -389,9 +389,12 @@ public class IntakeExtension extends Mechanism {
 
         // ── Left side (this mechanism) ──
         if (!leftHomed) {
-            if (detectLeftStall() || timedOut) {
-                if (timedOut) Telemetry.print("IntakeExtension: LEFT resync timed out");
+            if (detectLeftStall()) {
                 setMotorPosition(() -> config.getMaxRotations());
+                stop();
+                leftHomed = true;
+            } else if (timedOut) {
+                Telemetry.print("IntakeExtension: LEFT resync timed out");
                 stop();
                 leftHomed = true;
             } else {
@@ -404,9 +407,12 @@ public class IntakeExtension extends Mechanism {
         // ── Right side (independent axis) ──
         if (right.isAttached()) {
             if (!rightHomed) {
-                if (detectRightStall() || timedOut) {
-                    if (timedOut) Telemetry.print("IntakeExtension: RIGHT resync timed out");
+                if (detectRightStall()) {
                     right.zeroAtMax();
+                    right.stopAxis();
+                    rightHomed = true;
+                } else if (timedOut) {
+                    Telemetry.print("IntakeExtension: RIGHT resync timed out");
                     right.stopAxis();
                     rightHomed = true;
                 } else {

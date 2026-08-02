@@ -8,8 +8,9 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.lang.reflect.Field;
 
 /**
- * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and manages a collection of
- * SpectrumSubsystems.
+ * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and configures joystick
+ * connection warning silencing, extends the loop overrun watchdog timeout to 200 ms, and sets the
+ * command scheduler period to 200 ms.
  */
 public class SpectrumRobot extends TimedRobot {
 

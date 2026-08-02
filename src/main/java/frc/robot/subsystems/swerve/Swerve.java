@@ -246,21 +246,23 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         if (Utils.isSimulation()) {
             Telemetry.log("Sim/SimPose", getRobotPose());
             if (robotBumpSim != null) {
-                Pose2d simPose =
-                        mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
-                ChassisSpeeds robotRelSpeeds =
-                        mapleSimSwerveDrivetrain.mapleSimDrive
-                                .getDriveTrainSimulatedChassisSpeedsRobotRelative();
-                ChassisSpeeds fieldRelSpeeds =
-                        ChassisSpeeds.fromRobotRelativeSpeeds(
-                                robotRelSpeeds, simPose.getRotation());
-                // subticks=5 -> dt = 20ms/5 = 4ms sub-steps (matches MapleSim's 5ms period closely)
-                simRobotPose3d = robotBumpSim.update(simPose, fieldRelSpeeds, 5);
-                if (robotBumpSim.isOnRamp()) {
-                    mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(
-                            robotBumpSim.getSimWorldPose(simPose));
+                synchronized (simLock) {
+                    Pose2d simPose =
+                            mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
+                    ChassisSpeeds robotRelSpeeds =
+                            mapleSimSwerveDrivetrain.mapleSimDrive
+                                    .getDriveTrainSimulatedChassisSpeedsRobotRelative();
+                    ChassisSpeeds fieldRelSpeeds =
+                            ChassisSpeeds.fromRobotRelativeSpeeds(
+                                    robotRelSpeeds, simPose.getRotation());
+                    // subticks=5 -> dt = 20ms/5 = 4ms sub-steps (matches MapleSim's 5ms period closely)
+                    simRobotPose3d = robotBumpSim.update(simPose, fieldRelSpeeds, 5);
+                    if (robotBumpSim.isOnRamp()) {
+                        mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(
+                                robotBumpSim.getSimWorldPose(simPose));
+                    }
+                    Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
                 }
-                Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
             }
         }
 
@@ -295,6 +297,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         switch (systemState) {
             default:
             case IDLE:
+                setControl(new SwerveRequest.Idle());
                 break;
             case PILOT_AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
@@ -362,7 +365,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     public Pose2d getRobotPose() {
         // Simulates collision by with field obstacles and boundaries
         if (this.mapleSimSwerveDrivetrain != null) {
-            return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
+            synchronized (simLock) {
+                return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
+            }
         }
         return getState().Pose;
     }
@@ -394,7 +399,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     @Override
     public void resetPose(Pose2d pose) {
         if (this.mapleSimSwerveDrivetrain != null) {
-            mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
+            synchronized (simLock) {
+                mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
+            }
             Timer.delay(0.05); // Wait for simulation to update
         }
         super.resetPose(pose);
@@ -448,8 +455,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                                 maxYmeter));
     }
 
-    private static final double FIELD_LENGTH_METERS = Units.feetToMeters(54.0);
-    private static final double FIELD_WIDTH_METERS = Units.feetToMeters(27.0);
     private static final double NEUTRAL_DEPTH_METERS = Units.inchesToMeters(283.0);
     private static final double NEUTRAL_LENGTH_METERS = Units.inchesToMeters(317.7);
     private static final double ENEMY_ALLIANCE_DEPTH_METERS = Units.inchesToMeters(180.0);
@@ -457,16 +462,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private static final Rectangle2d NEUTRAL_ZONE =
             new Rectangle2d(
                     new Translation2d(
-                            FIELD_LENGTH_METERS / 2.0 - NEUTRAL_DEPTH_METERS / 2.0,
-                            FIELD_WIDTH_METERS / 2.0 - NEUTRAL_LENGTH_METERS / 2.0),
+                            Field.fieldLength / 2.0 - NEUTRAL_DEPTH_METERS / 2.0,
+                            Field.fieldWidth / 2.0 - NEUTRAL_LENGTH_METERS / 2.0),
                     new Translation2d(
-                            FIELD_LENGTH_METERS / 2.0 + NEUTRAL_DEPTH_METERS / 2.0,
-                            FIELD_WIDTH_METERS / 2.0 + NEUTRAL_LENGTH_METERS / 2.0));
+                            Field.fieldLength / 2.0 + NEUTRAL_DEPTH_METERS / 2.0,
+                            Field.fieldWidth / 2.0 + NEUTRAL_LENGTH_METERS / 2.0));
 
     private static final Rectangle2d ENEMY_ALLIANCE_ZONE =
             new Rectangle2d(
-                    new Translation2d(FIELD_LENGTH_METERS - ENEMY_ALLIANCE_DEPTH_METERS, 0),
-                    new Translation2d(FIELD_LENGTH_METERS, FIELD_WIDTH_METERS));
+                    new Translation2d(Field.fieldLength - ENEMY_ALLIANCE_DEPTH_METERS, 0),
+                    new Translation2d(Field.fieldLength, Field.fieldWidth));
 
     /** Returns {@code true} when the robot is inside the neutral zone. Allocation-free. */
     public boolean isInNeutralZone() {
@@ -527,14 +532,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // Reorientation Methods
     // --------------------------------------------------------------------------------
 
+    private void applyReorient(double angleDegrees) {
+        resetPose(
+                new Pose2d(
+                        getRobotPose().getX(),
+                        getRobotPose().getY(),
+                        Rotation2d.fromDegrees(angleDegrees)));
+    }
+
     protected Command reorient(double angleDegrees) {
-        return runOnce(
-                () ->
-                        resetPose(
-                                new Pose2d(
-                                        getRobotPose().getX(),
-                                        getRobotPose().getY(),
-                                        Rotation2d.fromDegrees(angleDegrees))));
+        return runOnce(() -> applyReorient(angleDegrees));
     }
 
     public Command reorientForward() {
@@ -570,7 +577,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         return runOnce(
                 () -> {
                     double angleDegrees = getClosestCardinal();
-                    reorient(angleDegrees);
+                    applyReorient(angleDegrees);
                 });
     }
 
@@ -627,6 +634,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     }
 
     public boolean isAtDesiredRotation(double toleranceRadians) {
+        if (systemState != SystemState.PILOT_AIM_AT_TARGET) {
+            return false;
+        }
         return Math.abs(DRIVE_AT_ANGLE_REQUEST.HeadingController.getPositionError())
                 < toleranceRadians;
     }
@@ -683,6 +693,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
     @Getter private RobotBumpSim robotBumpSim = null;
     @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
+    private final Object simLock = new Object();
 
     @SuppressWarnings("unchecked")
     private void startSimThread() {
@@ -705,7 +716,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         robotBumpSim = new RobotBumpSim(getModuleLocations());
 
         /* Run simulation at a faster rate so PID gains behave more reasonably */
-        simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
+        simNotifier = new Notifier(() -> {
+            synchronized (simLock) {
+                mapleSimSwerveDrivetrain.update();
+            }
+        });
         simNotifier.startPeriodic(config.getSimLoopPeriod());
     }
 }

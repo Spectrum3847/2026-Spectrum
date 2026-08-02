@@ -181,6 +181,7 @@ public class SpectrumLEDs implements Subsystem {
             this.deviceId = deviceId;
             this.numLeds = numLeds;
             this.canBus = canBus;
+            this.startIdx = 8;
         }
 
         /**
@@ -695,18 +696,22 @@ public class SpectrumLEDs implements Subsystem {
         return (candle, startIdx, numLeds) -> {
             if (holder[0] == null) {
                 int clampedLen = Math.min(length, numLeds / 2);
-                int centerStart = startIdx + clampedLen;
-                int centerEnd = startIdx + numLeds - clampedLen - 1;
-                // left edge, right edge, (optional) center black
-                holder[0] = (centerStart <= centerEnd) ? new SolidColor[3] : new SolidColor[2];
-                holder[0][0] = new SolidColor(startIdx, startIdx + clampedLen - 1).withColor(rgbw);
-                holder[0][1] =
-                        new SolidColor(startIdx + numLeds - clampedLen, startIdx + numLeds - 1)
-                                .withColor(rgbw);
-                if (holder[0].length == 3) {
-                    holder[0][2] =
-                            new SolidColor(centerStart, centerEnd)
-                                    .withColor(new RGBWColor(0, 0, 0, 0));
+                if (clampedLen == 0) {
+                    holder[0] = new SolidColor[0];
+                } else {
+                    int centerStart = startIdx + clampedLen;
+                    int centerEnd = startIdx + numLeds - clampedLen - 1;
+                    // left edge, right edge, (optional) center black
+                    holder[0] = (centerStart <= centerEnd) ? new SolidColor[3] : new SolidColor[2];
+                    holder[0][0] = new SolidColor(startIdx, startIdx + clampedLen - 1).withColor(rgbw);
+                    holder[0][1] =
+                            new SolidColor(startIdx + numLeds - clampedLen, startIdx + numLeds - 1)
+                                    .withColor(rgbw);
+                    if (holder[0].length == 3) {
+                        holder[0][2] =
+                                new SolidColor(centerStart, centerEnd)
+                                        .withColor(new RGBWColor(0, 0, 0, 0));
+                    }
                 }
             }
             for (SolidColor req : holder[0]) {

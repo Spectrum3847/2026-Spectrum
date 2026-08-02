@@ -75,6 +75,7 @@ public class Circle {
             Color8Bit color) {
         this(backgroundLines, diameterInches, name, root, mech);
         this.color = color;
+        setBackgroundColor(color);
     }
 
     /**

@@ -19,6 +19,15 @@ public class VisionLogger {
     /** Namespace prefix used in all telemetry keys ({@code Vision/<name>/...}). */
     @Getter private String name;
 
+    private final String connectionStatusKey;
+    private final String integratingStatusKey;
+    private final String logStatusKey;
+    private final String tagStatusKey;
+    private final String mt1PoseKey;
+    private final String mt2PoseKey;
+    private final String tagCountKey;
+    private final String targetSizeKey;
+
     /**
      * Constructs a logger for the given Limelight camera.
      *
@@ -28,6 +37,14 @@ public class VisionLogger {
     public VisionLogger(String name, Limelight limelight) {
         this.limelight = limelight;
         this.name = name;
+        this.connectionStatusKey = "Vision/" + name + "/ConnectionStatus";
+        this.integratingStatusKey = "Vision/" + name + "/IntegratingStatus";
+        this.logStatusKey = "Vision/" + name + "/LogStatus";
+        this.tagStatusKey = "Vision/" + name + "/TagStatus";
+        this.mt1PoseKey = "Vision/" + name + "/MT1Pose";
+        this.mt2PoseKey = "Vision/" + name + "/MT2Pose";
+        this.tagCountKey = "Vision/" + name + "/TagCount";
+        this.targetSizeKey = "Vision/" + name + "/TargetSize";
     }
 
     /**
@@ -37,7 +54,7 @@ public class VisionLogger {
      */
     public boolean getCameraConnection() {
         boolean connected = limelight.isCameraConnected();
-        Telemetry.log("Vision/" + name + "/ConnectionStatus", connected);
+        Telemetry.log(connectionStatusKey, connected);
         return connected;
     }
 
@@ -48,7 +65,7 @@ public class VisionLogger {
      */
     public boolean getIntegratingStatus() {
         boolean integrating = limelight.isIntegrating();
-        Telemetry.log("Vision/" + name + "/IntegratingStatus", integrating);
+        Telemetry.log(integratingStatusKey, integrating);
         return integrating;
     }
 
@@ -59,7 +76,7 @@ public class VisionLogger {
      */
     public String getLogStatus() {
         String status = limelight.getLogStatus();
-        Telemetry.log("Vision/" + name + "/LogStatus", status);
+        Telemetry.log(logStatusKey, status);
         return status;
     }
 
@@ -70,7 +87,7 @@ public class VisionLogger {
      */
     public String getTagStatus() {
         String status = limelight.getTagStatus();
-        Telemetry.log("Vision/" + name + "/TagStatus", status);
+        Telemetry.log(tagStatusKey, status);
         return status;
     }
 
@@ -81,7 +98,7 @@ public class VisionLogger {
      */
     public Pose2d getPose() {
         Pose2d pose = limelight.getMegaTag1_Pose3d().toPose2d();
-        Telemetry.log("Vision/" + name + "/MT1Pose", pose);
+        Telemetry.log(mt1PoseKey, pose);
         return pose;
     }
 
@@ -92,7 +109,7 @@ public class VisionLogger {
      */
     public Pose2d getMegaPose() {
         Pose2d pose = limelight.getMegaTag2_Pose2d();
-        Telemetry.log("Vision/" + name + "/MT2Pose", pose);
+        Telemetry.log(mt2PoseKey, pose);
         return pose;
     }
 
@@ -103,7 +120,7 @@ public class VisionLogger {
      */
     public double getTagCount() {
         double count = limelight.getTagCountInView();
-        Telemetry.log("Vision/" + name + "/TagCount", count);
+        Telemetry.log(tagCountKey, count);
         return count;
     }
 
@@ -114,7 +131,7 @@ public class VisionLogger {
      */
     public double getTargetSize() {
         double size = limelight.getTargetSize();
-        Telemetry.log("Vision/" + name + "/TargetSize", size);
+        Telemetry.log(targetSizeKey, size);
         return size;
     }
 }

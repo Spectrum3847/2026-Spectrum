@@ -585,6 +585,13 @@ public class Vision implements Subsystem {
             return true;
         }
 
+        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
+        double currentTime = Timer.getFPGATimestamp();
+        if (currentTime - timestamp > config.getKMaxTimeDeltaSeconds()) {
+            ll.sendInvalidStatus("Stale Timestamp Rejection");
+            return true;
+        }
+
         if (Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond)
                 >= 1.6) {
             ll.sendInvalidStatus("Rotation Speed Rejection");
@@ -706,7 +713,7 @@ public class Vision implements Subsystem {
      * Returns {@code true} if any Limelight currently sees an AprilTag belonging to the current
      * alliance's set of scoring targets.
      *
-     * <p>Uses {@link DriverStation#getAlliance()} and falls back to Red if the alliance is unknown.
+     * <p>Uses {@link DriverStation#getAlliance()} and falls back to Blue if the alliance is unknown.
      */
     public boolean tagsInView() {
         DriverStation.Alliance alliance =
@@ -789,11 +796,16 @@ public class Vision implements Subsystem {
         double[] before = {botpose.getX(), botpose.getY(), botpose.getRotation().getDegrees()};
         Telemetry.log("Vision/PoseReset/Before", before);
 
+        if (FieldHelpers.poseOutOfField(megaPose)) {
+            Telemetry.log("Vision/PoseReset/Rejection", "MegaPose out of field");
+            return false;
+        }
+
         // Use MT2 translation + MT1 heading for best combined accuracy
         Pose2d integratedPose = new Pose2d(megaPose.getTranslation(), botpose.getRotation());
         Robot.getSwerve()
                 .addVisionMeasurement(
-                        integratedPose, poseTimestamp, VecBuilder.fill(0.00001, 0.00001, 0.00001));
+                        integratedPose, Utils.fpgaToCurrentTime(poseTimestamp), VecBuilder.fill(0.00001, 0.00001, 0.00001));
 
         Pose2d updated = Robot.getSwerve().getRobotPose();
         double[] after = {updated.getX(), updated.getY(), updated.getRotation().getDegrees()};
