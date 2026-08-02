@@ -5,21 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-def expanded_paths(topics: list[str]) -> list[str]:
-    expanded: list[str] = []
-    seen: set[str] = set()
-    for topic in topics:
-        parts = [part for part in topic.split("/") if part]
-        current = ""
-        for part in parts[:-1]:
-            current += "/" + part
-            if current not in seen:
-                expanded.append(current)
-                seen.add(current)
-    return expanded
+from ascope_layout_common import build_field_sources, expanded_paths
 
 
 def joystick_layouts(port: int, layout: str, max_ports: int = 6) -> list[str]:
@@ -47,42 +38,16 @@ def main() -> None:
     parser.add_argument("--selected-tab", choices=["field", "joysticks"], default="field")
     args = parser.parse_args()
 
-    field_sources = [
-        {
-            "type": "robot",
-            "logKey": args.pose_topic,
-            "logType": args.topic_type,
-            "visible": True,
-            "options": {
-                "model": args.robot,
-            },
-        }
-    ]
-    if args.game_piece_topic:
-        field_sources.append(
-            {
-                "type": "gamePiece",
-                "logKey": args.game_piece_topic,
-                "logType": "Pose3d[]",
-                "visible": True,
-                "options": {
-                    "variant": args.game_piece_variant,
-                },
-            }
-        )
-    if args.trajectory_topic:
-        field_sources.append(
-            {
-                "type": "trajectory",
-                "logKey": args.trajectory_topic,
-                "logType": "Pose3d[]",
-                "visible": True,
-                "options": {
-                    "color": args.trajectory_color,
-                    "size": args.trajectory_size,
-                },
-            }
-        )
+    field_sources = build_field_sources(
+        args.pose_topic,
+        args.topic_type,
+        args.robot,
+        args.game_piece_topic,
+        args.game_piece_variant,
+        args.trajectory_topic,
+        args.trajectory_color,
+        args.trajectory_size,
+    )
 
     field_controller = {
         "sources": field_sources,

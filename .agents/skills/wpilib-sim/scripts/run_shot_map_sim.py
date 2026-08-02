@@ -10,11 +10,12 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
 
-from run_auto_sim import classpath, extract_natives, latest_log, wpilib_root, wpilib_version
+from run_auto_sim import classpath, compile_client, extract_natives, latest_log, wpilib_root, wpilib_version
 
 
 JAVA_SOURCE = r'''
@@ -135,23 +136,13 @@ public class RunShotMapNtClient {
 POSE_PATTERN = re.compile(r"Pose3d\(x=([-0-9.]+),y=([-0-9.]+),z=([-0-9.]+),")
 TRANSLATION_PATTERN = re.compile(r"Translation3d\(x=([-0-9.]+),y=([-0-9.]+),z=([-0-9.]+)\)")
 
-
-def compile_shot_client(root: Path, tmp: Path) -> tuple[Path, str, Path]:
-    source = tmp / "RunShotMapNtClient.java"
-    classes = tmp / "classes"
-    native_root = tmp / "native"
-    classes.mkdir()
-    native_root.mkdir()
-    source.write_text(JAVA_SOURCE)
-    cp = shot_client_classpath(root)
-    native_dir = extract_natives(root, native_root)
-    subprocess.run([str(root / "jdk/bin/javac"), "-cp", cp, "-d", str(classes), str(source)], check=True)
-    return classes, cp, native_dir
+HUB_SIDE_MIN_HEIGHT_METERS = 1.435  # Fuel must clear this height to leave the hub side
+MAPLESIM_TARGET_TOLERANCE_METERS = 0.7  # Default tolerance when matching simulated shots to the target
 
 
 def shot_client_classpath(root: Path) -> str:
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-java")
-    base = classpath(root).split(":")
+    base = classpath(root).split(os.pathsep)
     extra = [
         root / f"maven/edu/wpi/first/wpimath/wpimath-java/{version}/wpimath-java-{version}.jar",
         root / f"maven/edu/wpi/first/apriltag/apriltag-java/{version}/apriltag-java-{version}.jar",
@@ -161,7 +152,7 @@ def shot_client_classpath(root: Path) -> str:
     missing = [str(jar) for jar in extra if not jar.exists()]
     if missing:
         raise SystemExit("Missing WPILib Java dependency jars:\n" + "\n".join(missing))
-    return ":".join(base + [str(jar) for jar in extra])
+    return os.pathsep.join(base + [str(jar) for jar in extra])
 
 
 def run_one(
@@ -178,7 +169,12 @@ def run_one(
     sim_command = ["./gradlew", "--init-script", str(headless_init), "simulateJava"]
     sim_env = os.environ.copy()
     sim_env["JAVA_HOME"] = str(java_home)
-    sim_env["JAVA_TOOL_OPTIONS"] = "-DrobotMode=SIM -Dsim.agent.enabled=true"
+    inherited_tool_options = os.environ.get("JAVA_TOOL_OPTIONS", "").strip()
+    sim_env["JAVA_TOOL_OPTIONS"] = (
+        f"{inherited_tool_options} -DrobotMode=SIM -Dsim.agent.enabled=true"
+        if inherited_tool_options
+        else "-DrobotMode=SIM -Dsim.agent.enabled=true"
+    )
     sim = subprocess.Popen(
         sim_command,
         cwd=repo,
@@ -190,13 +186,15 @@ def run_one(
 
     try:
         with tempfile.TemporaryDirectory(prefix="wpilib-sim-shot-map-") as tmpdir:
-            classes, cp, native_dir = compile_shot_client(root, Path(tmpdir))
+            classes, cp, native_dir = compile_client(
+                root, Path(tmpdir), "RunShotMapNtClient", JAVA_SOURCE, shot_client_classpath
+            )
             subprocess.run(
                 [
                     str(root / "jdk/bin/java"),
                     f"-Djava.library.path={native_dir}",
                     "-cp",
-                    f"{classes}:{cp}",
+                    os.pathsep.join([str(classes), cp]),
                     "RunShotMapNtClient",
                     "127.0.0.1",
                     str(distance),
@@ -207,7 +205,8 @@ def run_one(
                 cwd=repo,
                 check=True,
             )
-        output, _ = sim.communicate(timeout=90)
+        sim_timeout = max(90.0, 2.0 * settle_seconds + enabled_seconds + 60.0)
+        output, _ = sim.communicate(timeout=sim_timeout)
         print(output, end="")
     except Exception:
         if sim.poll() is None:
@@ -230,7 +229,7 @@ def run_one(
 
 def decode(repo: Path, log: Path, topics: list[str]) -> dict:
     command = [
-        "python3",
+        sys.executable,
         str(repo / ".agents/skills/wpilog-decode/scripts/read_wpilog_values.py"),
         "--repo",
         str(repo),
@@ -250,7 +249,7 @@ def latest_number(topics: dict, topic: str) -> float:
     value = topics.get(topic, {}).get("latest", "-")
     try:
         return float(value)
-    except ValueError:
+    except (TypeError, ValueError):
         return math.nan
 
 
@@ -293,7 +292,7 @@ def closest_point_to_target(
 def inside_maplesim_target_tolerance(
     point: tuple[float, float, float],
     target: tuple[float, float, float],
-    tolerance: float = 0.7,
+    tolerance: float = MAPLESIM_TARGET_TOLERANCE_METERS,
 ) -> bool:
     if any(math.isnan(component) for component in point + target):
         return False
@@ -341,7 +340,7 @@ def summarize(repo: Path, log: Path, distance: float) -> dict:
         "target": target,
         "closestToTarget": closest,
         "closestTargetDistance": closest_distance,
-        "clearsHubSide": max_z >= 1.435,
+        "clearsHubSide": max_z >= HUB_SIDE_MIN_HEIGHT_METERS,
         "nearTarget": inside_maplesim_target_tolerance(closest, target),
     }
 

@@ -10,7 +10,7 @@ from pathlib import Path
 
 def main() -> None:
     target = Path(__file__).resolve().parents[2] / "wpilog-decode/scripts/find_wpilog_window.py"
-    subprocess.run([sys.executable, str(target), *sys.argv[1:]], check=True)
+    raise SystemExit(subprocess.run([sys.executable, str(target), *sys.argv[1:]], check=False).returncode)
 
 
 if __name__ == "__main__":

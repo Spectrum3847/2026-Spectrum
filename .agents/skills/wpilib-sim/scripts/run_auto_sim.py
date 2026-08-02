@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import platform
 import shutil
 import signal
 import subprocess
@@ -149,32 +150,48 @@ def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
 
 def classpath(root: Path) -> str:
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-java")
+    jackson = wpilib_version(root, "com/fasterxml/jackson/core", "jackson-core")
     jars = [
         root / f"maven/edu/wpi/first/ntcore/ntcore-java/{version}/ntcore-java-{version}.jar",
         root / f"maven/edu/wpi/first/wpiutil/wpiutil-java/{version}/wpiutil-java-{version}.jar",
-        root / "maven/com/fasterxml/jackson/core/jackson-core/2.19.2/jackson-core-2.19.2.jar",
-        root / "maven/com/fasterxml/jackson/core/jackson-databind/2.19.2/jackson-databind-2.19.2.jar",
-        root / "maven/com/fasterxml/jackson/core/jackson-annotations/2.19.2/jackson-annotations-2.19.2.jar",
+        root / f"maven/com/fasterxml/jackson/core/jackson-core/{jackson}/jackson-core-{jackson}.jar",
+        root / f"maven/com/fasterxml/jackson/core/jackson-databind/{jackson}/jackson-databind-{jackson}.jar",
+        root / f"maven/com/fasterxml/jackson/core/jackson-annotations/{jackson}/jackson-annotations-{jackson}.jar",
     ]
     missing = [str(jar) for jar in jars if not jar.exists()]
     if missing:
         raise SystemExit("Missing WPILib Java dependency jars:\n" + "\n".join(missing))
-    return ":".join(str(jar) for jar in jars)
+    return os.pathsep.join(str(jar) for jar in jars)
+
+
+def native_platform() -> tuple[str, str]:
+    system = platform.system()
+    machine = platform.machine().lower()
+    if system == "Darwin":
+        return "osxuniversal", "osx/universal/shared"
+    if system == "Linux":
+        if machine in ("aarch64", "arm64"):
+            return "linuxarm64", "linux/arm64/shared"
+        return "linuxx86-64", "linux/x86-64/shared"
+    if system == "Windows":
+        return "windowsx86-64", "windows/x86-64/shared"
+    raise SystemExit(f"Unsupported WPILib native platform: {system} {machine}")
 
 
 def extract_natives(root: Path, target: Path) -> Path:
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-cpp")
+    classifier, shared_dir = native_platform()
     archives = [
-        root / f"maven/edu/wpi/first/wpiutil/wpiutil-cpp/{version}/wpiutil-cpp-{version}-osxuniversal.zip",
-        root / f"maven/edu/wpi/first/wpinet/wpinet-cpp/{version}/wpinet-cpp-{version}-osxuniversal.zip",
-        root / f"maven/edu/wpi/first/ntcore/ntcore-cpp/{version}/ntcore-cpp-{version}-osxuniversal.zip",
+        root / f"maven/edu/wpi/first/wpiutil/wpiutil-cpp/{version}/wpiutil-cpp-{version}-{classifier}.zip",
+        root / f"maven/edu/wpi/first/wpinet/wpinet-cpp/{version}/wpinet-cpp-{version}-{classifier}.zip",
+        root / f"maven/edu/wpi/first/ntcore/ntcore-cpp/{version}/ntcore-cpp-{version}-{classifier}.zip",
     ]
     for archive in archives:
         if not archive.exists():
             raise SystemExit(f"Missing WPILib native archive: {archive}")
         with zipfile.ZipFile(archive) as zip_file:
             zip_file.extractall(target)
-    native_dir = target / "osx/universal/shared"
+    native_dir = target / shared_dir
     if not native_dir.is_dir():
         raise SystemExit(f"Could not find extracted WPILib native directory: {native_dir}")
     return native_dir
@@ -185,14 +202,20 @@ def latest_log(repo: Path) -> Path | None:
     return logs[-1].resolve() if logs else None
 
 
-def compile_client(root: Path, tmp: Path) -> tuple[Path, str, Path]:
-    source = tmp / "RunAutoNtClient.java"
+def compile_client(
+    root: Path,
+    tmp: Path,
+    class_name: str,
+    java_source: str,
+    classpath_builder=classpath,
+) -> tuple[Path, str, Path]:
+    source = tmp / f"{class_name}.java"
     classes = tmp / "classes"
     native_root = tmp / "native"
     classes.mkdir()
     native_root.mkdir()
-    source.write_text(JAVA_SOURCE)
-    cp = classpath(root)
+    source.write_text(java_source)
+    cp = classpath_builder(root)
     native_dir = extract_natives(root, native_root)
     subprocess.run([str(root / "jdk/bin/javac"), "-cp", cp, "-d", str(classes), str(source)], check=True)
     return classes, cp, native_dir
@@ -229,7 +252,12 @@ def main() -> None:
     ]
     sim_env = os.environ.copy()
     sim_env["JAVA_HOME"] = str(java_home)
-    sim_env["JAVA_TOOL_OPTIONS"] = "-DrobotMode=SIM -Dsim.agent.enabled=true"
+    inherited_tool_options = os.environ.get("JAVA_TOOL_OPTIONS", "").strip()
+    sim_env["JAVA_TOOL_OPTIONS"] = (
+        f"{inherited_tool_options} -DrobotMode=SIM -Dsim.agent.enabled=true"
+        if inherited_tool_options
+        else "-DrobotMode=SIM -Dsim.agent.enabled=true"
+    )
 
     sim = subprocess.Popen(
         sim_command,
@@ -242,12 +270,12 @@ def main() -> None:
 
     try:
         with tempfile.TemporaryDirectory(prefix="wpilib-sim-agent-") as tmpdir:
-            classes, cp, native_dir = compile_client(root, Path(tmpdir))
+            classes, cp, native_dir = compile_client(root, Path(tmpdir), "RunAutoNtClient", JAVA_SOURCE)
             client_command = [
                 str(root / "jdk/bin/java"),
                 f"-Djava.library.path={native_dir}",
                 "-cp",
-                f"{classes}:{cp}",
+                os.pathsep.join([str(classes), cp]),
                 "RunAutoNtClient",
                 args.host,
                 args.auto,

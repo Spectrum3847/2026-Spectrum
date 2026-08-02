@@ -5,7 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from ascope_layout_common import build_field_sources
 
 
 def main() -> None:
@@ -23,42 +28,16 @@ def main() -> None:
     parser.add_argument("--title", default="3D Field", help="Tab title")
     args = parser.parse_args()
 
-    sources = [
-        {
-            "type": "robot",
-            "logKey": args.topic,
-            "logType": args.topic_type,
-            "visible": True,
-            "options": {
-                "model": args.robot,
-            },
-        }
-    ]
-    if args.game_piece_topic:
-        sources.append(
-            {
-                "type": "gamePiece",
-                "logKey": args.game_piece_topic,
-                "logType": "Pose3d[]",
-                "visible": True,
-                "options": {
-                    "variant": args.game_piece_variant,
-                },
-            }
-        )
-    if args.trajectory_topic:
-        sources.append(
-            {
-                "type": "trajectory",
-                "logKey": args.trajectory_topic,
-                "logType": "Pose3d[]",
-                "visible": True,
-                "options": {
-                    "color": args.trajectory_color,
-                    "size": args.trajectory_size,
-                },
-            }
-        )
+    sources = build_field_sources(
+        args.topic,
+        args.topic_type,
+        args.robot,
+        args.game_piece_topic,
+        args.game_piece_variant,
+        args.trajectory_topic,
+        args.trajectory_color,
+        args.trajectory_size,
+    )
     state = {
         "sidebar": {
             "width": 260,

@@ -5,47 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-COLORS = [
-    "#ff0000",
-    "#00a000",
-    "#0066ff",
-    "#ff9900",
-    "#aa00ff",
-    "#00aaaa",
-    "#ff66cc",
-    "#999999",
-]
-
-
-def source(topic: str, color: str, source_type: str) -> dict:
-    return {
-        "type": source_type,
-        "logKey": topic,
-        "logType": "Number" if source_type == "smooth" else "Boolean",
-        "visible": True,
-        "options": {"color": color, "size": "bold"} if source_type == "smooth" else {"color": color},
-    }
-
-
-def expanded_paths(topics: list[str]) -> list[str]:
-    expanded: list[str] = []
-    seen: set[str] = set()
-    for topic in topics:
-        parts = [part for part in topic.split("/") if part]
-        current = ""
-        for part in parts[:-1]:
-            current += "/" + part
-            if current not in seen:
-                expanded.append(current)
-                seen.add(current)
-    return expanded
-
-
-def parse_range(raw: list[float] | None) -> list[float] | None:
-    return None if raw is None else [raw[0], raw[1]]
+from ascope_layout_common import expanded_paths, next_color, parse_range, source
 
 
 def main() -> None:
@@ -58,14 +23,6 @@ def main() -> None:
     parser.add_argument("--left-range", nargs=2, type=float, metavar=("MIN", "MAX"), help="Locked left axis range")
     parser.add_argument("--right-range", nargs=2, type=float, metavar=("MIN", "MAX"), help="Locked right axis range")
     args = parser.parse_args()
-
-    color_index = 0
-
-    def next_color() -> str:
-        nonlocal color_index
-        color = COLORS[color_index % len(COLORS)]
-        color_index += 1
-        return color
 
     left_sources = [source(topic, next_color(), "smooth") for topic in args.left_topic]
     right_sources = [source(topic, next_color(), "smooth") for topic in args.right_topic]

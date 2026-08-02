@@ -8,11 +8,9 @@ import os
 import signal
 import subprocess
 import tempfile
-import time
 from pathlib import Path
 
-from run_auto_sim import classpath, compile_client, extract_natives, latest_log, wpilib_root
-
+from run_auto_sim import compile_client, latest_log, wpilib_root
 
 JAVA_SOURCE = r'''
 import edu.wpi.first.networktables.NetworkTable;
@@ -191,19 +189,6 @@ public class RunTeleopNtClient {
 '''
 
 
-def compile_teleop_client(root: Path, tmp: Path) -> tuple[Path, str, Path]:
-    source = tmp / "RunTeleopNtClient.java"
-    classes = tmp / "classes"
-    native_root = tmp / "native"
-    classes.mkdir()
-    native_root.mkdir()
-    source.write_text(JAVA_SOURCE)
-    cp = classpath(root)
-    native_dir = extract_natives(root, native_root)
-    subprocess.run([str(root / "jdk/bin/javac"), "-cp", cp, "-d", str(classes), str(source)], check=True)
-    return classes, cp, native_dir
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
@@ -230,6 +215,19 @@ def main() -> None:
     if not args.sequence and args.duration is None:
         parser.error("--duration is required unless --sequence is provided")
     duration = args.duration if args.duration is not None else 0.0
+    timeout_duration = duration
+    if args.sequence:
+        timeout_duration = 0.0
+        for segment in args.sequence.split(";"):
+            if not segment.strip():
+                continue
+            parts = segment.split(":", 1)
+            if len(parts) != 2 or not parts[1].strip():
+                parser.error(f"Sequence segment must be duration:... got '{segment}'")
+            try:
+                timeout_duration += float(parts[0].strip())
+            except ValueError:
+                parser.error(f"Sequence segment duration must be numeric, got '{parts[0].strip()}'")
 
     repo = Path(args.repo).resolve()
     root = wpilib_root()
@@ -239,7 +237,12 @@ def main() -> None:
     sim_command = ["./gradlew", "--init-script", str(Path(args.headless_init).resolve()), "simulateJava"]
     sim_env = os.environ.copy()
     sim_env["JAVA_HOME"] = str(java_home)
-    sim_env["JAVA_TOOL_OPTIONS"] = "-DrobotMode=SIM -Dsim.agent.enabled=true"
+    inherited_tool_options = os.environ.get("JAVA_TOOL_OPTIONS", "").strip()
+    sim_env["JAVA_TOOL_OPTIONS"] = (
+        f"{inherited_tool_options} -DrobotMode=SIM -Dsim.agent.enabled=true"
+        if inherited_tool_options
+        else "-DrobotMode=SIM -Dsim.agent.enabled=true"
+    )
 
     sim = subprocess.Popen(
         sim_command,
@@ -252,12 +255,12 @@ def main() -> None:
 
     try:
         with tempfile.TemporaryDirectory(prefix="wpilib-sim-teleop-") as tmpdir:
-            classes, cp, native_dir = compile_teleop_client(root, Path(tmpdir))
+            classes, cp, native_dir = compile_client(root, Path(tmpdir), "RunTeleopNtClient", JAVA_SOURCE)
             client_command = [
                 str(root / "jdk/bin/java"),
                 f"-Djava.library.path={native_dir}",
                 "-cp",
-                f"{classes}:{cp}",
+                os.pathsep.join([str(classes), cp]),
                 "RunTeleopNtClient",
                 args.host,
                 args.alliance,
@@ -271,9 +274,6 @@ def main() -> None:
             ]
             subprocess.run(client_command, cwd=repo, check=True)
 
-        timeout_duration = duration
-        if args.sequence:
-            timeout_duration = sum(float(segment.split(":", 1)[0].strip()) for segment in args.sequence.split(";"))
         output, _ = sim.communicate(timeout=max(15.0, timeout_duration + 20.0))
         print(output, end="")
     except Exception:

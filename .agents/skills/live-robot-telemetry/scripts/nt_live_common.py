@@ -38,12 +38,12 @@ def _version_key(name: str) -> tuple[int, ...]:
             if token.isdigit():
                 key.append(int(token))
             elif token == "beta":
-                key.append(-2)
+                key.append(0)
             elif token == "rc":
-                key.append(-1)
+                key.append(1)
             else:
-                key.append(-1)
-    return tuple(key)
+                key.append(2)
+    return tuple(key + [2] * (8 - len(key)))
 
 
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
