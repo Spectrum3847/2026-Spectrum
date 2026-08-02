@@ -748,7 +748,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     @Getter private RobotBumpSim robotBumpSim = null;
     @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
 
-    /** Starts the sim thread. */
+    /**
+     * Starts the simulated drivetrain and bump simulation, then schedules periodic simulation updates.
+     */
     @SuppressWarnings("unchecked")
     private void startSimThread() {
         mapleSimSwerveDrivetrain =

@@ -39,6 +39,20 @@ public abstract class SimTestBase {
         public final Hood hood;
         public final SuperStructure superStructure;
 
+        /**
+         * Creates a robot stack containing the configuration and robot subsystems.
+         *
+         * @param config the robot configuration
+         * @param swerve the swerve drivetrain
+         * @param fuelIntake the fuel intake
+         * @param intakeExtension the intake extension
+         * @param dyeRotor the dye rotor
+         * @param launcher the launcher
+         * @param launcherTower the launcher tower
+         * @param turret the turret
+         * @param hood the hood
+         * @param superStructure the superstructure
+         */
         public RobotStack(
                 Robot.Config config,
                 Swerve swerve,
