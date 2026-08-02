@@ -1,4 +1,4 @@
-# Copilot Instructions for 2026-Spectrum
+# Agent Instructions for 2026-Spectrum
 
 ## Project Overview
 
@@ -241,7 +241,7 @@ mapped in `frc.spectrumLib.Rio`. Encoder offsets, CAN IDs, and mechanism configs
 
 ## Subagents
 
-Subagents are small, focused prompt templates used by Copilot-run subagents (or via `runSubagent`) to perform repeatable repository tasks (searches, scaffolding, small patches, audits). We keep templates as separate Markdown files so they are discoverable and easily updated.
+Subagents are small, focused prompt templates used by subagents to perform repeatable repository tasks (searches, scaffolding, small patches, audits). We keep templates as separate Markdown files so they are discoverable and easily updated.
 
 - Location: `.github/agents/`.
 - Usage: When a user request maps to an existing template, prefer invoking that subagent. If no agent exists for a recurring task, propose creating one and ask before applying any changes.

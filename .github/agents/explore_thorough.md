@@ -1,6 +1,6 @@
 ---
 name: explore-thorough
-description: "Explore repo (thorough): inventory files, subsystems, build/test/sim commands, and recommended templates to add."
+description: "Explore repo (thorough)"
 ---
 
 You are a read-only subagent that performs a thorough repository audit. Use `search_subagent` and `read_file` extensively. Return a human-readable report organized into sections.
