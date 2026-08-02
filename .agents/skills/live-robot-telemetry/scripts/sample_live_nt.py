@@ -213,15 +213,18 @@ public class SampleLiveNt {
       }
       if (spikeIndex >= 0) {
         NetworkTableValue spikeValue = subscribers[spikeIndex].get();
+        boolean hasSpikeSample = false;
         double spikeSample = 0.0;
         if (spikeValue != null && spikeValue.isValid()) {
           if (spikeValue.isDouble()) {
             spikeSample = spikeValue.getDouble();
+            hasSpikeSample = true;
           } else if (spikeValue.isInteger()) {
             spikeSample = spikeValue.getInteger();
+            hasSpikeSample = true;
           }
         }
-        if (spikeSample >= spikeThreshold) {
+        if (hasSpikeSample && spikeSample >= spikeThreshold) {
           spikes.add(new SampleRow(System.currentTimeMillis() / 1000.0, values));
         }
       }

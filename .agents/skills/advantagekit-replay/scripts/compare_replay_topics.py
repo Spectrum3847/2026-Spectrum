@@ -93,6 +93,8 @@ def _version_key(name: str) -> tuple[int, ...]:
 
 def wpilib_version(root: Path) -> str:
     base = root / "maven/edu/wpi/first/wpiutil/wpiutil-java"
+    if not base.is_dir():
+        raise SystemExit(f"No wpiutil-java versions found in {base}")
     versions = sorted((p.name for p in base.iterdir() if p.is_dir()), key=_version_key)
     if not versions:
         raise SystemExit(f"No wpiutil-java versions found in {base}")

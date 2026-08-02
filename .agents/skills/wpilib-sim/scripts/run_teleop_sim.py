@@ -16,6 +16,8 @@ JAVA_SOURCE = r'''
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RunTeleopNtClient {
     public static void main(String[] args) throws Exception {
@@ -64,6 +66,13 @@ public class RunTeleopNtClient {
         joystick.getEntry("Name").setString("SimAgent Xbox Controller");
         inst.flush();
 
+        Map<Integer, double[]> lastAxes = new HashMap<>();
+        Map<Integer, boolean[]> lastButtons = new HashMap<>();
+        Map<Integer, long[]> lastPovs = new HashMap<>();
+        lastAxes.put(port, axes);
+        lastButtons.put(port, buttons);
+        lastPovs.put(port, povs);
+
         Thread.sleep(500);
         ds.getEntry("Enabled").setBoolean(true);
         inst.flush();
@@ -80,15 +89,20 @@ public class RunTeleopNtClient {
                 segmentJoystick.getEntry("Type").setInteger(1);
                 segmentJoystick.getEntry("Name").setString("SimAgent Xbox Controller");
                 inst.flush();
+                lastAxes.put(segment.port, segment.axes);
+                lastButtons.put(segment.port, segment.buttons);
+                lastPovs.put(segment.port, segment.povs);
                 Thread.sleep((long) (segment.durationSeconds * 1000.0));
             }
         }
 
         for (int clearPort : touchedPorts(port, sequence)) {
             NetworkTable clearJoystick = sim.getSubTable("Joystick").getSubTable(Integer.toString(clearPort));
-            clearJoystick.getEntry("Axes").setDoubleArray(new double[] {0, 0, 0, 0, 0, 0});
-            clearJoystick.getEntry("Buttons").setBooleanArray(new boolean[] {false, false, false, false, false, false, false, false, false, false});
-            clearJoystick.getEntry("POVs").setIntegerArray(new long[] {-1});
+            clearJoystick.getEntry("Axes").setDoubleArray(new double[lastAxes.get(clearPort).length]);
+            clearJoystick.getEntry("Buttons").setBooleanArray(new boolean[lastButtons.get(clearPort).length]);
+            long[] clearedPovs = new long[lastPovs.get(clearPort).length];
+            Arrays.fill(clearedPovs, -1L);
+            clearJoystick.getEntry("POVs").setIntegerArray(clearedPovs);
         }
         ds.getEntry("Enabled").setBoolean(false);
         control.getEntry("Exit").setBoolean(true);
