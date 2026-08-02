@@ -24,8 +24,8 @@ import org.junit.jupiter.api.BeforeEach;
 public abstract class SimTestBase {
 
     /**
-     * Helper class to hold the full robot stack components for simulation tests.
-     * Resources are owned by the caller and must be closed appropriately.
+     * Helper class to hold the full robot stack components for simulation tests. Resources are
+     * owned by the caller and must be closed appropriately.
      */
     public static class RobotStack {
         public final Robot.Config config;
@@ -78,8 +78,8 @@ public abstract class SimTestBase {
     }
 
     /**
-     * Creates a full robot stack with OM2026 configuration for simulation testing.
-     * The caller is responsible for closing the Swerve resource (use try-with-resources).
+     * Creates a full robot stack with OM2026 configuration for simulation testing. The caller is
+     * responsible for closing the Swerve resource (use try-with-resources).
      *
      * @return a RobotStack containing all configured subsystems and SuperStructure
      */

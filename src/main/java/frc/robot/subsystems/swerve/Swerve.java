@@ -749,7 +749,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder>
     @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
 
     /**
-     * Starts the simulated drivetrain and bump simulation, then schedules periodic simulation updates.
+     * Starts the simulated drivetrain and bump simulation, then schedules periodic simulation
+     * updates.
      */
     @SuppressWarnings("unchecked")
     private void startSimThread() {
