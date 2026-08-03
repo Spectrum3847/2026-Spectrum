@@ -29,8 +29,7 @@ Core structural interfaces and base classes.
 
 | Class | Description |
 |-------|-------------|
-| `SpectrumRobot` | Extends `TimedRobot`; manages global `SpectrumSubsystem` registration and calls `setupStates()`/`setupDefaultCommand()` on all subsystems |
-| `SpectrumSubsystem` | Interface extending WPILib `Subsystem`; requires `setupStates()` and `setupDefaultCommand()` |
+| `SpectrumRobot` | Extends `TimedRobot`; silences joystick connection warnings and extends loop overrun watchdog timeout to 200 ms |
 | `SpectrumState` | Named boolean state backed by a WPILib `Trigger`; supports timed, toggled, and command-driven state transitions |
 
 ---
@@ -97,13 +96,13 @@ Xbox controller abstraction.
 ---
 
 ### `leds`
-AddressableLED subsystem with a pattern library.
+CTRE CANdle LED subsystem with a pattern library.
 
 | Class | Description |
 |-------|-------------|
-| `SpectrumLEDs` | Manages an `AddressableLED` strip or view; provides `solid()`, `blink()`, `breathe()`, `rainbow()`, `chase()`, `wave()`, `bounce()`, `ombre()`, `countdown()`, and `stripe()` pattern factories |
+| `SpectrumLEDs` | Manages a shared CTRE CANdle with non-overlapping `startIdx`/`numLeds` ranges per instance; provides `solid()`, `blink()`, `breathe()`, `rainbow()`, `scrollingRainbow()`, `chase()`, `bounce()`, `fire()`, `rgbCycle()`, `stripe()`, `gradient()`, `edges()`, `ombre()`, `wave()`, `countdown()`, and `switchCountdown()` pattern factories |
 
-Supports multi-zone strips via `AddressableLEDBufferView` and a priority system to prevent low-priority commands from overriding higher-priority ones.
+Supports multiple LED zones on a single CANdle and a priority system to prevent low-priority commands from overriding higher-priority ones.
 
 ---
 
@@ -154,4 +153,4 @@ Limelight vision utilities.
 
 ## Usage
 
-Copy the `spectrumLib` directory into your robot project under `src/main/java/frc/`. Extend `SpectrumRobot` as your robot base class, implement `SpectrumSubsystem` on each subsystem, and extend `Mechanism` for any TalonFX-driven mechanism.
+Copy the `spectrumLib` directory into your robot project under `src/main/java/frc/`. Extend `SpectrumRobot` as your robot base class and extend `Mechanism` for any TalonFX-driven mechanism.

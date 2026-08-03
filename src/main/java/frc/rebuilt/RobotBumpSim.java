@@ -97,10 +97,10 @@ public class RobotBumpSim {
     private static final Translation3d GRAVITY = new Translation3d(0, 0, -9.81);
 
     /** Full length of the REBUILT field (metres). */
-    private static final double FIELD_LENGTH = 16.51;
+    private static final double FIELD_LENGTH = Field.fieldLength;
 
     /** Full width of the REBUILT field (metres). */
-    private static final double FIELD_WIDTH = 8.04;
+    private static final double FIELD_WIDTH = Field.fieldWidth;
 
     /**
      * Start points of the eight bump XZ line segments (four per alliance, ascending + descending).

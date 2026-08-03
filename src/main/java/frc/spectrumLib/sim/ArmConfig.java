@@ -14,17 +14,17 @@ public class ArmConfig {
     /** Number of Kraken X60 motors driving the arm. */
     @Getter @Setter private int numMotors = 1;
     /** Initial X position of the arm pivot in the Mechanism2d canvas (metres). */
-    @Getter @Setter private double initialX = 0.7;
+    @Getter @Setter private double initialX;
     /** Initial Y position of the arm pivot in the Mechanism2d canvas (metres). */
-    @Getter @Setter private double initialY = 0.3;
+    @Getter @Setter private double initialY;
     /** Current X position of the arm pivot used during simulation updates (metres). */
-    @Getter @Setter private double pivotX = 0.7;
+    @Getter @Setter private double pivotX;
     /** Current Y position of the arm pivot used during simulation updates (metres). */
-    @Getter @Setter private double pivotY = 0.3;
+    @Getter @Setter private double pivotY;
     /** Motor rotations required for one full revolution of the arm mechanism. */
-    @Getter @Setter private double ratio = 50;
+    @Getter @Setter private double ratio;
     /** Visual length of the arm ligament in the Mechanism2d canvas (metres). */
-    @Getter @Setter private double length = 0.5;
+    @Getter @Setter private double length;
     /** Moment of inertia used by the physics simulation (kg·m²). */
     @Getter @Setter private double simMOI = 1.2;
     /**
@@ -33,11 +33,11 @@ public class ArmConfig {
      */
     @Getter @Setter private double simCGLength = 0.2;
     /** Minimum allowable arm angle (radians). */
-    @Getter @Setter private double minAngle = Math.toRadians(-60);
+    @Getter @Setter private double minAngle;
     /** Maximum allowable arm angle (radians). */
-    @Getter @Setter private double maxAngle = Math.toRadians(90);
+    @Getter @Setter private double maxAngle;
     /** Arm angle at the start of the simulation (radians). */
-    @Getter @Setter private double startingAngle = Math.toRadians(90);
+    @Getter @Setter private double startingAngle;
     /** Whether the physics simulation should apply gravitational force to the arm. */
     @Getter @Setter private boolean simulateGravity = true;
     /** Whether this arm is attached to a parent {@link Mount}. */

@@ -427,7 +427,7 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
         Telemetry.log("ShotCalc/TimeOfFlight", tofFinal, "seconds");
         Telemetry.log("ShotCalc/FeedShot", feed);
-        Telemetry.log("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
+        Telemetry.log("ShotCalc/HubPolyModel", model.name());
         Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Target", target);

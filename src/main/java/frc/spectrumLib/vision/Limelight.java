@@ -4,7 +4,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.vision.LimelightHelpers.LimelightResults;
 import frc.spectrumLib.vision.LimelightHelpers.PoseEstimate;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
@@ -155,8 +154,8 @@ public class Limelight {
      * Constructs a Limelight wrapper and immediately sets its active pipeline.
      *
      * @param name the network-table name of the camera
-     * @param pipeline the pipeline index to activate (see {@link
-     *     frc.robot.subsystems.vision.Vision.VisionConfig})
+     * @param pipeline the pipeline index to activate (refer to robot vision configuration for
+     *     pipeline indexes)
      */
     public Limelight(String name, int pipeline) {
         this(name);
@@ -400,8 +399,11 @@ public class Limelight {
      *     attached or no estimate is available
      */
     public RawFiducial[] getRawFiducial() {
+        if (!isAttached()) {
+            return new RawFiducial[0];
+        }
         PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name);
-        if (est == null) {
+        if (est == null || est.rawFiducials == null) {
             return new RawFiducial[0];
         }
         return est.rawFiducials;
@@ -508,7 +510,8 @@ public class Limelight {
     /**
      * Sets the LL pipeline to the given index.
      *
-     * @param pipelineIndex use pipeline indexes in {@link VisionConfig}
+     * @param pipelineIndex the pipeline index (refer to robot vision configuration for pipeline
+     *     indexes)
      */
     public void setLimelightPipeline(int pipelineIndex) {
         if (!isAttached()) {

@@ -13,6 +13,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.FieldHelpers;
@@ -461,7 +462,9 @@ public class Vision implements Subsystem {
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
         // The pose estimator expects the heading std-dev in radians; degStds is in degrees.
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds));
-        int numTags = tags == null ? 1 : tags.length;
+
+        @SuppressWarnings("null")
+        int numTags = tags.length;
 
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
@@ -582,6 +585,13 @@ public class Vision implements Subsystem {
     private boolean rejectionCheck(Limelight ll, Pose2d pose, double targetSize) {
         if (FieldHelpers.poseOutOfField(pose)) {
             ll.sendInvalidStatus("Out of Field Rejection");
+            return true;
+        }
+
+        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
+        double currentTime = Timer.getFPGATimestamp();
+        if (currentTime - timestamp > config.getKMaxTimeDeltaSeconds()) {
+            ll.sendInvalidStatus("Stale Timestamp Rejection");
             return true;
         }
 
@@ -706,7 +716,8 @@ public class Vision implements Subsystem {
      * Returns {@code true} if any Limelight currently sees an AprilTag belonging to the current
      * alliance's set of scoring targets.
      *
-     * <p>Uses {@link DriverStation#getAlliance()} and falls back to Red if the alliance is unknown.
+     * <p>Uses {@link DriverStation#getAlliance()} and falls back to Blue if the alliance is
+     * unknown.
      */
     public boolean tagsInView() {
         DriverStation.Alliance alliance =
@@ -789,11 +800,18 @@ public class Vision implements Subsystem {
         double[] before = {botpose.getX(), botpose.getY(), botpose.getRotation().getDegrees()};
         Telemetry.log("Vision/PoseReset/Before", before);
 
+        if (FieldHelpers.poseOutOfField(megaPose)) {
+            Telemetry.log("Vision/PoseReset/Rejection", "MegaPose out of field");
+            return false;
+        }
+
         // Use MT2 translation + MT1 heading for best combined accuracy
         Pose2d integratedPose = new Pose2d(megaPose.getTranslation(), botpose.getRotation());
         Robot.getSwerve()
                 .addVisionMeasurement(
-                        integratedPose, poseTimestamp, VecBuilder.fill(0.00001, 0.00001, 0.00001));
+                        integratedPose,
+                        Utils.fpgaToCurrentTime(poseTimestamp),
+                        VecBuilder.fill(0.00001, 0.00001, 0.00001));
 
         Pose2d updated = Robot.getSwerve().getRobotPose();
         double[] after = {updated.getX(), updated.getY(), updated.getRotation().getDegrees()};

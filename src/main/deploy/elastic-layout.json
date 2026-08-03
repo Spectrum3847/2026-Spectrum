@@ -116,7 +116,7 @@
             "height": 128.0,
             "type": "Voltage View",
             "properties": {
-              "topic": "/Robot/SystemStats/BatteryVoltage",
+              "topic": "/Robot/BatteryLogger/BatteryVoltage",
               "period": 0.06,
               "data_type": "double",
               "min_value": 4.0,
