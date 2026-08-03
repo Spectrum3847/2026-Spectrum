@@ -249,6 +249,10 @@ def main() -> None:
                 parser.error(f"Sequence segment duration must be numeric, got '{parts[0].strip()}'")
             if math.isinf(seg_duration) or math.isnan(seg_duration) or seg_duration < 0:
                 parser.error(f"Sequence segment duration must be finite and non-negative, got '{parts[0].strip()}'")
+            if len(parts) == 5:
+                port_text = parts[1].strip()
+                if not port_text.isdigit():
+                    parser.error(f"Sequence segment port must be a non-negative integer, got '{port_text}'")
             timeout_duration += seg_duration
 
     repo = Path(args.repo).resolve()

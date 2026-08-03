@@ -48,30 +48,38 @@ public class ListLiveNtTopics {
       System.exit(2);
     }
 
+    final Object lock = new Object();
     Map<String, String> topics = new TreeMap<>();
     inst.addListener(new String[]{""}, EnumSet.of(NetworkTableEvent.Kind.kPublish, NetworkTableEvent.Kind.kImmediate), event -> {
       TopicInfo info = event.topicInfo;
       if (info != null) {
         String name = info.name;
         if (filter.isEmpty() || name.toLowerCase().contains(filter)) {
-          topics.put(name, info.typeStr);
+          synchronized (lock) {
+            topics.put(name, info.typeStr);
+          }
         }
       }
     });
     Thread.sleep(Math.max(250L, (long)(timeout * 1000.0)));
 
+    Map<String, String> topicSnapshot;
+    synchronized (lock) {
+      topicSnapshot = new TreeMap<>(topics);
+    }
+
     if (json) {
       System.out.println("{\"host\":\"" + jsonEscape(host) + "\",\"port\":" + port + ",\"topics\":[");
       int i = 0;
-      for (Map.Entry<String, String> topic : topics.entrySet()) {
+      for (Map.Entry<String, String> topic : topicSnapshot.entrySet()) {
         System.out.print("  {\"name\":\"" + jsonEscape(topic.getKey()) + "\",\"type\":\"" + jsonEscape(topic.getValue()) + "\"}");
-        System.out.println(++i == topics.size() ? "" : ",");
+        System.out.println(++i == topicSnapshot.size() ? "" : ",");
       }
       System.out.println("]}");
     } else {
       System.out.println("Connected to " + host + ":" + port);
-      System.out.println("Topics: " + topics.size());
-      for (Map.Entry<String, String> topic : topics.entrySet()) {
+      System.out.println("Topics: " + topicSnapshot.size());
+      for (Map.Entry<String, String> topic : topicSnapshot.entrySet()) {
         System.out.println(topic.getKey() + "\t" + topic.getValue());
       }
     }

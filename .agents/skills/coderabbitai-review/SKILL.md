@@ -28,6 +28,7 @@ If the branch is pushed and a PR exists, note the PR number and URL.
 ```sh
 gh pr view <PR> --comments        # review bodies and bot comments
 gh pr diff                        # the diff being reviewed
+gh api repos/<owner>/<repo>/pulls/<PR>/comments  # inline review comments (CodeRabbit posts these on specific lines)
 ```
 
 If no CodeRabbit review appears, check `gh pr checks <PR>` for the CodeRabbit

@@ -12,20 +12,30 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from wpilog_common import wpilib_root, wpilib_version
+from wpilog_common import wpilib_root, wpilib_version, resolve_log
 
 
 JAVA_SOURCE = r'''
 import edu.wpi.first.util.datalog.DataLogReader;
 import edu.wpi.first.util.datalog.DataLogRecord;
 import edu.wpi.first.util.datalog.DataLogRecord.StartRecordData;
+import java.util.Iterator;
 
 public class ListWpilogTopics {
     public static void main(String[] args) throws Exception {
         String log = args[0];
         String filter = args.length > 1 ? args[1] : "";
         DataLogReader reader = new DataLogReader(log);
-        for (DataLogRecord record : reader) {
+        Iterator<DataLogRecord> iterator = reader.iterator();
+        while (true) {
+            DataLogRecord record;
+            try {
+                if (!iterator.hasNext()) break;
+                record = iterator.next();
+            } catch (RuntimeException ex) {
+                System.out.println("warning=stopped after partial read: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+                break;
+            }
             if (!record.isStart()) continue;
             StartRecordData data = record.getStartData();
             if (filter.isEmpty() || data.name.contains(filter) || data.type.contains(filter)) {
@@ -35,17 +45,6 @@ public class ListWpilogTopics {
     }
 }
 '''
-
-
-def resolve_log(path: Path) -> Path:
-    """Resolve the WPILOG file path from a CLI arg or auto-detect the latest."""
-    if path.suffix == ".wpilog":
-        return path.resolve()
-    directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
-    logs = sorted(directory.glob("*.wpilog"), key=lambda p: p.stat().st_mtime)
-    if not logs:
-        raise SystemExit(f"No .wpilog files found in {directory}")
-    return logs[-1].resolve()
 
 
 def run_with_java(repo: Path, log: Path, filter_text: str) -> None:

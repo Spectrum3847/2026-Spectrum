@@ -88,6 +88,7 @@ public class SimNtControlClient {
             entry.getTopic().setRetained(true);
         }
         inst.flush();
+        Thread.sleep(250);
         inst.stopClient();
         System.out.println("wroteSimAgentState=true");
     }

@@ -51,8 +51,9 @@ public class SensorIOReal implements SensorIO {
 
     public SensorIOReal() {
         new Thread(() -> {
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 cachedValue = sensor.get(); // thread-safe field update
+                try { Thread.sleep(20); } catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
             }
         }).start();
     }

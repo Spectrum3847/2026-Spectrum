@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import subprocess
 from pathlib import Path
@@ -26,11 +27,15 @@ def main() -> None:
     args = parser.parse_args()
 
     repo = Path(args.repo).resolve()
+    if not repo.is_dir():
+        raise SystemExit(f"Repo root not found: {repo}")
     log = Path(args.log)
     if not log.is_absolute():
         log = (repo / log).resolve()
     if not log.is_file():
         raise SystemExit(f"Replay log not found: {log}")
+    if math.isinf(args.timeout) or math.isnan(args.timeout) or args.timeout <= 0:
+        raise SystemExit("--timeout must be a finite, positive number")
 
     env = os.environ.copy()
     env["AKIT_LOG_PATH"] = str(log)

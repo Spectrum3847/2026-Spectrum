@@ -15,6 +15,8 @@ def read_name(config_path: Path) -> str | None:
         data: Any = json.loads(config_path.read_text())
     except (OSError, json.JSONDecodeError):
         return None
+    if not isinstance(data, dict):
+        return None
     name = data.get("name")
     return name if isinstance(name, str) and name.strip() else None
 

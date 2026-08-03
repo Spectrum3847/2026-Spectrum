@@ -168,6 +168,11 @@ def main() -> None:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
             process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
 
 
 if __name__ == "__main__":

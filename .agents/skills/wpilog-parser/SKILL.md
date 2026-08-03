@@ -12,7 +12,7 @@ WPILOG is the binary log format used by logging libraries in the FRC ecosystem. 
 
 1. Init a project using `bun init` or similar
 2. Add `wpilog-parser` as a dependency
-3. Create a `.ts` file for catalogging the records in the WPILOG file
+3. Create a `.ts` file for cataloging the records in the WPILOG file
 
    ```ts
    import { readFile } from 'node:fs/promises';
@@ -103,6 +103,7 @@ let enabled = false;
 let auto = false;
 let test = false;
 let enabledSince: bigint | null = null;
+let lastTimestamp: bigint = 0n;
 const totals = { auto: 0n, teleop: 0n, test: 0n };
 
 for (const r of decodeRecords(readRecords(bytes))) {
@@ -116,12 +117,19 @@ for (const r of decodeRecords(readRecords(bytes))) {
   else if (r.name === '/DS:test') test = r.payload;
   else continue;
 
+  lastTimestamp = r.timestamp;
+
   if (wasEnabled && (!enabled || modeOf(auto, test) !== prevMode)) {
     totals[prevMode] += r.timestamp - (enabledSince ?? r.timestamp);
     enabledSince = enabled ? r.timestamp : null;
   } else if (!wasEnabled && enabled) {
     enabledSince = r.timestamp;
   }
+}
+
+// Account for trailing enabled interval using the last decoded record's timestamp.
+if (wasEnabled && enabledSince !== null) {
+  totals[modeOf(auto, test)] += lastTimestamp - enabledSince;
 }
 
 // Durations in microseconds; divide by 1_000_000n for seconds.

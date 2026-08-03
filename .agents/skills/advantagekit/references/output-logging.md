@@ -66,7 +66,7 @@ All types support single values, 1D arrays, and 2D arrays unless noted.
 ```java
 @Override
 public void disabledInit() {
-    Logger.recordOutput("Odometry/Robot", new Pose2d()); // warm up struct schema
+    Logger.recordOutput("Odometry/RobotSnapshot", new Pose2d()); // warm up; records & Protobufs share the same first-log delay
 }
 ```
 

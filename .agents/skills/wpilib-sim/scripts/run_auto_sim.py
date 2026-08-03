@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 import platform
+import re
 import shutil
 import signal
 import subprocess
@@ -141,10 +142,20 @@ def wpilib_root() -> Path:
     )
 
 
+def _version_key(name: str) -> tuple[int, ...]:
+    """Build a sort key that orders numeric version components numerically."""
+    parts = re.split(r"[.\-+]", name)
+    return tuple((0, int(part)) if part.isdigit() else (1, part) for part in parts)
+
+
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
     """Read a WPILib Maven artifact version from the local repository."""
     directory = root / "maven" / group_path / artifact
-    versions = sorted((path.name for path in directory.glob("*") if path.is_dir()), reverse=True)
+    versions = sorted(
+        (path.name for path in directory.glob("*") if path.is_dir()),
+        key=_version_key,
+        reverse=True,
+    )
     if not versions:
         raise SystemExit(f"Could not find WPILib artifact {artifact} under {directory}")
     return versions[0]

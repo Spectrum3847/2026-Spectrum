@@ -114,7 +114,7 @@ public class AutoRoutines {
 ```java
 public Command turnToAngle(double targetDegrees) {
     PIDController controller = new PIDController(Constants.kP, 0, 0);
-    controller.setPositionTolerance(Constants.kTolerance);
+    controller.setTolerance(Constants.kTolerance);
     return runEnd(
             () -> arcadeDrive(0, -controller.calculate(gyro.getHeading(), targetDegrees)),
             () -> arcadeDrive(0, 0))

@@ -5,7 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from ascope_layout_common import expanded_paths
 
 
 def main() -> None:
@@ -20,7 +25,7 @@ def main() -> None:
     state = {
         "sidebar": {
             "width": 260,
-            "expanded": ["/RealOutputs", "/RealOutputs/Swerve", "/RealOutputs/Swerve/Odometry"],
+            "expanded": expanded_paths([args.topic]),
         },
         "tabs": {
             "selected": 0,

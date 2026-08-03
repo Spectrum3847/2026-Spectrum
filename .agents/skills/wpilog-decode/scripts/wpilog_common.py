@@ -37,7 +37,20 @@ def wpilib_root() -> Path:
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
     """Read a WPILib Maven artifact version from the local repository."""
     base = root / "maven" / group_path / artifact
+    if not base.is_dir():
+        raise SystemExit(f"No versions found for {artifact} under {base}")
     versions = sorted([p.name for p in base.iterdir() if p.is_dir()], key=_version_key)
     if not versions:
         raise SystemExit(f"No versions found for {artifact} under {base}")
     return versions[-1]
+
+
+def resolve_log(path: Path) -> Path:
+    """Resolve the WPILOG file path from a CLI arg or auto-detect the latest."""
+    if path.suffix == ".wpilog":
+        return path.resolve()
+    directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
+    logs = sorted(directory.glob("*.wpilog"), key=lambda p: p.stat().st_mtime)
+    if not logs:
+        raise SystemExit(f"No .wpilog files found in {directory}")
+    return logs[-1].resolve()

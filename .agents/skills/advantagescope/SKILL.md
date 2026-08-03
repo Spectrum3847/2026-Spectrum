@@ -158,8 +158,8 @@ metadata:
   ```sh
   python3 .agents/skills/advantagescope/scripts/generate_multiview_3d_joysticks_layout.py \
     --out artifacts/auto-previews/layouts/teleop-3d-joysticks.json \
-    --field "2026 Field" \
-    --robot "2026-Rebuild" \
+    --field "<field-id>" \
+    --robot "<robot-model>" \
     --pose-topic /RealOutputs/FieldSimulation/RobotPosition \
     --game-piece-topic /RealOutputs/FieldSimulation/Fuel \
     --game-piece-variant Fuel \

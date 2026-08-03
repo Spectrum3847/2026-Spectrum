@@ -49,7 +49,7 @@ metadata:
 
 - Compile and test:
   ```sh
-  JAVA_HOME=/Users/rohit/wpilib/2026/jdk ./gradlew test
+  ./gradlew test
   ```
 - Run a headless auto through the permanent sim bridge:
   ```sh

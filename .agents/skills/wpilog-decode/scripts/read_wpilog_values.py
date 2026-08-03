@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from wpilog_common import wpilib_root, wpilib_version
+from wpilog_common import wpilib_root, wpilib_version, resolve_log
 
 
 JAVA_SOURCE = r'''
@@ -255,17 +255,6 @@ public class ReadWpilogValues {
     }
 }
 '''
-
-
-def resolve_log(path: Path) -> Path:
-    """Resolve the WPILOG file path from a CLI arg or auto-detect the latest."""
-    if path.suffix == ".wpilog":
-        return path.resolve()
-    directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
-    logs = sorted(directory.glob("*.wpilog"), key=lambda p: p.stat().st_mtime)
-    if not logs:
-        raise SystemExit(f"No .wpilog files found in {directory}")
-    return logs[-1].resolve()
 
 
 def run_with_java(repo: Path, log: Path, topics: list[str], json_output: bool, sample_count: int) -> None:

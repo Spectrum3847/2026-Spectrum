@@ -144,11 +144,12 @@ def shot_client_classpath(root: Path) -> str:
     """Build the Java classpath for the shot-map sim client (WPILib + sim jars)."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-java")
     base = classpath(root).split(os.pathsep)
+    quickbuf_version = wpilib_version(root, "us/hebi/quickbuf", "quickbuf-runtime")
     extra = [
         root / f"maven/edu/wpi/first/wpimath/wpimath-java/{version}/wpimath-java-{version}.jar",
         root / f"maven/edu/wpi/first/apriltag/apriltag-java/{version}/apriltag-java-{version}.jar",
         root / f"maven/edu/wpi/first/wpiunits/wpiunits-java/{version}/wpiunits-java-{version}.jar",
-        root / "maven/us/hebi/quickbuf/quickbuf-runtime/1.4/quickbuf-runtime-1.4.jar",
+        root / f"maven/us/hebi/quickbuf/quickbuf-runtime/{quickbuf_version}/quickbuf-runtime-{quickbuf_version}.jar",
     ]
     missing = [str(jar) for jar in extra if not jar.exists()]
     if missing:
@@ -249,7 +250,7 @@ def decode(repo: Path, log: Path, topics: list[str]) -> dict:
 
 
 def latest_number(topics: dict, topic: str) -> float:
-    """Extract the numeric suffix from the latest sim log file name."""
+    """Return the latest value of a topic as a float, or NaN when it is not numeric."""
     value = topics.get(topic, {}).get("latest", "-")
     try:
         return float(value)
@@ -278,7 +279,7 @@ def latest_translation(topics: dict, topic: str) -> tuple[float, float, float]:
 
 
 def latest_pose(topics: dict, topic: str) -> tuple[float, float, float]:
-    """Extract the latest robot pose (translation + rotation) from the sim log."""
+    """Return the x, y, z components of the latest Pose3d value for a topic."""
     value = topics.get(topic, {}).get("latest", "")
     match = POSE_PATTERN.search(str(value))
     if not match:

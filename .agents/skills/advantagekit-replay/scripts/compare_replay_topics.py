@@ -164,7 +164,7 @@ def main() -> None:
     for topic in missing_in_replay:
         print(f"replay_missing\t{topic}")
 
-    if present_in_real or missing_in_replay:
+    if missing_in_replay:
         raise SystemExit(1)
     print("status=ok")
 

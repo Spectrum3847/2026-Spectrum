@@ -60,7 +60,7 @@ public LinearVelocity velocity = MetersPerSecond.of(0.0);
 
 ### IO Implementation Structure
 
-```
+```text
 FlywheelIO          ← interface (defines contract)
 FlywheelIOSparkMax  ← real hardware implementation
 FlywheelIOSim       ← physics simulation implementation

@@ -199,7 +199,7 @@ public class SampleLiveNt {
       }
       boolean enabled = false;
       if (enabledIndex >= 0) {
-        NetworkTableValue enabledValue = subscribers[enabledIndex].get();
+        NetworkTableValue enabledValue = sampledValues[enabledIndex];
         enabled = enabledValue != null && enabledValue.isValid() && enabledValue.isBoolean() && enabledValue.getBoolean();
       }
       if (waitForEnabled && !hasSeenEnabled) {

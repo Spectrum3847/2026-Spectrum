@@ -2,6 +2,7 @@
 
 > Applies to: WPILib 2026
 > Source: [The Command Scheduler](https://docs.wpilib.org/en/stable/docs/software/commandbased/command-scheduler.html)
+> Verified: 2026-08-03
 
 ## Overview
 

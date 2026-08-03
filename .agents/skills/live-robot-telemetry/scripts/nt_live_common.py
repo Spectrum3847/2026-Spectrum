@@ -74,17 +74,26 @@ def classpath(root: Path) -> str:
 def extract_natives(root: Path, target: Path) -> Path:
     """Extract WPILib native libraries to a temporary directory."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-cpp")
+    system = platform.system().lower()
+    if system == "darwin":
+        classifier = "osxuniversal"
+        native_dir = target / "osx/universal/shared"
+    elif system == "windows":
+        classifier = "windows"
+        native_dir = target / "windows/x64/shared"
+    else:
+        classifier = "linux"
+        native_dir = target / "linux/x64/shared"
     archives = [
-        root / f"maven/edu/wpi/first/wpiutil/wpiutil-cpp/{version}/wpiutil-cpp-{version}-osxuniversal.zip",
-        root / f"maven/edu/wpi/first/wpinet/wpinet-cpp/{version}/wpinet-cpp-{version}-osxuniversal.zip",
-        root / f"maven/edu/wpi/first/ntcore/ntcore-cpp/{version}/ntcore-cpp-{version}-osxuniversal.zip",
+        root / f"maven/edu/wpi/first/wpiutil/wpiutil-cpp/{version}/wpiutil-cpp-{version}-{classifier}.zip",
+        root / f"maven/edu/wpi/first/wpinet/wpinet-cpp/{version}/wpinet-cpp-{version}-{classifier}.zip",
+        root / f"maven/edu/wpi/first/ntcore/ntcore-cpp/{version}/ntcore-cpp-{version}-{classifier}.zip",
     ]
     for archive in archives:
         if not archive.exists():
             raise SystemExit(f"Missing WPILib native archive: {archive}")
         with zipfile.ZipFile(archive) as zip_file:
             zip_file.extractall(target)
-    native_dir = target / "osx/universal/shared"
     if not native_dir.is_dir():
         raise SystemExit(f"Could not find extracted WPILib native directory: {native_dir}")
     return native_dir
