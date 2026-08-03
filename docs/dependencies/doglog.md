@@ -32,7 +32,7 @@ Telemetry.log("Subsystem/ValueName", value);
 Telemetry.log("Subsystem/ValueName", value, "units");
 ```
 
-Keys use `Subsystem/Path/Name` so both Elastic and AdvantageScope render them as a tree. Look at the existing keys (`Launcher/kP`, `Match Data/MatchTime`, `BuildConstants/GitSHA`) before inventing a new top-level — drift here is what makes logs unsearchable a season later.
+Keys use `Subsystem/Path/Name` so both Elastic and AdvantageScope render them as a tree. Look at the existing keys (`Launcher/OnTheFlySpeed`, `Match Data/MatchTime`, `BuildConstants/GitSHA`) before inventing a new top-level — drift here is what makes logs unsearchable a season later.
 
 DogLog has overloads for doubles, booleans, strings, arrays, and WPILib structs like `Pose2d` and `ChassisSpeeds`. Just call `log` and pass the value.
 

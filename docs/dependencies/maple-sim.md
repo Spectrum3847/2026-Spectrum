@@ -30,7 +30,7 @@ The `intakeSimulation` field is intentionally `null` on a real robot. Keep the n
 
 ## Resetting the Arena
 
-`SimulatedArena.getInstance().resetFieldForAuto()` runs in `Robot.autonomousInit` and `disabledInit`. That's what gives each match a fresh set of game pieces. If you add another mode that ought to wipe the field, drop the same call into its init — without it, pieces from old runs accumulate until the sim is unusable.
+`SimulatedArena.getInstance().resetFieldForAuto()` runs in `Robot.autonomousInit` and `simulationInit` (sim-guarded in the former). That's what gives each match a fresh set of game pieces. If you add another mode that ought to wipe the field, drop the same call into its init — without it, pieces from old runs accumulate until the sim is unusable.
 
 ## Counting Pieces
 
@@ -39,7 +39,7 @@ int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
 SmartDashboard.putNumber("Sim/FuelCount", fuelCount);
 ```
 
-The Elastic Diagnostic tab subscribes to `Sim/FuelCount`. If you rename the topic, update `src/main/deploy/elastic-layout.json` to match.
+`Sim/FuelCount` is published from `Robot.simulationPeriodic()` on SmartDashboard (no Elastic layout widget uses it yet). If you rename the topic, keep any matching widget in `src/main/deploy/elastic-layout.json` in sync.
 
 ## Spawning a Projectile
 

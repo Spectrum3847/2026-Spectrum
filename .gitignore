@@ -191,3 +191,7 @@ compile_commands.json
 
 # Version file
 src/main/java/frc/robot/BuildConstants.java
+
+# Python bytecode cache
+__pycache__/
+*.pyc
