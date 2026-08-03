@@ -28,7 +28,25 @@ If the branch is pushed and a PR exists, note the PR number and URL.
 ```sh
 gh pr view <PR> --comments        # review bodies and bot comments
 gh pr diff                        # the diff being reviewed
-gh api repos/<owner>/<repo>/pulls/<PR>/comments  # inline review comments (CodeRabbit posts these on specific lines)
+gh api repos/<owner>/<repo>/pulls/<PR>/comments --paginate --jq '.[] | {id, path, line, in_reply_to_id, body}'  # list inline review threads
+```
+
+For each inline thread that needs a reply:
+
+```sh
+gh api -X POST repos/<owner>/<repo>/pulls/<PR>/comments/<comment_id>/replies -f body="..."
+```
+
+To list thread resolution state (GraphQL):
+
+```sh
+gh api graphql -f query='query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) { nodes { id isResolved comments(first: 100) { nodes { body path line } } } }
+    }
+  }
+}' -F owner=<owner> -F name=<name> -F number=<PR>
 ```
 
 If no CodeRabbit review appears, check `gh pr checks <PR>` for the CodeRabbit

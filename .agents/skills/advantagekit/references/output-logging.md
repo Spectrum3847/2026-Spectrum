@@ -64,9 +64,11 @@ All types support single values, 1D arrays, and 2D arrays unless noted.
 **Protobuf / Record first-use pattern** — call once during `disabledInit()` to absorb the delay:
 
 ```java
+record RobotSnapshot(Pose2d pose) {}
+
 @Override
 public void disabledInit() {
-    Logger.recordOutput("Odometry/RobotSnapshot", new Pose2d()); // warm up; records & Protobufs share the same first-log delay
+    Logger.recordOutput("Odometry/RobotSnapshot", new RobotSnapshot(new Pose2d())); // warm up; records & Protobufs share the same first-log delay
 }
 ```
 

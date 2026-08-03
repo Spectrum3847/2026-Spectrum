@@ -99,6 +99,9 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="Print JSON")
     args = parser.parse_args()
 
+    if args.timeout < 0:
+        parser.error("--timeout must be non-negative")
+
     raise SystemExit(
         compile_and_run(
             JAVA_SOURCE,
