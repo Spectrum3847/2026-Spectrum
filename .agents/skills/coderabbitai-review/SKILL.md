@@ -49,6 +49,16 @@ gh api graphql -f query='query($owner: String!, $name: String!, $number: Int!) {
 }' -F owner=<owner> -F name=<name> -F number=<PR>
 ```
 
+To resolve a thread after triaging:
+
+```sh
+gh api graphql -f query='mutation($input: ResolveReviewThreadInput!) {
+  resolveReviewThread(input: $input) { clientMutationId }
+}' -F input='{"threadId":"<thread_id>"}'
+```
+
+Use the `id` from the thread-state query above as `<thread_id>`.
+
 If no CodeRabbit review appears, check `gh pr checks <PR>` for the CodeRabbit
 status check, and note the bot may still be generating its review.
 
@@ -81,7 +91,14 @@ After pushing, wait for CodeRabbit's next review round (it re-reviews each push)
 
 ```sh
 gh pr checks <PR> --watch          # wait for checks to settle
-gh pr view <PR> --comments         # read the new review
+gh api repos/<owner>/<repo>/pulls/<PR>/comments --paginate --jq '.[] | {id, path, line, in_reply_to_id, body}'  # re-list inline comments
+gh api graphql -f query='query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) { nodes { id isResolved comments(first: 100) { nodes { body path line } } } }
+    }
+  }
+}' -F owner=<owner> -F name=<name> -F number=<PR>
 ```
 
 Repeat steps 3–5 until CodeRabbit approves the PR.
@@ -94,9 +111,11 @@ Repeat steps 3–5 until CodeRabbit approves the PR.
 
 ## Notes Learned From Real Runs
 
-- CodeRabbit comments on specific lines of the diff; `gh pr view --comments`
-  shows them inline. Pushes that don't change the line may not re-trigger a
-  comment — the bot reports "existing comments not addressed" instead.
+- CodeRabbit posts inline comments on specific lines of the diff; these are
+  fetched via `gh api repos/<owner>/<repo>/pulls/<PR>/comments` (not
+  `gh pr view --comments`, which shows general PR review comments only).
+  Pushes that don't change the line may not re-trigger a comment — the bot
+  reports "existing comments not addressed" instead.
 - The bot runs as a status check; a green status can arrive before the review
   comment is posted, so re-check comments after checks pass.
 - Keep replies on the thread rather than in the PR body so the bot's
