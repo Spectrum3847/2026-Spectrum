@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -282,7 +283,7 @@ def run_with_java(repo: Path, log: Path, topics: list[str], json_output: bool, s
             [
                 str(java_home / "bin/java"),
                 "-cp",
-                f"{classes}:{wpiutil}",
+                os.pathsep.join([str(classes), str(wpiutil)]),
                 "ReadWpilogValues",
                 str(log),
                 str(json_output).lower(),

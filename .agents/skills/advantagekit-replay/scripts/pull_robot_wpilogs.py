@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -13,10 +14,11 @@ def remote(user: str, host: str, path: str) -> str:
 
 
 def newest_remote_log(user: str, host: str, directory: str) -> str:
+    quoted_dir = shlex.quote(directory)
     cmd = [
         "ssh",
         f"{user}@{host}",
-        f"ls -t {directory}/*.wpilog 2>/dev/null | head -1",
+        f"ls -t {quoted_dir}/*.wpilog 2>/dev/null | head -1",
     ]
     result = subprocess.run(cmd, check=True, text=True, capture_output=True)
     log = result.stdout.strip()

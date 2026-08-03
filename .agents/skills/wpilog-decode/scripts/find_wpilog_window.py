@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -126,7 +127,7 @@ def run_with_java(repo: Path, log: Path, topics: list[str], duration: float) -> 
         java_home = wpilib / "jdk"
         wpiutil = wpilib / f"maven/edu/wpi/first/wpiutil/wpiutil-java/{version}/wpiutil-java-{version}.jar"
         subprocess.run([str(java_home / "bin/javac"), "-cp", str(wpiutil), "-d", str(classes), str(source)], cwd=repo, check=True)
-        subprocess.run([str(java_home / "bin/java"), "-cp", f"{classes}:{wpiutil}", "FindWpilogWindow", str(log), str(duration), *topics], cwd=repo, check=True)
+        subprocess.run([str(java_home / "bin/java"), "-cp", os.pathsep.join([str(classes), str(wpiutil)]), "FindWpilogWindow", str(log), str(duration), *topics], cwd=repo, check=True)
 
 
 def main() -> None:
