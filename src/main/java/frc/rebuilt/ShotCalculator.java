@@ -8,6 +8,8 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
@@ -250,7 +252,27 @@ public class ShotCalculator {
                         /* v³   */ -1.2099829060e+0
                     });
 
-    private static final PolyModel WANTED_HUB_MODEL = NO_CEILING_HUB_MODEL;
+    /**
+     * Dashboard selector for which hub surface to shoot with, so the ceiling-limited model can be
+     * picked when testing indoors without a redeploy. Feed shots always use {@link #FEED_MODEL} and
+     * are unaffected.
+     */
+    private final SendableChooser<PolyModel> hubModelChooser = new SendableChooser<>();
+
+    private ShotCalculator() {
+        hubModelChooser.setDefaultOption(NO_CEILING_HUB_MODEL.name(), NO_CEILING_HUB_MODEL);
+        hubModelChooser.addOption(CEILING_3M_HUB_MODEL.name(), CEILING_3M_HUB_MODEL);
+        SmartDashboard.putData("Hub Model Chooser", hubModelChooser);
+    }
+
+    /**
+     * The hub model selected on the dashboard, falling back to the no-ceiling model if nothing has
+     * been selected yet.
+     */
+    private PolyModel selectedHubModel() {
+        PolyModel selected = hubModelChooser.getSelected();
+        return selected != null ? selected : NO_CEILING_HUB_MODEL;
+    }
 
     // =========================================================================
     // State — Velocity Derivative Filters
@@ -307,7 +329,7 @@ public class ShotCalculator {
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
         // Feed and hub shots use separately-fitted polynomial surfaces.
-        PolyModel model = feed ? FEED_MODEL : WANTED_HUB_MODEL;
+        PolyModel model = feed ? FEED_MODEL : selectedHubModel();
 
         // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
