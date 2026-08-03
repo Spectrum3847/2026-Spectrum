@@ -107,6 +107,8 @@ let lastTimestamp: bigint = 0n;
 const totals = { auto: 0n, teleop: 0n, test: 0n };
 
 for (const r of decodeRecords(readRecords(bytes))) {
+  lastTimestamp = r.timestamp;
+
   if (!isDataRecord(r) || r.type !== RecordType.Boolean) continue;
 
   const wasEnabled = enabled;
@@ -116,8 +118,6 @@ for (const r of decodeRecords(readRecords(bytes))) {
   else if (r.name === '/DS:autonomous') auto = r.payload;
   else if (r.name === '/DS:test') test = r.payload;
   else continue;
-
-  lastTimestamp = r.timestamp;
 
   if (wasEnabled && (!enabled || modeOf(auto, test) !== prevMode)) {
     totals[prevMode] += r.timestamp - (enabledSince ?? r.timestamp);
