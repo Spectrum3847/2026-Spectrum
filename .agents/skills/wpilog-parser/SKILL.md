@@ -128,7 +128,7 @@ for (const r of decodeRecords(readRecords(bytes))) {
 }
 
 // Account for trailing enabled interval using the last decoded record's timestamp.
-if (wasEnabled && enabledSince !== null) {
+if (enabled && enabledSince !== null) {
   totals[modeOf(auto, test)] += lastTimestamp - enabledSince;
 }
 

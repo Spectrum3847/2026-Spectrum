@@ -1,7 +1,7 @@
 # Agent Instructions
 
 FRC Team Spectrum 3847 robot code for the 2026 season (REBUILT game): **Java 17**, GradleRIO 2026.2.1, WPILib 2026. (Verified 2026-08-03: `gradle/wrapper/gradle-wrapper.properties` → Gradle 8.x; `build.gradle` → `wpilibVersion = "2026.x"`.)
-Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and climb. (Verified 2026-08-03: subsystem list matches `src/main/java/frc/robot/subsystems/.)
+Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and climb. (Verified 2026-08-03: subsystem list matches `src/main/java/frc/robot/subsystems`.)
 
 ## Documentation (read this first)
 
