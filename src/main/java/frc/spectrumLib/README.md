@@ -29,7 +29,7 @@ Core structural interfaces and base classes.
 
 | Class | Description |
 |-------|-------------|
-| `SpectrumRobot` | Extends `TimedRobot`; silences joystick connection warnings, extends loop overrun watchdog timeout to 200 ms, and sets command scheduler period to 200 ms |
+| `SpectrumRobot` | Extends `TimedRobot`; silences joystick connection warnings and extends loop overrun watchdog timeout to 200 ms |
 | `SpectrumState` | Named boolean state backed by a WPILib `Trigger`; supports timed, toggled, and command-driven state transitions |
 
 ---

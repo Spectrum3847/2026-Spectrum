@@ -154,7 +154,8 @@ public class Limelight {
      * Constructs a Limelight wrapper and immediately sets its active pipeline.
      *
      * @param name the network-table name of the camera
-     * @param pipeline the pipeline index to activate (refer to robot vision configuration for pipeline indexes)
+     * @param pipeline the pipeline index to activate (refer to robot vision configuration for
+     *     pipeline indexes)
      */
     public Limelight(String name, int pipeline) {
         this(name);
@@ -509,7 +510,8 @@ public class Limelight {
     /**
      * Sets the LL pipeline to the given index.
      *
-     * @param pipelineIndex the pipeline index (refer to robot vision configuration for pipeline indexes)
+     * @param pipelineIndex the pipeline index (refer to robot vision configuration for pipeline
+     *     indexes)
      */
     public void setLimelightPipeline(int pipelineIndex) {
         if (!isAttached()) {

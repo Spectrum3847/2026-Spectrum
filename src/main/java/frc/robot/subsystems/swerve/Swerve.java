@@ -255,7 +255,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     ChassisSpeeds fieldRelSpeeds =
                             ChassisSpeeds.fromRobotRelativeSpeeds(
                                     robotRelSpeeds, simPose.getRotation());
-                    // subticks=5 -> dt = 20ms/5 = 4ms sub-steps (matches MapleSim's 5ms period closely)
+                    // subticks=5 -> dt = 20ms/5 = 4ms sub-steps (matches MapleSim's 5ms period
+                    // closely)
                     simRobotPose3d = robotBumpSim.update(simPose, fieldRelSpeeds, 5);
                     if (robotBumpSim.isOnRamp()) {
                         mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(
@@ -716,11 +717,13 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         robotBumpSim = new RobotBumpSim(getModuleLocations());
 
         /* Run simulation at a faster rate so PID gains behave more reasonably */
-        simNotifier = new Notifier(() -> {
-            synchronized (simLock) {
-                mapleSimSwerveDrivetrain.update();
-            }
-        });
+        simNotifier =
+                new Notifier(
+                        () -> {
+                            synchronized (simLock) {
+                                mapleSimSwerveDrivetrain.update();
+                            }
+                        });
         simNotifier.startPeriodic(config.getSimLoopPeriod());
     }
 }

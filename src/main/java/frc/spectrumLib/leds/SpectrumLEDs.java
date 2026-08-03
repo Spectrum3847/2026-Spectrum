@@ -703,7 +703,8 @@ public class SpectrumLEDs implements Subsystem {
                     int centerEnd = startIdx + numLeds - clampedLen - 1;
                     // left edge, right edge, (optional) center black
                     holder[0] = (centerStart <= centerEnd) ? new SolidColor[3] : new SolidColor[2];
-                    holder[0][0] = new SolidColor(startIdx, startIdx + clampedLen - 1).withColor(rgbw);
+                    holder[0][0] =
+                            new SolidColor(startIdx, startIdx + clampedLen - 1).withColor(rgbw);
                     holder[0][1] =
                             new SolidColor(startIdx + numLeds - clampedLen, startIdx + numLeds - 1)
                                     .withColor(rgbw);
