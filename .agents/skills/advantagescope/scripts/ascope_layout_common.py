@@ -18,6 +18,7 @@ COLORS = [
 
 
 def source(topic: str, color: str, source_type: str) -> dict:
+    """Build an AdvantageScope source dict for a numeric or boolean topic."""
     return {
         "type": source_type,
         "logKey": topic,
@@ -28,6 +29,7 @@ def source(topic: str, color: str, source_type: str) -> dict:
 
 
 def expanded_paths(topics: list[str]) -> list[str]:
+    """Expand hierarchical NetworkTables topic paths into parent prefixes."""
     expanded: list[str] = []
     seen: set[str] = set()
     for topic in topics:
@@ -42,10 +44,12 @@ def expanded_paths(topics: list[str]) -> list[str]:
 
 
 def parse_range(raw: list[float] | None) -> list[float] | None:
+    """Copy a two-element range list, or return None when the input is None."""
     return None if raw is None else [raw[0], raw[1]]
 
 
 def next_color() -> str:
+    """Return the next color from the cycling color palette."""
     return next(_color_cycle)
 
 
@@ -62,6 +66,7 @@ def build_field_sources(
     trajectory_color: str = "orange",
     trajectory_size: str = "bold",
 ) -> list[dict]:
+    """Build AdvantageScope source entries for a 3D field layout."""
     sources = [
         {
             "type": "robot",

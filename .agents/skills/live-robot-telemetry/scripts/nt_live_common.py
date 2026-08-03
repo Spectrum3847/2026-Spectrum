@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 def wpilib_root() -> Path:
+    """Locate the local WPILib installation root directory."""
     candidates: list[Path] = []
     if os.environ.get("WPILIB_ROOT"):
         candidates.append(Path(os.environ["WPILIB_ROOT"]).expanduser())
@@ -37,6 +38,8 @@ def _version_key(name: str) -> tuple[int, ...]:
         for token in re.split(r"[-_]", part):
             if token.isdigit():
                 key.append(int(token))
+            elif token == "alpha":
+                key.append(-1)
             elif token == "beta":
                 key.append(0)
             elif token == "rc":
@@ -47,6 +50,7 @@ def _version_key(name: str) -> tuple[int, ...]:
 
 
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
+    """Read a WPILib Maven artifact version from the local repository."""
     directory = root / "maven" / group_path / artifact
     versions = sorted((path.name for path in directory.glob("*") if path.is_dir()), key=_version_key)
     if not versions:
@@ -55,6 +59,7 @@ def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
 
 
 def classpath(root: Path) -> str:
+    """Build the JVM classpath from WPILib sim jars."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-java")
     jars = [
         root / f"maven/edu/wpi/first/ntcore/ntcore-java/{version}/ntcore-java-{version}.jar",
@@ -67,6 +72,7 @@ def classpath(root: Path) -> str:
 
 
 def extract_natives(root: Path, target: Path) -> Path:
+    """Extract WPILib native libraries to a temporary directory."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-cpp")
     archives = [
         root / f"maven/edu/wpi/first/wpiutil/wpiutil-cpp/{version}/wpiutil-cpp-{version}-osxuniversal.zip",
@@ -85,6 +91,7 @@ def extract_natives(root: Path, target: Path) -> Path:
 
 
 def compile_and_run(java_source: str, class_name: str, args: list[str]) -> int:
+    """Compile the Java NT client source and execute it with the given arguments."""
     root = wpilib_root()
     with tempfile.TemporaryDirectory(prefix="live-nt-") as tmp_name:
         tmp = Path(tmp_name)

@@ -26,7 +26,7 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 
 - **State machine**: `State.java` (17 states) → `RobotStates.java` (Triggers) → `Coordinator.java` (state → subsystem command mappings). Edit `Coordinator.java` for new behaviors. (A new state-machine architecture is under test on branch `2026-offseason-bot`.)
 - **Subsystems**: `SubsystemName.java` + `SubsystemNameStates.java`; motor-based ones extend `frc.spectrumLib.Mechanism` and implement `frc.spectrumLib.SpectrumSubsystem`; hardware config lives in each subsystem's inner `Config` class.
-- **Robot configs**: `FM2026` / `XM2026` / `PM2026` / `AM2026` in `src/main/java/frc/robot/configs/`, auto-selected by RoboRIO serial via `frc.spectrumLib.Rio`. CAN IDs and encoder offsets go here, not in subsystem files.
+- **Robot configs**: `FM2026` / `XM2026` / `PM2026` / `AM2026` / `PHOTON2026` in `src/main/java/frc/robot/configs/`, auto-selected by RoboRIO serial via `frc.spectrumLib.Rio`. CAN IDs and encoder offsets go here, not in subsystem files.
 - **Autos**: PathPlanner (paths/autos in `src/main/deploy/pathplanner/`); named commands registered in `Auton.java`.
 - **Telemetry**: DogLog via `frc.spectrumLib.Telemetry`; `TuneValue` for live tuning.
 - **Gamepads**: `Pilot.java` / `Operator.java`; bindings in `PilotStates.java` / `OperatorStates.java`.

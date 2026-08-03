@@ -14,6 +14,7 @@ from ascope_layout_common import build_field_sources
 
 
 def main() -> None:
+    """Generate a minimal AdvantageScope 3D field layout JSON file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="Layout JSON path")
     parser.add_argument("--topic", default="/RealOutputs/Swerve/Odometry/Robot", help="Pose2d/Pose3d topic")

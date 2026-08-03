@@ -82,12 +82,12 @@ public class SimNtControlClient {
             entries.add(exitEntry);
         }
 
-        inst.flush();
         Thread.sleep(250);
         // Retained topics survive the client disconnect; the sim server keeps reading them.
         for (NetworkTableEntry entry : entries) {
             entry.getTopic().setRetained(true);
         }
+        inst.flush();
         inst.stopClient();
         System.out.println("wroteSimAgentState=true");
     }
@@ -114,6 +114,7 @@ public class SimNtControlClient {
 
 
 def main() -> None:
+    """Write NetworkTables state for the FTC sim DriverStation bridge."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--host", default="127.0.0.1")

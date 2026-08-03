@@ -10,10 +10,12 @@ from pathlib import Path
 
 
 def remote(user: str, host: str, path: str) -> str:
+    """Remote."""
     return f"{user}@{host}:{path}"
 
 
 def newest_remote_log(user: str, host: str, directory: str) -> str:
+    """Newest remote log."""
     quoted_dir = shlex.quote(directory)
     cmd = [
         "ssh",
@@ -28,6 +30,7 @@ def newest_remote_log(user: str, host: str, directory: str) -> str:
 
 
 def main() -> None:
+    """Main."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="10.80.44.2", help="Robot IP")
     parser.add_argument("--user", default="admin", help="Robot SSH user")

@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 def main() -> None:
+    """Generate a minimal AdvantageScope 2D field layout JSON file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="Layout JSON path")
     parser.add_argument("--topic", default="/RealOutputs/Swerve/Odometry/Robot", help="Pose2d topic")

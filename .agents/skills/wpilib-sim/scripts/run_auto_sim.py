@@ -122,6 +122,7 @@ public class RunAutoNtClient {
 
 
 def wpilib_root() -> Path:
+    """Locate the local WPILib installation root directory."""
     candidates: list[Path] = []
     if os.environ.get("WPILIB_ROOT"):
         candidates.append(Path(os.environ["WPILIB_ROOT"]).expanduser())
@@ -141,6 +142,7 @@ def wpilib_root() -> Path:
 
 
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
+    """Read a WPILib Maven artifact version from the local repository."""
     directory = root / "maven" / group_path / artifact
     versions = sorted((path.name for path in directory.glob("*") if path.is_dir()), reverse=True)
     if not versions:
@@ -149,6 +151,7 @@ def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
 
 
 def classpath(root: Path) -> str:
+    """Build the JVM classpath from WPILib sim jars and user code."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-java")
     jackson = wpilib_version(root, "com/fasterxml/jackson/core", "jackson-core")
     jars = [
@@ -165,6 +168,7 @@ def classpath(root: Path) -> str:
 
 
 def native_platform() -> tuple[str, str]:
+    """Return the platform identifier for WPILib native library extraction."""
     system = platform.system()
     machine = platform.machine().lower()
     if system == "Darwin":
@@ -179,6 +183,7 @@ def native_platform() -> tuple[str, str]:
 
 
 def extract_natives(root: Path, target: Path) -> Path:
+    """Extract WPILib native libraries to a temporary directory for the current platform."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-cpp")
     classifier, shared_dir = native_platform()
     archives = [
@@ -198,6 +203,7 @@ def extract_natives(root: Path, target: Path) -> Path:
 
 
 def latest_log(repo: Path) -> Path | None:
+    """Find the most recently modified WPILog file in a directory."""
     logs = sorted((repo / "SimLogs").glob("*.wpilog"), key=lambda path: path.stat().st_mtime)
     return logs[-1].resolve() if logs else None
 
@@ -209,6 +215,7 @@ def compile_client(
     java_source: str,
     classpath_builder=classpath,
 ) -> tuple[Path, str, Path]:
+    """Compile the sim client Java source with the WPILib classpath."""
     source = tmp / f"{class_name}.java"
     classes = tmp / "classes"
     native_root = tmp / "native"
@@ -222,6 +229,7 @@ def compile_client(
 
 
 def main() -> None:
+    """Parse CLI arguments and run an autonomous period simulation."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--auto", required=True, help="Auto Chooser option to select")

@@ -10,6 +10,7 @@ from typing import Any
 
 
 def read_name(config_path: Path) -> str | None:
+    """Read the "name" field from an AdvantageScope asset config.json."""
     try:
         data: Any = json.loads(config_path.read_text())
     except (OSError, json.JSONDecodeError):
@@ -19,6 +20,7 @@ def read_name(config_path: Path) -> str | None:
 
 
 def collect_assets(assets_dir: Path, prefix: str) -> list[dict[str, str]]:
+    """Collect asset directories matching a prefix from an assets folder."""
     results: list[dict[str, str]] = []
     for child in sorted(assets_dir.glob(f"{prefix}_*")):
         if not child.is_dir():
@@ -32,6 +34,7 @@ def collect_assets(assets_dir: Path, prefix: str) -> list[dict[str, str]]:
 
 
 def main() -> None:
+    """List custom AdvantageScope assets from an AScope_Assets folder."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--assets", help="Custom AdvantageScope assets folder")

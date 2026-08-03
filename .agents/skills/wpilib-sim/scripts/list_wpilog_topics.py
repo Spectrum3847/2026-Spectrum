@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 def main() -> None:
+    """List WPILOG topics by running the Java list_topics tool."""
     target = Path(__file__).resolve().parents[2] / "wpilog-decode/scripts/list_wpilog_topics.py"
     raise SystemExit(subprocess.run([sys.executable, str(target), *sys.argv[1:]], check=False).returncode)
 

@@ -10,12 +10,14 @@ from pathlib import Path
 
 
 def replay_path(log: Path) -> Path:
+    """Return the AdvantageKit replay log path derived from the given log."""
     if log.stem.endswith("_REPLAY"):
         return log.with_name(log.stem + "_2" + log.suffix)
     return log.with_name(log.stem + "_REPLAY" + log.suffix)
 
 
 def main() -> None:
+    """Run AdvantageKit replay for the selected WPILOG file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--log", required=True, help="WPILOG to replay")

@@ -14,6 +14,7 @@ from ascope_layout_common import expanded_paths, next_color, parse_range, source
 
 
 def main() -> None:
+    """Generate a minimal AdvantageScope line graph layout JSON file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="Layout JSON path")
     parser.add_argument("--left-topic", action="append", required=True, help="Numeric topic for the left axis")

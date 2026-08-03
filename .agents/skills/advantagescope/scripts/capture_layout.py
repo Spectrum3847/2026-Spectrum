@@ -17,6 +17,7 @@ from export_preview import find_fork, find_advantagescope, command_from_fork, re
 
 
 def post(port: int, token: str, payload: dict) -> dict:
+    """POST a JSON command to the AdvantageScope agent-control HTTP server."""
     request = urllib.request.Request(
         f"http://127.0.0.1:{port}",
         data=json.dumps(payload).encode(),
@@ -31,11 +32,13 @@ def post(port: int, token: str, payload: dict) -> dict:
 
 
 def wait_for_control(process: subprocess.Popen[str]) -> tuple[int, str]:
+    """Wait until AdvantageScope prints its agent-control port and token."""
     port: int | None = None
     token: str | None = None
     output: queue.Queue[str] = queue.Queue()
 
     def reader() -> None:
+        """Read AdvantageScope stdout lines into a thread-safe queue."""
         if process.stdout is not None:
             for line in process.stdout:
                 output.put(line)
@@ -62,6 +65,7 @@ def wait_for_control(process: subprocess.Popen[str]) -> tuple[int, str]:
 
 
 def wait_for_ready(port: int, token: str) -> dict:
+    """Poll the AdvantageScope agent-control status until the renderer is ready."""
     last_status: dict | None = None
     for _ in range(300):
         last_status = post(port, token, {"command": "status"})
@@ -73,6 +77,7 @@ def wait_for_ready(port: int, token: str) -> dict:
 
 
 def resolve_command(args: argparse.Namespace) -> tuple[list[str], Path | None]:
+    """Resolve the AdvantageScope executable command from CLI arguments."""
     fork = find_fork(args.fork)
     if args.fork and fork is None:
         raise SystemExit(f"--fork is not a Team 8044 AdvantageScope checkout: {Path(args.fork).expanduser()}")
@@ -90,6 +95,7 @@ def resolve_command(args: argparse.Namespace) -> tuple[list[str], Path | None]:
 
 
 def main() -> None:
+    """Capture an AdvantageScope layout screenshot via the agent-control API."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--advantagescope", help="AdvantageScope executable path")
     parser.add_argument("--fork", help="Team 8044 AdvantageScope fork checkout")

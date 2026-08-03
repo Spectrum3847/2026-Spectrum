@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import signal
 import subprocess
@@ -204,6 +205,7 @@ public class RunTeleopNtClient {
 
 
 def main() -> None:
+    """Parse CLI arguments, validate sequence grammar, and launch a teleop sim."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--alliance", default="Blue1", help="Alliance station, e.g. Red1 or Blue1")
@@ -228,20 +230,26 @@ def main() -> None:
     args = parser.parse_args()
     if not args.sequence and args.duration is None:
         parser.error("--duration is required unless --sequence is provided")
+    if args.duration is not None:
+        if math.isinf(args.duration) or math.isnan(args.duration) or args.duration < 0:
+            parser.error("--duration must be a finite, non-negative number")
     duration = args.duration if args.duration is not None else 0.0
     timeout_duration = duration
     if args.sequence:
         timeout_duration = 0.0
         for segment in args.sequence.split(";"):
             if not segment.strip():
-                continue
-            parts = segment.split(":", 1)
-            if len(parts) != 2 or not parts[1].strip():
-                parser.error(f"Sequence segment must be duration:... got '{segment}'")
+                parser.error(f"Sequence contains a blank segment: '{args.sequence}'")
+            parts = segment.split(":")
+            if len(parts) not in (2, 5):
+                parser.error(f"Sequence segment must be duration:axes or duration:port:axes:buttons:povs, got '{segment}'")
             try:
-                timeout_duration += float(parts[0].strip())
+                seg_duration = float(parts[0].strip())
             except ValueError:
                 parser.error(f"Sequence segment duration must be numeric, got '{parts[0].strip()}'")
+            if math.isinf(seg_duration) or math.isnan(seg_duration) or seg_duration < 0:
+                parser.error(f"Sequence segment duration must be finite and non-negative, got '{parts[0].strip()}'")
+            timeout_duration += seg_duration
 
     repo = Path(args.repo).resolve()
     root = wpilib_root()

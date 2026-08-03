@@ -258,6 +258,7 @@ public class ReadWpilogValues {
 
 
 def resolve_log(path: Path) -> Path:
+    """Resolve the WPILOG file path from a CLI arg or auto-detect the latest."""
     if path.suffix == ".wpilog":
         return path.resolve()
     directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
@@ -268,6 +269,7 @@ def resolve_log(path: Path) -> Path:
 
 
 def run_with_java(repo: Path, log: Path, topics: list[str], json_output: bool, sample_count: int) -> None:
+    """Execute the Java WPILog value-reading tool with the given classpath."""
     with tempfile.TemporaryDirectory(prefix="wpilog-decode-values-") as tmp:
         tmp_path = Path(tmp)
         source = tmp_path / "ReadWpilogValues.java"
@@ -296,6 +298,7 @@ def run_with_java(repo: Path, log: Path, topics: list[str], json_output: bool, s
 
 
 def main() -> None:
+    """Read and print values from one or more WPILOG topics."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--log", default="SimLogs", help="WPILOG file, SimLogs directory, or repo-relative path")

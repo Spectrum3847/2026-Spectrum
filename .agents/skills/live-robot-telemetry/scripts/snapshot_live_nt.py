@@ -103,6 +103,7 @@ public class SnapshotLiveNt {
 
 
 def main() -> None:
+    """Read one timestamped snapshot of selected live NT4 topics."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="10.80.44.2", help="Robot IP or hostname")
     parser.add_argument("--port", type=int, default=5810, help="NT4 port")

@@ -14,6 +14,8 @@ def _version_key(name: str) -> tuple[int, ...]:
         for token in re.split(r"[-_]", part):
             if token.isdigit():
                 key.append(int(token))
+            elif token == "alpha":
+                key.append(-1)
             elif token == "beta":
                 key.append(0)
             elif token == "rc":
@@ -24,6 +26,7 @@ def _version_key(name: str) -> tuple[int, ...]:
 
 
 def wpilib_root() -> Path:
+    """Locate the local WPILib installation root directory."""
     roots = sorted((Path.home() / "wpilib").glob("*"), reverse=True)
     for root in roots:
         if (root / "jdk").is_dir() and (root / "maven").is_dir():
@@ -32,6 +35,7 @@ def wpilib_root() -> Path:
 
 
 def wpilib_version(root: Path, group_path: str, artifact: str) -> str:
+    """Read a WPILib Maven artifact version from the local repository."""
     base = root / "maven" / group_path / artifact
     versions = sorted([p.name for p in base.iterdir() if p.is_dir()], key=_version_key)
     if not versions:

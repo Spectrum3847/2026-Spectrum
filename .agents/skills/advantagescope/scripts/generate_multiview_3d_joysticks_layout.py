@@ -14,6 +14,7 @@ from ascope_layout_common import build_field_sources, expanded_paths
 
 
 def joystick_layouts(port: int, layout: str, max_ports: int = 6) -> list[str]:
+    """Build a joystick layout list with the given port mapped to a layout name."""
     layouts = ["None"] * max_ports
     if port < 0 or port >= max_ports:
         raise SystemExit(f"Joystick port must be in [0, {max_ports - 1}], got {port}")
@@ -22,6 +23,7 @@ def joystick_layouts(port: int, layout: str, max_ports: int = 6) -> list[str]:
 
 
 def main() -> None:
+    """Generate an AdvantageScope 3D field hub with a joysticks satellite."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="Layout JSON path")
     parser.add_argument("--field", required=True, help="AdvantageScope 3D field id")

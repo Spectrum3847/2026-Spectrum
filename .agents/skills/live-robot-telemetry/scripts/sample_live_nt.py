@@ -190,8 +190,10 @@ public class SampleLiveNt {
     long sampleStart = 0L;
     while (System.nanoTime() < end) {
       String[] values = new String[subscribers.length];
+      NetworkTableValue[] sampledValues = new NetworkTableValue[subscribers.length];
       for (int i = 0; i < subscribers.length; i++) {
         NetworkTableValue value = subscribers[i].get();
+        sampledValues[i] = value;
         summaries[i].add(value);
         values[i] = valueToText(value);
       }
@@ -212,7 +214,7 @@ public class SampleLiveNt {
         sampleStart = System.nanoTime();
       }
       if (spikeIndex >= 0) {
-        NetworkTableValue spikeValue = subscribers[spikeIndex].get();
+        NetworkTableValue spikeValue = sampledValues[spikeIndex];
         boolean hasSpikeSample = false;
         double spikeSample = 0.0;
         if (spikeValue != null && spikeValue.isValid()) {
@@ -270,6 +272,7 @@ public class SampleLiveNt {
 
 
 def main() -> None:
+    """Sample live NetworkTables data and detect spike anomalies."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="10.80.44.2", help="Robot IP or hostname")
     parser.add_argument("--port", type=int, default=5810, help="NT4 port")

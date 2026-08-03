@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 def main() -> None:
+    """Find and print the time window of interest in a WPILOG file."""
     target = Path(__file__).resolve().parents[2] / "wpilog-decode/scripts/find_wpilog_window.py"
     raise SystemExit(subprocess.run([sys.executable, str(target), *sys.argv[1:]], check=False).returncode)
 

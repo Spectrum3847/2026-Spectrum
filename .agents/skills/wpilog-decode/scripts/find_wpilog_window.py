@@ -106,6 +106,7 @@ public class FindWpilogWindow {
 
 
 def resolve_log(path: Path) -> Path:
+    """Resolve the WPILOG file path from a CLI arg or auto-detect the latest."""
     if path.suffix == ".wpilog":
         return path.resolve()
     directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
@@ -116,6 +117,7 @@ def resolve_log(path: Path) -> Path:
 
 
 def run_with_java(repo: Path, log: Path, topics: list[str], duration: float) -> None:
+    """Execute the Java WPILog window-extraction tool with the given classpath."""
     with tempfile.TemporaryDirectory(prefix="wpilog-decode-window-") as tmp:
         tmp_path = Path(tmp)
         source = tmp_path / "FindWpilogWindow.java"
@@ -131,6 +133,7 @@ def run_with_java(repo: Path, log: Path, topics: list[str], duration: float) -> 
 
 
 def main() -> None:
+    """Find and print the time window of interest in a WPILOG file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--log", default="SimLogs", help="WPILOG file, SimLogs directory, or repo-relative path")

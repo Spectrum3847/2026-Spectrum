@@ -38,6 +38,7 @@ public class ListWpilogTopics {
 
 
 def resolve_log(path: Path) -> Path:
+    """Resolve the WPILOG file path from a CLI arg or auto-detect the latest."""
     if path.suffix == ".wpilog":
         return path.resolve()
     directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
@@ -48,6 +49,7 @@ def resolve_log(path: Path) -> Path:
 
 
 def run_with_java(repo: Path, log: Path, filter_text: str) -> None:
+    """Execute the Java topic-listing tool with the given classpath."""
     with tempfile.TemporaryDirectory(prefix="wpilog-decode-topics-") as tmp:
         tmp_path = Path(tmp)
         source = tmp_path / "ListWpilogTopics.java"
@@ -63,6 +65,7 @@ def run_with_java(repo: Path, log: Path, filter_text: str) -> None:
 
 
 def main() -> None:
+    """List all topics contained in a WPILOG file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--log", default="SimLogs", help="WPILOG file, SimLogs directory, or repo-relative path")

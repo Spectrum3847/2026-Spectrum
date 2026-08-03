@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 def latest_wpilog(path: Path) -> Path:
+    """Find the most recently created WPILOG file in a directory."""
     directory = path / "SimLogs" if (path / "SimLogs").is_dir() else path
     logs = sorted(directory.glob("*.wpilog"), key=lambda p: p.stat().st_mtime)
     if not logs:
@@ -16,6 +17,7 @@ def latest_wpilog(path: Path) -> Path:
 
 
 def main() -> None:
+    """Print the path to the latest WPILOG file."""
     parser = argparse.ArgumentParser()
     parser.add_argument("path", nargs="?", default=".", help="Repo root, SimLogs directory, or log directory")
     args = parser.parse_args()

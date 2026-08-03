@@ -70,6 +70,7 @@ public class ListTopicNames {
 
 
 def wpilib_root() -> Path:
+    """Locate the local WPILib installation root directory."""
     roots = sorted((Path.home() / "wpilib").glob("20*"), reverse=True)
     if not roots:
         raise SystemExit("No WPILib install found under ~/wpilib")
@@ -77,11 +78,14 @@ def wpilib_root() -> Path:
 
 
 def _version_key(name: str) -> tuple[int, ...]:
+    """Produce a sort key that orders WPILib versions (alpha < beta < rc < stable)."""
     key: list[int] = []
     for part in name.split("."):
         for token in re.split(r"[-_]", part):
             if token.isdigit():
                 key.append(int(token))
+            elif token == "alpha":
+                key.append(-1)
             elif token == "beta":
                 key.append(0)
             elif token == "rc":
@@ -92,6 +96,7 @@ def _version_key(name: str) -> tuple[int, ...]:
 
 
 def wpilib_version(root: Path) -> str:
+    """Read a WPILib Maven artifact version from the local repository."""
     base = root / "maven/edu/wpi/first/wpiutil/wpiutil-java"
     if not base.is_dir():
         raise SystemExit(f"No wpiutil-java versions found in {base}")
@@ -102,6 +107,7 @@ def wpilib_version(root: Path) -> str:
 
 
 def topic_names(repo: Path, log: Path) -> set[str]:
+    """Parse topic names and types from AdvantageKit replay log output."""
     with tempfile.TemporaryDirectory(prefix="akit-replay-topics-") as tmp:
         tmp_path = Path(tmp)
         source = tmp_path / "ListTopicNames.java"
@@ -124,6 +130,7 @@ def topic_names(repo: Path, log: Path) -> set[str]:
 
 
 def resolve(path: str, repo: Path) -> Path:
+    """Resolve the two WPILog files to compare from CLI arguments."""
     output = Path(path)
     if not output.is_absolute():
         output = repo / output
@@ -133,6 +140,7 @@ def resolve(path: str, repo: Path) -> Path:
 
 
 def main() -> None:
+    """Compare topics between two AdvantageKit replay logs."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--real", required=True, help="Real robot WPILOG")

@@ -16,6 +16,7 @@ FORK_REMOTE_MARKER = "Team8044/AdvantageScope"
 
 
 def find_advantagescope(explicit: str | None) -> tuple[list[str], Path | None]:
+    """Resolve the AdvantageScope executable command and working directory."""
     if explicit:
         path = Path(explicit).expanduser().resolve()
         if path.exists():
@@ -44,6 +45,7 @@ def find_advantagescope(explicit: str | None) -> tuple[list[str], Path | None]:
 
 
 def find_fork(explicit: str | None) -> Path | None:
+    """Locate a Team 8044 AdvantageScope git fork checkout."""
     candidates: list[Path] = []
     if explicit:
         candidates.append(Path(explicit).expanduser())
@@ -73,6 +75,7 @@ def find_fork(explicit: str | None) -> Path | None:
 
 
 def is_team8044_fork(path: Path) -> bool:
+    """Check whether a git checkout is the Team 8044 AdvantageScope fork."""
     try:
         result = subprocess.run(
             ["git", "remote", "-v"],
@@ -88,6 +91,7 @@ def is_team8044_fork(path: Path) -> bool:
 
 
 def command_from_fork(fork: Path) -> list[str] | None:
+    """Build the electron command for a Team 8044 fork checkout, or None."""
     electron = fork / "node_modules/.bin/electron"
     main = fork / "bundles/main.js"
     if electron.exists() and main.exists():
@@ -100,6 +104,7 @@ def command_from_fork(fork: Path) -> list[str] | None:
 
 
 def packaged_executable(fork: Path) -> Path:
+    """Return the path to a packaged AdvantageScope executable for the current OS."""
     system = platform.system()
     machine = platform.machine().lower()
     if system == "Darwin":
@@ -111,6 +116,7 @@ def packaged_executable(fork: Path) -> Path:
 
 
 def resolve_assets_path(raw: str | None) -> Path | None:
+    """Resolve a custom AdvantageScope assets folder, or None when absent."""
     if raw is not None:
         path = Path(raw).expanduser().resolve()
         if not path.is_dir():
@@ -124,6 +130,7 @@ def resolve_assets_path(raw: str | None) -> Path | None:
 
 
 def main() -> None:
+    """Export an AdvantageScope MP4/MP4 preview with the Team 8044 agent fork."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--advantagescope", help="AdvantageScope executable path")
     parser.add_argument("--fork", help="Team 8044 AdvantageScope fork checkout")

@@ -47,7 +47,7 @@ metadata:
       ./gradlew --init-script .agents/skills/wpilib-sim/references/headless-sim.gradle simulateJava
     ```
 
-6. In headless automated runs, the robot still needs DriverStation/joystick state. The bundled scripts write NT state under `/SimAgent/...`, which is a SimAgentBridge-style contract. This repo's robot code does not currently consume those topics, so for this repo either keep the Sim GUI DS extension enabled or add an agent-side bridge before relying on those scripts (see "Agent Sim Control").
+6. In headless automated runs, the robot still needs DriverStation/joystick state. The bundled scripts write NT state under `/SimAgent/...`, which is a SimAgentBridge-style contract. This repo's robot code does not currently consume those topics, so automated runs require an agent-side bridge before relying on the scripts. For manual simulation, run `./gradlew simulateJava` directly and control DriverStation state through the Sim GUI DriverStation tab.
 7. Verify outputs from existing logged topics, preferably IO-layer applied voltage, velocity, position, current, and command/reference topics. Avoid custom test-only outputs unless the user asked for a harness.
 8. For log inspection, use `$wpilog-decode`. Compatibility wrappers remain in this skill for older command paths.
 

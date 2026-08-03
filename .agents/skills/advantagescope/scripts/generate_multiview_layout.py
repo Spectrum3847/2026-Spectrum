@@ -14,6 +14,7 @@ from ascope_layout_common import expanded_paths, next_color, parse_range, source
 
 
 def main() -> None:
+    """Generate an AdvantageScope multi-view hub + satellite layout JSON."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, help="Layout JSON path")
     parser.add_argument("--field", required=True, help="AdvantageScope 3D field id")

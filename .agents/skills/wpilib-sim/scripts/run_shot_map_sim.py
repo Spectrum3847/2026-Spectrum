@@ -141,6 +141,7 @@ MAPLESIM_TARGET_TOLERANCE_METERS = 0.7  # Default tolerance when matching simula
 
 
 def shot_client_classpath(root: Path) -> str:
+    """Build the Java classpath for the shot-map sim client (WPILib + sim jars)."""
     version = wpilib_version(root, "edu/wpi/first/ntcore", "ntcore-java")
     base = classpath(root).split(os.pathsep)
     extra = [
@@ -165,6 +166,7 @@ def run_one(
     settle_seconds: float,
     enabled_seconds: float,
 ) -> Path:
+    """Run a single shot-map simulation trial and return parsed results."""
     before_log = latest_log(repo)
     sim_command = ["./gradlew", "--init-script", str(headless_init), "simulateJava"]
     sim_env = os.environ.copy()
@@ -228,6 +230,7 @@ def run_one(
 
 
 def decode(repo: Path, log: Path, topics: list[str]) -> dict:
+    """Decode a Java sim-client output line into a dict of typed fields."""
     command = [
         sys.executable,
         str(repo / ".agents/skills/wpilog-decode/scripts/read_wpilog_values.py"),
@@ -246,6 +249,7 @@ def decode(repo: Path, log: Path, topics: list[str]) -> dict:
 
 
 def latest_number(topics: dict, topic: str) -> float:
+    """Extract the numeric suffix from the latest sim log file name."""
     value = topics.get(topic, {}).get("latest", "-")
     try:
         return float(value)
@@ -254,6 +258,7 @@ def latest_number(topics: dict, topic: str) -> float:
 
 
 def trajectory_points(topics: dict) -> list[tuple[float, float, float]]:
+    """Extract trajectory reference points (x, y) from the sim log."""
     samples = topics.get("/RealOutputs/FieldSimulation/FuelShotTrajectory", {}).get("samples", [])
     for sample in reversed(samples):
         value = str(sample.get("value", ""))
@@ -264,6 +269,7 @@ def trajectory_points(topics: dict) -> list[tuple[float, float, float]]:
 
 
 def latest_translation(topics: dict, topic: str) -> tuple[float, float, float]:
+    """Extract the latest robot translation from the sim log."""
     value = topics.get(topic, {}).get("latest", "")
     match = TRANSLATION_PATTERN.search(str(value))
     if not match:
@@ -272,6 +278,7 @@ def latest_translation(topics: dict, topic: str) -> tuple[float, float, float]:
 
 
 def latest_pose(topics: dict, topic: str) -> tuple[float, float, float]:
+    """Extract the latest robot pose (translation + rotation) from the sim log."""
     value = topics.get(topic, {}).get("latest", "")
     match = POSE_PATTERN.search(str(value))
     if not match:
@@ -283,6 +290,7 @@ def closest_point_to_target(
     points: list[tuple[float, float, float]],
     target: tuple[float, float, float],
 ) -> tuple[tuple[float, float, float], float]:
+    """Find the trajectory reference point closest to the given robot position."""
     if not points or any(math.isnan(component) for component in target):
         return ((math.nan, math.nan, math.nan), math.nan)
     closest = min(points, key=lambda point: math.dist(point, target))
@@ -294,12 +302,14 @@ def inside_maplesim_target_tolerance(
     target: tuple[float, float, float],
     tolerance: float = MAPLESIM_TARGET_TOLERANCE_METERS,
 ) -> bool:
+    """Check whether the robot pose is within the Maplesim target tolerance."""
     if any(math.isnan(component) for component in point + target):
         return False
     return all(abs(point[index] - target[index]) <= tolerance for index in range(3))
 
 
 def summarize(repo: Path, log: Path, distance: float) -> dict:
+    """Summarize the result of a single shot-map simulation trial."""
     topics = decode(
         repo,
         log,
@@ -346,6 +356,7 @@ def summarize(repo: Path, log: Path, distance: float) -> dict:
 
 
 def main() -> None:
+    """Parse CLI arguments and run one or more shot-map simulations."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", default=".", help="Robot repo root")
     parser.add_argument("--distances", default="1.75,3.25,5.0", help="Comma-separated shooter-map distances in meters")
