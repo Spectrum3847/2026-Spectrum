@@ -247,10 +247,10 @@ public class Robot extends SpectrumRobot {
         pilot.LT.and(pilot.LB).onTrue(superStructure.setStateCommand(WantedSuperState.EJECT));
         pilot.LT.and(pilot.LB).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        pilot.XButton.onTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
         pilot.XButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
+        pilot.AButton.onTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         pilot.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
