@@ -1,0 +1,11 @@
+allprojects {
+    afterEvaluate {
+        if (extensions.findByName("wpi") != null) {
+            wpi.sim.halExtensions.matching {
+                it.name == "Sim GUI" || it.name == "Use Real DriverStation"
+            }.configureEach {
+                defaultEnabled = false
+            }
+        }
+    }
+}

@@ -14,7 +14,7 @@ The Java side has three entry points:
 
 * `Swerve.configurePathPlanner()` registers the drivetrain with `AutoBuilder` at boot.
 * `frc.robot.auton.Auton` defines the auto routines, the event triggers, and the `SendableChooser` exposed to the driver station.
-* `Robot.robotInit` runs the PathPlanner warmups so the first auto doesn't hitch.
+* `Robot.disabledInit` schedules the PathPlanner warmups (once per session, guarded by `autonWarmedUp`) so the first auto doesn't hitch.
 
 ## AutoBuilder Wiring
 
@@ -79,7 +79,7 @@ If you're loading a path directly from Java instead of through an `.auto`, the a
 
 ## Warmup
 
-`Robot.robotInit` calls `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup at boot for it too — `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
+`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` (once per session, guarded by `autonWarmedUp`) so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup the same way — `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
 
 ## Loading a Path From Java
 

@@ -48,7 +48,7 @@ For routing: `Rio.CANIVORE` is the magic string `"*"` (use the first CANivore bu
 
 ## Status Signals
 
-Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus — the bus is updated in the background, and `.getValue()` just returns the latest cached sample. The catch is that you need to call `refresh` to update the cache, and you should do it *once* per loop: `Mechanism.refreshSignals()` batches the calls via `BaseStatusSignal.refreshAll(...)` inside `periodic()`. Calling it again from the same loop is a small but real waste.
+Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus — the bus is updated in the background, and `.getValue()` just returns the latest cached sample. `Mechanism` reads its signals through `CachedDouble` wrappers (`getPositionRotations()`, `getVelocityRPM()`, etc.), which compute the value at most once per scheduler loop. The constructor sets the signal update frequency once via `BaseStatusSignal.setUpdateFrequencyForAll(100, ...)` and then calls `optimizeBusUtilization()`, so reads within the same loop are free.
 
 For one-off reads outside the periodic loop (say, during init), `signal.refresh().getValue()` is fine.
 

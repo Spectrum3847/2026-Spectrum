@@ -39,42 +39,42 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 
 ```text
 src
-├── main: main source code
-│   ├── java: Java source files
-│   │   └── frc: all FRC application code
-│   │       ├── robot: main robot application and subsystems
-│   │       │   ├── auton: autonomous routines and PathPlanner integration
-│   │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
-│   │       │   ├── swerve: swerve drive subsystem and controllers
-│   │       │   ├── vision: PhotonVision and Limelight vision subsystem
-│   │       │   ├── launcher: fuel launcher mechanism
-│   │       │   ├── indexerTower: vertical fuel indexer mechanism
-│   │       │   ├── indexerBed: horizontal fuel indexer mechanism
-│   │       │   ├── fuelIntake: ground intake mechanism
-│   │       │   ├── intakeExtension: intake arm extension mechanism
-│   │       │   ├── hood: launcher hood pivot mechanism
-│   │       │   ├── leds: CANdle LED control and animation
-│   │       │   ├── pilot: pilot gamepad bindings and commands
-│   │       │   └── operator: operator gamepad bindings and commands
-│   │       ├── spectrumLib: reusable Spectrum team utilities (year-to-year code)
-│   │       │   ├── gamepads: gamepad abstraction layer
-│   │       │   ├── leds: LED management utilities
-│   │       │   ├── mechanism: motor and mechanism base classes
-│   │       │   ├── sim: physics simulation helpers
-│   │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
-│   │       │   ├── talonFX: TalonFX motor factory and wrappers
-│   │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
-│   │       │   │   └── exceptions: custom exception classes
-│   │       │   └── vision: vision utilities (Limelight helpers)
-│   │       └── rebuilt: 2026 game-specific field and targeting helpers
-│   │           ├── launchingMaps: distance/angle lookup maps for launcher tuning
-│   │           ├── offsets: home offsets and calibration data
-│   │           └── targetFactories: target factory implementations
-│   └── deploy: files deployed to RoboRIO
-│       └── pathplanner: PathPlanner autonomous paths and settings
-│           ├── paths: individual path trajectory files
-│           └── autos: autonomous routine configurations
-└── vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
+└── main: main source code
+    ├── java: Java source files
+    │   └── frc: all FRC application code
+    │       ├── robot: main robot application and subsystems
+    │       │   ├── auton: autonomous routines and PathPlanner integration
+    │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
+    │       │   ├── swerve: swerve drive subsystem and controllers
+    │       │   ├── vision: PhotonVision and Limelight vision subsystem
+    │       │   ├── launcher: fuel launcher mechanism
+    │       │   ├── indexerTower: vertical fuel indexer mechanism
+    │       │   ├── indexerBed: horizontal fuel indexer mechanism
+    │       │   ├── fuelIntake: ground intake mechanism
+    │       │   ├── intakeExtension: intake arm extension mechanism
+    │       │   ├── hood: launcher hood pivot mechanism
+    │       │   ├── leds: CANdle LED control and animation
+    │       │   ├── pilot: pilot gamepad bindings and commands
+    │       │   └── operator: operator gamepad bindings and commands
+    │       ├── spectrumLib: reusable Spectrum team utilities (year-to-year code)
+    │       │   ├── gamepads: gamepad abstraction layer
+    │       │   ├── leds: LED management utilities
+    │       │   ├── mechanism: motor and mechanism base classes
+    │       │   ├── sim: physics simulation helpers
+    │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
+    │       │   ├── talonFX: TalonFX motor factory and wrappers
+    │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
+    │       │   │   └── exceptions: custom exception classes
+    │       │   └── vision: vision utilities (Limelight helpers)
+    │       └── rebuilt: 2026 game-specific field and targeting helpers
+    │           ├── launchingMaps: distance/angle lookup maps for launcher tuning
+    │           ├── offsets: home offsets and calibration data
+    │           └── targetFactories: target factory implementations
+    └── deploy: files deployed to RoboRIO
+        └── pathplanner: PathPlanner autonomous paths and settings
+            ├── paths: individual path trajectory files
+            └── autos: autonomous routine configurations
+vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
 ```
 
 #### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).

@@ -16,8 +16,8 @@ This page is what to actually do with it — not a feature tour.
 
 Every device on a CAN bus needs a unique ID — including across types (a TalonFX and a CANcoder cannot share ID 5 on the same bus). Spectrum's convention:
 
-* IDs are wrapped in [`frc.spectrumLib.util.CanDeviceId`](../../src/main/java/frc/spectrumLib/util/CanDeviceId.java); the per-subsystem `*Config` classes own the actual ID assignments (`LauncherConfig.MOTOR_ID = 30`, etc.).
-* The Tuner X device name should match the robot-code constant. If the launcher motor is `LauncherConfig.MOTOR_ID = 30` in code, name the device `launcher` in Tuner X. This makes the live device list line up with the code, which speeds up debugging during a frantic match-day setup.
+* IDs are wrapped in [`frc.spectrumLib.util.CanDeviceId`](../../src/main/java/frc/spectrumLib/util/CanDeviceId.java); the per-subsystem `*Config` classes own the actual ID assignments (e.g. `LauncherConfig` passes `super("Launcher", 46, Rio.CANIVORE)` for its leader).
+* The Tuner X device name should match the robot-code constant. If the launcher leader is ID 46 in code (`LauncherConfig` passes `super("Launcher", 46, Rio.CANIVORE)`), name the device `Launcher` in Tuner X. Device names are case-sensitive: a mismatch in casing causes a connection failure.
 
 ## Swerve Offset Procedure
 
