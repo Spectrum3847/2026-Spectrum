@@ -26,32 +26,31 @@ The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim`
 
 These came from Team 604's sample project and were adapted; the principle of "always move the root/origin to change display position" (commented at the top of `RobotSim.java`) is the most useful thing to remember.
 
-## MapleSim Physics
+## Fuel Physics
 
-[MapleSim (IronMaple)](https://github.com/Shenzhen-Robotics-Alliance/maple-sim) handles the physics — drivetrain dynamics, game-piece interaction, projectile flight. [`RobotSim.intakeSimulation`](../../src/main/java/frc/robot/RobotSim.java) wires up an over-the-bumper fuel intake:
+Game-piece physics — spawning, intake pickup, and projectile flight — runs through [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by `RobotSim` as its `ballSim` field and publishing to NetworkTables under `Sim/Fuel`. (MapleSim still simulates the swerve *drivetrain* via [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), but no longer the game pieces.)
+
+`RobotSim` sets it up in its constructor:
 
 ```java
-IntakeSimulation.OverTheBumperIntake(
-    "Fuel",
-    Robot.getSwerve().getMapleSimSwerveDrivetrain().mapleSimDrive,
-    Inches.of(29),
-    Inches.of(12),
-    IntakeSimulation.IntakeSide.FRONT,
-    80); // max game pieces
+ballSim = new FuelPhysicsSim("Sim/Fuel");
+ballSim.enable();
+ballSim.placeFieldBalls();   // spawns all the game pieces
+configBallSimRobot();        // registers the robot's intake zone
 ```
 
-When the intake command starts, `mapleSimIntakeFuel()` calls `startIntake()` on the simulated intake; the moment a simulated fuel piece is in range, MapleSim transfers it to the robot. `mapleSimLaunchFuel()` reads the held-piece count and creates `RebuiltFuelOnFly` projectiles using the actual `ShotCalculator` outputs — same code path as match-day, so a shot that lands in sim should also land on the real field if the calibration is right.
+`configBallSimRobot()` calls `ballSim.addIntakeZone(...)`, so a fuel piece that enters the robot's intake box while the intake is active is picked up (tracked by `ballSim.getTotalIntaked()`). `ballSimLaunchFuel()` fires held fuel: it reads the intaked count and calls `ballSim.launchBall(launcherPose, launchVelocity, spin)`, where the pose and velocity come from the actual [`ShotCalculator`](../../src/main/java/frc/rebuilt/ShotCalculator.java) outputs — the same code path as match-day, so a shot that lands in sim should also land on the real field if the calibration is right.
 
-The trajectory is published to NetworkTables under `SimShot/FuelProjectileSuccessfulShot` (or `…UnsuccessfulShot`). Drag those into Glass's `Field2d` overlay to see shots in flight.
+`FuelPhysicsSim` carries its own drag/gravity/Magnus integrator, so it does not depend on MapleSim for projectile flight. Drag `Sim/Fuel` into Glass's `Field2d`/`Field3d` overlay to see the balls in flight.
 
 ## What Simulation Catches (and Doesn't)
 
 It catches:
 
-* State-machine bugs — a `Coordinator` state that forgets to set a default mechanism back, command interruptions, race conditions in `setupStates()`.
+* State-machine bugs — a `SuperStructure` super-state that forgets to set a mechanism back, command interruptions, race conditions between subsystem state machines.
 * PathPlanner trajectories that look fine in the editor but the chassis can't actually drive (over-aggressive velocities, infeasible turn angles).
 * Auto chooser plumbing — Elastic's chooser, auton command names, mirror flag.
-* Vision pose math, when paired with PhotonVisionSim (we don't currently wire that up, but the hook is there).
+* Fuel intake/launch logic — `FuelPhysicsSim` reacts to the same intake and shooter commands the real robot runs.
 
 It doesn't catch:
 
@@ -67,7 +66,7 @@ A few things to check first when a sim result doesn't match reality:
 
 * `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere — the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
 * `mapleSimDrive` is built from the per-robot swerve config. If you tweaked module positions in code but didn't redeploy/rebuild before running sim, MapleSim is still simulating yesterday's drivetrain.
-* `IntakeSimulation.OverTheBumperIntake` height/width are in `Inches`. Mixing units silently produces a sub-millimeter intake that catches nothing.
+* The `FuelPhysicsSim` intake zone in `configBallSimRobot()` is in meters. A units mixup silently produces an intake box that catches nothing (or everything).
 
 ## See Also
 

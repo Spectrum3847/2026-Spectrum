@@ -56,7 +56,6 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 * [PathPlannerLib](dependencies/pathplanner.md)
 * [DogLog](dependencies/doglog.md)
 * [MapleSim](dependencies/maple-sim.md)
-* [PhotonVision](dependencies/photonvision.md)
 
 ### Coding Conventions
 

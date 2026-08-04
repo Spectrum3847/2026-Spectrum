@@ -2,21 +2,21 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-> **State of play (2026):** [`CANdleLeds.java`](../../src/main/java/frc/robot/leds/CANdleLeds.java) and [`LedStates.java`](../../src/main/java/frc/robot/leds/LedStates.java) are currently commented out on this branch; LED revival work is happening on the off-season branch. The Phoenix 6 CANdle remains the hardware driver — the WPILib `AddressableLED`-based `SpectrumLEDs` library below is a separate tool that may get integrated alongside it, not a replacement.
+The robot's LEDs are live: [`Leds`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) (`frc.robot.subsystems.leds`) extends `SpectrumLEDs` and drives a Phoenix 6 CANdle — device ID 1 on the CANivore, a 20-LED RGB external strip.
 
 ## Library: `SpectrumLEDs`
 
-[`frc.spectrumLib.leds.SpectrumLEDs`](../../src/main/java/frc/spectrumLib/leds/SpectrumLEDs.java) is our wrapper around WPILib's addressable-LED stack. It implements `SpectrumSubsystem`, owns:
+[`frc.spectrumLib.leds.SpectrumLEDs`](../../src/main/java/frc/spectrumLib/leds/SpectrumLEDs.java) is our wrapper around a **Phoenix 6 `CANdle`** (not the WPILib `AddressableLED` stack). It `implements Subsystem` and owns:
 
-* An `AddressableLED` (PWM port, set by `Config.port`).
-* An `AddressableLEDBuffer` of fixed length.
-* An `AddressableLEDBufferView` — a windowed slice of the buffer so multiple `SpectrumLEDs` instances can drive different sections of the same physical strip independently.
+* A `CANdle` (device ID + CAN bus, set by `Config`).
+* A `CANdleConfiguration` for strip type, brightness, and loss-of-signal behavior.
+* An animation slot the CANdle uses for hardware animations (strobe, fade, rainbow, …).
 
-The constructor takes a `Config` either by buffer size (in which case it allocates its own LED + buffer and is the "main view") or by sharing an existing buffer with a start/end index (a sub-view that doesn't own the hardware). Only the main view actually pushes data to the strip in `periodic()`, so creating sub-views is free.
+The constructor takes a `Config` either by device id + LED count (it owns the CANdle) or by sharing an existing `CANdle` with a start index and count (a sub-view that addresses a slice of the same physical strip without owning the hardware).
 
 ## Patterns
 
-`SpectrumLEDs` ships with pattern factories that return WPILib `LEDPattern` objects:
+`SpectrumLEDs` ships with pattern factories that return `CANdlePattern` objects (some backed by hardware CANdle animations, some by per-LED color writes):
 
 | Method | What you get |
 | --- | --- |
@@ -33,7 +33,7 @@ The constructor takes a `Config` either by buffer size (in which case it allocat
 | `switchCountdown(startColor)` | 2026-specific: alliance-shift countdown that flips between alliance colors and purple. |
 | `edges(color, length)` | `length` LEDs lit at each end, rest off. |
 
-The patterns are pure WPILib `LEDPattern` objects, so anything from the [WPILib LED docs](https://docs.wpilib.org/en/stable/docs/software/hardware-apis/misc/addressable-leds.html) composes — `pattern.reversed()`, `pattern.atBrightness(...)`, `pattern.scrollAtAbsoluteSpeed(...)` all work.
+Hardware-animation patterns (blink, breathe, rainbow) are driven by the CANdle's own animation engine via Phoenix 6 controls (`StrobeAnimation`, `SingleFadeAnimation`, `RainbowAnimation`, …); the color/gradient patterns are written per-LED each loop.
 
 ## Driving Patterns from Commands
 
@@ -41,21 +41,17 @@ The patterns are pure WPILib `LEDPattern` objects, so anything from the [WPILib 
 
 ```java
 public Command idleLights() {
-    return leds.setPattern(leds.breathe(Color.kPurple, 2.0), 1);
+    return leds.setPattern(leds.breathe(purple, 2.0), 1);
 }
 ```
 
-The `priority` slot is an integer. `commandPriority` is exposed via `checkPriority(int)` so a higher-priority animation (endgame strobe) can preempt a lower-priority one (alliance breathing) cleanly through a `Trigger` chain. The previous `LedStates.java` used this to layer match-time triggers — that file is the reference for the pattern, even though it's currently commented out.
+The `priority` slot is an integer. `checkPriority(int)` returns a `Trigger` so a higher-priority animation (endgame strobe) can preempt a lower-priority one (alliance breathing) cleanly through a `Trigger` chain.
 
-## When the New Wiring Lands
+## Wiring It Into the Robot
 
-The plan is to revive `CANdleLeds.java` — the Phoenix 6 `CANdle`-backed subsystem — with `LedStates.java` doing what it did before: binding `Trigger`s — auto mode, transition, alliance shift, endgame, "about to shift" — to LED animations of varying priority. The CANdle stays; integrating `SpectrumLEDs` patterns alongside it is a possibility, not the goal. Whoever picks the work back up should:
-
-1. Uncomment and update `CANdleLeds.java` (CANdle on the CANivore bus, 20 LEDs, RGB strip).
-2. Wire `setupDefaultCommand()` and `setupStates()` through to `LedStates`.
-3. Restore the `Trigger`s in `LedStates.bindTriggers()` (alliance, match-time windows, auto/teleop). The commented-out file has the time windows already worked out for 2026's shift cadence.
+`Leds` is a normal subsystem: bind status triggers (auto mode, alliance shift, endgame, "about to shift") to `leds.setPattern(...)` commands at their priorities, the same way any other subsystem is wired in `Robot.java`. The [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java) match-clock windows are what the shift-aware animations key off of.
 
 ## See Also
 
-* WPILib's [`AddressableLED`](https://docs.wpilib.org/en/stable/docs/software/hardware-apis/misc/addressable-leds.html) docs for the underlying API.
-* `frc.spectrumLib.SpectrumSubsystem` for the lifecycle hooks (`setupStates`, `setupDefaultCommand`) every subsystem in this codebase implements.
+* CTRE's Phoenix 6 [CANdle](https://v6.docs.ctr-electronics.com/) docs for the underlying animation controls.
+* `Subsystem` for the lifecycle hooks the scheduler runs each loop.

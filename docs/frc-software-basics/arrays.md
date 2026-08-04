@@ -43,7 +43,7 @@ for (Limelight limelight : allLimelights) {
 }
 ```
 
-`SwerveStates` uses a `double[4]` to collect per-module positions for wheel-radius characterization:
+`Swerve` uses a `double[4]` to collect per-module positions for wheel-radius characterization:
 
 ```java
 double[] positions = new double[4];

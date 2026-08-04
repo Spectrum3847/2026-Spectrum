@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-The robot uses three Limelights for AprilTag-based pose estimation. Each one publishes its own MegaTag estimates; the [`Vision`](../../src/main/java/frc/robot/vision/Vision.java) subsystem decides which to trust, when to fuse them, and at what standard deviation to feed each measurement into the swerve pose estimator.
+The robot uses three Limelights for AprilTag-based pose estimation. Each one publishes its own MegaTag estimates; the [`Vision`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) subsystem decides which to trust, when to fuse them, and at what standard deviation to feed each measurement into the swerve pose estimator.
 
 ## The Hardware
 
@@ -14,7 +14,7 @@ Three [Limelight 4](https://limelightvision.io)s, named for where they sit on th
 | Left | `limelight-left` | Side view for tags at oblique angles. |
 | Right | `limelight-right` | Mirror of left. |
 
-The 3D mounting transforms are in [`Vision.VisionConfig`](../../src/main/java/frc/robot/vision/Vision.java) — `withTranslation(x, y, z)` is robot-frame meters, `withRotation(roll, pitch, yaw)` is degrees (some call sites currently wrap values in `Math.toRadians(...)`, which converts degrees → radians and is therefore incorrect for this API). Update these when CAD changes; the MegaTag pose math is only as good as the camera-to-robot transform you give it.
+The 3D mounting transforms are in [`Vision.VisionConfig`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) — `withTranslation(x, y, z)` is robot-frame meters, `withRotation(roll, pitch, yaw)` is degrees. Update these when CAD changes; the MegaTag pose math is only as good as the camera-to-robot transform you give it.
 
 ## MegaTag 1 vs. MegaTag 2
 
@@ -26,7 +26,7 @@ Both are Limelight pipelines that estimate the robot pose from AprilTag detectio
 Our integration scheme reflects that:
 
 * While **disabled**, both MT1 and MT2 from the best Limelight are integrated (good for pre-match auto-zeroing).
-* While **enabled** (teleop, auton-launching, or when `RobotStates.autoUpdatePose` is asserted), only MT1 is integrated.
+* While **enabled** (teleop or when `Auton.autonPoseUpdate` is asserted), only MT1 is integrated.
 
 ## How Estimates Flow Into the Pose Estimator
 
@@ -39,7 +39,7 @@ Each estimate goes through `getMT1VisionEstimate(...)` or `getMT2VisionEstimate(
 3. Pose is outside the field → reject.
 4. Yaw rate > 1.6 rad/s → reject (motion blur kills tag precision).
 5. Target apparent size ≤ 0.025 → reject (too far away to matter).
-6. MT1 only: roll/pitch > 5 rad → reject (the field is flat; if MT1 thinks we're tilted, it's wrong).
+6. MT1 only: roll/pitch > 5° → reject (the field is flat; if MT1 thinks we're tilted, it's wrong).
 
 If a measurement survives, it's tagged with standard deviations based on confidence. The full ladder lives in the source, but the shape is:
 
@@ -59,7 +59,7 @@ If a measurement survives, it's tagged with standard deviations based on confide
 
 ## Resetting Pose
 
-`resetPoseToVision()` is a hard reset rather than a normal measurement. It runs a stricter set of checks (no out-of-field, no in-air, no >5 rad tilt) and then calls `addVisionMeasurement` with extremely tight stds (0.00001). This is the move when:
+`resetPoseToVision()` is a hard reset rather than a normal measurement. It runs a stricter set of checks (no out-of-field, no in-air, no >5° tilt) and then calls `addVisionMeasurement` with extremely tight stds (0.00001). This is the move when:
 
 * The robot has been pushed (driver "I have no idea where I am" reset).
 * Initial pose at auto start, when the gyro is fresh but the field-frame pose is unknown.
@@ -75,7 +75,7 @@ Everything else — pipeline contents, camera intrinsics calibration, AprilTag m
 
 ## Game-Piece Detection (Future Work)
 
-We don't currently run a fuel-detection pipeline. PhotonVision on an Orange Pi was a 2025 experiment for that; the option to revive it for 2026 is open. The plumbing — a `frc.spectrumLib.vision.PhotonVision` wrapper, similar to `Limelight` — is in `spectrumLib` but not wired into a `Vision` config.
+We don't currently run a fuel-detection pipeline. A neural-detector pipeline on the Limelights, or a separate coprocessor, is the option if we want one for 2026 — no code exists for it in `2026-Spectrum` yet.
 
 ## QuestNav
 
@@ -83,6 +83,5 @@ Mentioned in older drafts of this doc but not currently integrated. The plan, if
 
 ## See Also
 
-* [PhotonVision dependency page](../dependencies/photonvision.md) — version, JavaDoc link.
 * [Auton](auton.md) — `autoUpdatePose` is one of the triggers that enables vision integration during teleop or auton.
 * [Phoenix Tuner X](phoenix-tuner-x.md) — gyro calibration, which feeds MT2.

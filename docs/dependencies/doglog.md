@@ -2,13 +2,13 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-DogLog is a small WPILib logger that writes WPILOG files on the roboRIO and (optionally) re-publishes everything to NetworkTables so dashboards can read it live. We extend it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/Telemetry.java) class, and that's the layer 99% of the code calls.
+DogLog is a small WPILib logger that writes WPILOG files on the roboRIO and (optionally) re-publishes everything to NetworkTables so dashboards can read it live. We extend it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java) class, and that's the layer 99% of the code calls.
 
 Version pinned: 2026.5.0 ([`vendordeps/DogLog.json`](../../vendordeps/DogLog.json)).
 
 ## The `Telemetry` Wrapper
 
-`frc.spectrumLib.Telemetry` extends `dev.doglog.DogLog` and implements `Subsystem`, so the scheduler runs its `periodic()` once a loop. `Robot.java` boots it with:
+`frc.spectrumLib.telemetry.Telemetry` extends `dev.doglog.DogLog` and implements `Subsystem`, so the scheduler runs its `periodic()` once a loop. `Robot.java` boots it with:
 
 ```java
 Telemetry.start(

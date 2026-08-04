@@ -88,15 +88,16 @@ Once any branch runs, the rest are skipped. That's different from writing three 
 
 ### Switch
 
-When you're branching on a single enum or integer value, a `switch` often reads more clearly than a stack of `else if`. The codebase uses Java's modern arrow-syntax switch expressions in `State.java`:
+When you're branching on a single enum or integer value, a `switch` often reads more clearly than a stack of `else if`. The codebase uses Java's modern arrow-syntax switch expressions — `SuperStructure.handleStateTransitions()` maps each wanted state to a current one:
 
 ```java
-private static BooleanSupplier isReadyState(State state) {
-    return () ->
-            switch (state) {
-                case TRACK_TARGET -> true;
-                default -> false;
-            };
+private CurrentSuperState handleStateTransitions() {
+    return switch (wantedSuperState) {
+        case INTAKE_FUEL -> CurrentSuperState.INTAKE_FUEL;
+        case LAUNCH_WITH_SQUEEZE -> CurrentSuperState.LAUNCH_WITH_SQUEEZE;
+        // ... one case per WantedSuperState
+        default -> CurrentSuperState.IDLE;
+    };
 }
 ```
 

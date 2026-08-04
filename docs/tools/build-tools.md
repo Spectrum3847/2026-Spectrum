@@ -56,7 +56,7 @@ The `com.peterabeles.gversion` plugin regenerates [`src/main/java/frc/robot/Buil
 `./gradlew javadoc` writes HTML to `build/docs/javadoc/`. The interesting bit is the cross-link configuration in `build.gradle`'s `javadoc.options.setLinks(...)`:
 
 ```
-WPILib, REV, Phoenix v5, Phoenix 6, PathPlanner, DogLog, MapleSim, PhotonVision, Java 17
+WPILib, REV, Phoenix v5, Phoenix 6, PathPlanner, DogLog, MapleSim, Java 17
 ```
 
 When our JavaDoc references a class from any of those, the generated HTML links straight to the vendor's hosted docs. If you add a new vendor library, add its JavaDoc base URL here so cross-links keep working.

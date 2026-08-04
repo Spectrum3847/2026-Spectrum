@@ -2,11 +2,11 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-Robot logs are the difference between "the elevator stopped working at champs and we don't know why" and "the elevator stopped working at champs, here's the CAN dropout that caused it." We use [DogLog](https://doglog.dev) for the heavy lifting and wrap it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/Telemetry.java) class to keep call sites short and add a few project-specific behaviors.
+Robot logs are the difference between "the elevator stopped working at champs and we don't know why" and "the elevator stopped working at champs, here's the CAN dropout that caused it." We use [DogLog](https://doglog.dev) for the heavy lifting and wrap it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java) class to keep call sites short and add a few project-specific behaviors.
 
 ## What Telemetry Is
 
-`frc.spectrumLib.Telemetry` extends DogLog, registers itself as a `Subsystem` so its `periodic()` runs every loop, and starts via `Telemetry.start(...)` in `Robot.java`. The start call configures DogLog options once:
+`frc.spectrumLib.telemetry.Telemetry` extends DogLog, registers itself as a `Subsystem` so its `periodic()` runs every loop, and starts via `Telemetry.start(...)` in `Robot.java`. The start call configures DogLog options once:
 
 ```java
 // frc.robot.Robot
@@ -39,7 +39,7 @@ Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
 Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
 ```
 
-That's the convention used in [`Launcher.java`](../../src/main/java/frc/robot/launcher/Launcher.java) and every other subsystem. A few things to notice:
+That's the convention used in [`Launcher.java`](../../src/main/java/frc/robot/subsystems/launcher/Launcher.java) and every other subsystem. A few things to notice:
 
 * Keys are `Subsystem/Name`. Hierarchical paths make the NT tree navigable and group cleanly in AdvantageScope.
 * The unit string (`"volts"`, `"amps"`, `"deg_C"`, `"RPM"`) is optional but worth setting — DogLog records it as metadata and AdvantageScope uses it on axis labels.
@@ -49,16 +49,13 @@ For values that change per loop, prefer logging inside `periodic()` over scatter
 
 ## Logging Commands
 
-`Telemetry.log(Command cmd)` returns a decorated command that logs `Commands: Init: <name>` when scheduled and `Commands: End: <name>` when it ends. Every `*States` file uses it:
+`Telemetry.log(Command cmd)` returns a decorated command that logs `Commands: Init: <name>` when scheduled and `Commands: End: <name>` when it ends. Wrap a command in it wherever you want its lifecycle in the log:
 
 ```java
-// LauncherStates.java
-private static Command log(Command cmd) {
-    return Telemetry.log(cmd);
-}
+Telemetry.log(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
 ```
 
-That `log(...)` helper is a static convenience so command factories read `log(intakeFuel())` instead of `Telemetry.log(intakeFuel())`. The convention is shared across `LauncherStates`, `HoodStates`, `IntakeExtensionStates`, `PilotStates`, `IndexerTowerStates`, and so on.
+Each subsystem also logs its own currently-running command every loop in `periodic()` via `Telemetry.log("<Name>/CurrentCommand", getCurrentCommandName())`, so you can see which command owns a mechanism at any point without decorating every factory.
 
 Wrap the *outermost* command factory, not every sub-command — otherwise you get nested log lines for every internal sequence step.
 
