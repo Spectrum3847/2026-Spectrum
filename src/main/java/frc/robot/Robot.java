@@ -63,7 +63,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import org.ironmaple.simulation.SimulatedArena;
 import org.json.simple.parser.ParseException;
 
 /**

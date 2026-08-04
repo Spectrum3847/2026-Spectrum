@@ -441,14 +441,12 @@ public class Vision implements Subsystem {
             return null;
         }
 
-        // Widen heading std-dev when ambiguity is moderate
         if (highestAmbiguity > 0.5) {
-            degStds = 15;
+            degStds = Math.max(degStds, 15);
         }
 
-        // Discard heading during fast rotation (MegaTag1 heading unreliable while spinning)
-        if (robotSpeed.omegaRadiansPerSecond >= 0.5) {
-            degStds = 50;
+        if (Math.abs(robotSpeed.omegaRadiansPerSecond) >= 0.5) {
+            degStds = Math.max(degStds, 50);
         }
 
         // Override covariance for disabled pre-seeding
