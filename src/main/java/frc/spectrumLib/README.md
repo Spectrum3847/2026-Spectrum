@@ -14,7 +14,7 @@ frc.spectrumLib
 ├── util/           General-purpose utilities and math helpers
 ├── mechanism/      Abstract TalonFX-driven mechanism base class
 ├── gamepads/       Xbox controller abstraction with deadbanding and rumble
-├── leds/           AddressableLED wrapper with built-in pattern library
+├── leds/           CTRE CANdle wrapper with built-in pattern library
 ├── sim/            Mechanism2d simulation helpers (arm, roller, linear)
 ├── swerve/         Swerve-specific utilities (SysID, Maple-Sim bridge)
 └── vision/         Limelight helpers and vision logging
@@ -52,7 +52,7 @@ Logging, alerts, and runtime-tunable values.
 
 | Class | Description |
 |-------|-------------|
-| `Telemetry` | DogLog-based logging system; provides `log()`, `print()`, alert monitoring, and a `tunable()` NetworkTables subscriber factory |
+| `Telemetry` | DogLog-based logging system; provides `log()`, `print()`, and alert monitoring |
 | `BatteryLogger` | Accumulates per-subsystem current/power/energy each loop and logs totals via `logPower()` |
 | `TuneValue` | SmartDashboard-backed tunable `double` for in-match parameter adjustment |
 
