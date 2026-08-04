@@ -313,6 +313,11 @@ public class Robot extends SpectrumRobot {
     @Override
     public void robotInit() {
         setupSmartDashboardData();
+        
+        // Build the ShotCalculator now so its Hub Model Chooser is on the dashboard before
+        // enabling.
+        ShotCalculator.getInstance();
+
         WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
     }
 
