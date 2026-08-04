@@ -241,6 +241,7 @@ public class SuperStructure extends SubsystemBase {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         indexerTower.setWantedState(IndexerTower.WantedState.INDEX_MAX);
         indexerBed.setWantedState(IndexerBed.WantedState.INDEX_MAX);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
