@@ -11,7 +11,6 @@ import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
 /** The Hood subsystem. Positions the hood that sets the fuel launch angle. */
 public class Hood extends Mechanism {
@@ -20,8 +19,8 @@ public class Hood extends Mechanism {
 
         @Getter private final double initPosition = 9;
 
-        @Getter @Setter private double maxRotations = 0.137;
-        @Getter @Setter private double minRotations = 0.024;
+        @Getter private final double maxRotations = 0.137;
+        @Getter private final double minRotations = 0.024;
 
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 40;

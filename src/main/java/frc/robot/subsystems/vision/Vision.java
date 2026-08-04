@@ -589,7 +589,7 @@ public class Vision implements Subsystem {
         }
 
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
-        double currentTime = Timer.getFPGATimestamp();
+        double currentTime = Utils.fpgaToCurrentTime(Timer.getFPGATimestamp());
         if (currentTime - timestamp > config.getKMaxTimeDeltaSeconds()) {
             ll.sendInvalidStatus("Stale Timestamp Rejection");
             return true;
