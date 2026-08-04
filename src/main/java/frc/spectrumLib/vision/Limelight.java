@@ -4,7 +4,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.robot.vision.Vision.VisionConfig;
+import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.vision.LimelightHelpers.LimelightResults;
 import frc.spectrumLib.vision.LimelightHelpers.PoseEstimate;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
@@ -13,23 +13,59 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+/**
+ * Provides a high-level interface to a single Limelight camera for AprilTag-based pose estimation
+ * and basic targeting.
+ *
+ * <p>All methods are safe to call when the camera is not attached ({@link #isAttached()} returns
+ * {@code false}); they return zero / false / empty values in that case.
+ *
+ * <p>Two pose estimation flavors are supported:
+ *
+ * <ul>
+ *   <li><b>MegaTag1</b> — full 3-D pose estimation using one or more AprilTags.
+ *   <li><b>MegaTag2</b> — fused estimate that incorporates the robot heading supplied via {@link
+ *       #setRobotOrientation(double)}.
+ * </ul>
+ */
 public class Limelight {
 
     /* Limelight Configuration */
 
+    /**
+     * Configuration for a single Limelight camera, including its network-table name and physical
+     * mounting position on the robot.
+     *
+     * <p>The Lombok {@code @Accessors(chain = true)} annotation allows fluent setter calls: {@code
+     * config.setName("limelight").setAttached(true)}.
+     */
     @Accessors(chain = true)
     public static class LimelightConfig {
         /** Must match to the name given in LL dashboard */
         @Getter @Setter private String name;
 
+        /** Whether this camera is physically connected to the robot. */
         @Getter @Setter private boolean attached = true;
 
+        /**
+         * Whether pose measurements from this camera are currently being fused into the estimator.
+         */
         @Getter @Setter private boolean isIntegrating;
+
         /** Physical Config */
+        /**
+         * Forward offset of the camera from the robot center in meters (positive = toward front).
+         */
         @Getter private double forward, right, up; // meters
 
+        /** Orientation of the camera in degrees (roll/pitch/yaw relative to robot frame). */
         @Getter private double roll, pitch, yaw; // degrees
 
+        /**
+         * Creates a configuration for the named Limelight camera.
+         *
+         * @param name the network-table name assigned to the camera in the LL dashboard
+         */
         public LimelightConfig(String name) {
             this.name = name;
         }
@@ -66,33 +102,76 @@ public class Limelight {
     }
 
     /* Debug */
+    /** Formatter used for printing pose coordinates to SmartDashboard. */
     private final DecimalFormat df = new DecimalFormat();
+
+    /** Active configuration for this Limelight instance. */
     private LimelightConfig config;
+
+    /** Whether pose measurements from this camera are currently being integrated. */
     @Getter @Setter private boolean isIntegrating = false;
+
+    /** Network-table name of this camera (mirrors {@link LimelightConfig#getName()}). */
     @Getter private String cameraName = "default";
+
+    /** Human-readable string describing the current integration status, logged for diagnostics. */
     @Getter @Setter private String logStatus = "";
+
+    /** Human-readable string describing the currently visible tag(s), logged for diagnostics. */
     @Getter @Setter private String tagStatus = "";
 
+    /**
+     * Constructs a Limelight wrapper from a fully populated {@link LimelightConfig}.
+     *
+     * @param config the camera configuration
+     */
     public Limelight(LimelightConfig config) {
         this.config = config;
+        cameraName = config.getName();
     }
 
+    /**
+     * Constructs a Limelight wrapper with a default configuration for the given camera name.
+     *
+     * @param name the network-table name of the camera
+     */
     public Limelight(String name) {
         cameraName = name;
         config = new LimelightConfig(name);
     }
 
+    /**
+     * Constructs a Limelight wrapper, explicitly setting whether the camera is attached.
+     *
+     * @param name the network-table name of the camera
+     * @param attached {@code true} if the camera is physically present on the robot
+     */
     public Limelight(String name, boolean attached) {
         cameraName = name;
         config = new LimelightConfig(name).setAttached(attached);
     }
 
+    /**
+     * Constructs a Limelight wrapper and immediately sets its active pipeline.
+     *
+     * @param name the network-table name of the camera
+     * @param pipeline the pipeline index to activate (see {@link
+     *     frc.robot.subsystems.vision.Vision.VisionConfig})
+     */
     public Limelight(String name, int pipeline) {
         this(name);
         cameraName = name;
         setLimelightPipeline(pipeline);
     }
 
+    /**
+     * Constructs a Limelight wrapper with an explicit configuration and immediately sets its active
+     * pipeline.
+     *
+     * @param name the network-table name of the camera
+     * @param pipeline the pipeline index to activate
+     * @param config the fully populated {@link LimelightConfig} to use
+     */
     public Limelight(String name, int pipeline, LimelightConfig config) {
         this(name);
         cameraName = name;
@@ -100,10 +179,20 @@ public class Limelight {
         setLimelightPipeline(pipeline);
     }
 
+    /**
+     * Returns the network-table name of this camera.
+     *
+     * @return the camera name as configured in the LL dashboard
+     */
     public String getName() {
         return config.getName();
     }
 
+    /**
+     * Returns whether this camera is physically connected to the robot.
+     *
+     * @return {@code true} if attached
+     */
     public boolean isAttached() {
         return config.isAttached();
     }
@@ -159,11 +248,21 @@ public class Limelight {
         return getTagCountInView() > 1;
     }
 
+    /**
+     * Returns the number of AprilTags included in the current MegaTag1 pose estimate.
+     *
+     * @return number of tags contributing to the current pose estimate, or {@code 0} if not
+     *     attached or no estimate is available
+     */
     public double getTagCountInView() {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName()).tagCount;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName());
+        if (est == null) {
+            return 0;
+        }
+        return est.tagCount;
 
         // if (retrieveJSON() == null) return 0;
 
@@ -183,6 +282,11 @@ public class Limelight {
         return LimelightHelpers.getFiducialID(config.getName());
     }
 
+    /**
+     * Returns the area of the primary target as a percentage of the camera image (0–100).
+     *
+     * @return target area percentage, or {@code 0} if not attached
+     */
     public double getTargetSize() {
         if (!isAttached()) {
             return 0;
@@ -225,6 +329,12 @@ public class Limelight {
         return poseEstimate.pose;
     }
 
+    /**
+     * Returns the full MegaTag1 {@link PoseEstimate}, including timestamp, tag count, and raw
+     * fiducials. Returns an empty estimate when not attached or when no estimate is available.
+     *
+     * @return the MegaTag1 pose estimate in the WPILib Blue origin frame
+     */
     public PoseEstimate getMegaTag1_PoseEstimate() {
         if (!isAttached()) {
             return new PoseEstimate();
@@ -237,6 +347,12 @@ public class Limelight {
         return poseEstimate;
     }
 
+    /**
+     * Returns the full MegaTag2 {@link PoseEstimate} (heading-fused), including timestamp and tag
+     * count. Returns an empty estimate when not attached or when no estimate is available.
+     *
+     * @return the MegaTag2 pose estimate in the WPILib Blue origin frame
+     */
     public PoseEstimate getMegaTag2_PoseEstimate() {
         if (!isAttached()) {
             return new PoseEstimate();
@@ -250,6 +366,12 @@ public class Limelight {
         return poseEstimate;
     }
 
+    /**
+     * Returns {@code true} when the pose estimate is considered accurate — i.e., multiple tags are
+     * visible and the combined target area exceeds a minimum threshold.
+     *
+     * @return {@code true} if the pose estimate meets the accuracy criteria
+     */
     public boolean hasAccuratePose() {
         if (!isAttached()) {
             return false;
@@ -271,8 +393,18 @@ public class Limelight {
         return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
     }
 
+    /**
+     * Returns the raw fiducial data for all currently detected AprilTags.
+     *
+     * @return array of {@link RawFiducial} entries from the MegaTag1 estimate; empty array if not
+     *     attached or no estimate is available
+     */
     public RawFiducial[] getRawFiducial() {
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name).rawFiducials;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name);
+        if (est == null) {
+            return new RawFiducial[0];
+        }
+        return est.rawFiducials;
     }
 
     /**
@@ -284,7 +416,11 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName()).timestampSeconds;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName());
+        if (est == null) {
+            return 0;
+        }
+        return est.timestampSeconds;
     }
 
     /**
@@ -296,8 +432,11 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.getName())
-                .timestampSeconds;
+        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.getName());
+        if (est == null) {
+            return 0;
+        }
+        return est.timestampSeconds;
     }
 
     /**
@@ -329,15 +468,25 @@ public class Limelight {
             return 0;
         }
         return (targetHeight - config.up)
-                / Math.tan(Units.degreesToRadians(config.roll + getVerticalOffset()));
+                / Math.tan(Units.degreesToRadians(config.pitch + getVerticalOffset()));
     }
 
+    /**
+     * Marks this camera as actively integrating and updates the log status message.
+     *
+     * @param message a human-readable description of why integration is valid
+     */
     public void sendValidStatus(String message) {
         config.isIntegrating = true;
         this.isIntegrating = config.isIntegrating;
         logStatus = message;
     }
 
+    /**
+     * Marks this camera as not integrating and updates the log status message.
+     *
+     * @param message a human-readable description of why integration is invalid
+     */
     public void sendInvalidStatus(String message) {
         config.isIntegrating = false;
         this.isIntegrating = config.isIntegrating;
@@ -376,6 +525,12 @@ public class Limelight {
         LimelightHelpers.SetRobotOrientation(config.name, degrees, 0, 0, 0, 0, 0);
     }
 
+    /**
+     * Sets the robot orientation and yaw rate for the Limelight's internal IMU fusion (MegaTag2).
+     *
+     * @param degrees robot heading in degrees (positive counter-clockwise)
+     * @param angularRate current yaw rate in degrees per second
+     */
     public void setRobotOrientation(double degrees, double angularRate) {
         if (!isAttached()) {
             return;
@@ -383,6 +538,11 @@ public class Limelight {
         LimelightHelpers.SetRobotOrientation(config.name, degrees, angularRate, 0, 0, 0, 0);
     }
 
+    /**
+     * Sets the IMU mode on the Limelight.
+     *
+     * @param mode the IMU mode index (refer to the LL documentation for valid values)
+     */
     public void setIMUmode(int mode) {
         if (!isAttached()) {
             return;
@@ -390,6 +550,13 @@ public class Limelight {
         LimelightHelpers.SetIMUMode(config.name, mode);
     }
 
+    /**
+     * Returns the X offset of the primary target in robot space (meters along the robot's
+     * left/right axis).
+     *
+     * @return target X translation in meters, or {@code -99999} if not attached or no target in
+     *     view
+     */
     public double getTagTx() {
         if (!isAttached()) {
             return -99999;
@@ -404,6 +571,11 @@ public class Limelight {
         return tx;
     }
 
+    /**
+     * Returns the area of the primary target as a percentage of the camera image.
+     *
+     * @return target area (0–100 %), or {@code -99999} if not attached or no target in view
+     */
     public double getTagTA() {
         if (!isAttached()) {
             return -99999;
@@ -417,6 +589,13 @@ public class Limelight {
         return ta;
     }
 
+    /**
+     * Returns the Z-axis rotation of the primary target in robot space (yaw in radians, converted
+     * to degrees).
+     *
+     * @return target yaw rotation in degrees, or {@code -99999} if not attached or no target in
+     *     view
+     */
     public double getTagRotationDegrees() {
         if (!isAttached()) {
             return -99999;
@@ -425,10 +604,10 @@ public class Limelight {
             return -99999;
         }
 
-        double rotation =
+        double rotationRadians =
                 LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getRotation().getZ();
 
-        return rotation;
+        return Math.toDegrees(rotationRadians);
     }
 
     /**

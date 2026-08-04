@@ -16,6 +16,6 @@ public class PHOTON2026 extends Config {
         intakeExtension.setAttached(true);
         launcher.setAttached(true);
         indexerTower.setAttached(true);
-        indexerBed.setAttached(true);
+        // indexerBed.setAttached(true);
     }
 }
