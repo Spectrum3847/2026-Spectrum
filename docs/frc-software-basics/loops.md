@@ -14,7 +14,7 @@ for (int i = 0; i < 4; i++) {
 }
 ```
 
-In `SwerveStates`, this pattern reads back position data from all four swerve modules:
+In `Swerve`, this pattern reads back position data from all four swerve modules:
 
 ```java
 double[] positions = new double[4];

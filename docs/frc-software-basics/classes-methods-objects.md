@@ -29,38 +29,31 @@ accessModifier returnType methodName(parameterType parameterName) {
 }
 ```
 
-A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types — `LauncherStates.aimingAtTarget()` returns a `Trigger`, for example.
+A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types — `SuperStructure.robotInFeedZone()` returns a `Trigger`, for example.
 
 ## Scope and Access Modifiers
 
 `private` means only code inside this class can see this variable or method. `public` means anything can. No modifier at all (package-private) means only code in the same package can.
 
-The convention in this codebase: fields are `private`, methods on `*States` classes are `public static`. That keeps internal mechanism data hidden while exposing a clean API to `Coordinator` and `RobotStates`.
+The convention in this codebase: config fields are `private` (exposed through a `@Getter`), and a subsystem's control API is `public` instance methods like `setWantedState(...)`. That keeps internal mechanism data hidden while exposing a clean API to `SuperStructure`.
 
 ```java
 public class IndexerBed extends Mechanism {
-    @Getter @Setter private double indexerVoltageOut = 8;  // private field, accessed via getter
+    @Getter private final double indexerVoltageOut = 8;  // private field, read via getter
     // ...
-}
-```
-
-```java
-public class LauncherStates {
-    private static Launcher launcher = Robot.getLauncher();  // private — internal
-
-    public static Command launchFuel() {                      // public — used by Coordinator
-        return launcher.runTorqueFOC(config::getLauncherTorqueCurrent);
+    public void setWantedState(WantedState state) {       // public — SuperStructure calls this
+        this.wantedState = state;
     }
 }
 ```
 
 ## Static vs. Non-Static
 
-A `static` method or field belongs to the class itself, not to any particular instance. You call it with the class name, not an object name:
+A `static` method or field belongs to the class itself, not to any particular instance. You call it with the class name, not an object name. `ShotCalculator` exposes its dashboard-offset controls this way:
 
 ```java
-LauncherStates.launchFuel();  // static method on LauncherStates
-Math.abs(-5);                  // static method on Math
+ShotCalculator.increaseHoodAngleOffset();  // static method on ShotCalculator
+Math.abs(-5);                              // static method on Math
 ```
 
 Non-static (instance) methods and fields belong to a specific object. You call them on the object:

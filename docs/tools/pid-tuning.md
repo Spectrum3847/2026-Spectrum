@@ -12,10 +12,12 @@ PID drives a measured value toward a target. The three terms:
 
 PID is one piece of the controller. On a Phoenix 6 TalonFX, the slot also takes feedforward terms:
 
-* **kS** — voltage needed to *just* start moving (static friction).
-* **kV** — volts per unit of target velocity.
-* **kA** — volts per unit of target acceleration.
-* **kG** — constant voltage to hold against gravity (arms, elevators).
+* **kS** — output needed to *just* start moving (static friction).
+* **kV** — output per unit of target velocity.
+* **kA** — output per unit of target acceleration.
+* **kG** — constant output to hold against gravity (arms, elevators).
+
+The *units* of these gains depend on the control request. Under voltage requests they're volts (kV in V/rps, etc.); under the TorqueCurrentFOC requests this code uses for FOC position/velocity loops (`setMMPositionFoc`, `setVelocityTorqueCurrentFOC`) they're amps (kV in A/rps). Same numbers mean very different things across the two, so re-tune — don't copy gains — when a mechanism switches request type. `Mechanism.java`'s own javadoc flags kS as "static friction compensation (volts or amps)" for this reason.
 
 For controllable mechanisms, tune feedforward first. PID then only has to correct what feedforward got wrong.
 
@@ -41,7 +43,7 @@ WPILib-side PID — `ProfiledPIDController` for chassis rotation, for example �
 
 ## Live Tuning with `TuneValue`
 
-[`TuneValue`](../../src/main/java/frc/spectrumLib/TuneValue.java) wraps SmartDashboard's `putNumber`/`getNumber` so a value can be edited live from [Elastic](elastic.md) without redeploying:
+[`TuneValue`](../../src/main/java/frc/spectrumLib/telemetry/TuneValue.java) wraps SmartDashboard's `putNumber`/`getNumber` so a value can be edited live from [Elastic](elastic.md) without redeploying:
 
 ```java
 private final TuneValue kP = new TuneValue("Launcher/kP", 0.25);

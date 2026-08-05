@@ -46,7 +46,7 @@ Open the PR against `main`. Before clicking *Create*:
 
 ### Reviewers
 
-Tag a programming lead, or whoever you collaborated with on the feature. For anything that touches `Robot.java`, `Coordinator.java`, swerve, or vision integration, get a second pair of eyes — those files have the most blast radius.
+Tag a programming lead, or whoever you collaborated with on the feature. For anything that touches `Robot.java`, `SuperStructure.java`, swerve, or vision integration, get a second pair of eyes — those files have the most blast radius.
 
 ### Merging
 

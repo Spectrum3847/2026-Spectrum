@@ -15,7 +15,6 @@ Vendor JSONs live in [`vendordeps/`](../../vendordeps/) and pin the exact versio
 | PathPlannerLib | 2026.1.2 | [PathPlanner](pathplanner.md) |
 | DogLog | 2026.5.0 | [DogLog](doglog.md) |
 | MapleSim (IronMaple) | 0.4.0-beta | [MapleSim](maple-sim.md) |
-| PhotonLib | v2026.3.4 | [PhotonVision](photonvision.md) |
 
 To bump a version, swap the JSON via WPILib VSCode's `Manage Vendor Libraries`, then `./gradlew build`.
 

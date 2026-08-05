@@ -16,15 +16,18 @@ For hardware: `edu.wpi.first.wpilibj` has `DriverStation`, `RobotBase`, `Alert`,
 
 ## Subsystems
 
-Don't extend `SubsystemBase` directly for a TalonFX mechanism. Use [`frc.spectrumLib.mechanism.Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which gives you config, signal caching, and command factories all in one. The vision system is the lone exception — `VisionSystem` extends `SubsystemBase` because there's no motor to wrap.
+Don't extend `SubsystemBase` directly for a TalonFX mechanism. Use [`frc.spectrumLib.mechanism.Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which gives you config, signal caching, and command factories all in one. The vision system is the lone exception — [`Vision`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) implements `Subsystem` directly because there's no motor to wrap.
 
 ## Commands and Triggers
 
-Almost everything in this codebase is glued together by `Trigger`. The canonical example lives in [`RobotStates.setupStates()`](../../src/main/java/frc/robot/RobotStates.java):
+Almost everything in this codebase is glued together by `Trigger`. The canonical example lives in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java):
 
 ```java
-pilot.RT.onTrue(
-        Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.LT.negate()));
+pilot.LT.onTrue(
+        Commands.either(
+                superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
+                Commands.none(),
+                pilot.RT.negate()));
 ```
 
 A few habits worth picking up:
@@ -41,7 +44,7 @@ For anything else — sensor readings, state transitions, fault flags — go thr
 
 ## Simulation
 
-`RobotBase.isSimulation()` and `Utils.isSimulation()` (from Phoenix) both work; the file you're editing usually dictates which to use. Override `simulationPeriodic()` on a `SubsystemBase` for sim-only updates — that's where the vision sim runs its `visionSim.update(...)`. For per-mechanism visualization, hand a `Mechanism2d` ligament out of `RobotSim` instead of standing up new widgets per subsystem.
+`RobotBase.isSimulation()` and `Utils.isSimulation()` (from Phoenix) both work; the file you're editing usually dictates which to use. A mechanism's own `simulationInit()`/`sim` object advances its TalonFX sim state each loop. Full game-piece physics runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), driven from [`RobotSim`](../../src/main/java/frc/robot/RobotSim.java). For per-mechanism visualization, hand a `Mechanism2d` ligament out of `RobotSim` instead of standing up new widgets per subsystem.
 
 ## Alerts
 

@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-MapleSim is a physics-based simulation library — `org.ironmaple.simulation.*` — that models the swerve drivetrain, game pieces, and per-season arenas. It plugs into WPILib's simulation loop, and the result is a GUI sim that's a lot closer to reality than a stock WPILib one.
+MapleSim is a physics-based simulation library — `org.ironmaple.simulation.*` — that models the swerve drivetrain and the per-season arena. It plugs into WPILib's simulation loop, and the result is a GUI sim that's a lot closer to reality than a stock WPILib one. (Game-piece physics — intake, flight, scoring — is *not* MapleSim on this robot; that runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), covered in [Simulation](../tools/simulation.md).)
 
 Vendor JSON: [`vendordeps/maple-sim.json`](../../vendordeps/maple-sim.json).
 
@@ -10,50 +10,13 @@ Vendor JSON: [`vendordeps/maple-sim.json`](../../vendordeps/maple-sim.json).
 
 The swerve drivetrain runs through [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), which wraps `SwerveDriveSimulation` + `SwerveModuleSimulation`. That's where wheel slip and weight transfer come from.
 
-Game pieces (fuel, for 2026) use `GamePieceProjectile` for flight physics. The launching code in `RobotSim.mapleSimCreateFuelProjectile()` (around line 114 of [`RobotSim.java`](../../src/main/java/frc/robot/RobotSim.java)) builds a projectile from the current pose and launcher tuning and hands it to the arena. `mapleSimLaunchFuel()` wraps that into a command that fires one projectile per held piece.
+The 2026 field comes from MapleSim's season-specific arena, `Arena2026Rebuilt`, constructed inside `MapleSimSwerveDrivetrain`. It gets replaced every year when the new game ships, so plan to revisit it in the offseason.
 
-The intake uses `IntakeSimulation.OverTheBumperIntake(...)` — also in `RobotSim.java`, around line 42. It models the front-bumper intake and tracks how many fuel pieces are in the robot at any moment.
-
-The 2026 field comes from MapleSim's season-specific helpers, `Arena2026Rebuilt` and `RebuiltFuelOnFly`. These get replaced every year when the new game ships, so plan to revisit them in the offseason.
+Game pieces are *not* MapleSim on this robot — fuel spawning, intake pickup, and projectile flight all run through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java) (`RobotSim.ballSim`, published to `Sim/Fuel`). See [Simulation](../tools/simulation.md) for that side.
 
 ## Guarding Sim Code
 
-Every sim entry point in `RobotSim` opens with a guard:
-
-```java
-if (!Utils.isSimulation() || RobotSim.getIntakeSimulation() == null) return;
-```
-
-The `intakeSimulation` field is intentionally `null` on a real robot. Keep the null check — that's what stops sim construction from running on the RIO.
-
-`RobotBase.isSimulation()` and `Utils.isSimulation()` both work; pick whichever matches the surrounding file's imports.
-
-## Resetting the Arena
-
-`SimulatedArena.getInstance().resetFieldForAuto()` runs in `Robot.autonomousInit` and `simulationInit` (sim-guarded in the former). That's what gives each match a fresh set of game pieces. If you add another mode that ought to wipe the field, drop the same call into its init — without it, pieces from old runs accumulate until the sim is unusable.
-
-## Counting Pieces
-
-```java
-int fuelCount = RobotSim.getIntakeSimulation().getGamePiecesAmount();
-SmartDashboard.putNumber("Sim/FuelCount", fuelCount);
-```
-
-`Sim/FuelCount` is published from `Robot.simulationPeriodic()` on SmartDashboard (no Elastic layout widget uses it yet). If you rename the topic, keep any matching widget in `src/main/deploy/elastic-layout.json` in sync.
-
-## Spawning a Projectile
-
-When the robot shoots in sim:
-
-```java
-GamePieceProjectile fuelProjectile = /* compute from pose + launcher tuning */;
-SimulatedArena.getInstance().addGamePieceProjectile(fuelProjectile);
-RobotSim.getIntakeSimulation().obtainGamePieceFromIntake();
-```
-
-That last line removes one piece from the intake count when the shot leaves the robot. Pair every projectile spawn with the intake decrement — otherwise the count drifts and the sim claims you're carrying fuel you've already fired.
-
-For the math that goes into the projectile, use `frc.rebuilt.ShotCalculator`. Don't rederive RPM-to-velocity at the call site.
+MapleSim only stands up under simulation, so its entry points are gated on `Utils.isSimulation()` (or `RobotBase.isSimulation()` — both work; pick whichever matches the surrounding file's imports). The drivetrain sim (`mapleSimSwerveDrivetrain`) is only constructed on that path, so it stays `null` on the RIO.
 
 ## Drivetrain Hookup
 

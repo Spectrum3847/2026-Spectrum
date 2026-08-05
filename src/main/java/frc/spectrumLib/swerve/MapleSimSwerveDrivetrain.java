@@ -47,8 +47,13 @@ import org.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
  * <p>It replaces the {@link com.ctre.phoenix6.swerve.SimSwerveDrivetrain} class.
  */
 public class MapleSimSwerveDrivetrain {
+    /** Simulation state of the Pigeon2 gyro, used to inject computed yaw and angular velocity. */
     private final Pigeon2SimState pigeonSim;
+
+    /** Simulated representations of each swerve module, indexed FL/FR/BL/BR. */
     private final SimSwerveModule[] simModules;
+
+    /** The underlying Maple-Sim drive simulation providing physics and odometry. */
     public final SwerveDriveSimulation mapleSimDrive;
 
     /**
@@ -148,11 +153,22 @@ public class MapleSimSwerveDrivetrain {
      * <h1>Represents the simulation of a single {@link SwerveModule}.</h1>
      */
     protected static class SimSwerveModule {
+        /** Constants (gear ratios, friction voltages, wheel radius, etc.) for this module. */
         public final SwerveModuleConstants<
                         TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
                 moduleConstant;
+
+        /** Maple-Sim physics simulation instance for this module. */
         public final SwerveModuleSimulation moduleSimulation;
 
+        /**
+         * Constructs a simulated swerve module by wiring the Maple-Sim physics model to the CTRE
+         * motor controllers.
+         *
+         * @param moduleConstant constants for this swerve module
+         * @param moduleSimulation Maple-Sim simulation instance for this module
+         * @param module the real CTRE {@link SwerveModule} whose sim states will be driven
+         */
         public SimSwerveModule(
                 SwerveModuleConstants<
                                 TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
@@ -170,16 +186,40 @@ public class MapleSimSwerveDrivetrain {
     }
 
     // Static utils classes
+
+    /**
+     * Adapts a {@link TalonFX} motor controller for use as a {@link SimulatedMotorController} in
+     * Maple-Sim by forwarding encoder state from the simulation into the CTRE sim state.
+     */
     public static class TalonFXMotorControllerSim implements SimulatedMotorController {
+        /** CAN device ID of the underlying TalonFX. */
         public final int id;
 
+        /** CTRE simulation state object used to inject position, velocity, and voltage. */
         private final TalonFXSimState talonFXSimState;
 
+        /**
+         * Constructs the adapter for the given TalonFX.
+         *
+         * @param talonFX the TalonFX motor controller to wrap
+         */
         public TalonFXMotorControllerSim(TalonFX talonFX) {
             this.id = talonFX.getDeviceID();
             this.talonFXSimState = talonFX.getSimState();
         }
 
+        /**
+         * Injects simulated rotor position, velocity, and supply voltage into the TalonFX sim
+         * state, then returns the motor output voltage requested by the controller's closed-loop
+         * algorithm.
+         *
+         * @param mechanismAngle current mechanism-side angle from the physics model
+         * @param mechanismVelocity current mechanism-side angular velocity from the physics model
+         * @param encoderAngle current encoder angle (rotor-side) from the physics model
+         * @param encoderVelocity current encoder angular velocity (rotor-side) from the physics
+         *     model
+         * @return the voltage the controller is requesting from the simulated battery
+         */
         @Override
         public Voltage updateControlSignal(
                 Angle mechanismAngle,
@@ -194,12 +234,25 @@ public class MapleSimSwerveDrivetrain {
         }
     }
 
+    /**
+     * Extends {@link TalonFXMotorControllerSim} to also drive a remote CANcoder simulation state.
+     * Used for steer motors whose feedback device is a remote CANcoder.
+     */
     @SuppressWarnings("all")
     public static class TalonFXMotorControllerWithRemoteCanCoderSim
             extends TalonFXMotorControllerSim {
+        /** CAN device ID of the remote CANcoder. */
         private final int encoderId;
+
+        /** CTRE simulation state of the remote CANcoder. */
         private final CANcoderSimState remoteCancoderSimState;
 
+        /**
+         * Constructs the adapter for a steer motor paired with a remote CANcoder.
+         *
+         * @param talonFX the steer TalonFX motor controller
+         * @param cancoder the remote CANcoder used as the steer feedback sensor
+         */
         public TalonFXMotorControllerWithRemoteCanCoderSim(TalonFX talonFX, CANcoder cancoder) {
             super(talonFX);
             this.remoteCancoderSimState = cancoder.getSimState();
@@ -207,6 +260,18 @@ public class MapleSimSwerveDrivetrain {
             this.encoderId = cancoder.getDeviceID();
         }
 
+        /**
+         * Injects simulated supply voltage, position, and velocity into the remote CANcoder sim
+         * state, then delegates to the parent implementation to update the TalonFX and return the
+         * requested motor voltage.
+         *
+         * @param mechanismAngle current mechanism-side angle (written to the CANcoder)
+         * @param mechanismVelocity current mechanism-side angular velocity (written to the
+         *     CANcoder)
+         * @param encoderAngle current encoder (rotor-side) angle (forwarded to TalonFX)
+         * @param encoderVelocity current encoder angular velocity (forwarded to TalonFX)
+         * @return the voltage the controller is requesting from the simulated battery
+         */
         @Override
         public Voltage updateControlSignal(
                 Angle mechanismAngle,

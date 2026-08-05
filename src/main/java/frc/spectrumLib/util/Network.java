@@ -63,9 +63,11 @@ public class Network {
     }
 
     /**
-     * Gets the IP Address of the device at the address such as "limelight.local"
+     * Resolves and returns the IP address of a device identified by its mDNS or hostname address
+     * (e.g. {@code "limelight.local"}).
      *
-     * @return the IP Address of the device
+     * @param deviceNameAddress the hostname or mDNS name to resolve
+     * @return the resolved IP address string, or {@code "UNKNOWN"} if resolution fails
      */
     public static String getIPaddress(String deviceNameAddress) {
         InetAddress localHost;

@@ -9,7 +9,7 @@ This page is what to actually do with it — not a feature tour.
 ## First-Run Setup
 
 * **License each device**. Open Tuner X, sign in with the team's CTRE account, and apply the seasonal license to every Phoenix 6 device. An unlicensed device will report values but won't accept gain or configuration writes. Re-do this every season — licenses don't carry over.
-* **Pick the right CAN bus**. We run swerve and most mechanism motors on the CANivore (`Rio.CANIVORE`, see [`SwerveConfig.java`](../../src/main/java/frc/robot/swerve/SwerveConfig.java)). Other devices may sit on the RIO's built-in `rio` bus. Tuner X shows both — make sure you're configuring the right one.
+* **Pick the right CAN bus**. We run swerve and most mechanism motors on the CANivore (`Rio.CANIVORE`, see [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java)). Other devices may sit on the RIO's built-in `rio` bus. Tuner X shows both — make sure you're configuring the right one.
 * **Update firmware**. Phoenix 6 motor firmware ships with each Phoenix release. Mismatched firmware is the silent cause of half the "the motor moved a tick weird" mysteries. Update CANivores and Pigeons through Tuner X too.
 
 ## Device IDs and Names
@@ -46,7 +46,7 @@ The **Self-Test Snapshot** dumps everything the device knows about itself: firmw
 
 ## Hoot Logs
 
-Phoenix 6 records `.hoot` logs to the CANivore's onboard storage. [`SwerveConfig.java`](../../src/main/java/frc/robot/swerve/SwerveConfig.java) configures the path:
+Phoenix 6 records `.hoot` logs to the CANivore's onboard storage. [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java) configures the path:
 
 ```java
 canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");

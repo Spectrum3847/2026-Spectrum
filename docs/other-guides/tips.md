@@ -23,20 +23,19 @@ For setpoints that may shift while a command runs — shooter speed that tracks 
 The launcher shows this pattern:
 
 ```java
-// LauncherStates.java
-public static void idlePrep() {
-    scheduleIfNotRunning(
-            launcher.runVelocityTcFocRPM(config::getIdlingRPM).withName("Launcher.idlePrep"));
-}
+// Launcher.applyStates(), AIM_AT_TARGET case
+double wantedRPM = ShotCalculator.getInstance().getParameters().flywheelSpeed();
+final double finalWantedRPM = wantedRPM;
+setVelocityTCFOCrpm(() -> finalWantedRPM);
 ```
 
-`config::getIdlingRPM` is a method reference — a `DoubleSupplier` — so if `idlingRPM` is changed at runtime (say, from a per-robot config override), the running command picks up the new value. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
+The `() -> ...` lambda is a `DoubleSupplier` re-read by the control request each loop, so as the shot calculator's flywheel target tracks the live distance, the command follows it instead of freezing the value at scheduling time. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
 
 ## Cached Values
 
 Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
 
-The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class already does this for position, velocity, voltage, and current using [`CachedDouble`](../../src/main/java/frc/spectrumLib/CachedDouble.java), which is a `SubsystemBase` that clears its cached flag in `periodic()` and recomputes on first access each loop.
+The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class already does this for position, velocity, voltage, and current using [`CachedDouble`](../../src/main/java/frc/spectrumLib/util/CachedDouble.java), which is a `SubsystemBase` that clears its cached flag in `periodic()` and recomputes on first access each loop.
 
 If you're reading a sensor value that isn't already cached by `Mechanism`, do it in the subsystem's `periodic()` into a field, and have everything else read the field. Don't scatter CAN reads across command bodies.
 

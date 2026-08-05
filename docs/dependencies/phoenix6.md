@@ -8,7 +8,7 @@ Pinned to 26.3.0 in [`vendordeps/Phoenix6-26.3.0.json`](../../vendordeps/Phoenix
 
 ## Where It Shows Up
 
-Every powered mechanism in `frc.robot` runs on a TalonFX through Phoenix 6. The swerve drive is built on CTRE's swerve generator output (`SwerveDrivetrain`, `SwerveModule`, `SwerveRequest`) — see [`Swerve.java`](../../src/main/java/frc/robot/swerve/Swerve.java), which has a comment at the top pointing to the CTRE example it was forked from. The Pigeon 2 IMU is configured through `Pigeon2Configuration`, and CANcoders go through our `SpectrumCANcoder` wrapper.
+Every powered mechanism in `frc.robot` runs on a TalonFX through Phoenix 6. The swerve drive is built on CTRE's swerve generator output (`SwerveDrivetrain`, `SwerveModule`, `SwerveRequest`) — see [`Swerve.java`](../../src/main/java/frc/robot/subsystems/swerve/Swerve.java), which has a comment at the top pointing to the CTRE example it was forked from. The Pigeon 2 IMU is configured through `Pigeon2Configuration`, and CANcoders go through our `SpectrumCANcoder` wrapper.
 
 The low-level signal reader behind every cached value in `Mechanism` is `BaseStatusSignal`. You'll occasionally see it imported directly — that's almost always a hot path that wanted to refresh several signals at once.
 
@@ -42,7 +42,7 @@ PID gains live in `Slot0Configs` (with `Slot1` and `Slot2` available if you need
 
 ## CANcoders and the CAN Bus
 
-CANcoders go through [`SpectrumCANcoder`](../../src/main/java/frc/spectrumLib/SpectrumCANcoder.java), configured by `SpectrumCANcoderConfig`. Absolute offsets belong in the relevant `*2026.java` config file, not in the mechanism — that way each physical robot can carry its own zero point. The "find the right offset" workflow lives in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).
+CANcoders go through [`SpectrumCANcoder`](../../src/main/java/frc/spectrumLib/hardware/SpectrumCANcoder.java), configured by `SpectrumCANcoderConfig`. Absolute offsets belong in the relevant `*2026.java` config file, not in the mechanism — that way each physical robot can carry its own zero point. The "find the right offset" workflow lives in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).
 
 For routing: `Rio.CANIVORE` is the magic string `"*"` (use the first CANivore bus found), and `Rio.RIO_CANBUS` is the roboRIO's built-in bus. Specify devices with `CanDeviceId(id, bus)` from `frc.spectrumLib.util` — don't hand-roll CAN IDs in subsystem code. And keep in mind Phoenix licensing is per device, per season; if a Talon stubbornly refuses to FOC, check Phoenix Tuner X first.
 
@@ -58,7 +58,7 @@ For one-off reads outside the periodic loop (say, during init), `signal.refresh(
 
 `optimizeBusUtilization()` matters. Phoenix defaults to publishing every signal at a reasonable rate; on a busy CAN bus, the unused ones still add up. `Mechanism` calls it for you — keep that.
 
-The CANdle imports in [`leds/CANdleLeds.java`](../../src/main/java/frc/robot/leds/CANdleLeds.java) are currently commented out while we sort out the WPILib `AddressableLED` migration (see [LEDs](../tools/leds.md)). When you reintroduce CANdle, paste the imports back from the comments — don't reach for the Phoenix v5 class with the same name.
+LEDs run on a Phoenix 6 CANdle (device ID 1 on the CANivore) through the [`Leds`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) subsystem, which drives it via the `frc.spectrumLib.leds.SpectrumLEDs` wrapper (`CANBus`, `StripTypeValue`, `LossOfSignalBehaviorValue`) — see [LEDs](../tools/leds.md). Reach for the Phoenix 6 CANdle classes, not the Phoenix v5 class with the same name.
 
 PID gain slots are independent. `configPIDGains(kP, kI, kD)` configures Slot 0 only; configure Slot 1/2 explicitly if you use them.
 

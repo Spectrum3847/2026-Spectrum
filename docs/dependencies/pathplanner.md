@@ -52,15 +52,15 @@ public static final EventTrigger autonUnjam      = new EventTrigger("unjam");
 public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 ```
 
-…and then bound to robot states in `RobotStates.setupStates()`:
+…and then bound to super-states in `Robot.configureBindings()`:
 
 ```java
-Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
-Auton.autonShotPrep.onTrue(applyState(State.TRACK_TARGET_WITH_NO_SWERVE));
-Auton.autonShoot.onTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
+Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
+Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
+Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
 ```
 
-Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `State` (or whatever command you want) in `RobotStates`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly — if your trigger isn't firing, that's the first thing to double-check.
+Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `WantedSuperState` (or whatever command you want) in `Robot.configureBindings()`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly — if your trigger isn't firing, that's the first thing to double-check.
 
 ## The Auto Chooser
 

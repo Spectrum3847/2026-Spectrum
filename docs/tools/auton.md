@@ -6,11 +6,11 @@ The first 15 seconds of a match are unattended — the robot runs whatever seque
 
 ## How It's Wired
 
-The whole subsystem fits in one file: [`frc.robot.auton.Auton`](../../src/main/java/frc/robot/auton/Auton.java). It owns:
+Most of the routine logic lives in one file: [`frc.robot.auton.Auton`](../../src/main/java/frc/robot/auton/Auton.java). The PathPlanner/`AutoBuilder` registration it relies on lives in [`Swerve.java`](../../src/main/java/frc/robot/subsystems/swerve/Swerve.java) (`configurePathPlanner()`), since that's where the pose/speeds suppliers and drive request live. `Auton` owns:
 
 * A `SendableChooser<Command>` that publishes auto names to NetworkTables. Elastic's Pre-Match tab picks this up automatically.
-* A handful of `EventTrigger`s with names that match the markers in the `.auto` files — `intake`, `shotPrep`, `shoot`, `clearState`, `unjam`, `poseUpdate`. When PathPlanner crosses one, the matching `Trigger` fires whatever command [`RobotStates`](../../src/main/java/frc/robot/RobotStates.java) has bound to it.
-* The `launch()` command, which sets `LAUNCH_WITH_SQUEEZE` for 2.5 seconds while `SwerveStates.autonAimAtTarget()` holds heading on the target. Every auto chains some number of `SpectrumAuton(...)` segments together with `launch()` between them.
+* A handful of `EventTrigger`s with names that match the markers in the `.auto` files — `intake`, `shotPrep`, `shoot`, `clearState`, `unjam`, `poseUpdate`. When PathPlanner crosses one, the matching `Trigger` fires whatever command has been bound to it in [`Robot.java`](../../src/main/java/frc/robot/Robot.java) (e.g. `Auton.autonIntake.onTrue(...)`).
+* The `launch()` command, which flips the `autonLaunching` state, sets `WantedSuperState.LAUNCH_WITH_SQUEEZE` for 2.5 seconds, then returns to `IDLE`. Every auto chains some number of `SpectrumAuton(...)` segments together with `launch()` between them.
 
 `Robot.autonomousInit` calls `Auton.init()`, which schedules the selected command and starts an FPGA timer. `Robot.autonomousExit` calls `printAutoDuration()` so the console shows how long the routine actually took (or how much it had left when teleop took over). The timer trick is borrowed from team 6328 — it makes "did the auto finish in time" answerable at a glance.
 
@@ -44,13 +44,13 @@ Every meaningful behavior during an auto routine fires from an event marker, not
 
 1. In PathPlanner, drop a marker on the path and name it (`intake`, `shotPrep`, `shoot`, …).
 2. `Auton.java` declares a matching `public static final EventTrigger autonIntake = new EventTrigger("intake");` etc.
-3. `RobotStates.setupStates()` binds those triggers to whatever robot state should fire — `INTAKE_FUEL`, `TRACK_TARGET`, etc.
+3. `Robot.java` binds those triggers to whatever super-state should fire — e.g. `Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL))`.
 
 The advantage is the auto file stays declarative — "intake from here to here, then shoot" — instead of hardcoding timings that drift the moment the robot accelerates differently.
 
 ## Adding a New Auto
 
-1. Open PathPlanner, design the new path(s) and `.auto` file. Make sure event-marker names line up with the existing `EventTrigger` list in `Auton.java` (or add a new trigger and bind it in `RobotStates`).
+1. Open PathPlanner, design the new path(s) and `.auto` file. Make sure event-marker names line up with the existing `EventTrigger` list in `Auton.java` (or add a new trigger and bind it in `Robot.configureBindings()`).
 2. Add a method on `Auton` that returns a `Command`. Follow the existing pattern: `Commands.sequence(SpectrumAuton(...), launch(), SpectrumAuton(...))` and tag it with `.withName("YourAuto Full - " + (mirrored ? "Right" : "Left"))`.
 3. Register it in `setupSelectors()` with `pathChooser.addOption("YourAuto Left", yourAuto(false))` plus the mirrored counterpart.
 4. Test in sim first (`./gradlew simulateJava` → select the auto from Elastic's chooser). The `Field2d` preview will show the trajectory; verify the mirrored variant ends up where you expect.

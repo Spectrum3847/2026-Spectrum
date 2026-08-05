@@ -12,9 +12,9 @@ That said, a few minutes of design before writing saves hours of debugging. If y
 
 ## Draw Before You Code
 
-If a system isn't clicking, draw it. A state machine for the intake sequence on a whiteboard is faster to get right than a `Coordinator` method you'll rewrite three times. Flowcharts, block diagrams, rough sketches — whatever gets the structure out of your head and onto paper so you can see if it makes sense.
+If a system isn't clicking, draw it. A state machine for the intake sequence on a whiteboard is faster to get right than a `SuperStructure` method you'll rewrite three times. Flowcharts, block diagrams, rough sketches — whatever gets the structure out of your head and onto paper so you can see if it makes sense.
 
-The [`Coordinator.java`](../../src/main/java/frc/robot/Coordinator.java) class in this repo coordinates multi-subsystem behaviors by picking a `State` enum value and dispatching to each subsystem. Drawing the state graph before building it in code — which states transition to which, what triggers each transition — makes the code almost write itself.
+The [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java) class in this repo coordinates multi-subsystem behaviors by picking a `WantedSuperState` enum value and fanning it out to each subsystem. Drawing the state graph before building it in code — which states transition to which, what triggers each transition — makes the code almost write itself.
 
 ## Shadow a Programmer
 
@@ -24,7 +24,7 @@ When you're the one being shadowed: explain what you're doing out loud as you do
 
 ## Read the Existing Code Before Writing New Code
 
-Before adding a new mechanism, look at how an existing one is built. The [`Launcher`](../../src/main/java/frc/robot/launcher/Launcher.java) / [`LauncherStates`](../../src/main/java/frc/robot/launcher/LauncherStates.java) pair is a good template. You'll see the three-file layout (subsystem, config as inner class, states class), how gain slots are set up, how `DoubleSupplier` is used for setpoints, and how `scheduleIfNotRunning` guards command factories from being scheduled over each other.
+Before adding a new mechanism, look at how an existing one is built. [`Launcher`](../../src/main/java/frc/robot/subsystems/launcher/Launcher.java) is a good template. You'll see the one-file layout (subsystem, config as inner class, `WantedState`/`SystemState` machine), how gain slots are set up, and how `DoubleSupplier` is used for setpoints.
 
 The coding conventions in [Class Generation](../coding-conventions/class-generation.md) are based on that same pattern. Read that page before building something new — it explains the *why*, not just the *what*.
 

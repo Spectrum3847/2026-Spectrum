@@ -47,22 +47,6 @@ public class FieldHelpers {
         return new Pose2d(flipIfRed(red.getTranslation()), flipAngleIfRed(red.getRotation()));
     }
 
-    public static Translation2d flipIfRedSide(Translation2d red) {
-        if (Zones.blueFieldSide.getAsBoolean()) {
-            return red;
-        }
-        return new Translation2d(flipX(red.getX()), flipY(red.getY()));
-    }
-
-    public static Pose2d flipIfRedSide(Pose2d red) {
-        if (Zones.blueFieldSide.getAsBoolean()) {
-            return red;
-        }
-        return new Pose2d(
-                flipIfRedSide(new Translation2d(red.getX(), red.getY())),
-                flipAngle(red.getRotation()));
-    }
-
     public static double flipX(double xCoordinate) {
         return Field.fieldLength - xCoordinate;
     }

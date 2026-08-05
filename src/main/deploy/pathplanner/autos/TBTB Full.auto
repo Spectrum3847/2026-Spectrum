@@ -15,6 +15,12 @@
           "data": {
             "pathName": "1st-TBTB 2"
           }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "1st-TBTB 3"
+          }
         }
       ]
     }

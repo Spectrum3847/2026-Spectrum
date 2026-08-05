@@ -1,7 +1,7 @@
 package frc.spectrumLib.util;
 
 import edu.wpi.first.wpilibj.RobotBase;
-import frc.spectrumLib.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;

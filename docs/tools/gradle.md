@@ -39,7 +39,7 @@ SpotBugs runs against the main source set with the exclude list in `excludeFilte
 
 Lombok annotation processing comes through `io.freefair.lombok`. Generated getters and setters exist at compile time only — don't try to commit them.
 
-The JavaDoc task is configured with external `setLinks(...)` for WPILib, Phoenix 6, PathPlanner, DogLog, MapleSim, PhotonVision, and the Java 17 stdlib. That's why our generated docs cross-link cleanly. The list of dependencies on each per-library page in [Dependencies](../dependencies/overview.md) lines up with this.
+The JavaDoc task is configured with external `setLinks(...)` for WPILib, Phoenix 6, PathPlanner, DogLog, MapleSim, and the Java 17 stdlib. That's why our generated docs cross-link cleanly. The list of dependencies on each per-library page in [Dependencies](../dependencies/overview.md) lines up with this.
 
 ## When Things Go Wrong
 

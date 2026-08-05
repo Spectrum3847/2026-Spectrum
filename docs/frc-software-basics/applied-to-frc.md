@@ -19,20 +19,20 @@ while (unjamButtonHeld) {
 you write:
 
 ```java
-operator.BButton.whileTrue(IndexerTowerStates.unjamCommand());
+pilot.AButton.onTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
 ```
 
 The `Trigger.whileTrue()` call handles the "keep doing this while the condition holds" logic. When the trigger goes false, the command ends automatically. No loop, no manual state management.
 
 ## What You'll Actually Use
 
-**If/else and logic operators** — everywhere. Conditions gate command scheduling, check sensor state, and drive branching in subsystem logic. `Launcher.java` checks `isAttached()` before configuring motors; `SwerveStates.java` checks `isSimulation()` to decide which drivetrain to initialize.
+**If/else and logic operators** — everywhere. Conditions gate command scheduling, check sensor state, and drive branching in subsystem logic. `Launcher.java` checks `isAttached()` before configuring motors; `Swerve.java` checks `isSimulation()` to decide which drivetrain to initialize.
 
-**Classes and objects** — the entire robot is structured around them. Each mechanism is a class. `RobotStates`, `Coordinator`, every `*States` file — all classes. See [Class Generation](../coding-conventions/class-generation.md) for how they're organized.
+**Classes and objects** — the entire robot is structured around them. Each mechanism is a class. `SuperStructure` and every subsystem — all classes. See [Class Generation](../coding-conventions/class-generation.md) for how they're organized.
 
-**Enums** — heavily used. `State.java` defines every top-level robot state (`IDLE`, `TRACK_TARGET`, `INTAKE_FUEL`, etc.). `switch` on an enum drives the state machine in `State.isReadyState()`. When you see a mechanism that has multiple named modes, those modes are an enum.
+**Enums** — heavily used. `SuperStructure` defines the top-level robot states (`WantedSuperState`: `IDLE`, `TRACK_TARGET`, `INTAKE_FUEL`, etc.). A `switch` on that enum drives `handleStateTransitions()`. When you see a mechanism that has multiple named modes (`WantedState`/`SystemState`), those modes are an enum too.
 
-**Standard `for` loops** — used in specific places where you need to touch every element of a fixed array. `SwerveStates` iterates all four swerve modules by index; `Vision.java` iterates all three Limelights with an enhanced `for`. See [Loops](loops.md) and [Arrays](arrays.md).
+**Standard `for` loops** — used in specific places where you need to touch every element of a fixed array. `Swerve` iterates all four swerve modules by index; `Vision.java` iterates all three Limelights with an enhanced `for`. See [Loops](loops.md) and [Arrays](arrays.md).
 
 **Lambdas and method references** — used constantly. Command factories take `DoubleSupplier` instead of `double` so setpoints can be live values. `config::getIdlingRPM` is a method reference; `() -> config.getIdlingRPM()` is an equivalent lambda. See [Classes, Methods, and Objects](classes-methods-objects.md).
 

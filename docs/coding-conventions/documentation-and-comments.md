@@ -9,7 +9,7 @@ The goal: someone joining the team next month should be able to read this codeba
 Default to writing no comment. Add one when the *why* is non-obvious:
 
 * A hidden constraint (`// PathPlanner expects angles in radians, not degrees`)
-* A workaround for a specific bug (`// Phoenix 6 < 26.1.3 returns NaN for unconfigured slots — see CTRE issue #471`)
+* A workaround for a specific bug (`// Phoenix 6 < 26.3.0 returns NaN for unconfigured slots — see CTRE issue #471`)
 * A subtle invariant (`// must be called before configurePID() — order matters`)
 * Behavior that would surprise a reader (`// LED priority of -1 is the lowest — it only runs when no higher-priority pattern is active`)
 
@@ -17,7 +17,7 @@ Don't write comments that just restate the code. `// loop over modules` above `f
 
 ## JavaDoc
 
-Public methods on `*States` classes and `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious:
+Public methods on subsystems (and `SuperStructure`) and the fields on `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious:
 
 ```java
 /**
@@ -43,7 +43,7 @@ Use `// TODO:` for code that works but you know wants follow-up. Include enough 
 // TODO: replace hardcoded 12V with battery-compensated supply voltage
 ```
 
-VSCode surfaces TODOs in the Problems panel, which is the closest thing to a built-in tracker. For anything bigger than a one-line follow-up, open a GitHub Issue and reference it from the TODO (`// TODO(#142): integrate PhotonVision pipeline`). The Issue persists; the TODO might get refactored away.
+VSCode surfaces TODOs in the Problems panel, which is the closest thing to a built-in tracker. For anything bigger than a one-line follow-up, open a GitHub Issue and reference it from the TODO (`// TODO(#142): add game-piece detection pipeline`). The Issue persists; the TODO might get refactored away.
 
 Don't use `// TODO` for known broken code — fix it or open an Issue and `@SuppressWarnings` it intentionally. A TODO on a bug becomes a landmine for the next person.
 
@@ -56,7 +56,7 @@ Don't use `// TODO` for known broken code — fix it or open an Issue and `@Supp
 
 ## Cross-Referencing Code From Docs
 
-This documentation set links into source via relative paths from `docs/` — e.g., `[Launcher.java](../../src/main/java/frc/robot/launcher/Launcher.java)`. Keep those alive:
+This documentation set links into source via relative paths from `docs/` — e.g., `[Launcher.java](../../src/main/java/frc/robot/subsystems/launcher/Launcher.java)`. Keep those alive:
 
 * When you rename a class, grep the `docs/` tree for the old name (`grep -r "OldClassName" docs/`) and fix references.
 * When you delete a class, decide whether the doc reference is still useful (might point to a successor) or should be removed.
