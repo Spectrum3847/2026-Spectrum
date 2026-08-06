@@ -92,7 +92,7 @@ public class ListLiveNtTopics {
 def main() -> None:
     """List currently published topics from a live NT4 server."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="10.80.44.2", help="Robot IP or hostname")
+    parser.add_argument("--host", default="10.38.47.2", help="Robot IP or hostname")
     parser.add_argument("--port", type=int, default=5810, help="NT4 port")
     parser.add_argument("--timeout", type=float, default=5.0, help="Connection timeout in seconds")
     parser.add_argument("--filter", default="", help="Only show topics containing this text")

@@ -32,7 +32,7 @@ def newest_remote_log(user: str, host: str, directory: str) -> str:
 def main() -> None:
     """Main."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="10.80.44.2", help="Robot IP")
+    parser.add_argument("--host", default="10.38.47.2", help="Robot IP")
     parser.add_argument("--user", default="admin", help="Robot SSH user")
     parser.add_argument("--remote-dir", default="/U", help="Robot log directory")
     parser.add_argument("--out", default="RobotLogs", help="Local output directory")

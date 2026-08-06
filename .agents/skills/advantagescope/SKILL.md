@@ -1,6 +1,6 @@
 ---
 name: advantagescope
-description: "Use for AdvantageScope visualization automation: building/running the Team 8044 AdvantageScope fork, opening WPILOGs with layouts, using opt-in agent control/export hooks, capturing 2D/3D field screenshots or frame sequences, and falling back to vanilla AdvantageScope/manual inspection when hooks are unavailable."
+description: "Use for AdvantageScope visualization automation: building/running our AdvantageScope fork (Spectrum 3847) or vanilla AdvantageScope, opening WPILOGs/DataLogs with layouts, using opt-in agent control/export hooks, capturing 2D/3D field screenshots or frame sequences, and falling back to vanilla AdvantageScope/manual inspection when hooks are unavailable."
 metadata:
   short-description: Automate AdvantageScope visualization
 ---
@@ -9,8 +9,8 @@ metadata:
 
 ## Core Rules
 
-- This skill is the robot-repo consumer workflow for AdvantageScope visualization. It should help agents discover robot logs/assets, generate layouts, locate the Team 8044 fork, and export previews.
-- Keep fork maintenance details in the Team 8044 AdvantageScope repo's `$advantagescope-fork` skill. Use that skill when modifying, rebasing, packaging, or debugging fork internals.
+- This skill is the robot-repo consumer workflow for AdvantageScope visualization. It should help agents discover robot logs/assets, generate layouts, locate our AdvantageScope fork or vanilla AdvantageScope, and export previews.
+- Keep fork maintenance details in the AdvantageScope repo's `$advantagescope-fork` skill (we maintain our own fork). Use that skill when modifying, rebasing, packaging, or debugging fork internals.
 - Do not hard-code season-specific field ids, robot model names, autos, or layouts. Discover custom assets from `AScope_Assets` and use explicit task arguments.
 - Do not automate by screen clicks or fixed coordinates. Use local agent control/export hooks when available.
 - If only vanilla AdvantageScope is available, open the log/layout manually and use WPILOG parsing for objective results.
@@ -18,14 +18,7 @@ metadata:
 
 ## Build And Runtime
 
-- Use the Team 8044 fork for agent exports:
-  ```sh
-  https://github.com/Team8044/AdvantageScope
-  ```
-- When changing the fork itself, switch to the fork checkout and use its repo-local `$advantagescope-fork` skill.
-- Prefer an explicit `--fork <checkout>` argument or `ADVANTAGESCOPE_FORK=<checkout>` when a checkout is already known.
-- If no checkout is known, discover local git repos whose remotes include `Team8044/AdvantageScope`; common search roots include the current repo's parents and `~/Documents/GitHub`.
-- If the fork is not available locally, ask the user before cloning/building it because that requires network, disk, and dependency changes.
+- Prefer our AdvantageScope fork for agent exports. If the fork is not checked out locally, ask the user before cloning/building it because that requires network, disk, and dependency changes; otherwise fall back to vanilla AdvantageScope plus WPILOG summaries.
 - `export_preview.py` can also use `ADVANTAGESCOPE_EXECUTABLE` or `--advantagescope <executable>` when a packaged/built fork executable is already available.
 - Do not copy robot assets into the fork. Custom robot assets should stay in this robot repo's `AScope_Assets` folder and be loaded through AdvantageScope's user assets feature.
 
@@ -64,7 +57,7 @@ metadata:
     --agent-headless
   ```
 - For auto previews, use a real-time export window anchored to the logged auto start instead of the start of the file. Prefer the first timestamp where `/DriverStation/Autonomous` and `/DriverStation/Enabled` are both true, then export `--start <auto-start> --end <auto-start + auto-duration> --fps 30`.
-- Realtime export records the active 2D/3D field canvas while AdvantageScope playback runs at 1x. A current Team 8044 fork waits for selected-renderer readiness before recording, so 3D field assets should be loaded in frame 0 without a fixed delay. A preview should take roughly the requested video duration plus small startup/transcode overhead.
+- Realtime export records the active 2D/3D field canvas while AdvantageScope playback runs at 1x. A current fork waits for selected-renderer readiness before recording, so 3D field assets should be loaded in frame 0 without a fixed delay. A preview should take roughly the requested video duration plus small startup/transcode overhead.
 - For agent exports, prefer `--agent-headless` instead of Chromium `--headless`. It keeps AdvantageScope windows hidden while preserving the normal renderer/WebGL lifecycle needed for 3D recording.
 - The skill includes helper scripts:
   ```sh
@@ -93,7 +86,7 @@ metadata:
     --fps 30
   ```
 - Agent realtime export should produce `preview.webm` directly from the renderer. It should also produce `preview.mp4` when bundled FFmpeg conversion succeeds.
-- Use `--agent-export-mode multiview` for synced hub + satellite realtime videos. The Team 8044 fork records the selected hub canvas and the first satellite canvas at the same time, then composes a side-by-side `preview.mp4` with bundled FFmpeg.
+- Use `--agent-export-mode multiview` for synced hub + satellite realtime videos. The fork records the selected hub canvas and the first satellite canvas at the same time, then composes a side-by-side `preview.mp4` with bundled FFmpeg.
 - Use `--agent-export-mode frames` only for debugging deterministic frame stepping; normal auto previews must not use the frame-by-frame path.
 - Use `--agent-allow-frame-only` only with frame export debugging when no encoder is available.
 - Optional control mode:
@@ -112,7 +105,7 @@ metadata:
 
 - Use Line Graph tab type `1` for static plotted data from WPILOGs.
 - A Line Graph controller state uses `leftSources`, `rightSources`, and `discreteSources`. Numeric source entries should use `type: "smooth"`, `logType: "Number"`, `visible: true`, and `options` with `color` and `size`. Discrete boolean overlays can use `type: "graph"` with `logType: "Boolean"`.
-- Prefer `capture_layout.py` for graph screenshots. It launches the Team 8044 fork in `--agent-control --agent-headless`, waits for `liveStatus.ready=true`, optionally sends `setTime`, sends `capture`, and closes cleanly.
+- Prefer `capture_layout.py` for graph screenshots. It launches the fork in `--agent-control --agent-headless`, waits for `liveStatus.ready=true`, optionally sends `setTime`, sends `capture`, and closes cleanly.
 - Pair graph screenshots with `$wpilib-sim` topic summaries from `read_wpilog_values.py` so users get both the visual trend and concrete min/max values.
 - Fast path for current-style graph requests:
   ```sh
@@ -150,10 +143,10 @@ metadata:
 - Use `scripts/generate_multiview_3d_joysticks_layout.py` for 3D Field + Joysticks layouts. The helper can select the field tab or joystick tab with `--selected-tab field|joysticks` and can select a specific joystick layout for a port, for example `--joystick-port 0 --joystick-layout "Xbox Controller (White)"`.
 - For game pieces, add `--game-piece-topic <Pose3d[] topic>` and `--game-piece-variant <variant>`. For MapleSim 2026 fuel, use `/RealOutputs/FieldSimulation/Fuel` and variant `Fuel`.
 - For projectile or path overlays, add `--trajectory-topic <Pose3d[] topic>`. For MapleSim fuel shots, use `/RealOutputs/FieldSimulation/FuelShotTrajectory`; the helper adds it as a 3D Field `trajectory` source with a bold orange line by default.
-- For robot sources that include Z/pitch/roll, pass `--topic-type Pose3d` to `scripts/generate_field3d_layout.py`. For MapleSim bump traversal, use `/RealOutputs/FieldSimulation/RobotPose3d` with `--topic-type Pose3d`.
+- For robot sources that include Z/pitch/roll, pass `--topic-type Pose3d` to `scripts/generate_field3d_layout.py`. For MapleSim bump traversal, use `Sim/RobotPose3d` (logged under `/Robot/` by DogLog) with `--topic-type Pose3d`.
 - Use explicit field and robot model arguments from the task or asset discovery. Do not bake season-specific asset ids into the skill or helper defaults.
 - Export with `export_preview.py --mode multiview --headless`. Expected outputs are `view-0-hub.webm`, `view-1-satellite.webm`, `preview.mp4`, and `manifest.json`.
-- Joysticks multiview is supported by the Team 8044 fork's renderer-owned canvas capture path. Validate manifests report the joystick view with `sourceMode: "renderer-canvas"` and `sourceName: "JoysticksRenderer"`.
+- Joystick multiview is supported by the fork's renderer-owned canvas capture path. Validate manifests report the joystick view with `sourceMode: "renderer-canvas"` and `sourceName: "JoysticksRenderer"`.
 - Fast path for a 3D teleop preview plus live Xbox joystick pane:
   ```sh
   python3 .agents/skills/advantagescope/scripts/generate_multiview_3d_joysticks_layout.py \
@@ -231,4 +224,4 @@ metadata:
 2. Discover custom assets with `discover_ascope_assets.py`, generate a layout with explicit field/model arguments, and export with `export_preview.py`.
 3. Check `manifest.json` for the requested mode, selected renderer readiness, no missing sources/assets, valid video output, and no main/renderer error. Multiview exports should include per-view webm files plus composed `preview.mp4`.
 4. Confirm wall-clock export time is close to the requested video duration, then inspect frame 0 and a mid-run frame for nonblank output, expected field asset, and visible robot pose. If using an older fork without renderer readiness, use visual inspection fallback and only add a short explicit delay as a last resort.
-5. If the fork code itself must change, move to the Team 8044 AdvantageScope checkout and use `$advantagescope-fork`.
+5. If the fork code itself must change, move to the AdvantageScope checkout and use `$advantagescope-fork`.

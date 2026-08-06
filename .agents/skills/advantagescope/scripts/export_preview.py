@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export an AdvantageScope MP4 preview with the Team 8044 agent fork."""
+"""Export an AdvantageScope MP4 preview with a Spectrum AdvantageScope fork (or vanilla)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 
 
-FORK_REMOTE_MARKER = "Team8044/AdvantageScope"
+FORK_REMOTE_MARKER = "Spectrum3847/AdvantageScope"
 
 
 def find_advantagescope(explicit: str | None) -> tuple[list[str], Path | None]:
@@ -38,14 +38,14 @@ def find_advantagescope(explicit: str | None) -> tuple[list[str], Path | None]:
         return [path_executable], None
 
     raise SystemExit(
-        "Could not find the Team 8044 AdvantageScope fork.\n"
+        "Could not find the AdvantageScope fork.\n"
         "Pass --fork <checkout>, set ADVANTAGESCOPE_FORK, pass --advantagescope <executable>, "
-        "or clone/build https://github.com/Team8044/AdvantageScope."
+        "or clone/build https://github.com/Spectrum3847/AdvantageScope."
     )
 
 
 def find_fork(explicit: str | None) -> Path | None:
-    """Locate a Team 8044 AdvantageScope git fork checkout."""
+    """Locate an AdvantageScope git fork checkout (preferring ours)."""
     candidates: list[Path] = []
     if explicit:
         candidates.append(Path(explicit).expanduser())
@@ -69,13 +69,13 @@ def find_fork(explicit: str | None) -> Path | None:
         if path in seen or not (path / ".git").is_dir():
             continue
         seen.add(path)
-        if is_team8044_fork(path):
+        if is_advantagescope_fork(path):
             return path
     return None
 
 
-def is_team8044_fork(path: Path) -> bool:
-    """Check whether a git checkout is the Team 8044 AdvantageScope fork."""
+def is_advantagescope_fork(path: Path) -> bool:
+    """Check whether a git checkout is the AdvantageScope fork."""
     try:
         result = subprocess.run(
             ["git", "remote", "-v"],
@@ -91,7 +91,7 @@ def is_team8044_fork(path: Path) -> bool:
 
 
 def command_from_fork(fork: Path) -> list[str] | None:
-    """Build the electron command for a Team 8044 fork checkout, or None."""
+    """Build the electron command for an AdvantageScope fork checkout, or None."""
     electron = fork / "node_modules/.bin/electron"
     main = fork / "bundles/main.js"
     if electron.exists() and main.exists():
@@ -130,10 +130,10 @@ def resolve_assets_path(raw: str | None) -> Path | None:
 
 
 def main() -> None:
-    """Export an AdvantageScope MP4/MP4 preview with the Team 8044 agent fork."""
+    """Export an AdvantageScope MP4/MP4 preview with the AdvantageScope fork."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--advantagescope", help="AdvantageScope executable path")
-    parser.add_argument("--fork", help="Team 8044 AdvantageScope fork checkout")
+    parser.add_argument("--fork", help="AdvantageScope fork checkout")
     parser.add_argument("--log", required=True, help="WPILOG path")
     parser.add_argument("--layout", required=True, help="AdvantageScope layout JSON path")
     parser.add_argument("--out", required=True, help="Output directory")
@@ -147,7 +147,7 @@ def main() -> None:
 
     fork = find_fork(args.fork)
     if args.fork and fork is None:
-        raise SystemExit(f"--fork is not a Team 8044 AdvantageScope checkout: {Path(args.fork).expanduser()}")
+        raise SystemExit(f"--fork is not an AdvantageScope checkout: {Path(args.fork).expanduser()}")
     if args.advantagescope:
         command_prefix, command_cwd = find_advantagescope(args.advantagescope)
     elif fork is not None:
@@ -155,7 +155,7 @@ def main() -> None:
         command_cwd = fork
         if command_prefix is None:
             raise SystemExit(
-                f"Found Team 8044 AdvantageScope fork at {fork}, but it is not built. "
+                f"Found AdvantageScope fork at {fork}, but it is not built. "
                 "Run npm ci, npm run compile, npm run wasm:compile, and electron-builder build --dir."
             )
     else:
