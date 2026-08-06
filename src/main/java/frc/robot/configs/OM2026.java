@@ -4,7 +4,8 @@ import frc.robot.Robot.Config;
 
 public class OM2026 extends Config {
     /**
-     * Initializes the 2026 robot configuration with attached subsystems and swerve encoder offsets.
+     * Initializes the 2026 Offseason robot configuration with attached subsystems and swerve
+     * encoder offsets.
      */
     public OM2026() {
         super();

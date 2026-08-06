@@ -49,6 +49,7 @@ public class Auton {
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
 
+    @SuppressWarnings("unused")
     private SuperStructure robotSuperStructure;
 
     /**

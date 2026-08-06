@@ -146,6 +146,8 @@ public class Launcher extends Mechanism {
         systemState = handleStateTransition();
         logBatteryUsage();
         applyStates();
+        Telemetry.log("Launcher/WantedState", wantedState.toString());
+        Telemetry.log("Launcher/SystemState", systemState.toString());
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
         Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");

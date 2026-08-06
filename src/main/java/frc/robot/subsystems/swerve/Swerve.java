@@ -252,6 +252,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         systemState = handleStateTransition();
         applyStates();
 
+        Telemetry.log("Swerve/WantedState", wantedState.toString());
+        Telemetry.log("Swerve/SystemState", systemState.toString());
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
         Telemetry.log(
@@ -321,7 +323,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             case TELEOP_DRIVE:
                 setControl(FIELD_CENTRIC_DRIVE.withSpeeds(calculateSpeedsBasedOnJoystickInputs()));
                 break;
-                // TODO: Test this
             case CENTER_ROTATION_CHANGE_LAUNCHING:
                 setControl(
                         FIELD_CENTRIC_DRIVE
