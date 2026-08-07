@@ -1,9 +1,10 @@
 ---
+
 name: maple-sim
 description: "Use for our Spectrum 3847 MapleSim integration work: maintaining the swerve-first MapleSim simulation, verifying WPILib headless sim logs, calibrating physics constants, and extending simulation to intake, projectiles, opponents, or vision."
 metadata:
-  short-description: Maintain MapleSim simulation
----
+short-description: Maintain MapleSim simulation
+-----------------------------------------------
 
 # MapleSim
 
@@ -13,7 +14,7 @@ metadata:
 - Preserve the existing spectrumLib abstraction. Do not rewrite `Swerve`, `SwerveModule`, PathPlanner autos, or `MapleSimSwerveDrivetrain` unless the task explicitly requires it.
 - For drivetrain simulation, prefer MapleSim as the physics source while preserving the existing telemetry surface. Spectrum 3847 SIM swerve uses `frc.spectrumLib.swerve.MapleSimSwerveDrivetrain` on `CTRE` Phoenix TalonFX motors/controllers; keep the lightweight non-MapleSim `SimpleMotorFeedforward` path available and do not reintroduce the Phoenix remote-CANcoder sim bridge unless the steering instability that caused azimuth wind/crawl has been solved.
 - Check the SIM gate before debugging: MapleSim is constructed and updated only in SIM mode (see `Swerve.startSimThread()` and `RobotSim`), gated by Phoenix `Utils.isSimulation()`. Real and replay modes never run MapleSim. Our robot has no `MapleSimConstants.useMapleSim`-style kill switch — MapleSim is always used in SIM.
-- Keep real and replay modes isolated from MapleSim. MapleSim belongs in `Constants.RobotMode.SIM`.
+- Keep real and replay modes isolated from MapleSim. It runs only under Phoenix `Utils.isSimulation()`.
 - Record durable progress and verification notes in `.agents/maple-sim-implementation.md` when changing MapleSim behavior.
 
 ## Current Integration Shape
@@ -33,6 +34,7 @@ metadata:
 - On 2026-06-06, the official docs vendordep URL returned `0.4.0-beta-obstacles-fix`, but the official Maven metadata only published up to `0.4.0-beta`.
 - This repo pins `maplesim-java` to `0.4.0-beta`.
 - If dependency resolution fails, check:
+
   ```sh
   curl -s https://shenzhen-robotics-alliance.github.io/maple-sim/vendordep/repos/releases/org/ironmaple/maplesim-java/maven-metadata.xml
   ```
@@ -40,10 +42,12 @@ metadata:
 ## Verification Commands
 
 - Compile and test:
+
   ```sh
   ./gradlew test
   ```
 - Run a headless auto through the permanent sim bridge:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/run_auto_sim.py \
     --repo . \
@@ -53,6 +57,7 @@ metadata:
     --buffer 1
   ```
 - Run full-forward teleop through joystick 0 as an Xbox controller:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
     --repo . \
@@ -62,6 +67,7 @@ metadata:
     --axes "0,-1,0,0,0,0"
   ```
 - Run a timed joystick rectangle in the open center-field gap. In current default MapleSim mode, heightmap bump simulation is enabled and hard ramp colliders are disabled:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
     --repo . \
@@ -70,12 +76,14 @@ metadata:
     --sequence "1.2:0,-1,0,0,0,0;1.0:-1,0,0,0,0,0;1.2:0,1,0,0,0,0;1.0:1,0,0,0,0,0;0.5:0,0,0,0,0,0"
   ```
 - Run fixed red own-alliance-side fuel shots against the tuned shooter map:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/run_shot_map_sim.py \
     --repo . \
     --distances "1.75,3.25,5.0"
   ```
 - Check MapleSim, swerve, and fuel topics (DogLog keys as published by `frc.spectrumLib.telemetry.Telemetry`, which DogLog prefixes under `/Robot/`):
+
   ```sh
   python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
     --repo . \

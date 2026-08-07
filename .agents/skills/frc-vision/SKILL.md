@@ -1,20 +1,38 @@
 ---
+
 name: frc-vision
 description: >
-  FRC vision processing best practices for Java — PhotonVision, Limelight, and WPILib pose estimation.
-  Use when implementing or reviewing AprilTag detection, pose estimation, vision-aided odometry, or
-  vision-based targeting. Triggers on: PhotonVision, Limelight, AprilTags, pose estimation,
-  VisionSubsystem, addVisionMeasurement, PoseEstimator, or any vision-related robot code task.
----
+Spectrum 3847 FRC vision work in Java — Limelight MegaTag AprilTag pose estimation fused into the
+swerve pose estimator. Use when implementing or reviewing AprilTag detection, pose estimation,
+vision-aided odometry, or vision rejection/std-dev tuning. Triggers on: Limelight, MegaTag,
+AprilTags, pose estimation, Vision subsystem, addVisionMeasurement, SwerveDrivePoseEstimator, or
+any vision-related robot code task.
+metadata:
+short-description: Limelight MegaTag vision + pose fusion
+---------------------------------------------------------
 
-# FRC Vision (Java)
+# FRC Vision (Java) — Spectrum 3847
 
-## Overview
+> Vision runs on **Limelight** hardware. Verify class/method names against `src/main/java` before
+> trusting external examples.
 
-Covers FRC vision in Java: PhotonVision, Limelight, and WPILib pose estimation.
+## Our Setup
 
-- **PhotonVision** — AprilTag pipelines on supported cameras (Orange Pi / co-processor), `PhotonCamera` reads, multi-tag results.
-- **Limelight** — MegaTag 1/2 pipelines, `LimelightHelpers`, pipeline selection, LED control.
-- **WPILib pose estimation** — prefer a drivetrain-specific estimator such as `SwerveDrivePoseEstimator`; the generic `PoseEstimator` is a base class, not a robot-code choice. Covers `addVisionMeasurement(pose, timestamp, stdDevs)`, standard-deviation tuning, vision-vs-odometry weighting, and fusion gotchas (latency, double-counting).
+- **Subsystem:** [`frc.robot.subsystems.vision.Vision`](../../../src/main/java/frc/robot/subsystems/vision/Vision.java) `implements Subsystem`. It manages three Limelights — `backLL`, `leftLL`, `rightLL` (hostnames `limelight-back/left/right`) — held in `allLimelights`, and fuses them into the swerve `SwerveDrivePoseEstimator`.
+- **Wrapper:** [`frc.spectrumLib.vision.Limelight`](../../../src/main/java/frc/spectrumLib/vision/Limelight.java) wraps the vendored `LimelightHelpers`. Real methods: `getMegaTag1_Pose3d()`, `getMegaTag2_Pose2d()`, `getMegaTag1_PoseEstimate()`, `getMegaTag1PoseTimestamp()`, `getTagCountInView()`, `getRawFiducial()` (can return null), `setRobotOrientation(degrees[, rate])`, `sendValidStatus()/sendInvalidStatus()`.
+- **Field layout:** WPILib `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` — not PhotonLib.
 
-When implementing or reviewing, check: the transform direction expected by each API (`PhotonPoseEstimator` takes `robotToCamera`; pass `cameraToRobot` only to APIs that require it — the inverse transform produces incorrect poses), rejection criteria (ambiguity, distance, age), a sensible std-dev ladder, and whether vision feeds targeting (turret) or only localization.
+## Each Loop (`Vision.periodic()`)
+
+1. Push robot heading to every Limelight via `setRobotOrientation(...)` so MegaTag2 IMU fusion stays accurate. Do not throttle this — fast-motion accuracy depends on flushing it each loop.
+2. Pick the best chassis camera (`getBestLimelight()`, ranked over `swerveLimelights` by tag count + target size).
+3. Run the MT1 rejection pipeline (and MT2 while disabled) on the selected camera and add accepted estimates via `addVisionMeasurement(pose, timestamp, stdDevs)`.
+4. Log per-camera status through `VisionLogger`.
+
+## What to Check When Editing
+
+- **Timebase:** pose timestamps are converted with Phoenix `Utils.fpgaToCurrentTime(...)` to match the estimator's timebase — keep both operands in the same timebase.
+- **Rejection criteria** (`VisionConfig`): stale timestamp (`kMaxTimeDeltaSeconds`), rotation-speed gate, roll/pitch tilt (in degrees, via `Math.toRadians(5)`), out-of-field, tag count/ambiguity/target-size tiers.
+- **Std-dev ladder:** `degStds` overrides should only ever *widen* (`Math.max`) toward `kLargeVariance` to discard heading — never narrow a discarded heading back into the fusion. MT2 heading is always discarded; MT1 supplies heading.
+- **`resetPoseToVision`** validates both `botpose3D` and the MT2 `megaPose` (out-of-field/height/tilt) before snapping with a tight 0.00001 std-dev.
+- **Null safety:** `getRawFiducial()` can return null; guard before dereferencing.

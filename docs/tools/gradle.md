@@ -8,18 +8,18 @@ The version is pinned in `gradle/wrapper/gradle-wrapper.properties`, and `./grad
 
 ## The Commands You'll Actually Run
 
-| Command | What it does |
-| --- | --- |
-| `./gradlew build` | Compile, run Spotless, run SpotBugs, run tests, produce the deployable jar. |
-| `./gradlew clean` | Delete `build/` so the next build is from scratch. |
-| `./gradlew clean build` | Both of the above, useful when something stale is causing weird errors. |
-| `./gradlew deploy` | Build and deploy to the connected roboRIO. Team number comes from `.wpilib/wpilib_preferences.json`. |
-| `./gradlew simulateJava` | Launch the WPILib GUI simulator. (The VSCode `WPILib: Simulate Robot Code` command is usually faster.) |
-| `./gradlew javadoc` | Generate JavaDoc HTML into `build/docs/javadoc/`. |
+|          Command          |                                                      What it does                                                       |
+|---------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `./gradlew build`         | Compile, run Spotless, run SpotBugs, run tests, produce the deployable jar.                                             |
+| `./gradlew clean`         | Delete `build/` so the next build is from scratch.                                                                      |
+| `./gradlew clean build`   | Both of the above, useful when something stale is causing weird errors.                                                 |
+| `./gradlew deploy`        | Build and deploy to the connected roboRIO. Team number comes from `.wpilib/wpilib_preferences.json`.                    |
+| `./gradlew simulateJava`  | Launch the WPILib GUI simulator. (The VSCode `WPILib: Simulate Robot Code` command is usually faster.)                  |
+| `./gradlew javadoc`       | Generate JavaDoc HTML into `build/docs/javadoc/`.                                                                       |
 | `./gradlew spotlessApply` | Apply the AOSP code style across every `.java`, `.gradle`, `.xml`, and `.md` file. Runs automatically on `compileJava`. |
-| `./gradlew spotlessCheck` | Verify formatting without rewriting — what CI runs. |
-| `./gradlew spotbugsMain` | Run SpotBugs static analysis. The HTML report lands at `build/reports/spotbugs.html`. |
-| `./gradlew tasks` | List every task, including ones not documented here. |
+| `./gradlew spotlessCheck` | Verify formatting without rewriting — what CI runs.                                                                     |
+| `./gradlew spotbugsMain`  | Run SpotBugs static analysis. The HTML report lands at `build/reports/spotbugs.html`.                                   |
+| `./gradlew tasks`         | List every task, including ones not documented here.                                                                    |
 
 You can chain them. `./gradlew clean build deploy` will clean, build, and deploy in one go.
 

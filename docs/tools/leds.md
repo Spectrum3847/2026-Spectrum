@@ -18,20 +18,20 @@ The constructor takes a `Config` either by device id + LED count (it owns the CA
 
 `SpectrumLEDs` ships with pattern factories that return `CANdlePattern` objects (some backed by hardware CANdle animations, some by per-LED color writes):
 
-| Method | What you get |
-| --- | --- |
-| `solid(color)` | A static color. |
-| `blink(color, onTime)` | On for `onTime` seconds, off for the same. |
-| `breathe(color, period)` | Smooth fade in/out across `period` seconds. |
-| `rainbow()` / `scrollingRainbow()` | Full rainbow, optionally scrolling at 0.25 m/s along the strip. |
-| `gradient(colors...)` | Continuous gradient between an arbitrary number of colors. |
-| `stripe(percent, c1, c2)` | First `percent` of strip in `c1`, rest in `c2`. |
-| `chase(color, percent, speed)` | A moving block of `color` covering `percent` of the strip, scrolling at `speed` Hz. |
-| `bounce(color, duration)` | A lit cell with two trails of dimmer color bouncing across the strip. |
+|                     Method                     |                                      What you get                                       |
+|------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `solid(color)`                                 | A static color.                                                                         |
+| `blink(color, onTime)`                         | On for `onTime` seconds, off for the same.                                              |
+| `breathe(color, period)`                       | Smooth fade in/out across `period` seconds.                                             |
+| `rainbow()` / `scrollingRainbow()`             | Full rainbow, optionally scrolling at 0.25 m/s along the strip.                         |
+| `gradient(colors...)`                          | Continuous gradient between an arbitrary number of colors.                              |
+| `stripe(percent, c1, c2)`                      | First `percent` of strip in `c1`, rest in `c2`.                                         |
+| `chase(color, percent, speed)`                 | A moving block of `color` covering `percent` of the strip, scrolling at `speed` Hz.     |
+| `bounce(color, duration)`                      | A lit cell with two trails of dimmer color bouncing across the strip.                   |
 | `ombre(start, end)` / `wave(c1, c2, len, dur)` | Color transitions implemented inline because WPILib's built-ins don't quite cover them. |
-| `countdown(startSupplier, duration)` | Strip starts full, turns off back-to-front over `duration`, color fades yellow → red. |
-| `switchCountdown(startColor)` | 2026-specific: alliance-shift countdown that flips between alliance colors and purple. |
-| `edges(color, length)` | `length` LEDs lit at each end, rest off. |
+| `countdown(startSupplier, duration)`           | Strip starts full, turns off back-to-front over `duration`, color fades yellow → red.   |
+| `switchCountdown(startColor)`                  | 2026-specific: alliance-shift countdown that flips between alliance colors and purple.  |
+| `edges(color, length)`                         | `length` LEDs lit at each end, rest off.                                                |
 
 Hardware-animation patterns (blink, breathe, rainbow) are driven by the CANdle's own animation engine via Phoenix 6 controls (`StrobeAnimation`, `SingleFadeAnimation`, `RainbowAnimation`, …); the color/gradient patterns are written per-LED each loop.
 

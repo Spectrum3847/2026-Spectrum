@@ -1,9 +1,10 @@
 ---
+
 name: live-robot-telemetry
 description: "Use for live real-robot practice telemetry: connecting read-only to NT4, watching odometry and DogLog topics from an active robot, sampling bounded practice windows, and recommending optimizations from live robot data without commanding the robot."
 metadata:
-  short-description: Analyze live robot NT4 telemetry
----
+short-description: Analyze live robot NT4 telemetry
+---------------------------------------------------
 
 # Live Robot Telemetry
 
@@ -24,12 +25,14 @@ metadata:
 4. If the robot is off, rebooting, or changing batteries and NT4 does not respond, poll about once every 30 seconds until it reconnects or the agent is stopped. Avoid tight retry loops while the radio and roboRIO are coming back up.
 5. After a reconnect or deploy, ignore the first 20-30 seconds of loop timing unless the user explicitly asks about boot performance; initialization spikes during that window are expected.
 6. Start with topic discovery before sampling:
+
    ```sh
    python3 .agents/skills/live-robot-telemetry/scripts/list_live_nt_topics.py \
      --host 10.38.47.2 \
      --filter Swerve
    ```
 7. Take a quick status snapshot before a longer capture:
+
    ```sh
    python3 .agents/skills/live-robot-telemetry/scripts/snapshot_live_nt.py \
      --host 10.38.47.2 \
@@ -38,6 +41,7 @@ metadata:
      --topic /DriverStation/Enabled
    ```
 8. Capture a bounded practice window:
+
    ```sh
    python3 .agents/skills/live-robot-telemetry/scripts/sample_live_nt.py \
      --host 10.38.47.2 \
@@ -55,8 +59,8 @@ metadata:
 - Motor currents: `Swerve/Currents/DriveStatorCurrent`, `Swerve/Currents/SteerStatorCurrent`, `Swerve/Currents/DriveSupplyCurrent`, `Swerve/Currents/SteerSupplyCurrent`.
 - DriverStation state: `/DriverStation/Enabled`, `/DriverStation/Autonomous`, `/DriverStation/Test`, `/DriverStation/AllianceStation`, `/DriverStation/Joystick0/AxisValues`, `/DriverStation/Joystick0/ButtonValues`.
 - Command scheduler: `Swerve/CurrentCommand`, `Commands` (init/end lifecycle), `Alerts`, `Sim/SimPose` (SIM pose), `Sim/RobotPose3d` (SIM bump-corrected pose).
-- Vision: discover `Vision`, `VisionIOSim`, Limelight tables, and accepted/rejected pose topics before assuming names (team uses PhotonVision AprilTag pipelines).
-- Superstructure: discover `Intake`, `Shooter`, `Turret`, `Indexer`, `Climb`, `Fuel`, `LED`, and `States` topics before assuming names.
+- Vision: discover `Vision/*` topics, the `limelight-back/left/right` NT tables, and accepted/rejected pose status before assuming names (Limelight MegaTag pipelines).
+- Subsystems: discover the real topic roots before assuming names — this robot has `FuelIntake`, `Launcher`, `IndexerBed`, `IndexerTower`, `Hood`, `Leds`, and the `SuperStructure` orchestrator.
 - If topic names differ, prefer the discovered names from `list_live_nt_topics.py` over guessing.
 
 ## Analysis Workflow
@@ -65,7 +69,7 @@ metadata:
 - For heading and gyro issues, compare odometry rotation, raw gyro, commanded heading, and DriverStation mode transitions.
 - For velocity tracking, compare requested path or driver behavior with actual velocity, setpoint topics, module states, and current/voltage topics when available.
 - For vision, compare accepted observations, camera names, tag counts, timestamps/latency, and pose jumps near observation updates.
-- For this robot, do not remove or throttle the per-loop NT flush used to push Limelight robot pose and turret pose data unless the user explicitly approves a replacement. Accurate fast-motion vision depends on those camera inputs being flushed every loop (see vision subsystem in `src/main/java/frc/robot/subsystems/vision`).
+- For this robot, do not remove or throttle the per-loop `setRobotOrientation(...)` heading push to the Limelights unless the user explicitly approves a replacement. Accurate fast-motion MegaTag2 fusion depends on that orientation being flushed every loop (see the vision subsystem in `src/main/java/frc/robot/subsystems/vision`).
 - For subsystem optimization, tie recommendations to captured evidence: command state, setpoint, measured response, current draw, voltage demand, and DriverStation mode.
 - When the user wants a visual artifact, capture or retrieve a WPILOG first, then use `$advantagescope` for layouts/exports. Live NT snapshots alone are for data summaries, not full AdvantageScope playback.
 

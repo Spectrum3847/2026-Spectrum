@@ -1,8 +1,9 @@
 ---
+
 name: analyze-wpilog
 description: Analyze WPILOG log files from FRC robots using the wpilog-parser library with TypeScript.
 license: MIT
----
+------------
 
 # wpilog-parser
 
@@ -80,8 +81,8 @@ for (const record of decodeRecords(readRecords(bytes), { strict: true })) {
 
 When DriverStation logging is on, every WPILOG has these `boolean` entries:
 
-| Entry            | Meaning                                                             |
-| ---------------- | ------------------------------------------------------------------- |
+|      Entry       |                               Meaning                               |
+|------------------|---------------------------------------------------------------------|
 | `/DS:enabled`    | `true` while the robot is enabled (any mode).                       |
 | `/DS:autonomous` | `true` during autonomous. `false` means teleop (unless `/DS:test`). |
 | `/DS:test`       | `true` during test mode.                                            |

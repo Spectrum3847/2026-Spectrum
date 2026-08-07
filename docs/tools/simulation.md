@@ -18,10 +18,10 @@ Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriver
 
 The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim` / `LinearSim` / `RollerSim` in the subsystem's constructor, route it to update its angle/position/velocity from the motor's `getSimState()`, and append it onto `RobotSim.leftView`. The sim classes do the math to map motor rotations into the visualization.
 
-| Helper | What it draws |
-| --- | --- |
-| `ArmSim` | A pivoting ligament — hood, shooter pivot, arm. |
-| `LinearSim` | A telescoping/sliding ligament — elevator, intake extension. |
+|   Helper    |                                              What it draws                                               |
+|-------------|----------------------------------------------------------------------------------------------------------|
+| `ArmSim`    | A pivoting ligament — hood, shooter pivot, arm.                                                          |
+| `LinearSim` | A telescoping/sliding ligament — elevator, intake extension.                                             |
 | `RollerSim` | A spinning indicator with direction + relative speed — intake roller, indexer wheels, launcher flywheel. |
 
 These came from Team 604's sample project and were adapted; the principle of "always move the root/origin to change display position" (commented at the top of `RobotSim.java`) is the most useful thing to remember.

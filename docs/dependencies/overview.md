@@ -8,13 +8,13 @@ This section walks through how each third-party library actually shows up in the
 
 Vendor JSONs live in [`vendordeps/`](../../vendordeps/) and pin the exact versions:
 
-| Library | Version | Page |
-| --- | --- | --- |
-| WPILib (allwpilib + New Commands) | 2026 | [WPILib](wpilib.md) |
-| CTRE Phoenix 6 | 26.3.0 | [Phoenix 6](phoenix6.md) |
-| PathPlannerLib | 2026.1.2 | [PathPlanner](pathplanner.md) |
-| DogLog | 2026.5.0 | [DogLog](doglog.md) |
-| MapleSim (IronMaple) | 0.4.0-beta | [MapleSim](maple-sim.md) |
+|              Library              |  Version   |             Page              |
+|-----------------------------------|------------|-------------------------------|
+| WPILib (allwpilib + New Commands) | 2026       | [WPILib](wpilib.md)           |
+| CTRE Phoenix 6                    | 26.3.0     | [Phoenix 6](phoenix6.md)      |
+| PathPlannerLib                    | 2026.1.2   | [PathPlanner](pathplanner.md) |
+| DogLog                            | 2026.5.0   | [DogLog](doglog.md)           |
+| MapleSim (IronMaple)              | 0.4.0-beta | [MapleSim](maple-sim.md)      |
 
 To bump a version, swap the JSON via WPILib VSCode's `Manage Vendor Libraries`, then `./gradlew build`.
 

@@ -1,9 +1,10 @@
 ---
+
 name: wpilib-sim
 description: "Use for WPILib robot simulation work: running desktop or headless sim, selecting project-specific sim IO, inspecting live NetworkTables outputs, emulating DriverStation/joystick inputs, and producing WPILOGs for verification without adding committed one-off harnesses. Use wpilog-decode for deep WPILOG topic decoding."
 metadata:
-  short-description: Run WPILib sim and inspect logs
----
+short-description: Run WPILib sim and inspect logs
+--------------------------------------------------
 
 # WPILib Sim
 
@@ -23,30 +24,26 @@ metadata:
 1. Ground in the repo with `rg`, `git status --short`, and targeted file reads.
 2. Discover the WPILib JDK and any required sim-mode override:
 
-    ```sh
-    ls ~/wpilib
-    rg -n "RobotMode|robotMode|SIM|simulation|JAVA_HOME|wpilib" <repo>
-    ```
-
+   ```sh
+   ls ~/wpilib
+   rg -n "RobotMode|robotMode|SIM|simulation|JAVA_HOME|wpilib" <repo>
+   ```
 3. Run normal tests before or after risky changes:
 
-    ```sh
-    JAVA_HOME=<wpilib-jdk> ./gradlew test
-    ```
-
+   ```sh
+   JAVA_HOME=<wpilib-jdk> ./gradlew test
+   ```
 4. Run normal sim when a human/live tool will drive the robot:
 
-    ```sh
-    JAVA_HOME=<wpilib-jdk> ./gradlew simulateJava
-    ```
-
+   ```sh
+   JAVA_HOME=<wpilib-jdk> ./gradlew simulateJava
+   ```
 5. Run headless sim when an agent needs to automate checks without opening GUI windows:
 
-    ```sh
-    JAVA_HOME=<wpilib-jdk> \
-      ./gradlew --init-script .agents/skills/wpilib-sim/references/headless-sim.gradle simulateJava
-    ```
-
+   ```sh
+   JAVA_HOME=<wpilib-jdk> \
+     ./gradlew --init-script .agents/skills/wpilib-sim/references/headless-sim.gradle simulateJava
+   ```
 6. In headless automated runs, the robot still needs DriverStation/joystick state. The bundled scripts write NT state under `/SimAgent/...`, which is a SimAgentBridge-style contract. This repo's robot code does not currently consume those topics, so automated runs require an agent-side bridge before relying on the scripts. For manual simulation, run `./gradlew simulateJava` directly and control DriverStation state through the Sim GUI DriverStation tab.
 7. Verify outputs from existing logged topics, preferably IO-layer applied voltage, velocity, position, current, and command/reference topics. Avoid custom test-only outputs unless the user asked for a harness.
 8. For log inspection, use `$wpilog-decode`. Compatibility wrappers remain in this skill for older command paths.
@@ -56,7 +53,6 @@ metadata:
 - The scripts in this skill write NT topics under `/SimAgent` to drive a sim through an agent-side bridge: DriverStation state, joystick inputs, clean exit, and the shot-map test table.
 - Spectrum 2026 robot code does **not** ship that bridge. Until a bridge or equivalent consumer exists in robot code, these scripts can write NT values but cannot enable/disable or cleanly stop this repo's sim on their own. Verify against the Sim GUI DriverStation tab or a working bridge before trusting automated runs.
 - DriverStation control topics written by the scripts:
-
   - `/SimAgent/DriverStation/AllianceStation` string: `Red1`, `Red2`, `Red3`, `Blue1`, `Blue2`, `Blue3`, or `Unknown`
   - `/SimAgent/DriverStation/Enabled` boolean
   - `/SimAgent/DriverStation/Autonomous` boolean
@@ -65,18 +61,14 @@ metadata:
   - `/SimAgent/DriverStation/FmsAttached` boolean
   - `/SimAgent/Control/Exit` boolean for clean shutdown
   - `/SimAgent/Control/ExitAfterSeconds` double timeout from bridge startup
-
 - Joystick topics by port:
-
   - `/SimAgent/Joystick/<port>/Axes` double array, axis indexes matching WPILib
   - `/SimAgent/Joystick/<port>/Buttons` boolean array, button 1 at index 0
   - `/SimAgent/Joystick/<port>/POVs` integer array
   - `/SimAgent/Joystick/<port>/IsXbox` boolean
   - `/SimAgent/Joystick/<port>/Type` integer
   - `/SimAgent/Joystick/<port>/Name` string
-
 - Auto selection must go through the real SmartDashboard/NT Auto Chooser, which this repo publishes from `Auton.java`:
-
   - `/SmartDashboard/Auto Chooser/options`
   - `/SmartDashboard/Auto Chooser/selected`
   - `/SmartDashboard/Auto Chooser/active`
@@ -87,41 +79,41 @@ metadata:
 
 - Run a full auto through the real NT Auto Chooser (bridge-gated; see "Agent Sim Control"):
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/run_auto_sim.py \
-      --repo . \
-      --auto <auto-name> \
-      --alliance <alliance-station> \
-      --duration <auto-duration> \
-      --buffer 1
-    ```
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/run_auto_sim.py \
+    --repo . \
+    --auto <auto-name> \
+    --alliance <alliance-station> \
+    --duration <auto-duration> \
+    --buffer 1
+  ```
 
   The script launches headless `simulateJava`, waits for the real chooser options, writes the selected auto over NT, enables autonomous, disables/exits cleanly, and prints `latestLog=<path>`.
 
 - Write live teleop/joystick state to a running sim:
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/sim_nt_control.py \
-      --repo . \
-      --alliance <alliance-station> \
-      --enabled \
-      --port 0 \
-      --axes "0,0,0,1" \
-      --buttons "false,false,false,false"
-    ```
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/sim_nt_control.py \
+    --repo . \
+    --alliance <alliance-station> \
+    --enabled \
+    --port 0 \
+    --axes "0,0,0,1" \
+    --buttons "false,false,false,false"
+  ```
 
   Use `--exit` to request clean shutdown.
 
 - Run a bounded headless teleop simulation with a fixed Xbox joystick state and a clean WPILOG:
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
-      --repo . \
-      --alliance Blue1 \
-      --duration 5 \
-      --port 0 \
-      --axes "0,-1,0,0,0,0"
-    ```
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
+    --repo . \
+    --alliance Blue1 \
+    --duration 5 \
+    --port 0 \
+    --axes "0,-1,0,0,0,0"
+  ```
 
 ## AdvantageScope Visualization
 
@@ -129,20 +121,17 @@ metadata:
 - Prefer vanilla AdvantageScope for manual inspection and a fork only when its opt-in agent hooks are available.
 - Detect the fork by checking for documented agent flags or a known fork checkout/build before relying on automation. If only vanilla AdvantageScope is installed, open logs/layouts manually and provide WPILOG summaries instead of promising robust screenshots or recordings.
 - Keep robot-specific choices outside AdvantageScope:
-
   - topic names
   - preferred layouts
   - auto names
   - artifact paths
   - comparison/assertion logic
-
 - The fork's intended flags are:
 
-    ```sh
-    AdvantageScope --agent-control
-    AdvantageScope --agent-export --log <log.wpilog> --layout <layout.json> --out <output-dir> --start <seconds> --end <seconds> --fps 30
-    ```
-
+  ```sh
+  AdvantageScope --agent-control
+  AdvantageScope --agent-export --log <log.wpilog> --layout <layout.json> --out <output-dir> --start <seconds> --end <seconds> --fps 30
+  ```
 - Agent control must be local-only, opt-in, and token-protected. Prefer commands like `status`, `openLog`, `applyLayout`, `setTime`, `capture`, `export`, and `close`; do not drive the UI by clicking screen coordinates.
 - For video previews, prefer the fork's realtime canvas recording path. Frame-by-frame PNG export is only a debugging fallback because it is much slower than the auto duration.
 - Always pair visual artifacts with a data summary from the WPILOG, such as robot mode/type, selected auto, enabled interval, pose movement, final pose, and notable state transitions.
@@ -166,75 +155,72 @@ metadata:
 
 - `$wpilog-decode` owns WPILOG listing, value summaries, struct decoding, latest-log lookup, and boolean-window lookup. Prefer:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
-      --repo . \
-      --log <log.wpilog> \
-      --topic <topic>
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
+    --repo . \
+    --log <log.wpilog> \
+    --topic <topic>
+  ```
 - Backward-compatible wrappers remain in this skill:
-
   - `scripts/find_latest_simlog.py <repo-or-log-dir>`
   - `scripts/list_wpilog_topics.py --repo <repo> [--log <path-or-log-dir>] [--filter <text>]`
   - `scripts/read_wpilog_values.py --repo <repo> --topic <topic> [--topic <topic> ...] [--log <path-or-log-dir>]`
   - `scripts/find_wpilog_window.py --repo <repo> --log <path> --all-true <boolean-topic> [--all-true <boolean-topic> ...] [--duration <seconds>]`
-
 - `scripts/run_auto_sim.py --repo <repo> --auto <chooser-option> --alliance <station> [--duration <seconds>] [--buffer 1]` runs headless sim, selects the auto through the NT Auto Chooser, enables autonomous through `/SimAgent` topics (bridge-gated), exits cleanly, and prints the latest log path.
 - `scripts/run_teleop_sim.py --repo <repo> --alliance <station> --duration <seconds> --axes <comma-separated-axes> [--port 0]` runs headless sim, sets a simulated Xbox joystick through `/SimAgent` topics (bridge-gated), enables teleop for the duration, exits cleanly, and prints the latest log path. For Xbox full forward left stick, use `--axes "0,-1,0,0,0,0"`.
 - `scripts/run_teleop_sim.py` also supports timed joystick sequences with `--sequence "duration:axes;duration:axes"`. For a rectangle with Xbox joystick 0:
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
-      --repo . \
-      --alliance Blue1 \
-      --port 0 \
-      --sequence "1.2:0,-1,0,0,0,0;1.0:-1,0,0,0,0,0;1.2:0,1,0,0,0,0;1.0:1,0,0,0,0,0;0.5:0,0,0,0,0,0"
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
+    --repo . \
+    --alliance Blue1 \
+    --port 0 \
+    --sequence "1.2:0,-1,0,0,0,0;1.0:-1,0,0,0,0,0;1.2:0,1,0,0,0,0;1.0:1,0,0,0,0,0;0.5:0,0,0,0,0,0"
+  ```
 - Timed sequences also support per-segment joystick ports, buttons, and POVs with `duration:port:axes:buttons:povs`. Port state persists until changed, which is useful for setting a secondary sim control port while driving with port 0. Example fuel intake/shoot sequence:
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
-      --repo . \
-      --alliance Blue1 \
-      --port 0 \
-      --sequence "1.5:0:0,0,0,0,0,0:false,false,false,false,false,false,false,false,false,false:-1;2.0:0:0,-1,0,0,0,0:false,false,false,false,false,false,false,false,false,false:-1;3.0:0:0,0,0,1,0,0:false,false,false,false,false,false,false,false,false,false:-1"
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
+    --repo . \
+    --alliance Blue1 \
+    --port 0 \
+    --sequence "1.5:0:0,0,0,0,0,0:false,false,false,false,false,false,false,false,false,false:-1;2.0:0:0,-1,0,0,0,0:false,false,false,false,false,false,false,false,false,false:-1;3.0:0:0,0,0,1,0,0:false,false,false,false,false,false,false,false,false,false:-1"
+  ```
 - `scripts/run_shot_map_sim.py --repo . --distances "1.75,3.25,5.0"` runs fixed red-alliance own-side MapleSim fuel shots through `/SimAgent/ShotMapTest` (bridge-gated), using shooter-map hood/flywheel values for each distance. It prints one JSON summary per log with launch speed, expected time of flight, trajectory point count, max trajectory height, closest point to the hub target, MapleSim target tolerance status, and scored-fuel return pose/velocity/count.
 - For MapleSim heightmap bump smoke tests, run teleop sequences that first move to a bump lane and then drive across it. A verified crossing sequence is:
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
-      --repo . \
-      --alliance Blue1 \
-      --port 0 \
-      --sequence "0.5:0,0,0,0,0,0;0.35:1,0,0,0,0,0;2.8:0,1,0,0,0,0;0.5:0,0,0,0,0,0"
-    ```
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
+    --repo . \
+    --alliance Blue1 \
+    --port 0 \
+    --sequence "0.5:0,0,0,0,0,0;0.35:1,0,0,0,0,0;2.8:0,1,0,0,0,0;0.5:0,0,0,0,0,0"
+  ```
 
   A verified stopped-on-bump check is:
 
-    ```sh
-    python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
-      --repo . \
-      --alliance Blue1 \
-      --port 0 \
-      --sequence "0.5:0,0,0,0,0,0;0.35:1,0,0,0,0,0;0.85:0,1,0,0,0,0;2.0:0,0,0,0,0,0"
-    ```
+  ```sh
+  python3 .agents/skills/wpilib-sim/scripts/run_teleop_sim.py \
+    --repo . \
+    --alliance Blue1 \
+    --port 0 \
+    --sequence "0.5:0,0,0,0,0,0;0.35:1,0,0,0,0,0;0.85:0,1,0,0,0,0;2.0:0,0,0,0,0,0"
+  ```
 
   Acceptance is not slide-back: `/RealOutputs/FieldSimulation/RobotVelocity` should settle near zero while `/RealOutputs/Simulation/Bump/OnBump`, `ModuleHeights`, `RobotPitchRad`, and/or `RobotRollRad` remain stable and nonzero.
+
 - `scripts/sim_nt_control.py` writes live DriverStation and joystick state through `/SimAgent` NT topics (bridge-gated).
+
 - Use `$wpilog-decode` for boolean-window lookup. Compatibility command for auto preview exports:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/find_wpilog_window.py \
-      --repo . \
-      --log <log.wpilog> \
-      --all-true /DriverStation/Autonomous \
-      --all-true /DriverStation/Enabled \
-      --duration <auto-duration>
-    ```
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/find_wpilog_window.py \
+    --repo . \
+    --log <log.wpilog> \
+    --all-true /DriverStation/Autonomous \
+    --all-true /DriverStation/Enabled \
+    --duration <auto-duration>
+  ```
 
 The decode scripts may create temporary Java helpers using the OS temp directory and compile them directly with the discovered WPILib JDK plus local WPILib jars. They do not edit robot source.
 

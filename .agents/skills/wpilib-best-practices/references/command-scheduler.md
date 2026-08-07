@@ -49,22 +49,22 @@ Register with `subsystem.setDefaultCommand(command)`. Scheduled automatically wh
 
 Hook into scheduler events for logging or telemetry:
 
-| Method | Fires when |
-| ------ | ---------- |
-| `onCommandInitialize(consumer)` | Command starts |
-| `onCommandExecute(consumer)` | Each iteration during execution |
-| `onCommandFinish(consumer)` | `isFinished()` returns true |
+|              Method              |             Fires when             |
+|----------------------------------|------------------------------------|
+| `onCommandInitialize(consumer)`  | Command starts                     |
+| `onCommandExecute(consumer)`     | Each iteration during execution    |
+| `onCommandFinish(consumer)`      | `isFinished()` returns true        |
 | `onCommandInterrupt(biConsumer)` | Command is canceled or interrupted |
 
 ---
 
 ## Control Methods
 
-| Method | Effect |
-| ------ | ------ |
-| `disable()` | Stops the scheduler: `run()` and `schedule()` become no-ops while disabled, and already scheduled commands stop executing until `enable()` is called |
-| `enable()` | Resumes scheduling |
-| `cancel(command)` | Explicitly stops a running command; calls `end(true)` |
+|      Method       |                                                                        Effect                                                                        |
+|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `disable()`       | Stops the scheduler: `run()` and `schedule()` become no-ops while disabled, and already scheduled commands stop executing until `enable()` is called |
+| `enable()`        | Resumes scheduling                                                                                                                                   |
+| `cancel(command)` | Explicitly stops a running command; calls `end(true)`                                                                                                |
 
 ---
 

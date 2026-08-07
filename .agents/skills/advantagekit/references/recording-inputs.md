@@ -45,12 +45,14 @@ All [supported types](https://docs.advantagekit.org/data-flow/supported-types) a
 Two approaches — pick one consistently:
 
 **Naming convention** (simpler):
+
 ```java
 public double velocityRadPerSec = 0.0;
 public double positionMeters = 0.0;
 ```
 
 **Measure objects** (type-safe):
+
 ```java
 public Distance position = Meters.of(0.0);
 public LinearVelocity velocity = MetersPerSecond.of(0.0);
@@ -88,12 +90,12 @@ Direct NetworkTables access (`SmartDashboard.getNumber()`, `SmartDashboard.getSt
 
 ### Logged Replacements
 
-| Instead of | Use |
-|-----------|-----|
-| `SendableChooser<T>` | `LoggedDashboardChooser<T>` |
-| `SmartDashboard.getNumber()` | `LoggedNetworkNumber` |
-| `SmartDashboard.getString()` | `LoggedNetworkString` |
-| `SmartDashboard.getBoolean()` | `LoggedNetworkBoolean` |
+|          Instead of           |             Use             |
+|-------------------------------|-----------------------------|
+| `SendableChooser<T>`          | `LoggedDashboardChooser<T>` |
+| `SmartDashboard.getNumber()`  | `LoggedNetworkNumber`       |
+| `SmartDashboard.getString()`  | `LoggedNetworkString`       |
+| `SmartDashboard.getBoolean()` | `LoggedNetworkBoolean`      |
 
 ### Auto Chooser Example
 

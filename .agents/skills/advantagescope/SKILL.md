@@ -1,9 +1,10 @@
 ---
+
 name: advantagescope
 description: "Use for AdvantageScope visualization automation: building/running our AdvantageScope fork (Spectrum 3847) or vanilla AdvantageScope, opening WPILOGs/DataLogs with layouts, using opt-in agent control/export hooks, capturing 2D/3D field screenshots or frame sequences, and falling back to vanilla AdvantageScope/manual inspection when hooks are unavailable."
 metadata:
-  short-description: Automate AdvantageScope visualization
----
+short-description: Automate AdvantageScope visualization
+--------------------------------------------------------
 
 # AdvantageScope
 
@@ -25,6 +26,7 @@ metadata:
 ## Agent Hooks
 
 - Before exporting an auto preview, get the WPILOG from `$wpilib-sim`'s permanent workflow:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/run_auto_sim.py \
     --repo . \
@@ -33,7 +35,9 @@ metadata:
     --duration <auto-duration> \
     --buffer 1
   ```
+
   Then compute the auto window from logged DriverStation state:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/find_wpilog_window.py \
     --repo . \
@@ -43,6 +47,7 @@ metadata:
     --duration <auto-duration>
   ```
 - Preferred export command from a built fork:
+
   ```sh
   ./node_modules/.bin/electron bundles/main.js \
     --agent-export \
@@ -60,6 +65,7 @@ metadata:
 - Realtime export records the active 2D/3D field canvas while AdvantageScope playback runs at 1x. A current fork waits for selected-renderer readiness before recording, so 3D field assets should be loaded in frame 0 without a fixed delay. A preview should take roughly the requested video duration plus small startup/transcode overhead.
 - For agent exports, prefer `--agent-headless` instead of Chromium `--headless`. It keeps AdvantageScope windows hidden while preserving the normal renderer/WebGL lifecycle needed for 3D recording.
 - The skill includes helper scripts:
+
   ```sh
   python3 .agents/skills/advantagescope/scripts/discover_ascope_assets.py \
     --repo .
@@ -90,6 +96,7 @@ metadata:
 - Use `--agent-export-mode frames` only for debugging deterministic frame stepping; normal auto previews must not use the frame-by-frame path.
 - Use `--agent-allow-frame-only` only with frame export debugging when no encoder is available.
 - Optional control mode:
+
   ```sh
   ./node_modules/.bin/electron bundles/main.js --agent-control --agent-port 0
   ```
@@ -108,6 +115,7 @@ metadata:
 - Prefer `capture_layout.py` for graph screenshots. It launches the fork in `--agent-control --agent-headless`, waits for `liveStatus.ready=true`, optionally sends `setTime`, sends `capture`, and closes cleanly.
 - Pair graph screenshots with `$wpilib-sim` topic summaries from `read_wpilog_values.py` so users get both the visual trend and concrete min/max values.
 - Fast path for current-style graph requests:
+
   ```sh
   python3 .agents/skills/wpilib-sim/scripts/list_wpilog_topics.py \
     --repo . \
@@ -141,22 +149,23 @@ metadata:
   - hub tab 1: Line Graph controller tab,
   - satellite window: attached to the Line Graph controller UUID.
 - Use `scripts/generate_multiview_3d_joysticks_layout.py` for 3D Field + Joysticks layouts. The helper can select the field tab or joystick tab with `--selected-tab field|joysticks` and can select a specific joystick layout for a port, for example `--joystick-port 0 --joystick-layout "Xbox Controller (White)"`.
-- For game pieces, add `--game-piece-topic <Pose3d[] topic>` and `--game-piece-variant <variant>`. For MapleSim 2026 fuel, use `/RealOutputs/FieldSimulation/Fuel` and variant `Fuel`.
-- For projectile or path overlays, add `--trajectory-topic <Pose3d[] topic>`. For MapleSim fuel shots, use `/RealOutputs/FieldSimulation/FuelShotTrajectory`; the helper adds it as a 3D Field `trajectory` source with a bold orange line by default.
+- For game pieces, add `--game-piece-topic <Translation3d[] topic>` and `--game-piece-variant <variant>`. For fuel, use `/Robot/Sim/Fuel/Positions` (all pieces) or `/Robot/Sim/Fuel/InFlight` (airborne only) and variant `Fuel`.
+- For projectile or path overlays, add `--trajectory-topic <Translation3d[] topic>`. For our fuel shots, use `/Robot/Sim/Fuel/LastShotArc`; the helper adds it as a 3D Field `trajectory` source with a bold orange line by default.
 - For robot sources that include Z/pitch/roll, pass `--topic-type Pose3d` to `scripts/generate_field3d_layout.py`. For MapleSim bump traversal, use `Sim/RobotPose3d` (logged under `/Robot/` by DogLog) with `--topic-type Pose3d`.
 - Use explicit field and robot model arguments from the task or asset discovery. Do not bake season-specific asset ids into the skill or helper defaults.
 - Export with `export_preview.py --mode multiview --headless`. Expected outputs are `view-0-hub.webm`, `view-1-satellite.webm`, `preview.mp4`, and `manifest.json`.
 - Joystick multiview is supported by the fork's renderer-owned canvas capture path. Validate manifests report the joystick view with `sourceMode: "renderer-canvas"` and `sourceName: "JoysticksRenderer"`.
 - Fast path for a 3D teleop preview plus live Xbox joystick pane:
+
   ```sh
   python3 .agents/skills/advantagescope/scripts/generate_multiview_3d_joysticks_layout.py \
     --out artifacts/auto-previews/layouts/teleop-3d-joysticks.json \
     --field "<field-id>" \
     --robot "<robot-model>" \
-    --pose-topic /RealOutputs/FieldSimulation/RobotPosition \
-    --game-piece-topic /RealOutputs/FieldSimulation/Fuel \
+    --pose-topic /Robot/Sim/RobotPose3d \
+    --game-piece-topic /Robot/Sim/Fuel/Positions \
     --game-piece-variant Fuel \
-    --trajectory-topic /RealOutputs/FieldSimulation/FuelShotTrajectory \
+    --trajectory-topic /Robot/Sim/Fuel/LastShotArc \
     --joystick-port 0 \
     --joystick-layout "Xbox Controller (White)" \
     --selected-tab field
@@ -173,6 +182,7 @@ metadata:
     --mode multiview
   ```
 - Fast path for a 3D auto preview synced with a four-topic current graph:
+
   ```sh
   python3 .agents/skills/advantagescope/scripts/generate_multiview_layout.py \
     --out artifacts/auto-previews/layouts/multiview-3d-drive-current.json \

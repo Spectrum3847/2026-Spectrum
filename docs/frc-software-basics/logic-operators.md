@@ -6,14 +6,14 @@
 
 These compare two values and return a `boolean`.
 
-| Operator | Meaning |
-| --- | --- |
-| `>` | greater than |
-| `>=` | greater than or equal to |
-| `<` | less than |
-| `<=` | less than or equal to |
-| `==` | equal to |
-| `!=` | not equal to |
+| Operator |         Meaning          |
+|----------|--------------------------|
+| `>`      | greater than             |
+| `>=`     | greater than or equal to |
+| `<`      | less than                |
+| `<=`     | less than or equal to    |
+| `==`     | equal to                 |
+| `!=`     | not equal to             |
 
 `5 > 4` is `true`. `5 >= 6` is `false`. `5 != 5` is `false`. Those work exactly as you'd expect.
 

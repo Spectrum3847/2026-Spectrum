@@ -1,8 +1,9 @@
 ---
+
 name: coderabbitai-review
 description: Review an open PR with CodeRabbit — triage its comments, fix valid issues, push, and loop until the review approves. Use when a PR on this repo has a CodeRabbit review pending or needs one.
 license: MIT
----
+------------
 
 # CodeRabbit PR Review Loop
 
@@ -66,12 +67,12 @@ status check, and note the bot may still be generating its review.
 
 Classify every comment:
 
-| Class | Action |
-| --- | --- |
-| Valid fix | Fix it in code/docs, commit, push. |
-| False positive / out of scope | Reply to the thread with a short justification (cite file:line evidence) and resolve it. |
-| Already fixed | Reply pointing at the commit that fixed it. |
-| Style preference only | Apply only if it matches the repo conventions in `docs/coding-conventions/`; otherwise reply briefly and resolve. |
+|             Class             |                                                      Action                                                       |
+|-------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| Valid fix                     | Fix it in code/docs, commit, push.                                                                                |
+| False positive / out of scope | Reply to the thread with a short justification (cite file:line evidence) and resolve it.                          |
+| Already fixed                 | Reply pointing at the commit that fixed it.                                                                       |
+| Style preference only         | Apply only if it matches the repo conventions in `docs/coding-conventions/`; otherwise reply briefly and resolve. |
 
 Rule of thumb: fix fast, cheap, real issues; reply with evidence for everything
 else. Never blindly apply a suggestion — verify it against the actual code
