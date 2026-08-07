@@ -1,12 +1,11 @@
 ---
-
 name: wpilib-best-practices
 description: >
-WPILib and FRC robot programming best practices, design patterns, and code guidance for Java.
-Use when writing, reviewing, or explaining WPILib robot code—command-based project structure,
-subsystems, autonomous routines, RobotContainer layout, command definition patterns (inline,
-factory, subclass), or Constants organization.
-----------------------------------------------
+  WPILib and FRC robot programming best practices, design patterns, and code guidance for Java.
+  Use when writing, reviewing, or explaining WPILib robot code—command-based project structure,
+  subsystems, autonomous routines, RobotContainer layout, command definition patterns (inline,
+  factory, subclass), or Constants organization.
+---
 
 # WPILib Best Practices
 

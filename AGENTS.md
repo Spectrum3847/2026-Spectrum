@@ -28,12 +28,12 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 - **Subsystems**: `SubsystemName.java` + `SubsystemNameStates.java`; motor-based ones extend `frc.spectrumLib.Mechanism` and implement `frc.spectrumLib.SpectrumSubsystem`; hardware config lives in each subsystem's inner `Config` class.
 - **Robot configs**: `FM2026` / `XM2026` / `PM2026` / `AM2026` / `PHOTON2026` in `src/main/java/frc/robot/configs/`, auto-selected by RoboRIO serial via `frc.spectrumLib.Rio`. CAN IDs and encoder offsets go here, not in subsystem files.
 - **Autos**: PathPlanner (paths/autos in `src/main/deploy/pathplanner/`); named commands registered in `Auton.java`.
-- **Telemetry**: DogLog via `frc.spectrumLib.Telemetry`; `TuneValue` for live tuning.
+- **Telemetry**: DogLog via `frc.spectrumLib.telemetry.Telemetry`; `TuneValue` for live tuning.
 - **Gamepads**: `Pilot.java` / `Operator.java`; bindings in `PilotStates.java` / `OperatorStates.java`.
 
 ## Skills Policy
 
-`./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so:
+`./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07.)
 - New skills must describe our real classes/topics, never generic donor code. Verify names against `src/main/java` and `docs/`.
 - To keep a skill from loading across all agents (opencode, Claude Code, etc.), rename its `SKILL.md` → `SKILL.md.disabled` instead of editing frontmatter. Leave the directory's other files in place.
 

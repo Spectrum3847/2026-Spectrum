@@ -1,10 +1,9 @@
 ---
-
 name: maple-sim
 description: "Use for our Spectrum 3847 MapleSim integration work: maintaining the swerve-first MapleSim simulation, verifying WPILib headless sim logs, calibrating physics constants, and extending simulation to intake, projectiles, opponents, or vision."
 metadata:
-short-description: Maintain MapleSim simulation
------------------------------------------------
+  short-description: Maintain MapleSim simulation
+---
 
 # MapleSim
 

@@ -1,9 +1,8 @@
 ---
-
 name: analyze-wpilog
 description: Analyze WPILOG log files from FRC robots using the wpilog-parser library with TypeScript.
 license: MIT
-------------
+---
 
 # wpilog-parser
 

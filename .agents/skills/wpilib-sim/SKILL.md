@@ -1,10 +1,9 @@
 ---
-
 name: wpilib-sim
 description: "Use for WPILib robot simulation work: running desktop or headless sim, selecting project-specific sim IO, inspecting live NetworkTables outputs, emulating DriverStation/joystick inputs, and producing WPILOGs for verification without adding committed one-off harnesses. Use wpilog-decode for deep WPILOG topic decoding."
 metadata:
-short-description: Run WPILib sim and inspect logs
---------------------------------------------------
+  short-description: Run WPILib sim and inspect logs
+---
 
 # WPILib Sim
 

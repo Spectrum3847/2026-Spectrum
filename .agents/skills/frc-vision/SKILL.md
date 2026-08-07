@@ -1,15 +1,14 @@
 ---
-
 name: frc-vision
 description: >
-Spectrum 3847 FRC vision work in Java — Limelight MegaTag AprilTag pose estimation fused into the
-swerve pose estimator. Use when implementing or reviewing AprilTag detection, pose estimation,
-vision-aided odometry, or vision rejection/std-dev tuning. Triggers on: Limelight, MegaTag,
-AprilTags, pose estimation, Vision subsystem, addVisionMeasurement, SwerveDrivePoseEstimator, or
-any vision-related robot code task.
+  Spectrum 3847 FRC vision work in Java — Limelight MegaTag AprilTag pose estimation fused into the
+  swerve pose estimator. Use when implementing or reviewing AprilTag detection, pose estimation,
+  vision-aided odometry, or vision rejection/std-dev tuning. Triggers on: Limelight, MegaTag,
+  AprilTags, pose estimation, Vision subsystem, addVisionMeasurement, SwerveDrivePoseEstimator, or
+  any vision-related robot code task.
 metadata:
-short-description: Limelight MegaTag vision + pose fusion
----------------------------------------------------------
+  short-description: Limelight MegaTag vision + pose fusion
+---
 
 # FRC Vision (Java) — Spectrum 3847
 

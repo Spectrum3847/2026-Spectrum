@@ -1,12 +1,13 @@
 ---
-
 name: advantagescope
 description: "Use for AdvantageScope visualization automation: building/running our AdvantageScope fork (Spectrum 3847) or vanilla AdvantageScope, opening WPILOGs/DataLogs with layouts, using opt-in agent control/export hooks, capturing 2D/3D field screenshots or frame sequences, and falling back to vanilla AdvantageScope/manual inspection when hooks are unavailable."
 metadata:
-short-description: Automate AdvantageScope visualization
---------------------------------------------------------
+  short-description: Automate AdvantageScope visualization
+---
 
 # AdvantageScope
+
+> We maintain our own AdvantageScope fork; these workflow facts were verified against the Spectrum fork and robot repo 2026-08-07 (PR #132).
 
 ## Core Rules
 

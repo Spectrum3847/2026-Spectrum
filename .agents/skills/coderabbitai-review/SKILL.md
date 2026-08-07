@@ -1,9 +1,8 @@
 ---
-
 name: coderabbitai-review
 description: Review an open PR with CodeRabbit — triage its comments, fix valid issues, push, and loop until the review approves. Use when a PR on this repo has a CodeRabbit review pending or needs one.
 license: MIT
-------------
+---
 
 # CodeRabbit PR Review Loop
 

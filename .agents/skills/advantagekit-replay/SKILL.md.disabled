@@ -5,6 +5,8 @@ description: "Use for AdvantageKit WPILOG replay workflows: pulling real robot l
 
 # AdvantageKit Replay
 
+> Disabled for Spectrum 3847 — we do not use AdvantageKit (see `AGENTS.md`). Retained for reference from the original upstream/8044 workflow; verified 2026-08-07.
+
 ## Core Rules
 
 - Use this skill when validating that real-robot AdvantageKit outputs can be disabled and regenerated from a WPILOG replay.

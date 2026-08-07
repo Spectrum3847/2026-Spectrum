@@ -1,10 +1,9 @@
 ---
-
 name: live-robot-telemetry
 description: "Use for live real-robot practice telemetry: connecting read-only to NT4, watching odometry and DogLog topics from an active robot, sampling bounded practice windows, and recommending optimizations from live robot data without commanding the robot."
 metadata:
-short-description: Analyze live robot NT4 telemetry
----------------------------------------------------
+  short-description: Analyze live robot NT4 telemetry
+---
 
 # Live Robot Telemetry
 

@@ -1,10 +1,9 @@
 ---
-
 name: wpilog-decode
 description: "Use for WPILOG/DataLog inspection and decoding robot telemetry: listing topics, finding log windows, summarizing primitive values, decoding WPILib structs such as Pose2d/Rotation2d/Pose3d/SwerveModuleState, and exporting readable or JSON samples without running simulation."
 metadata:
-short-description: Decode WPILOG telemetry
-------------------------------------------
+  short-description: Decode WPILOG telemetry
+---
 
 # WPILOG Decode
 
