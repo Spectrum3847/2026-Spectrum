@@ -13,11 +13,11 @@ WPILib best practices span multiple domains. Load only the reference(s) relevant
 
 ## References
 
-| Domain | Reference | When to load |
-| ------ | --------- | ------------ |
-| Command-based architecture | [references/command-based.md](references/command-based.md) | Project structure, `Robot`/`RobotContainer` layout, command definition patterns (inline vs factory vs subclass), autonomous routines, subsystem organization, `Constants` class |
-| Command Scheduler | [references/command-scheduler.md](references/command-scheduler.md) | How the scheduler runs, per-iteration execution order, default commands, scheduling conflicts, event callbacks, `disable()`/`cancel()` |
-| Command Compositions | [references/command-compositions.md](references/command-compositions.md) | Combining commands with `sequence`, `parallel`, `race`, `deadline`, `repeatedly`; end condition and end behavior decorators; `ConditionalCommand`; `ProxyCommand` |
+|           Domain           |                                Reference                                 |                                                                                  When to load                                                                                   |
+|----------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Command-based architecture | [references/command-based.md](references/command-based.md)               | Project structure, `Robot`/`RobotContainer` layout, command definition patterns (inline vs factory vs subclass), autonomous routines, subsystem organization, `Constants` class |
+| Command Scheduler          | [references/command-scheduler.md](references/command-scheduler.md)       | How the scheduler runs, per-iteration execution order, default commands, scheduling conflicts, event callbacks, `disable()`/`cancel()`                                          |
+| Command Compositions       | [references/command-compositions.md](references/command-compositions.md) | Combining commands with `sequence`, `parallel`, `race`, `deadline`, `repeatedly`; end condition and end behavior decorators; `ConditionalCommand`; `ProxyCommand`               |
 
 ## Quick Navigation
 

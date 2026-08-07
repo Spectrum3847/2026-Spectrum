@@ -22,13 +22,13 @@ int a = 3;         // same problem
 
 The types you'll encounter most often in this codebase:
 
-| Type | What it holds | Example |
-| --- | --- | --- |
-| `int` | whole numbers | `int canID = 8;` |
-| `double` | decimal numbers | `double idlingRPM = 700;` |
-| `boolean` | `true` or `false` | `boolean isAttached = true;` |
-| `String` | text (not technically primitive, but used everywhere) | `String name = "IndexerBed";` |
-| `byte` | small signed integer, −128 to 127 | rare in robot code |
+|   Type    |                     What it holds                     |            Example            |
+|-----------|-------------------------------------------------------|-------------------------------|
+| `int`     | whole numbers                                         | `int canID = 8;`              |
+| `double`  | decimal numbers                                       | `double idlingRPM = 700;`     |
+| `boolean` | `true` or `false`                                     | `boolean isAttached = true;`  |
+| `String`  | text (not technically primitive, but used everywhere) | `String name = "IndexerBed";` |
+| `byte`    | small signed integer, −128 to 127                     | rare in robot code            |
 
 You'll also see `final` (the value can't be reassigned) and `static` (belongs to the class rather than a specific instance) used as modifiers. Both are covered in [Classes, Methods, and Objects](classes-methods-objects.md).
 
@@ -46,13 +46,13 @@ All `double`s because RPM values have decimal precision. Changing them to `int` 
 
 These require two operands — one on each side.
 
-| Operator | Meaning | Example |
-| --- | --- | --- |
-| `+` | addition | `a + b` |
-| `-` | subtraction | `a - b` |
-| `*` | multiplication | `a * b` |
-| `/` | division | `a / b` |
-| `%` | modulus (remainder) | `a % b` |
+| Operator |       Meaning       | Example |
+|----------|---------------------|---------|
+| `+`      | addition            | `a + b` |
+| `-`      | subtraction         | `a - b` |
+| `*`      | multiplication      | `a * b` |
+| `/`      | division            | `a / b` |
+| `%`      | modulus (remainder) | `a % b` |
 
 A quick demonstration with concrete values:
 

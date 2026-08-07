@@ -25,13 +25,13 @@ Compositions combine commands into a single command object. They can be nested r
 
 ## Composition Types
 
-| Type | Ends when | Factory | Decorator |
-| ---- | --------- | ------- | --------- |
-| Sequential | All members finish in order | `Commands.sequence(...)` | `.andThen(...)`, `.beforeStarting(...)` |
-| Parallel (all) | ALL members finish | `Commands.parallel(...)` | `.alongWith(...)` |
-| Parallel race | ANY member finishes | `Commands.race(...)` | `.raceWith(...)` |
-| Parallel deadline | The *deadline* command finishes | `Commands.deadline(deadline, ...)` | `.deadlineWith(...)` |
-| Repeat | Never (runs until interrupted) | `Commands.repeatingSequence(...)` | `.repeatedly()` |
+|       Type        |            Ends when            |              Factory               |                Decorator                |
+|-------------------|---------------------------------|------------------------------------|-----------------------------------------|
+| Sequential        | All members finish in order     | `Commands.sequence(...)`           | `.andThen(...)`, `.beforeStarting(...)` |
+| Parallel (all)    | ALL members finish              | `Commands.parallel(...)`           | `.alongWith(...)`                       |
+| Parallel race     | ANY member finishes             | `Commands.race(...)`               | `.raceWith(...)`                        |
+| Parallel deadline | The *deadline* command finishes | `Commands.deadline(deadline, ...)` | `.deadlineWith(...)`                    |
+| Repeat            | Never (runs until interrupted)  | `Commands.repeatingSequence(...)`  | `.repeatedly()`                         |
 
 ### Sequential
 
@@ -75,21 +75,21 @@ Compositions automatically inherit the union of all member requirements. A compo
 
 ## End Condition Decorators
 
-| Decorator | Behavior |
-| --------- | -------- |
-| `.withTimeout(seconds)` | Interrupts command after N seconds |
-| `.until(BooleanSupplier)` | Interrupts command when condition becomes true |
-| `.onlyWhile(BooleanSupplier)` | Interrupts command when condition becomes false |
-| `.onlyIf(BooleanSupplier)` | Skips command entirely if condition is false at schedule time |
+|           Decorator           |                           Behavior                            |
+|-------------------------------|---------------------------------------------------------------|
+| `.withTimeout(seconds)`       | Interrupts command after N seconds                            |
+| `.until(BooleanSupplier)`     | Interrupts command when condition becomes true                |
+| `.onlyWhile(BooleanSupplier)` | Interrupts command when condition becomes false               |
+| `.onlyIf(BooleanSupplier)`    | Skips command entirely if condition is false at schedule time |
 
 ---
 
 ## End Behavior Decorators
 
-| Decorator | Behavior |
-| --------- | -------- |
+|           Decorator           |                            Behavior                             |
+|-------------------------------|-----------------------------------------------------------------|
 | `.finallyDo(BooleanConsumer)` | Runs lambda after command ends; boolean = `true` if interrupted |
-| `.handleInterrupt(Runnable)` | Runs lambda only on interruption |
+| `.handleInterrupt(Runnable)`  | Runs lambda only on interruption                                |
 
 ---
 

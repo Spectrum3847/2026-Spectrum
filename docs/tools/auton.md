@@ -18,12 +18,12 @@ Most of the routine logic lives in one file: [`frc.robot.auton.Auton`](../../src
 
 Every entry in the chooser is just a sequence of `SpectrumAuton(pathName, mirrored)` calls glued together with `launch()`. The naming pattern is `<scoring sequence>` where each letter is a goal column (T/B/D). `TBTB`, for example, runs Top → Bottom → Top → Bottom. Each routine has a Left and Right variant — `mirrored = true` flips poses across the field's midline so the same `.auto` file works from both starting positions.
 
-| Group | Entries | Notes |
-| --- | --- | --- |
-| Headliners | `TBTB`, `TBTT`, `TTTT`, `BBBB` | Four-shot routines, all chained `SpectrumAuton + launch` |
-| Optional | `Option TBT`, `Option BBB` | Insert an `OPTIONAL_DELAY` (1.0 s) after the first segment — used when a partner needs the lane to clear |
-| 2nd Man | `2nd-TBTB`, `2nd-BBD` | Begin with `SECOND_MAN_DELAY` (1.0 s) so we're not in the way of an ally's first move |
-| Fallback | `Do Nothing` | Default chooser entry — never let a missing selection mean an unscheduled robot |
+|   Group    |            Entries             |                                                  Notes                                                   |
+|------------|--------------------------------|----------------------------------------------------------------------------------------------------------|
+| Headliners | `TBTB`, `TBTT`, `TTTT`, `BBBB` | Four-shot routines, all chained `SpectrumAuton + launch`                                                 |
+| Optional   | `Option TBT`, `Option BBB`     | Insert an `OPTIONAL_DELAY` (1.0 s) after the first segment — used when a partner needs the lane to clear |
+| 2nd Man    | `2nd-TBTB`, `2nd-BBD`          | Begin with `SECOND_MAN_DELAY` (1.0 s) so we're not in the way of an ally's first move                    |
+| Fallback   | `Do Nothing`                   | Default chooser entry — never let a missing selection mean an unscheduled robot                          |
 
 The `withName(...)` suffix `" - Left"` / `" - Right"` is significant: the field visualizer parses the suffix to decide whether to mirror the rendered pose. Don't drop it.
 

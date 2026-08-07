@@ -274,7 +274,7 @@ public class SampleLiveNt {
 def main() -> None:
     """Sample live NetworkTables data and detect spike anomalies."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="10.80.44.2", help="Robot IP or hostname")
+    parser.add_argument("--host", default="10.38.47.2", help="Robot IP or hostname")
     parser.add_argument("--port", type=int, default=5810, help="NT4 port")
     parser.add_argument("--timeout", type=float, default=5.0, help="Connection timeout in seconds")
     parser.add_argument("--duration", type=float, default=5.0, help="Sampling duration in seconds")
@@ -284,7 +284,7 @@ def main() -> None:
     parser.add_argument("--spike-threshold", type=float, default=0.0, help="Print raw samples where --spike-topic is at least this value")
     parser.add_argument("--wait-enabled", action="store_true", help="Wait to start the summary window until --enabled-topic is true")
     parser.add_argument("--until-disabled", action="store_true", help="Stop sampling after --enabled-topic goes false after being true")
-    parser.add_argument("--enabled-topic", default="/AdvantageKit/DriverStation/Enabled", help="Boolean DriverStation enabled topic")
+    parser.add_argument("--enabled-topic", default="/DriverStation/Enabled", help="Boolean DriverStation enabled topic")
     parser.add_argument("--json", action="store_true", help="Print JSON summary")
     args = parser.parse_args()
 

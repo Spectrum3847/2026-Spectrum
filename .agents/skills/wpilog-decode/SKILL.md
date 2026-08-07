@@ -19,50 +19,46 @@ metadata:
 
 - List topics:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/list_wpilog_topics.py \
-      --repo . \
-      --log <log.wpilog-or-SimLogs> \
-      --filter <substring>
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/list_wpilog_topics.py \
+    --repo . \
+    --log <log.wpilog-or-SimLogs> \
+    --filter <substring>
+  ```
 - Summarize selected topics:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
-      --repo . \
-      --log <log.wpilog-or-SimLogs> \
-      --topic /RealOutputs/Swerve/Odometry/Robot \
-      --topic /Swerve/Module0/SteerPosition
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
+    --repo . \
+    --log <log.wpilog-or-SimLogs> \
+    --topic /RealOutputs/Swerve/Odometry/Robot \
+    --topic /Swerve/Module0/SteerPosition
+  ```
 - Print JSON for scripts/comparisons:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
-      --repo . \
-      --log <log.wpilog> \
-      --json \
-      --samples 5 \
-      --topic <topic>
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/read_wpilog_values.py \
+    --repo . \
+    --log <log.wpilog> \
+    --json \
+    --samples 5 \
+    --topic <topic>
+  ```
 - Find the newest sim log:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/find_latest_simlog.py .
-    ```
-
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/find_latest_simlog.py .
+  ```
 - Find a boolean-gated window, such as autonomous enabled:
 
-    ```sh
-    python3 .agents/skills/wpilog-decode/scripts/find_wpilog_window.py \
-      --repo . \
-      --log <log.wpilog> \
-      --all-true /DriverStation/Autonomous \
-      --all-true /DriverStation/Enabled \
-      --duration <seconds>
-    ```
+  ```sh
+  python3 .agents/skills/wpilog-decode/scripts/find_wpilog_window.py \
+    --repo . \
+    --log <log.wpilog> \
+    --all-true /DriverStation/Autonomous \
+    --all-true /DriverStation/Enabled \
+    --duration <seconds>
+  ```
 
 ## Decoded Types
 

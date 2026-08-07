@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture an AdvantageScope layout screenshot with the Team 8044 agent fork."""
+"""Capture an AdvantageScope layout screenshot with the AdvantageScope fork."""
 
 from __future__ import annotations
 
@@ -80,14 +80,14 @@ def resolve_command(args: argparse.Namespace) -> tuple[list[str], Path | None]:
     """Resolve the AdvantageScope executable command from CLI arguments."""
     fork = find_fork(args.fork)
     if args.fork and fork is None:
-        raise SystemExit(f"--fork is not a Team 8044 AdvantageScope checkout: {Path(args.fork).expanduser()}")
+        raise SystemExit(f"--fork is not an AdvantageScope checkout: {Path(args.fork).expanduser()}")
     if args.advantagescope:
         return find_advantagescope(args.advantagescope)
     if fork is not None:
         command = command_from_fork(fork)
         if command is None:
             raise SystemExit(
-                f"Found Team 8044 AdvantageScope fork at {fork}, but it is not built. "
+                f"Found AdvantageScope fork at {fork}, but it is not built. "
                 "Run npm ci, npm run compile, npm run wasm:compile, and electron-builder build --dir."
             )
         return command, fork
@@ -98,7 +98,7 @@ def main() -> None:
     """Capture an AdvantageScope layout screenshot via the agent-control API."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--advantagescope", help="AdvantageScope executable path")
-    parser.add_argument("--fork", help="Team 8044 AdvantageScope fork checkout")
+    parser.add_argument("--fork", help="AdvantageScope fork checkout")
     parser.add_argument("--log", required=True, help="WPILOG path")
     parser.add_argument("--layout", required=True, help="AdvantageScope layout JSON path")
     parser.add_argument("--out", required=True, help="Output PNG path")

@@ -6,15 +6,15 @@ Replay works by re-running identical code with identical logged inputs. Any data
 
 ### Problem Sources
 
-| Source | Problem | Fix |
-| ------ | ------- | --- |
-| `Timer.getFPGATimestamp()` | Raw FPGA time — not deterministic | Use `Timer.getTimestamp()` |
-| NetworkTables / dashboard inputs | Values change outside the logging cycle | Log as inputs through IO layer |
-| YAGSL, Phoenix 6 swerve libraries | Bypass IO abstraction, call hardware directly | Use AKit's swerve template instead |
-| `Math.random()` / random number generators | Non-deterministic by nature | Log seed or generated values as inputs |
-| Iterating over `HashMap` / unordered collections | Iteration order varies across JVM runs | Use `LinkedHashMap` or sorted collections |
-| Filesystem reads | File contents may change | Log file data as inputs |
-| Driver Station data accessed before `Logger.start()` | Not yet deterministic | Defer all DS access until after `Logger.start()` |
+|                        Source                        |                    Problem                    |                       Fix                        |
+|------------------------------------------------------|-----------------------------------------------|--------------------------------------------------|
+| `Timer.getFPGATimestamp()`                           | Raw FPGA time — not deterministic             | Use `Timer.getTimestamp()`                       |
+| NetworkTables / dashboard inputs                     | Values change outside the logging cycle       | Log as inputs through IO layer                   |
+| YAGSL, Phoenix 6 swerve libraries                    | Bypass IO abstraction, call hardware directly | Use AKit's swerve template instead               |
+| `Math.random()` / random number generators           | Non-deterministic by nature                   | Log seed or generated values as inputs           |
+| Iterating over `HashMap` / unordered collections     | Iteration order varies across JVM runs        | Use `LinkedHashMap` or sorted collections        |
+| Filesystem reads                                     | File contents may change                      | Log file data as inputs                          |
+| Driver Station data accessed before `Logger.start()` | Not yet deterministic                         | Defer all DS access until after `Logger.start()` |
 
 ---
 

@@ -34,8 +34,8 @@ The pieces in motion:
 
 We run PID *on the motor controller*, not on the roboRIO. Phoenix 6 TalonFX motors do this natively, with up to three gain slots (`Slot0`, `Slot1`, `Slot2`). The [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java) wrapper exposes helpers for setting gains per slot (defaults to Slot 0):
 
-    mechanism.config.configPIDGains(kP, kI, kD);          // slot 0
-    mechanism.config.configPIDGains(slot, kP, kI, kD);    // pick a slot (0/1/2)
+        mechanism.config.configPIDGains(kP, kI, kD);          // slot 0
+        mechanism.config.configPIDGains(slot, kP, kI, kD);    // pick a slot (0/1/2)
 
 Defaults for each mechanism live in its inner `*Config` class (`LauncherConfig`, `HoodConfig`, etc.). To override per-robot, mutate them inside the matching `*2026.java` config before the subsystem is constructed.
 

@@ -13,14 +13,14 @@
 
 ## Project Structure
 
-| Class/Dir | Responsibility |
-| --------- | -------------- |
-| `Main` | Entry point (Java only). Do not modify. |
-| `Robot` | Control flow. Keep minimal—declarative paradigm. |
-| `RobotContainer` | Subsystems, button bindings, autonomous selection. Most setup lives here. |
-| `Constants` | Global constants (speeds, PID gains, ports). Use inner classes per subsystem. |
-| `Subsystems/` | User-defined subsystem classes |
-| `Commands/` | User-defined command classes |
+|    Class/Dir     |                                Responsibility                                 |
+|------------------|-------------------------------------------------------------------------------|
+| `Main`           | Entry point (Java only). Do not modify.                                       |
+| `Robot`          | Control flow. Keep minimal—declarative paradigm.                              |
+| `RobotContainer` | Subsystems, button bindings, autonomous selection. Most setup lives here.     |
+| `Constants`      | Global constants (speeds, PID gains, ports). Use inner classes per subsystem. |
+| `Subsystems/`    | User-defined subsystem classes                                                |
+| `Commands/`      | User-defined command classes                                                  |
 
 ### Robot Class Essentials
 
@@ -50,13 +50,13 @@ When a command is reused (teleop bindings, autonomous, self-test), avoid duplica
 
 ### Pattern Selection
 
-| Use Case | Preferred Pattern | Avoid |
-| -------- | ----------------- | ----- |
-| Single-subsystem, no internal state | Instance factory method | Inline everywhere; Command subclass |
-| Single-subsystem, has internal state (e.g. PID) | Instance factory with captured state | Command subclass (unless logic is complex) |
-| Multi-subsystem | Static or non-static command factory | Instance factory (causes circular deps) |
-| Stateful, complex logic, multi-subsystem | Subclass `Command` | Inline/factory if it gets messy |
-| Composite (sequence/parallel) | Factory method with `sequence`/`parallel` | Subclass `SequentialCommandGroup` (extra file per group) |
+|                    Use Case                     |             Preferred Pattern             |                          Avoid                           |
+|-------------------------------------------------|-------------------------------------------|----------------------------------------------------------|
+| Single-subsystem, no internal state             | Instance factory method                   | Inline everywhere; Command subclass                      |
+| Single-subsystem, has internal state (e.g. PID) | Instance factory with captured state      | Command subclass (unless logic is complex)               |
+| Multi-subsystem                                 | Static or non-static command factory      | Instance factory (causes circular deps)                  |
+| Stateful, complex logic, multi-subsystem        | Subclass `Command`                        | Inline/factory if it gets messy                          |
+| Composite (sequence/parallel)                   | Factory method with `sequence`/`parallel` | Subclass `SequentialCommandGroup` (extra file per group) |
 
 ### Instance Factory Methods
 
@@ -183,8 +183,8 @@ public class ScoreCoralCommand extends SequentialCommandGroup {
 
 ## Common Anti-Patterns
 
-| Anti-pattern | Problem | Fix |
-| ------------ | ------- | --- |
-| Calling `subsystem.method()` directly in `teleopPeriodic()` | Bypasses scheduler; conflicts with running commands | Bind to a command via trigger/button instead |
-| Defining the same inline command in multiple places | Bugs fixed in one place silently persist elsewhere | Extract to an instance factory method on the subsystem |
-| Constants scattered across subsystem files | Same port/gain defined in multiple places | Consolidate into `Constants` with inner classes per subsystem |
+|                        Anti-pattern                         |                       Problem                       |                              Fix                              |
+|-------------------------------------------------------------|-----------------------------------------------------|---------------------------------------------------------------|
+| Calling `subsystem.method()` directly in `teleopPeriodic()` | Bypasses scheduler; conflicts with running commands | Bind to a command via trigger/button instead                  |
+| Defining the same inline command in multiple places         | Bugs fixed in one place silently persist elsewhere  | Extract to an instance factory method on the subsystem        |
+| Constants scattered across subsystem files                  | Same port/gain defined in multiple places           | Consolidate into `Constants` with inner classes per subsystem |

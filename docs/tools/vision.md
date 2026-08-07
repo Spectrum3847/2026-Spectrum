@@ -8,11 +8,11 @@ The robot uses three Limelights for AprilTag-based pose estimation. Each one pub
 
 Three [Limelight 4](https://limelightvision.io)s, named for where they sit on the bot:
 
-| Limelight | NT name | Notes |
-| --- | --- | --- |
-| Back | `limelight-back` | Wide rear view, mounted high. |
-| Left | `limelight-left` | Side view for tags at oblique angles. |
-| Right | `limelight-right` | Mirror of left. |
+| Limelight |      NT name      |                 Notes                 |
+|-----------|-------------------|---------------------------------------|
+| Back      | `limelight-back`  | Wide rear view, mounted high.         |
+| Left      | `limelight-left`  | Side view for tags at oblique angles. |
+| Right     | `limelight-right` | Mirror of left.                       |
 
 The 3D mounting transforms are in [`Vision.VisionConfig`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) — `withTranslation(x, y, z)` is robot-frame meters, `withRotation(roll, pitch, yaw)` is degrees. Update these when CAD changes; the MegaTag pose math is only as good as the camera-to-robot transform you give it.
 
@@ -43,13 +43,13 @@ Each estimate goes through `getMT1VisionEstimate(...)` or `getMT2VisionEstimate(
 
 If a measurement survives, it's tagged with standard deviations based on confidence. The full ladder lives in the source, but the shape is:
 
-| Situation | xy std | θ std (MT1) |
-| --- | --- | --- |
-| Stationary + large target | 0.1 m | 0.1 rad |
-| Multi-tag + large target | 0.1 m | 0.1 rad |
-| Multi-tag + medium target | 0.25 m | 8 rad |
-| Close, large target | 0.5 m | huge (don't fuse) |
-| Stable, low ambiguity | 1.5 m | huge |
+|         Situation         | xy std |    θ std (MT1)    |
+|---------------------------|--------|-------------------|
+| Stationary + large target | 0.1 m  | 0.1 rad           |
+| Multi-tag + large target  | 0.1 m  | 0.1 rad           |
+| Multi-tag + medium target | 0.25 m | 8 rad             |
+| Close, large target       | 0.5 m  | huge (don't fuse) |
+| Stable, low ambiguity     | 1.5 m  | huge              |
 
 `integrateSingleEstimate(...)` then calls `swerve.addVisionMeasurement(pose, timestamp, stdDevs)`. The pose estimator weighs that against odometry by the inverse of the stds — small std means "trust this a lot."
 
