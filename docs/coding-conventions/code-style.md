@@ -2,11 +2,11 @@
 
 *Audience: Reference. No prerequisites.*
 
-We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline. Spotless enforces formatting at every `./gradlew build`, so this page is mostly about the parts a formatter can't enforce — naming, structure, judgment calls.
+We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline for naming and structure. Mechanical formatting is handled by [Palantir Java Format](https://github.com/palantir/palantir-java-format) (4-space indent, 120 columns), which Spotless enforces at every `./gradlew build` — so this page is mostly about the parts a formatter can't enforce: naming, structure, judgment calls.
 
 ## Spotless Does the Mechanical Work
 
-[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.15.0").aosp()` and friends. There's no need to manually format anything — just `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
+[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `palantirJavaFormat("2.71.0")` and friends. There's no need to manually format anything — just `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
 
 ## The Spirit, Borrowed from AOSP
 
@@ -50,7 +50,9 @@ This isn't a hard rule, but every existing subsystem follows it, and a reader sk
 
 ## Line Length
 
-`googleJavaFormat` wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured — pull out a local, split a chained `Commands.sequence(...)` across multiple lines with one command per line, etc. Don't fight the formatter; let it tell you where things are too dense.
+`palantirJavaFormat` wraps at 120 columns. That's wider than the 100 columns we used under google-java-format, and it exists so that long WPILib type names (`SwerveDrivetrainConstants`, `ProfiledPIDController`) and fluent chains fit on one line instead of being shredded across four.
+
+120 is a ceiling, not a target. If a method signature or chained call ends up wrapping in an ugly way even at 120, that's usually a sign the code wants to be restructured — pull out a local, split a chained `Commands.sequence(...)` across multiple lines with one command per line, etc. Don't fight the formatter; let it tell you where things are too dense.
 
 ## When to Diverge
 

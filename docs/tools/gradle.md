@@ -16,7 +16,7 @@ The version is pinned in `gradle/wrapper/gradle-wrapper.properties`, and `./grad
 | `./gradlew deploy`        | Build and deploy to the connected roboRIO. Team number comes from `.wpilib/wpilib_preferences.json`.                    |
 | `./gradlew simulateJava`  | Launch the WPILib GUI simulator. (The VSCode `WPILib: Simulate Robot Code` command is usually faster.)                  |
 | `./gradlew javadoc`       | Generate JavaDoc HTML into `build/docs/javadoc/`.                                                                       |
-| `./gradlew spotlessApply` | Apply the AOSP code style across every `.java`, `.gradle`, `.xml`, and `.md` file. Runs automatically on `compileJava`. |
+| `./gradlew spotlessApply` | Apply the Palantir (120-col) code style across every `.java`, `.gradle`, `.xml`, and `.md` file. Runs automatically on `compileJava`. |
 | `./gradlew spotlessCheck` | Verify formatting without rewriting — what CI runs.                                                                     |
 | `./gradlew spotbugsMain`  | Run SpotBugs static analysis. The HTML report lands at `build/reports/spotbugs.html`.                                   |
 | `./gradlew tasks`         | List every task, including ones not documented here.                                                                    |
@@ -31,7 +31,7 @@ GradleRIO is at `2026.2.1` and targets the 2026 WPILib release. Bumping it means
 
 Java 17 is enforced via `sourceCompatibility`/`targetCompatibility`. Anything else will fail at compile, with a not-always-obvious error message. See [Setup](../setup.md) for how to install Temurin 17.
 
-Spotless is wired to `compileJava`, so `./gradlew build` reformats your code in place using `googleJavaFormat("1.15.0").aosp()`. If you need to opt a region out (say, a hand-aligned matrix), wrap it in `// spotless:off` / `// spotless:on`.
+Spotless is wired to `compileJava`, so `./gradlew build` reformats your code in place using `palantirJavaFormat("2.71.0")` — 4-space indents, 120-column lines. If you need to opt a region out (say, a hand-aligned matrix), wrap it in `// spotless:off` / `// spotless:on`. The Palantir version is pinned on purpose: it has to be one that runs on JDK 17, and Spotless 6.25.0's own default for JDK 17 is an older release than we want.
 
 SpotBugs runs against the main source set with the exclude list in `excludeFilter-spotbugs.xml`. The HTML report (`build/reports/spotbugs.html`) is the easiest way to triage findings.
 
