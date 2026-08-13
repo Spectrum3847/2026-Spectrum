@@ -6,7 +6,7 @@ We use the [Android Open Source Project (AOSP) coding standards](https://source.
 
 ## Spotless Does the Mechanical Work
 
-[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.15.0").aosp()` and friends. There's no need to manually format anything — just `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
+[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.28.0").aosp().formatJavadoc(false)` and friends. There's no need to manually format anything — just `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
 
 ## The Spirit, Borrowed from AOSP
 
