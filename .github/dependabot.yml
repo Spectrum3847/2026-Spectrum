@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # Gradle plugin and dependency updates
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "Spectrum3847/2025-26"
+    labels:
+      - "dependencies"
+      - "gradle"
+    commit-message:
+      prefix: "deps(gradle)"
+      include: "gradle"
+
+  # GitHub Actions workflow updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Spectrum3847/2025-26"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci:"
