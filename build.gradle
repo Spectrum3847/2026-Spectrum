@@ -187,7 +187,16 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         toggleOffOn()
-        googleJavaFormat("1.15.0").aosp()
+        // 1.28.0 is the newest GJF that still *runs* on JDK 17 (WPILib 2026).
+        // 1.29.0+ requires JDK 21 to run the formatter, which would break
+        // `./gradlew build` on student machines and the roborio-cross CI image.
+        // 1.27/1.28 shipped no formatting changes vs 1.26; the pin is 1.28.0
+        // because that's also Spotless 8's default.
+        // formatJavadoc(false) keeps 1.15.0's javadoc layout. Spotless 6.25
+        // defaults formatJavadoc on for GJF >= 1.17, which would reflow every
+        // JavaDoc in the repo as part of this bump. Turn it on in a dedicated
+        // PR if we want that.
+        googleJavaFormat("1.28.0").aosp().formatJavadoc(false)
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
