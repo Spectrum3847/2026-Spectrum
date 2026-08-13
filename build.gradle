@@ -176,8 +176,18 @@ gversion {
     indent       = "  "
 }
 
-// Configure Spotless to use google aosp standards
-// Style Guide: https://source.android.com/docs/setup/contribute/code-style#java-style-rules
+// Configure Spotless to use Palantir Java Format
+// Style Guide: https://github.com/palantir/palantir-java-format
+// Palantir is a fork of google-java-format: 4-space indent, 120-column lines, and
+// wrapping tuned for lambdas, streams and fluent chains (Commands.sequence(...) etc).
+//
+// The version is pinned deliberately. Spotless 6.25.0 picks its own Palantir default
+// per JVM and would hand JDK 17 an ancient 2.28.0, so we spell the version out.
+// 2.71.0 must run on JDK 17: the jars are Java 11 bytecode, and the Java 21 AST visitor
+// is only loaded reflectively when the JVM is actually 21+, so a 17 JVM stays on the
+// Java 14 visitor (records, switch expressions, instanceof patterns all supported).
+// That keeps us working on WPILib 2026, student machines, and the CI image
+// wpilib/roborio-cross-ubuntu. Do not bump this to a version that requires JDK 21.
 // Configure Spotless to apply on every build
 compileJava.dependsOn spotlessApply
 spotless {
@@ -187,7 +197,7 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         toggleOffOn()
-        googleJavaFormat("1.15.0").aosp()
+        palantirJavaFormat("2.71.0")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
