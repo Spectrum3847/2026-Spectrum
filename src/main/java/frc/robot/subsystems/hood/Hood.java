@@ -118,6 +118,7 @@ public class Hood extends Mechanism {
         }
         final double finalWantedDegrees = wantedDegrees;
         final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
+        // setMMPositionFOC
         setPosition(() -> finalWantedPosition);
     }
 

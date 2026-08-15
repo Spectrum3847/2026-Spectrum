@@ -99,8 +99,8 @@ public class DyeRotor implements Subsystem {
          * @param rpm the rotor velocity
          */
         public void setRotorVelocity(double rpm) {
-            double rps = rpm / 60;
-            setVelocity(() -> rps);
+            // setVelocityTCFOCrpm
+            setVelocityRPM(() -> rpm);
         }
         /** Rotor stop. */
         public void rotorStop() {
@@ -192,7 +192,8 @@ public class DyeRotor implements Subsystem {
          *
          * @param rpm the feeder rpm
          */
-        public void setFeederRpm(double rpm) {
+        public void setFeederVelocity(double rpm) {
+            // setVelocityTCFOCrpm
             setVelocityRPM(() -> rpm);
         }
         /** Feeder stop. */
@@ -280,7 +281,7 @@ public class DyeRotor implements Subsystem {
         final double finalWantedRPMSpin = wantedRPMSpin;
         final double finalWantedRPMIndex = wantedRPMIndex;
         rotor.setRotorVelocity(finalWantedRPMSpin);
-        feeder.setFeederRpm(finalWantedRPMIndex);
+        feeder.setFeederVelocity(finalWantedRPMIndex);
     }
 
     @Getter private final Rotor rotor;
