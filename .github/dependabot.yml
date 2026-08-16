@@ -14,7 +14,6 @@ updates:
       - "gradle"
     commit-message:
       prefix: "deps(gradle)"
-      include: "gradle"
 
   # GitHub Actions workflow updates
   - package-ecosystem: "github-actions"
