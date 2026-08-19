@@ -302,7 +302,7 @@ public class ShotCalculator {
                         /* v³   */ -2.3703703704e-2
                     });
 
-    private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
+    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
 
     // =========================================================================
     // State — Velocity Derivative Filters

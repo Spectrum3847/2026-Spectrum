@@ -58,8 +58,8 @@ public class Turret extends Mechanism {
         @Getter private final double mmJerk = 0;
         @Getter private final double peakVoltage = 6;
 
-        @Getter private final double reverseLimitDegrees = -201.70908;
-        @Getter private final double forwardLimitDegrees = 158.46696;
+        @Getter private final double reverseLimitDegrees = -35;
+        @Getter private final double forwardLimitDegrees = 350;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
 
