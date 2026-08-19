@@ -36,9 +36,9 @@ public class DyeRotor implements Subsystem {
 
             @Getter private final double gearRatio = 37.5;
 
-            @Getter @Setter private double velocityKp = 5;
-            @Getter @Setter private double velocityKv = 4.38;
-            @Getter @Setter private double velocityKs = 0;
+            @Getter @Setter private double velocityKp = 5; // 5
+            @Getter @Setter private double velocityKv = 4.38; // 4.38
+            @Getter @Setter private double velocityKs = 0; // 0
 
             /* Sim Configs */
             @Getter

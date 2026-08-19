@@ -19,6 +19,9 @@ public class Operator extends Gamepad {
     public final Trigger startButton = start;
     public final Trigger selectButton = select;
 
+    /* Coast/brake are pit controls, only live while disabled */
+    public final Trigger coastA = AButton.and(disabled);
+
     public final Trigger leftStickPress = leftStickClick;
     public final Trigger rightStickPress = rightStickClick;
 

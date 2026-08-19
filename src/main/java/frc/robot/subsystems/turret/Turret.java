@@ -8,6 +8,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
@@ -56,8 +58,8 @@ public class Turret extends Mechanism {
         @Getter private final double mmJerk = 0;
         @Getter private final double peakVoltage = 6;
 
-        @Getter private final double reverseLimitDegrees = -35.0;
-        @Getter private final double forwardLimitDegrees = 350.0;
+        @Getter private final double reverseLimitDegrees = -201.70908;
+        @Getter private final double forwardLimitDegrees = 158.46696;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
 
@@ -305,6 +307,18 @@ public class Turret extends Mechanism {
                 && !unwrapping
                 && Math.abs(getPositionDegrees() - commandedDegrees) <= config.getTriggerTolerance()
                 && Math.abs(mechOmegaRotPerSec) <= config.getMaxOmegaForShotRotPerSec();
+    }
+
+    /**
+     * Creates a command that drops both extension axes into coast so the mechanism can be moved by
+     * hand. Runs while disabled, which is the only time it is useful.
+     *
+     * @return the coast-mode command
+     */
+    public Command coastModeCommand() {
+        return new InstantCommand(() -> setBrakeMode(false))
+                .ignoringDisable(true)
+                .withName("IntakeExtension.coastMode");
     }
 
     // --------------------------------------------------------------------------------
