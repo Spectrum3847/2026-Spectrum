@@ -32,7 +32,7 @@ public class Turret extends Mechanism {
         @Getter private final double shootOnMoveLatencySec = 0.03;
         @Getter private final double maxOmegaForShotRotPerSec = 0.75;
 
-        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(0);
+        @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
         /* Turret config settings */
         @Getter private final double zeroSpeed = -0.1;
@@ -58,8 +58,8 @@ public class Turret extends Mechanism {
         @Getter private final double mmJerk = 0;
         @Getter private final double peakVoltage = 6;
 
-        @Getter private final double reverseLimitDegrees = -0.5;
-        @Getter private final double forwardLimitDegrees = .45;
+        @Getter private final double reverseLimitDegrees = -0.5 * 360;
+        @Getter private final double forwardLimitDegrees = 0.45 * 360;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
 
