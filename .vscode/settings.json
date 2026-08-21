@@ -1,5 +1,8 @@
 {
   "java.configuration.updateBuildConfiguration": "automatic",
+  // JVM used to run the Gradle daemon during the language server's project import.
+  // Without this it falls back to the system JAVA_HOME, which breaks the import if that is not JDK 17+.
+  "java.import.gradle.java.home": "C:/Users/Public/wpilib/2026/jdk",
   "java.server.launchMode": "Standard",
   "files.exclude": {
     "**/.git": true,
