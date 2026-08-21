@@ -379,7 +379,7 @@ public class SuperStructure extends SubsystemBase {
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.UNJAM);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.UNJAM);
         turret.setWantedState(Turret.WantedState.IDLE);

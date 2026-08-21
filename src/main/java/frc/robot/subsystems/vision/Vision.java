@@ -83,10 +83,10 @@ public class Vision implements Subsystem {
         final LimelightConfig turretConfig =
                 new LimelightConfig(turretLL)
                         .withTranslation(
-                                Units.inchesToMeters(5.375), // ahead
+                                Units.inchesToMeters(-5.375), // ahead
                                 Units.inchesToMeters(0.0), // left
                                 Units.inchesToMeters(18.632)) // up
-                        .withRotation(0, 60, 0);
+                        .withRotation(0, 60, 180);
 
         // -- Turret geometry --------------------------------------------------
 
@@ -96,7 +96,7 @@ public class Vision implements Subsystem {
         /** Turret pivot to camera offset (metres), measured with the turret at zero. */
         @Getter
         final Translation2d turretCenterToCamera =
-                new Translation2d(Units.inchesToMeters(5.360), 0);
+                new Translation2d(Units.inchesToMeters(-5.375), 0);
 
         // -- Pipeline indices -------------------------------------------------
 
@@ -253,7 +253,9 @@ public class Vision implements Subsystem {
      * botpose is already a robot pose, so no de-rotation is needed downstream.
      */
     private void updateTurretCameraPose() {
-        Rotation2d turretRotation = Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble());
+        Rotation2d turretRotation =
+                Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble())
+                        .plus(Rotation2d.k180deg);
         Translation2d robotToCamera =
                 config.getRobotToTurretCenter()
                         .plus(config.getTurretCenterToCamera().rotateBy(turretRotation));
