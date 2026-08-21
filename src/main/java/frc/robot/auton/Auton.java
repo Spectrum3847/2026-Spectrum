@@ -45,6 +45,8 @@ public class Auton {
 
         pathChooser.addOption("OSTBTB Left", OSTBTB(false));
         pathChooser.addOption("OSTBTB Right", OSTBTB(true));
+        pathChooser.addOption("OSRIPOFF", OSRIPPOFF(false));
+        pathChooser.addOption("OSRIPOFF", OSRIPPOFF(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
@@ -92,7 +94,13 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("OSTBTB Full - " + (mirrored ? "Right" : "Left"));
     }
-
+    public Command OSRIPPOFF(boolean mirrored) {
+        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("OSRIPPOFF Full - " + (mirrored ? "Right" : "Left"));
+    }
     /**
      * Creates a SpectrumAuton command sequence.
      *
