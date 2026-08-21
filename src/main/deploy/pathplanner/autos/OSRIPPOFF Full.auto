@@ -1,0 +1,25 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "OSRIPOFF 1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Copy of OSTBTB 3"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": "OSLARP",
+  "choreoAuto": false
+}
