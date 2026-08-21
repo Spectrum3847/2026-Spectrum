@@ -11,7 +11,10 @@ public class OM2026 extends Config {
         super();
 
         swerve.configEncoderOffsets(
-                -0.23046875 - 0.25, 0.10986328125 +0.25, -0.263916015625 + 0.125, 0.34716796875 - 0.125);
+                -0.23046875 - 0.25,
+                0.10986328125 + 0.25,
+                -0.263916015625 + 0.125,
+                0.34716796875 - 0.125);
 
         pilot.setAttached(true);
         operator.setAttached(true);
