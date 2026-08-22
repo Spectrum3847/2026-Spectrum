@@ -221,7 +221,8 @@ public class SwerveConfig {
 
     @SuppressWarnings("unchecked")
     public SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            [] getModules() {
+            []
+            getModules() {
         if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
             modules = new SwerveModuleConstants[] {frontLeft, frontRight, backLeft, backRight};
         } else {

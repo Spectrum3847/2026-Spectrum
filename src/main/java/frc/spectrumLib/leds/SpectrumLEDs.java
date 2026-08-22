@@ -874,8 +874,8 @@ public class SpectrumLEDs implements Subsystem {
                     switch (i) {
                         case 0, 5 -> color = Color.kPurple;
                         case 1, 3 -> color = startingColor;
-                        case 2, 4 -> color =
-                                Color.kRed.equals(startingColor) ? Color.kBlue : Color.kRed;
+                        case 2, 4 ->
+                                color = Color.kRed.equals(startingColor) ? Color.kBlue : Color.kRed;
                         default -> color = Color.kBlack;
                     }
                     break;

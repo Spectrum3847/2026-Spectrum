@@ -154,6 +154,7 @@ public abstract class Gamepad implements Subsystem {
      */
     private boolean configured =
             false; // Used to determine if we detected the gamepad is plugged and we have configured
+
     // it
 
     /** {@code true} after the "gamepad not connected" warning has been printed once. */

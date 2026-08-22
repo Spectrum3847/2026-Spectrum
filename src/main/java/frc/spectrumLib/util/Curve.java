@@ -19,6 +19,7 @@ package frc.spectrumLib.util;
 public abstract class Curve {
     /** The value added to the curve. */
     private double offset;
+
     /** The value multiplied to the curve. */
     private double scalar;
 

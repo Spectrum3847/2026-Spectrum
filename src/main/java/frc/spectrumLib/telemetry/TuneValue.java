@@ -13,6 +13,7 @@ import lombok.Getter;
 public class TuneValue {
     /** Current value, refreshed on each call to {@link #update()}. */
     @Getter private double value;
+
     /** SmartDashboard key under which this value is published and read. */
     @Getter private String name;
 

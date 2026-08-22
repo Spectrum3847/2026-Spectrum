@@ -22,6 +22,7 @@ public class Field {
     @Getter
     public static final double startingLineX =
             Units.inchesToMeters(299.438); // Measured from the inside of starting
+
     // line
 
     public static final double tag26X = Units.inchesToMeters(158.61);
