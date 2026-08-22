@@ -19,7 +19,8 @@ import lombok.Getter;
 public class SpectrumCANcoder {
 
     /** The underlying CTRE CANcoder hardware object. */
-    @Getter private CANcoder canCoder;
+    @Getter
+    private CANcoder canCoder;
 
     private SpectrumCANcoderConfig config;
 
@@ -59,10 +60,9 @@ public class SpectrumCANcoder {
             canCoder = new CANcoder(CANcoderID, motor.getNetwork());
             CANcoderConfiguration canCoderConfigs = new CANcoderConfiguration();
             canCoderConfigs.MagnetSensor.MagnetOffset = config.getOffset();
-            canCoderConfigs.MagnetSensor.SensorDirection =
-                    config.isInverted()
-                            ? SensorDirectionValue.Clockwise_Positive
-                            : SensorDirectionValue.CounterClockwise_Positive;
+            canCoderConfigs.MagnetSensor.SensorDirection = config.isInverted()
+                    ? SensorDirectionValue.Clockwise_Positive
+                    : SensorDirectionValue.CounterClockwise_Positive;
             canCoderConfigs.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 0.5;
             if (canCoderResponseOK(canCoder.getConfigurator().apply(canCoderConfigs))) {
                 // Modify configuration to use remote CANcoder fused
@@ -95,16 +95,13 @@ public class SpectrumCANcoder {
         talonConfigMod.Feedback.FeedbackRemoteSensorID = config.getCANcoderID();
         switch (feedbackSource) {
             case RemoteCANcoder:
-                talonConfigMod.Feedback.FeedbackSensorSource =
-                        FeedbackSensorSourceValue.RemoteCANcoder;
+                talonConfigMod.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.RemoteCANcoder;
                 break;
             case FusedCANcoder:
-                talonConfigMod.Feedback.FeedbackSensorSource =
-                        FeedbackSensorSourceValue.FusedCANcoder;
+                talonConfigMod.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
                 break;
             case SyncCANcoder:
-                talonConfigMod.Feedback.FeedbackSensorSource =
-                        FeedbackSensorSourceValue.SyncCANcoder;
+                talonConfigMod.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.SyncCANcoder;
                 break;
         }
         talonConfigMod.Feedback.RotorToSensorRatio = config.getRotorToSensorRatio();
@@ -124,10 +121,7 @@ public class SpectrumCANcoder {
     public boolean canCoderResponseOK(StatusCode response) {
         if (!response.isOK()) {
             Telemetry.print(
-                    "CANcoder ID "
-                            + config.getCANcoderID()
-                            + " failed config with error "
-                            + response.toString());
+                    "CANcoder ID " + config.getCANcoderID() + " failed config with error " + response.toString());
             return false;
         }
         return true;

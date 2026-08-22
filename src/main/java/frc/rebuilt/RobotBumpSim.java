@@ -318,9 +318,7 @@ public class RobotBumpSim {
 
                 // Bump collisions
                 for (int lineIdx = BUMP_LINE_FIRST; lineIdx <= BUMP_LINE_LAST; lineIdx++) {
-                    double gax =
-                            handleModuleBumpCollision(
-                                    i, wx, worldY[i], onRamp ? simXVel : vx, lineIdx);
+                    double gax = handleModuleBumpCollision(i, wx, worldY[i], onRamp ? simXVel : vx, lineIdx);
                     if (!Double.isNaN(gax)) {
                         gravAccelXSum += gax;
                         contactCount++;
@@ -412,8 +410,7 @@ public class RobotBumpSim {
         Translation2d projected = start2d.plus(lineVec.times(projectionT));
 
         if (projected.getDistance(start2d) + projected.getDistance(end2d)
-                > lineVec.getNorm() + SEGMENT_PROJECTION_TOLERANCE)
-            return Double.NaN; // off segment
+                > lineVec.getNorm() + SEGMENT_PROJECTION_TOLERANCE) return Double.NaN; // off segment
 
         double dist = pos2d.getDistance(projected);
         if (dist > WHEEL_RADIUS) return Double.NaN; // not intersecting

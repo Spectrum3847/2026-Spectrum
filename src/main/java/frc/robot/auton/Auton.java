@@ -205,10 +205,7 @@ public class Auton {
 
     public Command BBBB(boolean mirrored) {
         return Commands.sequence(
-                        SpectrumAuton("BBBB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("BBBB 2", mirrored),
-                        launch())
+                        SpectrumAuton("BBBB 1", mirrored), launch(), SpectrumAuton("BBBB 2", mirrored), launch())
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
@@ -249,8 +246,7 @@ public class Auton {
         if (auton != null) {
             return auton; // checks to make sure there is an auto and if there is it runs an auto
         } else {
-            return new PrintCommand(
-                    "*** AUTON COMMAND IS NULL ***"); // runs if there is no auto chosen, which
+            return new PrintCommand("*** AUTON COMMAND IS NULL ***"); // runs if there is no auto chosen, which
             // shouldn't happen because of the default
             // auto set to nothing which still runs
             // something
@@ -269,15 +265,11 @@ public class Auton {
         if (autoCommand != null) {
             if (!autoCommand.isScheduled() && !autoMessagePrinted) {
                 if (DriverStation.isAutonomousEnabled()) {
-                    Telemetry.print(
-                            String.format(
-                                    "*** Auton finished in %.2f secs ***",
-                                    Timer.getFPGATimestamp() - autonStart));
+                    Telemetry.print(String.format(
+                            "*** Auton finished in %.2f secs ***", Timer.getFPGATimestamp() - autonStart));
                 } else {
-                    Telemetry.print(
-                            String.format(
-                                    "*** Auton CANCELLED in %.2f secs ***",
-                                    Timer.getFPGATimestamp() - autonStart));
+                    Telemetry.print(String.format(
+                            "*** Auton CANCELLED in %.2f secs ***", Timer.getFPGATimestamp() - autonStart));
                 }
                 autoMessagePrinted = true;
             }
@@ -307,14 +299,12 @@ public class Auton {
 
         // Create the constraints to use while pathfinding
         PathConstraints constraints =
-                new PathConstraints(
-                        vel, accel, Units.degreesToRadians(540), Units.degreesToRadians(720));
+                new PathConstraints(vel, accel, Units.degreesToRadians(540), Units.degreesToRadians(720));
 
         // Since AutoBuilder is configured, we can use it to build pathfinding commands
-        Command pathfindingCommand =
-                AutoBuilder.pathfindToPoseFlipped(
-                        targetPose, constraints, 0.0 // Goal end velocity in meters/sec
-                        );
+        Command pathfindingCommand = AutoBuilder.pathfindToPoseFlipped(
+                targetPose, constraints, 0.0 // Goal end velocity in meters/sec
+                );
 
         return pathfindingCommand;
     }

@@ -109,10 +109,9 @@ public class SpectrumState extends Trigger {
     public Command setTrueForTimeWithCancel(DoubleSupplier time, Trigger cancelCondition) {
         return Commands.runOnce(() -> setState(true))
                 .alongWith(new WaitCommand(time.getAsDouble()).onlyWhile(cancelCondition.negate()))
-                .andThen(
-                        () -> {
-                            setState(false);
-                        })
+                .andThen(() -> {
+                    setState(false);
+                })
                 .ignoringDisable(true)
                 .withName(name + " state: SetTrueForTimeWithCancel->" + time.getAsDouble());
     }
@@ -178,12 +177,11 @@ public class SpectrumState extends Trigger {
      * @return the command
      */
     public Command toggle() {
-        return Commands.runOnce(
-                        () -> {
-                            value = !value;
-                            alert.set(value);
-                            setCondition(name, value);
-                        })
+        return Commands.runOnce(() -> {
+                    value = !value;
+                    alert.set(value);
+                    setCondition(name, value);
+                })
                 .ignoringDisable(true)
                 .withName(name + " state: Toggle");
     }

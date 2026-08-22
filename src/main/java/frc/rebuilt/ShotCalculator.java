@@ -142,115 +142,112 @@ public class ShotCalculator {
             double[] angleCoeffs) {}
 
     /** Hub-shot model — used when the robot is in a scoring zone. */
-    private static final PolyModel NO_CEILING_HUB_MODEL =
-            new PolyModel(
-                    "No Ceiling Hub Model",
-                    1.5, // distMin (m)
-                    8.0, // distMax (m)
-                    -3.0, // rvMin (m/s)
-                    3.0, // rvMax (m/s)
-                    4.7946224256, // dMean
-                    1.9514199579, // dStd
-                    -0.0434782609, // vMean
-                    1.9813242725, // vStd
-                    new double[] {
-                        /* 1    */ 1.1143628795e+1,
-                        /* d    */ 1.0138658152e+0,
-                        /* v    */ -3.2159777567e-1,
-                        /* d²   */ -5.1612304349e-2,
-                        /* d·v  */ 3.6484374359e-1,
-                        /* v²   */ -1.7402563290e-1,
-                        /* d³   */ 7.9863642916e-2,
-                        /* d²·v */ -1.2476148148e-1,
-                        /* d·v² */ 3.8502387398e-1,
-                        /* v³   */ -3.2039252056e-1
-                    },
-                    new double[] {
-                        /* 1    */ 6.6464926591e+1,
-                        /* d    */ -7.7256852841e+0,
-                        /* v    */ 1.1734641473e+1,
-                        /* d²   */ 8.1692458382e-3,
-                        /* d·v  */ 5.2897492237e-1,
-                        /* v²   */ -2.6845198119e-1,
-                        /* d³   */ 1.7588060294e-1,
-                        /* d²·v */ -2.0564699991e-3,
-                        /* d·v² */ 1.2509312471e+0,
-                        /* v³   */ -1.4532157984e+0
-                    });
+    private static final PolyModel NO_CEILING_HUB_MODEL = new PolyModel(
+            "No Ceiling Hub Model",
+            1.5, // distMin (m)
+            8.0, // distMax (m)
+            -3.0, // rvMin (m/s)
+            3.0, // rvMax (m/s)
+            4.7946224256, // dMean
+            1.9514199579, // dStd
+            -0.0434782609, // vMean
+            1.9813242725, // vStd
+            new double[] {
+                /* 1    */ 1.1143628795e+1,
+                /* d    */ 1.0138658152e+0,
+                /* v    */ -3.2159777567e-1,
+                /* d²   */ -5.1612304349e-2,
+                /* d·v  */ 3.6484374359e-1,
+                /* v²   */ -1.7402563290e-1,
+                /* d³   */ 7.9863642916e-2,
+                /* d²·v */ -1.2476148148e-1,
+                /* d·v² */ 3.8502387398e-1,
+                /* v³   */ -3.2039252056e-1
+            },
+            new double[] {
+                /* 1    */ 6.6464926591e+1,
+                /* d    */ -7.7256852841e+0,
+                /* v    */ 1.1734641473e+1,
+                /* d²   */ 8.1692458382e-3,
+                /* d·v  */ 5.2897492237e-1,
+                /* v²   */ -2.6845198119e-1,
+                /* d³   */ 1.7588060294e-1,
+                /* d²·v */ -2.0564699991e-3,
+                /* d·v² */ 1.2509312471e+0,
+                /* v³   */ -1.4532157984e+0
+            });
 
     /** 3 meter ceiling hub model - used when the robot is testing at home */
-    private static final PolyModel CEILING_3M_HUB_MODEL =
-            new PolyModel(
-                    "3 Meter Ceiling Hub Model",
-                    1.5, // distMin (m)
-                    8.0, // distMax (m)
-                    -3.0, // rvMin (m/s)
-                    3.0, // rvMax (m/s)
-                    4.7330253114, // dMean
-                    1.8890844725, // dStd
-                    0.0229007634, // vMean
-                    1.9319161427, // vStd
-                    new double[] {
-                        /* 1    */ 9.1291597222e+0,
-                        /* d    */ 1.4704411927e+0,
-                        /* v    */ -1.1245274618e+0,
-                        /* d²   */ 5.9711528113e-2,
-                        /* d·v  */ -1.0395358193e-1,
-                        /* v²   */ 6.1638746813e-2,
-                        /* d³   */ -3.2358373131e-2,
-                        /* d²·v */ 1.7465238201e-2,
-                        /* d·v² */ 3.5205649680e-2,
-                        /* v³   */ -1.6138070441e-2
-                    },
-                    new double[] {
-                        /* 1    */ 5.4780057238e+1,
-                        /* d    */ -8.0553943910e+0,
-                        /* v    */ 9.8969071974e+0,
-                        /* d²   */ 9.3479980881e-1,
-                        /* d·v  */ -2.3620060557e+0,
-                        /* v²   */ 6.9825040437e-1,
-                        /* d³   */ -4.9506580821e-1,
-                        /* d²·v */ -6.4209468217e-1,
-                        /* d·v² */ 9.0324521099e-1,
-                        /* v³   */ -5.4437632941e-1
-                    });
+    private static final PolyModel CEILING_3M_HUB_MODEL = new PolyModel(
+            "3 Meter Ceiling Hub Model",
+            1.5, // distMin (m)
+            8.0, // distMax (m)
+            -3.0, // rvMin (m/s)
+            3.0, // rvMax (m/s)
+            4.7330253114, // dMean
+            1.8890844725, // dStd
+            0.0229007634, // vMean
+            1.9319161427, // vStd
+            new double[] {
+                /* 1    */ 9.1291597222e+0,
+                /* d    */ 1.4704411927e+0,
+                /* v    */ -1.1245274618e+0,
+                /* d²   */ 5.9711528113e-2,
+                /* d·v  */ -1.0395358193e-1,
+                /* v²   */ 6.1638746813e-2,
+                /* d³   */ -3.2358373131e-2,
+                /* d²·v */ 1.7465238201e-2,
+                /* d·v² */ 3.5205649680e-2,
+                /* v³   */ -1.6138070441e-2
+            },
+            new double[] {
+                /* 1    */ 5.4780057238e+1,
+                /* d    */ -8.0553943910e+0,
+                /* v    */ 9.8969071974e+0,
+                /* d²   */ 9.3479980881e-1,
+                /* d·v  */ -2.3620060557e+0,
+                /* v²   */ 6.9825040437e-1,
+                /* d³   */ -4.9506580821e-1,
+                /* d²·v */ -6.4209468217e-1,
+                /* d·v² */ 9.0324521099e-1,
+                /* v³   */ -5.4437632941e-1
+            });
 
     /** Feed-shot model — used when the robot is in a feed zone. */
-    private static final PolyModel FEED_MODEL =
-            new PolyModel(
-                    "Feed Model",
-                    5.0, // distMin (m)
-                    10.0, // distMax (m)
-                    -3.0, // rvMin (m/s)
-                    3.0, // rvMax (m/s)
-                    7.5, // dMean
-                    1.5430334996, // dStd
-                    0.0, // vMean
-                    2.0, // vStd
-                    new double[] {
-                        /* 1    */ 1.2074547373e+1,
-                        /* d    */ 1.1124598419e+0,
-                        /* v    */ -9.2720217607e-1,
-                        /* d²   */ -5.8674357317e-2,
-                        /* d·v  */ -7.2912571960e-2,
-                        /* v²   */ -7.0818070818e-2,
-                        /* d³   */ 5.6161425197e-2,
-                        /* d²·v */ -6.0497571810e-3,
-                        /* d·v² */ 2.1986814335e-1,
-                        /* v³   */ -1.5954415954e-1
-                    },
-                    new double[] {
-                        /* 1    */ 5.7369141664e+1,
-                        /* d    */ -4.3735130912e+0,
-                        /* v    */ 1.0080892292e+1,
-                        /* d²   */ 7.8858336234e-2,
-                        /* d·v  */ -1.5120778737e+0,
-                        /* v²   */ 3.9384615385e-1,
-                        /* d³   */ 2.6249905834e-1,
-                        /* d²·v */ 2.9750087017e-1,
-                        /* d·v² */ 1.0186869775e+0,
-                        /* v³   */ -1.2099829060e+0
-                    });
+    private static final PolyModel FEED_MODEL = new PolyModel(
+            "Feed Model",
+            5.0, // distMin (m)
+            10.0, // distMax (m)
+            -3.0, // rvMin (m/s)
+            3.0, // rvMax (m/s)
+            7.5, // dMean
+            1.5430334996, // dStd
+            0.0, // vMean
+            2.0, // vStd
+            new double[] {
+                /* 1    */ 1.2074547373e+1,
+                /* d    */ 1.1124598419e+0,
+                /* v    */ -9.2720217607e-1,
+                /* d²   */ -5.8674357317e-2,
+                /* d·v  */ -7.2912571960e-2,
+                /* v²   */ -7.0818070818e-2,
+                /* d³   */ 5.6161425197e-2,
+                /* d²·v */ -6.0497571810e-3,
+                /* d·v² */ 2.1986814335e-1,
+                /* v³   */ -1.5954415954e-1
+            },
+            new double[] {
+                /* 1    */ 5.7369141664e+1,
+                /* d    */ -4.3735130912e+0,
+                /* v    */ 1.0080892292e+1,
+                /* d²   */ 7.8858336234e-2,
+                /* d·v  */ -1.5120778737e+0,
+                /* v²   */ 3.9384615385e-1,
+                /* d³   */ 2.6249905834e-1,
+                /* d²·v */ 2.9750087017e-1,
+                /* d·v² */ 1.0186869775e+0,
+                /* v³   */ -1.2099829060e+0
+            });
 
     /**
      * Dashboard selector for which hub surface to shoot with, so the ceiling-limited model can be
@@ -326,20 +323,19 @@ public class ShotCalculator {
 
         // ── Target selection ─────────────────────────────────────────────────
         boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
-        Translation2d target =
-                feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
+        Translation2d target = feed
+                ? FeedTargetFactory.generate()
+                : HubTargetFactory.generate().toTranslation2d();
         // Feed and hub shots use separately-fitted polynomial surfaces.
         PolyModel model = feed ? FEED_MODEL : selectedHubModel();
 
         // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
         ChassisSpeeds robotRelativeVelocity = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        estimatedPose =
-                estimatedPose.exp(
-                        new Twist2d(
-                                robotRelativeVelocity.vxMetersPerSecond * PHASE_DELAY_SECS,
-                                robotRelativeVelocity.vyMetersPerSecond * PHASE_DELAY_SECS,
-                                robotRelativeVelocity.omegaRadiansPerSecond * PHASE_DELAY_SECS));
+        estimatedPose = estimatedPose.exp(new Twist2d(
+                robotRelativeVelocity.vxMetersPerSecond * PHASE_DELAY_SECS,
+                robotRelativeVelocity.vyMetersPerSecond * PHASE_DELAY_SECS,
+                robotRelativeVelocity.omegaRadiansPerSecond * PHASE_DELAY_SECS));
 
         // ── Launcher pose + static distance ──────────────────────────────────
         Pose2d launcherPose = estimatedPose.transformBy(robotToLauncher);
@@ -348,19 +344,16 @@ public class ShotCalculator {
 
         // ── Field-relative launcher velocity (includes rotation arm) ─────────
         ChassisSpeeds fieldVelocity =
-                ChassisSpeeds.fromRobotRelativeSpeeds(
-                        robotRelativeVelocity, estimatedPose.getRotation());
+                ChassisSpeeds.fromRobotRelativeSpeeds(robotRelativeVelocity, estimatedPose.getRotation());
         double robotAngle = estimatedPose.getRotation().getRadians();
-        double launcherVelocityX =
-                fieldVelocity.vxMetersPerSecond
-                        - fieldVelocity.omegaRadiansPerSecond
-                                * (robotToLauncher.getX() * Math.sin(robotAngle)
-                                        + robotToLauncher.getY() * Math.cos(robotAngle));
-        double launcherVelocityY =
-                fieldVelocity.vyMetersPerSecond
-                        + fieldVelocity.omegaRadiansPerSecond
-                                * (robotToLauncher.getX() * Math.cos(robotAngle)
-                                        - robotToLauncher.getY() * Math.sin(robotAngle));
+        double launcherVelocityX = fieldVelocity.vxMetersPerSecond
+                - fieldVelocity.omegaRadiansPerSecond
+                        * (robotToLauncher.getX() * Math.sin(robotAngle)
+                                + robotToLauncher.getY() * Math.cos(robotAngle));
+        double launcherVelocityY = fieldVelocity.vyMetersPerSecond
+                + fieldVelocity.omegaRadiansPerSecond
+                        * (robotToLauncher.getX() * Math.cos(robotAngle)
+                                - robotToLauncher.getY() * Math.sin(robotAngle));
 
         // ── Decompose velocity into radial and tangential components ──────────
         // Unit vector from launcher toward target
@@ -373,8 +366,7 @@ public class ShotCalculator {
 
         // ── Polynomial + 1690 virtual-target solver ───────────────────────────
         // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
-        double[] poly =
-                solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
+        double[] poly = solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
         double exitSpeedMs = poly[0];
         double rawHoodAngle = 90 - poly[1]; // degrees, before HOOD_ANGLE_OFFSET
         double yawOffsetDeg = poly[2];
@@ -382,29 +374,23 @@ public class ShotCalculator {
         double tofFinal = poly[4];
 
         // ── Drive angle: static bearing + shoot-on-move yaw + user offset ────
-        Rotation2d driveAngle =
-                launcherToTarget
-                        .getAngle()
-                        .plus(Rotation2d.fromDegrees(yawOffsetDeg))
-                        .plus(Rotation2d.fromDegrees(DRIVE_ANGLE_OFFSET))
-                        .plus(Rotation2d.k180deg);
+        Rotation2d driveAngle = launcherToTarget
+                .getAngle()
+                .plus(Rotation2d.fromDegrees(yawOffsetDeg))
+                .plus(Rotation2d.fromDegrees(DRIVE_ANGLE_OFFSET))
+                .plus(Rotation2d.k180deg);
 
         // ── Lookahead pose: estimated launcher position when the ball arrives ────
         // Useful for Field2d visualization and validating shoot-on-move compensation.
-        Pose2d lookaheadPose =
-                new Pose2d(
-                        launcherPose
-                                .getTranslation()
-                                .plus(
-                                        new Translation2d(
-                                                launcherVelocityX * tofFinal,
-                                                launcherVelocityY * tofFinal)),
-                        driveAngle);
+        Pose2d lookaheadPose = new Pose2d(
+                launcherPose
+                        .getTranslation()
+                        .plus(new Translation2d(launcherVelocityX * tofFinal, launcherVelocityY * tofFinal)),
+                driveAngle);
 
         // Drive angular velocity (rad/s) for heading feedforward
         if (lastDriveAngle == null) lastDriveAngle = driveAngle;
-        double deltaRot =
-                MathUtil.inputModulus(driveAngle.minus(lastDriveAngle).getRotations(), -0.5, 0.5);
+        double deltaRot = MathUtil.inputModulus(driveAngle.minus(lastDriveAngle).getRotations(), -0.5, 0.5);
         double driveAngularVelocity = driveAngleFilter.calculate(deltaRot / LOOP_PERIOD_SECS);
         lastDriveAngle = driveAngle;
 
@@ -412,8 +398,7 @@ public class ShotCalculator {
         // Compute velocity on the raw (un-offset) angle so HOOD_ANGLE_OFFSET (a
         // near-constant) does not bleed into the derivative.
         if (Double.isNaN(lastHoodAngle)) lastHoodAngle = rawHoodAngle;
-        double hoodVelocity =
-                hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
+        double hoodVelocity = hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
         lastHoodAngle = rawHoodAngle;
         double hoodAngle = Math.max(rawHoodAngle + HOOD_ANGLE_OFFSET, 9);
 
@@ -421,21 +406,19 @@ public class ShotCalculator {
         double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
 
         // ── Validity ──────────────────────────────────────────────────────────
-        boolean isValid =
-                distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
+        boolean isValid = distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
 
-        latestParameters =
-                new ShootingParameters(
-                        isValid,
-                        driveAngle,
-                        driveAngularVelocity,
-                        hoodAngle,
-                        hoodVelocity,
-                        flywheelSpeed,
-                        exitSpeedMs,
-                        lookaheadDist,
-                        distanceNoLookahead,
-                        tofFinal);
+        latestParameters = new ShootingParameters(
+                isValid,
+                driveAngle,
+                driveAngularVelocity,
+                hoodAngle,
+                hoodVelocity,
+                flywheelSpeed,
+                exitSpeedMs,
+                lookaheadDist,
+                distanceNoLookahead,
+                tofFinal);
 
         Telemetry.log("ShotCalc/LookaheadPose", lookaheadPose);
         Telemetry.log("ShotCalc/DistanceMeters", lookaheadDist, "meters");
@@ -519,8 +502,7 @@ public class ShotCalculator {
 
         double virtualDist = Math.sqrt(vdx * vdx + vdz * vdz);
         double yawOffsetDeg =
-                Math.atan2(-tangentialVelocity * tof, distance - radialVelocity * tof)
-                        * (180.0 / Math.PI);
+                Math.atan2(-tangentialVelocity * tof, distance - radialVelocity * tof) * (180.0 / Math.PI);
 
         double[] result = evalPolyRaw(model, virtualDist, 0.0);
         return new double[] {

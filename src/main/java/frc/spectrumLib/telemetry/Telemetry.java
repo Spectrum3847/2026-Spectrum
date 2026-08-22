@@ -85,14 +85,13 @@ public class Telemetry extends DogLog implements Subsystem {
             boolean tunableOnFMS,
             PrintPriority priority) {
         setPriority(priority);
-        Telemetry.setOptions(
-                new DogLogOptions()
-                        .withNtPublish(ntPublish)
-                        .withCaptureDs(captureDs)
-                        .withCaptureNt(captureNt)
-                        .withCaptureConsole(captureConsole)
-                        .withNtTunables(tunableOnFMS)
-                        .withLogExtras(logExtras));
+        Telemetry.setOptions(new DogLogOptions()
+                .withNtPublish(ntPublish)
+                .withCaptureDs(captureDs)
+                .withCaptureNt(captureNt)
+                .withCaptureConsole(captureConsole)
+                .withNtTunables(tunableOnFMS)
+                .withLogExtras(logExtras));
         Telemetry.setPdh(new PowerDistribution());
         /* Display the currently running commands on SmartDashboard*/
         SmartDashboard.putData(CommandScheduler.getInstance());
@@ -109,10 +108,9 @@ public class Telemetry extends DogLog implements Subsystem {
      * @return a decorated command that logs lifecycle events and preserves the original name
      */
     public static Command log(Command cmd) {
-        return cmd.deadlineFor(
-                        Commands.startEnd(
-                                () -> log("Commands", "Init: " + cmd.getName()),
-                                () -> log("Commands", "End: " + cmd.getName())))
+        return cmd.deadlineFor(Commands.startEnd(
+                        () -> log("Commands", "Init: " + cmd.getName()),
+                        () -> log("Commands", "End: " + cmd.getName())))
                 .ignoringDisable(cmd.runsWhenDisabled())
                 .withName(cmd.getName());
     }
@@ -149,10 +147,7 @@ public class Telemetry extends DogLog implements Subsystem {
 
     private static void logAlertType(NetworkTableInstance ntInstance, String key, String prefix) {
         String[] alertStrings =
-                ntInstance
-                        .getTable("SmartDashboard/Alerts")
-                        .getEntry(key)
-                        .getStringArray(new String[0]);
+                ntInstance.getTable("SmartDashboard/Alerts").getEntry(key).getStringArray(new String[0]);
 
         String[] previousAlertStrings = previousAlerts.getOrDefault(key, new String[0]);
 

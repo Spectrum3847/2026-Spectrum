@@ -41,24 +41,32 @@ public class Limelight {
     @Accessors(chain = true)
     public static class LimelightConfig {
         /** Must match to the name given in LL dashboard */
-        @Getter @Setter private String name;
+        @Getter
+        @Setter
+        private String name;
 
         /** Whether this camera is physically connected to the robot. */
-        @Getter @Setter private boolean attached = true;
+        @Getter
+        @Setter
+        private boolean attached = true;
 
         /**
          * Whether pose measurements from this camera are currently being fused into the estimator.
          */
-        @Getter @Setter private boolean isIntegrating;
+        @Getter
+        @Setter
+        private boolean isIntegrating;
 
         /** Physical Config */
         /**
          * Forward offset of the camera from the robot center in meters (positive = toward front).
          */
-        @Getter private double forward, right, up; // meters
+        @Getter
+        private double forward, right, up; // meters
 
         /** Orientation of the camera in degrees (roll/pitch/yaw relative to robot frame). */
-        @Getter private double roll, pitch, yaw; // degrees
+        @Getter
+        private double roll, pitch, yaw; // degrees
 
         /**
          * Creates a configuration for the named Limelight camera.
@@ -108,16 +116,23 @@ public class Limelight {
     private LimelightConfig config;
 
     /** Whether pose measurements from this camera are currently being integrated. */
-    @Getter @Setter private boolean isIntegrating = false;
+    @Getter
+    @Setter
+    private boolean isIntegrating = false;
 
     /** Network-table name of this camera (mirrors {@link LimelightConfig#getName()}). */
-    @Getter private String cameraName = "default";
+    @Getter
+    private String cameraName = "default";
 
     /** Human-readable string describing the current integration status, logged for diagnostics. */
-    @Getter @Setter private String logStatus = "";
+    @Getter
+    @Setter
+    private String logStatus = "";
 
     /** Human-readable string describing the currently visible tag(s), logged for diagnostics. */
-    @Getter @Setter private String tagStatus = "";
+    @Getter
+    @Setter
+    private String tagStatus = "";
 
     /**
      * Constructs a Limelight wrapper from a fully populated {@link LimelightConfig}.
@@ -320,8 +335,7 @@ public class Limelight {
         if (!isAttached()) {
             return Pose2d.kZero;
         }
-        PoseEstimate poseEstimate =
-                LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
+        PoseEstimate poseEstimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
         if (poseEstimate == null) {
             return Pose2d.kZero;
         }
@@ -357,8 +371,7 @@ public class Limelight {
             return new PoseEstimate();
         }
 
-        PoseEstimate poseEstimate =
-                LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
+        PoseEstimate poseEstimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
         if (poseEstimate == null) {
             return new PoseEstimate();
         }
@@ -451,8 +464,7 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return Units.millisecondsToSeconds(
-                LimelightHelpers.getBotPose_wpiBlue(config.getName())[6]);
+        return Units.millisecondsToSeconds(LimelightHelpers.getBotPose_wpiBlue(config.getName())[6]);
     }
 
     /*
@@ -469,8 +481,7 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return (targetHeight - config.up)
-                / Math.tan(Units.degreesToRadians(config.pitch + getVerticalOffset()));
+        return (targetHeight - config.up) / Math.tan(Units.degreesToRadians(config.pitch + getVerticalOffset()));
     }
 
     /**
@@ -607,8 +618,9 @@ public class Limelight {
             return -99999;
         }
 
-        double rotationRadians =
-                LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getRotation().getZ();
+        double rotationRadians = LimelightHelpers.getTargetPose3d_RobotSpace(cameraName)
+                .getRotation()
+                .getZ();
 
         return Math.toDegrees(rotationRadians);
     }
@@ -643,9 +655,8 @@ public class Limelight {
             return false;
         }
         try {
-            var rawPoseArray =
-                    LimelightHelpers.getLimelightNTTableEntry(config.getName(), "botpose_wpiblue")
-                            .getDoubleArray(new double[0]);
+            var rawPoseArray = LimelightHelpers.getLimelightNTTableEntry(config.getName(), "botpose_wpiblue")
+                    .getDoubleArray(new double[0]);
             if (rawPoseArray.length < 6) {
                 return false;
             }
@@ -662,15 +673,20 @@ public class Limelight {
             return;
         }
         Pose3d botPose3d = getMegaTag1_Pose3d();
-        SmartDashboard.putString("LimelightX", df.format(botPose3d.getTranslation().getX()));
-        SmartDashboard.putString("LimelightY", df.format(botPose3d.getTranslation().getY()));
-        SmartDashboard.putString("LimelightZ", df.format(botPose3d.getTranslation().getZ()));
         SmartDashboard.putString(
-                "LimelightRoll", df.format(Units.radiansToDegrees(botPose3d.getRotation().getX())));
+                "LimelightX", df.format(botPose3d.getTranslation().getX()));
+        SmartDashboard.putString(
+                "LimelightY", df.format(botPose3d.getTranslation().getY()));
+        SmartDashboard.putString(
+                "LimelightZ", df.format(botPose3d.getTranslation().getZ()));
+        SmartDashboard.putString(
+                "LimelightRoll",
+                df.format(Units.radiansToDegrees(botPose3d.getRotation().getX())));
         SmartDashboard.putString(
                 "LimelightPitch",
                 df.format(Units.radiansToDegrees(botPose3d.getRotation().getY())));
         SmartDashboard.putString(
-                "LimelightYaw", df.format(Units.radiansToDegrees(botPose3d.getRotation().getZ())));
+                "LimelightYaw",
+                df.format(Units.radiansToDegrees(botPose3d.getRotation().getZ())));
     }
 }

@@ -10,33 +10,47 @@ import lombok.Getter;
  */
 public class RollerConfig {
     /** Outer diameter of the roller in inches, used for physics and visual scaling. */
-    @Getter private double rollerDiameterInches = 2;
+    @Getter
+    private double rollerDiameterInches = 2;
     /** Number of radial lines used to draw the roller circle in the Mechanism2d canvas. */
-    @Getter private int backgroundLines = 36;
+    @Getter
+    private int backgroundLines = 36;
     /** Gear ratio between the motor and the roller output shaft. */
-    @Getter private double gearRatio = 5;
+    @Getter
+    private double gearRatio = 5;
     /** Moment of inertia of the roller used by the flywheel physics simulation (kg·m²). */
-    @Getter private double simMOI = 0.01;
+    @Getter
+    private double simMOI = 0.01;
     /** Color displayed when the roller is stationary or below the velocity threshold. */
-    @Getter private Color8Bit offColor = new Color8Bit(Color.kBlack);
+    @Getter
+    private Color8Bit offColor = new Color8Bit(Color.kBlack);
     /** Color displayed when the roller is spinning in the forward direction. */
-    @Getter private Color8Bit fwdColor = new Color8Bit(Color.kGreen);
+    @Getter
+    private Color8Bit fwdColor = new Color8Bit(Color.kGreen);
     /** Color displayed when the roller is spinning in the reverse direction. */
-    @Getter private Color8Bit revColor = new Color8Bit(Color.kRed);
+    @Getter
+    private Color8Bit revColor = new Color8Bit(Color.kRed);
     /** Initial X position of the roller axle in the Mechanism2d canvas (metres). */
-    @Getter private double initialX = 0;
+    @Getter
+    private double initialX = 0;
     /** Initial Y position of the roller axle in the Mechanism2d canvas (metres). */
-    @Getter private double initialY = 0;
+    @Getter
+    private double initialY = 0;
     /** Whether this roller is attached to a parent {@link Mount}. */
-    @Getter private boolean mounted = false;
+    @Getter
+    private boolean mounted = false;
     /** The parent mount this roller is attached to, or {@code null} if not mounted. */
-    @Getter private Mount mount;
+    @Getter
+    private Mount mount;
     /** X position of the mount at simulation start (metres). */
-    @Getter private double initMountX;
+    @Getter
+    private double initMountX;
     /** Y position of the mount at simulation start (metres). */
-    @Getter private double initMountY;
+    @Getter
+    private double initMountY;
     /** Angle of the mount at simulation start (radians). */
-    @Getter private double initMountAngle;
+    @Getter
+    private double initMountAngle;
 
     /**
      * Creates a RollerConfig for a roller with the given diameter.

@@ -38,34 +38,24 @@ public class RollerSim implements Mountable {
      * @param rollerMotorSim the TalonFX sim state of the motor driving the roller
      * @param name unique name prefix used for Mechanism2d element labels
      */
-    public RollerSim(
-            RollerConfig config, Mechanism2d mech, TalonFXSimState rollerMotorSim, String name) {
+    public RollerSim(RollerConfig config, Mechanism2d mech, TalonFXSimState rollerMotorSim, String name) {
         this.config = config;
         this.rollerMotorSim = rollerMotorSim;
         DCMotor kraken = DCMotor.getKrakenX60Foc(1);
         LinearSystem<N1, N1, N1> flyWheelSystem =
-                LinearSystemId.createFlywheelSystem(
-                        kraken, config.getSimMOI(), config.getGearRatio());
+                LinearSystemId.createFlywheelSystem(kraken, config.getSimMOI(), config.getGearRatio());
         rollerSim = new FlywheelSim(flyWheelSystem, kraken);
 
         rollerAxle = mech.getRoot(name + " Axle", 0.0, 0.0);
 
-        rollerViz =
-                rollerAxle.append(
-                        new MechanismLigament2d(
-                                name + " Roller",
-                                Units.inchesToMeters(config.getRollerDiameterInches()) / 2.0,
-                                0.0,
-                                5.0,
-                                new Color8Bit(Color.kWhite)));
+        rollerViz = rollerAxle.append(new MechanismLigament2d(
+                name + " Roller",
+                Units.inchesToMeters(config.getRollerDiameterInches()) / 2.0,
+                0.0,
+                5.0,
+                new Color8Bit(Color.kWhite)));
 
-        roller =
-                new Circle(
-                        config.getBackgroundLines(),
-                        config.getRollerDiameterInches(),
-                        name,
-                        rollerAxle,
-                        mech);
+        roller = new Circle(config.getBackgroundLines(), config.getRollerDiameterInches(), name, rollerAxle, mech);
     }
 
     /**
@@ -98,8 +88,7 @@ public class RollerSim implements Mountable {
 
         // Scale down the angular velocity so we can actually see what is happening
         double rpm = rollerSim.getAngularVelocityRPM() / 2;
-        rollerViz.setAngle(
-                rollerViz.getAngle() + Math.toDegrees(rpm) * TimedRobot.kDefaultPeriod * 0.1);
+        rollerViz.setAngle(rollerViz.getAngle() + Math.toDegrees(rpm) * TimedRobot.kDefaultPeriod * 0.1);
 
         if (rollerSim.getAngularVelocityRadPerSec() < -1) {
             roller.setHalfBackground(config.getRevColor(), config.getOffColor());
