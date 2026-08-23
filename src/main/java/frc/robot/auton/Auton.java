@@ -94,6 +94,7 @@ public class Auton {
                 // mirrored or not and correctly mirror the poses
                 .withName("OSTBTB Full - " + (mirrored ? "Right" : "Left"));
     }
+
     public Command OSRIPPOFF(boolean mirrored) {
         return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
