@@ -5,13 +5,25 @@ import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.Interpolator;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.Field;
 import frc.robot.Robot;
 import frc.robot.subsystems.swerve.Swerve;
+import lombok.Getter;
 
 public class FeedTargetFactory {
 
     private static final Swerve swerve = Robot.getSwerve();
+    @Getter private static boolean left;
+
+    public static Command feedLeft() {
+        return new InstantCommand(() -> left = true);
+    }
+
+    public static Command feedRight() {
+        return new InstantCommand(() -> left = false);
+    }
 
     static InterpolatingTreeMap<Double, Double> distanceOffsetMap =
             new InterpolatingTreeMap<>(InverseInterpolator.forDouble(), Interpolator.forDouble());
@@ -21,9 +33,11 @@ public class FeedTargetFactory {
     }
 
     static Double kXDistanceOffset = Units.inchesToMeters(0);
+
     /** Generate. */
     public static Translation2d generate() {
-        boolean inFieldLeft = swerve.inFieldLeft().getAsBoolean();
+        // boolean inFieldLeft = swerve.inFieldLeft().getAsBoolean();
+        boolean inFieldLeft = isLeft();
         boolean inOpposingAllianceZone = swerve.inEnemyAllianceZone().getAsBoolean();
         Translation2d feedTarget;
 

@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
+import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.robot.auton.Auton;
 import frc.robot.configs.OM2026;
 import frc.robot.operator.Operator;
@@ -278,6 +279,9 @@ public class Robot extends SpectrumRobot {
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
 
+        operator.LT.onTrue(FeedTargetFactory.feedLeft());
+        operator.RT.onTrue(FeedTargetFactory.feedRight());
+
         pilot.upReorient.onTrue(swerve.reorientForward());
         pilot.leftReorient.onTrue(swerve.reorientLeft());
         pilot.downReorient.onTrue(swerve.reorientBack());
@@ -324,8 +328,7 @@ public class Robot extends SpectrumRobot {
         pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
         pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
-        pilot.LB.onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_BRAKE));
-        pilot.LB.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.LB.onTrue(FeedTargetFactory.feedRight());
     }
 
     /** Sets up the SmartDashboard data for visualization. */
