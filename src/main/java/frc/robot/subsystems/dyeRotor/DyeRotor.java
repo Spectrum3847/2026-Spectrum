@@ -36,9 +36,9 @@ public class DyeRotor implements Subsystem {
 
             @Getter private final double gearRatio = 37.5;
 
-            @Getter @Setter private double velocityKp = 5; // 5
-            @Getter @Setter private double velocityKv = 4.38; // 4.38
-            @Getter @Setter private double velocityKs = 0; // 0
+            @Getter @Setter private double velocityKp = 270; // 5
+            @Getter @Setter private double velocityKv = 0.800000011920929; // 4.38
+            @Getter @Setter private double velocityKs = 2.650390625; // 0
 
             /* Sim Configs */
             @Getter
@@ -99,8 +99,7 @@ public class DyeRotor implements Subsystem {
          * @param rpm the rotor velocity
          */
         public void setRotorVelocity(double rpm) {
-            // setVelocityTCFOCrpm
-            setVelocityRPM(() -> rpm);
+            setVelocityTCFOCrpm(() -> rpm);
         }
         /** Rotor stop. */
         public void rotorStop() {
@@ -141,9 +140,9 @@ public class DyeRotor implements Subsystem {
             @Getter @Setter private double supplyCurrentLowerTime = 1.0;
             @Getter @Setter private double statorCurrentLimit = 120;
 
-            @Getter @Setter private double velocityKp = 0.5;
-            @Getter @Setter private double velocityKv = 0.434;
-            @Getter @Setter private double velocityKs = 0;
+            @Getter @Setter private double velocityKp = 0.5; // 0.5
+            @Getter @Setter private double velocityKv = 0.434; // 0.434
+            @Getter @Setter private double velocityKs = 0; // 0
 
             private final double gearRatio = 3.67;
 
