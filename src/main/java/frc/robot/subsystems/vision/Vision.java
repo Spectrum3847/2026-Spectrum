@@ -16,6 +16,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.robot.auton.Auton;
@@ -158,6 +159,11 @@ public class Vision implements Subsystem {
 
         turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
         allLimelights = new Limelight[] {turretLL};
+
+        int[] validIds = Field.AprilTagLayoutType.OFFICIAL.getLayout().getTags().stream()
+                .mapToInt(tag -> tag.ID)
+                .toArray();
+        LimelightHelpers.SetFiducialIDFiltersOverride(turretLL.getName(), validIds);
 
         turretLogger = new VisionLogger("TurretLL", turretLL);
         allLoggers = new VisionLogger[] {turretLogger};
@@ -533,6 +539,11 @@ public class Vision implements Subsystem {
 
         if (targetSize <= 0.025) {
             ll.sendInvalidStatus("Target Size Rejection");
+            return true;
+        }
+
+        if (Math.abs(Robot.getTurret().getMechOmegaRotPerSec()) >= 30) {
+            ll.sendInvalidStatus("Turret Speed Rejection");
             return true;
         }
 
