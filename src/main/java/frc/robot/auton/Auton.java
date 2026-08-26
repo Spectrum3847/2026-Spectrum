@@ -96,7 +96,7 @@ public class Auton {
     }
 
     public Command OSRIPPOFF(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
+        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", false))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
