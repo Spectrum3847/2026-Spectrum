@@ -7,6 +7,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -27,7 +28,11 @@ import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import frc.spectrumLib.vision.VisionLogger;
+
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
@@ -68,7 +73,12 @@ public class Vision implements Subsystem {
         // -- Turret Limelight -------------------------------------------------
 
         /** NetworkTables hostname for the turret-mounted Limelight. */
+        @Getter final String leftLL = "limelight-left";
+        @Getter final String rightLL = "limelight-right";
         @Getter final String turretLL = "limelight-turret";
+
+        @Getter final LimelightConfig leftConfig = new LimelightConfig(leftLL).withTranslation(0, 0, 0).withRotation(0, 0, 0);
+        @Getter final LimelightConfig rightConfig = new LimelightConfig(rightLL).withTranslation(0, 0, 0).withRotation(0, 0, 0);
 
         /**
          * Robot-relative pose of the turret Limelight <b>with the turret at zero</b>. Translation
@@ -101,7 +111,12 @@ public class Vision implements Subsystem {
 
         // -- Pipeline indices -------------------------------------------------
 
+        @Getter final int frontTagPipeline = 0;
+        @Getter final int backTagPipeline = 0;
+        @Getter final int leftTagPipeline = 0;
+        @Getter final int rightTagPipeline = 0;
         @Getter final int turretTagPipeline = 0;
+        @Getter final int staticTagPipeline = 0;
 
         // -- Pose estimation covariance ---------------------------------------
 
@@ -117,13 +132,20 @@ public class Vision implements Subsystem {
     // Fields
     // =========================================================================
 
-    /** Turret-mounted Limelight instance; its frame rotates with the turret. */
+    /** Limelights */
+    public final Limelight leftLL;
+    public final Limelight rightLL;
     public final Limelight turretLL;
 
     /** All Limelights in one array for bulk operations. */
     public final Limelight[] allLimelights;
 
+    /** Static limelights in one array for bulk operations. */
+    public final Limelight[] staticLimelights;
+
     /* Vision loggers — one per Limelight */
+    private final VisionLogger leftLogger;
+    private final VisionLogger rightLogger;
     private final VisionLogger turretLogger;
 
     /** All loggers in one array for bulk telemetry loops. */
@@ -157,19 +179,30 @@ public class Vision implements Subsystem {
     public Vision(VisionConfig config) {
         this.config = config;
 
+        leftLL = new Limelight(config.leftLL, config.leftTagPipeline, config.leftConfig);
+        rightLL = new Limelight(config.rightLL, config.rightTagPipeline, config.rightConfig);
         turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
-        allLimelights = new Limelight[] {turretLL};
+        staticLimelights = new Limelight[] {leftLL, rightLL};
+        allLimelights = new Limelight[] {leftLL, rightLL, turretLL};
 
         int[] validIds = Field.AprilTagLayoutType.OFFICIAL.getLayout().getTags().stream()
                 .mapToInt(tag -> tag.ID)
                 .toArray();
         LimelightHelpers.SetFiducialIDFiltersOverride(turretLL.getName(), validIds);
 
+        leftLogger = new VisionLogger("LeftLL", leftLL);
+        rightLogger = new VisionLogger("RightLL", rightLL);
         turretLogger = new VisionLogger("TurretLL", turretLL);
-        allLoggers = new VisionLogger[] {turretLogger};
+        allLoggers = new VisionLogger[] {leftLogger, rightLogger, turretLogger};
 
-        setImuModeIfChanged(turretLL, 0);
+        /* Configure Limelight Settings Here */
+        for (Limelight limelight : staticLimelights) {
+            limelight.setLEDMode(false);
+            limelight.setIMUmode(1);
+        }
 
+        turretLL.setLEDMode(false);
+        turretLL.setIMUmode(2); // Different IMU mode for turret
         this.register();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -245,7 +278,10 @@ public class Vision implements Subsystem {
      */
     private void setLimeLightOrientation() {
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
-        turretLL.setRobotOrientation(yaw);
+
+        for (Limelight limelight : allLimelights) {
+            limelight.setRobotOrientation(yaw);
+        }
     }
 
     /**
@@ -285,6 +321,15 @@ public class Vision implements Subsystem {
      */
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
+            for (Limelight limelight : allLimelights) {
+                limelight.setIMUmode(1);
+            }
+
+            // MegatTag1 estimates for each static Limelight
+            VisionFieldPoseEstimate leftMT1 = getMT1Estimate(leftLL, true);
+            VisionFieldPoseEstimate rightMT1 = getMT1Estimate(rightLL, true);
+            integrateMultipleEstimates(leftMT1, rightMT1);
+
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(getDisabledSeedEstimate(turretLL));
             }
@@ -297,6 +342,15 @@ public class Vision implements Subsystem {
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
+            for (Limelight limelight : allLimelights) {
+                limelight.setIMUmode(4);
+            }
+
+            // MegatTag1 estimates for each static Limelight
+            VisionFieldPoseEstimate leftMT1 = getMT1Estimate(leftLL, false);
+            VisionFieldPoseEstimate rightMT1 = getMT1Estimate(rightLL, false);
+            integrateMultipleEstimates(leftMT1, rightMT1);
+
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(getMT1Estimate(turretLL, false));
             }
@@ -509,6 +563,38 @@ public class Vision implements Subsystem {
         }
     }
 
+    private void integrateMultipleEstimates(VisionFieldPoseEstimate... estimates) {
+        // Collect non-null estimates
+        List<VisionFieldPoseEstimate> list = new ArrayList<>();
+        for (VisionFieldPoseEstimate e : estimates) {
+            if (e != null) list.add(e);
+        }
+        if (list.isEmpty()) return;
+
+        // Sort by timestamp ascending (old -> new). fuseEstimates expects to project
+        // older -> newer.
+        list.sort(Comparator.comparingDouble(VisionFieldPoseEstimate::getTimestampSeconds));
+
+        // Iteratively group/fuse estimates close in time.
+        VisionFieldPoseEstimate currentGroup = list.get(0);
+        for (int i = 1; i < list.size(); i++) {
+            VisionFieldPoseEstimate next = list.get(i);
+            double timeDelta =
+                    Math.abs(next.getTimestampSeconds() - currentGroup.getTimestampSeconds());
+
+            if (timeDelta < 0.1) {
+                // Fuse into current group (currentGroup older, next newer)
+                currentGroup = fuseEstimates(currentGroup, next);
+            } else {
+                // No close timestamp: integrate current group and start a new one
+                integrateSingleEstimate(currentGroup);
+                currentGroup = next;
+            }
+        }
+        // integrate the final fused group
+        integrateSingleEstimate(currentGroup);
+    }
+
     /**
      * Common rejection gate shared by both MT1 and MT2 pipelines.
      *
@@ -550,24 +636,34 @@ public class Vision implements Subsystem {
         return false;
     }
 
-    /**
-     * Updates the IMU mode on a Limelight only when the desired mode differs from the last written
-     * value, avoiding redundant NetworkTables writes.
-     *
-     * @param limelight the Limelight to configure
-     * @param desiredMode the IMU mode to apply (0 = external, 1 = internal, etc.)
-     */
-    private void setImuModeIfChanged(Limelight limelight, int desiredMode) {
-        Integer lastMode = lastImuModeByLL.get(limelight);
-        if (lastMode == null || lastMode.intValue() != desiredMode) {
-            limelight.setIMUmode(desiredMode);
-            lastImuModeByLL.put(limelight, desiredMode);
-        }
-    }
+    // /**
+    //  * Updates the IMU mode on a Limelight only when the desired mode differs from the last written
+    //  * value, avoiding redundant NetworkTables writes.
+    //  *
+    //  * @param limelight the Limelight to configure
+    //  * @param desiredMode the IMU mode to apply (0 = external, 1 = internal, etc.)
+    //  */
+    // private void setImuModeIfChanged(Limelight limelight, int desiredMode) {
+    //     Integer lastMode = lastImuModeByLL.get(limelight);
+    //     if (lastMode == null || lastMode.intValue() != desiredMode) {
+    //         limelight.setIMUmode(desiredMode);
+    //         lastImuModeByLL.put(limelight, desiredMode);
+    //     }
+    // }
 
     // =========================================================================
     // Pose Access & Queries
     // =========================================================================
+
+    public Pose2d getLeftMegaTag1Pose() {
+        Pose2d pose = leftLL.getMegaTag1_Pose3d().toPose2d();
+        return pose != null ? pose : Pose2d.kZero;
+    }
+
+    public Pose2d getRightMegaTag1Pose() {
+        Pose2d pose = rightLL.getMegaTag1_Pose3d().toPose2d();
+        return pose != null ? pose : Pose2d.kZero;
+    }
 
     /**
      * Returns the MegaTag1 (MT1) robot pose reported by the turret Limelight. It is already a robot
@@ -675,6 +771,70 @@ public class Vision implements Subsystem {
         return runOnce(this::resetPoseToTurretVision)
                 .ignoringDisable(true)
                 .withName("Vision.resetPoseToTurretVision");
+    }
+
+    /** Fuses two vision pose estimates using inverse-variance weighting. (FRC254 2025) */
+    private VisionFieldPoseEstimate fuseEstimates(
+            VisionFieldPoseEstimate a, VisionFieldPoseEstimate b) {
+        // Ensure b is the newer measurement
+        if (b.getTimestampSeconds() < a.getTimestampSeconds()) {
+            VisionFieldPoseEstimate tmp = a;
+            a = b;
+            b = tmp;
+        }
+
+        // Project both estimates to the same timestamp using odometry
+        Transform2d a_T_b =
+                Robot.getSwerve()
+                        .getPoseAtTimestamp(b.getTimestampSeconds())
+                        .minus(Robot.getSwerve().getPoseAtTimestamp(a.getTimestampSeconds()));
+
+        Pose2d poseA = a.getVisionRobotPoseMeters().transformBy(a_T_b);
+        Pose2d poseB = b.getVisionRobotPoseMeters();
+
+        // Inverse‑variance weighting
+        var varianceA =
+                a.getVisionMeasurementStdDevs().elementTimes(a.getVisionMeasurementStdDevs());
+        var varianceB =
+                b.getVisionMeasurementStdDevs().elementTimes(b.getVisionMeasurementStdDevs());
+
+        Rotation2d fusedHeading = poseB.getRotation();
+        if (varianceA.get(2, 0) < config.getKLargeVariance()
+                && varianceB.get(2, 0) < config.getKLargeVariance()) {
+            fusedHeading =
+                    new Rotation2d(
+                            poseA.getRotation().getCos() / varianceA.get(2, 0)
+                                    + poseB.getRotation().getCos() / varianceB.get(2, 0),
+                            poseA.getRotation().getSin() / varianceA.get(2, 0)
+                                    + poseB.getRotation().getSin() / varianceB.get(2, 0));
+        }
+
+        double weightAx = 1.0 / varianceA.get(0, 0);
+        double weightAy = 1.0 / varianceA.get(1, 0);
+        double weightBx = 1.0 / varianceB.get(0, 0);
+        double weightBy = 1.0 / varianceB.get(1, 0);
+
+        Pose2d fusedPose =
+                new Pose2d(
+                        new Translation2d(
+                                (poseA.getTranslation().getX() * weightAx
+                                                + poseB.getTranslation().getX() * weightBx)
+                                        / (weightAx + weightBx),
+                                (poseA.getTranslation().getY() * weightAy
+                                                + poseB.getTranslation().getY() * weightBy)
+                                        / (weightAy + weightBy)),
+                        fusedHeading);
+
+        Matrix<N3, N1> fusedStdDev =
+                VecBuilder.fill(
+                        Math.sqrt(1.0 / (weightAx + weightBx)),
+                        Math.sqrt(1.0 / (weightAy + weightBy)),
+                        Math.sqrt(1.0 / (1.0 / varianceA.get(2, 0) + 1.0 / varianceB.get(2, 0))));
+
+        int numTags = a.getNumTags() + b.getNumTags();
+        double time = b.getTimestampSeconds();
+
+        return new VisionFieldPoseEstimate(fusedPose, time, fusedStdDev, numTags);
     }
 
     // =========================================================================
