@@ -328,7 +328,8 @@ public class Robot extends SpectrumRobot {
         pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
         pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
-        pilot.LB.onTrue(FeedTargetFactory.feedRight());
+        pilot.LB.onTrue(FeedTargetFactory.feedLeft());
+        pilot.RB.onTrue(FeedTargetFactory.feedRight());
     }
 
     /** Sets up the SmartDashboard data for visualization. */

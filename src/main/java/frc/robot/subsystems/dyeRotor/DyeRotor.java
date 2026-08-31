@@ -254,7 +254,6 @@ public class DyeRotor implements Subsystem {
         };
     }
 
-    // TODO: test
     /** Applies the states. */
     private void applyStates() {
         double wantedRPMSpin = 0;

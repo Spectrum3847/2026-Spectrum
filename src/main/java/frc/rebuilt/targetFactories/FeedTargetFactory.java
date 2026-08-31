@@ -18,11 +18,11 @@ public class FeedTargetFactory {
     @Getter private static boolean left;
 
     public static Command feedLeft() {
-        return new InstantCommand(() -> left = true);
+        return new InstantCommand(() -> left = Field.isBlue() ? true : false);
     }
 
     public static Command feedRight() {
-        return new InstantCommand(() -> left = false);
+        return new InstantCommand(() -> left = Field.isBlue() ? false : true);
     }
 
     static InterpolatingTreeMap<Double, Double> distanceOffsetMap =
