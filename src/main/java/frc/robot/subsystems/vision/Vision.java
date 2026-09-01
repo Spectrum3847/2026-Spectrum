@@ -38,9 +38,8 @@ import lombok.Getter;
  *
  * <p>Supports optional chassis-mounted cameras (back/left/right, detached by default) plus a
  * turret-mounted camera whose frame rotates with the turret. For the turret, the live
- * robot-to-camera
- * transform (including the turret's yaw) is published every loop so the camera solves for a robot
- * pose directly; chassis cameras use their fixed configured mount.
+ * robot-to-camera transform (including the turret's yaw) is published every loop so the camera
+ * solves for a robot pose directly; chassis cameras use their fixed configured mount.
  *
  * <p>Each robot loop iteration the subsystem:
  *
@@ -48,8 +47,7 @@ import lombok.Getter;
  *   <li>Publishes the turret-rotated camera transform ({@link #updateTurretCameraPose()}) and the
  *       robot heading to every camera, then flushes NetworkTables so they solve this frame.
  *   <li>Picks the best chassis camera ({@link #getBestLimelight()}) and integrates its MT1
- *       (enabled)
- *       or MT1+MT2 (disabled). The turret camera always integrates via MT2 ({@link
+ *       (enabled) or MT1+MT2 (disabled). The turret camera always integrates via MT2 ({@link
  *       #getMT2VisionEstimate(Limelight)}), trusting the pushed robot heading.
  *   <li>Logs camera status and pose data via {@link VisionLogger}.
  * </ol>
@@ -207,8 +205,7 @@ public class Vision implements Subsystem {
         this.config = config;
 
         backLeftLL =
-                new Limelight(
-                        config.backLeftLL, config.backLeftTagPipeline, config.backLeftConfig);
+                new Limelight(config.backLeftLL, config.backLeftTagPipeline, config.backLeftConfig);
         backRightLL =
                 new Limelight(
                         config.backRightLL, config.backRightTagPipeline, config.backRightConfig);
@@ -230,9 +227,8 @@ public class Vision implements Subsystem {
         turretLogger = new VisionLogger("TurretLL", turretLL);
         allLoggers = new VisionLogger[] {backLeftLogger, backRightLogger, turretLogger};
 
-        // Chassis cameras don't rotate relative to the robot, so they run on the pushed robot
-        // heading (IMU mode 1). The turret camera runs external-heading-only (mode 0): its frame
-        // yaws with the turret and its mount transform is republished each loop instead.
+        // Chassis cams use the pushed robot heading (mode 1); the turret runs external-only
+        // (mode 0) since its frame yaws with the turret.
         for (Limelight limelight : swerveLimelights) {
             limelight.setLEDMode(false);
             setImuModeIfChanged(limelight, 1);
@@ -362,13 +358,11 @@ public class Vision implements Subsystem {
      */
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
-            // Best chassis camera: MT1 (tight XY) plus MT2 translation while stationary.
             Limelight best = getBestLimelight();
             markUnselectedLimelights(best);
             integrateSingleEstimate(getMT1Estimate(best, true));
             integrateSingleEstimate(getMT2VisionEstimate(best));
 
-            // Turret: MT2 translation (heading trusted from the pushed robot yaw).
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(getMT2VisionEstimate(turretLL));
             }
@@ -381,12 +375,10 @@ public class Vision implements Subsystem {
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
-            // Best chassis camera: MT1 only while enabled (moving).
             Limelight best = getBestLimelight();
             markUnselectedLimelights(best);
             integrateSingleEstimate(getMT1Estimate(best, false));
 
-            // Turret: MT2 (heading trusted from the pushed robot yaw).
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(getMT2VisionEstimate(turretLL));
             }
@@ -571,7 +563,6 @@ public class Vision implements Subsystem {
             return null;
         }
 
-        // Select translational std-devs (heading is always discarded for MT2)
         double xyStds;
 
         if (robotLinearSpeed <= 0.2 && targetSize > 4) {
@@ -690,9 +681,8 @@ public class Vision implements Subsystem {
             return true;
         }
 
-        // Only the turret camera moves with the turret, so this rejection applies to it alone.
-        // Its commanded slew rarely exceeds ~0.6 rot/s; reject above the shot-readiness limit,
-        // where image smear and mount-transform lag make the estimate untrustworthy.
+        // Only the turret camera moves with the turret; reject its estimate while it slews (smear
+        // and mount-transform lag).
         if (ll == turretLL && Math.abs(Robot.getTurret().getMechOmegaRotPerSec()) >= 0.75) {
             ll.sendInvalidStatus("Turret Speed Rejection");
             return true;

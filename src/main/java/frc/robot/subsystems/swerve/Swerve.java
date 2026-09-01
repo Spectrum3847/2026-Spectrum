@@ -133,6 +133,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     private final SwerveRequest.SwerveDriveBrake X_BRAKE = new SwerveRequest.SwerveDriveBrake();
 
+    private final SwerveRequest.Idle IDLE_REQUEST = new SwerveRequest.Idle();
+
     /**
      * Constructs a new Swerve drive subsystem.
      *
@@ -319,6 +321,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         switch (systemState) {
             default:
             case IDLE:
+                setControl(IDLE_REQUEST);
                 break;
             case TELEOP_DRIVE:
                 setControl(FIELD_CENTRIC_DRIVE.withSpeeds(calculateSpeedsBasedOnJoystickInputs()));
