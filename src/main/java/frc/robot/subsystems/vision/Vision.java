@@ -14,6 +14,7 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.Field;
@@ -35,20 +36,19 @@ import lombok.Getter;
  * Vision subsystem that manages the turret-mounted Limelight and fuses its pose estimates into the
  * swerve odometry via WPILib's {@code SwerveDrivePoseEstimator}.
  *
- * <p>This robot carries no chassis-mounted cameras, so every estimate comes from a camera whose
- * frame rotates with the turret. Rather than correcting for that in code, the live robot-to-camera
- * transform (including the turret's yaw) is published to the camera every loop, so the camera
- * solves for a robot pose directly.
+ * <p>Supports optional chassis-mounted cameras (back/left/right, detached by default) plus a
+ * turret-mounted camera whose frame rotates with the turret. For the turret, the live
+ * robot-to-camera transform (including the turret's yaw) is published every loop so the camera
+ * solves for a robot pose directly; chassis cameras use their fixed configured mount.
  *
  * <p>Each robot loop iteration the subsystem:
  *
  * <ol>
  *   <li>Publishes the turret-rotated camera transform ({@link #updateTurretCameraPose()}) and the
- *       robot heading, then flushes NetworkTables so the camera solves this frame with them.
- *   <li>While enabled, runs the MT1 pipeline ({@link #getMT1Estimate(Limelight, boolean)}) with its
- *       rejection and std-dev selection logic. While disabled, seeds from MT2 translation plus MT1
- *       heading ({@link #getDisabledSeedEstimate(Limelight)}) — the one place MegaTag2 is used,
- *       since it is at its best while stationary.
+ *       robot heading to every camera, then flushes NetworkTables so they solve this frame.
+ *   <li>Picks the best chassis camera ({@link #getBestLimelight()}) and integrates its MT1
+ *       (enabled) or MT1+MT2 (disabled). The turret camera always integrates via MT2 ({@link
+ *       #getMT2VisionEstimate(Limelight)}), trusting the pushed robot heading.
  *   <li>Logs camera status and pose data via {@link VisionLogger}.
  * </ol>
  *
@@ -64,6 +64,39 @@ public class Vision implements Subsystem {
     public static class VisionConfig {
 
         @Getter final String name = "Vision";
+
+        // -- Back-Left Limelight ----------------------------------------------
+
+        /** NetworkTables hostname for the rear-left static Limelight. */
+        @Getter final String backLeftLL = "limelight-back-left";
+
+        /**
+         * Robot-relative pose of the rear-left Limelight. Translation in metres (x, y, z); rotation
+         * in degrees (roll, pitch, yaw). Detached by default; enable per-robot in the config
+         * package. TODO: measure real mount offsets before enabling.
+         */
+        @Getter
+        final LimelightConfig backLeftConfig =
+                new LimelightConfig(backLeftLL)
+                        .withTranslation(0, 0, 0)
+                        .withRotation(0, 0, 0)
+                        .setAttached(false);
+
+        // -- Back-Right Limelight ---------------------------------------------
+
+        /** NetworkTables hostname for the rear-right static Limelight. */
+        @Getter final String backRightLL = "limelight-back-right";
+
+        /**
+         * Robot-relative pose of the rear-right Limelight. Detached by default; enable per-robot in
+         * the config package. TODO: measure real mount offsets before enabling.
+         */
+        @Getter
+        final LimelightConfig backRightConfig =
+                new LimelightConfig(backRightLL)
+                        .withTranslation(-0.3084987734, 0, 0)
+                        .withRotation(0, 0, 0)
+                        .setAttached(false);
 
         // -- Turret Limelight -------------------------------------------------
 
@@ -84,10 +117,10 @@ public class Vision implements Subsystem {
         final LimelightConfig turretConfig =
                 new LimelightConfig(turretLL)
                         .withTranslation(
-                                Units.inchesToMeters(-5.375), // ahead
-                                Units.inchesToMeters(0.0), // left
+                                Units.inchesToMeters(5.375), // ahead (unused)
+                                Units.inchesToMeters(0.0), // left (unused)
                                 Units.inchesToMeters(18.632)) // up
-                        .withRotation(0, 60, 180);
+                        .withRotation(0, 60, 0); // yaw unused; live turret angle is used
 
         // -- Turret geometry --------------------------------------------------
 
@@ -97,10 +130,12 @@ public class Vision implements Subsystem {
         /** Turret pivot to camera offset (metres), measured with the turret at zero. */
         @Getter
         final Translation2d turretCenterToCamera =
-                new Translation2d(Units.inchesToMeters(-5.375), 0);
+                new Translation2d(Units.inchesToMeters(5.375), 0);
 
         // -- Pipeline indices -------------------------------------------------
 
+        @Getter final int backLeftTagPipeline = 0;
+        @Getter final int backRightTagPipeline = 0;
         @Getter final int turretTagPipeline = 0;
 
         // -- Pose estimation covariance ---------------------------------------
@@ -117,13 +152,25 @@ public class Vision implements Subsystem {
     // Fields
     // =========================================================================
 
+    /** Rear-left static Limelight instance. */
+    @Getter public final Limelight backLeftLL;
+
+    /** Rear-right static Limelight instance. */
+    @Getter public final Limelight backRightLL;
+
     /** Turret-mounted Limelight instance; its frame rotates with the turret. */
     public final Limelight turretLL;
+
+    /** Chassis-mounted (non-turret) Limelights, whose reported pose is already the robot pose. */
+    public final Limelight[] swerveLimelights;
 
     /** All Limelights in one array for bulk operations. */
     public final Limelight[] allLimelights;
 
     /* Vision loggers — one per Limelight */
+    private final VisionLogger backLeftLogger;
+
+    private final VisionLogger backRightLogger;
     private final VisionLogger turretLogger;
 
     /** All loggers in one array for bulk telemetry loops. */
@@ -157,17 +204,36 @@ public class Vision implements Subsystem {
     public Vision(VisionConfig config) {
         this.config = config;
 
+        backLeftLL =
+                new Limelight(config.backLeftLL, config.backLeftTagPipeline, config.backLeftConfig);
+        backRightLL =
+                new Limelight(
+                        config.backRightLL, config.backRightTagPipeline, config.backRightConfig);
         turretLL = new Limelight(config.turretLL, config.turretTagPipeline, config.turretConfig);
-        allLimelights = new Limelight[] {turretLL};
 
-        int[] validIds = Field.AprilTagLayoutType.OFFICIAL.getLayout().getTags().stream()
-                .mapToInt(tag -> tag.ID)
-                .toArray();
-        LimelightHelpers.SetFiducialIDFiltersOverride(turretLL.getName(), validIds);
+        swerveLimelights = new Limelight[] {backLeftLL, backRightLL};
+        allLimelights = new Limelight[] {backLeftLL, backRightLL, turretLL};
 
+        int[] validIds =
+                Field.AprilTagLayoutType.OFFICIAL.getLayout().getTags().stream()
+                        .mapToInt(tag -> tag.ID)
+                        .toArray();
+        for (Limelight limelight : allLimelights) {
+            LimelightHelpers.SetFiducialIDFiltersOverride(limelight.getName(), validIds);
+        }
+
+        backLeftLogger = new VisionLogger("BackLeftLL", backLeftLL);
+        backRightLogger = new VisionLogger("BackRightLL", backRightLL);
         turretLogger = new VisionLogger("TurretLL", turretLL);
-        allLoggers = new VisionLogger[] {turretLogger};
+        allLoggers = new VisionLogger[] {backLeftLogger, backRightLogger, turretLogger};
 
+        // Chassis cams use the pushed robot heading (mode 1); the turret runs external-only
+        // (mode 0) since its frame yaws with the turret.
+        for (Limelight limelight : swerveLimelights) {
+            limelight.setLEDMode(false);
+            setImuModeIfChanged(limelight, 1);
+        }
+        turretLL.setLEDMode(false);
         setImuModeIfChanged(turretLL, 0);
 
         this.register();
@@ -224,6 +290,10 @@ public class Vision implements Subsystem {
         }
 
         // Null-safe; returns Pose2d.kZero when no data
+        Robot.getField2d().getObject(backLeftLL.getCameraName()).setPose(getBackLeftMegaTag1Pose());
+        Robot.getField2d()
+                .getObject(backRightLL.getCameraName())
+                .setPose(getBackRightMegaTag1Pose());
         Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretRobotPose());
 
         if (turretLL.isAttached()) {
@@ -245,6 +315,9 @@ public class Vision implements Subsystem {
      */
     private void setLimeLightOrientation() {
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
+        for (Limelight limelight : swerveLimelights) {
+            limelight.setRobotOrientation(yaw);
+        }
         turretLL.setRobotOrientation(yaw);
     }
 
@@ -285,62 +358,31 @@ public class Vision implements Subsystem {
      */
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
+            Limelight best = getBestLimelight();
+            markUnselectedLimelights(best);
+            integrateSingleEstimate(getMT1Estimate(best, true));
+            integrateSingleEstimate(getMT2VisionEstimate(best));
+
             if (turretEstimatesAvailable()) {
-                integrateSingleEstimate(getDisabledSeedEstimate(turretLL));
+                integrateSingleEstimate(getMT2VisionEstimate(turretLL));
             }
         }
     }
 
     /**
-     * While the robot is enabled (teleop, auto-update state, or auto-launching), integrates the
-     * MegaTag1 estimate from the turret Limelight.
+     * While the robot is enabled (teleop or auto pose-update), integrates the best chassis camera's
+     * MT1 estimate and the turret camera's MT2 estimate.
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
+            Limelight best = getBestLimelight();
+            markUnselectedLimelights(best);
+            integrateSingleEstimate(getMT1Estimate(best, false));
+
             if (turretEstimatesAvailable()) {
-                integrateSingleEstimate(getMT1Estimate(turretLL, false));
+                integrateSingleEstimate(getMT2VisionEstimate(turretLL));
             }
         }
-    }
-
-    private VisionFieldPoseEstimate getDisabledSeedEstimate(Limelight ll) {
-        if (!ll.targetInView()) {
-            ll.setTagStatus("No Targets in View");
-            ll.sendInvalidStatus("No Targets in View Rejection");
-            return null;
-        }
-
-        Pose2d megaTag2Pose = ll.getMegaTag2_Pose2d();
-        if (megaTag2Pose.equals(Pose2d.kZero)) {
-            ll.sendInvalidStatus("No MegaTag2 Pose");
-            return null;
-        }
-
-        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-        ll.setTagStatus("");
-
-        if (rejectionCheck(ll, megaTag2Pose, ll.getTargetSize())) {
-            return null;
-        }
-
-        // Roll/pitch come from the MT1 3-D solve of the same frame; a disturbed
-        // camera invalidates both pipelines equally.
-        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > Math.toRadians(5)
-                || Math.abs(megaTag1Pose3d.getRotation().getY()) > Math.toRadians(5)) {
-            ll.sendInvalidStatus("Roll/Pitch Rejection");
-            return null;
-        }
-
-        ll.sendValidStatus("Disabled MT2 seed");
-        Pose2d seedPose =
-                new Pose2d(megaTag2Pose.getTranslation(), megaTag1Pose3d.toPose2d().getRotation());
-        RawFiducial[] tags = ll.getRawFiducial();
-
-        return new VisionFieldPoseEstimate(
-                seedPose,
-                Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp()),
-                VecBuilder.fill(0.01, 0.01, 0.01),
-                tags == null ? 1 : tags.length);
     }
 
     /**
@@ -353,12 +395,9 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Builds a MegaTag1 (multi-tag, heading-fused) pose estimate for the turret-mounted Limelight
-     * and decides whether it is trustworthy enough to add to the pose estimator.
-     *
-     * <p>The camera reports a robot pose directly, because its live mount transform is published by
-     * {@link #updateTurretCameraPose()}. Because the reported heading is only as good as the turret
-     * encoder feeding that transform, the heading std-dev is widened accordingly.
+     * Builds a MegaTag1 (multi-tag, heading-fused) pose estimate for a chassis Limelight and
+     * decides whether to add it. The camera's botpose is already a robot pose via its configured
+     * mount.
      *
      * <p>Rejection criteria (any one triggers rejection):
      *
@@ -375,7 +414,7 @@ public class Vision implements Subsystem {
      * large the target appears. {@code forceIntegrateXY} overrides the std-devs to near-zero, used
      * during disabled pre-seeding.
      *
-     * @param ll the turret Limelight to query
+     * @param ll the Limelight to query
      * @param forceIntegrateXY if {@code true}, bypass std-dev selection and use very tight
      *     covariance (disabled pre-seeding)
      * @return a {@link VisionFieldPoseEstimate} ready to pass to the pose estimator, or {@code
@@ -465,17 +504,14 @@ public class Vision implements Subsystem {
             return null;
         }
 
-        // Widen heading std-dev when ambiguity is moderate. The reported heading also carries
-        // turret
-        // encoder error, via the mount transform the camera solves against, so it is trusted less
-        // than a chassis camera's heading would be.
+        // Widen heading std-dev when ambiguity is moderate.
         if (highestAmbiguity > 0.5) {
-            degStds = Math.max(degStds, 50);
+            degStds = Math.max(degStds, 15);
         }
 
         // Discard heading during fast rotation (MegaTag1 heading unreliable while spinning)
         if (Math.abs(robotSpeed.omegaRadiansPerSecond) >= 0.5) {
-            degStds = Math.max(degStds, 75);
+            degStds = Math.max(degStds, 50);
         }
 
         // Override covariance for disabled pre-seeding
@@ -492,6 +528,109 @@ public class Vision implements Subsystem {
         int numTags = tags == null ? 1 : tags.length;
 
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
+    }
+
+    /**
+     * Builds a MegaTag2 (IMU-fused) pose estimate for a chassis Limelight. MT2 heading is always
+     * discarded (set to {@link VisionConfig#getKLargeVariance()}); only its translation is fused,
+     * which is why it is used mainly while stationary. Not used for the turret camera, whose MT2
+     * heading would be the turret-frame prior we push in.
+     *
+     * @param ll the chassis Limelight to query
+     * @return a {@link VisionFieldPoseEstimate}, or {@code null} if rejected
+     */
+    private VisionFieldPoseEstimate getMT2VisionEstimate(Limelight ll) {
+        if (!ll.targetInView()) {
+            ll.setTagStatus("No Targets in View");
+            ll.sendInvalidStatus("No Targets in View Rejection");
+            return null;
+        }
+
+        boolean multiTags = ll.multipleTagsInView();
+        double targetSize = ll.getTargetSize();
+        Pose2d megaTag2Pose2d = ll.getMegaTag2_Pose2d();
+        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        double robotLinearSpeed =
+                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+
+        double mt2PoseDifference =
+                Robot.getSwerve()
+                        .getRobotPose()
+                        .getTranslation()
+                        .getDistance(megaTag2Pose2d.getTranslation());
+
+        if (rejectionCheck(ll, megaTag2Pose2d, targetSize)) {
+            return null;
+        }
+
+        double xyStds;
+
+        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
+            ll.sendValidStatus("Stationary close integration");
+            xyStds = 0.1;
+        } else if (multiTags && targetSize > 2) {
+            ll.sendValidStatus("Strong Multi integration");
+            xyStds = 0.1;
+        } else if (multiTags && targetSize > 0.2) {
+            ll.sendValidStatus("Multi integration");
+            xyStds = 0.25;
+        } else if (targetSize > 2 && (mt2PoseDifference < 0.5 || DriverStation.isDisabled())) {
+            ll.sendValidStatus("Close integration");
+            xyStds = 0.5;
+        } else if (targetSize > 1 && (mt2PoseDifference < 0.25 || DriverStation.isDisabled())) {
+            ll.sendValidStatus("Proximity integration");
+            xyStds = 1.0;
+        } else if (targetSize >= 0.03) {
+            ll.sendValidStatus("Stable integration");
+            xyStds = 1.5;
+        } else {
+            ll.sendInvalidStatus("Integration Criteria not Met");
+            return null;
+        }
+
+        double degStds = config.getKLargeVariance();
+        Pose2d integratedPose =
+                new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
+
+        return new VisionFieldPoseEstimate(
+                integratedPose,
+                Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp()),
+                VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)),
+                (int) ll.getTagCountInView());
+    }
+
+    /**
+     * Selects the chassis Limelight with the best current view, scored by visible tag count plus
+     * target size. Detached cameras score 0, so on a turret-only robot this returns {@code
+     * backLeftLL} with score 0 and its estimate is rejected downstream (no target in view).
+     *
+     * @return the chassis Limelight currently offering the best view of AprilTags
+     */
+    public Limelight getBestLimelight() {
+        Limelight bestLimelight = backLeftLL;
+        double bestScore = 0;
+        for (Limelight limelight : swerveLimelights) {
+            double score = limelight.getTagCountInView() + limelight.getTargetSize();
+            if (score > bestScore) {
+                bestScore = score;
+                bestLimelight = limelight;
+            }
+        }
+        return bestLimelight;
+    }
+
+    /**
+     * Marks every chassis Limelight except {@code bestLimelight} as not integrating, so their
+     * telemetry status reflects that only the selected camera fed the estimator this loop.
+     *
+     * @param bestLimelight the camera being integrated this loop, left untouched
+     */
+    private void markUnselectedLimelights(Limelight bestLimelight) {
+        for (Limelight limelight : swerveLimelights) {
+            if (limelight != bestLimelight) {
+                limelight.sendInvalidStatus("Not best Limelight");
+            }
+        }
     }
 
     /**
@@ -542,7 +681,9 @@ public class Vision implements Subsystem {
             return true;
         }
 
-        if (Math.abs(Robot.getTurret().getMechOmegaRotPerSec()) >= 30) {
+        // Only the turret camera moves with the turret; reject its estimate while it slews (smear
+        // and mount-transform lag).
+        if (ll == turretLL && Math.abs(Robot.getTurret().getMechOmegaRotPerSec()) >= 0.75) {
             ll.sendInvalidStatus("Turret Speed Rejection");
             return true;
         }
@@ -568,6 +709,18 @@ public class Vision implements Subsystem {
     // =========================================================================
     // Pose Access & Queries
     // =========================================================================
+
+    /** MegaTag1 robot pose from the back-left Limelight, or {@link Pose2d#kZero} if unavailable. */
+    public Pose2d getBackLeftMegaTag1Pose() {
+        Pose2d pose = backLeftLL.getMegaTag1_Pose3d().toPose2d();
+        return pose != null ? pose : Pose2d.kZero;
+    }
+
+    /** MegaTag1 robot pose from the back-right Limelight, or {@link Pose2d#kZero} if none. */
+    public Pose2d getBackRightMegaTag1Pose() {
+        Pose2d pose = backRightLL.getMegaTag1_Pose3d().toPose2d();
+        return pose != null ? pose : Pose2d.kZero;
+    }
 
     /**
      * Returns the MegaTag1 (MT1) robot pose reported by the turret Limelight. It is already a robot

@@ -27,6 +27,7 @@ public class Auton {
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
+    public static final EventTrigger autonShootWithIntake = new EventTrigger("shootWithIntake");
     public static final EventTrigger autonClearState = new EventTrigger("clearState");
     public static final EventTrigger autonUnjam = new EventTrigger("unjam");
     public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
@@ -46,7 +47,6 @@ public class Auton {
         pathChooser.addOption("OSTBTB Left", OSTBTB(false));
         pathChooser.addOption("OSTBTB Right", OSTBTB(true));
         pathChooser.addOption("OSRIPOFF", OSRIPPOFF(false));
-        pathChooser.addOption("OSRIPOFF", OSRIPPOFF(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }

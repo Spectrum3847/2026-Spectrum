@@ -13,13 +13,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "Copy of OSTBTB 3"
+            "pathName": "OSRIPOFF 2"
           }
         }
       ]
     }
   },
-  "resetOdom": true,
+  "resetOdom": false,
   "folder": "OSLARP",
   "choreoAuto": false
 }

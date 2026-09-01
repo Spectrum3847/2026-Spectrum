@@ -310,6 +310,8 @@ public class Robot extends SpectrumRobot {
                 superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
         Auton.autonShoot.onTrue(
                 superStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE));
+        Auton.autonShootWithIntake.onTrue(
+                superStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE));
         Auton.autonUnjam.onTrue(
                 Commands.sequence(
                         superStructure.setStateCommand(WantedSuperState.UNJAM),
@@ -328,7 +330,8 @@ public class Robot extends SpectrumRobot {
         pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
         pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
-        pilot.LB.onTrue(FeedTargetFactory.feedRight());
+        pilot.LB.onTrue(FeedTargetFactory.feedLeft());
+        pilot.RB.onTrue(FeedTargetFactory.feedRight());
     }
 
     /** Sets up the SmartDashboard data for visualization. */
@@ -544,6 +547,8 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousExit() {
         auton.exit();
+        CommandScheduler.getInstance().cancelAll();
+        superStructure.setWantedSuperState(WantedSuperState.IDLE);
         Telemetry.print("@@@ Auton Exit @@@ ");
     }
     /** Teleop init. */
@@ -552,6 +557,8 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("!!! Teleop Init Starting !!! ");
 
+            CommandScheduler.getInstance().cancelAll();
+            superStructure.setWantedSuperState(WantedSuperState.IDLE);
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
