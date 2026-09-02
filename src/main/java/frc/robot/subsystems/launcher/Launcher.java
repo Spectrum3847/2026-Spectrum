@@ -46,9 +46,9 @@ public class Launcher extends Mechanism {
         @Getter private double gearRatio = 1.38;
 
         /* Sim Configs */
-        @Getter private final double launcherX = Units.inchesToMeters(50);
+        @Getter private final double launcherX = Units.inchesToMeters(43);
 
-        @Getter private final double launcherY = Units.inchesToMeters(65);
+        @Getter private final double launcherY = Units.inchesToMeters(53);
         @Getter private final double wheelDiameter = 4;
 
         /** Creates a new LauncherConfig instance. */
