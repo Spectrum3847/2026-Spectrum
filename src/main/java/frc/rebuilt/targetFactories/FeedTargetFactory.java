@@ -25,6 +25,10 @@ public class FeedTargetFactory {
         return new InstantCommand(() -> left = Field.isBlue() ? false : true);
     }
 
+    public static Command feedDefault() {
+        return new InstantCommand(() -> left = swerve.inFieldLeft().getAsBoolean());
+    }
+
     static InterpolatingTreeMap<Double, Double> distanceOffsetMap =
             new InterpolatingTreeMap<>(InverseInterpolator.forDouble(), Interpolator.forDouble());
 

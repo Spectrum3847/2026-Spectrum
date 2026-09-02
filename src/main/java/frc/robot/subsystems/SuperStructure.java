@@ -395,7 +395,7 @@ public class SuperStructure extends SubsystemBase {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_RETRACT);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.OFF);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        turret.setWantedState(Turret.WantedState.IDLE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 

@@ -111,7 +111,7 @@ public class RobotSim {
                         .rotateAround(
                                 HOOD_PIVOT_POINT,
                                 new Rotation3d(0, Math.toRadians(hoodAngleDegrees), 0))
-                        .rotateBy(new Rotation3d(0, 0, Math.toRadians(turretAngleDegrees)));
+                        .rotateBy(new Rotation3d(0, 0, Math.toRadians(hoodAngleDegrees)));
 
         double dyeRotorDegrees = robotSuperStructure.getDyeRotor().getRotor().getPositionDegrees();
         var dyeRotorPose3d =

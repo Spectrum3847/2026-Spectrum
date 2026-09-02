@@ -169,7 +169,6 @@ public class Vision implements Subsystem {
 
     /* Vision loggers — one per Limelight */
     private final VisionLogger backLeftLogger;
-
     private final VisionLogger backRightLogger;
     private final VisionLogger turretLogger;
 

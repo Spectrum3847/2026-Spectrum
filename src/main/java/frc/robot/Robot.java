@@ -226,16 +226,19 @@ public class Robot extends SpectrumRobot {
                         pilot.RT.negate()));
 
         // RT alone → launch; do nothing if LT is already held (RT+LT handled below)
-        pilot.RT.onTrue(
-                Commands.either(
-                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
-                        Commands.none(),
-                        pilot.LT.negate()));
-
+        pilot.RT
+                .onTrue(
+                        Commands.either(
+                                superStructure.setStateCommand(
+                                        WantedSuperState.LAUNCH_WITH_SQUEEZE),
+                                Commands.none(),
+                                pilot.LT.negate()))
+                .onFalse(FeedTargetFactory.feedDefault());
         // RT + LT both held → launch (intake stays extended; resolves to LAUNCH_WITHOUT_SQUEEZE)
         pilot.RT
                 .and(pilot.LT)
-                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE));
+                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE))
+                .onFalse(FeedTargetFactory.feedDefault());
 
         // LT released while RT still held → launch (no delay; resolves to
         // LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)
@@ -279,8 +282,9 @@ public class Robot extends SpectrumRobot {
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
 
-        operator.LT.onTrue(FeedTargetFactory.feedLeft());
-        operator.RT.onTrue(FeedTargetFactory.feedRight());
+        operator.LB.onTrue(FeedTargetFactory.feedLeft());
+        operator.RB.onTrue(FeedTargetFactory.feedRight());
+        operator.LB.or(operator.RB).onFalse(FeedTargetFactory.feedDefault());
 
         pilot.upReorient.onTrue(swerve.reorientForward());
         pilot.leftReorient.onTrue(swerve.reorientLeft());
