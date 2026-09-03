@@ -78,8 +78,8 @@ public class Vision implements Subsystem {
         @Getter
         final LimelightConfig backLeftConfig =
                 new LimelightConfig(backLeftLL)
-                        .withTranslation(0, 0, 0)
-                        .withRotation(0, 0, 0)
+                        .withTranslation(Units.inchesToMeters(-10.148), Units.inchesToMeters(-11.489), Units.inchesToMeters(17.615))
+                        .withRotation(180, 60, 0)
                         .setAttached(false);
 
         // -- Back-Right Limelight ---------------------------------------------
@@ -94,8 +94,8 @@ public class Vision implements Subsystem {
         @Getter
         final LimelightConfig backRightConfig =
                 new LimelightConfig(backRightLL)
-                        .withTranslation(-0.3084987734, 0, 0)
-                        .withRotation(0, 0, 0)
+                        .withTranslation(Units.inchesToMeters(13.315), Units.inchesToMeters(-10.064), Units.inchesToMeters(17.429))
+                        .withRotation(180, 60, 0)
                         .setAttached(false);
 
         // -- Turret Limelight -------------------------------------------------
