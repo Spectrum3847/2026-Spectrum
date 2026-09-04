@@ -14,14 +14,19 @@ import lombok.Setter;
 public class LinearConfig {
     /** Number of Kraken X60 motors driving the linear stage. */
     @Getter private int numMotors = 1;
+
     /** Gear ratio between the motor and the elevator drum. */
     @Getter private double elevatorGearing = 5;
+
     /** Mass of the moving carriage in kilograms, used by the physics simulation. */
     @Getter private double carriageMassKg = 1;
+
     /** Radius of the elevator drum in metres, used to convert rotations to linear position. */
     @Getter private double drumRadius = Units.inchesToMeters(0.955 / 2);
+
     /** Minimum travel height of the mechanism in metres. */
     @Getter private double minHeight = 0;
+
     /** Maximum travel height of the mechanism in metres. */
     @Getter
     private double maxHeight = 10000; // Units.inchesToMeters(Robot.config.elevator.maxHeight);
@@ -32,32 +37,45 @@ public class LinearConfig {
      * CCW positive).
      */
     @Getter private double angle = 90; // O is horizontal, 90 is vertical, CCW is positive
+
     /** Color of the moving stage ligament in the Mechanism2d canvas. */
     @Getter private Color8Bit color = new Color8Bit(Color.kPurple);
+
     /** Stroke width of the stage ligaments in the Mechanism2d canvas. */
     @Getter private double lineWidth = 10;
+
     /** Initial X position of the static root in the Mechanism2d canvas (metres). */
     @Getter private double initialX = 0.5;
+
     /** Initial Y position of the static root in the Mechanism2d canvas (metres). */
     @Getter private double initialY = 0;
+
     /** Current X position of the static root, updated when mounted (metres). */
     @Getter @Setter private double staticRootX = 0.5;
+
     /** Current Y position of the static root, updated when mounted (metres). */
     @Getter @Setter private double staticRootY = 0;
+
     /**
      * Visual length of the static (non-moving) stage ligament in the Mechanism2d canvas (metres).
      */
     @Getter private double staticLength = 20;
+
     /** Visual length of the moving stage ligament in the Mechanism2d canvas (metres). */
     @Getter private double movingLength = 20;
+
     /** Whether this linear stage is attached to a parent {@link Mount}. */
     @Getter private boolean mounted = false;
+
     /** The parent mount this linear stage is attached to, or {@code null} if not mounted. */
     @Getter private Mount mount;
+
     /** X position of the mount at simulation start (metres). */
     @Getter private double initMountX;
+
     /** Y position of the mount at simulation start (metres). */
     @Getter private double initMountY;
+
     /** Angle of the mount at simulation start (radians). */
     @Getter private double initMountAngle;
 

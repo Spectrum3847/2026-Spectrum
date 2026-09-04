@@ -25,6 +25,7 @@ public class LinearSim implements Mount, Mountable {
     private final MechanismRoot2d root;
     private final MechanismLigament2d staticMech2d;
     private final MechanismLigament2d m_elevatorMech2d;
+
     /** Configuration containing physical properties and display settings for this linear stage. */
     @Getter private LinearConfig config;
 

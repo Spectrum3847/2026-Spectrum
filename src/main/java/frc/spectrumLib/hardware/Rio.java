@@ -53,6 +53,7 @@ public enum Rio {
 
     /** CANivore bus selector that chooses the first CANivore found on the system. */
     public static final String CANIVORE = "*";
+
     /** CAN bus name for the native RoboRIO CAN interface. */
     public static final String RIO_CANBUS = "rio";
 

@@ -100,6 +100,7 @@ public class IndexerTower extends Mechanism {
     }
 
     @Getter private final IndexerTowerConfig config;
+
     // @Getter private IndexerSim sim;
 
     public IndexerTower(IndexerTowerConfig config) {

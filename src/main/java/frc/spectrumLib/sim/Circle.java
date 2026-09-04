@@ -22,13 +22,16 @@ public class Circle {
 
     /** Array of radial ligaments that together form the circle outline. */
     @Getter private MechanismLigament2d[] circleBackground;
+
     /** Number of radial lines used to approximate the circle. */
     @Getter private int backgroundLines;
 
     private double diameterInches;
     private MechanismRoot2d root;
+
     /** Color applied to all background lines when the circle is drawn. */
     @Setter private Color8Bit color = new Color8Bit(Color.kBlack);
+
     /** Label prefix used when naming Mechanism2d elements. */
     @Setter private String name;
 

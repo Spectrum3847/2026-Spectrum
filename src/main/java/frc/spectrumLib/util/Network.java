@@ -6,6 +6,7 @@ import java.net.*;
 /** Common Network Utilities */
 public class Network {
     static final String unknown = "UNKNOWN";
+
     /**
      * Gets the MAC address of the robot
      *

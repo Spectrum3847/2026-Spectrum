@@ -97,6 +97,7 @@ public class IndexerBed extends Mechanism {
     }
 
     @Getter private final IndexerBedConfig config;
+
     // @Getter private IndexerSim sim;
 
     public IndexerBed(IndexerBedConfig config) {

@@ -299,9 +299,8 @@ public class IntakeExtension extends Mechanism {
                 sentOutByIntakeState = true;
                 yield SystemState.FULL_EXTEND;
             }
-            case CONDITIONAL_EXTEND -> sentOutByIntakeState
-                    ? SystemState.FULL_EXTEND
-                    : SystemState.STOPPED;
+            case CONDITIONAL_EXTEND ->
+                    sentOutByIntakeState ? SystemState.FULL_EXTEND : SystemState.STOPPED;
             case FULL_RETRACT -> {
                 sentOutByIntakeState = false;
                 yield SystemState.FULL_RETRACT;

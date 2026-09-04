@@ -31,7 +31,7 @@ GradleRIO is at `2026.2.1` and targets the 2026 WPILib release. Bumping it means
 
 Java 17 is enforced via `sourceCompatibility`/`targetCompatibility`. Anything else will fail at compile, with a not-always-obvious error message. See [Setup](../setup.md) for how to install Temurin 17.
 
-Spotless is wired to `compileJava`, so `./gradlew build` reformats your code in place using `googleJavaFormat("1.15.0").aosp()`. If you need to opt a region out (say, a hand-aligned matrix), wrap it in `// spotless:off` / `// spotless:on`.
+Spotless is wired to `compileJava`, so `./gradlew build` reformats your code in place using `googleJavaFormat("1.28.0").aosp().formatJavadoc(false)`. If you need to opt a region out (say, a hand-aligned matrix), wrap it in `// spotless:off` / `// spotless:on`.
 
 SpotBugs runs against the main source set with the exclude list in `excludeFilter-spotbugs.xml`. The HTML report (`build/reports/spotbugs.html`) is the easiest way to triage findings.
 

@@ -8,7 +8,7 @@ A walkthrough of the non-Gradle tooling that ships in this repo. Gradle itself g
 
 [Spotless](https://github.com/diffplug/spotless) keeps the codebase formatted to a single style so nobody's PR is half-diff because of whitespace. The configuration sits at the bottom of [`build.gradle`](../../build.gradle):
 
-* **Java** → `googleJavaFormat("1.15.0").aosp()` plus `removeUnusedImports`, `trimTrailingWhitespace`, `endWithNewline`. The AOSP variant uses 4-space indents, which matches what WPILib examples use.
+* **Java** → `googleJavaFormat("1.28.0").aosp().formatJavadoc(false)` plus `removeUnusedImports`, `trimTrailingWhitespace`, `endWithNewline`. The AOSP variant uses 4-space indents, which matches what WPILib examples use. 1.28.0 is the newest Google Java Format that still runs on JDK 17 (WPILib 2026 / student machines / CI). 1.29+ needs JDK 21 to *run* the formatter even though it can still format Java 17 source. `formatJavadoc` is off so this bump doesn't reflow every JavaDoc; turn it on in a dedicated PR if we want that.
 * **Gradle**, **XML**, and **Markdown** all get their own formatters too — that's why a `./gradlew build` will sometimes rewrite this very file.
 
 `compileJava` depends on `spotlessApply`, so every local build reformats your code. CI runs `spotlessCheck` instead, which is read-only — if it fires, run `./gradlew spotlessApply` locally, commit, and push again.

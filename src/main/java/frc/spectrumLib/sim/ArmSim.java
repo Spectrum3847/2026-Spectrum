@@ -18,6 +18,7 @@ import lombok.Getter;
  */
 public class ArmSim implements Mount, Mountable {
     private SingleJointedArmSim armSim;
+
     /** Configuration containing physical properties and display settings for this arm. */
     @Getter private ArmConfig config;
 
