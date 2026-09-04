@@ -93,34 +93,30 @@ public class MapleSimSwerveDrivetrain {
             Translation2d[] moduleLocations,
             Pigeon2 pigeon,
             SwerveModule<TalonFX, TalonFX, CANcoder>[] modules,
-            SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-                            ...
+            SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>...
                     moduleConstants) {
         this.pigeonSim = pigeon.getSimState();
         simModules = new SimSwerveModule[moduleConstants.length];
-        DriveTrainSimulationConfig simulationConfig =
-                DriveTrainSimulationConfig.Default()
-                        .withRobotMass(robotMassWithBumpers)
-                        .withBumperSize(bumperLengthX, bumperWidthY)
-                        .withGyro(COTS.ofPigeon2())
-                        .withCustomModuleTranslations(moduleLocations)
-                        .withSwerveModule(
-                                new SwerveModuleSimulationConfig(
-                                        driveMotorModel,
-                                        steerMotorModel,
-                                        moduleConstants[0].DriveMotorGearRatio,
-                                        moduleConstants[0].SteerMotorGearRatio,
-                                        Volts.of(moduleConstants[0].DriveFrictionVoltage),
-                                        Volts.of(moduleConstants[0].SteerFrictionVoltage),
-                                        Meters.of(moduleConstants[0].WheelRadius),
-                                        KilogramSquareMeters.of(moduleConstants[0].SteerInertia),
-                                        wheelCOF));
+        DriveTrainSimulationConfig simulationConfig = DriveTrainSimulationConfig.Default()
+                .withRobotMass(robotMassWithBumpers)
+                .withBumperSize(bumperLengthX, bumperWidthY)
+                .withGyro(COTS.ofPigeon2())
+                .withCustomModuleTranslations(moduleLocations)
+                .withSwerveModule(new SwerveModuleSimulationConfig(
+                        driveMotorModel,
+                        steerMotorModel,
+                        moduleConstants[0].DriveMotorGearRatio,
+                        moduleConstants[0].SteerMotorGearRatio,
+                        Volts.of(moduleConstants[0].DriveFrictionVoltage),
+                        Volts.of(moduleConstants[0].SteerFrictionVoltage),
+                        Meters.of(moduleConstants[0].WheelRadius),
+                        KilogramSquareMeters.of(moduleConstants[0].SteerInertia),
+                        wheelCOF));
         mapleSimDrive = new SwerveDriveSimulation(simulationConfig, Pose2d.kZero);
 
         SwerveModuleSimulation[] moduleSimulations = mapleSimDrive.getModules();
         for (int i = 0; i < this.simModules.length; i++)
-            simModules[i] =
-                    new SimSwerveModule(moduleConstants[0], moduleSimulations[i], modules[i]);
+            simModules[i] = new SimSwerveModule(moduleConstants[0], moduleSimulations[i], modules[i]);
 
         Arena2026Rebuilt arena = new Arena2026Rebuilt(false);
         arena.setEfficiencyMode(true);
@@ -140,11 +136,10 @@ public class MapleSimSwerveDrivetrain {
      */
     public void update() {
         SimulatedArena.getInstance().simulationPeriodic();
-        pigeonSim.setRawYaw(mapleSimDrive.getSimulatedDriveTrainPose().getRotation().getMeasure());
-        pigeonSim.setAngularVelocityZ(
-                RadiansPerSecond.of(
-                        mapleSimDrive.getDriveTrainSimulatedChassisSpeedsRobotRelative()
-                                .omegaRadiansPerSecond));
+        pigeonSim.setRawYaw(
+                mapleSimDrive.getSimulatedDriveTrainPose().getRotation().getMeasure());
+        pigeonSim.setAngularVelocityZ(RadiansPerSecond.of(
+                mapleSimDrive.getDriveTrainSimulatedChassisSpeedsRobotRelative().omegaRadiansPerSecond));
     }
 
     /**
@@ -154,8 +149,7 @@ public class MapleSimSwerveDrivetrain {
      */
     protected static class SimSwerveModule {
         /** Constants (gear ratios, friction voltages, wheel radius, etc.) for this module. */
-        public final SwerveModuleConstants<
-                        TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
+        public final SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
                 moduleConstant;
 
         /** Maple-Sim physics simulation instance for this module. */
@@ -170,18 +164,14 @@ public class MapleSimSwerveDrivetrain {
          * @param module the real CTRE {@link SwerveModule} whose sim states will be driven
          */
         public SimSwerveModule(
-                SwerveModuleConstants<
-                                TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-                        moduleConstant,
+                SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration> moduleConstant,
                 SwerveModuleSimulation moduleSimulation,
                 SwerveModule<TalonFX, TalonFX, CANcoder> module) {
             this.moduleConstant = moduleConstant;
             this.moduleSimulation = moduleSimulation;
-            moduleSimulation.useDriveMotorController(
-                    new TalonFXMotorControllerSim(module.getDriveMotor()));
+            moduleSimulation.useDriveMotorController(new TalonFXMotorControllerSim(module.getDriveMotor()));
             moduleSimulation.useSteerMotorController(
-                    new TalonFXMotorControllerWithRemoteCanCoderSim(
-                            module.getSteerMotor(), module.getEncoder()));
+                    new TalonFXMotorControllerWithRemoteCanCoderSim(module.getSteerMotor(), module.getEncoder()));
         }
     }
 
@@ -239,8 +229,7 @@ public class MapleSimSwerveDrivetrain {
      * Used for steer motors whose feedback device is a remote CANcoder.
      */
     @SuppressWarnings("all")
-    public static class TalonFXMotorControllerWithRemoteCanCoderSim
-            extends TalonFXMotorControllerSim {
+    public static class TalonFXMotorControllerWithRemoteCanCoderSim extends TalonFXMotorControllerSim {
         /** CAN device ID of the remote CANcoder. */
         private final int encoderId;
 
@@ -282,8 +271,7 @@ public class MapleSimSwerveDrivetrain {
             remoteCancoderSimState.setRawPosition(mechanismAngle);
             remoteCancoderSimState.setVelocity(mechanismVelocity);
 
-            return super.updateControlSignal(
-                    mechanismAngle, mechanismVelocity, encoderAngle, encoderVelocity);
+            return super.updateControlSignal(mechanismAngle, mechanismVelocity, encoderAngle, encoderVelocity);
         }
     }
 
@@ -326,8 +314,7 @@ public class MapleSimSwerveDrivetrain {
      * <h4>Note:This function is skipped when running on a real robot, ensuring no impact on
      * constants used on real robot hardware.</h4>
      */
-    private static void regulateModuleConstantForSimulation(
-            SwerveModuleConstants<?, ?, ?> moduleConstants) {
+    private static void regulateModuleConstantForSimulation(SwerveModuleConstants<?, ?, ?> moduleConstants) {
         // Skip regulation if running on a real robot
         if (RobotBase.isReal()) return;
 
@@ -341,16 +328,14 @@ public class MapleSimSwerveDrivetrain {
                 // Disable CanCoder inversion
                 .withEncoderInverted(false)
                 // TODO: Adjust steer and drive motor PID gains for simulation
-                .withSteerMotorGains(
-                        new Slot0Configs()
-                                .withKP(1000.0)
-                                .withKI(0)
-                                .withKD(60.0)
-                                .withKS(0.15)
-                                .withKV(1.5)
-                                .withKA(0)
-                                .withStaticFeedforwardSign(
-                                        StaticFeedforwardSignValue.UseClosedLoopSign))
+                .withSteerMotorGains(new Slot0Configs()
+                        .withKP(1000.0)
+                        .withKI(0)
+                        .withKD(60.0)
+                        .withKS(0.15)
+                        .withKV(1.5)
+                        .withKA(0)
+                        .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign))
                 .withSteerMotorGearRatio(21.428571428571427)
                 // Adjust friction voltages
                 .withDriveFrictionVoltage(Volts.of(0.1))

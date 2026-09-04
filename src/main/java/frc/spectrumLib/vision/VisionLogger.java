@@ -17,7 +17,8 @@ public class VisionLogger {
     private final Limelight limelight;
 
     /** Namespace prefix used in all telemetry keys ({@code Vision/<name>/...}). */
-    @Getter private String name;
+    @Getter
+    private String name;
 
     private final String connectionStatusKey;
     private final String integratingStatusKey;

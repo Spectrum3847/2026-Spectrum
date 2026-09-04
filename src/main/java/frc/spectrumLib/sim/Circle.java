@@ -21,16 +21,20 @@ public class Circle {
     private MechanismLigament2d rollerViz;
 
     /** Array of radial ligaments that together form the circle outline. */
-    @Getter private MechanismLigament2d[] circleBackground;
+    @Getter
+    private MechanismLigament2d[] circleBackground;
     /** Number of radial lines used to approximate the circle. */
-    @Getter private int backgroundLines;
+    @Getter
+    private int backgroundLines;
 
     private double diameterInches;
     private MechanismRoot2d root;
     /** Color applied to all background lines when the circle is drawn. */
-    @Setter private Color8Bit color = new Color8Bit(Color.kBlack);
+    @Setter
+    private Color8Bit color = new Color8Bit(Color.kBlack);
     /** Label prefix used when naming Mechanism2d elements. */
-    @Setter private String name;
+    @Setter
+    private String name;
 
     /**
      * Creates a Circle and immediately draws the radial background lines.
@@ -41,12 +45,7 @@ public class Circle {
      * @param root the Mechanism2d root the circle is attached to
      * @param mech the parent Mechanism2d canvas
      */
-    public Circle(
-            int backgroundLines,
-            double diameterInches,
-            String name,
-            MechanismRoot2d root,
-            Mechanism2d mech) {
+    public Circle(int backgroundLines, double diameterInches, String name, MechanismRoot2d root, Mechanism2d mech) {
         this.backgroundLines = backgroundLines;
         this.diameterInches = diameterInches;
         this.name = name;
@@ -84,14 +83,12 @@ public class Circle {
      */
     public void drawCircle() {
         for (int i = 0; i < backgroundLines; i++) {
-            circleBackground[i] =
-                    root.append(
-                            new MechanismLigament2d(
-                                    name + " Background " + i,
-                                    Units.inchesToMeters(diameterInches) / 2.0,
-                                    (360.0 / backgroundLines) * i,
-                                    diameterInches,
-                                    color));
+            circleBackground[i] = root.append(new MechanismLigament2d(
+                    name + " Background " + i,
+                    Units.inchesToMeters(diameterInches) / 2.0,
+                    (360.0 / backgroundLines) * i,
+                    diameterInches,
+                    color));
         }
     }
 
@@ -100,14 +97,8 @@ public class Circle {
      * the Mechanism2d canvas.
      */
     public void drawViz() {
-        rollerViz =
-                rollerAxle.append(
-                        new MechanismLigament2d(
-                                name + " Roller",
-                                Units.inchesToMeters(diameterInches) / 2.0,
-                                0.0,
-                                5.0,
-                                new Color8Bit(Color.kWhite)));
+        rollerViz = rollerAxle.append(new MechanismLigament2d(
+                name + " Roller", Units.inchesToMeters(diameterInches) / 2.0, 0.0, 5.0, new Color8Bit(Color.kWhite)));
     }
 
     /**

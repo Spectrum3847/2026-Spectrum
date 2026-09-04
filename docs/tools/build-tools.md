@@ -8,7 +8,7 @@ A walkthrough of the non-Gradle tooling that ships in this repo. Gradle itself g
 
 [Spotless](https://github.com/diffplug/spotless) keeps the codebase formatted to a single style so nobody's PR is half-diff because of whitespace. The configuration sits at the bottom of [`build.gradle`](../../build.gradle):
 
-* **Java** → `googleJavaFormat("1.15.0").aosp()` plus `removeUnusedImports`, `trimTrailingWhitespace`, `endWithNewline`. The AOSP variant uses 4-space indents, which matches what WPILib examples use.
+* **Java** → `palantirJavaFormat("2.71.0")` plus `removeUnusedImports`, `trimTrailingWhitespace`, `endWithNewline`. [Palantir Java Format](https://github.com/palantir/palantir-java-format) is a fork of google-java-format that keeps the 4-space indent WPILib examples use, but wraps at 120 columns and has wrapping rules tuned for lambdas, streams, and fluent chains — which is most of what a `Commands.sequence(...)` tree looks like. The version is pinned because Spotless 6.25.0 would otherwise pick a much older Palantir (2.28.0) when running on JDK 17.
 * **Gradle**, **XML**, and **Markdown** all get their own formatters too — that's why a `./gradlew build` will sometimes rewrite this very file.
 
 `compileJava` depends on `spotlessApply`, so every local build reformats your code. CI runs `spotlessCheck` instead, which is read-only — if it fires, run `./gradlew spotlessApply` locally, commit, and push again.

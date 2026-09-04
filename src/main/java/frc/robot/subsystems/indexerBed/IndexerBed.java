@@ -12,18 +12,36 @@ public class IndexerBed extends Mechanism {
 
     public static class IndexerBedConfig extends Config {
         /* Indexer config values */
-        @Getter private final double supplyCurrentLimit = 30;
-        @Getter private final double statorCurrentLimit = 180;
-        @Getter private final double lowerSupplyCurrentLimit = 30;
-        @Getter private final double lowerSupplyCurrentTime = 0;
-        @Getter private final double velocityKp = 30;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 4;
+        @Getter
+        private final double supplyCurrentLimit = 30;
+
+        @Getter
+        private final double statorCurrentLimit = 180;
+
+        @Getter
+        private final double lowerSupplyCurrentLimit = 30;
+
+        @Getter
+        private final double lowerSupplyCurrentTime = 0;
+
+        @Getter
+        private final double velocityKp = 30;
+
+        @Getter
+        private final double velocityKv = 0;
+
+        @Getter
+        private final double velocityKs = 4;
 
         /* Sim Configs */
-        @Getter private final double intakeX = Units.inchesToMeters(60);
-        @Getter private final double intakeY = Units.inchesToMeters(75);
-        @Getter private final double wheelDiameter = 12;
+        @Getter
+        private final double intakeX = Units.inchesToMeters(60);
+
+        @Getter
+        private final double intakeY = Units.inchesToMeters(75);
+
+        @Getter
+        private final double wheelDiameter = 12;
 
         public IndexerBedConfig() {
             super("IndexerBed", 8, Rio.CANIVORE);
@@ -39,8 +57,7 @@ public class IndexerBed extends Mechanism {
             configNeutralBrakeMode(false);
             configClockwise_Positive();
             setFollowerConfigs(
-                    new FollowerConfig(
-                            "IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));
+                    new FollowerConfig("IndexerBed Follower 1", 9, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -96,7 +113,8 @@ public class IndexerBed extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    @Getter private final IndexerBedConfig config;
+    @Getter
+    private final IndexerBedConfig config;
     // @Getter private IndexerSim sim;
 
     public IndexerBed(IndexerBedConfig config) {

@@ -43,16 +43,12 @@ public interface Mountable {
             case LINEAR:
                 return getXWithAngle(
                         getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
+                        mountAngle + getAngleOffset(initialX, initialY, initMountX, initMountY, initMountAngle),
                         initMountX + displacementX);
             case ARM:
                 return getXWithAngle(
                         getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
+                        mountAngle + getAngleOffset(initialX, initialY, initMountX, initMountY, initMountAngle),
                         mountX);
             default:
                 return initialX;
@@ -93,16 +89,12 @@ public interface Mountable {
             case LINEAR:
                 return getYWithAngle(
                         getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
+                        mountAngle + getAngleOffset(initialX, initialY, initMountX, initMountY, initMountAngle),
                         initMountY + displacementY);
             case ARM:
                 return getYWithAngle(
                         getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
+                        mountAngle + getAngleOffset(initialX, initialY, initMountX, initMountY, initMountAngle),
                         mountY);
             default:
                 return initialY;
@@ -245,15 +237,12 @@ public interface Mountable {
      * Returns the radians a mounted object should be away from a mount based on their initial
      * positions
      */
-    static double getAngleOffset(
-            double initialX, double initialY, double mountX, double mountY, double startingAngle) {
+    static double getAngleOffset(double initialX, double initialY, double mountX, double mountY, double startingAngle) {
         double hypotenuse = getDistance(initialX, initialY, mountX, mountY);
         if (initialX >= mountX) {
             return Math.asin((initialY - mountY) / hypotenuse) - startingAngle;
         } else {
-            return Math.toRadians(180)
-                    - Math.asin((initialY - mountY) / hypotenuse)
-                    - startingAngle;
+            return Math.toRadians(180) - Math.asin((initialY - mountY) / hypotenuse) - startingAngle;
         }
     }
 

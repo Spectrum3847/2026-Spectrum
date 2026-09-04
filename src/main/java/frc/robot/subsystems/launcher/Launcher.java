@@ -20,23 +20,48 @@ public class Launcher extends Mechanism {
     public static class LauncherConfig extends Config {
 
         /* Launcher config values */
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 180;
-        @Getter private final double lowerSupplyCurrentLimit = 80;
-        @Getter private final double lowerSupplyCurrentTime = 0;
-        @Getter private final double forwardTorqueCurrentLimit = statorCurrentLimit;
-        @Getter private final double reverseTorqueCurrentLimit = 10;
-        @Getter private final double voltageLimit = 12;
-        @Getter private final double velocityKp = 10;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 20;
+        @Getter
+        private final double supplyCurrentLimit = 80;
 
-        @Getter private final double onTargetToleranceRPM = 100;
+        @Getter
+        private final double statorCurrentLimit = 180;
+
+        @Getter
+        private final double lowerSupplyCurrentLimit = 80;
+
+        @Getter
+        private final double lowerSupplyCurrentTime = 0;
+
+        @Getter
+        private final double forwardTorqueCurrentLimit = statorCurrentLimit;
+
+        @Getter
+        private final double reverseTorqueCurrentLimit = 10;
+
+        @Getter
+        private final double voltageLimit = 12;
+
+        @Getter
+        private final double velocityKp = 10;
+
+        @Getter
+        private final double velocityKv = 0;
+
+        @Getter
+        private final double velocityKs = 20;
+
+        @Getter
+        private final double onTargetToleranceRPM = 100;
 
         /* Sim Configs */
-        @Getter private final double launcherX = Units.inchesToMeters(62.5);
-        @Getter private final double launcherY = Units.inchesToMeters(60);
-        @Getter private final double wheelDiameter = 4;
+        @Getter
+        private final double launcherX = Units.inchesToMeters(62.5);
+
+        @Getter
+        private final double launcherY = Units.inchesToMeters(60);
+
+        @Getter
+        private final double wheelDiameter = 4;
 
         public LauncherConfig() {
             super("Launcher", 46, Rio.CANIVORE);
@@ -54,15 +79,9 @@ public class Launcher extends Mechanism {
             configReverseVoltageLimit(-voltageLimit);
             configClockwise_Positive();
             setFollowerConfigs(
-                    new FollowerConfig(
-                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
-                    new FollowerConfig(
-                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
-                    new FollowerConfig(
-                            "Launcher Bottom Right",
-                            49,
-                            Rio.CANIVORE,
-                            MotorAlignmentValue.Opposed));
+                    new FollowerConfig("Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
+                    new FollowerConfig("Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
+                    new FollowerConfig("Launcher Bottom Right", 49, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
 
@@ -119,8 +138,11 @@ public class Launcher extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    @Getter private final LauncherConfig config;
-    @Getter private LauncherSim sim;
+    @Getter
+    private final LauncherConfig config;
+
+    @Getter
+    private LauncherSim sim;
 
     public Launcher(LauncherConfig config) {
         super(config);

@@ -69,8 +69,7 @@ public class TalonFXFactory {
         String leaderCanBus = leaderTalonFX.getNetwork().toString();
         int leaderId = leaderTalonFX.getDeviceID();
         if (!followerId.getBus().equals(leaderCanBus)) {
-            throw new IllegalArgumentException(
-                    "Leader and Follower Talons must be on the same CAN bus");
+            throw new IllegalArgumentException("Leader and Follower Talons must be on the same CAN bus");
         }
 
         TalonFXConfiguration followerConfig = getDefaultConfig();

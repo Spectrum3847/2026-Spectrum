@@ -41,9 +41,8 @@ public class FeedTargetFactory {
             }
         }
 
-        double distance =
-                new Translation2d(feedTarget.getX(), feedTarget.getY())
-                        .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
+        double distance = new Translation2d(feedTarget.getX(), feedTarget.getY())
+                .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
         // Do math in blue alliance, we flip for red.
@@ -53,9 +52,7 @@ public class FeedTargetFactory {
             offSet = new Translation2d(-offSet.getX(), offSet.getY());
         }
 
-        feedTarget =
-                new Translation2d(
-                        feedTarget.getX() + offSet.getX(), feedTarget.getY() + offSet.getY());
+        feedTarget = new Translation2d(feedTarget.getX() + offSet.getX(), feedTarget.getY() + offSet.getY());
         return feedTarget;
     }
 }

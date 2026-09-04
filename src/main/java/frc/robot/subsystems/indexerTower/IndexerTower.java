@@ -12,18 +12,36 @@ public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
         /* Indexer config values */
-        @Getter private final double supplyCurrentLimit = 40;
-        @Getter private final double statorCurrentLimit = 180;
-        @Getter private final double lowerSupplyCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentTime = 0;
-        @Getter private final double velocityKp = 50;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 40;
+        @Getter
+        private final double supplyCurrentLimit = 40;
+
+        @Getter
+        private final double statorCurrentLimit = 180;
+
+        @Getter
+        private final double lowerSupplyCurrentLimit = 40;
+
+        @Getter
+        private final double lowerSupplyCurrentTime = 0;
+
+        @Getter
+        private final double velocityKp = 50;
+
+        @Getter
+        private final double velocityKv = 0;
+
+        @Getter
+        private final double velocityKs = 40;
 
         /* Sim Configs */
-        @Getter private final double intakeX = Units.inchesToMeters(60);
-        @Getter private final double intakeY = Units.inchesToMeters(75);
-        @Getter private final double wheelDiameter = 12;
+        @Getter
+        private final double intakeX = Units.inchesToMeters(60);
+
+        @Getter
+        private final double intakeY = Units.inchesToMeters(75);
+
+        @Getter
+        private final double wheelDiameter = 12;
 
         public IndexerTowerConfig() {
             super("IndexerTower", 51, Rio.CANIVORE);
@@ -39,11 +57,7 @@ public class IndexerTower extends Mechanism {
             configNeutralBrakeMode(true);
             configClockwise_Positive();
             setFollowerConfigs(
-                    new FollowerConfig(
-                            "IndexerTower Follower",
-                            52,
-                            Rio.CANIVORE,
-                            MotorAlignmentValue.Aligned));
+                    new FollowerConfig("IndexerTower Follower", 52, Rio.CANIVORE, MotorAlignmentValue.Aligned));
         }
     }
 
@@ -99,7 +113,8 @@ public class IndexerTower extends Mechanism {
         setVelocityTCFOCrpm(() -> finalWantedRPM);
     }
 
-    @Getter private final IndexerTowerConfig config;
+    @Getter
+    private final IndexerTowerConfig config;
     // @Getter private IndexerSim sim;
 
     public IndexerTower(IndexerTowerConfig config) {
