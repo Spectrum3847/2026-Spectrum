@@ -135,6 +135,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     private final SwerveRequest.Idle IDLE_REQUEST = new SwerveRequest.Idle();
 
+    /** Publishes raw CANcoder data for the tools/swerve-align web app. */
+    private final SwerveAlignment alignment;
+
     /**
      * Constructs a new Swerve drive subsystem.
      *
@@ -177,6 +180,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         this.register();
 
         optimizeBusUtilization();
+        // Must come after optimizeBusUtilization(), which silences the CANcoder signals it wants.
+        alignment = new SwerveAlignment(getModules(), config);
         registerTelemetry(this::log);
 
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -264,6 +269,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Telemetry.log(
                 "Swerve/TeleopRotationVelocityCoefficient", getTeleopRotationVelocityCoefficient());
         logBatteryUsage();
+        alignment.log();
 
         checkPigeonConnection();
 

@@ -263,3 +263,16 @@ tasks.register('robotAppDriftCheck') {
 }
 
 check.dependsOn 'robotAppDriftCheck'
+
+// Launches the swerve alignment web app in tools/swerve-align. It only runs when invoked, so a
+// machine without Node.js is unaffected by its presence here.
+tasks.register('alignSwerve', Exec) {
+    group = 'Spectrum'
+    description = 'Open the swerve module alignment web app'
+    workingDir = rootDir
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        commandLine 'cmd', '/c', 'node', 'tools/swerve-align/server.js'
+    } else {
+        commandLine 'node', 'tools/swerve-align/server.js'
+    }
+}
