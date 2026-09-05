@@ -25,7 +25,7 @@
       ]
     }
   },
-  "resetOdom": true,
+  "resetOdom": false,
   "folder": "OSTBTB",
   "choreoAuto": false
 }
