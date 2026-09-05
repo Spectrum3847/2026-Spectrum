@@ -14,6 +14,8 @@ import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -208,6 +210,40 @@ public class Vision implements Subsystem {
         @Getter final double grossHeadingHoldSeconds = 1.0;
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
+
+        // -- Turret zero auto-correction --------------------------------------
+        //
+        // The turret has no absolute reference, so its zero is wherever it pointed at motor
+        // power-on. The turret camera measures that error directly: its mount transform is built
+        // from the turret encoder, so a steady disagreement between its MegaTag1 heading and the
+        // (gyro-and-swerve-camera) pose heading is the encoder error itself. On 2026-09-05 that
+        // sat at a rock-steady -9.6 deg for a hundred seconds while the swerve camera agreed with
+        // the pose heading to 0.00 deg, and the shots missed by feet.
+
+        /** Below this the error is not worth moving the turret for. */
+        @Getter final double turretZeroMinErrorDeg = 1.5;
+
+        /** Refuse anything wilder than this; a correction that large wants a human to look. */
+        @Getter final double turretZeroMaxErrorDeg = 45.0;
+
+        /** Peak-to-peak spread allowed across the window. A real zero error barely moves. */
+        @Getter final double turretZeroSpreadDeg = 3.0;
+
+        /** How long the reading must stay that consistent before it is believed. */
+        @Getter final double turretZeroHoldSeconds = 1.0;
+
+        /** Turret slew above which the mount transform lags and the reading is meaningless. */
+        @Getter final double turretZeroMaxTurretOmega = 0.1; // rot/s
+
+        /** Settle time before another correction, so two frames cannot chase each other. */
+        @Getter final double turretZeroCooldownSeconds = 3.0;
+
+        /**
+         * A correction must leave the error smaller than this fraction of what it just removed. It
+         * is the guard against a sign error: a correction pointing the wrong way makes the error
+         * grow, and without this the turret would walk away a few degrees at a time.
+         */
+        @Getter final double turretZeroConvergeFraction = 0.5;
     }
 
     // =========================================================================
@@ -370,6 +406,7 @@ public class Vision implements Subsystem {
             logger.getIntegratedThisLoop();
         }
         Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
+        correctTurretZero();
 
         // Null-safe; returns Pose2d.kZero when no data
         Robot.getField2d().getObject(backLeftLL.getCameraName()).setPose(getBackLeftMegaTag1Pose());
@@ -537,6 +574,111 @@ public class Vision implements Subsystem {
         Telemetry.log("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
         Telemetry.log("Vision/HeadingCorrection/Armed", gross);
         Telemetry.log("Vision/HeadingCorrection/Applied", applied);
+    }
+
+    private double turretZeroWindowStartSeconds = Double.NaN;
+    private double turretZeroWindowMin = 0;
+    private double turretZeroWindowMax = 0;
+    private double turretZeroWindowSum = 0;
+    private int turretZeroWindowCount = 0;
+    private double turretZeroLastAppliedSeconds = Double.NEGATIVE_INFINITY;
+    private double turretZeroLastCorrectionDeg = Double.NaN;
+    private boolean turretZeroGaveUp = false;
+
+    private final Alert turretZeroAlert =
+            new Alert(
+                    "Turret zero auto-correction gave up: a correction did not reduce the error."
+                            + " Zero the turret by hand (operator B while disabled).",
+                    AlertType.kWarning);
+
+    /**
+     * Re-zeros the turret encoder from the turret camera when the two disagree consistently.
+     *
+     * <p>{@link #turretCameraHeadingErrorDeg()} is actual turret angle minus reported, so a steady
+     * value is the zero error and nothing else. The guards exist because it is only that while the
+     * turret is still (the mount transform lags a slew), the robot is still (a moving robot smears
+     * the frame), and the pose heading is trustworthy in the first place.
+     *
+     * <p>Correcting mid-burst would swing the turret with fuel in the air, so a launch blocks it.
+     * That is also why the window is short: a second of agreement between bursts is enough, and
+     * waiting longer would mean never finding a quiet moment during a match.
+     *
+     * <p>Anything past {@link VisionConfig#getTurretZeroMaxErrorDeg()} is refused rather than
+     * applied. At that size the more likely explanation is a bad frame or a tag map problem, and
+     * slewing the turret 90 degrees on the strength of it would be worse than the miss.
+     */
+    private void correctTurretZero() {
+        double now = Timer.getFPGATimestamp();
+        double errorDeg = turretCameraHeadingErrorDeg();
+
+        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        boolean stationary =
+                Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+                                <= config.getGrossHeadingMaxLinearSpeed()
+                        && Math.abs(speeds.omegaRadiansPerSecond)
+                                <= config.getGrossHeadingMaxOmega();
+
+        boolean usable =
+                !turretZeroGaveUp
+                        && !Double.isNaN(errorDeg)
+                        && Math.abs(errorDeg) <= config.getTurretZeroMaxErrorDeg()
+                        && stationary
+                        && Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
+                                <= config.getTurretZeroMaxTurretOmega()
+                        && !Robot.getSuperStructure().currentStateIsLaunching()
+                        && now - turretZeroLastAppliedSeconds
+                                >= config.getTurretZeroCooldownSeconds();
+
+        if (!usable) {
+            turretZeroWindowStartSeconds = Double.NaN;
+        } else if (Double.isNaN(turretZeroWindowStartSeconds)
+                || errorDeg > turretZeroWindowMin + config.getTurretZeroSpreadDeg()
+                || errorDeg < turretZeroWindowMax - config.getTurretZeroSpreadDeg()) {
+            // First usable sample, or one that broke the window's spread: start again here.
+            turretZeroWindowStartSeconds = now;
+            turretZeroWindowMin = errorDeg;
+            turretZeroWindowMax = errorDeg;
+            turretZeroWindowSum = errorDeg;
+            turretZeroWindowCount = 1;
+        } else {
+            turretZeroWindowMin = Math.min(turretZeroWindowMin, errorDeg);
+            turretZeroWindowMax = Math.max(turretZeroWindowMax, errorDeg);
+            turretZeroWindowSum += errorDeg;
+            turretZeroWindowCount++;
+
+            double mean = turretZeroWindowSum / turretZeroWindowCount;
+            if (now - turretZeroWindowStartSeconds >= config.getTurretZeroHoldSeconds()
+                    && Math.abs(mean) >= config.getTurretZeroMinErrorDeg()) {
+
+                // A correction that worked leaves a much smaller error behind. One that does not is
+                // not a zero error at all -- a wrong sign here would walk the turret further away
+                // every time it fired, so stop after the first failure and say so rather than
+                // chase it.
+                if (!Double.isNaN(turretZeroLastCorrectionDeg)
+                        && Math.abs(mean)
+                                > config.getTurretZeroConvergeFraction()
+                                        * Math.abs(turretZeroLastCorrectionDeg)) {
+                    turretZeroGaveUp = true;
+                    turretZeroAlert.set(true);
+                    turretZeroWindowStartSeconds = Double.NaN;
+                    Telemetry.print(
+                            String.format(
+                                    "Vision: turret zero correction of %.2f deg did not converge"
+                                            + " (still %.2f deg), giving up.",
+                                    turretZeroLastCorrectionDeg, mean));
+                    return;
+                }
+
+                Robot.getTurret().applyZeroCorrectionDegrees(mean);
+                turretZeroLastCorrectionDeg = mean;
+                turretZeroLastAppliedSeconds = now;
+                turretZeroWindowStartSeconds = Double.NaN;
+                Telemetry.log("Vision/TurretZero/LastCorrectionDeg", mean, "deg");
+            }
+        }
+
+        Telemetry.log("Vision/TurretZero/WindowSamples", turretZeroWindowCount);
+        Telemetry.log("Vision/TurretZero/Converging", !Double.isNaN(turretZeroWindowStartSeconds));
     }
 
     /**

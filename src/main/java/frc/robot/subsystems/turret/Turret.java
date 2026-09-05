@@ -222,6 +222,36 @@ public class Turret extends Mechanism {
                 .ignoringDisable(true)
                 .withName("Turret.zeroHere");
     }
+    /**
+     * Shifts the encoder so the turret's reported angle matches where it is actually pointing.
+     *
+     * <p>The turret has no absolute reference: its zero is wherever it happened to point when the
+     * motor powered on. Get that wrong and every shot leaves by the same angle, in whichever
+     * direction that boot position happened to be off, which is why the miss changes sides between
+     * runs rather than staying put.
+     *
+     * <p>{@code errorDegrees} is actual minus reported, which is exactly what the turret camera
+     * measures: its mount transform is built from this encoder, so its MegaTag1 heading is wrong by
+     * the same amount the encoder is. Adding it makes reported equal actual.
+     *
+     * <p>The turret will physically move by this much on the next loop, because the position
+     * setpoint has not changed but its frame of reference just did. The caller decides when that is
+     * acceptable.
+     *
+     * @param errorDegrees actual turret angle minus reported turret angle
+     */
+    public void applyZeroCorrectionDegrees(double errorDegrees) {
+        if (!isAttached()) {
+            return;
+        }
+        final double corrected = getPositionDegrees() + errorDegrees;
+        motor.setPosition(degreesToRotations(() -> corrected));
+        Telemetry.print(
+                String.format(
+                        "Turret: zero corrected by %.2f deg (was reading %.2f, now %.2f)",
+                        errorDegrees, getPositionDegrees(), corrected));
+    }
+
     /** Applies the aim at target. */
     private void applyAimAtTarget() {
         var params = ShotCalculator.getInstance().getParameters();
