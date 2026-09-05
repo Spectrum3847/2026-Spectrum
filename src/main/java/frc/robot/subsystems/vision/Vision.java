@@ -233,30 +233,40 @@ public class Vision implements Subsystem {
         // sat at a rock-steady -9.6 deg for a hundred seconds while the swerve camera agreed with
         // the pose heading to 0.00 deg, and the shots missed by feet.
 
-        /** Below this the error is not worth moving the turret for. */
-        @Getter final double turretZeroMinErrorDeg = 1.5;
+        /** Below this the error is noise, not slip; do not spend a CAN write on it. */
+        @Getter final double turretZeroDeadbandDeg = 0.3;
 
-        /** Refuse anything wilder than this; a correction that large wants a human to look. */
+        /** Refuse anything wilder than this; that size wants a human, not a servo. */
         @Getter final double turretZeroMaxErrorDeg = 45.0;
 
-        /** Peak-to-peak spread allowed across the window. A real zero error barely moves. */
-        @Getter final double turretZeroSpreadDeg = 3.0;
-
-        /** How long the reading must stay that consistent before it is believed. */
-        @Getter final double turretZeroHoldSeconds = 1.0;
-
-        /** Turret slew above which the mount transform lags and the reading is meaningless. */
-        @Getter final double turretZeroMaxTurretOmega = 0.1; // rot/s
-
-        /** Settle time before another correction, so two frames cannot chase each other. */
-        @Getter final double turretZeroCooldownSeconds = 3.0;
+        /**
+         * Fastest the trim may walk the encoder, in degrees per second.
+         *
+         * <p>The slip measured on 2026-09-05 ran about 0.15 deg/s while the turret was slewing
+         * hard, so this has roughly twenty times the authority it needs to keep up. It is
+         * deliberately not faster: this moves a turret that may be aimed at something.
+         */
+        @Getter final double turretZeroMaxTrimDegPerSec = 3.0;
 
         /**
-         * A correction must leave the error smaller than this fraction of what it just removed. It
-         * is the guard against a sign error: a correction pointing the wrong way makes the error
-         * grow, and without this the turret would walk away a few degrees at a time.
+         * Seconds between encoder writes.
+         *
+         * <p>Each correction is a {@code setPosition} call, and the CANivore already sits at 61 to
+         * 80 percent utilisation. Five writes a second is enough to chase slip an order of
+         * magnitude slower than the trim rate, and cheap enough not to matter.
          */
-        @Getter final double turretZeroConvergeFraction = 0.5;
+        @Getter final double turretZeroApplyPeriodSeconds = 0.2;
+
+        /** Low-pass on the measurement, per sample. Slip is slow; single frames are not trusted. */
+        @Getter final double turretZeroFilterAlpha = 0.1;
+
+        /** Turret slew above which the mount transform lags enough to spoil the reading. */
+        @Getter final double turretZeroMaxTurretOmega = 0.25; // rot/s
+
+        /**
+         * Cumulative correction per minute above which the mechanism, not the zero, is the fault.
+         */
+        @Getter final double turretSlipAlertDegPerMinute = 5.0;
     }
 
     // =========================================================================
@@ -619,36 +629,42 @@ public class Vision implements Subsystem {
         Telemetry.log("Vision/HeadingCorrection/Applied", applied);
     }
 
-    private double turretZeroWindowStartSeconds = Double.NaN;
-    private double turretZeroWindowMin = 0;
-    private double turretZeroWindowMax = 0;
-    private double turretZeroWindowSum = 0;
-    private int turretZeroWindowCount = 0;
-    private double turretZeroLastAppliedSeconds = Double.NEGATIVE_INFINITY;
-    private double turretZeroLastCorrectionDeg = Double.NaN;
-    private boolean turretZeroGaveUp = false;
+    private double turretZeroFilteredErrorDeg = Double.NaN;
+    private double turretZeroLastApplySeconds = Double.NEGATIVE_INFINITY;
+    private double turretZeroRateWindowStartSeconds = Double.NaN;
+    private double turretZeroRateWindowDeg = 0;
+    private double turretSlipDegPerMinute = 0;
 
-    private final Alert turretZeroAlert =
+    private final Alert turretSlipAlert =
             new Alert(
-                    "Turret zero auto-correction gave up: a correction did not reduce the error."
-                            + " Zero the turret by hand (operator B while disabled).",
+                    "Turret is slipping: vision is having to re-zero it continuously. Check belt"
+                            + " tension and the turret pinion.",
                     AlertType.kWarning);
 
     /**
-     * Re-zeros the turret encoder from the turret camera when the two disagree consistently.
+     * Continuously walks the turret encoder toward what the turret camera says, correcting both a
+     * bad power-on zero and ongoing mechanical slip.
      *
-     * <p>{@link #turretCameraHeadingErrorDeg()} is actual turret angle minus reported, so a steady
-     * value is the zero error and nothing else. The guards exist because it is only that while the
-     * turret is still (the mount transform lags a slew), the robot is still (a moving robot smears
-     * the frame), and the pose heading is trustworthy in the first place.
+     * <p>{@link #turretCameraHeadingErrorDeg()} is actual turret angle minus reported. The camera's
+     * mount transform is built from this very encoder, so a non-zero reading is the encoder being
+     * wrong and nothing else -- confirmed on 2026-09-05, where the swerve cameras agreed with the
+     * pose heading to within a couple of degrees all run while this read -37 deg.
      *
-     * <p>Correcting mid-burst would swing the turret with fuel in the air, so a launch blocks it.
-     * That is also why the window is short: a second of agreement between bursts is enough, and
-     * waiting longer would mean never finding a quiet moment during a match.
+     * <p>This started life as a one-shot: measure, correct once, and give up if the error came
+     * back, on the theory that an error which survives correction means the sign is wrong. That was
+     * wrong for the actual fault. The turret slips, roughly 0.4 percent of every degree it travels,
+     * so the error <em>always</em> comes back and the only useful response is to keep correcting.
+     * Hence a rate-limited servo rather than a one-shot, and no give-up.
      *
-     * <p>Anything past {@link VisionConfig#getTurretZeroMaxErrorDeg()} is refused rather than
-     * applied. At that size the more likely explanation is a bad frame or a tag map problem, and
-     * slewing the turret 90 degrees on the strength of it would be worse than the miss.
+     * <p>What still stops it: a launch, because moving the turret with fuel in the air is worse
+     * than the miss it would fix; a slewing turret or a moving robot, because the reading is not
+     * trustworthy then; and anything past {@link VisionConfig#getTurretZeroMaxErrorDeg()}, which is
+     * likelier a bad frame than a real error.
+     *
+     * <p>The correction is bounded by {@link VisionConfig#getTurretZeroMaxTrimDegPerSec()}, so a
+     * sign error walks the turret at a known, slow, visible rate instead of jumping it. The slip
+     * rate is published, and past {@link VisionConfig#getTurretSlipAlertDegPerMinute()} it raises
+     * an alert -- vision papering over a mechanical fault should be loud about it, not silent.
      */
     private void correctTurretZero() {
         double now = Timer.getFPGATimestamp();
@@ -661,67 +677,74 @@ public class Vision implements Subsystem {
                         && Math.abs(speeds.omegaRadiansPerSecond)
                                 <= config.getGrossHeadingMaxOmega();
 
-        boolean usable =
-                !turretZeroGaveUp
-                        && !Double.isNaN(errorDeg)
+        boolean measurable =
+                !Double.isNaN(errorDeg)
                         && Math.abs(errorDeg) <= config.getTurretZeroMaxErrorDeg()
                         && stationary
                         && Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
-                                <= config.getTurretZeroMaxTurretOmega()
-                        && !Robot.getSuperStructure().currentStateIsLaunching()
-                        && now - turretZeroLastAppliedSeconds
-                                >= config.getTurretZeroCooldownSeconds();
+                                <= config.getTurretZeroMaxTurretOmega();
 
-        if (!usable) {
-            turretZeroWindowStartSeconds = Double.NaN;
-        } else if (Double.isNaN(turretZeroWindowStartSeconds)
-                || errorDeg > turretZeroWindowMin + config.getTurretZeroSpreadDeg()
-                || errorDeg < turretZeroWindowMax - config.getTurretZeroSpreadDeg()) {
-            // First usable sample, or one that broke the window's spread: start again here.
-            turretZeroWindowStartSeconds = now;
-            turretZeroWindowMin = errorDeg;
-            turretZeroWindowMax = errorDeg;
-            turretZeroWindowSum = errorDeg;
-            turretZeroWindowCount = 1;
+        if (!measurable) {
+            // Drop the filter rather than let it coast on stale samples into the next window.
+            turretZeroFilteredErrorDeg = Double.NaN;
+        } else if (Double.isNaN(turretZeroFilteredErrorDeg)) {
+            turretZeroFilteredErrorDeg = errorDeg;
         } else {
-            turretZeroWindowMin = Math.min(turretZeroWindowMin, errorDeg);
-            turretZeroWindowMax = Math.max(turretZeroWindowMax, errorDeg);
-            turretZeroWindowSum += errorDeg;
-            turretZeroWindowCount++;
-
-            double mean = turretZeroWindowSum / turretZeroWindowCount;
-            if (now - turretZeroWindowStartSeconds >= config.getTurretZeroHoldSeconds()
-                    && Math.abs(mean) >= config.getTurretZeroMinErrorDeg()) {
-
-                // A correction that worked leaves a much smaller error behind. One that does not is
-                // not a zero error at all -- a wrong sign here would walk the turret further away
-                // every time it fired, so stop after the first failure and say so rather than
-                // chase it.
-                if (!Double.isNaN(turretZeroLastCorrectionDeg)
-                        && Math.abs(mean)
-                                > config.getTurretZeroConvergeFraction()
-                                        * Math.abs(turretZeroLastCorrectionDeg)) {
-                    turretZeroGaveUp = true;
-                    turretZeroAlert.set(true);
-                    turretZeroWindowStartSeconds = Double.NaN;
-                    Telemetry.print(
-                            String.format(
-                                    "Vision: turret zero correction of %.2f deg did not converge"
-                                            + " (still %.2f deg), giving up.",
-                                    turretZeroLastCorrectionDeg, mean));
-                    return;
-                }
-
-                Robot.getTurret().applyZeroCorrectionDegrees(mean);
-                turretZeroLastCorrectionDeg = mean;
-                turretZeroLastAppliedSeconds = now;
-                turretZeroWindowStartSeconds = Double.NaN;
-                Telemetry.log("Vision/TurretZero/LastCorrectionDeg", mean, "deg");
-            }
+            turretZeroFilteredErrorDeg +=
+                    config.getTurretZeroFilterAlpha() * (errorDeg - turretZeroFilteredErrorDeg);
         }
 
-        Telemetry.log("Vision/TurretZero/WindowSamples", turretZeroWindowCount);
-        Telemetry.log("Vision/TurretZero/Converging", !Double.isNaN(turretZeroWindowStartSeconds));
+        updateTurretSlipRate(now);
+
+        boolean applicable =
+                !Double.isNaN(turretZeroFilteredErrorDeg)
+                        && Math.abs(turretZeroFilteredErrorDeg) >= config.getTurretZeroDeadbandDeg()
+                        && !Robot.getSuperStructure().currentStateIsLaunching()
+                        && now - turretZeroLastApplySeconds
+                                >= config.getTurretZeroApplyPeriodSeconds();
+
+        if (applicable) {
+            double elapsed = Math.min(now - turretZeroLastApplySeconds, 1.0);
+            double limit = config.getTurretZeroMaxTrimDegPerSec() * elapsed;
+            double step = Math.max(-limit, Math.min(limit, turretZeroFilteredErrorDeg));
+
+            Robot.getTurret().applyZeroCorrectionDegrees(step);
+            turretZeroLastApplySeconds = now;
+            turretZeroRateWindowDeg += Math.abs(step);
+
+            // The encoder just moved by step, so the outstanding error did too. Without this the
+            // filter would re-apply the same correction until fresh frames caught up.
+            turretZeroFilteredErrorDeg -= step;
+            Telemetry.log("Vision/TurretZero/LastStepDeg", step, "deg");
+        }
+
+        Telemetry.log("Vision/TurretZero/Measurable", measurable);
+        Telemetry.log("Vision/TurretZero/FilteredErrorDeg", turretZeroFilteredErrorDeg, "deg");
+        Telemetry.log("Vision/TurretZero/SlipDegPerMinute", turretSlipDegPerMinute, "deg");
+    }
+
+    /**
+     * Tracks how much correction the turret is absorbing per minute.
+     *
+     * <p>A healthy turret needs one correction after power-on and nothing more. A steady demand for
+     * correction is the mechanism giving way, and the number is the useful part: it says how fast,
+     * which says whether it is worth stopping for now or after the match.
+     *
+     * @param now current FPGA time in seconds
+     */
+    private void updateTurretSlipRate(double now) {
+        if (Double.isNaN(turretZeroRateWindowStartSeconds)) {
+            turretZeroRateWindowStartSeconds = now;
+            return;
+        }
+        double elapsed = now - turretZeroRateWindowStartSeconds;
+        if (elapsed < 60.0) {
+            return;
+        }
+        turretSlipDegPerMinute = turretZeroRateWindowDeg * 60.0 / elapsed;
+        turretZeroRateWindowStartSeconds = now;
+        turretZeroRateWindowDeg = 0;
+        turretSlipAlert.set(turretSlipDegPerMinute >= config.getTurretSlipAlertDegPerMinute());
     }
 
     /**

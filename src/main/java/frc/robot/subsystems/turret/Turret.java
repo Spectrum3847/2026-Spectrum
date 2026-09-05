@@ -236,7 +236,8 @@ public class Turret extends Mechanism {
      *
      * <p>The turret will physically move by this much on the next loop, because the position
      * setpoint has not changed but its frame of reference just did. The caller decides when that is
-     * acceptable.
+     * acceptable, and is expected to keep each step small: this is called repeatedly to chase
+     * mechanical slip, not once with the whole error.
      *
      * @param errorDegrees actual turret angle minus reported turret angle
      */
@@ -246,11 +247,21 @@ public class Turret extends Mechanism {
         }
         final double corrected = getPositionDegrees() + errorDegrees;
         motor.setPosition(degreesToRotations(() -> corrected));
-        Telemetry.print(
-                String.format(
-                        "Turret: zero corrected by %.2f deg (was reading %.2f, now %.2f)",
-                        errorDegrees, getPositionDegrees(), corrected));
+
+        // Logged, not printed. This is called several times a second to chase slip, and a console
+        // line per step would bury everything else and go into the log as captured console output.
+        zeroCorrectionTotalDegrees += errorDegrees;
+        Telemetry.log("Turret/ZeroCorrectionTotalDeg", zeroCorrectionTotalDegrees, "deg");
     }
+
+    /**
+     * Running total of every zero correction applied, in degrees.
+     *
+     * <p>Signed, so cancelling corrections cancel here too. A turret that only needed its power-on
+     * zero fixed settles at a constant; one that keeps climbing is slipping, and the slope is how
+     * fast.
+     */
+    @Getter private double zeroCorrectionTotalDegrees = 0;
 
     /** Applies the aim at target. */
     private void applyAimAtTarget() {
