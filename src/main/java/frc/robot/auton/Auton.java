@@ -46,7 +46,8 @@ public class Auton {
 
         pathChooser.addOption("OSTBTB Left", OSTBTB(false));
         pathChooser.addOption("OSTBTB Right", OSTBTB(true));
-        pathChooser.addOption("OSRIPOFF", OSRIPPOFF(false));
+        pathChooser.addOption("OSRIPPOFF Left", OSRIPPOFF(false));
+        pathChooser.addOption("OSRIPPOFF Right", OSRIPPOFF(true));
         pathChooser.addOption("2MANOSTBTB Left", TWOMANOSTBTB(false));
         pathChooser.addOption("2MANOSTBTB Right", TWOMANOSTBTB(true));
 
@@ -98,7 +99,7 @@ public class Auton {
     }
 
     public Command OSRIPPOFF(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", false))
+        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
