@@ -170,9 +170,10 @@ public class Vision implements Subsystem {
         // -- Pose estimation covariance ---------------------------------------
 
         /**
-         * Variance used to effectively ignore a measurement dimension — here, the heading of a
-         * single-tag or low-confidence estimate. The X/Y/heading std-devs that are actually fused
-         * are chosen per-estimate in {@link Vision#getMT1Estimate(Limelight, boolean)}.
+         * Variance used to effectively ignore a measurement dimension — here, the heading of every
+         * estimate fused while enabled, so the gyro owns heading during a match. The X/Y std-devs
+         * that are actually fused are chosen per-estimate in {@link
+         * Vision#getMT1Estimate(Limelight, boolean)}.
          */
         @Getter final double kLargeVariance = 999999.0;
     }
@@ -453,9 +454,10 @@ public class Vision implements Subsystem {
      *   <li>Roll or pitch &gt; 5° (camera physically disturbed).
      * </ul>
      *
-     * <p>Accepted estimates are assigned std-dev vectors based on how many tags are visible and how
-     * large the target appears. {@code forceIntegrateXY} overrides the std-devs to near-zero, used
-     * during disabled pre-seeding.
+     * <p>Accepted estimates are assigned a translation std-dev based on how many tags are visible
+     * and how large the target appears; heading is always given a huge std-dev so the gyro owns
+     * heading while enabled. {@code forceIntegrateXY} overrides both to near-zero, used during
+     * disabled pre-seeding, which is where the field heading is established.
      *
      * @param ll the Limelight to query
      * @param forceIntegrateXY if {@code true}, bypass std-dev selection and use very tight
@@ -514,50 +516,42 @@ public class Vision implements Subsystem {
             return null;
         }
 
-        // Select std-devs based on confidence tier
+        // Select the translation std-dev based on confidence tier.
+        //
+        // Heading is never fused while enabled. The Pigeon drifts a small fraction of a degree
+        // over a match, while MegaTag1 yaw jitters by a degree or more frame to frame. Fusing it
+        // (the 2025 code used 0.1 deg here, which applies ~98% of the camera's heading every
+        // frame) put that jitter straight into the turret setpoint, since turret angle is the
+        // field bearing minus the robot heading. Heading is corrected only by the disabled
+        // pre-seeding below and by the operator's manual pose reset.
         double xyStds;
-        double degStds;
+        double degStds = config.getKLargeVariance();
 
         if (robotLinearSpeed <= 0.2 && targetSize > 4) {
             ll.sendValidStatus("Stationary close integration");
             xyStds = 0.1;
-            degStds = 0.1;
         } else if (multiTags && targetSize > 2) {
             ll.sendValidStatus("Strong Multi integration");
             xyStds = 0.1;
-            degStds = 0.1;
         } else if (multiTags && targetSize > 0.2) {
             ll.sendValidStatus("Multi integration");
             xyStds = 0.25;
-            degStds = 8;
         } else if (targetSize > 2 && mt1PoseDifference < 0.5) {
             ll.sendValidStatus("Close integration");
             xyStds = 0.5;
-            degStds = config.getKLargeVariance();
         } else if (targetSize > 1 && mt1PoseDifference < 0.25) {
             ll.sendValidStatus("Proximity integration");
             xyStds = 1.0;
-            degStds = config.getKLargeVariance();
         } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
             ll.sendValidStatus("Stable integration");
             xyStds = 1.5;
-            degStds = config.getKLargeVariance();
         } else {
             ll.sendInvalidStatus("Integration Criteria not Met");
             return null;
         }
 
-        // Widen heading std-dev when ambiguity is moderate.
-        if (highestAmbiguity > 0.5) {
-            degStds = Math.max(degStds, 15);
-        }
-
-        // Discard heading during fast rotation (MegaTag1 heading unreliable while spinning)
-        if (Math.abs(robotSpeed.omegaRadiansPerSecond) >= 0.5) {
-            degStds = Math.max(degStds, 50);
-        }
-
-        // Override covariance for disabled pre-seeding
+        // Override covariance for disabled pre-seeding: this is the one place vision sets heading,
+        // so the gyro's arbitrary boot heading gets aligned to the field before the match.
         if (forceIntegrateXY) {
             xyStds = 0.01;
             degStds = 0.01;
