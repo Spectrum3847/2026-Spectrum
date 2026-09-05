@@ -267,6 +267,22 @@ public class Vision implements Subsystem {
          * Cumulative correction per minute above which the mechanism, not the zero, is the fault.
          */
         @Getter final double turretSlipAlertDegPerMinute = 5.0;
+
+        /**
+         * Outstanding error that, if the trim cannot clear it, means the trim is making it worse.
+         *
+         * <p>This is the guard on the sign. Correcting the right way, a 25 deg error clears in
+         * about 8 seconds of trim at 3 deg/s, so it cannot sit above this for {@link
+         * #getTurretZeroDivergenceHoldSeconds()}. Correcting the wrong way it grows and stays,
+         * which matters more than the aim: soft limits are enforced against the reported position,
+         * so driving reported away from reality is exactly how the turret gets past a soft stop and
+         * into the cable chain -- and at 3 deg/s it would do that twenty times faster than the slip
+         * ever did.
+         */
+        @Getter final double turretZeroDivergenceDeg = 25.0;
+
+        /** How long the error must stay unclearable before the trim gives up on itself. */
+        @Getter final double turretZeroDivergenceHoldSeconds = 10.0;
     }
 
     // =========================================================================
@@ -634,6 +650,15 @@ public class Vision implements Subsystem {
     private double turretZeroRateWindowStartSeconds = Double.NaN;
     private double turretZeroRateWindowDeg = 0;
     private double turretSlipDegPerMinute = 0;
+    private double turretZeroDivergenceStartSeconds = Double.NaN;
+    private boolean turretZeroDiverged = false;
+
+    private final Alert turretZeroDivergedAlert =
+            new Alert(
+                    "Turret zero trim disabled: correcting is not reducing the error, so the"
+                            + " correction sign is likely wrong. Turret soft limits may no longer"
+                            + " reflect where the turret actually is.",
+                    AlertType.kError);
 
     private final Alert turretSlipAlert =
             new Alert(
@@ -697,7 +722,8 @@ public class Vision implements Subsystem {
         updateTurretSlipRate(now);
 
         boolean applicable =
-                !Double.isNaN(turretZeroFilteredErrorDeg)
+                !turretZeroDiverged
+                        && !Double.isNaN(turretZeroFilteredErrorDeg)
                         && Math.abs(turretZeroFilteredErrorDeg) >= config.getTurretZeroDeadbandDeg()
                         && !Robot.getSuperStructure().currentStateIsLaunching()
                         && now - turretZeroLastApplySeconds
@@ -716,6 +742,26 @@ public class Vision implements Subsystem {
             // filter would re-apply the same correction until fresh frames caught up.
             turretZeroFilteredErrorDeg -= step;
             Telemetry.log("Vision/TurretZero/LastStepDeg", step, "deg");
+
+            // Trimming should be shrinking this. If it is not, the sign is wrong, and continuing
+            // walks the reported position away from the real one -- which is what the soft limits
+            // are checked against.
+            if (Math.abs(turretZeroFilteredErrorDeg) >= config.getTurretZeroDivergenceDeg()) {
+                if (Double.isNaN(turretZeroDivergenceStartSeconds)) {
+                    turretZeroDivergenceStartSeconds = now;
+                } else if (now - turretZeroDivergenceStartSeconds
+                        >= config.getTurretZeroDivergenceHoldSeconds()) {
+                    turretZeroDiverged = true;
+                    turretZeroDivergedAlert.set(true);
+                    Telemetry.print(
+                            String.format(
+                                    "Vision: turret zero trim disabled, %.1f deg of error would not"
+                                            + " clear. Check the correction sign.",
+                                    turretZeroFilteredErrorDeg));
+                }
+            } else {
+                turretZeroDivergenceStartSeconds = Double.NaN;
+            }
         }
 
         Telemetry.log("Vision/TurretZero/Measurable", measurable);

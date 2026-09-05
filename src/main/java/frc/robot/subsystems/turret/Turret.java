@@ -42,7 +42,20 @@ public class Turret extends Mechanism {
         @Getter private final double currentLimit = 80;
         @Getter private final double supplyCurrentLowerLimit = 40;
         @Getter private final double supplyCurrentLowerTime = 1.0;
-        @Getter private final double torqueCurrentLimit = 80;
+        /**
+         * Stator and torque-current ceiling, in amps.
+         *
+         * <p>Was 80. The 24t-to-30t belt that skipped on 2026-09-05 sits one 4.75:1 reduction below
+         * the motor and 6.7:1 above the turret, so it carries motor torque times 4.75 -- about 7.4
+         * N-m at 80 A, and the 18:38 log showed 86 to 96 A sustained with a 105 A peak, which is
+         * 8.3 to 9.7 N-m. On a 24t HTD-5 pulley that is 435 to 507 N of belt tension.
+         *
+         * <p>50 A puts it near 290 N. Tracking a target is not a high-torque job; if the turret
+         * stops keeping up with a fast slew this is the first number to raise, but raise it knowing
+         * what it costs the belt.
+         */
+        @Getter private final double torqueCurrentLimit = 50;
+
         @Getter private final double positionKp = 800;
         @Getter private final double positionKi = 100;
 
