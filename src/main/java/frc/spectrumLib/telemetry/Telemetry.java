@@ -65,6 +65,22 @@ public class Telemetry extends DogLog implements Subsystem {
     }
 
     /**
+     * Entries the log queue may hold before it starts dropping them.
+     *
+     * <p>The queue exists to absorb the gap between a robot thread that produces records in bursts
+     * and a writer thread that has to reach a disk. DogLog's default of 1000 is about a third of a
+     * second of slack at the 3000 records per second these logs were running at, so any writer
+     * stall longer than that costs records -- and 2026-09-05 has stalls up to 1302 ms.
+     *
+     * <p>5000 covers a stall of about one and a half seconds. The cost is roughly 400 KB of a 100
+     * MB heap in the worst case, and only while a burst is actually queued.
+     *
+     * <p>This buys headroom, it does not fix the cause. The queue fills because the loop writes
+     * more than the writer drains; cutting what is logged is the real lever.
+     */
+    private static final int LOG_ENTRY_QUEUE_CAPACITY = 5000;
+
+    /**
      * Start the telemetry system.
      *
      * @param ntPublish Whether to publish to NetworkTables.
@@ -92,6 +108,7 @@ public class Telemetry extends DogLog implements Subsystem {
                         .withCaptureNt(captureNt)
                         .withCaptureConsole(captureConsole)
                         .withNtTunables(tunableOnFMS)
+                        .withLogEntryQueueCapacity(LOG_ENTRY_QUEUE_CAPACITY)
                         .withLogExtras(logExtras));
         Telemetry.setPdh(new PowerDistribution());
         /* Display the currently running commands on SmartDashboard*/

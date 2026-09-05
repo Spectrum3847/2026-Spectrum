@@ -43,6 +43,23 @@ deploy {
 
                     jvmArgs.add("-XX:+HeapDumpOnOutOfMemoryError")
                     jvmArgs.add("-XX:HeapDumpPath=/u/frc-usercode.hprof")
+
+                    /*
+                     * GC log, to settle where the long loop stalls come from.
+                     *
+                     * Every 2026-09-05 log has at least one loop over 500 ms and three have one
+                     * over 900 ms, topping out at 1302 ms. The Driver Station calls comms lost
+                     * after about a second of silence, which is how the robot ends up disabled
+                     * with nobody touching anything. A serial full GC of a 100 MB heap on this CPU
+                     * lands in exactly that range, and it stops every Java thread including the
+                     * one answering the DS -- but that is inference from timing, not something any
+                     * log actually recorded. This records it.
+                     *
+                     * Rotated and capped at five 2 MB files, so it cannot become the disk problem
+                     * it is here to help diagnose.
+                     */
+                    jvmArgs.add("-Xlog:gc*,safepoint:file=/home/lvuser/logs/gc.log" +
+                            ":time,uptime,level:filecount=5,filesize=2M")
                 }
 
                 // Static files artifact
@@ -237,6 +254,22 @@ tasks.register('alignSwerve', Exec) {
     } else {
         commandLine 'npm', 'run', 'align'
     }
+}
+
+/*
+ * Moves robot logs off the roboRIO into the 2026-Robot-Logs repo, as release assets.
+ *
+ * Nothing prunes the rio's log directory on its own; it had 2.2 GB on it on 2026-09-05. Pass
+ * -Pdelete to remove what was uploaded, or -PdryRun to see what it would take. It only runs when
+ * invoked, so a plain build never touches the robot.
+ */
+tasks.register('archiveLogs', Exec) {
+    group = 'Spectrum'
+    description = 'Copy roboRIO logs to the 2026-Robot-Logs releases (-Pdelete to clear the rio)'
+    def args = ['tools/archive-logs.sh']
+    if (project.hasProperty('delete')) args << '--delete'
+    if (project.hasProperty('dryRun')) args << '--dry-run'
+    commandLine(['bash'] + args)
 }
 
 /** Opens the robot app on its home page. */
