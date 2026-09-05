@@ -90,6 +90,7 @@ export function mountHeader() {
         themeBtn
     );
     document.body.prepend(header);
+    mountDriftBanner(header);
     refreshRobotPill();
     return header;
 }
@@ -146,4 +147,69 @@ export async function api(path, opts) {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || `${res.status} ${res.statusText}`);
     return body;
+}
+
+/**
+ * Tells the reader when this app has fallen behind the robot code.
+ *
+ * The app documents a robot it cannot see change. Nothing stops someone renaming a binding or
+ * moving a current limit, and every page here would go on confidently describing the old one --
+ * which is worse than showing nothing, because a student has no reason to doubt it.
+ *
+ * So the app says so itself, rather than a build step refusing to compile robot code until a web
+ * app is updated. Two strengths, deliberately worded differently: "problems" are contradictions
+ * the checker actually parsed, "stale" only means the Java moved more recently than the data file,
+ * which is a prompt to look, not proof of anything wrong.
+ *
+ * Failures here are swallowed on purpose: a drift banner is never worth breaking a page over.
+ */
+async function mountDriftBanner(header) {
+    let r;
+    try {
+        const res = await fetch("/api/drift");
+        if (!res.ok) return;
+        r = await res.json();
+    } catch {
+        return;
+    }
+    const problems = r?.problems ?? [];
+    const stale = r?.stale ?? [];
+    if (!problems.length && !stale.length) return;
+
+    const bad = problems.length > 0;
+    const lines = [...problems, ...stale.map((s) => s.message)];
+    const shown = lines.slice(0, 6);
+
+    const details = el("div", { style: "margin-top:6px;display:none" },
+        el("ul", { style: "margin:0;padding-left:18px" }, shown.map((t) => el("li", { style: "margin:2px 0" }, t))),
+        lines.length > shown.length ? el("div", { style: "margin-top:4px" }, `…and ${lines.length - shown.length} more.`) : null,
+        el("div", { style: "margin-top:8px" },
+            "Re-run it yourself with ",
+            el("code", {}, "node tools/robot-app/scripts/check-drift.mjs"),
+            ". It blocks no build; update the files in ",
+            el("code", {}, "tools/robot-app/data/"),
+            " when convenient."));
+
+    const toggle = el("a", { href: "#", style: "margin-left:6px" }, "show");
+    toggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        const open = details.style.display !== "none";
+        details.style.display = open ? "none" : "block";
+        toggle.textContent = open ? "show" : "hide";
+    });
+
+    const summary = bad
+        ? `This app disagrees with the robot code in ${problems.length} place${problems.length === 1 ? "" : "s"}` +
+          (stale.length ? `, and ${stale.length} of its data file${stale.length === 1 ? " is" : "s are"} behind the Java.` : ".")
+        : `${stale.length} data file${stale.length === 1 ? "" : "s"} here ${stale.length === 1 ? "has" : "have"} not been updated since the robot code changed.`;
+
+    const banner = el("div", { class: `notice ${bad ? "bad" : "warn"}`, style: "margin:0;border-radius:0" },
+        el("strong", {}, bad ? "Out of date. " : "Possibly out of date. "),
+        summary,
+        " ",
+        bad ? "Treat what you read here as suspect until it is checked." : "Worth a look before trusting the details.",
+        toggle,
+        details);
+
+    header.after(banner);
 }

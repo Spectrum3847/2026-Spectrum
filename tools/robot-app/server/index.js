@@ -6,6 +6,7 @@ import { config, APP_ROOT, logsRepoPath, logsDir } from "./lib/config.js";
 import { robotRouter } from "./routes/robot.js";
 import { logsRouter } from "./routes/logs.js";
 import { swerveRouter } from "./routes/swerve.js";
+import { runDriftCheck } from "../scripts/check-drift.mjs";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -26,6 +27,33 @@ app.get("/api/config", (req, res) => {
             logsDir: logsDir(),
         },
     });
+});
+
+/*
+ * Whether this app still describes the robot code.
+ *
+ * This used to be a Gradle task wired into `check`, which meant nobody could change robot code
+ * without stopping to update a web app first -- exactly backwards. The check now lives here: the
+ * app reports on itself, and the build is none the wiser.
+ *
+ * "problems" are parsed contradictions; "stale" is the softer and more useful signal, a data file
+ * that has not been touched since the Java it mirrors moved. Cached briefly because it shells out
+ * to git once per source file.
+ */
+let driftCache = { at: 0, value: null };
+const DRIFT_CACHE_MS = 10_000;
+
+app.get("/api/drift", (req, res) => {
+    const now = Date.now();
+    if (!driftCache.value || now - driftCache.at > DRIFT_CACHE_MS) {
+        try {
+            driftCache = { at: now, value: runDriftCheck() };
+        } catch (e) {
+            // A broken checker must never take the app down with it.
+            return res.json({ problems: [], notes: [], stale: [], error: String(e.message) });
+        }
+    }
+    res.json(driftCache.value);
 });
 
 app.use("/api/robot", robotRouter);

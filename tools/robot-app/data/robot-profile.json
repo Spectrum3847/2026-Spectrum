@@ -1,5 +1,5 @@
 {
-  "$comment": "Physical and configuration facts about the robot that the .wpilog does NOT contain. Current limits in particular are compiled into the Java config classes and never logged, so without this file no analyzer can draw a limit line. A Gradle drift check verifies every limit here against its Java source.",
+  "$comment": "Physical and configuration facts about the robot that the .wpilog does NOT contain. Current limits in particular are compiled into the Java config classes and never logged, so without this file no analyzer can draw a limit line. The app's own drift check (scripts/check-drift.mjs, surfaced at /api/drift and in the page banner) verifies every limit here against its Java source. It reports; it never fails a build.",
   "id": "OM2026",
   "name": "2026 Offseason Bot",
   "configClass": "src/main/java/frc/robot/configs/OM2026.java",

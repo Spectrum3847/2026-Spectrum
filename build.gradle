@@ -220,49 +220,6 @@ spotless {
     }
 }
 
-/*
- * Verifies that tools/robot-app's hand-authored data files still describe the robot code:
- * data/controls.json against Robot.configureBindings(), and every current limit in
- * data/robot-profile.json against its Java config class. Those files are hand-written on purpose
- * (the LT/RT bindings' real behaviour lives inside Commands.either conditions that no extractor
- * can describe usefully), so this is what stops them rotting.
- *
- * Skips itself when Node is unavailable rather than failing a build that has nothing to do with
- * the web app.
- */
-tasks.register('robotAppDriftCheck') {
-    group = 'verification'
-    description = 'Check tools/robot-app data files against the robot code'
-
-    def script = file('tools/robot-app/scripts/check-drift.mjs')
-    inputs.file script
-    inputs.file file('tools/robot-app/data/controls.json')
-    inputs.file file('tools/robot-app/data/robot-profile.json')
-    inputs.files fileTree('src/main/java') { include '**/*.java' }
-
-    doLast {
-        def nodeCheck = new ByteArrayOutputStream()
-        def hasNode = true
-        try {
-            exec {
-                commandLine 'node', '--version'
-                standardOutput = nodeCheck
-                errorOutput = nodeCheck
-            }
-        } catch (Exception ignored) {
-            hasNode = false
-        }
-        if (!hasNode) {
-            logger.lifecycle('robotAppDriftCheck: Node not found on PATH, skipping.')
-            return
-        }
-        exec {
-            commandLine 'node', script.absolutePath
-        }
-    }
-}
-
-check.dependsOn 'robotAppDriftCheck'
 
 /*
  * Opens the Spectrum robot app on the swerve alignment page. The alignment tool now lives in

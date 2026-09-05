@@ -1,5 +1,5 @@
 {
-  "$comment": "Hand-authored from Robot.configureBindings(). This is the SOURCE OF TRUTH for the controls pages. Auto-generating it from the Java would be misleading: the LT/RT behaviour lives inside Commands.either(...) conditions, so the trigger expression alone understates what the robot does. A Gradle drift check verifies every pilot.X / operator.X referenced in configureBindings() appears here and vice versa.",
+  "$comment": "Hand-authored from Robot.configureBindings(). This is the SOURCE OF TRUTH for the controls pages. Auto-generating it from the Java would be misleading: the LT/RT behaviour lives inside Commands.either(...) conditions, so the trigger expression alone understates what the robot does. The app's own drift check (scripts/check-drift.mjs, surfaced at /api/drift and in the page banner) verifies every pilot.X / operator.X referenced in configureBindings() appears here and vice versa. It reports; it never fails a build.",
   "robot": "OM2026",
   "sourceFile": "src/main/java/frc/robot/Robot.java",
   "sourceMethod": "configureBindings()",

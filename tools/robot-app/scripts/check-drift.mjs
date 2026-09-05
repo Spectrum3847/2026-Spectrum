@@ -13,7 +13,11 @@
  * lives inside Commands.either(...) conditions that no extractor can describe usefully -- so this
  * check is what keeps "hand-written" from meaning "wrong by March".
  *
- * Exits non-zero on drift, printing what to change on each side.
+ * This is NOT wired into the Gradle build. Robot code has to be free to move without anyone
+ * stopping to update a web app first, so nothing here can fail a build or block a deploy. The app
+ * calls runDriftCheck() instead and reports what it finds in its own header.
+ *
+ * Run as a CLI it still exits non-zero on drift, for anyone who deliberately wants that.
  */
 import fs from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -272,20 +276,125 @@ function checkPagesTracked() {
     }
 }
 
+// ---------------------------------------------------------------- staleness
+
+/** Unix seconds of the last commit touching a path, or null if git cannot say. */
+function lastCommitSeconds(rel) {
+    try {
+        const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", rel], { cwd: REPO, encoding: "utf8" }).trim();
+        return out ? Number(out) : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Which data files the robot code has moved out from under.
+ *
+ * This is the softer half of the report, and the half that matters day to day. The checks above
+ * only catch drift they know how to parse; a renamed state, a reworded binding or a whole new
+ * mechanism slips straight past them. Commit times catch the rest: if Robot.java was committed
+ * after controls.json was, the app is describing a robot that has since changed, whether or not
+ * anything parseable disagrees yet.
+ *
+ * Commit times rather than mtimes, because a fresh clone stamps every file with the checkout time
+ * and mtimes would say nothing.
+ */
+function checkStaleness() {
+    const stale = [];
+    const pairs = [];
+
+    try {
+        const controls = JSON.parse(fs.readFileSync(path.join(APP, "data/controls.json"), "utf8"));
+        if (controls.sourceFile) {
+            pairs.push(["data/controls.json", "tools/robot-app/data/controls.json", [controls.sourceFile]]);
+        }
+    } catch {
+        // checkControls() already reported anything wrong with this file.
+    }
+    try {
+        const profile = JSON.parse(fs.readFileSync(path.join(APP, "data/robot-profile.json"), "utf8"));
+        const javaFiles = [...new Set(profile.motors.map((m) => m.javaFile).filter(Boolean))];
+        if (javaFiles.length) {
+            pairs.push(["data/robot-profile.json", "tools/robot-app/data/robot-profile.json", javaFiles]);
+        }
+    } catch {
+        // checkLimits() already reported anything wrong with this file.
+    }
+
+    for (const [label, dataRel, sourceRels] of pairs) {
+        const dataAt = lastCommitSeconds(dataRel);
+        if (dataAt === null) continue;
+        const newer = sourceRels
+            .map((rel) => ({ rel, at: lastCommitSeconds(rel) }))
+            .filter((x) => x.at !== null && x.at > dataAt)
+            .sort((a, b) => b.at - a.at);
+        if (!newer.length) continue;
+
+        const days = Math.max(1, Math.round((newer[0].at - dataAt) / 86400));
+        const others = newer.length - 1;
+        stale.push({
+            dataFile: label,
+            sources: newer.map((x) => x.rel),
+            daysBehind: days,
+            message:
+                `${label} has not been touched since ${newer[0].rel}` +
+                `${others ? ` and ${others} other source file${others === 1 ? "" : "s"}` : ""} changed ` +
+                `(about ${days} day${days === 1 ? "" : "s"} of robot code later). It may describe a robot that has since moved on.`,
+        });
+    }
+    return stale;
+}
+
 // ---------------------------------------------------------------- run
 
-checkControls();
-checkLimits();
-checkPagesTracked();
-checkElasticLayout();
+/**
+ * Runs every check and returns what it found. Never throws for drift, never exits.
+ *
+ * @returns {{problems: string[], notes: string[], stale: object[], checkedAt: string}}
+ */
+export function runDriftCheck() {
+    problems.length = 0;
+    notes.length = 0;
+    checkControls();
+    checkLimits();
+    checkPagesTracked();
+    checkElasticLayout();
+    return {
+        problems: [...problems],
+        notes: [...notes],
+        stale: checkStaleness(),
+        checkedAt: new Date().toISOString(),
+    };
+}
 
-if (notes.length) {
-    console.log(`\n${notes.length} warning${notes.length === 1 ? "" : "s"}:`);
-    for (const n of notes) console.log(`  - ${n}`);
+// CLI only. Importers get runDriftCheck() and decide for themselves what drift is worth.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+    const r = runDriftCheck();
+    const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+    if (r.stale.length) {
+        console.log("");
+        console.log(`${plural(r.stale.length, "data file")} behind the robot code:`);
+        for (const st of r.stale) console.log(`  - ${st.message}`);
+    }
+    if (r.notes.length) {
+        console.log("");
+        console.log(`${plural(r.notes.length, "warning")}:`);
+        for (const n of r.notes) console.log(`  - ${n}`);
+    }
+    if (r.problems.length) {
+        console.error("");
+        console.error(`robot-app drift check found ${plural(r.problems.length, "problem")}:`);
+        console.error("");
+        for (const pr of r.problems) {
+            console.error(`  x ${pr}`);
+            console.error("");
+        }
+        console.error("This blocks nothing. Update the data files when it is convenient.");
+        console.error("");
+        process.exit(1);
+    }
+    console.log("");
+    console.log(`robot-app drift check passed${r.notes.length || r.stale.length ? " (with warnings)" : ""}.`);
 }
-if (problems.length) {
-    console.error(`\nrobot-app drift check FAILED with ${problems.length} problem${problems.length === 1 ? "" : "s"}:\n`);
-    for (const p of problems) console.error(`  ✗ ${p}\n`);
-    process.exit(1);
-}
-console.log(`\nrobot-app drift check passed${notes.length ? " (with warnings)" : ""}.`);

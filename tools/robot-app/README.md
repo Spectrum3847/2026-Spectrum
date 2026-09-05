@@ -202,7 +202,7 @@ test/            node:test coverage of the analysis maths
 The Logs page once did this for a reason worth knowing: the repo root's `.gitignore` has `logs/`
 for robot log files, and it silently swallowed `client/pages/logs/`. The page worked for anyone
 who had it on disk and 404'd for everyone who cloned. `tools/robot-app/.gitignore` re-includes it,
-and `scripts/check-drift.mjs` now fails if any page directory is untracked, so it cannot recur
+and `scripts/check-drift.mjs` reports any untracked page directory, so it cannot recur
 quietly. If you add a page and the drift check complains, run the `git check-ignore -v` command it
 prints — a root ignore rule is probably eating it.
 
@@ -227,4 +227,13 @@ npm test         # analysis maths
 npm run check    # drift check + tests
 ```
 
-`./gradlew check` runs the drift check too, and skips it when Node isn't on the PATH.
+The drift check is **not** wired into the Gradle build. Robot code has to be free to move
+without anyone stopping to update a web app first, so nothing here can fail a build or block a
+deploy. The app checks itself instead: the server exposes `/api/drift`, and every page shows a
+banner when this app has fallen behind the Java. Two strengths, worded differently:
+
+* **problems** — contradictions the checker actually parsed, e.g. a current limit that
+  disagrees with its Java field. Red banner.
+* **stale** — a data file that has not been committed since the Java it mirrors changed. That
+  is a prompt to look, not proof of anything wrong, so it gets the softer amber banner. It
+  catches what parsing cannot: a renamed state, a reworded binding, a whole new mechanism.
