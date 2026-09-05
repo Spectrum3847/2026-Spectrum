@@ -320,13 +320,37 @@ public class Turret extends Mechanism {
      * @return true when the turret is aiming, within tolerance of its commanded angle, and not
      *     mid-unwrap. Tracking error is the criterion, not slew rate: while shooting on the move
      *     the turret is legitimately moving, so a velocity clause would only block good shots.
-     *     Currently logged only; intended to gate feeding into the flywheel.
+     *     Gates feeding into the flywheel.
      */
     public boolean isReadyToShoot() {
+        return isReadyToShoot(config.getTriggerTolerance());
+    }
+
+    /**
+     * Same check as {@link #isReadyToShoot()} against a caller-supplied tolerance. The feeder gate
+     * uses a wider tolerance to decide whether to <em>keep</em> feeding than to start, so normal
+     * tracking error mid-burst does not chop the feed on and off.
+     *
+     * <p>The {@code unwrapping} clause is not relaxed at any tolerance: during an unwrap the turret
+     * slews a full turn and fed fuel goes anywhere.
+     *
+     * @param toleranceDegrees allowed tracking error in degrees
+     * @return true when aiming, not mid-unwrap, and within {@code toleranceDegrees}
+     */
+    public boolean isReadyToShoot(double toleranceDegrees) {
         return systemState == SystemState.AIM_AT_TARGET
                 && !unwrapping
-                && Math.abs(getPositionDegrees() - commandedDegrees)
-                        <= config.getTriggerTolerance();
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
+    }
+
+    /**
+     * Returns the current turret tracking error in degrees, for logging and for setting the gate
+     * tolerances from a log.
+     *
+     * @return commanded minus measured turret angle, in degrees
+     */
+    public double getTrackingErrorDegrees() {
+        return getPositionDegrees() - commandedDegrees;
     }
 
     /**

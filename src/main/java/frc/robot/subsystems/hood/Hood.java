@@ -146,12 +146,22 @@ public class Hood extends Mechanism {
 
     /**
      * Returns {@code true} when the hood is aiming and within the configured tolerance of the
-     * commanded shot angle. Currently logged only; intended to gate feeding into the flywheel.
+     * commanded shot angle. Gates feeding into the flywheel.
      */
     public boolean isAtAngle() {
+        return isAtAngle(config.getAimToleranceDegrees());
+    }
+
+    /**
+     * Same check as {@link #isAtAngle()} against a caller-supplied tolerance. The feeder gate uses
+     * a wider tolerance to decide whether to <em>keep</em> feeding than to start.
+     *
+     * @param toleranceDegrees allowed angle error in degrees
+     * @return true when aiming and within {@code toleranceDegrees} of the commanded angle
+     */
+    public boolean isAtAngle(double toleranceDegrees) {
         return systemState == SystemState.AIM_AT_TARGET
-                && Math.abs(getPositionDegrees() - commandedDegrees)
-                        <= config.getAimToleranceDegrees();
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
     }
 
     @Getter private final HoodConfig config;

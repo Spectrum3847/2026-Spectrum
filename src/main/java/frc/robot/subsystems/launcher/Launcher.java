@@ -131,12 +131,27 @@ public class Launcher extends Mechanism {
 
     /**
      * Returns {@code true} when the flywheel is in the launch state and its measured speed is
-     * within the configured tolerance of the commanded shot speed. Currently logged only; intended
-     * to gate feeding into the flywheel.
+     * within the configured tolerance of the commanded shot speed. Gates feeding into the flywheel.
      */
     public boolean isAtSpeed() {
         return systemState == SystemState.LAUNCH
                 && Math.abs(getVelocityRPM() - commandedRPM) <= config.getOnTargetToleranceRPM();
+    }
+
+    /**
+     * Returns {@code true} when the flywheel is launching and has not drooped below the given
+     * fraction of its commanded speed. Used by the feeder gate to decide whether to <em>keep</em>
+     * feeding: each ball loads the flywheel, so a burst that had to re-satisfy {@link #isAtSpeed()}
+     * between every ball would feed in stutters. Only droop is checked — running fast is never a
+     * reason to stop feeding.
+     *
+     * @param fraction fraction of commanded RPM the flywheel must still be at (e.g. 0.75)
+     * @return true when launching and at or above {@code fraction} of the commanded speed
+     */
+    public boolean isAboveSpeedFraction(double fraction) {
+        return systemState == SystemState.LAUNCH
+                && commandedRPM > 0
+                && getVelocityRPM() >= commandedRPM * fraction;
     }
 
     @Getter private final LauncherConfig config;

@@ -282,6 +282,9 @@ public class Robot extends SpectrumRobot {
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
 
+        // Held: feed regardless of the shot-readiness gates, for a bad sensor or a deliberate dump.
+        superStructure.setFeedOverride(operator.YButton);
+
         operator.LB.onTrue(FeedTargetFactory.feedLeft());
         operator.RB.onTrue(FeedTargetFactory.feedRight());
         operator.LB.or(operator.RB).onFalse(FeedTargetFactory.feedDefault());
