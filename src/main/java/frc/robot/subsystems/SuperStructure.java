@@ -4,6 +4,8 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShotCalculator;
+import frc.robot.Robot;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.hood.Hood;
@@ -12,6 +14,7 @@ import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.LauncherTower;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.vision.Vision;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 import lombok.Getter;
@@ -159,10 +162,63 @@ public class SuperStructure {
 
         previousSuperState = currentSuperState;
 
+        logShotReadiness();
+
         Telemetry.log("SuperStructure/WantedSuperState", wantedSuperState.toString());
         Telemetry.log("SuperStructure/CurrentSuperState", currentSuperState.toString());
         Telemetry.log(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
+    }
+
+    // ── Shot readiness (log only) ──────────────────────────────────────────────
+    //
+    // Stage one of feeder gating: compute what "ready to shoot" would be and log it, without
+    // changing any behavior. Stage two will hold the dye rotor and launcher tower in their staging
+    // states until shotReadyDebounced is true. The debounce exists because a single threshold would
+    // start and stop the feeders several times a second.
+
+    /** Consecutive loops all readiness predicates must hold before feeding would start. */
+    private static final int SHOT_READY_DEBOUNCE_LOOPS = 3;
+
+    private int shotReadyStreak = 0;
+    private int launchingLoops = 0;
+    private int wouldHoldFeedLoops = 0;
+
+    private void logShotReadiness() {
+        boolean launcherAtSpeed = launcher.isAtSpeed();
+        boolean hoodAtAngle = hood.isAtAngle();
+        boolean turretOnTarget = turret.isReadyToShoot();
+        boolean shotInRange = ShotCalculator.getInstance().getParameters().isValid();
+        boolean shotReady = launcherAtSpeed && hoodAtAngle && turretOnTarget && shotInRange;
+
+        shotReadyStreak = shotReady ? shotReadyStreak + 1 : 0;
+        boolean shotReadyDebounced = shotReadyStreak >= SHOT_READY_DEBOUNCE_LOOPS;
+
+        // How often the gate would have held the feeders while the driver was launching.
+        boolean launching = currentStateIsLaunching();
+        if (launching) {
+            launchingLoops++;
+            if (!shotReadyDebounced) {
+                wouldHoldFeedLoops++;
+            }
+        }
+
+        Vision vision = Robot.getVision();
+        double secondsSinceVision =
+                vision == null
+                        ? Double.POSITIVE_INFINITY
+                        : vision.secondsSinceLastAcceptedEstimate();
+
+        Telemetry.log("SuperStructure/ShotReady/LauncherAtSpeed", launcherAtSpeed);
+        Telemetry.log("SuperStructure/ShotReady/HoodAtAngle", hoodAtAngle);
+        Telemetry.log("SuperStructure/ShotReady/TurretOnTarget", turretOnTarget);
+        Telemetry.log("SuperStructure/ShotReady/ShotInRange", shotInRange);
+        Telemetry.log("SuperStructure/ShotReady/Composite", shotReady);
+        Telemetry.log("SuperStructure/ShotReady/Debounced", shotReadyDebounced);
+        Telemetry.log("SuperStructure/ShotReady/WouldHoldFeed", launching && !shotReadyDebounced);
+        Telemetry.log("SuperStructure/ShotReady/LaunchingLoops", launchingLoops);
+        Telemetry.log("SuperStructure/ShotReady/WouldHoldFeedLoops", wouldHoldFeedLoops);
+        Telemetry.log("SuperStructure/ShotReady/SecondsSinceVision", secondsSinceVision, "seconds");
     }
     /** Handles the state transitions. */
     private CurrentSuperState handleStateTransitions() {

@@ -15,6 +15,7 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.Field;
@@ -343,6 +344,10 @@ public class Vision implements Subsystem {
             Telemetry.log(
                     "Vision/TurretLL/TurretAngle", turretRotationSupplier.getAsDouble(), "deg");
         }
+        Telemetry.log(
+                "Vision/SecondsSinceAcceptedEstimate",
+                secondsSinceLastAcceptedEstimate(),
+                "seconds");
     }
 
     // =========================================================================
@@ -683,7 +688,23 @@ public class Vision implements Subsystem {
                             estimate.getVisionRobotPoseMeters(),
                             estimate.getTimestampSeconds(),
                             estimate.getVisionMeasurementStdDevs());
+            lastAcceptedEstimateFpgaSeconds = Timer.getFPGATimestamp();
         }
+    }
+
+    /** FPGA time of the most recent estimate fused into the estimator; NaN until the first. */
+    private double lastAcceptedEstimateFpgaSeconds = Double.NaN;
+
+    /**
+     * Seconds since any camera's estimate was last fused into the pose estimator, or {@code
+     * Double.POSITIVE_INFINITY} if none has been. A shot-readiness input: a large value means the
+     * pose is running on odometry alone.
+     */
+    public double secondsSinceLastAcceptedEstimate() {
+        if (Double.isNaN(lastAcceptedEstimateFpgaSeconds)) {
+            return Double.POSITIVE_INFINITY;
+        }
+        return Timer.getFPGATimestamp() - lastAcceptedEstimateFpgaSeconds;
     }
 
     /**

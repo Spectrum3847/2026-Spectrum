@@ -105,11 +105,15 @@ public class Launcher extends Mechanism {
             case LAUNCH -> SystemState.LAUNCH;
         };
     }
+    /** Flywheel speed commanded this loop (RPM); 0 when stopped. */
+    @Getter private double commandedRPM = 0;
+
     /** Applies the states. */
     private void applyStates() {
         double wantedRPM = 0;
         switch (systemState) {
             case OFF:
+                commandedRPM = 0;
                 stop();
                 return;
             case IDLE_PREP:
@@ -120,8 +124,19 @@ public class Launcher extends Mechanism {
                 wantedRPM = params.flywheelSpeed();
                 break;
         }
+        commandedRPM = wantedRPM;
         final double finalWantedRPM = wantedRPM;
         setVelocityRPM(() -> finalWantedRPM);
+    }
+
+    /**
+     * Returns {@code true} when the flywheel is in the launch state and its measured speed is
+     * within the configured tolerance of the commanded shot speed. Currently logged only; intended
+     * to gate feeding into the flywheel.
+     */
+    public boolean isAtSpeed() {
+        return systemState == SystemState.LAUNCH
+                && Math.abs(getVelocityRPM() - commandedRPM) <= config.getOnTargetToleranceRPM();
     }
 
     @Getter private final LauncherConfig config;
@@ -153,6 +168,8 @@ public class Launcher extends Mechanism {
         Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Launcher/CommandedRPM", commandedRPM, "RPM");
+        Telemetry.log("Launcher/AtSpeed", isAtSpeed());
         Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
     }
 

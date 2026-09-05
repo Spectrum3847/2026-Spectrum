@@ -22,6 +22,9 @@ public class Hood extends Mechanism {
         @Getter private final double maxRotations = 0.095833;
         @Getter private final double minRotations = 0.0;
 
+        /** Position error (degrees) within which the hood counts as on target for a shot. */
+        @Getter private final double aimToleranceDegrees = 0.5;
+
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 80;
@@ -101,6 +104,9 @@ public class Hood extends Mechanism {
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
     }
+    /** Hood angle commanded this loop (degrees). */
+    @Getter private double commandedDegrees = 0;
+
     /** Applies the states. */
     private void applyStates() {
         double wantedDegrees = 0;
@@ -116,10 +122,21 @@ public class Hood extends Mechanism {
                 wantedDegrees = params.hoodAngle();
                 break;
         }
+        commandedDegrees = wantedDegrees;
         final double finalWantedDegrees = wantedDegrees;
         final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
         // setMMPositionFOC
         setPosition(() -> finalWantedPosition);
+    }
+
+    /**
+     * Returns {@code true} when the hood is aiming and within the configured tolerance of the
+     * commanded shot angle. Currently logged only; intended to gate feeding into the flywheel.
+     */
+    public boolean isAtAngle() {
+        return systemState == SystemState.AIM_AT_TARGET
+                && Math.abs(getPositionDegrees() - commandedDegrees)
+                        <= config.getAimToleranceDegrees();
     }
 
     @Getter private final HoodConfig config;
@@ -151,6 +168,9 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
+        Telemetry.log("Hood/AtAngle", isAtAngle());
         Telemetry.log("Hood/Temp", getTemp(), "deg_C");
     }
 

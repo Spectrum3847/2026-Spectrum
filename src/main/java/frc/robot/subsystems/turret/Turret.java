@@ -26,11 +26,12 @@ public class Turret extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 5;
+        /** Position error (degrees) within which the turret counts as on target for a shot. */
+        @Getter private final double triggerTolerance = 2;
+
         @Getter private final double unwrapTolerance = 10;
         @Getter private final double unwrapExitMargin = 45;
         @Getter private final double shootOnMoveLatencySec = 0.03;
-        @Getter private final double maxOmegaForShotRotPerSec = 0.75;
 
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
@@ -299,14 +300,16 @@ public class Turret extends Mechanism {
     }
 
     /**
-     * @return true when the turret is aiming, on target within tolerance, slewing slowly enough for
-     *     a stable shot, and not mid-unwrap. Use this to gate shooting while on the move.
+     * @return true when the turret is aiming, within tolerance of its commanded angle, and not
+     *     mid-unwrap. Tracking error is the criterion, not slew rate: while shooting on the move
+     *     the turret is legitimately moving, so a velocity clause would only block good shots.
+     *     Currently logged only; intended to gate feeding into the flywheel.
      */
     public boolean isReadyToShoot() {
         return systemState == SystemState.AIM_AT_TARGET
                 && !unwrapping
-                && Math.abs(getPositionDegrees() - commandedDegrees) <= config.getTriggerTolerance()
-                && Math.abs(mechOmegaRotPerSec) <= config.getMaxOmegaForShotRotPerSec();
+                && Math.abs(getPositionDegrees() - commandedDegrees)
+                        <= config.getTriggerTolerance();
     }
 
     /**
