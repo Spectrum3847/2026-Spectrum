@@ -302,7 +302,12 @@ public class ShotCalculator {
                         /* v³   */ -2.3703703704e-2
                     });
 
-    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
+    /**
+     * Active hub model. Use {@link #HUB_MODEL} on a real field; switch to {@link
+     * #CEILING_3M_HUB_MODEL} only when shooting under the shop's low ceiling. The active model name
+     * is logged to {@code ShotCalc/HubPolyModel} — check it before a match.
+     */
+    private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
 
     // =========================================================================
     // State — Velocity Derivative Filters
