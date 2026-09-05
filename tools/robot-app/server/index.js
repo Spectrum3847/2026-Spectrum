@@ -37,20 +37,70 @@ app.use("/api/swerve", swerveRouter);
 app.use("/data", express.static(path.join(APP_ROOT, "data"), { etag: false, maxAge: 0 }));
 
 const dist = path.join(APP_ROOT, "dist");
+const CLIENT_PAGES = path.join(APP_ROOT, "client", "pages");
+
+/** The page routes this app is supposed to have, read from the source tree. */
+function expectedPages() {
+    if (!fs.existsSync(CLIENT_PAGES)) return [];
+    return fs
+        .readdirSync(CLIENT_PAGES, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && fs.existsSync(path.join(CLIENT_PAGES, e.name, "index.html")))
+        .map((e) => e.name);
+}
+
+/** Newest mtime under a directory, used to notice a dist built before the last source edit. */
+function newestMtime(dir) {
+    let newest = 0;
+    const walk = (d) => {
+        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+            const full = path.join(d, e.name);
+            if (e.isDirectory()) walk(full);
+            else newest = Math.max(newest, fs.statSync(full).mtimeMs);
+        }
+    };
+    if (fs.existsSync(dir)) walk(dir);
+    return newest;
+}
+
+/**
+ * What is wrong with the current build, if anything.
+ *
+ * A stale or partial dist used to be invisible: the catch-all below served the home page for any
+ * path it could not find, so clicking "Logs" quietly showed Home with no error anywhere. Pages
+ * are checked against the source tree instead, and a miss is reported rather than papered over.
+ */
+function buildStatus() {
+    if (!fs.existsSync(dist)) return { built: false, missing: expectedPages(), stale: false };
+    const missing = expectedPages().filter((name) => !fs.existsSync(path.join(dist, "pages", name, "index.html")));
+    const stale = newestMtime(path.join(APP_ROOT, "client")) > newestMtime(dist);
+    return { built: true, missing, stale };
+}
+
+const BUILD_HINT =
+    "Run `npm start` (build + serve) or `npm run build`, then reload.\n" +
+    "For hot reload while developing, run `npm run dev` and use http://localhost:5173 instead.";
+
 if (fs.existsSync(dist)) {
-    app.use(express.static(dist));
-    // Vite builds one page per entry; anything unmatched falls back to the shell.
-    app.get("*", (req, res, next) => {
-        if (req.path.startsWith("/api/")) return next();
-        res.sendFile(path.join(dist, "index.html"));
+    app.use(express.static(dist, { redirect: true }));
+
+    // Anything express.static did not serve is genuinely missing. Say which page and why, rather
+    // than returning the home page and letting it look like the nav is broken.
+    app.use((req, res, next) => {
+        if (req.method !== "GET" || req.path.startsWith("/api/") || req.path.startsWith("/data/")) return next();
+
+        const page = /^\/pages\/([^/]+)\/?$/.exec(req.path)?.[1];
+        if (page && expectedPages().includes(page)) {
+            return res
+                .status(503)
+                .type("text/plain")
+                .send(`The "${page}" page exists in client/pages/ but is not in dist/ -- the build is out of date.\n\n${BUILD_HINT}\n`);
+        }
+        res.status(404).type("text/plain").send(`404 ${req.path}\n\nPages: / ${expectedPages().map((n) => `/pages/${n}/`).join(" ")}\n`);
     });
 } else {
-    app.get("/", (req, res) => {
-        res.status(503).type("text/plain").send(
-            "The client has not been built yet.\n\n" +
-                "  Development:  npm run dev     (Vite dev server on 5173, proxying /api here)\n" +
-                "  Production:   npm start       (builds to dist/ then serves from here)\n"
-        );
+    app.use((req, res, next) => {
+        if (req.path.startsWith("/api/") || req.path.startsWith("/data/")) return next();
+        res.status(503).type("text/plain").send(`The client has not been built yet.\n\n${BUILD_HINT}\n`);
     });
 }
 
@@ -70,7 +120,15 @@ app.listen(config.port, config.host || "127.0.0.1", () => {
     console.log(`  logs repo            ${logsRepoPath()}${fs.existsSync(logsRepoPath()) ? "" : "   (not cloned yet)"}`);
     console.log(`  robot profile        ${config.robotProfile}`);
     console.log(`  writes offsets to    ${config.swerveAlign?.targetConfig ?? "(unset)"}\n`);
-    console.log("  Press Ctrl+C to stop.\n");
+    const build = buildStatus();
+    if (!build.built) {
+        console.log("  client               NOT BUILT -- run `npm run build`");
+    } else if (build.missing.length) {
+        console.log(`  client               INCOMPLETE -- missing ${build.missing.join(", ")}; run \`npm run build\``);
+    } else if (build.stale) {
+        console.log("  client               STALE -- sources are newer than dist/; run `npm run build`");
+    }
+    console.log("\n  Press Ctrl+C to stop.\n");
 
     // --open, optionally with a path, so a desktop shortcut can land on one page.
     const i = process.argv.indexOf("--open");

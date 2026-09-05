@@ -197,6 +197,20 @@ scripts/         check-drift.mjs
 test/            node:test coverage of the analysis maths
 ```
 
+## When a page shows the wrong content
+
+If a nav tab lands on the home page, `dist/` is out of date — the page you clicked was built into
+`dist/` at some earlier point and no longer matches `client/`. The server now says so instead of
+quietly serving the home page: the startup banner prints `client STALE` or `client INCOMPLETE`,
+and the page itself returns a message naming what to run.
+
+```bash
+npm start          # rebuild and serve
+```
+
+`npm run serve` deliberately skips the build, so it is the one way to end up serving a stale
+`dist/`. Use `npm start` unless you know you want that.
+
 ## Commands
 
 ```bash
