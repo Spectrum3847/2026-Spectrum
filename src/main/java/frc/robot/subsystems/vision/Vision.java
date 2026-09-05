@@ -233,11 +233,36 @@ public class Vision implements Subsystem {
         // sat at a rock-steady -9.6 deg for a hundred seconds while the swerve camera agreed with
         // the pose heading to 0.00 deg, and the shots missed by feet.
 
-        /** Below this the error is noise, not slip; do not spend a CAN write on it. */
-        @Getter final double turretZeroDeadbandDeg = 0.3;
+        /**
+         * Below this the error is noise, not slip; do not spend a CAN write on it.
+         *
+         * <p>0.3 was inside the measurement noise, so the servo kept paying a write to chase frames
+         * that disagreed with each other. Replaying the 2026-09-05 20:25 log, 0.5 drops about one
+         * write in ten with no change in how much correction actually lands -- and the CANivore is
+         * already at 68 to 78 percent.
+         */
+        @Getter final double turretZeroDeadbandDeg = 0.5;
 
-        /** Refuse anything wilder than this; that size wants a human, not a servo. */
-        @Getter final double turretZeroMaxErrorDeg = 45.0;
+        /**
+         * Refuse anything wilder than this; that size wants a human, not a servo.
+         *
+         * <p>Was 45, which was far too generous. The turret camera's raw heading error on the
+         * 2026-09-05 20:25 log ran from -177 to +105 deg around a median of -0.9, so 45 let a large
+         * slice of that tail through as if it were a real zero error. Real slip arrives a fraction
+         * of a degree at a time.
+         */
+        @Getter final double turretZeroMaxErrorDeg = 15.0;
+
+        /**
+         * Measurable samples in a row before the filter is allowed to move the encoder.
+         *
+         * <p>The filter is dropped whenever a sample is unmeasurable and re-seeded from the next
+         * raw frame, so without this a single frame arriving after a gap is a full-authority
+         * correction. That is what happened on 2026-09-05: 94 corrections moved the zero 82.7 deg
+         * in total to achieve 33.4 deg of net change, with nine of them slamming the +/-3 deg rate
+         * limit immediately after a gap, in alternating directions.
+         */
+        @Getter final int turretZeroMinMeasurableSamples = 5;
 
         /**
          * Fastest the trim may walk the encoder, in degrees per second.
@@ -257,8 +282,15 @@ public class Vision implements Subsystem {
          */
         @Getter final double turretZeroApplyPeriodSeconds = 0.2;
 
-        /** Low-pass on the measurement, per sample. Slip is slow; single frames are not trusted. */
-        @Getter final double turretZeroFilterAlpha = 0.1;
+        /**
+         * Low-pass on the measurement, per sample. Slip is slow; single frames are not trusted.
+         *
+         * <p>Halved from 0.1 after the 2026-09-05 20:25 log: replayed against that measurement
+         * stream, 0.05 cut the wasted back-and-forth about ten percent at every deadband tried,
+         * while the net correction that landed stayed within a degree. Slip is slow enough that the
+         * added lag costs nothing.
+         */
+        @Getter final double turretZeroFilterAlpha = 0.05;
 
         /** Turret slew above which the mount transform lags enough to spoil the reading. */
         @Getter final double turretZeroMaxTurretOmega = 0.25; // rot/s
@@ -649,7 +681,10 @@ public class Vision implements Subsystem {
     private double turretZeroLastApplySeconds = Double.NEGATIVE_INFINITY;
     private double turretZeroRateWindowStartSeconds = Double.NaN;
     private double turretZeroRateWindowDeg = 0;
+    private double turretZeroRateWindowAbsDeg = 0;
     private double turretZeroRateWindowStartTravelDeg = 0;
+    private int turretZeroMeasurableStreak = 0;
+    private double turretZeroTrimEfficiency = 1.0;
     private double turretSlipDegPerMinute = 0;
     private double turretSlipDegPerKiloDegTravel = 0;
     private double turretZeroDivergenceStartSeconds = Double.NaN;
@@ -714,11 +749,21 @@ public class Vision implements Subsystem {
         if (!measurable) {
             // Drop the filter rather than let it coast on stale samples into the next window.
             turretZeroFilteredErrorDeg = Double.NaN;
+            turretZeroMeasurableStreak = 0;
         } else if (Double.isNaN(turretZeroFilteredErrorDeg)) {
             turretZeroFilteredErrorDeg = errorDeg;
+            turretZeroMeasurableStreak = 1;
+            /*
+             * Measurement just resumed, so start the rate limiter's clock here. Otherwise the
+             * elapsed time since the last apply is however long the gap was, and the first step
+             * out of that gap gets the full one-second allowance -- a 3 deg jump off a filter
+             * holding exactly one raw frame.
+             */
+            turretZeroLastApplySeconds = now;
         } else {
             turretZeroFilteredErrorDeg +=
                     config.getTurretZeroFilterAlpha() * (errorDeg - turretZeroFilteredErrorDeg);
+            turretZeroMeasurableStreak++;
         }
 
         updateTurretSlipRate(now);
@@ -726,6 +771,7 @@ public class Vision implements Subsystem {
         boolean applicable =
                 !turretZeroDiverged
                         && !Double.isNaN(turretZeroFilteredErrorDeg)
+                        && turretZeroMeasurableStreak >= config.getTurretZeroMinMeasurableSamples()
                         && Math.abs(turretZeroFilteredErrorDeg) >= config.getTurretZeroDeadbandDeg()
                         && !Robot.getSuperStructure().currentStateIsLaunching()
                         && now - turretZeroLastApplySeconds
@@ -738,7 +784,14 @@ public class Vision implements Subsystem {
 
             Robot.getTurret().applyZeroCorrectionDegrees(step);
             turretZeroLastApplySeconds = now;
-            turretZeroRateWindowDeg += Math.abs(step);
+            /*
+             * Signed, so a servo arguing with itself does not read as slip. Slip walks one way;
+             * noise cancels. The absolute total is kept alongside it purely to expose the
+             * difference -- on 2026-09-05 these were 33.4 and 82.7 deg over the same window, and
+             * only the second number reached the slip alert.
+             */
+            turretZeroRateWindowDeg += step;
+            turretZeroRateWindowAbsDeg += Math.abs(step);
 
             // The encoder just moved by step, so the outstanding error did too. Without this the
             // filter would re-apply the same correction until fresh frames caught up.
@@ -767,6 +820,7 @@ public class Vision implements Subsystem {
         }
 
         Telemetry.log("Vision/TurretZero/Measurable", measurable);
+        Telemetry.log("Vision/TurretZero/TrimEfficiency", turretZeroTrimEfficiency);
         Telemetry.log("Vision/TurretZero/FilteredErrorDeg", turretZeroFilteredErrorDeg, "deg");
         Telemetry.log("Vision/TurretZero/SlipDegPerMinute", turretSlipDegPerMinute, "deg");
         Telemetry.log(
@@ -801,16 +855,23 @@ public class Vision implements Subsystem {
         // once a minute. A match is barely two of those, and the first would read zero throughout
         // the part of it anyone is watching.
         if (elapsed >= SLIP_RATE_MIN_WINDOW_SECONDS) {
-            turretSlipDegPerMinute = turretZeroRateWindowDeg * 60.0 / elapsed;
-            turretSlipDegPerKiloDegTravel =
-                    travelled > 1.0 ? turretZeroRateWindowDeg * 1000.0 / travelled : 0;
+            double net = Math.abs(turretZeroRateWindowDeg);
+            turretSlipDegPerMinute = net * 60.0 / elapsed;
+            turretSlipDegPerKiloDegTravel = travelled > 1.0 ? net * 1000.0 / travelled : 0;
             turretSlipAlert.set(turretSlipDegPerMinute >= config.getTurretSlipAlertDegPerMinute());
+            // 1.0 means every correction pulled the same way, which is what real slip looks like.
+            // Well above that is the servo chasing noise, and the belt is not the thing to check.
+            turretZeroTrimEfficiency =
+                    turretZeroRateWindowAbsDeg > 0
+                            ? turretZeroRateWindowAbsDeg / Math.max(net, 1e-6)
+                            : 1.0;
         }
 
         if (elapsed >= SLIP_RATE_WINDOW_SECONDS) {
             turretZeroRateWindowStartSeconds = now;
             turretZeroRateWindowStartTravelDeg = travel;
             turretZeroRateWindowDeg = 0;
+            turretZeroRateWindowAbsDeg = 0;
         }
     }
 
