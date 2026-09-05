@@ -71,15 +71,27 @@ public class Vision implements Subsystem {
         @Getter final String backLeftLL = "limelight-back-left";
 
         /**
-         * Robot-relative pose of the rear-left Limelight. Translation in metres (x, y, z); rotation
-         * in degrees (roll, pitch, yaw). Detached by default; enable per-robot in the config
-         * package. TODO: measure real mount offsets before enabling.
+         * Robot-relative pose of the rear-left Limelight. Translation in metres (forward, right,
+         * up); rotation in degrees (roll, pitch, yaw). Translation measured in CAD from the robot
+         * origin (robot centre, on the carpet) to the camera location: 11.103 in behind centre,
+         * 12.490 in left of centre, 17.058 in up.
+         *
+         * <p>Rotation: the camera is mounted upside down (roll 180) on the rear panel, looking
+         * backward (yaw 180) and 60 deg above horizontal. This is the same orientation as a
+         * right-side-up camera pitched 120 deg with no yaw. If the Limelight web UI image
+         * orientation is set to flip the image 180 deg, enter roll 0 there instead of 180.
+         *
+         * <p>Documentation only for pose solving: chassis cameras use the offsets entered in the
+         * Limelight web UI, so keep the two in sync.
          */
         @Getter
         final LimelightConfig backLeftConfig =
                 new LimelightConfig(backLeftLL)
-                        .withTranslation(Units.inchesToMeters(-10.148), Units.inchesToMeters(-11.489), Units.inchesToMeters(17.615))
-                        .withRotation(180, 60, 0)
+                        .withTranslation(
+                                Units.inchesToMeters(-11.103), // forward (behind centre)
+                                Units.inchesToMeters(-12.490), // right (left of centre)
+                                Units.inchesToMeters(17.058)) // up
+                        .withRotation(180, 60, 180) // upside down, 60 deg up, facing rear
                         .setAttached(true);
 
         // -- Back-Right Limelight ---------------------------------------------
@@ -88,14 +100,26 @@ public class Vision implements Subsystem {
         @Getter final String backRightLL = "limelight-back-right";
 
         /**
-         * Robot-relative pose of the rear-right Limelight. Detached by default; enable per-robot in
-         * the config package. TODO: measure real mount offsets before enabling.
+         * Robot-relative pose of the rear-right Limelight. Translation measured in CAD from the
+         * robot origin (robot centre, on the carpet) to the camera location: 10.064 in behind
+         * centre, 13.315 in right of centre, 17.458 in up.
+         *
+         * <p>Rotation: the camera is mounted upside down (roll 180) on the rear panel, looking
+         * backward (yaw 180) and 60 deg above horizontal. This is the same orientation as a
+         * right-side-up camera pitched 120 deg with no yaw. If the Limelight web UI image
+         * orientation is set to flip the image 180 deg, enter roll 0 there instead of 180.
+         *
+         * <p>Documentation only for pose solving: chassis cameras use the offsets entered in the
+         * Limelight web UI, so keep the two in sync.
          */
         @Getter
         final LimelightConfig backRightConfig =
                 new LimelightConfig(backRightLL)
-                        .withTranslation(Units.inchesToMeters(13.315), Units.inchesToMeters(-10.064), Units.inchesToMeters(17.429))
-                        .withRotation(180, 60, 0)
+                        .withTranslation(
+                                Units.inchesToMeters(-10.064), // forward (behind centre)
+                                Units.inchesToMeters(13.315), // right
+                                Units.inchesToMeters(17.458)) // up
+                        .withRotation(180, 60, 180) // upside down, 60 deg up, facing rear
                         .setAttached(true);
 
         // -- Turret Limelight -------------------------------------------------
@@ -104,8 +128,11 @@ public class Vision implements Subsystem {
         @Getter final String turretLL = "limelight-turret";
 
         /**
-         * Robot-relative pose of the turret Limelight <b>with the turret at zero</b>. Translation
-         * in metres (x, y, z); rotation in degrees (roll, pitch, yaw).
+         * Robot-relative pose of the turret Limelight <b>with the turret at zero</b>, facing the
+         * robot rear. Translation in metres (forward, right, up); rotation in degrees (roll, pitch,
+         * yaw). Measured in CAD from the robot origin (robot centre, on the carpet) to the camera
+         * location: on the centreline, 0.138 m behind centre. Height is NOT from CAD (the model is
+         * known to be wrong there); 18.632 in is the value measured on the robot.
          *
          * <p>The offsets entered in the Limelight GUI are irrelevant for pose solving: {@link
          * #updateTurretCameraPose()} overwrites all six values over NetworkTables every loop with
@@ -117,9 +144,9 @@ public class Vision implements Subsystem {
         final LimelightConfig turretConfig =
                 new LimelightConfig(turretLL)
                         .withTranslation(
-                                Units.inchesToMeters(5.375), // ahead (unused)
-                                Units.inchesToMeters(0.0), // left (unused)
-                                Units.inchesToMeters(18.632)) // up
+                                -0.138, // forward at turret zero (unused; see turretCenterToCamera)
+                                0.0, // right (unused)
+                                Units.inchesToMeters(18.632)) // up (measured on robot, not CAD)
                         .withRotation(0, 60, 0); // yaw unused; live turret angle is used
 
         // -- Turret geometry --------------------------------------------------
@@ -127,10 +154,12 @@ public class Vision implements Subsystem {
         /** Robot-centre to turret pivot offset (metres). */
         @Getter final Translation2d robotToTurretCenter = Translation2d.kZero;
 
-        /** Turret pivot to camera offset (metres), measured with the turret at zero. */
-        @Getter
-        final Translation2d turretCenterToCamera =
-                new Translation2d(Units.inchesToMeters(5.375), 0);
+        /**
+         * Turret pivot to camera offset (metres) along the camera look direction, measured with the
+         * turret at zero. From CAD the camera sits 0.138 m behind the robot centre at zero, which
+         * equals the pivot arm as long as robotToTurretCenter really is zero.
+         */
+        @Getter final Translation2d turretCenterToCamera = new Translation2d(0.138, 0);
 
         // -- Pipeline indices -------------------------------------------------
 
