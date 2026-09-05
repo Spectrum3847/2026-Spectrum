@@ -10,6 +10,39 @@ const PAGES = [
     { href: "/pages/swerve-align/", label: "Swerve Align" },
 ];
 
+/**
+ * Light is the brand default (the team site is white with a deep-purple nav). Dark is a second,
+ * separately stepped palette for pit and queue-line use, remembered per browser.
+ */
+export function initTheme() {
+    let stored = null;
+    try {
+        stored = localStorage.getItem("spectrum-theme");
+    } catch {
+        // Private browsing or blocked storage: fall through to the brand default.
+    }
+    document.documentElement.dataset.theme = stored === "dark" ? "dark" : "light";
+}
+
+export function toggleTheme() {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try {
+        localStorage.setItem("spectrum-theme", next);
+    } catch {
+        // Not persisting the choice is survivable; failing the click is not.
+    }
+    document.dispatchEvent(new CustomEvent("themechange", { detail: { theme: next } }));
+    const btn = document.querySelector(".theme-toggle");
+    if (btn) {
+        btn.textContent = next === "dark" ? "\u2600" : "\u263D";
+        btn.title = next === "dark" ? "Switch to light theme" : "Switch to dark theme";
+    }
+}
+
+// Applied before first paint so the page never flashes the wrong theme.
+initTheme();
+
 export function el(tag, attrs = {}, ...children) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -37,12 +70,24 @@ export function mountHeader() {
         })
     );
     const pill = el("div", { class: "robot-pill", id: "robot-pill", title: "Robot connection" }, el("span", { class: "dot checking" }), el("span", { id: "robot-pill-text" }, "checking…"));
+    const dark = document.documentElement.dataset.theme === "dark";
+    const themeBtn = el(
+        "button",
+        {
+            class: "theme-toggle",
+            title: dark ? "Switch to light theme" : "Switch to dark theme",
+            "aria-label": "Toggle colour theme",
+            onclick: toggleTheme,
+        },
+        dark ? "\u2600" : "\u263D"
+    );
     const header = el(
         "header",
         { class: "topbar" },
-        el("div", { class: "brand" }, el("span", { class: "mark" }, "◅ "), "Spectrum", el("span", { class: "sub" }, "2026 offseason bot")),
+        el("div", { class: "brand" }, el("span", { class: "mark" }, "\u25C5 "), "Spectrum", el("span", { class: "sub" }, "2026 offseason bot")),
         tabs,
-        pill
+        pill,
+        themeBtn
     );
     document.body.prepend(header);
     refreshRobotPill();

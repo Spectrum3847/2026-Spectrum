@@ -65,6 +65,25 @@ lists them all at the bottom; the ones that bite hardest:
 - **Brownout is not logged** and the threshold is set to 4.6 V, well under the 6.8 V default, so
   the RIO holds on far longer than stock. Sag has to be read off the voltage trace.
 
+## Theming
+
+Colors come from the team site (`spectrum3847.org`, `src/styles/custom.css`): deep purple
+`#3C0060` for the nav, `#6B1199` as the working accent, white surfaces, `#E9DDF7` borders,
+`#1F1B23` text, with the site's Plus Jakarta Sans / Outfit pairing. The fonts are self-hosted
+through `@fontsource-variable` rather than Google's CDN, so brand typography survives having no
+internet.
+
+Everything is a CSS custom property in `client/styles.css`. A dark variant lives under
+`:root[data-theme="dark"]` for pit and queue-line use — the same hues re-stepped against a
+deep-purple surface, not an inverted light theme. The moon/sun button in the nav toggles it and
+remembers the choice per browser.
+
+Chart colors are read from those same properties at draw time, so charts re-skin with the toggle.
+The eight categorical series slots were validated against each surface for lightness band, chroma,
+colorblind separation, normal-vision separation and 3:1 contrast; brand `#6B1199` is too dark to
+be a series color on white, so slot 1 is the nearest passing step, `#7E22CE`. Slots are assigned
+in fixed order and never cycled — a ninth series on one chart means splitting the chart.
+
 ## Logs repo
 
 Synced logs land in a clone of

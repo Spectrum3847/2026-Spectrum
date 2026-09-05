@@ -3,7 +3,7 @@ import "../power/analysis.css";
 import { mountHeader, el, fmtDuration } from "../../lib/ui.js";
 import { logPicker, loadProfile, LogModel } from "../../lib/log-loader.js";
 import { clipToEnabled, seriesStats } from "../../lib/log-model.js";
-import { timeChart, xy, decimate, enabledShadePlugin, limitLinePlugin, COLORS } from "../../lib/charts.js";
+import { timeChart, xy, decimate, enabledShadePlugin, limitLinePlugin, seriesColor, theme, withAlpha } from "../../lib/charts.js";
 import { connectionDropouts, zeroOutputWhileCommanded, staleTraces, alertEvents, counterSteps } from "../../lib/analyze-can.js";
 
 mountHeader();
@@ -135,10 +135,10 @@ function render(log) {
         queueMicrotask(() => charts.push(timeChart(canvas, {
             yTitle: "%",
             yMax: 100,
-            datasets: [{ label: "CANivore load (%)", data: xy(decimate(util)), borderColor: COLORS[0], fill: true, backgroundColor: "rgba(79,142,247,0.12)" }],
+            datasets: [{ label: "CANivore load", data: xy(decimate(util)), borderColor: seriesColor(0), fill: true, backgroundColor: withAlpha(seriesColor(0), 0.12) }],
             plugins: [shade, limitLinePlugin([
-                { value: 50, color: "#e8b13a", label: "50% watch", dash: [3, 5] },
-                { value: 70, color: "#e35d6a", label: "70% too high" },
+                { value: 50, color: theme().warn, label: "50% watch", dash: [3, 5] },
+                { value: 70, color: theme().bad, label: "70% too high" },
             ])],
         })));
     }
@@ -152,8 +152,8 @@ function render(log) {
         queueMicrotask(() => charts.push(timeChart(canvas, {
             yTitle: "count",
             datasets: [
-                tec.length && { label: "transmit errors", data: xy(decimate(tec)), borderColor: COLORS[3], fill: false },
-                rec.length && { label: "receive errors", data: xy(decimate(rec)), borderColor: COLORS[2], fill: false },
+                tec.length && { label: "transmit errors", data: xy(decimate(tec)), borderColor: seriesColor(7), fill: false },
+                rec.length && { label: "receive errors", data: xy(decimate(rec)), borderColor: seriesColor(3), fill: false },
             ].filter(Boolean),
             plugins: [shade, limitLinePlugin([{ value: 255, label: "bus-off" }])],
         })));
@@ -170,8 +170,8 @@ function render(log) {
         blocks.push(card);
         queueMicrotask(() => charts.push(timeChart(canvas, {
             yTitle: "seconds",
-            datasets: [{ label: "robotPeriodic (s)", data: xy(decimate(loop)), borderColor: COLORS[5], fill: false }],
-            plugins: [shade, limitLinePlugin([{ value: period, color: "#e8b13a", label: `${(period * 1000).toFixed(0)} ms period` }])],
+            datasets: [{ label: "robotPeriodic", data: xy(decimate(loop)), borderColor: seriesColor(0), fill: false }],
+            plugins: [shade, limitLinePlugin([{ value: period, color: theme().warn, label: `${(period * 1000).toFixed(0)} ms period` }])],
         })));
     }
 

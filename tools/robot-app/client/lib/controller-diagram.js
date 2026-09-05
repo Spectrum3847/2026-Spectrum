@@ -23,10 +23,10 @@ export const GEOMETRY = {
     dpadDown: { x: 190, y: 232, w: 22, h: 22, label: "▼", kind: "dpad" },
     dpadLeft: { x: 167, y: 209, w: 22, h: 22, label: "◀", kind: "dpad" },
     dpadRight: { x: 213, y: 209, w: 22, h: 22, label: "▶", kind: "dpad" },
-    Y: { cx: 390, cy: 128, r: 16, label: "Y", kind: "face", color: "#e8c53a" },
-    B: { cx: 418, cy: 156, r: 16, label: "B", kind: "face", color: "#e35d6a" },
-    A: { cx: 390, cy: 184, r: 16, label: "A", kind: "face", color: "#3fbf7f" },
-    X: { cx: 362, cy: 156, r: 16, label: "X", kind: "face", color: "#4f8ef7" },
+    Y: { cx: 390, cy: 128, r: 16, label: "Y", kind: "face" },
+    B: { cx: 418, cy: 156, r: 16, label: "B", kind: "face" },
+    A: { cx: 390, cy: 184, r: 16, label: "A", kind: "face" },
+    X: { cx: 362, cy: 156, r: 16, label: "X", kind: "face" },
     select: { cx: 232, cy: 140, r: 11, label: "⊟", kind: "small" },
     start: { cx: 288, cy: 140, r: 11, label: "≡", kind: "small" },
 };
@@ -50,10 +50,12 @@ function controlShape(id, g, state) {
     return svg("rect", { ...common, x: g.x, y: g.y, width: g.w, height: g.h, rx: g.rx ?? 4 });
 }
 
-function controlLabel(id, g) {
+function controlLabel(id, g, state) {
     const x = g.cx ?? g.x + g.w / 2;
     const y = (g.cy ?? g.y + g.h / 2) + (g.kind === "dpad" ? 4 : 5);
-    return svg("text", { class: "ctl-label", x, y, "text-anchor": "middle", "pointer-events": "none" }, document.createTextNode(g.label));
+    // Labels are drawn in a separate pass on top of every shape, so they carry the control's
+    // state themselves rather than relying on a CSS sibling selector.
+    return svg("text", { class: `ctl-label ctl-label-${state}`, x, y, "text-anchor": "middle", "pointer-events": "none" }, document.createTextNode(g.label));
 }
 
 /**
@@ -76,7 +78,7 @@ export function renderDiagram(controller, layerId) {
         if (id === "lsClick" || id === "rsClick") continue; // drawn as the inner hub below
         const state = modifiers.has(id) ? "modifier" : bound.has(id) ? "bound" : everBound.has(id) ? "other" : "unbound";
         shapes.push(controlShape(id, g, state));
-        labels.push(controlLabel(id, g));
+        labels.push(controlLabel(id, g, state));
     }
     // Stick hubs sit on top of the stick wells.
     for (const id of ["lsClick", "rsClick"]) {

@@ -8,7 +8,8 @@
     background: var(--s1);
     border: 1px solid var(--bd);
 }
-.layer-tab.active { background: var(--s3); border-color: var(--accent-dim); color: var(--tx); }
+.layer-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.layer-tab.active .layer-count { background: rgba(255,255,255,0.22); color: #fff; }
 .layer-tab.pit.active { border-color: var(--warn); }
 .layer-tab.sim.active { border-color: var(--tx-faint); }
 .layer-count {
@@ -32,24 +33,28 @@
     top: 68px;
 }
 svg.pad { width: 100%; height: auto; display: block; }
-.pad-body { fill: var(--s2); stroke: var(--bd); stroke-width: 2; }
+.pad-body { fill: var(--s3); stroke: var(--bd-strong); stroke-width: 2; }
 
 .ctl { stroke-width: 1.5; transition: fill 0.12s, stroke 0.12s; cursor: default; outline: none; }
-.ctl-unbound { fill: var(--s3); stroke: #333c4d; opacity: 0.5; }
-.ctl-other { fill: var(--s3); stroke: var(--bd); }
-.ctl-bound { fill: var(--accent-dim); stroke: var(--accent); }
-.ctl-modifier { fill: #7a5a12; stroke: var(--warn); }
-.ctl.hover { fill: var(--accent); stroke: #cfe0ff; stroke-width: 2.5; }
-.ctl-label { fill: var(--tx); font: 600 12px var(--sans); opacity: 0.85; }
+.ctl-unbound { fill: var(--s2); stroke: var(--bd); opacity: 0.6; }
+.ctl-other { fill: var(--s3); stroke: var(--bd-strong); }
+.ctl-bound { fill: var(--accent); stroke: var(--brand-deep); }
+.ctl-modifier { fill: var(--warn); stroke: var(--warn); }
+.ctl.hover { fill: var(--brand-deep); stroke: var(--accent); stroke-width: 2.5; }
+.ctl-label { fill: var(--tx-dim); font: 700 12px var(--sans); }
+/* Bound and modifier controls are filled with a saturated colour, so their glyph flips to the
+   inverse ink to stay legible. */
+.ctl-label-bound, .ctl-label-modifier { fill: #fff; }
+.ctl-label-unbound { opacity: 0.55; }
 
 .when { text-align: center; color: var(--tx-dim); font-size: 0.82rem; margin-top: 4px; }
 .legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 12px; font-size: 0.72rem; color: var(--tx-faint); }
 .legend span { display: flex; align-items: center; gap: 5px; }
 .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; border: 1px solid; }
-.sw.bound { background: var(--accent-dim); border-color: var(--accent); }
-.sw.modifier { background: #7a5a12; border-color: var(--warn); }
-.sw.other { background: var(--s3); border-color: var(--bd); }
-.sw.unbound { background: var(--s3); border-color: #333c4d; opacity: 0.5; }
+.sw.bound { background: var(--accent); border-color: var(--brand-deep); }
+.sw.modifier { background: var(--warn); border-color: var(--warn); }
+.sw.other { background: var(--s3); border-color: var(--bd-strong); }
+.sw.unbound { background: var(--s2); border-color: var(--bd); opacity: 0.6; }
 
 .binding-list { display: flex; flex-direction: column; gap: 8px; }
 .binding {
@@ -63,7 +68,7 @@ svg.pad { width: 100%; height: auto; display: block; }
     padding: 11px 13px;
     transition: border-color 0.12s, background 0.12s;
 }
-.binding.hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--s2); }
+.binding.hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--s3); }
 .binding-key {
     display: flex;
     flex-direction: column;

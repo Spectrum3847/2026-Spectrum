@@ -3,7 +3,7 @@ import "./analysis.css";
 import { mountHeader, el, api, fmtDuration } from "../../lib/ui.js";
 import { logPicker, loadProfile, LogModel } from "../../lib/log-loader.js";
 import { clipToEnabled, seriesStats, timeAtOrAbove, fitInternalResistance } from "../../lib/log-model.js";
-import { timeChart, xy, decimate, enabledShadePlugin, limitLinePlugin, COLORS, Chart } from "../../lib/charts.js";
+import { timeChart, xy, decimate, enabledShadePlugin, limitLinePlugin, seriesColor, theme, withAlpha, Chart } from "../../lib/charts.js";
 import { simulateBreaker } from "../../lib/breaker.js";
 
 mountHeader();
@@ -81,22 +81,38 @@ function render(log, name) {
                 breaker ? (breaker.trips.length ? "bad" : breaker.peakPct > 60 ? "warn" : "ok") : ""))
     );
 
-    // ------------------------------------------------------------ pack chart
+    // ------------------------------------------------------------ pack charts
+    //
+    // Current and voltage are shown as two charts sharing one x-range rather than one chart with
+    // two y-scales. Two scales on one plot let whoever picks the scales imply any correlation they
+    // want, and here the honest story -- current spikes, voltage sags -- reads perfectly well
+    // stacked.
     if (amps.length || volts.length) {
-        const { card, canvas } = chartCard("Pack current and voltage",
-            "Shaded stretches are enabled. The dashed line is the brownout threshold this robot is configured with.");
-        blocks.push(card);
-        queueMicrotask(() => {
-            charts.push(timeChart(canvas, {
+        const xRange = [log.firstTs, log.lastTs];
+        if (amps.length) {
+            const { card, canvas } = chartCard("Pack current",
+                "Shaded stretches are enabled. Everything outside them is the robot sitting on a cart.");
+            blocks.push(card);
+            queueMicrotask(() => charts.push(timeChart(canvas, {
                 yTitle: "amps",
-                y1Title: "volts",
-                datasets: [
-                    { label: "total current (A)", data: xy(decimate(amps)), borderColor: COLORS[0], fill: false },
-                    { label: "battery (V)", data: xy(decimate(volts)), borderColor: COLORS[2], yAxisID: "y1", fill: false },
-                ],
-                plugins: [shade, limitLinePlugin([{ value: brownout, axis: "y1", color: "#e35d6a", label: `brownout ${brownout} V` }])],
-            }));
-        });
+                xRange,
+                datasets: [{ label: "total current", data: xy(decimate(amps)), borderColor: seriesColor(0), fill: false }],
+                plugins: [shade],
+            })));
+        }
+        if (volts.length > 1) {
+            const { card, canvas } = chartCard("Battery voltage",
+                `Same time range. The dashed line is this robot's configured brownout threshold, ${brownout} V.`,
+                "short");
+            blocks.push(card);
+            queueMicrotask(() => charts.push(timeChart(canvas, {
+                yTitle: "volts",
+                xRange,
+                yBeginAtZero: false,
+                datasets: [{ label: "battery", data: xy(decimate(volts)), borderColor: seriesColor(3), fill: false }],
+                plugins: [shade, limitLinePlugin([{ value: brownout, label: `brownout ${brownout} V` }])],
+            })));
+        }
     }
 
     // ------------------------------------------------------------ breaker
@@ -115,7 +131,7 @@ function render(log, name) {
             charts.push(timeChart(canvas, {
                 yTitle: "% of trip",
                 yMax: 105,
-                datasets: [{ label: "breaker heat (%)", data: xy(decimate(breaker.thermal)), borderColor: COLORS[3], fill: true, backgroundColor: "rgba(227,93,106,0.14)" }],
+                datasets: [{ label: "breaker heat", data: xy(decimate(breaker.thermal)), borderColor: theme().bad, fill: true, backgroundColor: withAlpha(theme().bad, 0.14) }],
                 plugins: [shade, limitLinePlugin([{ value: 100, label: "trip" }])],
             }));
         });
@@ -196,7 +212,7 @@ function render(log, name) {
                 datasets: chosen.map((mech, i) => ({
                     label: mech.displayName,
                     data: xy(decimate(mech.stator.length ? mech.stator : mech.supply)),
-                    borderColor: COLORS[i % COLORS.length],
+                    borderColor: seriesColor(i),
                     fill: false,
                 })),
                 // One dashed line per distinct limit value. Most motors share 80 A, and drawing
@@ -204,7 +220,7 @@ function render(log, name) {
                 plugins: [shade, limitLinePlugin(
                     [...new Set(chosen.filter((c) => c.spec?.statorAmps).map((c) => c.spec.statorAmps))]
                         .sort((a, b) => a - b)
-                        .map((v) => ({ value: v, color: "#e35d6a", label: `${v} A stator limit`, dash: [3, 4] })))],
+                        .map((v) => ({ value: v, label: `${v} A stator limit`, dash: [3, 4] })))],
             }));
         };
         queueMicrotask(drawMotors);
@@ -229,13 +245,19 @@ function render(log, name) {
                     type: "bar",
                     data: {
                         labels: withEnergy.map((x) => x.name),
-                        datasets: [{ label: "Wh", data: withEnergy.map((x) => +x.wh.toFixed(2)), backgroundColor: withEnergy.map((_, i) => COLORS[i % COLORS.length]) }],
+                        datasets: [{
+                            label: "Wh",
+                            data: withEnergy.map((x) => +x.wh.toFixed(2)),
+                            backgroundColor: withEnergy.map((_, i) => seriesColor(i)),
+                            borderRadius: 4,
+                            borderSkipped: "start",
+                        }],
                     },
                     options: {
                         indexAxis: "y",
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
-                        scales: { x: { title: { display: true, text: "watt-hours" }, grid: { color: "#1b2230" } }, y: { grid: { display: false } } },
+                        scales: { x: { title: { display: true, text: "watt-hours" }, grid: { color: theme().grid } }, y: { grid: { display: false } } },
                     },
                 }));
             });
