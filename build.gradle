@@ -264,15 +264,32 @@ tasks.register('robotAppDriftCheck') {
 
 check.dependsOn 'robotAppDriftCheck'
 
-// Launches the swerve alignment web app in tools/swerve-align. It only runs when invoked, so a
-// machine without Node.js is unaffected by its presence here.
+/*
+ * Opens the Spectrum robot app on the swerve alignment page. The alignment tool now lives in
+ * tools/robot-app alongside the controls reference, log sync and the log analysis pages, so this
+ * starts that app rather than a second server on its own port.
+ *
+ * It only runs when invoked, so a plain build never touches it.
+ */
 tasks.register('alignSwerve', Exec) {
     group = 'Spectrum'
-    description = 'Open the swerve module alignment web app'
-    workingDir = rootDir
+    description = 'Open the swerve module alignment page in the robot app'
+    workingDir = file('tools/robot-app')
     if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
-        commandLine 'cmd', '/c', 'node', 'tools/swerve-align/server.js'
+        commandLine 'cmd', '/c', 'npm', 'run', 'align'
     } else {
-        commandLine 'node', 'tools/swerve-align/server.js'
+        commandLine 'npm', 'run', 'align'
+    }
+}
+
+/** Opens the robot app on its home page. */
+tasks.register('robotApp', Exec) {
+    group = 'Spectrum'
+    description = 'Open the Spectrum robot app (controls, logs, power, CAN, swerve align)'
+    workingDir = file('tools/robot-app')
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        commandLine 'cmd', '/c', 'npm', 'start'
+    } else {
+        commandLine 'npm', 'start'
     }
 }

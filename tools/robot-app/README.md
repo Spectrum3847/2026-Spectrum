@@ -9,6 +9,10 @@ npm install          # once, needs internet
 npm start            # builds and serves on http://localhost:5801
 ```
 
+On Windows, double-click `start.bat` instead — it installs, builds and opens the browser.
+`align-swerve.bat` does the same but lands on the alignment page, for the desktop shortcut people
+already have. `./gradlew robotApp` and `./gradlew alignSwerve` do the same from Gradle.
+
 After `npm install`, nothing needs the internet again — it runs in the queue line, in the pit, on
 a field with no signal. Only pulling logs off the robot needs a network, and that network is the
 robot's own.
@@ -27,7 +31,7 @@ npm run dev          # Vite on 5173, API proxied to the Express server on 5801
 | **Logs** | Finds the robot, lists `.wpilog` files on it, pulls them into the team logs repo, and indexes headline numbers into a committed manifest. |
 | **Power** | Per-motor current against its configured limit, how often each motor is pinned there, battery sag and pack internal resistance, energy per mechanism, and a main-breaker thermal simulation. |
 | **CAN Bus** | Bus utilization, error counters heading for bus-off, motors that stopped answering, and the device inventory. |
-| **Swerve Align** | A slot. See *Adding a page*. |
+| **Swerve Align** | Pin the modules, read the CANcoders live over NT4, and write the offsets into the robot config file. |
 
 ## The two data files
 
@@ -64,6 +68,28 @@ lists them all at the bottom; the ones that bite hardest:
 - **`Scheduler/*` is in seconds**, not milliseconds.
 - **Brownout is not logged** and the threshold is set to 4.6 V, well under the 6.8 V default, so
   the RIO holds on far longer than stock. Sag has to be read off the voltage trace.
+
+## Swerve alignment
+
+The alignment page is the one part of the app that **writes to the source tree**: it rewrites the
+four numbers in `swerve.configEncoderOffsets(...)` in `src/main/java/frc/robot/configs/OM2026.java`
+and nothing else. That is why the server binds to `127.0.0.1` — nothing on the pit network should
+be able to ask a laptop to edit robot code. Point it at a different robot with `swerveAlign.targetConfig`
+in `config.local.json`.
+
+The split is strict: **the browser talks to the robot, the server talks to the source tree, and
+they never swap roles.** `client/lib/nt4.js` is a read-only NT4 client that connects straight from
+the browser to `ws://<robot>:5810`; `server/lib/swerve-config.js` is the only thing that touches
+the `.java` file.
+
+The parser handles the arithmetic already in the configs (`-0.23046875 - 0.25`), rounds to the
+CANcoder's own 1/4096 resolution, and emits the call formatted the way `googleJavaFormat().aosp()`
+would, so `./gradlew spotlessCheck` stays green without anyone running `spotlessApply` afterwards.
+`test/swerve-config.test.mjs` round-trips all of that against the real config file plus the other
+call shapes it has to survive.
+
+Robot side: `SwerveAlignment.java` publishes raw CANcoder data under `/Robot/Swerve/Align/`.
+The full walkthrough is [`docs/tools/swerve-alignment.md`](../../docs/tools/swerve-alignment.md).
 
 ## Theming
 
@@ -147,11 +173,12 @@ Add a nav entry in `client/lib/ui.js` (`PAGES`). Useful pieces:
 | `lib/log-model.js` | Normalizes a log across both log eras; discovers mechanisms; enabled windows |
 | `lib/charts.js` | Chart.js defaults, time charts, limit lines, enabled-time shading, decimation |
 | `lib/log-loader.js` | The log picker used by Power and CAN |
+| `lib/nt4.js` | Read-only NT4 client; connects the browser straight to the robot |
 | `/api/robot/probe` | Which RIO address is reachable |
 | `/api/logs` | Synced logs and their manifest entries |
 
-For live robot data, talk NT4 straight from the browser at
-`ws://<robot-host>:5810/nt/<client-id>`. The server doesn't need to be in the middle.
+For live robot data, import `lib/nt4.js` and talk NT4 straight from the browser — the server does
+not need to be in the middle. The Swerve Align page is the worked example.
 
 ## Layout
 
@@ -161,6 +188,7 @@ server/          Express API: robot discovery, SSH log transfer, manifest, git
   lib/robot.js   address probing, SSH listing, SFTP download
   lib/summary.js headline numbers extracted at sync time
   lib/manifest.js manifest read/write, commit and push
+  lib/swerve-config.js reads and rewrites the encoder offsets in the robot config
 client/          Vite frontend, one entry per page
   lib/           shared parser, log model, charts, UI helpers
   pages/         one directory per page

@@ -327,4 +327,5 @@ class NT4Client {
     }
 }
 
-window.NT4Client = NT4Client;
+export { NT4Client };
+export default NT4Client;

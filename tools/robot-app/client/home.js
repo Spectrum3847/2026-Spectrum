@@ -9,7 +9,7 @@ const CARDS = [
     { href: "/pages/logs/", title: "Logs", body: "Find the robot, pull .wpilog files off it, and index them into the team logs repo." },
     { href: "/pages/power/", title: "Power", body: "Per-motor current against its configured limit, battery sag, energy per subsystem, and breaker trip simulation." },
     { href: "/pages/can/", title: "CAN Bus", body: "Bus utilization, error counters heading for bus-off, and motors that stopped answering mid-match." },
-    { href: "/pages/swerve-align/", title: "Swerve Align", body: "Module alignment helper." },
+    { href: "/pages/swerve-align/", title: "Swerve Align", body: "Pin the modules, read the CANcoders over NetworkTables, and write the offsets straight into the robot config." },
 ];
 
 document.getElementById("cards").append(

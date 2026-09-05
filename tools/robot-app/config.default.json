@@ -1,5 +1,6 @@
 {
   "port": 5801,
+  "host": "127.0.0.1",
   "robot": {
     "teams": [8515, 3847],
     "extraHosts": ["172.22.11.2"],
@@ -12,6 +13,9 @@
     "remote": "https://github.com/Spectrum3847/2026-Robot-Logs",
     "logsSubdir": "logs",
     "manifest": "manifest.json"
+  },
+  "swerveAlign": {
+    "targetConfig": "src/main/java/frc/robot/configs/OM2026.java"
   },
   "robotProfile": "OM2026"
 }

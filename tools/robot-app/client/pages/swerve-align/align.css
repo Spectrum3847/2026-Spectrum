@@ -7,51 +7,47 @@
  * that has them installed it looks like the site; everywhere else it falls back cleanly.
  */
 
-:root {
-    /* Brand */
-    --p700: #4c0070;
-    --p800: #3c0060;
-    --p900: #2a0044;
-    --purple: #6b1199;
-    --violet: #8b5cf6;
-    --violet-soft: #c4b5fd;
+/*
+ * Swerve alignment page.
+ *
+ * The component styles below came from the standalone tools/swerve-align app unchanged. Only its
+ * token block was replaced: it defined the Spectrum palette locally, and the app already defines
+ * the same palette in client/styles.css. Aliasing its names onto the shared ones means one source
+ * of truth for the colours -- and it inherits the dark theme for free, which the standalone tool
+ * never had.
+ */
+.align-page {
+    --p700: var(--brand-deep);
+    --p800: var(--brand-deep);
+    --p900: var(--brand-deep);
+    --purple: var(--brand);
+    --violet: var(--accent);
+    --violet-soft: var(--bd-strong);
 
-    /* Surfaces and text */
-    --surface: #ffffff;
-    --surface-alt: #f8f5fc;
-    --surface-tint: #f3e8ff;
-    --ink: #1f1b23;
-    --muted: #635a72;
-    --line: #e9ddf7;
-    --line-strong: #d4c0ee;
+    --surface: var(--s1);
+    --surface-alt: var(--s2);
+    --surface-tint: var(--s3);
+    --ink: var(--tx);
+    --muted: var(--tx-faint);
+    --line: var(--bd);
+    --line-strong: var(--bd-strong);
 
-    /* Status. Kept clearly non-purple so a verdict never reads as chrome. */
-    --ok: #067647;
-    --ok-bg: #e8f6ef;
-    --warn: #b54708;
-    --warn-bg: #fdf3e8;
-    --bad: #b42318;
-    --bad-bg: #fdecea;
+    --ok: var(--ok);
+    --ok-bg: var(--ok-bg);
+    --warn: var(--warn);
+    --warn-bg: var(--warn-bg);
+    --bad: var(--bad);
+    --bad-bg: var(--bad-bg);
 
-    --shadow-sm: 0 1px 2px #1f1b230f;
-    --shadow-md: 0 4px 12px #1f1b2314;
-    --shadow-lg: 0 12px 30px #4c00701f;
+    --shadow-sm: var(--shadow-sm);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-md);
 
-    --font: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    --font-heading: 'Outfit', 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+    --font: var(--sans);
+    --font-heading: var(--display);
 
-    color-scheme: light;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    background: var(--surface-alt);
-    color: var(--ink);
-    font: 15px/1.55 var(--font);
+    color: var(--tx);
+    font-family: var(--sans);
 }
 
 h1,
@@ -65,38 +61,45 @@ h4 {
 
 /* --- header ----------------------------------------------------------- */
 
-header {
+/*
+ * In the standalone app this was deep-purple chrome. Inside the robot app the nav bar already
+ * carries the brand colour, so a second purple band directly under it just reads as heavy. It
+ * becomes an ordinary page header, aligned to the same column as the steps below it.
+ */
+.align-page .align-header {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 18px 28px;
-    background: var(--p800);
-    color: #fff;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 24px 24px 4px;
 }
 
-h1 {
+.align-page h1 {
     margin: 0;
-    font-size: 23px;
-    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--brand-deep);
 }
 
-.subtitle {
+:root[data-theme="dark"] .align-page h1 {
+    color: var(--accent);
+}
+
+.align-page .subtitle {
     margin: 5px 0 0;
-    color: rgba(255, 255, 255, 0.78);
+    color: var(--muted);
     font-size: 13px;
 }
 
-.subtitle code {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-}
-
-main {
+.align-page .align-main {
     max-width: 1020px;
     margin: 0 auto;
-    padding: 22px 24px 90px;
+    padding: 18px 24px 90px;
 }
 
 /* --- connection ------------------------------------------------------- */
@@ -108,7 +111,7 @@ main {
 }
 
 .conn-row label {
-    color: rgba(255, 255, 255, 0.78);
+    color: var(--muted);
     font-size: 13px;
 }
 
@@ -119,14 +122,14 @@ main {
     margin-top: 9px;
     font-size: 13px;
     justify-content: flex-end;
-    color: rgba(255, 255, 255, 0.85);
+    color: var(--muted);
 }
 
 #host {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
     border-radius: 7px;
-    color: #fff;
+    color: var(--ink);
     padding: 7px 10px;
     font: inherit;
     font-size: 14px;
@@ -197,15 +200,16 @@ button:disabled {
     box-shadow: none;
 }
 
-header button {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: rgba(255, 255, 255, 0.3);
-    color: #fff;
+/* The header is no longer a dark band, so its controls use the ordinary button colours. */
+.align-page .align-header button {
+    background: var(--surface);
+    border-color: var(--line-strong);
+    color: var(--ink);
 }
 
-header button:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.24);
-    border-color: #fff;
+.align-page .align-header button:hover:not(:disabled) {
+    background: var(--surface-tint);
+    border-color: var(--purple);
 }
 
 /* --- sections --------------------------------------------------------- */
@@ -591,7 +595,7 @@ ol.next-steps li {
         grid-template-columns: 1fr;
     }
 
-    header {
+    .align-page .align-header {
         padding: 16px 18px;
     }
 

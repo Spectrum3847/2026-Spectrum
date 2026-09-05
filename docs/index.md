@@ -44,7 +44,8 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 * [Simulation](tools/simulation.md) — running the robot without a robot.
 * [Logging and Data Analysis](tools/logging.md) — DogLog, `Telemetry`, `.wpilog` files.
 * [Phoenix Tuner X](tools/phoenix-tuner-x.md) — motor configuration, swerve offsets, plotter.
-* [Swerve Alignment](tools/swerve-alignment.md) — the web app that zeroes the modules and writes the offsets into the code.
+* [Swerve Alignment](tools/swerve-alignment.md) — the page that zeroes the modules and writes the offsets into the code.
+* [Robot App](../tools/robot-app/README.md) — the local web app it lives in: control maps, log sync, power and CAN-bus analysis.
 * [PID Tuning](tools/pid-tuning.md) — gains, feedforward, the workflow.
 * [Elastic Dashboard](tools/elastic.md) — driver-station UI, NetworkTables.
 * [LEDs](tools/leds.md) — `SpectrumLEDs` patterns and CANdle plans.

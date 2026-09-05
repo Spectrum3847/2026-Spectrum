@@ -15,7 +15,8 @@
     "start": "npm run build && node server/index.js",
     "serve": "node server/index.js",
     "test": "node --test test/*.test.mjs",
-    "check": "node scripts/check-drift.mjs && node --test test/*.test.mjs"
+    "check": "node scripts/check-drift.mjs && node --test test/*.test.mjs",
+    "align": "npm run build && node server/index.js --open /pages/swerve-align/"
   },
   "dependencies": {
     "@fontsource-variable/outfit": "^5.3.0",

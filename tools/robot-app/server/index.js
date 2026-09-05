@@ -1,9 +1,11 @@
 import express from "express";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { config, APP_ROOT, logsRepoPath, logsDir } from "./lib/config.js";
 import { robotRouter } from "./routes/robot.js";
 import { logsRouter } from "./routes/logs.js";
+import { swerveRouter } from "./routes/swerve.js";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
@@ -28,6 +30,7 @@ app.get("/api/config", (req, res) => {
 
 app.use("/api/robot", robotRouter);
 app.use("/api/logs", logsRouter);
+app.use("/api/swerve", swerveRouter);
 
 // Static data (controls map, robot profile) is served straight from data/ so the same files are
 // both the app's input and the thing the Gradle drift check validates.
@@ -56,8 +59,24 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: "unhandled server error", detail: String(err.message) });
 });
 
-app.listen(config.port, () => {
-    console.log(`\n  Spectrum robot app   http://localhost:${config.port}`);
+/*
+ * Loopback only. The swerve-align endpoint rewrites a source file in this repo, and the logs
+ * endpoints run git; neither has any business being reachable from the pit network. Override with
+ * `host` in config.local.json only if you know why you want that.
+ */
+app.listen(config.port, config.host || "127.0.0.1", () => {
+    const url = `http://localhost:${config.port}`;
+    console.log(`\n  Spectrum robot app   ${url}`);
     console.log(`  logs repo            ${logsRepoPath()}${fs.existsSync(logsRepoPath()) ? "" : "   (not cloned yet)"}`);
-    console.log(`  robot profile        ${config.robotProfile}\n`);
+    console.log(`  robot profile        ${config.robotProfile}`);
+    console.log(`  writes offsets to    ${config.swerveAlign?.targetConfig ?? "(unset)"}\n`);
+    console.log("  Press Ctrl+C to stop.\n");
+
+    // --open, optionally with a path, so a desktop shortcut can land on one page.
+    const i = process.argv.indexOf("--open");
+    if (i !== -1) {
+        const page = process.argv[i + 1] && !process.argv[i + 1].startsWith("--") ? process.argv[i + 1] : "/";
+        const opener = process.platform === "darwin" ? "open" : process.platform === "win32" ? "explorer" : "xdg-open";
+        spawn(opener, [url + page], { detached: true, stdio: "ignore" }).unref();
+    }
 });

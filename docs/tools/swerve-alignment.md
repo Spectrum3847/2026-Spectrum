@@ -2,7 +2,7 @@
 
 *Audience: Anyone squaring up the drivetrain. Assumes you've read [Setup](../setup.md).*
 
-Zeroing the swerve modules used to mean reading four numbers off [Phoenix Tuner X](phoenix-tuner-x.md) and hand-copying them into a config file, getting the sign right, and hoping nobody pointed a wheel backwards. The app in `tools/swerve-align` does the reading, the arithmetic, and the sanity checks, then writes the numbers into the code for you.
+Zeroing the swerve modules used to mean reading four numbers off [Phoenix Tuner X](phoenix-tuner-x.md) and hand-copying them into a config file, getting the sign right, and hoping nobody pointed a wheel backwards. The **Swerve Align** page of the [robot app](../../tools/robot-app/README.md) does the reading, the arithmetic, and the sanity checks, then writes the numbers into the code for you.
 
 It only ever edits four numbers in one file. It never writes anything to the robot.
 
@@ -22,17 +22,21 @@ Pin each module, capture, pull the pins. That's the whole method.
 
 Any of these:
 
-* Double-click **`tools/swerve-align/align-swerve.bat`**
-* `node tools/swerve-align/server.js`
+* Double-click **`tools/robot-app/align-swerve.bat`**
 * `./gradlew alignSwerve`
+* `cd tools/robot-app && npm run align`
 
 ```bash
-node tools/swerve-align/server.js
+cd tools/robot-app && npm run align
 ```
 
-All three open <http://127.0.0.1:5817> in a browser. Leave the console window open — closing it stops the app.
+All three open <http://localhost:5801/pages/swerve-align/> in a browser. Leave the console window open — closing it stops the app.
+
+The first run installs dependencies, which needs internet once; after that it works offline. The batch file does that for you.
 
 **To put it on the desktop:** right-click `align-swerve.bat` → **Send to** → **Desktop (create shortcut)**. Rename the shortcut to something like "Align Swerve".
+
+Alignment is one page of the robot app — the nav bar at the top also has the pilot and operator control maps, log sync, and the power and CAN-bus analysis pages. `./gradlew robotApp` opens it on the home page instead.
 
 ## What it needs
 
@@ -107,7 +111,7 @@ newOffset = wrap(-rawRotations)
 
 wrapped into `[-0.5, 0.5)` rotations and rounded to 1/4096, the CANcoder's own resolution.
 
-The browser talks NetworkTables to the robot directly. The small Node server only serves the page and reads/writes the config file; it binds to `127.0.0.1` so nothing on the pit network can ask it to edit your source. Implementation notes are in [`tools/swerve-align/README.md`](../../tools/swerve-align/README.md).
+The browser talks NetworkTables to the robot directly. The Node server only serves the page and reads/writes the config file; it binds to `127.0.0.1` so nothing on the pit network can ask it to edit your source. Implementation notes are in [`tools/robot-app/README.md`](../../tools/robot-app/README.md); the parsing and writing live in `server/lib/swerve-config.js`, covered by `test/swerve-config.test.mjs`.
 
 ## When to fall back to Tuner X
 
