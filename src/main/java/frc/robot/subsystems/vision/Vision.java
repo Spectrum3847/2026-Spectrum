@@ -46,9 +46,11 @@ import lombok.Getter;
  * <ol>
  *   <li>Publishes the turret-rotated camera transform ({@link #updateTurretCameraPose()}) and the
  *       robot heading to every camera, then flushes NetworkTables so they solve this frame.
- *   <li>Picks the best chassis camera ({@link #getBestLimelight()}) and integrates its MT1
- *       (enabled) or MT1+MT2 (disabled). The turret camera always integrates via MT2 ({@link
- *       #getMT2VisionEstimate(Limelight)}), trusting the pushed robot heading.
+ *   <li>Picks the best chassis camera ({@link #getBestLimelight()}). While disabled it seeds the
+ *       pose (translation and heading) from that camera's MT1 only. While enabled it fuses that
+ *       camera's MT1 translation and the turret camera's MT2 translation ({@link
+ *       #getMT2VisionEstimate(Limelight)}), never heading, unless the gross-heading safety net
+ *       fires ({@link #checkGrossHeadingError(Limelight)}).
  *   <li>Logs camera status and pose data via {@link VisionLogger}.
  * </ol>
  *
@@ -178,6 +180,34 @@ public class Vision implements Subsystem {
          * Vision#getMT1Estimate(Limelight, boolean)}.
          */
         @Getter final double kLargeVariance = 999999.0;
+
+        // -- Estimate sanity gates --------------------------------------------
+
+        /**
+         * Estimates older than this (seconds, capture time to now) are rejected. The pose estimator
+         * silently drops anything older than its 1.5 s buffer, so without this gate a camera with a
+         * bad clock looks "integrating" while never moving the pose.
+         */
+        @Getter final double maxEstimateAgeSeconds = 1.0;
+
+        /**
+         * Turret camera gate: if the turret camera's MegaTag1 heading disagrees with the gyro by
+         * more than this (degrees), its estimates are rejected. The turret camera's mount transform
+         * is built from the turret encoder, so a disagreement here means the turret zero is off by
+         * that amount and every pose the camera reports is displaced by range times that angle.
+         */
+        @Getter final double turretHeadingMismatchDeg = 5.0;
+
+        // -- Gross heading correction while enabled ---------------------------
+        //
+        // Heading is normally gyro-only while enabled. This is the safety net for enabling before
+        // the cameras have seeded the pose: a stationary robot whose two-tag MegaTag1 heading
+        // disagrees with the gyro by a lot, for a full second, gets its heading reset once.
+
+        @Getter final double grossHeadingErrorDeg = 10.0;
+        @Getter final double grossHeadingHoldSeconds = 1.0;
+        @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
+        @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
     }
 
     // =========================================================================
@@ -333,9 +363,13 @@ public class Vision implements Subsystem {
             logger.getLogStatus();
             logger.getTagStatus();
             logger.getPose();
+            logger.getMegaPose();
             logger.getTagCount();
             logger.getTargetSize();
+            logger.getEstimateAge();
+            logger.getIntegratedThisLoop();
         }
+        Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
 
         // Null-safe; returns Pose2d.kZero when no data
         Robot.getField2d().getObject(backLeftLL.getCameraName()).setPose(getBackLeftMegaTag1Pose());
@@ -406,36 +440,116 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * While the robot is disabled, seeds the pose estimator from MegaTag2 translation and MegaTag1
-     * heading, so the pose is correct before the match starts.
+     * While the robot is disabled, seeds the pose estimator (translation and heading) from the best
+     * chassis camera's MegaTag1 only, so the pose is correct before the match starts.
+     *
+     * <p>MegaTag2 is deliberately not used here. It depends on the heading we push to the camera,
+     * which is the very thing seeding is trying to fix, and the turret camera's MT2 additionally
+     * depends on the turret zero. Fusing them alongside a tight MT1 seed made the pose flip a metre
+     * every loop when the turret zero was off (seen in the 2026-09-04 bench logs).
      */
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             Limelight best = getBestLimelight();
             markUnselectedLimelights(best);
-            integrateSingleEstimate(getMT1Estimate(best, true));
-            integrateSingleEstimate(getMT2VisionEstimate(best));
-
-            if (turretEstimatesAvailable()) {
-                integrateSingleEstimate(getMT2VisionEstimate(turretLL));
-            }
+            integrateSingleEstimate(best, getMT1Estimate(best, true));
         }
     }
 
     /**
-     * While the robot is enabled (teleop or auto pose-update), integrates the best chassis camera's
-     * MT1 estimate and the turret camera's MT2 estimate.
+     * While the robot is enabled (teleop or auto pose-update), fuses the best chassis camera's MT1
+     * translation and the turret camera's MT2 translation, then runs the gross-heading safety net.
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
             Limelight best = getBestLimelight();
             markUnselectedLimelights(best);
-            integrateSingleEstimate(getMT1Estimate(best, false));
+            integrateSingleEstimate(best, getMT1Estimate(best, false));
 
             if (turretEstimatesAvailable()) {
-                integrateSingleEstimate(getMT2VisionEstimate(turretLL));
+                integrateSingleEstimate(turretLL, getMT2VisionEstimate(turretLL));
+            }
+
+            checkGrossHeadingError(best);
+        }
+    }
+
+    /** FPGA time at which the gross heading error was first seen; NaN when not armed. */
+    private double grossHeadingErrorStartFpgaSeconds = Double.NaN;
+
+    /**
+     * Safety net for enabling before the cameras seeded the pose. If the robot is nearly stationary
+     * and the best chassis camera sees two or more tags whose MegaTag1 heading disagrees with the
+     * gyro by more than {@link VisionConfig#getGrossHeadingErrorDeg()} continuously for {@link
+     * VisionConfig#getGrossHeadingHoldSeconds()}, the heading is reset to the camera's once.
+     * Frame-to-frame MegaTag1 heading noise of a degree or two never trips this; a 90 or 180 degree
+     * boot-heading error does, within about a second of stopping in front of tags.
+     */
+    private void checkGrossHeadingError(Limelight best) {
+        double now = Timer.getFPGATimestamp();
+        Pose2d robotPose = Robot.getSwerve().getRobotPose();
+        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        boolean stationary =
+                Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+                                <= config.getGrossHeadingMaxLinearSpeed()
+                        && Math.abs(speeds.omegaRadiansPerSecond)
+                                <= config.getGrossHeadingMaxOmega();
+
+        double age = best.getLastEstimateAgeSeconds();
+        boolean freshMultiTag =
+                best.targetInView()
+                        && best.multipleTagsInView()
+                        && !Double.isNaN(age)
+                        && age <= config.getMaxEstimateAgeSeconds();
+
+        double errorDeg = Double.NaN;
+        Pose2d mt1Pose = null;
+        if (freshMultiTag) {
+            mt1Pose = best.getMegaTag1_Pose3d().toPose2d();
+            if (!FieldHelpers.poseOutOfField(mt1Pose)) {
+                errorDeg = mt1Pose.getRotation().minus(robotPose.getRotation()).getDegrees();
             }
         }
+
+        boolean gross =
+                !Double.isNaN(errorDeg)
+                        && stationary
+                        && Math.abs(errorDeg) >= config.getGrossHeadingErrorDeg();
+        boolean applied = false;
+        if (!gross) {
+            grossHeadingErrorStartFpgaSeconds = Double.NaN;
+        } else if (Double.isNaN(grossHeadingErrorStartFpgaSeconds)) {
+            grossHeadingErrorStartFpgaSeconds = now;
+        } else if (now - grossHeadingErrorStartFpgaSeconds >= config.getGrossHeadingHoldSeconds()) {
+            Robot.getSwerve()
+                    .addVisionMeasurement(
+                            mt1Pose,
+                            Utils.fpgaToCurrentTime(best.getMegaTag1PoseTimestamp()),
+                            VecBuilder.fill(0.01, 0.01, Units.degreesToRadians(0.01)));
+            grossHeadingErrorStartFpgaSeconds = Double.NaN;
+            applied = true;
+            Telemetry.print(
+                    String.format(
+                            "Vision: gross heading error of %.1f deg corrected from %s",
+                            errorDeg, best.getName()));
+        }
+
+        Telemetry.log("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
+        Telemetry.log("Vision/HeadingCorrection/Armed", gross);
+        Telemetry.log("Vision/HeadingCorrection/Applied", applied);
+    }
+
+    /**
+     * Turret camera MegaTag1 heading minus the pose heading, wrapped to [-180, 180) degrees, or NaN
+     * when the turret camera has no target. Because the turret camera's mount transform comes from
+     * the turret encoder, a steady non-zero value here is the turret zero error.
+     */
+    private double turretCameraHeadingErrorDeg() {
+        if (!turretEstimatesAvailable() || !turretLL.targetInView()) {
+            return Double.NaN;
+        }
+        Rotation2d cameraHeading = turretLL.getMegaTag1_Pose3d().toPose2d().getRotation();
+        return cameraHeading.minus(Robot.getSwerve().getRobotPose().getRotation()).getDegrees();
     }
 
     /**
@@ -569,11 +683,33 @@ public class Vision implements Subsystem {
         Pose2d integratedPose =
                 new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
+        if (isStale(ll, timestamp)) {
+            return null;
+        }
         // The pose estimator expects the heading std-dev in radians; degStds is in degrees.
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds));
         int numTags = tags == null ? 1 : tags.length;
 
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
+    }
+
+    /**
+     * Records the estimate's age on the camera for telemetry and rejects it if it is older than
+     * {@link VisionConfig#getMaxEstimateAgeSeconds()}. The pose estimator would drop such a
+     * measurement silently; rejecting it here makes a camera with a bad clock visible in the logs.
+     *
+     * @param ll the camera the estimate came from
+     * @param timestampCurrentTime the estimate's capture time in the pose estimator's time base
+     * @return {@code true} if the estimate is too old to use
+     */
+    private boolean isStale(Limelight ll, double timestampCurrentTime) {
+        double age = Utils.getCurrentTimeSeconds() - timestampCurrentTime;
+        ll.setLastEstimateAgeSeconds(age);
+        if (age > config.getMaxEstimateAgeSeconds()) {
+            ll.sendInvalidStatus("Stale Estimate Rejection");
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -638,10 +774,14 @@ public class Vision implements Subsystem {
         double degStds = config.getKLargeVariance();
         Pose2d integratedPose =
                 new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
+        double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp());
+        if (isStale(ll, timestamp)) {
+            return null;
+        }
 
         return new VisionFieldPoseEstimate(
                 integratedPose,
-                Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp()),
+                timestamp,
                 VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)),
                 (int) ll.getTagCountInView());
     }
@@ -681,11 +821,13 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Adds a vision measurement to the swerve pose estimator if the estimate is non-null.
+     * Adds a vision measurement to the swerve pose estimator if the estimate is non-null, and marks
+     * the source camera as having been integrated this loop for telemetry.
      *
+     * @param ll the camera the estimate came from
      * @param estimate the estimate to integrate, or {@code null} to skip
      */
-    private void integrateSingleEstimate(VisionFieldPoseEstimate estimate) {
+    private void integrateSingleEstimate(Limelight ll, VisionFieldPoseEstimate estimate) {
         if (estimate != null) {
             Robot.getSwerve()
                     .addVisionMeasurement(
@@ -693,6 +835,7 @@ public class Vision implements Subsystem {
                             estimate.getTimestampSeconds(),
                             estimate.getVisionMeasurementStdDevs());
             lastAcceptedEstimateFpgaSeconds = Timer.getFPGATimestamp();
+            ll.setIntegratedThisLoop(true);
         }
     }
 
@@ -749,6 +892,19 @@ public class Vision implements Subsystem {
         if (ll == turretLL && Math.abs(Robot.getTurret().getMechOmegaRotPerSec()) >= 0.75) {
             ll.sendInvalidStatus("Turret Speed Rejection");
             return true;
+        }
+
+        // The turret camera's mount transform is built from the turret encoder. If its MegaTag1
+        // heading disagrees with the gyro, the turret zero is off by that much and every pose it
+        // reports is displaced by range times that angle, so do not fuse it. A 69 deg zero error
+        // on the bench put its estimates a metre off while every status read "Multi integration".
+        if (ll == turretLL) {
+            double headingErrorDeg = turretCameraHeadingErrorDeg();
+            if (!Double.isNaN(headingErrorDeg)
+                    && Math.abs(headingErrorDeg) > config.getTurretHeadingMismatchDeg()) {
+                ll.sendInvalidStatus("Turret Heading Mismatch Rejection");
+                return true;
+            }
         }
 
         return false;

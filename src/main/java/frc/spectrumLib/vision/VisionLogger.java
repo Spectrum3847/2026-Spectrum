@@ -29,6 +29,8 @@ public class VisionLogger {
     private final String mt2PoseKey;
     private final String tagCountKey;
     private final String targetSizeKey;
+    private final String estimateAgeKey;
+    private final String integratedKey;
 
     /**
      * Constructs a logger for the given Limelight camera.
@@ -48,6 +50,32 @@ public class VisionLogger {
         mt2PoseKey = prefix + "MT2Pose";
         tagCountKey = prefix + "TagCount";
         targetSizeKey = prefix + "TargetSize";
+        estimateAgeKey = prefix + "EstimateAgeSeconds";
+        integratedKey = prefix + "IntegratedThisLoop";
+    }
+
+    /**
+     * Logs and returns the age of the estimate this camera produced this loop, in seconds, or NaN
+     * if it produced none.
+     *
+     * @return estimate age in seconds
+     */
+    public double getEstimateAge() {
+        double age = limelight.getLastEstimateAgeSeconds();
+        Telemetry.log(estimateAgeKey, age, "seconds");
+        return age;
+    }
+
+    /**
+     * Logs and returns whether an estimate from this camera was actually fused into the pose
+     * estimator this loop, as opposed to merely passing the acceptance tiers.
+     *
+     * @return {@code true} if fused this loop
+     */
+    public boolean getIntegratedThisLoop() {
+        boolean integrated = limelight.isIntegratedThisLoop();
+        Telemetry.log(integratedKey, integrated);
+        return integrated;
     }
 
     /**

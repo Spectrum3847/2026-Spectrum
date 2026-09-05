@@ -149,6 +149,17 @@ public class Limelight {
     private boolean taCached;
     private double taValue;
 
+    /* ::: Per-loop integration telemetry, maintained by the owning subsystem ::: */
+
+    /** Whether an estimate from this camera was fused into the pose estimator this loop. */
+    @Getter @Setter private boolean integratedThisLoop;
+
+    /**
+     * Age in seconds (capture time to now) of the last estimate this camera produced this loop, or
+     * NaN if it produced none. A large value means the camera's timestamps are not trustworthy.
+     */
+    @Getter @Setter private double lastEstimateAgeSeconds = Double.NaN;
+
     /**
      * Clears the per-loop NetworkTables snapshot so the next getter re-reads the camera.
      *
@@ -163,6 +174,8 @@ public class Limelight {
         mt2Estimate = null;
         tvCached = false;
         taCached = false;
+        integratedThisLoop = false;
+        lastEstimateAgeSeconds = Double.NaN;
     }
 
     /** Raw MegaTag1 sample for this loop. Caller must have checked {@link #isAttached()}. */
