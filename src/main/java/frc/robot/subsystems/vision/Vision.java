@@ -68,7 +68,7 @@ public class Vision implements Subsystem {
         // -- Back-Left Limelight ----------------------------------------------
 
         /** NetworkTables hostname for the rear-left static Limelight. */
-        @Getter final String backLeftLL = "limelight-back-left";
+        @Getter final String backLeftLL = "limelight-left"; // must match the camera's hostname
 
         /**
          * Robot-relative pose of the rear-left Limelight. Translation in metres (forward, right,
@@ -98,7 +98,7 @@ public class Vision implements Subsystem {
         // -- Back-Right Limelight ---------------------------------------------
 
         /** NetworkTables hostname for the rear-right static Limelight. */
-        @Getter final String backRightLL = "limelight-back-right";
+        @Getter final String backRightLL = "limelight-right"; // must match the camera's hostname
 
         /**
          * Robot-relative pose of the rear-right Limelight. Translation measured in CAD from the
