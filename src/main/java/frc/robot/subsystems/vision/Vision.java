@@ -77,10 +77,11 @@ public class Vision implements Subsystem {
          * origin (robot centre, on the carpet) to the camera location: 11.103 in behind centre,
          * 12.490 in left of centre, 17.058 in up.
          *
-         * <p>Rotation: the camera is mounted upside down (roll 180) on the rear panel, looking
-         * backward (yaw 180) and 60 deg above horizontal. This is the same orientation as a
-         * right-side-up camera pitched 120 deg with no yaw. If the Limelight web UI image
-         * orientation is set to flip the image 180 deg, enter roll 0 there instead of 180.
+         * <p>Rotation: the camera is mounted upside down (roll 180) on the angled rear-left corner
+         * panel, looking out over that corner (yaw +135, i.e. rear-left) and 60 deg above
+         * horizontal. If the Limelight web UI image orientation is set to flip the image 180 deg,
+         * enter roll 0 there instead of 180. These match the values entered in the camera's web UI
+         * on 2026-09-04.
          *
          * <p>Documentation only for pose solving: chassis cameras use the offsets entered in the
          * Limelight web UI, so keep the two in sync.
@@ -92,7 +93,7 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(-11.103), // forward (behind centre)
                                 Units.inchesToMeters(-12.490), // right (left of centre)
                                 Units.inchesToMeters(17.058)) // up
-                        .withRotation(180, 60, 180) // upside down, 60 deg up, facing rear
+                        .withRotation(180, 60, 135) // upside down, 60 deg up, facing rear-left
                         .setAttached(true);
 
         // -- Back-Right Limelight ---------------------------------------------
@@ -105,10 +106,11 @@ public class Vision implements Subsystem {
          * robot origin (robot centre, on the carpet) to the camera location: 10.064 in behind
          * centre, 13.315 in right of centre, 17.458 in up.
          *
-         * <p>Rotation: the camera is mounted upside down (roll 180) on the rear panel, looking
-         * backward (yaw 180) and 60 deg above horizontal. This is the same orientation as a
-         * right-side-up camera pitched 120 deg with no yaw. If the Limelight web UI image
-         * orientation is set to flip the image 180 deg, enter roll 0 there instead of 180.
+         * <p>Rotation: the camera is mounted upside down (roll 180) on the angled rear-right corner
+         * panel, looking out over that corner (yaw -135, i.e. rear-right) and 60 deg above
+         * horizontal. If the Limelight web UI image orientation is set to flip the image 180 deg,
+         * enter roll 0 there instead of 180. These match the values entered in the camera's web UI
+         * on 2026-09-04.
          *
          * <p>Documentation only for pose solving: chassis cameras use the offsets entered in the
          * Limelight web UI, so keep the two in sync.
@@ -120,7 +122,7 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(-10.064), // forward (behind centre)
                                 Units.inchesToMeters(13.315), // right
                                 Units.inchesToMeters(17.458)) // up
-                        .withRotation(180, 60, 180) // upside down, 60 deg up, facing rear
+                        .withRotation(180, 60, -135) // upside down, 60 deg up, facing rear-right
                         .setAttached(true);
 
         // -- Turret Limelight -------------------------------------------------
