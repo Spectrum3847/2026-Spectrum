@@ -209,16 +209,29 @@ public class Vision implements Subsystem {
         /**
          * Heading error that arms the correction.
          *
-         * <p>Was 10.0, which is above the error this actually has to catch. In the 2026-09-05 18:00
-         * log the correction computed a median error of -6.7 deg for the whole enabled window and
-         * never armed, because 6.7 is not 10. That 6.7 deg is about a foot and a half of miss at
-         * three metres, so "not gross enough to bother with" was the wrong call.
+         * <p>This has been both too high and much too low. It started at 10.0; on 2026-09-05 it
+         * went to 3.0 because the 18:00 log showed a median error of -6.7 deg that never armed, and
+         * 6.7 deg is a foot and a half of miss at three metres. That reasoning was wrong, because
+         * it assumed the gyro was the half that was mistaken.
          *
-         * <p>It still takes a stationary robot and a full second of agreement from a fresh
-         * multi-tag estimate before it moves anything, which is what keeps vision noise from
-         * fighting the gyro.
+         * <p>It was not. Both chassis cameras are bolted to the same frame, so the difference
+         * between their headings has no gyro in it at all -- and across 1120 simultaneous samples
+         * in the 20:25 log they disagreed with each other by more than 2 deg 92 percent of the
+         * time, median 5.6 deg. Split by how many tags each one had, the reason is plain: at four
+         * tags a camera holds heading to about a degree, at two it has a 15 deg tail, at one it is
+         * worth nothing. So a 3 deg threshold was not catching gyro drift, it was letting two-tag
+         * geometry noise shove the heading around -- and the turret zero servo then chased it.
+         *
+         * <p>20 deg sits clear of that two-tag noise ceiling while staying far below the 90 and 180
+         * deg boot-heading errors this exists to catch. Replayed across the 18:38, 20:00 and 20:25
+         * logs, it fires on exactly one thing: the genuine -104.5 deg boot error at the start of
+         * the 20:25 run. Every correction it drops was between 4 and 8 deg.
+         *
+         * <p>Requiring three tags instead of two was tried and rejected: that -104.5 deg error was
+         * seen with two, so the stricter rule would have missed the only correction that ever
+         * mattered while changing nothing else.
          */
-        @Getter final double grossHeadingErrorDeg = 3.0;
+        @Getter final double grossHeadingErrorDeg = 20.0;
 
         @Getter final double grossHeadingHoldSeconds = 1.0;
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
@@ -1129,9 +1142,9 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Selects the chassis Limelight with the best current view, scored by visible tag count plus
-     * target size. Detached cameras score 0, so on a turret-only robot this returns {@code
-     * backLeftLL} with score 0 and its estimate is rejected downstream (no target in view).
+     * Selects the chassis Limelight with the best current view, ranked by visible tag count and
+     * broken on target size. Detached cameras score 0, so on a turret-only robot this returns
+     * {@code backLeftLL} with score 0 and its estimate is rejected downstream (no target in view).
      *
      * @return the chassis Limelight currently offering the best view of AprilTags
      */
@@ -1139,7 +1152,14 @@ public class Vision implements Subsystem {
         Limelight bestLimelight = backLeftLL;
         double bestScore = 0;
         for (Limelight limelight : swerveLimelights) {
-            double score = limelight.getTagCountInView() + limelight.getTargetSize();
+            /*
+             * Tag count decides; target size only breaks ties. Target size is an image-area
+             * percentage, so adding the two raw let a big close target outweigh a whole extra tag
+             * -- 139 samples in the 20:25 log had a size above 1.0, and one reached 4.98. Tag
+             * count is what heading accuracy actually tracks: four tags holds about a degree,
+             * two has a 15 deg tail.
+             */
+            double score = limelight.getTagCountInView() * 100.0 + limelight.getTargetSize();
             if (score > bestScore) {
                 bestScore = score;
                 bestLimelight = limelight;
