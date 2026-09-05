@@ -206,7 +206,20 @@ public class Vision implements Subsystem {
         // the cameras have seeded the pose: a stationary robot whose two-tag MegaTag1 heading
         // disagrees with the gyro by a lot, for a full second, gets its heading reset once.
 
-        @Getter final double grossHeadingErrorDeg = 10.0;
+        /**
+         * Heading error that arms the correction.
+         *
+         * <p>Was 10.0, which is above the error this actually has to catch. In the 2026-09-05 18:00
+         * log the correction computed a median error of -6.7 deg for the whole enabled window and
+         * never armed, because 6.7 is not 10. That 6.7 deg is about a foot and a half of miss at
+         * three metres, so "not gross enough to bother with" was the wrong call.
+         *
+         * <p>It still takes a stationary robot and a full second of agreement from a fresh
+         * multi-tag estimate before it moves anything, which is what keeps vision noise from
+         * fighting the gyro.
+         */
+        @Getter final double grossHeadingErrorDeg = 3.0;
+
         @Getter final double grossHeadingHoldSeconds = 1.0;
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
@@ -485,12 +498,42 @@ public class Vision implements Subsystem {
      * depends on the turret zero. Fusing them alongside a tight MT1 seed made the pose flip a metre
      * every loop when the turret zero was off (seen in the 2026-09-04 bench logs).
      */
+    /**
+     * True once a chassis camera has actually seeded the pose while disabled.
+     *
+     * <p>Heading is gyro-only while enabled, and this seeding is the only thing that ever sets it
+     * from vision. Enable before it has happened and the robot's idea of which way it is facing is
+     * just however it was sitting at power-on, for the whole enabled period -- and the turret aims
+     * off by exactly that much.
+     *
+     * <p>Which is what kept happening. In all three 2026-09-05 test logs the robot was enabled
+     * before any camera had produced a pose: by 4 s, by 13 s, and once by 74 s. The cameras were
+     * still booting. Nothing said so, because a pose seeded from a bad heading looks exactly like
+     * one seeded from a good heading.
+     */
+    @Getter private boolean poseHeadingSeeded = false;
+
+    private final Alert notSeededAlert =
+            new Alert(
+                    "Pose heading has not been vision-seeded yet - wait for a limelight to see tags"
+                            + " before enabling, or the turret will aim off by the robot's"
+                            + " power-on heading error",
+                    AlertType.kWarning);
+
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             Limelight best = getBestLimelight();
             markUnselectedLimelights(best);
             integrateSingleEstimate(best, getMT1Estimate(best, true));
+            if (best.isIntegratedThisLoop()) {
+                poseHeadingSeeded = true;
+            }
         }
+
+        // Warn only while disabled: once the match is running, saying so does not help anyone and
+        // the gross heading correction is the thing that has to save it.
+        notSeededAlert.set(!poseHeadingSeeded && Util.disabled.getAsBoolean());
+        Telemetry.log("Vision/PoseHeadingSeeded", poseHeadingSeeded);
     }
 
     /**
