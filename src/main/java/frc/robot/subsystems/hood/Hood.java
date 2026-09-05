@@ -25,6 +25,14 @@ public class Hood extends Mechanism {
         /** Position error (degrees) within which the hood counts as on target for a shot. */
         @Getter private final double aimToleranceDegrees = 0.5;
 
+        /**
+         * Below this angle (degrees) the hood is considered to be resting on its hard stop at home,
+         * and output is cut instead of holding position 0. The hard stop sits fractionally above
+         * the encoder zero, so holding 0 against it stalled the motor at 75 A stator continuously
+         * on the bench (2026-09-04 logs) and heated it 19 C in 30 s of idle. Brake mode holds it.
+         */
+        @Getter private final double homeRestToleranceDegrees = 1.0;
+
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 80;
@@ -113,6 +121,13 @@ public class Hood extends Mechanism {
         switch (systemState) {
             case HOME:
                 wantedDegrees = 0.0;
+                if (getPositionDegrees() <= config.getHomeRestToleranceDegrees()) {
+                    // Resting on the hard stop: stop pushing into it (see
+                    // homeRestToleranceDegrees).
+                    commandedDegrees = 0.0;
+                    stop();
+                    return;
+                }
                 break;
             case STOPPED:
                 stop();
