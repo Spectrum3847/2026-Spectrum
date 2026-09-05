@@ -1,0 +1,25 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "2MANOSTBTB 1"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "2MANOSTBTB 2"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": "2MANOSTBTB",
+  "choreoAuto": false
+}
