@@ -222,10 +222,9 @@ public class ShotCalculator {
                         /* v³   */ 3.7823545109e-2
                     },
                     // Shots landed 3 to 4 feet past the hub centre on 2026-09-05. The model moves
-                    // the hood about
-                    // one degree per foot of range near where this robot shoots, so four degrees
-                    // down.
-                    -4.0);
+                    // the hood about one degree per foot of range near where this robot shoots, so
+                    // four degrees down. Still long on the 20:00 run that evening, so one more.
+                    -5.0);
 
     /** 3 meter ceiling hub model - used when the robot is testing at home */
     private static final PolyModel CEILING_3M_HUB_MODEL =
