@@ -104,6 +104,11 @@ public abstract class Mechanism implements Subsystem {
     private final CachedDouble cachedSupplyCurrent;
     private final CachedDouble cachedTemp;
 
+    /**
+     * BatteryLogger channel name for this mechanism, built once to avoid per-loop concatenation.
+     */
+    private final String batteryKey;
+
     // ── Constructors ───────────────────────────────────────────────────────────
 
     /**
@@ -115,6 +120,7 @@ public abstract class Mechanism implements Subsystem {
      */
     protected Mechanism(Config config) {
         this.config = config;
+        batteryKey = "Mechanisms/" + config.getName();
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
@@ -229,7 +235,7 @@ public abstract class Mechanism implements Subsystem {
                 followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
             }
             Robot.getBatteryLogger()
-                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+                    .reportCurrentUsage(batteryKey, motorCurrent + followersCurrent);
         }
     }
 
