@@ -303,6 +303,8 @@ public class Robot extends SpectrumRobot {
 
         operator.coastA.onTrue(
                 intakeExtension.coastModeCommand().andThen(turret.coastModeCommand()));
+        // Point the turret away from the intake by hand, then press B while disabled.
+        operator.zeroTurretB.onTrue(turret.zeroTurretCommand());
 
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));

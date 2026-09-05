@@ -174,9 +174,11 @@ public class Turret extends Mechanism {
         super(config);
         this.config = config;
 
-        if (isAttached()) {
-            setInitialPosition();
-        }
+        // Deliberately no encoder zeroing here. The TalonFX reads zero at motor power-on and keeps
+        // counting across robot-code restarts, so zeroing in the constructor only served to throw
+        // the position away on every code deploy. The turret zero is therefore "wherever the turret
+        // pointed when the motor powered on", which must be facing away from the intake. Use
+        // zeroTurretCommand() (operator B while disabled) if it was powered on somewhere else.
 
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -201,9 +203,23 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
     }
-    /** Sets the initial position. */
-    private void setInitialPosition() {
-        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+    /**
+     * Declares the turret's current physical position to be its zero (facing away from the intake).
+     * For use while disabled after a student has pointed the turret at its zero by hand, so a
+     * turret that powered on pointing the wrong way can be fixed without a power cycle.
+     *
+     * @return the zeroing command
+     */
+    public Command zeroTurretCommand() {
+        return new InstantCommand(
+                        () -> {
+                            if (isAttached()) {
+                                motor.setPosition(
+                                        degreesToRotations(() -> config.getInitPosition()));
+                            }
+                        })
+                .ignoringDisable(true)
+                .withName("Turret.zeroHere");
     }
     /** Applies the aim at target. */
     private void applyAimAtTarget() {
