@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -114,7 +115,22 @@ public class SuperStructure {
     }
 
     private final Timer intakeSqueezeTimer = new Timer();
-    private final double secondsToSqueeze = 1.0;
+
+    /**
+     * How long a launch runs fully extended before the extensions start agitating.
+     *
+     * <p>The agitate cycle oscillates the extensions between 40% and 70%, so it squeezes the fuel
+     * bed rather than just stirring it. With a full hopper that squeeze arrives against far more
+     * fuel than it was tuned on: in the 2026-09-05 17:10 log both extensions sat at their 80 A
+     * stator limit for the whole of every launch, agitating or not, which is a stall, not a
+     * squeeze. Starting it later leaves the burst more time to draw the bed down first.
+     *
+     * <p>Tunable from NetworkTables so it can be dialed in during a session without a redeploy.
+     * Launch bursts in that log ran 1.1 s to 3.5 s, so a value above about 3 s means most bursts
+     * never agitate at all.
+     */
+    private static final DoubleSubscriber secondsToSqueeze =
+            Telemetry.tunable("SuperStructure/SecondsToSqueeze", 2.0);
     /**
      * Returns {@code true} if the current super state is one of the launch states.
      *
@@ -460,7 +476,7 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
         applyGatedFeed();
 
-        if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze)) {
+        if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze.get())) {
             intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
             intakeSqueezeTimer.stop();
         } else {
