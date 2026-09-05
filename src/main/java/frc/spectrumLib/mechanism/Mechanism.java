@@ -702,6 +702,18 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Reads the mechanism position in degrees directly from the motor, bypassing the per-loop
+     * cache. The cache is only invalidated inside {@code CommandScheduler.run()}, so callers that
+     * run before the scheduler (for example Vision in {@code Robot.robotPeriodic()}) would
+     * otherwise see last loop's value.
+     *
+     * @return motor position in degrees, or {@code 0} if not attached
+     */
+    public double getPositionDegreesUncached() {
+        return rotationsToDegrees(this::updatePositionRotations);
+    }
+
+    /**
      * Computes the motor position in degrees using the cached rotation value.
      *
      * @return motor position in degrees

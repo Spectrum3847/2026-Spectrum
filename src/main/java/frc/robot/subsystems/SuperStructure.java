@@ -3,7 +3,6 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
@@ -17,7 +16,16 @@ import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 import lombok.Getter;
 
-public class SuperStructure extends SubsystemBase {
+/**
+ * Maps one wanted robot state onto every mechanism's wanted state each loop.
+ *
+ * <p>Deliberately not a {@code Subsystem}: {@link frc.robot.Robot#robotPeriodic()} calls {@link
+ * #periodic()} exactly once per loop, before {@code CommandScheduler.run()}, so a state decision
+ * reaches the mechanism periodics in the same loop instead of one loop later. It must never be
+ * registered with the scheduler, because the edge detection on {@code previousSuperState} and the
+ * squeeze timer assume {@code periodic()} runs exactly once per loop.
+ */
+public class SuperStructure {
 
     @Getter private final Swerve swerve;
     @Getter private final FuelIntake fuelIntake;
@@ -138,8 +146,7 @@ public class SuperStructure extends SubsystemBase {
     private static boolean isSqueezeState(CurrentSuperState state) {
         return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
     }
-    /** Runs the periodic update. */
-    @Override
+    /** Runs the periodic update. Called once per loop from {@code Robot.robotPeriodic()}. */
     public void periodic() {
         currentSuperState = handleStateTransitions();
 

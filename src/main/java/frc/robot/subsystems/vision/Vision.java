@@ -204,9 +204,13 @@ public class Vision implements Subsystem {
     /** All loggers in one array for bulk telemetry loops. */
     private final VisionLogger[] allLoggers;
 
-    /** Live turret angle in degrees, positive counter-clockwise, zero pointing robot-forward. */
+    /**
+     * Live turret angle in degrees, positive counter-clockwise, zero pointing robot-forward. Reads
+     * the motor directly rather than the turret's per-loop cache: Vision runs before {@code
+     * CommandScheduler.run()}, so the cache still holds last loop's value at that point.
+     */
     private final DoubleSupplier turretRotationSupplier =
-            () -> Robot.getTurret().getPositionDegrees();
+            () -> Robot.getTurret().getPositionDegreesUncached();
 
     private final VisionConfig config;
 
@@ -223,9 +227,13 @@ public class Vision implements Subsystem {
     /**
      * Creates the Vision subsystem.
      *
-     * <p>Instantiates the Limelight and its logger, sets IMU mode 0 (external heading only, correct
-     * for a mount whose frame rotates relative to the robot), and registers this subsystem with the
-     * WPILib scheduler.
+     * <p>Instantiates the Limelight and its logger and sets IMU mode 0 (external heading only,
+     * correct for a mount whose frame rotates relative to the robot).
+     *
+     * <p>Deliberately NOT registered with the scheduler: {@link frc.robot.Robot#robotPeriodic()}
+     * calls {@link #periodic()} explicitly before {@code CommandScheduler.run()} so this loop's
+     * vision correction is in the pose before any mechanism computes a shot. Registering it as well
+     * would run it twice per loop.
      *
      * @param config the static configuration object
      */
@@ -264,7 +272,6 @@ public class Vision implements Subsystem {
         turretLL.setLEDMode(false);
         setImuModeIfChanged(turretLL, 0);
 
-        this.register();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -281,7 +288,8 @@ public class Vision implements Subsystem {
     // =========================================================================
 
     /**
-     * Called every robot loop iteration by the WPILib scheduler.
+     * Called once per robot loop by {@link frc.robot.Robot#robotPeriodic()}, before {@code
+     * CommandScheduler.run()}, so the mechanisms see this loop's vision-corrected pose.
      *
      * <ol>
      *   <li>Clears every camera's per-loop NetworkTables snapshot so this loop reads fresh data.
