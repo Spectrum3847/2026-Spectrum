@@ -1048,23 +1048,22 @@ public class LimelightHelpers {
         return inData[position];
     }
     /**
-     * Returns the bot pose estimate.
+     * Parses a raw botpose array (as published on {@code botpose_wpiblue} or {@code
+     * botpose_orb_wpiblue}) into a {@link PoseEstimate}. Pure function; performs no NetworkTables
+     * access, so callers that already hold a sample can derive an estimate without a second read.
      *
-     * @return the bot pose estimate
+     * @param poseArray raw pose array; {@code null} or empty yields a default {@link PoseEstimate}
+     * @param timestampMicros NetworkTables server timestamp of the sample, in microseconds
+     * @param isMegaTag2 whether the array came from a MegaTag2 topic
+     * @return the parsed estimate (never {@code null})
      */
-    private static PoseEstimate getBotPoseEstimate(
-            String limelightName, String entryName, boolean isMegaTag2) {
-        DoubleArrayEntry poseEntry =
-                LimelightHelpers.getLimelightDoubleArrayEntry(limelightName, entryName);
-
-        TimestampedDoubleArray tsValue = poseEntry.getAtomic();
-        double[] poseArray = tsValue.value;
-        long timestamp = tsValue.timestamp;
-
-        if (poseArray.length == 0) {
+    public static PoseEstimate parsePoseEstimate(
+            double[] poseArray, long timestampMicros, boolean isMegaTag2) {
+        if (poseArray == null || poseArray.length == 0) {
             // Handle the case where no data is available
             return new PoseEstimate();
         }
+        long timestamp = timestampMicros;
 
         var pose = toPose2D(poseArray);
         double latency = extractArrayEntry(poseArray, 6);
@@ -1109,6 +1108,20 @@ public class LimelightHelpers {
                 tagArea,
                 rawFiducials,
                 isMegaTag2);
+    }
+
+    /**
+     * Returns the bot pose estimate.
+     *
+     * @return the bot pose estimate
+     */
+    private static PoseEstimate getBotPoseEstimate(
+            String limelightName, String entryName, boolean isMegaTag2) {
+        DoubleArrayEntry poseEntry =
+                LimelightHelpers.getLimelightDoubleArrayEntry(limelightName, entryName);
+
+        TimestampedDoubleArray tsValue = poseEntry.getAtomic();
+        return parsePoseEstimate(tsValue.value, tsValue.timestamp, isMegaTag2);
     }
 
     /**

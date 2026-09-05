@@ -1,0 +1,12 @@
+.chart-box { position: relative; height: 260px; }
+.chart-box.tall { height: 340px; }
+.chart-box.short { height: 180px; }
+.section-note { color: var(--tx-faint); font-size: 0.78rem; margin: -4px 0 10px; }
+.bar { height: 7px; border-radius: 4px; background: var(--s3); overflow: hidden; min-width: 60px; }
+.bar > i { display: block; height: 100%; background: var(--accent); }
+.bar > i.warn { background: var(--warn); }
+.bar > i.bad { background: var(--bad); }
+tr.dim td { opacity: 0.55; }
+.motor-pick { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.motor-pick button { font-size: 0.75rem; padding: 3px 9px; }
+.motor-pick button.on { background: var(--accent-dim); border-color: var(--accent); }

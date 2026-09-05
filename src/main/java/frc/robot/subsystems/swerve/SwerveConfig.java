@@ -133,8 +133,13 @@ public class SwerveConfig {
     @Getter private final double coupleRatio = 3.375;
 
     @Getter private final boolean steerMotorReversed = false;
-    @Getter private final boolean invertLeftSide = false;
-    @Getter private final boolean invertRightSide = true;
+    // Drive-motor inversion per side. Flipped on 2026-09-04 from the CTRE template defaults
+    // (left false, right true) after bench logs showed the robot moving opposite to every
+    // command and to its own odometry: wheel-derived rotation disagreed in sign with the gyro
+    // and wheel-derived translation disagreed in sign with camera-observed motion. The bevel
+    // gears on this drivetrain face the opposite side from what the template assumes.
+    @Getter private final boolean invertLeftSide = true;
+    @Getter private final boolean invertRightSide = false;
 
     @Getter private final CANBus canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
     @Getter private final int pigeonId = 0;

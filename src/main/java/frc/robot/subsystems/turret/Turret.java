@@ -26,11 +26,12 @@ public class Turret extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 5;
+        /** Position error (degrees) within which the turret counts as on target for a shot. */
+        @Getter private final double triggerTolerance = 2;
+
         @Getter private final double unwrapTolerance = 10;
         @Getter private final double unwrapExitMargin = 45;
         @Getter private final double shootOnMoveLatencySec = 0.03;
-        @Getter private final double maxOmegaForShotRotPerSec = 0.75;
 
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
@@ -41,7 +42,20 @@ public class Turret extends Mechanism {
         @Getter private final double currentLimit = 80;
         @Getter private final double supplyCurrentLowerLimit = 40;
         @Getter private final double supplyCurrentLowerTime = 1.0;
-        @Getter private final double torqueCurrentLimit = 80;
+        /**
+         * Stator and torque-current ceiling, in amps.
+         *
+         * <p>Was 80. The 24t-to-30t belt that skipped on 2026-09-05 sits one 4.75:1 reduction below
+         * the motor and 6.7:1 above the turret, so it carries motor torque times 4.75 -- about 7.4
+         * N-m at 80 A, and the 18:38 log showed 86 to 96 A sustained with a 105 A peak, which is
+         * 8.3 to 9.7 N-m. On a 24t HTD-5 pulley that is 435 to 507 N of belt tension.
+         *
+         * <p>50 A puts it near 290 N. Tracking a target is not a high-torque job; if the turret
+         * stops keeping up with a fast slew this is the first number to raise, but raise it knowing
+         * what it costs the belt.
+         */
+        @Getter private final double torqueCurrentLimit = 50;
+
         @Getter private final double positionKp = 800;
         @Getter private final double positionKi = 100;
 
@@ -173,9 +187,11 @@ public class Turret extends Mechanism {
         super(config);
         this.config = config;
 
-        if (isAttached()) {
-            setInitialPosition();
-        }
+        // Deliberately no encoder zeroing here. The TalonFX reads zero at motor power-on and keeps
+        // counting across robot-code restarts, so zeroing in the constructor only served to throw
+        // the position away on every code deploy. The turret zero is therefore "wherever the turret
+        // pointed when the motor powered on", which must be facing away from the intake. Use
+        // zeroTurretCommand() (operator B while disabled) if it was powered on somewhere else.
 
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -193,17 +209,102 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Turret/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Turret/Temp", getTemp(), "deg_C");
+        Telemetry.log("Turret/MotorConnected", isMotorConnected());
         Telemetry.log("Turret/CommandedDegrees", commandedDegrees, "deg");
+        updateTravel();
         Telemetry.log("Turret/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.log("Turret/TravelTotalDeg", travelTotalDegrees, "deg");
         Telemetry.log("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
         Telemetry.log("Turret/CommandedRotPerSec", mechOmegaRotPerSec, "rot/sec");
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
     }
-    /** Sets the initial position. */
-    private void setInitialPosition() {
-        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+    /**
+     * Declares the turret's current physical position to be its zero (facing away from the intake).
+     * For use while disabled after a student has pointed the turret at its zero by hand, so a
+     * turret that powered on pointing the wrong way can be fixed without a power cycle.
+     *
+     * @return the zeroing command
+     */
+    public Command zeroTurretCommand() {
+        return new InstantCommand(
+                        () -> {
+                            if (isAttached()) {
+                                motor.setPosition(
+                                        degreesToRotations(() -> config.getInitPosition()));
+                            }
+                        })
+                .ignoringDisable(true)
+                .withName("Turret.zeroHere");
     }
+    /**
+     * Shifts the encoder so the turret's reported angle matches where it is actually pointing.
+     *
+     * <p>The turret has no absolute reference: its zero is wherever it happened to point when the
+     * motor powered on. Get that wrong and every shot leaves by the same angle, in whichever
+     * direction that boot position happened to be off, which is why the miss changes sides between
+     * runs rather than staying put.
+     *
+     * <p>{@code errorDegrees} is actual minus reported, which is exactly what the turret camera
+     * measures: its mount transform is built from this encoder, so its MegaTag1 heading is wrong by
+     * the same amount the encoder is. Adding it makes reported equal actual.
+     *
+     * <p>The turret will physically move by this much on the next loop, because the position
+     * setpoint has not changed but its frame of reference just did. The caller decides when that is
+     * acceptable, and is expected to keep each step small: this is called repeatedly to chase
+     * mechanical slip, not once with the whole error.
+     *
+     * @param errorDegrees actual turret angle minus reported turret angle
+     */
+    public void applyZeroCorrectionDegrees(double errorDegrees) {
+        if (!isAttached()) {
+            return;
+        }
+        final double corrected = getPositionDegrees() + errorDegrees;
+        motor.setPosition(degreesToRotations(() -> corrected));
+
+        // Logged, not printed. This is called several times a second to chase slip, and a console
+        // line per step would bury everything else and go into the log as captured console output.
+        zeroCorrectionTotalDegrees += errorDegrees;
+
+        // The reading just jumped without the turret moving; do not bank that as travel.
+        if (!Double.isNaN(lastTravelPositionDegrees)) {
+            lastTravelPositionDegrees += errorDegrees;
+        }
+        Telemetry.log("Turret/ZeroCorrectionTotalDeg", zeroCorrectionTotalDegrees, "deg");
+    }
+
+    /**
+     * Running total of every zero correction applied, in degrees.
+     *
+     * <p>Signed, so cancelling corrections cancel here too. A turret that only needed its power-on
+     * zero fixed settles at a constant; one that keeps climbing is slipping, and the slope is how
+     * fast.
+     */
+    @Getter private double zeroCorrectionTotalDegrees = 0;
+
+    /**
+     * Every degree this turret has turned, added up regardless of direction.
+     *
+     * <p>Slip is a function of distance travelled, not of time: the belt gives up a tooth when it
+     * is pulled past one, and sitting still costs nothing. So this is the denominator that makes
+     * slip comparable between runs. Degrees of slip per minute drops if the drivers simply aim less
+     * that match; degrees of slip per thousand degrees travelled does not, which is what makes it
+     * worth anything for judging whether a belt or pulley change helped.
+     */
+    @Getter private double travelTotalDegrees = 0;
+
+    private double lastTravelPositionDegrees = Double.NaN;
+
+    /** Accumulates {@link #travelTotalDegrees}. Call once per loop. */
+    private void updateTravel() {
+        double position = getPositionDegrees();
+        if (!Double.isNaN(lastTravelPositionDegrees)) {
+            travelTotalDegrees += Math.abs(position - lastTravelPositionDegrees);
+        }
+        lastTravelPositionDegrees = position;
+    }
+
     /** Applies the aim at target. */
     private void applyAimAtTarget() {
         var params = ShotCalculator.getInstance().getParameters();
@@ -299,14 +400,40 @@ public class Turret extends Mechanism {
     }
 
     /**
-     * @return true when the turret is aiming, on target within tolerance, slewing slowly enough for
-     *     a stable shot, and not mid-unwrap. Use this to gate shooting while on the move.
+     * @return true when the turret is aiming, within tolerance of its commanded angle, and not
+     *     mid-unwrap. Tracking error is the criterion, not slew rate: while shooting on the move
+     *     the turret is legitimately moving, so a velocity clause would only block good shots.
+     *     Gates feeding into the flywheel.
      */
     public boolean isReadyToShoot() {
+        return isReadyToShoot(config.getTriggerTolerance());
+    }
+
+    /**
+     * Same check as {@link #isReadyToShoot()} against a caller-supplied tolerance. The feeder gate
+     * uses a wider tolerance to decide whether to <em>keep</em> feeding than to start, so normal
+     * tracking error mid-burst does not chop the feed on and off.
+     *
+     * <p>The {@code unwrapping} clause is not relaxed at any tolerance: during an unwrap the turret
+     * slews a full turn and fed fuel goes anywhere.
+     *
+     * @param toleranceDegrees allowed tracking error in degrees
+     * @return true when aiming, not mid-unwrap, and within {@code toleranceDegrees}
+     */
+    public boolean isReadyToShoot(double toleranceDegrees) {
         return systemState == SystemState.AIM_AT_TARGET
                 && !unwrapping
-                && Math.abs(getPositionDegrees() - commandedDegrees) <= config.getTriggerTolerance()
-                && Math.abs(mechOmegaRotPerSec) <= config.getMaxOmegaForShotRotPerSec();
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
+    }
+
+    /**
+     * Returns the current turret tracking error in degrees, for logging and for setting the gate
+     * tolerances from a log.
+     *
+     * @return commanded minus measured turret angle, in degrees
+     */
+    public double getTrackingErrorDegrees() {
+        return getPositionDegrees() - commandedDegrees;
     }
 
     /**

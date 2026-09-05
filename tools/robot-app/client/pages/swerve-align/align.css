@@ -1,0 +1,605 @@
+/*
+ * Spectrum 3847 palette, taken from spectrum3847.org: deep purple chrome on white, Outfit for
+ * headings and Plus Jakarta Sans for body text.
+ *
+ * The fonts are named but never fetched. This app runs in a pit with no internet as often as not,
+ * and a blocking webfont request there costs a DNS timeout before anything paints. On a machine
+ * that has them installed it looks like the site; everywhere else it falls back cleanly.
+ */
+
+/*
+ * Swerve alignment page.
+ *
+ * The component styles below came from the standalone tools/swerve-align app unchanged. Only its
+ * token block was replaced: it defined the Spectrum palette locally, and the app already defines
+ * the same palette in client/styles.css. Aliasing its names onto the shared ones means one source
+ * of truth for the colours -- and it inherits the dark theme for free, which the standalone tool
+ * never had.
+ */
+.align-page {
+    --p700: var(--brand-deep);
+    --p800: var(--brand-deep);
+    --p900: var(--brand-deep);
+    --purple: var(--brand);
+    --violet: var(--accent);
+    --violet-soft: var(--bd-strong);
+
+    --surface: var(--s1);
+    --surface-alt: var(--s2);
+    --surface-tint: var(--s3);
+    --ink: var(--tx);
+    --muted: var(--tx-faint);
+    --line: var(--bd);
+    --line-strong: var(--bd-strong);
+
+    --ok: var(--ok);
+    --ok-bg: var(--ok-bg);
+    --warn: var(--warn);
+    --warn-bg: var(--warn-bg);
+    --bad: var(--bad);
+    --bad-bg: var(--bad-bg);
+
+    --shadow-sm: var(--shadow-sm);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-md);
+
+    --font: var(--sans);
+    --font-heading: var(--display);
+
+    color: var(--tx);
+    font-family: var(--sans);
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+}
+
+/* --- header ----------------------------------------------------------- */
+
+/*
+ * In the standalone app this was deep-purple chrome. Inside the robot app the nav bar already
+ * carries the brand colour, so a second purple band directly under it just reads as heavy. It
+ * becomes an ordinary page header, aligned to the same column as the steps below it.
+ */
+.align-page .align-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-start;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 24px 24px 4px;
+}
+
+.align-page h1 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--brand-deep);
+}
+
+:root[data-theme="dark"] .align-page h1 {
+    color: var(--accent);
+}
+
+.align-page .subtitle {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.align-page .align-main {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 18px 24px 90px;
+}
+
+/* --- connection ------------------------------------------------------- */
+
+.conn-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.conn-row label {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.conn-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 9px;
+    font-size: 13px;
+    justify-content: flex-end;
+    color: var(--muted);
+}
+
+#host {
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    color: var(--ink);
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 14px;
+    width: 205px;
+}
+
+#host:focus {
+    outline: 2px solid var(--violet-soft);
+    outline-offset: 1px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff8080;
+    flex: none;
+}
+
+.dot.connecting {
+    background: #ffc46b;
+}
+
+.dot.connected {
+    background: #5ee0a0;
+}
+
+.dot.stale {
+    background: #ffc46b;
+}
+
+/* --- buttons ---------------------------------------------------------- */
+
+button {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    padding: 9px 16px;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--purple);
+}
+
+button:hover:not(:disabled) {
+    border-color: var(--purple);
+    background: var(--surface-tint);
+}
+
+button.primary {
+    background: var(--purple);
+    border-color: var(--purple);
+    color: #fff;
+    padding: 12px 24px;
+    font-size: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+button.primary:hover:not(:disabled) {
+    background: var(--p700);
+    border-color: var(--p700);
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* The header is no longer a dark band, so its controls use the ordinary button colours. */
+.align-page .align-header button {
+    background: var(--surface);
+    border-color: var(--line-strong);
+    color: var(--ink);
+}
+
+.align-page .align-header button:hover:not(:disabled) {
+    background: var(--surface-tint);
+    border-color: var(--purple);
+}
+
+/* --- sections --------------------------------------------------------- */
+
+.step {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.step h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    flex: none;
+}
+
+.hint {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13.5px;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.checklist label {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    cursor: pointer;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--surface-alt);
+    border: 1px solid var(--line);
+}
+
+.checklist label:hover {
+    border-color: var(--line-strong);
+}
+
+input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--purple);
+    flex: none;
+    margin-top: 1px;
+}
+
+/* --- module selection ------------------------------------------------- */
+
+.module-select {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px 12px;
+    margin: 0 0 16px;
+    background: var(--surface-alt);
+}
+
+.module-select legend {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--muted);
+    padding: 0 6px;
+}
+
+.module-select .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+}
+
+.module-select label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* --- module cards ----------------------------------------------------- */
+
+.modules {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.module {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+
+.module.offline {
+    border-color: var(--bad);
+    background: var(--bad-bg);
+}
+
+.module.excluded {
+    opacity: 0.5;
+}
+
+.module h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.module .angle {
+    font-family: var(--font-heading);
+    font-size: 27px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--p800);
+}
+
+.module dl {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 2px 12px;
+    margin: 7px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.module dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+}
+
+.module .body {
+    min-width: 0;
+    flex: 1;
+}
+
+.dial {
+    flex: none;
+}
+
+/* --- review table ----------------------------------------------------- */
+
+table.review {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+table.review th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 7px 10px;
+    border-bottom: 2px solid var(--line);
+}
+
+table.review td {
+    padding: 11px 10px;
+    border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+}
+
+table.review tr.skipped td {
+    color: var(--muted);
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.badge.ok {
+    background: var(--ok-bg);
+    color: var(--ok);
+}
+
+.badge.change {
+    background: var(--surface-tint);
+    color: var(--purple);
+}
+
+.badge.warn {
+    background: var(--warn-bg);
+    color: var(--warn);
+}
+
+.badge.bad {
+    background: var(--bad-bg);
+    color: var(--bad);
+}
+
+.badge.skip {
+    background: var(--surface-alt);
+    color: var(--muted);
+}
+
+/* --- banners and resolutions ------------------------------------------ */
+
+.banner {
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    border: 1px solid;
+    border-left-width: 4px;
+    font-size: 14px;
+    background: var(--surface);
+}
+
+.banner h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+}
+
+.banner p {
+    margin: 0 0 6px;
+}
+
+.banner p:last-child {
+    margin-bottom: 0;
+}
+
+.banner.bad {
+    border-color: var(--bad);
+    background: var(--bad-bg);
+}
+
+.banner.bad h3 {
+    color: var(--bad);
+}
+
+.banner.warn {
+    border-color: var(--warn);
+    background: var(--warn-bg);
+}
+
+.banner.warn h3 {
+    color: var(--warn);
+}
+
+.banner.info {
+    border-color: var(--purple);
+    background: var(--surface-tint);
+}
+
+.banner.info h3 {
+    color: var(--purple);
+}
+
+.banner.ok {
+    border-color: var(--ok);
+    background: var(--ok-bg);
+}
+
+.banner.ok h3 {
+    color: var(--ok);
+}
+
+.resolution {
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-left: 4px solid var(--warn);
+    border-radius: 8px;
+    padding: 13px 15px;
+    margin-top: 12px;
+}
+
+.resolution h4 {
+    margin: 0 0 6px;
+    font-size: 14.5px;
+}
+
+.resolution .options {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.resolution label {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    cursor: pointer;
+    font-size: 13.5px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--surface-alt);
+    border: 1px solid var(--line);
+}
+
+.resolution label:hover {
+    border-color: var(--line-strong);
+}
+
+input[type='radio'] {
+    accent-color: var(--purple);
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin-top: 2px;
+}
+
+pre {
+    background: var(--p900);
+    color: #f1e6ff;
+    border-radius: 8px;
+    padding: 13px 15px;
+    overflow-x: auto;
+    font-size: 13px;
+    margin: 10px 0;
+    line-height: 1.5;
+}
+
+code {
+    background: var(--surface-tint);
+    color: var(--p700);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 12.5px;
+}
+
+pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+}
+
+ol.next-steps {
+    margin: 10px 0 0;
+    padding-left: 22px;
+}
+
+ol.next-steps li {
+    margin-bottom: 7px;
+}
+
+@media (max-width: 760px) {
+    .modules {
+        grid-template-columns: 1fr;
+    }
+
+    .align-page .align-header {
+        padding: 16px 18px;
+    }
+
+    .conn-status {
+        justify-content: flex-start;
+    }
+}

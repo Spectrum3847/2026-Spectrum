@@ -1,19 +1,19 @@
 {
   "Docking": {
     "Data": [
-      "DockNode          ID=0x00000001 Pos=129,456 Size=983,148 Selected=0x48913727",
-      "DockNode          ID=0x00000004 Pos=285,701 Size=698,563 Split=X",
+      "DockNode          ID=0x00000001 Pos=7,1056 Size=983,148 Selected=0x48913727",
+      "DockNode          ID=0x00000004 Pos=1013,701 Size=698,563 Split=X",
       "DockNode        ID=0x00000006 Parent=0x00000004 SizeRef=145,318 Selected=0xFA2A8FFA",
       "DockNode        ID=0x00000010 Parent=0x00000004 SizeRef=150,318 Selected=0xA6A62DF3",
-      "DockNode          ID=0x00000005 Pos=227,274 Size=1905,667 Split=X",
+      "DockNode          ID=0x00000005 Pos=351,23 Size=1905,667 Split=X",
       "DockNode        ID=0x00000011 Parent=0x00000005 SizeRef=1872,784 Split=X",
       "DockNode      ID=0x00000008 Parent=0x00000011 SizeRef=322,445 Split=Y Selected=0x39AD1970",
       "DockNode    ID=0x0000000A Parent=0x00000008 SizeRef=187,370 Split=Y Selected=0x39AD1970",
       "DockNode  ID=0x0000000C Parent=0x0000000A SizeRef=340,218 Selected=0xC8493FD8",
       "DockNode  ID=0x0000000D Parent=0x0000000A SizeRef=340,150 Selected=0x39AD1970",
       "DockNode    ID=0x0000000B Parent=0x00000008 SizeRef=187,376 Split=Y Selected=0xC8493FD8",
-      "DockNode  ID=0x0000000E Parent=0x0000000B SizeRef=385,74 Selected=0x513EDE86",
-      "DockNode  ID=0x0000000F Parent=0x0000000B SizeRef=385,300 Selected=0xD58031C5",
+      "DockNode  ID=0x0000000E Parent=0x0000000B SizeRef=385,66 Selected=0x513EDE86",
+      "DockNode  ID=0x0000000F Parent=0x0000000B SizeRef=385,267 Selected=0xD58031C5",
       "DockNode      ID=0x00000009 Parent=0x00000011 SizeRef=1548,445 Selected=0x1D2CCB5F",
       "DockNode        ID=0x00000012 Parent=0x00000005 SizeRef=368,784 Split=Y Selected=0x7BD1C6E1",
       "DockNode      ID=0x00000013 Parent=0x00000012 SizeRef=320,426 Split=Y Selected=0x949F284C",
@@ -57,19 +57,19 @@
     "###/SmartDashboard/Alerts": {
       "Collapsed": "0",
       "DockId": "0x00000002,0",
-      "Pos": "1819,274",
+      "Pos": "1943,23",
       "Size": "313,198"
     },
     "###/SmartDashboard/Auto Chooser": {
       "Collapsed": "0",
       "DockId": "0x0000000E,0",
-      "Pos": "227,606",
+      "Pos": "351,355",
       "Size": "273,66"
     },
     "###/SmartDashboard/Field2d": {
       "Collapsed": "0",
       "DockId": "0x00000009,0",
-      "Pos": "502,274",
+      "Pos": "626,23",
       "Size": "1315,667"
     },
     "###/SmartDashboard/Scheduler": {
@@ -81,18 +81,18 @@
     "###/SmartDashboard/Sim/LeftView": {
       "Collapsed": "0",
       "DockId": "0x00000010,0",
-      "Pos": "629,701",
+      "Pos": "1357,701",
       "Size": "354,563"
     },
     "###/SmartDashboard/Sim/TopView": {
       "Collapsed": "0",
       "DockId": "0x00000006,0",
-      "Pos": "285,701",
+      "Pos": "1013,701",
       "Size": "342,563"
     },
     "###/SmartDashboard/VisionSystemSim-main/Sim Field": {
       "Collapsed": "0",
-      "Pos": "129,167",
+      "Pos": "1726,706",
       "Size": "513,250"
     },
     "###Addressable LEDs": {
@@ -103,7 +103,7 @@
     "###FMS": {
       "Collapsed": "0",
       "DockId": "0x0000000C,0",
-      "Pos": "227,274",
+      "Pos": "351,23",
       "Size": "273,194"
     },
     "###Joysticks": {
@@ -124,25 +124,25 @@
     "###NetworkTables": {
       "Collapsed": "0",
       "DockId": "0x00000001,0",
-      "Pos": "129,456",
+      "Pos": "7,1056",
       "Size": "983,148"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
       "DockId": "0x00000001,1",
-      "Pos": "129,456",
+      "Pos": "7,1056",
       "Size": "983,148"
     },
     "###System Joysticks": {
       "Collapsed": "0",
       "DockId": "0x00000007,0",
-      "Pos": "1819,474",
+      "Pos": "1943,223",
       "Size": "313,467"
     },
     "###Timing": {
       "Collapsed": "0",
       "DockId": "0x0000000F,0",
-      "Pos": "227,674",
+      "Pos": "351,423",
       "Size": "273,267"
     },
     "Debug##Default": {
@@ -153,7 +153,7 @@
     "Robot State": {
       "Collapsed": "0",
       "DockId": "0x0000000D,0",
-      "Pos": "227,470",
+      "Pos": "351,219",
       "Size": "273,134"
     }
   }

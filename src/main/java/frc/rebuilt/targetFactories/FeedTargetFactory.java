@@ -25,6 +25,10 @@ public class FeedTargetFactory {
         return new InstantCommand(() -> left = Field.isBlue() ? false : true);
     }
 
+    public static Command feedDefault() {
+        return new InstantCommand(() -> left = swerve.inFieldLeft().getAsBoolean());
+    }
+
     static InterpolatingTreeMap<Double, Double> distanceOffsetMap =
             new InterpolatingTreeMap<>(InverseInterpolator.forDouble(), Interpolator.forDouble());
 
@@ -36,9 +40,8 @@ public class FeedTargetFactory {
 
     /** Generate. */
     public static Translation2d generate() {
-        // boolean inFieldLeft = swerve.inFieldLeft().getAsBoolean();
         boolean inFieldLeft = isLeft();
-        boolean inOpposingAllianceZone = swerve.inEnemyAllianceZone().getAsBoolean();
+        boolean inOpposingAllianceZone = swerve.isInEnemyAllianceZone();
         Translation2d feedTarget;
 
         if (inOpposingAllianceZone) {
@@ -55,9 +58,7 @@ public class FeedTargetFactory {
             }
         }
 
-        double distance =
-                new Translation2d(feedTarget.getX(), feedTarget.getY())
-                        .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
+        double distance = feedTarget.getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
         // Do math in blue alliance, we flip for red.

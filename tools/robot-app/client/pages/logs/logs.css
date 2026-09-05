@@ -1,0 +1,10 @@
+.dir-row td { background: var(--s2); color: var(--tx-faint); font-size: 0.76rem; padding: 5px 10px; }
+tr.have { opacity: 0.55; }
+.warn-text { color: var(--warn); }
+.note-text { color: var(--tx-faint); font-size: 0.75rem; margin-top: 2px; font-family: var(--sans); }
+button.mini, .btn.mini { font-size: 0.74rem; padding: 3px 9px; }
+.progress { margin-top: 14px; border-top: 1px solid var(--bd); padding-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+.prog-line { font-size: 0.8rem; color: var(--tx-dim); }
+.prog-line.ok { color: var(--ok); }
+.prog-line.bad { color: var(--bad); }
+pre.cmd { background: var(--bg); border: 1px solid var(--bd); border-radius: 7px; padding: 10px 13px; overflow-x: auto; font-size: 0.8rem; color: var(--tx); margin: 10px 0 0; }

@@ -61,7 +61,10 @@ public class ShotCalculatorTest {
         double initialOffset = ShotCalculator.HOOD_ANGLE_OFFSET;
 
         ShotCalculator.increaseHoodAngleOffset().initialize();
-        assertEquals(initialOffset + 0.1, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-6);
+        assertEquals(
+                initialOffset + ShotCalculator.HOOD_OFFSET_STEP_DEG,
+                ShotCalculator.HOOD_ANGLE_OFFSET,
+                1e-6);
 
         ShotCalculator.decreaseHoodAngleOffset().initialize();
         assertEquals(initialOffset, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-6);

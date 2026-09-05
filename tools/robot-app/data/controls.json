@@ -1,0 +1,125 @@
+{
+  "$comment": "Hand-authored from Robot.configureBindings(). This is the SOURCE OF TRUTH for the controls pages. Auto-generating it from the Java would be misleading: the LT/RT behaviour lives inside Commands.either(...) conditions, so the trigger expression alone understates what the robot does. The app's own drift check (scripts/check-drift.mjs, surfaced at /api/drift and in the page banner) verifies every pilot.X / operator.X referenced in configureBindings() appears here and vice versa. It reports; it never fails a build.",
+  "robot": "OM2026",
+  "sourceFile": "src/main/java/frc/robot/Robot.java",
+  "sourceMethod": "configureBindings()",
+  "controllers": [
+    {
+      "id": "pilot",
+      "name": "Pilot",
+      "port": 0,
+      "classFile": "src/main/java/frc/robot/pilot/Pilot.java",
+      "accent": "var(--pilot)",
+      "notes": [
+        "Stick deadzone 0.10, exponential curve 3.0 on both sticks. Stick scalars are overwritten at runtime from the swerve's max speeds.",
+        "Driving is NOT a binding. Swerve has no default command; it reads the pilot sticks directly in calculateSpeedsBasedOnJoystickInputs() (Swerve.java:346-348), so drive never appears in configureBindings()."
+      ],
+      "sticks": [
+        { "control": "leftStick", "axis": "Y (inverted)", "action": "Drive forward / back", "method": "getDriveFwdPositive()", "line": 109 },
+        { "control": "leftStick", "axis": "X (inverted)", "action": "Strafe left / right", "method": "getDriveLeftPositive()", "line": 120 },
+        { "control": "rightStick", "axis": "X (inverted)", "action": "Rotate counter-clockwise positive", "method": "getDriveCCWPositive()", "line": 131 }
+      ],
+      "layers": [
+        {
+          "id": "base",
+          "name": "Nothing held",
+          "when": "Teleop, no modifier",
+          "bindings": [
+            { "control": "LT", "edge": "onTrue", "action": "Intake fuel", "detail": "Only when RT is not already held. Enters INTAKE_FUEL.", "state": "INTAKE_FUEL", "trigger": "pilot.LT", "line": 222, "conditional": true },
+            { "control": "RT", "edge": "onTrue", "action": "Launch (squeeze)", "detail": "Only when LT is not already held. Enters LAUNCH_WITH_SQUEEZE.", "state": "LAUNCH_WITH_SQUEEZE", "trigger": "pilot.RT", "line": 229, "conditional": true },
+            { "control": "RT", "edge": "onFalse", "action": "Reset feed target, then idle", "detail": "Releasing RT restores the default feed target. If LT is still held it falls back to INTAKE_FUEL instead of idling.", "trigger": "pilot.RT", "line": 236 },
+            { "control": "LT", "edge": "onFalse", "action": "Launch immediately", "detail": "Only when RT is held: releasing LT enters LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY, skipping the squeeze wait.", "state": "LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY", "trigger": "pilot.LT", "line": 245, "conditional": true },
+            { "control": "X", "edge": "whileTrue", "action": "Track target", "detail": "Turret and hood aim at the hub without feeding. On release it idles unless already launching.", "state": "TRACK_TARGET", "trigger": "pilot.XButton", "line": 267 },
+            { "control": "A", "edge": "whileTrue", "action": "Unjam", "detail": "Runs everything backwards to clear a stuck ball. Idles on release.", "state": "UNJAM", "trigger": "pilot.AButton", "line": 274 },
+            { "control": "select", "edge": "onTrue", "action": "Force home", "detail": "Re-homes the intake extension. Requires LB NOT held, since LB+Select is the vision reset.", "state": "FORCE_HOME", "trigger": "pilot.home_select", "line": 277 }
+          ]
+        },
+        {
+          "id": "lt-held",
+          "name": "LT held",
+          "when": "Left trigger held as a modifier",
+          "bindings": [
+            { "control": "RT", "edge": "onTrue", "action": "Launch without squeeze", "detail": "LT + RT together launch while leaving the intake extended.", "state": "LAUNCH_WITHOUT_SQUEEZE", "trigger": "pilot.RT.and(pilot.LT)", "line": 238 },
+            { "control": "RT", "edge": "onFalse", "action": "Back to intaking", "detail": "Releasing RT with LT still held returns to INTAKE_FUEL.", "state": "INTAKE_FUEL", "trigger": "pilot.RT", "line": 258, "conditional": true }
+          ]
+        },
+        {
+          "id": "lb-held",
+          "name": "LB held",
+          "when": "Left bumper held as a modifier",
+          "bindings": [
+            { "control": "RT", "edge": "onTrue", "action": "Launch with brake", "detail": "Holds the drivetrain still through the shot. Idles when released.", "state": "LAUNCH_WITH_BRAKE", "trigger": "pilot.RT.and(pilot.LB)", "line": 252 },
+            { "control": "dpadUp", "edge": "onTrue", "action": "Reorient forward", "detail": "Teleop only. Sets heading so the INTAKE points away from the driver. Rumbles to confirm.", "trigger": "pilot.upReorient", "line": 292 },
+            { "control": "dpadLeft", "edge": "onTrue", "action": "Reorient left", "detail": "Teleop only. D-pad direction is where the INTAKE points from the driver's view.", "trigger": "pilot.leftReorient", "line": 293 },
+            { "control": "dpadDown", "edge": "onTrue", "action": "Reorient back", "detail": "Teleop only.", "trigger": "pilot.downReorient", "line": 294 },
+            { "control": "dpadRight", "edge": "onTrue", "action": "Reorient right", "detail": "Teleop only.", "trigger": "pilot.rightReorient", "line": 295 },
+            { "control": "select", "edge": "onTrue", "action": "Reset pose from vision", "detail": "Works in ALL modes, not just disabled. Re-seeds the pose estimator from the turret camera. Prefer this over the D-pad reorient whenever tags are visible.", "trigger": "pilot.visionPoseReset_LB_Select", "line": 305 }
+          ]
+        },
+        {
+          "id": "disabled",
+          "name": "Disabled (pit)",
+          "when": "Robot disabled",
+          "pit": true,
+          "bindings": [
+            { "control": "A", "edge": "onTrue", "action": "Coast intake + turret", "detail": "Lets you move the intake extension and turret by hand.", "trigger": "pilot.coastA", "line": 303 },
+            { "control": "B", "edge": "onTrue", "action": "Brake intake extension", "detail": "Re-engages brake mode after coasting.", "trigger": "pilot.brakeB", "line": 304 }
+          ]
+        },
+        {
+          "id": "sim",
+          "name": "Simulation only",
+          "when": "Running in simulation",
+          "sim": true,
+          "bindings": [
+            { "control": "Y", "edge": "whileTrue", "action": "Launch (squeeze)", "detail": "Keyboard-friendly stand-in for RT.", "state": "LAUNCH_WITH_SQUEEZE", "trigger": "pilot.YButton", "line": 337 },
+            { "control": "B", "edge": "whileTrue", "action": "Intake fuel", "detail": "Keyboard-friendly stand-in for LT. Note this collides with the real robot's disabled-mode brake binding.", "state": "INTAKE_FUEL", "trigger": "pilot.BButton", "line": 340 },
+            { "control": "LB", "edge": "onTrue", "action": "Feed left", "trigger": "pilot.LB", "line": 342 },
+            { "control": "RB", "edge": "onTrue", "action": "Feed right", "trigger": "pilot.RB", "line": 343 }
+          ]
+        }
+      ],
+      "unbound": ["start", "lsClick", "rsClick", "RB"]
+    },
+    {
+      "id": "operator",
+      "name": "Operator",
+      "port": 1,
+      "classFile": "src/main/java/frc/robot/operator/Operator.java",
+      "accent": "var(--operator)",
+      "notes": [
+        "Trigger deadzone 0.0; everything else at Gamepad.Config defaults.",
+        "Both operator sticks are unused."
+      ],
+      "sticks": [],
+      "layers": [
+        {
+          "id": "base",
+          "name": "Nothing held",
+          "when": "Any enabled mode",
+          "bindings": [
+            { "control": "dpadUp", "edge": "onTrue", "action": "Hood angle +0.1°", "detail": "Nudges ShotCalculator's HOOD_ANGLE_OFFSET. Persists until code restart. Works while disabled.", "trigger": "operator.dPadUp", "line": 281 },
+            { "control": "dpadDown", "edge": "onTrue", "action": "Hood angle −0.1°", "detail": "Shots going long? Come down. Works while disabled.", "trigger": "operator.dPadDown", "line": 280 },
+            { "control": "dpadRight", "edge": "onTrue", "action": "Turret angle +1°", "detail": "Nudges TURRET_ANGLE_OFFSET.", "trigger": "operator.dPadRight", "line": 282 },
+            { "control": "dpadLeft", "edge": "onTrue", "action": "Turret angle −1°", "trigger": "operator.dPadLeft", "line": 283 },
+            { "control": "Y", "edge": "held", "action": "Feed override", "detail": "HELD, not pressed. Bypasses every shot-readiness gate and feeds anyway. This is not an onTrue binding — the trigger is handed to SuperStructure.setFeedOverride() as a live condition.", "trigger": "operator.YButton", "line": 286, "special": "supplier" },
+            { "control": "LB", "edge": "onTrue", "action": "Feed target: left", "trigger": "operator.LB", "line": 288 },
+            { "control": "RB", "edge": "onTrue", "action": "Feed target: right", "trigger": "operator.RB", "line": 289 },
+            { "control": "LB", "edge": "onFalse", "action": "Feed target: default", "detail": "Releasing either bumper restores the default feed target.", "trigger": "operator.LB.or(operator.RB)", "line": 290 }
+          ]
+        },
+        {
+          "id": "disabled",
+          "name": "Disabled (pit)",
+          "when": "Robot disabled",
+          "pit": true,
+          "bindings": [
+            { "control": "A", "edge": "onTrue", "action": "Coast intake + turret", "detail": "Same as pilot A.", "trigger": "operator.coastA", "line": 307 },
+            { "control": "B", "edge": "onTrue", "action": "Zero the turret HERE", "detail": "Point the turret away from the intake BY HAND first, then press. The turret no longer zeroes itself on code start, so this is how the zero gets set. Check Turret/PositionDegrees reads near 0 afterwards.", "trigger": "operator.zeroTurretB", "line": 310, "important": true }
+          ]
+        }
+      ],
+      "unbound": ["LT", "RT", "X", "start", "select", "lsClick", "rsClick"]
+    }
+  ]
+}

@@ -9,7 +9,7 @@ This page is what to actually do with it — not a feature tour.
 ## First-Run Setup
 
 * **License each device**. Open Tuner X, sign in with the team's CTRE account, and apply the seasonal license to every Phoenix 6 device. An unlicensed device will report values but won't accept gain or configuration writes. Re-do this every season — licenses don't carry over.
-* **Pick the right CAN bus**. We run swerve and most mechanism motors on the CANivore (`Rio.CANIVORE`, see [`SwerveConfig.java`](../../src/main/java/frc/robot/swerve/SwerveConfig.java)). Other devices may sit on the RIO's built-in `rio` bus. Tuner X shows both — make sure you're configuring the right one.
+* **Pick the right CAN bus**. We run swerve and most mechanism motors on the CANivore (`Rio.CANIVORE`, see [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java)). Other devices may sit on the RIO's built-in `rio` bus. Tuner X shows both — make sure you're configuring the right one.
 * **Update firmware**. Phoenix 6 motor firmware ships with each Phoenix release. Mismatched firmware is the silent cause of half the "the motor moved a tick weird" mysteries. Update CANivores and Pigeons through Tuner X too.
 
 ## Device IDs and Names
@@ -21,9 +21,11 @@ Every device on a CAN bus needs a unique ID — including across types (a TalonF
 
 ## Swerve Offset Procedure
 
+> **Use [the swerve alignment app](swerve-alignment.md) instead.** It reads the same numbers, does the sign arithmetic, warns you when a wheel is backwards, and writes the offsets into the config file for you. The manual procedure below is the fallback for when a device won't report at all.
+
 This is the one ritual everyone needs at least once a season, and probably more after a hard crash.
 
-1. **Square the modules.** Drop the physical swerve aligner blocks on, bevel inward, and confirm visually that all four wheels point the same way.
+1. **Square the modules.** Drop each MK5n module's alignment pin through the top plate into the azimuth gear, bevels all facing the same side, and confirm nothing rotates when you nudge it. Don't reach for a straight edge — this drivetrain isn't a rectangle, so there's no pair of wheels you can lay one across; see [Swerve Alignment](swerve-alignment.md#why-theres-no-straight-edge-in-this-procedure).
 2. **In Tuner X**, open each module's CANcoder. Look at *Absolute Position No Offset* — that's the raw reading without anything from `MagnetSensorConfigs.MagnetOffset` applied.
 3. **Copy the raw value** to the matching field in the swerve constants/config that the per-robot `*2026` file applies. Mind the sign — depending on the module's mechanical orientation, you may need the negative of the reading.
 4. **Deploy and re-check.** With the new offsets in code, *Absolute Position* (with offset) should read close to zero. A reading like `0.0000024` is fine; `0.34` means the sign is wrong or you copied from the wrong module.
@@ -46,7 +48,7 @@ The **Self-Test Snapshot** dumps everything the device knows about itself: firmw
 
 ## Hoot Logs
 
-Phoenix 6 records `.hoot` logs to the CANivore's onboard storage. [`SwerveConfig.java`](../../src/main/java/frc/robot/swerve/SwerveConfig.java) configures the path:
+Phoenix 6 records `.hoot` logs to the CANivore's onboard storage. [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java) configures the path:
 
 ```java
 canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
@@ -67,3 +69,4 @@ Common quick checks before going deeper:
 * [PID Tuning](pid-tuning.md) — the workflow that actually uses the plotter.
 * [Phoenix 6 dependency page](../dependencies/phoenix6.md) — version, JavaDoc cross-link.
 * CTRE's [Phoenix 6 docs](https://v6.docs.ctr-electronics.com/en/latest/) for everything not covered here.
+* [Swerve Alignment](swerve-alignment.md) — the app that replaces the manual offset ritual above.

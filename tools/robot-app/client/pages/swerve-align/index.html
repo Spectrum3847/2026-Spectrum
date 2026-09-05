@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Swerve Alignment</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+<main class="wide">
+<div class="align-page" id="align">
+  <div class="align-header">
+              <div class="title">
+                  <h1>Swerve Alignment</h1>
+                  <p class="subtitle" id="target-summary">Loading target file&hellip;</p>
+              </div>
+              <div class="connection">
+                  <div class="conn-row">
+                      <label for="host">Robot</label>
+                      <input id="host" list="host-presets" spellcheck="false" />
+                      <datalist id="host-presets">
+                          <option value="10.85.15.2">Radio / tether</option>
+                          <option value="172.22.11.2">USB</option>
+                          <option value="roborio-8515-frc.local">mDNS</option>
+                          <option value="127.0.0.1">Simulation</option>
+                      </datalist>
+                      <button id="connect" class="secondary">Connect</button>
+                  </div>
+                  <div class="conn-status">
+                      <span id="status-dot" class="dot"></span>
+                      <span id="status-text">Not connected</span>
+                      <span id="data-age" class="muted"></span>
+                  </div>
+              </div>
+          </div>
+
+          <div class="align-main">
+              <div id="banners"></div>
+
+              <section class="step">
+                  <h2><span class="num">1</span> Pin the modules straight</h2>
+                  <p class="hint">
+                      This drivetrain is not a rectangle &mdash; the rear modules sit on the angled
+                      plates of a hexagonal frame, so there is no pair of wheels you can lay a
+                      straight edge across. Use each MK5n module&rsquo;s own alignment pin instead:
+                      it references the module to itself and does not care what the frame looks like.
+                  </p>
+                  <p class="hint">
+                      Tick each item as you do it. None of these are checked by software &mdash; they
+                      are the part only you can verify.
+                  </p>
+                  <ul class="checklist" id="checklist">
+                      <li>
+                          <label>
+                              <input type="checkbox" data-check="power" />
+                              <span>Robot is powered on and <strong>disabled</strong></span>
+                          </label>
+                      </li>
+                      <li>
+                          <label>
+                              <input type="checkbox" data-check="pinned" />
+                              <span>Every module you are aligning is <strong>pinned</strong> &mdash; the pin dropped through the top plate into the azimuth gear</span>
+                          </label>
+                      </li>
+                      <li>
+                          <label>
+                              <input type="checkbox" data-check="seated" />
+                              <span>Each pin is <strong>fully seated</strong> &mdash; nudge the wheel, it should not rotate at all</span>
+                          </label>
+                      </li>
+                      <li>
+                          <label>
+                              <input type="checkbox" data-check="bevel" />
+                              <span>All bevel gears face the <strong>same side</strong> of the robot</span>
+                          </label>
+                      </li>
+                      <li>
+                          <label>
+                              <input type="checkbox" data-check="clear" />
+                              <span>Nothing else is touching or leaning on the wheels</span>
+                          </label>
+                      </li>
+                  </ul>
+              </section>
+
+              <section class="step">
+                  <h2><span class="num">2</span> Check the live readings</h2>
+                  <p class="hint">
+                      Angles below are what the robot currently believes. With the modules pinned and
+                      a good alignment deployed, they should all read close to 0&deg;.
+                  </p>
+                  <div class="modules" id="modules"></div>
+              </section>
+
+              <section class="step">
+                  <h2><span class="num">3</span> Capture</h2>
+                  <p class="hint">
+                      Averages half a second of encoder readings and works out what the offsets should
+                      be. Nothing is written yet.
+                  </p>
+
+                  <fieldset class="module-select">
+                      <legend>Modules to align</legend>
+                      <div class="row" id="module-select">
+                          <label
+                              ><input type="checkbox" data-module="fl" checked /> Front Left</label
+                          >
+                          <label
+                              ><input type="checkbox" data-module="fr" checked /> Front Right</label
+                          >
+                          <label
+                              ><input type="checkbox" data-module="bl" checked /> Back Left</label
+                          >
+                          <label
+                              ><input type="checkbox" data-module="br" checked /> Back Right</label
+                          >
+                      </div>
+                      <p class="muted" style="margin: 9px 0 0">
+                          Unticked modules keep the offset they already have in the code. Untick the
+                          ones you have not pinned &mdash; after replacing a single module, for
+                          instance.
+                      </p>
+                  </fieldset>
+
+                  <button id="capture" class="primary" disabled>Capture alignment</button>
+                  <span id="capture-blocked" class="muted"></span>
+
+                  <div id="review" hidden>
+                      <table class="review">
+                          <thead>
+                              <tr>
+                                  <th>Module</th>
+                                  <th>In source</th>
+                                  <th>New offset</th>
+                                  <th>Change</th>
+                                  <th>Verdict</th>
+                              </tr>
+                          </thead>
+                          <tbody id="review-body"></tbody>
+                      </table>
+                      <div id="resolutions"></div>
+                  </div>
+              </section>
+
+              <section class="step">
+                  <h2><span class="num">4</span> Write to the code</h2>
+                  <p class="hint" id="write-target">&nbsp;</p>
+                  <button id="write" class="primary" disabled>Write offsets</button>
+                  <span id="write-blocked" class="muted"></span>
+                  <div id="write-result" hidden></div>
+              </section>
+          </div>
+</div>
+</main>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
