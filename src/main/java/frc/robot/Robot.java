@@ -423,6 +423,10 @@ public class Robot extends SpectrumRobot {
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
 
+        // Put the robot back on the selected auto's starting pose. On the field vision overwrites
+        // this within a loop or two; in simulation it is the only thing that ever does it.
+        placeAtAutoStart = true;
+
         if (!autonWarmedUp) {
             Command autonStartCommand =
                     Commands.sequence(
@@ -441,6 +445,22 @@ public class Robot extends SpectrumRobot {
     }
 
     String autoName = "";
+
+    /** Paths of the currently selected auto, kept so the start pose can be re-applied. */
+    private List<PathPlannerPath> selectedAutoPaths = new ArrayList<>();
+
+    /**
+     * Set whenever the robot should be put back on the selected auto's starting pose.
+     *
+     * <p>The reset used to happen only when the chooser selection changed, which is fine once and
+     * wrong every time after. Nothing else places the robot: all three autos in the chooser carry
+     * {@code resetOdom: false}, and PathPlannerAuto only prepends AutoBuilder.resetOdom when that
+     * flag is set, so a run leaves the robot wherever the path ended. On the real field vision
+     * seeds the pose back; in simulation there is no vision, so the second run of an auto started
+     * from the end of the first.
+     */
+    private boolean placeAtAutoStart = true;
+
     /** Disabled periodic. */
     @Override
     public void disabledPeriodic() {
@@ -448,9 +468,22 @@ public class Robot extends SpectrumRobot {
         boolean leftStart = !fullAutoName.endsWith(" - Right");
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();
 
+        /*
+         * The alliance belongs in the reload key, not just the auto name.
+         *
+         * The red flip is applied inside the reload branch below, so keying on the name alone meant
+         * picking an auto and then setting the alliance never re-flipped anything: the path became
+         * red-side while the pose stayed where it was placed under blue, and the robot set off
+         * across the field to reach its own start point. In simulation that is the normal order of
+         * operations -- the sim DS reports no alliance until you set one.
+         */
+        String selectionKey =
+                fullAutoName + "|" + DriverStation.getAlliance().map(Enum::name).orElse("NONE");
+
         if (fullAutoName.equals("Do Nothing")) {
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
-            autoName = fullAutoName;
+            autoName = selectionKey;
+            selectedAutoPaths = new ArrayList<>();
             return;
         }
 
@@ -460,10 +493,14 @@ public class Robot extends SpectrumRobot {
             baseAutoName = baseAutoName.substring(0, baseAutoName.lastIndexOf(" - "));
         }
 
-        // Reload whenever the full name changes — catches both auto switches and side switches
-        if (!autoName.equals(fullAutoName)) {
-            autoName = fullAutoName;
+        // Reload on an auto switch, a side switch, or an alliance change — each one changes the
+        // trajectory that gets flown and therefore where the robot has to be sitting.
+        if (!autoName.equals(selectionKey)) {
+            autoName = selectionKey;
             Telemetry.log("Auton Warmed Up", false);
+            // Drop the old selection's paths now, so a load failure below cannot leave the robot
+            // being placed on the previous auto's start pose.
+            selectedAutoPaths = new ArrayList<>();
 
             if (AutoBuilder.getAllAutoNames().contains(baseAutoName)) {
                 try {
@@ -490,12 +527,9 @@ public class Robot extends SpectrumRobot {
                 }
 
                 if (!pathPlannerPaths.isEmpty()) {
-                    // Set the robot pose to the starting pose of the first path
-                    swerve.resetPose(
-                            pathPlannerPaths
-                                    .get(0)
-                                    .getStartingHolonomicPose()
-                                    .orElse(new Pose2d()));
+                    // Placing the robot happens below, so a re-disable gets it too.
+                    selectedAutoPaths = pathPlannerPaths;
+                    placeAtAutoStart = true;
 
                     // Warm up the starting path
                     Command warmUpPath =
@@ -532,6 +566,14 @@ public class Robot extends SpectrumRobot {
             } else {
                 field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
             }
+        }
+
+        // Outside the selection-changed branch on purpose: this also has to run after a disable,
+        // when the name has not changed but the robot is sitting wherever the last run left it.
+        if (placeAtAutoStart && !selectedAutoPaths.isEmpty()) {
+            swerve.resetPose(
+                    selectedAutoPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+            placeAtAutoStart = false;
         }
     }
     /** Disabled exit. */
