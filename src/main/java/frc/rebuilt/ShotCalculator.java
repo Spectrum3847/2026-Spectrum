@@ -75,15 +75,27 @@ public class ShotCalculator {
     public static final double STARTING_HOOD_ANGLE_OFFSET = 0; // degrees
     public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
+    /**
+     * Degrees per operator D-pad press.
+     *
+     * <p>Was 0.1, which is a fortieth of the correction the hub model actually needed -- forty
+     * presses to move the shot the distance one afternoon of testing said it was out. A quarter
+     * degree is roughly a quarter of a foot of range near where this robot shoots, which is finer
+     * than anyone can judge from watching a ball land.
+     */
+    public static final double HOOD_OFFSET_STEP_DEG = 0.25;
+
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
     /** Increase hood angle offset. */
     public static Command increaseHoodAngleOffset() {
-        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += 0.1).ignoringDisable(true);
+        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += HOOD_OFFSET_STEP_DEG)
+                .ignoringDisable(true);
     }
     /** Decrease hood angle offset. */
     public static Command decreaseHoodAngleOffset() {
-        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= 0.1).ignoringDisable(true);
+        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= HOOD_OFFSET_STEP_DEG)
+                .ignoringDisable(true);
     }
     /** Increase turret angle offset. */
     public static Command increaseTurretAngleOffset() {
@@ -140,6 +152,11 @@ public class ShotCalculator {
      *     of simulating or estimating flight time when solving the virtual target. Null when the
      *     model was fitted without a flight-time output, in which case the solver falls back to a
      *     drag-free kinematic estimate.
+     * @param hoodOffsetDeg calibration trim added to this model's hood angle, in degrees. Each fit
+     *     is wrong in its own way, so the correction belongs to the model rather than to the robot:
+     *     a trim that fixes the full-field fit has no business moving the ceiling fit, which
+     *     already scores. The operator's D-pad trim is added on top of this and applies to whatever
+     *     model is live.
      */
     private record PolyModel(
             String name,
@@ -153,7 +170,8 @@ public class ShotCalculator {
             double vStd,
             double[] speedCoeffs,
             double[] angleCoeffs,
-            double[] tofCoeffs) {}
+            double[] tofCoeffs,
+            double hoodOffsetDeg) {}
 
     /** Hub-shot model — used when the robot is in a scoring zone. */
     private static final PolyModel HUB_MODEL =
@@ -202,7 +220,12 @@ public class ShotCalculator {
                         /* d²·v */ -3.5839964885e-2,
                         /* d·v² */ 3.5468556379e-2,
                         /* v³   */ 3.7823545109e-2
-                    });
+                    },
+                    // Shots landed 3 to 4 feet past the hub centre on 2026-09-05. The model moves
+                    // the hood about
+                    // one degree per foot of range near where this robot shoots, so four degrees
+                    // down.
+                    -4.0);
 
     /** 3 meter ceiling hub model - used when the robot is testing at home */
     private static final PolyModel CEILING_3M_HUB_MODEL =
@@ -251,7 +274,9 @@ public class ShotCalculator {
                         /* d²·v */ -3.0552109674e-2,
                         /* d·v² */ 4.6814046679e-2,
                         /* v³   */ 3.1845113863e-3
-                    });
+                    },
+                    // This fit scores as it is.
+                    0.0);
 
     /** Feed-shot model — floor target, optimised for maximum robustness. */
     private static final PolyModel FEED_MODEL =
@@ -300,7 +325,9 @@ public class ShotCalculator {
                         /* d²·v */ -9.7571644042e-3,
                         /* d·v² */ 1.2178208201e-2,
                         /* v³   */ -2.3703703704e-2
-                    });
+                    },
+                    // Never calibrated; feed shots have not been characterised.
+                    0.0);
 
     /**
      * Active hub model. {@link #CEILING_3M_HUB_MODEL} is the one that actually scores; {@link
@@ -456,7 +483,7 @@ public class ShotCalculator {
         lastHoodAngle = rawHoodAngle;
         double hoodAngle =
                 MathUtil.clamp(
-                        rawHoodAngle + HOOD_ANGLE_OFFSET,
+                        rawHoodAngle + model.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
@@ -495,6 +522,8 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
         Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
+        Telemetry.log(
+                "ShotCalc/HoodModelOffsetDegrees", WANTED_HUB_MODEL.hoodOffsetDeg(), "degrees");
         Telemetry.log("ShotCalc/Target", target);
 
         return latestParameters;
