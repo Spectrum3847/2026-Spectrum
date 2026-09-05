@@ -42,10 +42,10 @@ public class SuperStructure {
     @Getter private final Hood hood;
 
     private static final double REGULAR_TELEOP_TRANSLATION_COEFFICIENT = 1.0;
-    private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.2;
+    private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.15;
 
     private static final double REGULAR_TELEOP_ROTATION_COEFFICIENT = 1.0;
-    private static final double SHOOTING_TELEOP_ROTATION_COEFFICIENT = 0.2;
+    private static final double SHOOTING_TELEOP_ROTATION_COEFFICIENT = 0.15;
 
     public enum WantedSuperState {
         IDLE,
@@ -470,7 +470,10 @@ public class SuperStructure {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
-        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        // A squeeze launch shoots from a hopper that is already full, so the rollers have
+        // nothing to add: they cost about 23 A of supply for the length of the burst. The
+        // without-squeeze launches still intake, because that is the shoot-while-collecting mode.
+        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
@@ -488,7 +491,10 @@ public class SuperStructure {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
-        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        // A squeeze launch shoots from a hopper that is already full, so the rollers have
+        // nothing to add: they cost about 23 A of supply for the length of the burst. The
+        // without-squeeze launches still intake, because that is the shoot-while-collecting mode.
+        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -510,7 +516,10 @@ public class SuperStructure {
     /** Launches with brake. */
     private void launchWithBrake() {
         swerve.setWantedState(Swerve.WantedState.X_BRAKE);
-        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        // A squeeze launch shoots from a hopper that is already full, so the rollers have
+        // nothing to add: they cost about 23 A of supply for the length of the burst. The
+        // without-squeeze launches still intake, because that is the shoot-while-collecting mode.
+        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);

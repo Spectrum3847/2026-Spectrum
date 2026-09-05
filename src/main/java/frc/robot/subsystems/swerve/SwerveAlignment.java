@@ -13,6 +13,7 @@ import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
 import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.util.Util;
 
 /**
  * Publishes the raw per-module CANcoder data that swerve alignment needs.
@@ -129,8 +130,19 @@ public class SwerveAlignment {
         }
     }
 
-    /** Refreshes and publishes the alignment data. Safe to call every robot loop. */
+    /**
+     * Refreshes and publishes the alignment data. Safe to call every robot loop.
+     *
+     * <p>Only publishes while the robot is disabled. Alignment is a pit procedure done on blocks
+     * with the robot disabled, and these are 32 keys at 20 Hz -- about 77 records a second, in a
+     * log that already overran DogLog's queue and dropped data during the 2026-09-05 17:10 session.
+     * There is nothing to learn from them while the robot is driving.
+     */
     public void log() {
+        if (!Util.disabled.getAsBoolean()) {
+            return;
+        }
+
         if (loopCount++ % LOOPS_PER_PUBLISH != 0) {
             return;
         }

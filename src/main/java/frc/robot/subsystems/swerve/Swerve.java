@@ -190,8 +190,26 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Periodic and Setup Methods
     // --------------------------------------------------------------------------------
+    /**
+     * Minimum spacing between swerve state publishes, in seconds.
+     *
+     * <p>CTRE runs this callback on the odometry thread, not the main loop: in the 2026-09-05 17:10
+     * log {@code Swerve/State/Pose} alone landed 197 records a second, the single largest producer
+     * in a log that overran DogLog's queue and dropped data. Odometry still integrates at full
+     * rate; only the telemetry is thinned, to a little above the 50 Hz main loop.
+     */
+    private static final double STATE_LOG_PERIOD_SECONDS = 0.02;
+
+    private double lastStateLogSeconds = 0;
+
     /** Log. */
     protected void log(SwerveDriveState state) {
+        double now = Timer.getFPGATimestamp();
+        if (now - lastStateLogSeconds < STATE_LOG_PERIOD_SECONDS) {
+            return;
+        }
+        lastStateLogSeconds = now;
+
         Telemetry.log("Swerve/State/Pose", state.Pose);
         Telemetry.log("Swerve/State/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/State/MeasuredStates", state.ModuleStates);
