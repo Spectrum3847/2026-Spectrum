@@ -29,7 +29,6 @@ import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import frc.spectrumLib.vision.VisionLogger;
-import java.util.IdentityHashMap;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
@@ -219,10 +218,14 @@ public class Vision implements Subsystem {
     private final VisionConfig config;
 
     /**
-     * Tracks the last IMU mode written to each Limelight so we only issue a NetworkTables write
-     * when the desired mode actually changes.
+     * How often the IMU mode is re-sent to every camera. A Limelight that boots after the robot, or
+     * reboots mid-session, comes up in mode 0 with no robot heading and produces garbage MegaTag2
+     * poses; a one-time write at startup cannot recover from that, so the mode is republished on
+     * this period. It is a single double write per camera.
      */
-    private final IdentityHashMap<Limelight, Integer> lastImuModeByLL = new IdentityHashMap<>();
+    private static final double IMU_MODE_RESEND_PERIOD_SECS = 2.0;
+
+    private double lastImuModeSendFpgaSeconds = Double.NEGATIVE_INFINITY;
 
     // =========================================================================
     // Construction
@@ -267,14 +270,10 @@ public class Vision implements Subsystem {
         turretLogger = new VisionLogger("TurretLL", turretLL);
         allLoggers = new VisionLogger[] {backLeftLogger, backRightLogger, turretLogger};
 
-        // Chassis cams use the pushed robot heading (mode 1); the turret runs external-only
-        // (mode 0) since its frame yaws with the turret.
-        for (Limelight limelight : swerveLimelights) {
+        for (Limelight limelight : allLimelights) {
             limelight.setLEDMode(false);
-            setImuModeIfChanged(limelight, 1);
         }
-        turretLL.setLEDMode(false);
-        setImuModeIfChanged(turretLL, 0);
+        sendImuModes();
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -311,6 +310,9 @@ public class Vision implements Subsystem {
 
         updateTurretCameraPose();
         setLimeLightOrientation();
+        if (Timer.getFPGATimestamp() - lastImuModeSendFpgaSeconds >= IMU_MODE_RESEND_PERIOD_SECS) {
+            sendImuModes();
+        }
 
         NetworkTableInstance.getDefault().flush();
 
@@ -753,18 +755,18 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Updates the IMU mode on a Limelight only when the desired mode differs from the last written
-     * value, avoiding redundant NetworkTables writes.
-     *
-     * @param limelight the Limelight to configure
-     * @param desiredMode the IMU mode to apply (0 = external, 1 = internal, etc.)
+     * Publishes the IMU mode to every camera. Chassis cameras use mode 1 (internal IMU seeded by
+     * the pushed robot heading); the turret camera uses mode 0 (external heading only) because its
+     * frame yaws with the turret. Called at construction and then every {@link
+     * #IMU_MODE_RESEND_PERIOD_SECS} from {@link #periodic()} so a camera that reboots picks the
+     * mode back up instead of staying in its default mode 0.
      */
-    private void setImuModeIfChanged(Limelight limelight, int desiredMode) {
-        Integer lastMode = lastImuModeByLL.get(limelight);
-        if (lastMode == null || lastMode.intValue() != desiredMode) {
-            limelight.setIMUmode(desiredMode);
-            lastImuModeByLL.put(limelight, desiredMode);
+    private void sendImuModes() {
+        for (Limelight limelight : swerveLimelights) {
+            limelight.setIMUmode(1);
         }
+        turretLL.setIMUmode(0);
+        lastImuModeSendFpgaSeconds = Timer.getFPGATimestamp();
     }
 
     // =========================================================================
