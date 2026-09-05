@@ -388,11 +388,9 @@ public class Robot extends SpectrumRobot {
             Telemetry.timeEnd("Scheduler/CommandScheduler");
 
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
-            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
-            Telemetry.log(
-                    "Match Data/TimeLeftInShift",
-                    ShiftHelpers.getOfficialShiftInfo().remainingTime(),
-                    "seconds");
+            var shift = ShiftHelpers.getOfficialShiftInfo();
+            Telemetry.log("Match Data/InShift", shift.active());
+            Telemetry.log("Match Data/TimeLeftInShift", shift.remainingTime(), "seconds");
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
