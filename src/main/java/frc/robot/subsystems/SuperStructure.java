@@ -470,10 +470,10 @@ public class SuperStructure {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
-        // A squeeze launch shoots from a hopper that is already full, so the rollers have
-        // nothing to add: they cost about 23 A of supply for the length of the burst. The
-        // without-squeeze launches still intake, because that is the shoot-while-collecting mode.
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        // Runs through the whole launch, squeeze included. Stopping it to save the roughly 23 A
+        // it costs was wrong: with the rollers idle the squeeze packs fuel against the bumper
+        // instead of moving it toward the feeder. The current has to come from somewhere else.
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
@@ -491,10 +491,10 @@ public class SuperStructure {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
-        // A squeeze launch shoots from a hopper that is already full, so the rollers have
-        // nothing to add: they cost about 23 A of supply for the length of the burst. The
-        // without-squeeze launches still intake, because that is the shoot-while-collecting mode.
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        // Runs through the whole launch, squeeze included. Stopping it to save the roughly 23 A
+        // it costs was wrong: with the rollers idle the squeeze packs fuel against the bumper
+        // instead of moving it toward the feeder. The current has to come from somewhere else.
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -516,10 +516,10 @@ public class SuperStructure {
     /** Launches with brake. */
     private void launchWithBrake() {
         swerve.setWantedState(Swerve.WantedState.X_BRAKE);
-        // A squeeze launch shoots from a hopper that is already full, so the rollers have
-        // nothing to add: they cost about 23 A of supply for the length of the burst. The
-        // without-squeeze launches still intake, because that is the shoot-while-collecting mode.
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        // Runs through the whole launch, squeeze included. Stopping it to save the roughly 23 A
+        // it costs was wrong: with the rollers idle the squeeze packs fuel against the bumper
+        // instead of moving it toward the feeder. The current has to come from somewhere else.
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -568,7 +568,10 @@ public class SuperStructure {
     }
     /** Auton launch with squeeze. */
     private void autonLaunchWithSqueeze() {
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        // Same reason as the teleop squeeze launches: AGITATE with the rollers idle packs fuel
+        // against the bumper rather than moving it toward the feeder. This one predates that
+        // change and had been NEUTRAL all along, which is the same bug in auton.
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
