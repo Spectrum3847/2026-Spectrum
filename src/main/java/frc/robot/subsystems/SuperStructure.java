@@ -183,6 +183,18 @@ public class SuperStructure {
     // short debounce; continuing a feed uses wider tolerances, because every ball loads the
     // flywheel and a gate that had to re-satisfy the strict window between balls would chop the
     // feed on and off several times a second. Only the unwrap clause is never relaxed.
+    //
+    // Range is deliberately not part of the keep-feeding condition. ShotCalculator's validity flag
+    // is derived from the pose estimate, which is noisy enough that a single bad frame mid-burst
+    // would chop the feed -- exactly what the wider tolerances exist to prevent.
+    //
+    // Range is also skipped entirely while the pose cannot be trusted. Without an accepted vision
+    // estimate the distance ShotCalculator reports is whatever odometry was seeded with, so the
+    // range check is not measuring anything. In the 2026-09-05 16:52 system check that number sat
+    // at 13.006 m for the whole session with SecondsSinceVision at infinity; it fell outside the
+    // feed model's fitted range, so the gate held the feed for all 275 launching loops and the dye
+    // rotor never indexed a single ball. The mechanism tolerances still gate the shot in that
+    // case; only the meaningless term drops out.
 
     /** Consecutive loops all strict predicates must hold before feeding starts. */
     private static final int SHOT_READY_DEBOUNCE_LOOPS = 3;
@@ -202,6 +214,15 @@ public class SuperStructure {
      * bursts, so this only has to cover the per-ball dip. Set from {@code Launcher/RPM}.
      */
     private static final double KEEP_FEED_MIN_SPEED_FRACTION = 0.75;
+
+    /**
+     * Age past which an accepted vision estimate no longer makes the pose worth range-checking.
+     *
+     * <p>Generous on purpose. Shortening it makes the robot fall back to "range is unknown, feed on
+     * the mechanism tolerances alone" after brief dropouts, which is the permissive direction; a
+     * turret aiming at the hub re-acquires a tag well inside this window.
+     */
+    private static final double POSE_TRUST_TIMEOUT_SECONDS = 3.0;
 
     /**
      * Feeder states used while the gate is closed.
@@ -251,11 +272,21 @@ public class SuperStructure {
     }
 
     private void updateFeedGate() {
+        Vision vision = Robot.getVision();
+        double secondsSinceVision =
+                vision == null
+                        ? Double.POSITIVE_INFINITY
+                        : vision.secondsSinceLastAcceptedEstimate();
+        // Infinity until vision accepts its first estimate, so this is false on a shop bench.
+        boolean poseTrusted = secondsSinceVision <= POSE_TRUST_TIMEOUT_SECONDS;
+
         boolean launcherAtSpeed = launcher.isAtSpeed();
         boolean hoodAtAngle = hood.isAtAngle();
         boolean turretOnTarget = turret.isReadyToShoot();
         boolean shotInRange = ShotCalculator.getInstance().getParameters().isValid();
-        boolean shotReady = launcherAtSpeed && hoodAtAngle && turretOnTarget && shotInRange;
+        // A range check against an untrusted pose is not measuring anything, so it does not vote.
+        boolean rangeOk = !poseTrusted || shotInRange;
+        boolean shotReady = launcherAtSpeed && hoodAtAngle && turretOnTarget && rangeOk;
 
         shotReadyStreak = shotReady ? shotReadyStreak + 1 : 0;
         boolean startReady = shotReadyStreak >= SHOT_READY_DEBOUNCE_LOOPS;
@@ -263,8 +294,7 @@ public class SuperStructure {
         boolean keepReady =
                 launcher.isAboveSpeedFraction(KEEP_FEED_MIN_SPEED_FRACTION)
                         && hood.isAtAngle(KEEP_FEED_HOOD_TOLERANCE_DEG)
-                        && turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG)
-                        && shotInRange;
+                        && turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG);
 
         boolean launching = currentStateIsLaunching();
         // Closing the gate on leaving a launch state means the next burst re-earns the strict
@@ -278,16 +308,12 @@ public class SuperStructure {
             }
         }
 
-        Vision vision = Robot.getVision();
-        double secondsSinceVision =
-                vision == null
-                        ? Double.POSITIVE_INFINITY
-                        : vision.secondsSinceLastAcceptedEstimate();
-
         Telemetry.log("SuperStructure/ShotReady/LauncherAtSpeed", launcherAtSpeed);
         Telemetry.log("SuperStructure/ShotReady/HoodAtAngle", hoodAtAngle);
         Telemetry.log("SuperStructure/ShotReady/TurretOnTarget", turretOnTarget);
         Telemetry.log("SuperStructure/ShotReady/ShotInRange", shotInRange);
+        Telemetry.log("SuperStructure/ShotReady/PoseTrusted", poseTrusted);
+        Telemetry.log("SuperStructure/ShotReady/RangeOk", rangeOk);
         Telemetry.log("SuperStructure/ShotReady/Composite", shotReady);
         Telemetry.log("SuperStructure/ShotReady/StartReady", startReady);
         Telemetry.log("SuperStructure/ShotReady/KeepReady", keepReady);
