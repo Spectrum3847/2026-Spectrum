@@ -649,7 +649,9 @@ public class Vision implements Subsystem {
     private double turretZeroLastApplySeconds = Double.NEGATIVE_INFINITY;
     private double turretZeroRateWindowStartSeconds = Double.NaN;
     private double turretZeroRateWindowDeg = 0;
+    private double turretZeroRateWindowStartTravelDeg = 0;
     private double turretSlipDegPerMinute = 0;
+    private double turretSlipDegPerKiloDegTravel = 0;
     private double turretZeroDivergenceStartSeconds = Double.NaN;
     private boolean turretZeroDiverged = false;
 
@@ -767,6 +769,12 @@ public class Vision implements Subsystem {
         Telemetry.log("Vision/TurretZero/Measurable", measurable);
         Telemetry.log("Vision/TurretZero/FilteredErrorDeg", turretZeroFilteredErrorDeg, "deg");
         Telemetry.log("Vision/TurretZero/SlipDegPerMinute", turretSlipDegPerMinute, "deg");
+        Telemetry.log(
+                "Vision/TurretZero/SlipDegPerKiloDegTravel", turretSlipDegPerKiloDegTravel, "deg");
+        Telemetry.log(
+                "Vision/TurretZero/CorrectedTotalDeg",
+                Robot.getTurret().getZeroCorrectionTotalDegrees(),
+                "deg");
     }
 
     /**
@@ -779,19 +787,38 @@ public class Vision implements Subsystem {
      * @param now current FPGA time in seconds
      */
     private void updateTurretSlipRate(double now) {
+        double travel = Robot.getTurret().getTravelTotalDegrees();
         if (Double.isNaN(turretZeroRateWindowStartSeconds)) {
             turretZeroRateWindowStartSeconds = now;
+            turretZeroRateWindowStartTravelDeg = travel;
             return;
         }
+
         double elapsed = now - turretZeroRateWindowStartSeconds;
-        if (elapsed < 60.0) {
-            return;
+        double travelled = travel - turretZeroRateWindowStartTravelDeg;
+
+        // Published continuously once there is enough of a window to mean anything, rather than
+        // once a minute. A match is barely two of those, and the first would read zero throughout
+        // the part of it anyone is watching.
+        if (elapsed >= SLIP_RATE_MIN_WINDOW_SECONDS) {
+            turretSlipDegPerMinute = turretZeroRateWindowDeg * 60.0 / elapsed;
+            turretSlipDegPerKiloDegTravel =
+                    travelled > 1.0 ? turretZeroRateWindowDeg * 1000.0 / travelled : 0;
+            turretSlipAlert.set(turretSlipDegPerMinute >= config.getTurretSlipAlertDegPerMinute());
         }
-        turretSlipDegPerMinute = turretZeroRateWindowDeg * 60.0 / elapsed;
-        turretZeroRateWindowStartSeconds = now;
-        turretZeroRateWindowDeg = 0;
-        turretSlipAlert.set(turretSlipDegPerMinute >= config.getTurretSlipAlertDegPerMinute());
+
+        if (elapsed >= SLIP_RATE_WINDOW_SECONDS) {
+            turretZeroRateWindowStartSeconds = now;
+            turretZeroRateWindowStartTravelDeg = travel;
+            turretZeroRateWindowDeg = 0;
+        }
     }
+
+    /** Shortest window that gives a slip rate worth publishing. */
+    private static final double SLIP_RATE_MIN_WINDOW_SECONDS = 5.0;
+
+    /** How much history each slip rate covers before the window rolls. */
+    private static final double SLIP_RATE_WINDOW_SECONDS = 60.0;
 
     /**
      * Turret camera MegaTag1 heading minus the pose heading, wrapped to [-180, 180) degrees, or NaN

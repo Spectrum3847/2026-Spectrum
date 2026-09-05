@@ -211,7 +211,9 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/Temp", getTemp(), "deg_C");
         Telemetry.log("Turret/MotorConnected", isMotorConnected());
         Telemetry.log("Turret/CommandedDegrees", commandedDegrees, "deg");
+        updateTravel();
         Telemetry.log("Turret/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.log("Turret/TravelTotalDeg", travelTotalDegrees, "deg");
         Telemetry.log("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
         Telemetry.log("Turret/CommandedRotPerSec", mechOmegaRotPerSec, "rot/sec");
         Telemetry.log("Turret/Unwrapping", unwrapping);
@@ -264,6 +266,11 @@ public class Turret extends Mechanism {
         // Logged, not printed. This is called several times a second to chase slip, and a console
         // line per step would bury everything else and go into the log as captured console output.
         zeroCorrectionTotalDegrees += errorDegrees;
+
+        // The reading just jumped without the turret moving; do not bank that as travel.
+        if (!Double.isNaN(lastTravelPositionDegrees)) {
+            lastTravelPositionDegrees += errorDegrees;
+        }
         Telemetry.log("Turret/ZeroCorrectionTotalDeg", zeroCorrectionTotalDegrees, "deg");
     }
 
@@ -275,6 +282,28 @@ public class Turret extends Mechanism {
      * fast.
      */
     @Getter private double zeroCorrectionTotalDegrees = 0;
+
+    /**
+     * Every degree this turret has turned, added up regardless of direction.
+     *
+     * <p>Slip is a function of distance travelled, not of time: the belt gives up a tooth when it
+     * is pulled past one, and sitting still costs nothing. So this is the denominator that makes
+     * slip comparable between runs. Degrees of slip per minute drops if the drivers simply aim less
+     * that match; degrees of slip per thousand degrees travelled does not, which is what makes it
+     * worth anything for judging whether a belt or pulley change helped.
+     */
+    @Getter private double travelTotalDegrees = 0;
+
+    private double lastTravelPositionDegrees = Double.NaN;
+
+    /** Accumulates {@link #travelTotalDegrees}. Call once per loop. */
+    private void updateTravel() {
+        double position = getPositionDegrees();
+        if (!Double.isNaN(lastTravelPositionDegrees)) {
+            travelTotalDegrees += Math.abs(position - lastTravelPositionDegrees);
+        }
+        lastTravelPositionDegrees = position;
+    }
 
     /** Applies the aim at target. */
     private void applyAimAtTarget() {
