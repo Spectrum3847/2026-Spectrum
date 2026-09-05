@@ -171,6 +171,7 @@ public class Launcher extends Mechanism {
         Telemetry.log("Launcher/CommandedRPM", commandedRPM, "RPM");
         Telemetry.log("Launcher/AtSpeed", isAtSpeed());
         Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
+        Telemetry.log("Launcher/MotorConnected", isMotorConnected());
     }
 
     // --------------------------------------------------------------------------------

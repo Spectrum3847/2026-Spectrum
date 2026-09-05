@@ -187,6 +187,7 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
         Telemetry.log("Hood/AtAngle", isAtAngle());
         Telemetry.log("Hood/Temp", getTemp(), "deg_C");
+        Telemetry.log("Hood/MotorConnected", isMotorConnected());
     }
 
     // --------------------------------------------------------------------------------

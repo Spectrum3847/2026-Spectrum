@@ -196,6 +196,7 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Turret/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Turret/Temp", getTemp(), "deg_C");
+        Telemetry.log("Turret/MotorConnected", isMotorConnected());
         Telemetry.log("Turret/CommandedDegrees", commandedDegrees, "deg");
         Telemetry.log("Turret/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");

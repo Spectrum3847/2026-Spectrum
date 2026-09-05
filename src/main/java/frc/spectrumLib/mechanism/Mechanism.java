@@ -224,6 +224,17 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Returns {@code true} when the leader motor is attached and its status frames are arriving
+     * over CAN. A mechanism that is commanded but reports 0 V with this false has dropped off the
+     * bus, which is what the hood did intermittently on the 2026-09-04 bench.
+     *
+     * @return {@code true} if the leader TalonFX is currently reachable
+     */
+    public boolean isMotorConnected() {
+        return isAttached() && motor.isConnected();
+    }
+
+    /**
      * Reports the combined supply current draw of the leader motor and all followers to the battery
      * logger. Does nothing if the mechanism is not attached.
      */

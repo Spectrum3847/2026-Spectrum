@@ -36,18 +36,45 @@ first full-field practice day. Everything below is on branch `2026-offseason-bot
 
 ## 3. Open items, in recommended order
 
-### 3.1 Hood does not always move when close and shooting (reported 09-04, not yet root-caused)
-- **What the logs show:** in every enabled window the hood was in HOME at 0.3 deg with -2.3 V and
-  ~75 A stator continuously, i.e. stalled into the hard stop because the encoder zero sits a fraction of a
-  degree below the stop. Motor temp rose 27 to 46 C in 32 s enabled. The stall is now removed
-  (`Hood.homeRestToleranceDegrees`).
-- **Still to check:** `Hood.peakVoltage` is **3 V**, with kP 2750 V/rot, so any error over 0.4 deg is
-  already saturated at 3 V. Whether 3 V lifts the hood reliably against gravity when warm is doubtful.
-  No log captured the hood aiming (all sessions stayed in IDLE). Next time it fails, pull the log and
-  read `Hood/CommandedDegrees`, `Hood/PositionDegrees`, `Hood/Voltage`, `Hood/StatorCurrent`,
-  `Hood/Temp` together. Likely fixes: raise peak voltage to 6 to 8 V and re-tune kP down, add kG if the
-  hood is gravity loaded, and consider a proper homing (drive down at low voltage until current spikes,
-  then zero) instead of zero-at-boot.
+### 3.1 Hood does not always move when close and shooting (reported 09-04)
+Two separate things were found in the logs.
+
+- **Stall at home (fixed in code).** In every enabled window the hood sat in HOME at 0.3 deg with
+  -2.3 V and ~75 A stator continuously: the encoder zero sits a fraction of a degree below the hard
+  stop, so position 0 can never be reached. Motor temp rose 27 to 46 C in 32 s idle, and reached 58 C in
+  the shooting session. HOME now cuts output within 1 deg of zero (`Hood.homeRestToleranceDegrees`).
+- **Dead motor during shots (hardware, watch it).** In the 04:25 shooting log (`FRC_20260905_042536`)
+  the hood was commanded to 18 to 20 deg in 11 launch windows. In 9 of them it reported **exactly 0 V
+  and 0 A** and did not move, while turret and flywheel ran normally. In the other 2 it hit 3.07 V and
+  swung 19 deg in half a second, so the motor, gains and 3 V peak are adequate when the command reaches
+  it. Zero output with a position request pending, on one device only, is a device that is not receiving
+  or executing control frames. The same night the DS console showed "CAN message is stale" and "CAN
+  frame not received" errors and an earlier log (`_041205`) shows the CANivore transmit error counter
+  climbing to 248 of the 255 that causes bus-off. The team found and fixed a CAN hardware fault. Every
+  mechanism periodic now logs `<Name>/MotorConnected`; if the hood ever reads 0 V while commanded again,
+  check that key first. If it is true and the hood still does not move, next suspects are the sticky
+  `BootDuringEnable` fault and the CANivore utilization below.
+- **CANivore bus utilization is 66 to 81 percent** in every log. CTRE recommends staying well under
+  that; high utilization delays frames and produces exactly the stale-frame warnings seen. Every
+  `Mechanism` sets eight status signals to 250 Hz on the leader and each follower (`Mechanism`
+  constructor), which with ten mechanisms plus the swerve modules is most of that load. Dropping
+  voltage, currents, duty cycle and temperature to 20 to 50 Hz and keeping only position and velocity
+  fast would roughly halve it. Do this early; it may be the whole story behind the intermittent hood.
+- **Peak voltage** is 3 V. It moved the hood fine in the two live windows, so leave it unless a log
+  shows saturation at 3 V with the hood lagging its command.
+
+### 3.1b Other things the shooting log showed
+- **Loop overruns are real.** `Scheduler/robotPeriodic` median 15 to 19 ms, 95th percentile 32 to
+  44 ms, worst 0.55 and 0.92 s. Over 5 percent of loops overrun. See 3.8.
+- **Turret unwrapped mid-shot.** At 101 s the turret went from -206 deg to +153 deg, a 360 deg slew,
+  during `LAUNCH_WITHOUT_SQUEEZE`, because the target crossed the travel seam at robot-front. Balls fed
+  during that slew go anywhere. Feeder gating (3.3) would have held them; the turret's `isReadyToShoot`
+  is already false while unwrapping.
+- **Readiness gate preview.** Over 366 launching loops the gate would have held the feed for 321, almost
+  entirely because `HoodAtAngle` was false (the dead hood above) and the flywheel had not reached speed
+  in the first 0.3 s. Flywheel spin-up from 650 to 2600 RPM took about 0.25 s and held within the 200 RPM
+  window during bursts, so the planned start tolerance is fine.
+- **Shots were all at 2.2 to 2.6 m** with a commanded hood of 18 to 20 deg from the 3 m ceiling model.
 
 ### 3.2 Switch the hub shot model to the full-field fit
 `ShotCalculator.WANTED_HUB_MODEL` is `CEILING_3M_HUB_MODEL`, the low-ceiling shop fit. On a real field
