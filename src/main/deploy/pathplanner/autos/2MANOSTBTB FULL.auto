@@ -19,7 +19,7 @@
       ]
     }
   },
-  "resetOdom": true,
+  "resetOdom": false,
   "folder": "2MANOSTBTB",
   "choreoAuto": false
 }
