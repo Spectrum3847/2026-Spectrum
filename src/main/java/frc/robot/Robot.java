@@ -297,7 +297,7 @@ public class Robot extends SpectrumRobot {
                 .or(pilot.rightReorient)
                 .onTrue(pilot.rumbleCommand(1, 0.5).withName("Pilot.reorientRumble"));
 
-        pilot.coastA.onTrue(intakeExtension.coastModeCommand().andThen(turret.coastModeCommand()));
+        pilot.coastA.onTrue(intakeExtension.coastModeCommand().alongWith(turret.coastModeCommand()));
         pilot.brakeB.onTrue(intakeExtension.brakeModeCommand());
         pilot.visionPoseReset_LB_Select.onTrue(vision.resetVisionPoseCommand());
 
