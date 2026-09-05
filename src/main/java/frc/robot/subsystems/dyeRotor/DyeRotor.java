@@ -2,6 +2,7 @@ package frc.robot.subsystems.dyeRotor;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.RobotSim;
@@ -234,6 +235,32 @@ public class DyeRotor implements Subsystem {
         UNJAM,
     }
 
+    /**
+     * Feeder speed for {@code INDEX_MAX}, in mechanism RPM.
+     *
+     * <p>Was 2500, which the feeder cannot reach and never has. {@code FeederConfig.velocityKv} is
+     * 0.434 V per mechanism rotation per second, so 2500 RPM is 41.7 rot/s and asks 18.1 V of
+     * feedforward alone on a 12 V bus. The ceiling at a full 12 V and no load is about 1660 RPM.
+     *
+     * <p>The logs agree to within a percent. On 2026-09-05 the feeder topped out at 1477 RPM with
+     * 11.0 V applied, and 1477 RPM is 24.6 rot/s, wanting 24.6 x 0.434 = 10.7 V. It was not
+     * fighting fuel either: the fastest samples drew only 8 to 17 A of stator.
+     *
+     * <p>The cost of asking the impossible is that the velocity loop saturates at full output the
+     * whole time it feeds. It never regulates, so the feed rate is whatever the load allows that
+     * moment and the flywheel sees fuel arrive at a rate nobody chose.
+     *
+     * <p>1300 RPM asks 9.4 V, leaving about 2.6 V of headroom at a healthy bus for load and for the
+     * loop to correct. That is close to the 1185 RPM mean the feeder already managed, so the feed
+     * rate barely moves; what changes is that it becomes a speed the robot holds rather than one it
+     * happens to reach.
+     *
+     * <p>Tunable so it can be swept live. Above about 1400 it saturates again whenever the battery
+     * sags, which during a launch it does.
+     */
+    private static final DoubleSubscriber indexMaxFeederRPM =
+            Telemetry.tunable("DyeRotor/IndexMaxFeederRPM", 1300.0);
+
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
     /**
@@ -265,7 +292,7 @@ public class DyeRotor implements Subsystem {
                 return;
             case INDEX_MAX:
                 wantedRPMSpin = 100;
-                wantedRPMIndex = 2500;
+                wantedRPMIndex = indexMaxFeederRPM.get();
                 break;
             case IDLE_SLOW_INDEX:
                 wantedRPMSpin = -20;
