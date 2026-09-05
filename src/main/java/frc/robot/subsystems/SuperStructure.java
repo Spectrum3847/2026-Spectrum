@@ -3,8 +3,9 @@ package frc.robot.subsystems;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.rebuilt.ShotCalculator;
+import frc.robot.Robot;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
 import frc.robot.subsystems.hood.Hood;
@@ -13,11 +14,22 @@ import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.LauncherTower;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.vision.Vision;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
+import java.util.function.BooleanSupplier;
 import lombok.Getter;
 
-public class SuperStructure extends SubsystemBase {
+/**
+ * Maps one wanted robot state onto every mechanism's wanted state each loop.
+ *
+ * <p>Deliberately not a {@code Subsystem}: {@link frc.robot.Robot#robotPeriodic()} calls {@link
+ * #periodic()} exactly once per loop, before {@code CommandScheduler.run()}, so a state decision
+ * reaches the mechanism periodics in the same loop instead of one loop later. It must never be
+ * registered with the scheduler, because the edge detection on {@code previousSuperState} and the
+ * squeeze timer assume {@code periodic()} runs exactly once per loop.
+ */
+public class SuperStructure {
 
     @Getter private final Swerve swerve;
     @Getter private final FuelIntake fuelIntake;
@@ -138,8 +150,7 @@ public class SuperStructure extends SubsystemBase {
     private static boolean isSqueezeState(CurrentSuperState state) {
         return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
     }
-    /** Runs the periodic update. */
-    @Override
+    /** Runs the periodic update. Called once per loop from {@code Robot.robotPeriodic()}. */
     public void periodic() {
         currentSuperState = handleStateTransitions();
 
@@ -147,6 +158,9 @@ public class SuperStructure extends SubsystemBase {
         if (isSqueezeState(currentSuperState) && !isSqueezeState(previousSuperState)) {
             intakeSqueezeTimer.restart();
         }
+
+        // Must run before applyStates(): the launch states read the gate to pick feeder states.
+        updateFeedGate();
 
         applyStates();
 
@@ -156,6 +170,149 @@ public class SuperStructure extends SubsystemBase {
         Telemetry.log("SuperStructure/CurrentSuperState", currentSuperState.toString());
         Telemetry.log(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
+    }
+
+    // ── Feeder gating ──────────────────────────────────────────────────────────
+    //
+    // Fuel only reaches the flywheel while the gate is open, so a shot is never fed while the
+    // turret is mid-unwrap, the hood has not reached its angle, or the flywheel has not spun up.
+    // In the 2026-09-04 shooting log the turret slewed a full 360 deg mid-burst at 101 s while
+    // fuel kept feeding; those balls went anywhere.
+    //
+    // The gate is hysteretic. Starting a feed uses each mechanism's own strict tolerance, after a
+    // short debounce; continuing a feed uses wider tolerances, because every ball loads the
+    // flywheel and a gate that had to re-satisfy the strict window between balls would chop the
+    // feed on and off several times a second. Only the unwrap clause is never relaxed.
+
+    /** Consecutive loops all strict predicates must hold before feeding starts. */
+    private static final int SHOT_READY_DEBOUNCE_LOOPS = 3;
+
+    /**
+     * Turret tracking error tolerated while already feeding. Wider than the turret's own 2 deg
+     * trigger tolerance; set from a log of {@code Turret/TrackingErrorDegrees} during a burst.
+     */
+    private static final double KEEP_FEED_TURRET_TOLERANCE_DEG = 6.0;
+
+    /** Hood angle error tolerated while already feeding, versus its 0.5 deg aim tolerance. */
+    private static final double KEEP_FEED_HOOD_TOLERANCE_DEG = 3.0;
+
+    /**
+     * Flywheel droop tolerated while already feeding, as a fraction of commanded RPM. Spin-up from
+     * 650 to 2600 RPM took about 0.25 s on the bench and held inside the 200 RPM window during
+     * bursts, so this only has to cover the per-ball dip. Set from {@code Launcher/RPM}.
+     */
+    private static final double KEEP_FEED_MIN_SPEED_FRACTION = 0.75;
+
+    /**
+     * Feeder states used while the gate is closed.
+     *
+     * <p>The dye rotor holds at {@code IDLE_SLOW_INDEX}, whose feeder RPM is 0 — it agitates the
+     * bed without indexing, so it is a true hold.
+     *
+     * <p>The launcher tower holds at {@code OFF}, not {@code SLOW_INDEX}. {@code SLOW_INDEX} is
+     * 1000 RPM <em>forward</em>, a quarter of {@code INDEX_MAX}; with the tower already full of
+     * fuel mid-burst that keeps pushing fuel into the flywheel, which is exactly what the gate
+     * exists to prevent. The tower is in brake neutral mode, so {@code OFF} holds fuel in place. If
+     * a bench check shows staged fuel does not reach the flywheel at 1000 RPM, switching this to
+     * {@code SLOW_INDEX} would shorten the delay when the gate opens.
+     */
+    private static final LauncherTower.WantedState TOWER_HOLD_STATE = LauncherTower.WantedState.OFF;
+
+    private static final DyeRotor.WantedState ROTOR_HOLD_STATE =
+            DyeRotor.WantedState.IDLE_SLOW_INDEX;
+
+    private int shotReadyStreak = 0;
+    private int launchingLoops = 0;
+    private int heldFeedLoops = 0;
+
+    /** True while the gate is open and fuel is allowed into the flywheel. */
+    private boolean feedGateOpen = false;
+
+    /** Operator hold to feed regardless of the gate, for a bad sensor or a deliberate dump. */
+    private BooleanSupplier feedOverride = () -> false;
+
+    /**
+     * Sets the operator control that bypasses feeder gating while held. Bound once at startup; the
+     * supplier is polled every loop.
+     *
+     * @param override true while the operator wants the gates ignored
+     */
+    public void setFeedOverride(BooleanSupplier override) {
+        this.feedOverride = override;
+    }
+
+    /**
+     * Returns {@code true} when fuel is allowed into the flywheel this loop.
+     *
+     * @return true when the gate is open or the operator is overriding it
+     */
+    public boolean isFeedAllowed() {
+        return feedGateOpen || feedOverride.getAsBoolean();
+    }
+
+    private void updateFeedGate() {
+        boolean launcherAtSpeed = launcher.isAtSpeed();
+        boolean hoodAtAngle = hood.isAtAngle();
+        boolean turretOnTarget = turret.isReadyToShoot();
+        boolean shotInRange = ShotCalculator.getInstance().getParameters().isValid();
+        boolean shotReady = launcherAtSpeed && hoodAtAngle && turretOnTarget && shotInRange;
+
+        shotReadyStreak = shotReady ? shotReadyStreak + 1 : 0;
+        boolean startReady = shotReadyStreak >= SHOT_READY_DEBOUNCE_LOOPS;
+
+        boolean keepReady =
+                launcher.isAboveSpeedFraction(KEEP_FEED_MIN_SPEED_FRACTION)
+                        && hood.isAtAngle(KEEP_FEED_HOOD_TOLERANCE_DEG)
+                        && turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG)
+                        && shotInRange;
+
+        boolean launching = currentStateIsLaunching();
+        // Closing the gate on leaving a launch state means the next burst re-earns the strict
+        // window rather than inheriting the last one's open gate.
+        feedGateOpen = launching && (feedGateOpen ? keepReady : startReady);
+
+        if (launching) {
+            launchingLoops++;
+            if (!isFeedAllowed()) {
+                heldFeedLoops++;
+            }
+        }
+
+        Vision vision = Robot.getVision();
+        double secondsSinceVision =
+                vision == null
+                        ? Double.POSITIVE_INFINITY
+                        : vision.secondsSinceLastAcceptedEstimate();
+
+        Telemetry.log("SuperStructure/ShotReady/LauncherAtSpeed", launcherAtSpeed);
+        Telemetry.log("SuperStructure/ShotReady/HoodAtAngle", hoodAtAngle);
+        Telemetry.log("SuperStructure/ShotReady/TurretOnTarget", turretOnTarget);
+        Telemetry.log("SuperStructure/ShotReady/ShotInRange", shotInRange);
+        Telemetry.log("SuperStructure/ShotReady/Composite", shotReady);
+        Telemetry.log("SuperStructure/ShotReady/StartReady", startReady);
+        Telemetry.log("SuperStructure/ShotReady/KeepReady", keepReady);
+        Telemetry.log("SuperStructure/ShotReady/GateOpen", feedGateOpen);
+        Telemetry.log("SuperStructure/ShotReady/Override", feedOverride.getAsBoolean());
+        Telemetry.log("SuperStructure/ShotReady/FeedAllowed", isFeedAllowed());
+        Telemetry.log("SuperStructure/ShotReady/HoldingFeed", launching && !isFeedAllowed());
+        Telemetry.log("SuperStructure/ShotReady/LaunchingLoops", launchingLoops);
+        Telemetry.log("SuperStructure/ShotReady/HeldFeedLoops", heldFeedLoops);
+        Telemetry.log("SuperStructure/ShotReady/SecondsSinceVision", secondsSinceVision, "seconds");
+        Telemetry.log("Turret/TrackingErrorDegrees", turret.getTrackingErrorDegrees(), "deg");
+    }
+
+    /**
+     * Applies the dye rotor and launcher tower states for a launch, feeding at full index only
+     * while the gate allows it and holding fuel short of the flywheel otherwise.
+     */
+    private void applyGatedFeed() {
+        if (isFeedAllowed()) {
+            dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
+            launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
+        } else {
+            dyeRotor.setWantedState(ROTOR_HOLD_STATE);
+            launcherTower.setWantedState(TOWER_HOLD_STATE);
+        }
     }
     /** Handles the state transitions. */
     private CurrentSuperState handleStateTransitions() {
@@ -272,11 +429,10 @@ public class SuperStructure extends SubsystemBase {
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
-        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        applyGatedFeed();
 
         if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze)) {
             intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
@@ -291,12 +447,11 @@ public class SuperStructure extends SubsystemBase {
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
-        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        applyGatedFeed();
     }
     /** Launches without squeeze. */
     private void launchWithoutSqueeze() {
@@ -304,23 +459,21 @@ public class SuperStructure extends SubsystemBase {
         swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
         swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        applyGatedFeed();
     }
     /** Launches with brake. */
     private void launchWithBrake() {
         swerve.setWantedState(Swerve.WantedState.X_BRAKE);
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
-        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        applyGatedFeed();
     }
     /** Applies the auton idle. */
     private void applyAutonIdle() {
@@ -356,22 +509,20 @@ public class SuperStructure extends SubsystemBase {
     /** Auton launch without squeeze. */
     private void autonLaunchWithoutSqueeze() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        applyGatedFeed();
     }
     /** Auton launch with squeeze. */
     private void autonLaunchWithSqueeze() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        dyeRotor.setWantedState(DyeRotor.WantedState.INDEX_MAX);
         intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
         launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        launcherTower.setWantedState(LauncherTower.WantedState.INDEX_MAX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        applyGatedFeed();
     }
     /** Unjam. */
     private void unjam() {

@@ -194,15 +194,18 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     }
     /** Logs the battery usage. */
     protected void logBatteryUsage() {
-        double steerMotorCurrent = getSteerMotorSupplyCurrents();
-        double driveMotorCurrent = getDriveMotorSupplyCurrents();
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
+        // Each sum walks all four modules and refreshes their signals; compute each once.
+        double steerSupplyCurrent = getSteerMotorSupplyCurrents();
+        double driveSupplyCurrent = getDriveMotorSupplyCurrents();
+        double driveStatorCurrent = getDriveMotorStatorCurrents();
+        double steerStatorCurrent = getSteerMotorStatorCurrents();
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerSupplyCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveSupplyCurrent);
 
-        Telemetry.log("Swerve/Currents/DriveStatorCurrent", getDriveMotorStatorCurrents());
-        Telemetry.log("Swerve/Currents/SteerStatorCurrent", getSteerMotorStatorCurrents());
-        Telemetry.log("Swerve/Currents/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
-        Telemetry.log("Swerve/Currents/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
+        Telemetry.log("Swerve/Currents/DriveStatorCurrent", driveStatorCurrent);
+        Telemetry.log("Swerve/Currents/SteerStatorCurrent", steerStatorCurrent);
+        Telemetry.log("Swerve/Currents/DriveSupplyCurrent", driveSupplyCurrent);
+        Telemetry.log("Swerve/Currents/SteerSupplyCurrent", steerSupplyCurrent);
     }
     /**
      * Returns the sum of the drive motor stator currents.
@@ -284,9 +287,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
             }
         }
-
-        Telemetry.log("Swerve/WantedState", wantedState.toString());
-        Telemetry.log("Swerve/SystemState", systemState.toString());
     }
 
     // -----------------------------------------------------------------------
@@ -502,9 +502,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
      * for red so the same rectangle works for both alliances).
      */
     public boolean isInEnemyAllianceZone() {
+        Pose2d pose = getRobotPose();
         return ENEMY_ALLIANCE_ZONE.contains(
-                new Translation2d(
-                        FieldHelpers.flipXifRed(getRobotPose().getX()), getRobotPose().getY()));
+                new Translation2d(FieldHelpers.flipXifRed(pose.getX()), pose.getY()));
     }
     /** In neutral zone. */
     public Trigger inNeutralZone() {

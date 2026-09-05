@@ -22,6 +22,17 @@ public class Hood extends Mechanism {
         @Getter private final double maxRotations = 0.095833;
         @Getter private final double minRotations = 0.0;
 
+        /** Position error (degrees) within which the hood counts as on target for a shot. */
+        @Getter private final double aimToleranceDegrees = 0.5;
+
+        /**
+         * Below this angle (degrees) the hood is considered to be resting on its hard stop at home,
+         * and output is cut instead of holding position 0. The hard stop sits fractionally above
+         * the encoder zero, so holding 0 against it stalled the motor at 75 A stator continuously
+         * on the bench (2026-09-04 logs) and heated it 19 C in 30 s of idle. Brake mode holds it.
+         */
+        @Getter private final double homeRestToleranceDegrees = 1.0;
+
         /* Hood config values */
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 80;
@@ -101,12 +112,22 @@ public class Hood extends Mechanism {
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
         };
     }
+    /** Hood angle commanded this loop (degrees). */
+    @Getter private double commandedDegrees = 0;
+
     /** Applies the states. */
     private void applyStates() {
         double wantedDegrees = 0;
         switch (systemState) {
             case HOME:
                 wantedDegrees = 0.0;
+                if (getPositionDegrees() <= config.getHomeRestToleranceDegrees()) {
+                    // Resting on the hard stop: stop pushing into it (see
+                    // homeRestToleranceDegrees).
+                    commandedDegrees = 0.0;
+                    stop();
+                    return;
+                }
                 break;
             case STOPPED:
                 stop();
@@ -116,10 +137,31 @@ public class Hood extends Mechanism {
                 wantedDegrees = params.hoodAngle();
                 break;
         }
+        commandedDegrees = wantedDegrees;
         final double finalWantedDegrees = wantedDegrees;
         final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
         // setMMPositionFOC
         setPosition(() -> finalWantedPosition);
+    }
+
+    /**
+     * Returns {@code true} when the hood is aiming and within the configured tolerance of the
+     * commanded shot angle. Gates feeding into the flywheel.
+     */
+    public boolean isAtAngle() {
+        return isAtAngle(config.getAimToleranceDegrees());
+    }
+
+    /**
+     * Same check as {@link #isAtAngle()} against a caller-supplied tolerance. The feeder gate uses
+     * a wider tolerance to decide whether to <em>keep</em> feeding than to start.
+     *
+     * @param toleranceDegrees allowed angle error in degrees
+     * @return true when aiming and within {@code toleranceDegrees} of the commanded angle
+     */
+    public boolean isAtAngle(double toleranceDegrees) {
+        return systemState == SystemState.AIM_AT_TARGET
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
     }
 
     @Getter private final HoodConfig config;
@@ -151,7 +193,11 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
+        Telemetry.log("Hood/AtAngle", isAtAngle());
         Telemetry.log("Hood/Temp", getTemp(), "deg_C");
+        Telemetry.log("Hood/MotorConnected", isMotorConnected());
     }
 
     // --------------------------------------------------------------------------------

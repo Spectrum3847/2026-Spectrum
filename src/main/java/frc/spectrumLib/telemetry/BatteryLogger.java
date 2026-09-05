@@ -15,6 +15,10 @@ import lombok.Setter;
 /**
  * Tracks and logs current draw, power, and cumulative energy consumption across subsystems each
  * robot loop cycle.
+ *
+ * <p>Key derivation (splitting a channel name into its parent keys) and log-key construction are
+ * cached per channel name, so steady-state operation performs no string splitting or concatenation.
+ * The set of channel names is small and fixed after the first loop.
  */
 public class BatteryLogger {
     /** Duration of one robot loop in seconds, used to convert power (W) to energy (J). */
@@ -35,9 +39,40 @@ public class BatteryLogger {
     /** Estimated current drawn by the RoboRIO itself, in amps. */
     @Setter private double rioCurrent = 0.0;
 
-    private Map<String, Double> subsystemCurrents = new HashMap<>();
-    private Map<String, Double> subsystemPowers = new HashMap<>();
-    private Map<String, Double> subsystemEnergies = new HashMap<>();
+    private final Map<String, Double> subsystemCurrents = new HashMap<>();
+    private final Map<String, Double> subsystemPowers = new HashMap<>();
+    private final Map<String, Double> subsystemEnergies = new HashMap<>();
+
+    /** Channel name to its parent keys, derived once per channel by {@link #deriveParentKeys}. */
+    private final Map<String, String[]> parentKeys = new HashMap<>();
+
+    /** Channel or parent name to its fully qualified log key, built once per name. */
+    private final Map<String, String> currentLogKeys = new HashMap<>();
+
+    private final Map<String, String> powerLogKeys = new HashMap<>();
+    private final Map<String, String> energyLogKeys = new HashMap<>();
+
+    /**
+     * Splits a channel name on "/" or "-" and returns every parent prefix joined with "/", from the
+     * root down. {@code "A/B/C"} yields {@code ["A", "A/B"]}; a name with no separator yields an
+     * empty array.
+     */
+    private static String[] deriveParentKeys(String key) {
+        String[] keys = key.split("/|-");
+        if (keys.length < 2) {
+            return new String[0];
+        }
+        String[] parents = new String[keys.length - 1];
+        StringBuilder subkey = new StringBuilder();
+        for (int i = 0; i < keys.length - 1; i++) {
+            if (i > 0) {
+                subkey.append('/');
+            }
+            subkey.append(keys[i]);
+            parents[i] = subkey.toString();
+        }
+        return parents;
+    }
 
     /**
      * Records the current draw for a named subsystem channel and accumulates it into the running
@@ -63,20 +98,10 @@ public class BatteryLogger {
             subsystemPowers.put(key, power);
             subsystemEnergies.merge(key, energy, Double::sum);
 
-            String[] keys = key.split("/|-");
-            if (keys.length < 2) {
-                return;
-            }
-
-            String subkey = "";
-            for (int i = 0; i < keys.length - 1; i++) {
-                subkey += keys[i];
-                if (i < keys.length - 2) {
-                    subkey += "/";
-                }
-                subsystemCurrents.merge(subkey, totalAmps, Double::sum);
-                subsystemPowers.merge(subkey, power, Double::sum);
-                subsystemEnergies.merge(subkey, energy, Double::sum);
+            for (String parent : parentKeys.computeIfAbsent(key, BatteryLogger::deriveParentKeys)) {
+                subsystemCurrents.merge(parent, totalAmps, Double::sum);
+                subsystemPowers.merge(parent, power, Double::sum);
+                subsystemEnergies.merge(parent, energy, Double::sum);
             }
         }
     }
@@ -104,16 +129,25 @@ public class BatteryLogger {
             Telemetry.log("BatteryLogger/BatteryVoltage", batteryVoltage, "volts");
 
             for (var entry : subsystemCurrents.entrySet()) {
-                Telemetry.log("BatteryLogger/Current/" + entry.getKey(), entry.getValue(), "amps");
-                subsystemCurrents.put(entry.getKey(), 0.0);
+                Telemetry.log(
+                        currentLogKeys.computeIfAbsent(
+                                entry.getKey(), k -> "BatteryLogger/Current/" + k),
+                        entry.getValue(),
+                        "amps");
+                entry.setValue(0.0);
             }
             for (var entry : subsystemPowers.entrySet()) {
-                Telemetry.log("BatteryLogger/Power/" + entry.getKey(), entry.getValue(), "watts");
-                subsystemPowers.put(entry.getKey(), 0.0);
+                Telemetry.log(
+                        powerLogKeys.computeIfAbsent(
+                                entry.getKey(), k -> "BatteryLogger/Power/" + k),
+                        entry.getValue(),
+                        "watts");
+                entry.setValue(0.0);
             }
             for (var entry : subsystemEnergies.entrySet()) {
                 Telemetry.log(
-                        "BatteryLogger/Energy/" + entry.getKey(),
+                        energyLogKeys.computeIfAbsent(
+                                entry.getKey(), k -> "BatteryLogger/Energy/" + k),
                         joulesToWattHours(entry.getValue()),
                         "wh");
             }
@@ -123,6 +157,15 @@ public class BatteryLogger {
             totalCurrent = 0.0;
         }
     }
+
+    /**
+     * Current accumulated this loop for a channel or parent key, in amps. Package-private for
+     * tests.
+     */
+    double getSubsystemCurrent(String key) {
+        return subsystemCurrents.getOrDefault(key, 0.0);
+    }
+
     /** Joules to watt hours. */
     private double joulesToWattHours(double joules) {
         return joules / 3600.0;

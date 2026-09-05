@@ -32,7 +32,7 @@ public class HubTargetFactory {
         Translation3d hubPose = Field.isRed() ? Field.getRedHubCenter() : Field.getBlueHubCenter();
 
         double distance =
-                new Translation2d(hubPose.getX(), hubPose.getY())
+                hubPose.toTranslation2d()
                         .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);

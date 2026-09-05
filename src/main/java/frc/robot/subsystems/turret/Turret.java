@@ -26,11 +26,12 @@ public class Turret extends Mechanism {
         @Getter @Setter private boolean reversed = false;
 
         @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 5;
+        /** Position error (degrees) within which the turret counts as on target for a shot. */
+        @Getter private final double triggerTolerance = 2;
+
         @Getter private final double unwrapTolerance = 10;
         @Getter private final double unwrapExitMargin = 45;
         @Getter private final double shootOnMoveLatencySec = 0.03;
-        @Getter private final double maxOmegaForShotRotPerSec = 0.75;
 
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
@@ -173,9 +174,11 @@ public class Turret extends Mechanism {
         super(config);
         this.config = config;
 
-        if (isAttached()) {
-            setInitialPosition();
-        }
+        // Deliberately no encoder zeroing here. The TalonFX reads zero at motor power-on and keeps
+        // counting across robot-code restarts, so zeroing in the constructor only served to throw
+        // the position away on every code deploy. The turret zero is therefore "wherever the turret
+        // pointed when the motor powered on", which must be facing away from the intake. Use
+        // zeroTurretCommand() (operator B while disabled) if it was powered on somewhere else.
 
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -193,6 +196,7 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/StatorCurrent", getStatorCurrent(), "amps");
         Telemetry.log("Turret/SupplyCurrent", getSupplyCurrent(), "amps");
         Telemetry.log("Turret/Temp", getTemp(), "deg_C");
+        Telemetry.log("Turret/MotorConnected", isMotorConnected());
         Telemetry.log("Turret/CommandedDegrees", commandedDegrees, "deg");
         Telemetry.log("Turret/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
@@ -200,9 +204,23 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
     }
-    /** Sets the initial position. */
-    private void setInitialPosition() {
-        motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
+    /**
+     * Declares the turret's current physical position to be its zero (facing away from the intake).
+     * For use while disabled after a student has pointed the turret at its zero by hand, so a
+     * turret that powered on pointing the wrong way can be fixed without a power cycle.
+     *
+     * @return the zeroing command
+     */
+    public Command zeroTurretCommand() {
+        return new InstantCommand(
+                        () -> {
+                            if (isAttached()) {
+                                motor.setPosition(
+                                        degreesToRotations(() -> config.getInitPosition()));
+                            }
+                        })
+                .ignoringDisable(true)
+                .withName("Turret.zeroHere");
     }
     /** Applies the aim at target. */
     private void applyAimAtTarget() {
@@ -299,14 +317,40 @@ public class Turret extends Mechanism {
     }
 
     /**
-     * @return true when the turret is aiming, on target within tolerance, slewing slowly enough for
-     *     a stable shot, and not mid-unwrap. Use this to gate shooting while on the move.
+     * @return true when the turret is aiming, within tolerance of its commanded angle, and not
+     *     mid-unwrap. Tracking error is the criterion, not slew rate: while shooting on the move
+     *     the turret is legitimately moving, so a velocity clause would only block good shots.
+     *     Gates feeding into the flywheel.
      */
     public boolean isReadyToShoot() {
+        return isReadyToShoot(config.getTriggerTolerance());
+    }
+
+    /**
+     * Same check as {@link #isReadyToShoot()} against a caller-supplied tolerance. The feeder gate
+     * uses a wider tolerance to decide whether to <em>keep</em> feeding than to start, so normal
+     * tracking error mid-burst does not chop the feed on and off.
+     *
+     * <p>The {@code unwrapping} clause is not relaxed at any tolerance: during an unwrap the turret
+     * slews a full turn and fed fuel goes anywhere.
+     *
+     * @param toleranceDegrees allowed tracking error in degrees
+     * @return true when aiming, not mid-unwrap, and within {@code toleranceDegrees}
+     */
+    public boolean isReadyToShoot(double toleranceDegrees) {
         return systemState == SystemState.AIM_AT_TARGET
                 && !unwrapping
-                && Math.abs(getPositionDegrees() - commandedDegrees) <= config.getTriggerTolerance()
-                && Math.abs(mechOmegaRotPerSec) <= config.getMaxOmegaForShotRotPerSec();
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
+    }
+
+    /**
+     * Returns the current turret tracking error in degrees, for logging and for setting the gate
+     * tolerances from a log.
+     *
+     * @return commanded minus measured turret angle, in degrees
+     */
+    public double getTrackingErrorDegrees() {
+        return getPositionDegrees() - commandedDegrees;
     }
 
     /**

@@ -282,6 +282,9 @@ public class Robot extends SpectrumRobot {
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
 
+        // Held: feed regardless of the shot-readiness gates, for a bad sensor or a deliberate dump.
+        superStructure.setFeedOverride(operator.YButton);
+
         operator.LB.onTrue(FeedTargetFactory.feedLeft());
         operator.RB.onTrue(FeedTargetFactory.feedRight());
         operator.LB.or(operator.RB).onFalse(FeedTargetFactory.feedDefault());
@@ -303,6 +306,8 @@ public class Robot extends SpectrumRobot {
 
         operator.coastA.onTrue(
                 intakeExtension.coastModeCommand().andThen(turret.coastModeCommand()));
+        // Point the turret away from the intake by hand, then press B while disabled.
+        operator.zeroTurretB.onTrue(turret.zeroTurretCommand());
 
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
@@ -360,20 +365,37 @@ public class Robot extends SpectrumRobot {
     public void robotPeriodic() {
         try {
             Telemetry.time("Scheduler/robotPeriodic");
+
+            // Start every loop with an empty shot-solution cache so the first mechanism to ask
+            // computes it from this loop's pose.
+            ShotCalculator.getInstance().clearShootingParameters();
+
+            // Vision first: this loop's pose correction lands before any mechanism computes a
+            // shot. Vision is intentionally not registered with the scheduler.
+            Telemetry.time("Scheduler/Vision");
+            vision.periodic();
+            Telemetry.timeEnd("Scheduler/Vision");
+
+            // SuperStructure second: state decisions reach the mechanism periodics in this same
+            // loop rather than the next one. SuperStructure is not a Subsystem.
+            Telemetry.time("Scheduler/SuperStructure");
+            superStructure.periodic();
+            Telemetry.timeEnd("Scheduler/SuperStructure");
+
             /*
              * Runs the Scheduler. This is responsible for polling buttons, adding newly-scheduled
              * commands, running already-scheduled commands, removing finished or interrupted
              * commands, and running subsystem periodic() methods. This must be called from the
              * robot's periodic block in order for anything in the Command-based framework to work.
              */
+            Telemetry.time("Scheduler/CommandScheduler");
             CommandScheduler.getInstance().run();
+            Telemetry.timeEnd("Scheduler/CommandScheduler");
 
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
-            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
-            Telemetry.log(
-                    "Match Data/TimeLeftInShift",
-                    ShiftHelpers.getOfficialShiftInfo().remainingTime(),
-                    "seconds");
+            var shift = ShiftHelpers.getOfficialShiftInfo();
+            Telemetry.log("Match Data/InShift", shift.active());
+            Telemetry.log("Match Data/TimeLeftInShift", shift.remainingTime(), "seconds");
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
@@ -388,7 +410,6 @@ public class Robot extends SpectrumRobot {
 
             field2d.setRobotPose(swerve.getRobotPose());
 
-            ShotCalculator.getInstance().clearShootingParameters();
             Telemetry.timeEnd("Scheduler/robotPeriodic");
         } catch (Throwable t) {
             // intercept error and log it

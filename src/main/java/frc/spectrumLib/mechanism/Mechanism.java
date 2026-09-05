@@ -104,6 +104,32 @@ public abstract class Mechanism implements Subsystem {
     private final CachedDouble cachedSupplyCurrent;
     private final CachedDouble cachedTemp;
 
+    /**
+     * BatteryLogger channel name for this mechanism, built once to avoid per-loop concatenation.
+     */
+    private final String batteryKey;
+
+    // ── Status signal rates ────────────────────────────────────────────────────
+    //
+    // Every signal published here costs CANivore bandwidth on every mechanism motor AND every
+    // follower. Publishing all eight at 250 Hz put bus utilization at 66-81% in the 2026-09-04
+    // logs, which is where the stale-frame warnings and the intermittently unresponsive hood came
+    // from. Only the feedback used for control needs to be fast; everything else is read once per
+    // 20 ms robot loop for logging, so a faster frame is bandwidth spent on samples nobody reads.
+
+    /** Rate for position and velocity: the feedback used for control and latency compensation. */
+    private static final double CONTROL_SIGNAL_HZ = 250;
+
+    /**
+     * Rate for voltage, currents and duty cycle. These are logging and diagnostic signals consumed
+     * once per 20 ms loop, so the loop rate is all that is useful. Fast enough to keep catching a
+     * motor that reports 0 V while commanded.
+     */
+    private static final double DIAGNOSTIC_SIGNAL_HZ = 50;
+
+    /** Rate for device temperature, which changes over seconds. */
+    private static final double TEMPERATURE_SIGNAL_HZ = 4;
+
     // ── Constructors ───────────────────────────────────────────────────────────
 
     /**
@@ -115,20 +141,11 @@ public abstract class Mechanism implements Subsystem {
      */
     protected Mechanism(Config config) {
         this.config = config;
+        batteryKey = "Mechanisms/" + config.getName();
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
-            BaseStatusSignal.setUpdateFrequencyForAll(
-                    250,
-                    motor.getDutyCycle(),
-                    motor.getMotorVoltage(),
-                    motor.getTorqueCurrent(),
-                    motor.getStatorCurrent(),
-                    motor.getSupplyCurrent(),
-                    motor.getPosition(),
-                    motor.getVelocity(),
-                    motor.getDeviceTemp());
-            motor.optimizeBusUtilization();
+            configureStatusSignals(motor);
 
             followerMotors = new TalonFX[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
@@ -137,17 +154,7 @@ public abstract class Mechanism implements Subsystem {
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
-                BaseStatusSignal.setUpdateFrequencyForAll(
-                        250,
-                        followerMotors[i].getDutyCycle(),
-                        followerMotors[i].getMotorVoltage(),
-                        followerMotors[i].getTorqueCurrent(),
-                        followerMotors[i].getStatorCurrent(),
-                        followerMotors[i].getSupplyCurrent(),
-                        followerMotors[i].getPosition(),
-                        followerMotors[i].getVelocity(),
-                        followerMotors[i].getDeviceTemp());
-                followerMotors[i].optimizeBusUtilization();
+                configureStatusSignals(followerMotors[i]);
             }
         }
 
@@ -178,6 +185,27 @@ public abstract class Mechanism implements Subsystem {
     private static Config applyAttachedOverride(Config config, boolean attached) {
         config.attached = attached;
         return config;
+    }
+
+    /**
+     * Sets the status frame rates this mechanism relies on and disables everything else. Applied
+     * identically to the leader and to each follower, since a follower's frames cost the same
+     * bandwidth as the leader's.
+     *
+     * @param talon the motor to configure
+     */
+    private static void configureStatusSignals(TalonFX talon) {
+        BaseStatusSignal.setUpdateFrequencyForAll(
+                CONTROL_SIGNAL_HZ, talon.getPosition(), talon.getVelocity());
+        BaseStatusSignal.setUpdateFrequencyForAll(
+                DIAGNOSTIC_SIGNAL_HZ,
+                talon.getDutyCycle(),
+                talon.getMotorVoltage(),
+                talon.getTorqueCurrent(),
+                talon.getStatorCurrent(),
+                talon.getSupplyCurrent());
+        talon.getDeviceTemp().setUpdateFrequency(TEMPERATURE_SIGNAL_HZ);
+        talon.optimizeBusUtilization();
     }
 
     // ── Subsystem Overrides ────────────────────────────────────────────────────
@@ -218,6 +246,17 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Returns {@code true} when the leader motor is attached and its status frames are arriving
+     * over CAN. A mechanism that is commanded but reports 0 V with this false has dropped off the
+     * bus, which is what the hood did intermittently on the 2026-09-04 bench.
+     *
+     * @return {@code true} if the leader TalonFX is currently reachable
+     */
+    public boolean isMotorConnected() {
+        return isAttached() && motor.isConnected();
+    }
+
+    /**
      * Reports the combined supply current draw of the leader motor and all followers to the battery
      * logger. Does nothing if the mechanism is not attached.
      */
@@ -229,7 +268,7 @@ public abstract class Mechanism implements Subsystem {
                 followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
             }
             Robot.getBatteryLogger()
-                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+                    .reportCurrentUsage(batteryKey, motorCurrent + followersCurrent);
         }
     }
 
@@ -699,6 +738,18 @@ public abstract class Mechanism implements Subsystem {
      */
     public double getPositionDegrees() {
         return cachedDegrees.getAsDouble();
+    }
+
+    /**
+     * Reads the mechanism position in degrees directly from the motor, bypassing the per-loop
+     * cache. The cache is only invalidated inside {@code CommandScheduler.run()}, so callers that
+     * run before the scheduler (for example Vision in {@code Robot.robotPeriodic()}) would
+     * otherwise see last loop's value.
+     *
+     * @return motor position in degrees, or {@code 0} if not attached
+     */
+    public double getPositionDegreesUncached() {
+        return rotationsToDegrees(this::updatePositionRotations);
     }
 
     /**
