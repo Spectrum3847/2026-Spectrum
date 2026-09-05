@@ -1,0 +1,17 @@
+{
+  "port": 5801,
+  "robot": {
+    "teams": [8515, 3847],
+    "extraHosts": ["172.22.11.2"],
+    "user": "lvuser",
+    "logDirs": ["/U/logs", "/home/lvuser/logs"],
+    "sshTimeoutSecs": 6
+  },
+  "logsRepo": {
+    "path": "../../../2026-Robot-Logs",
+    "remote": "https://github.com/Spectrum3847/2026-Robot-Logs",
+    "logsSubdir": "logs",
+    "manifest": "manifest.json"
+  },
+  "robotProfile": "OM2026"
+}

@@ -1,0 +1,29 @@
+{
+  "name": "spectrum-robot-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local web app for the Spectrum 3847 2026 offseason robot: controls reference, log sync, power and CAN analysis.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite",
+    "build": "vite build",
+    "start": "npm run build && node server/index.js",
+    "serve": "node server/index.js",
+    "test": "node --test test/*.test.mjs",
+    "check": "node scripts/check-drift.mjs && node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.7",
+    "express": "^4.21.2",
+    "node-ssh": "^13.2.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "vite": "^6.0.7"
+  }
+}

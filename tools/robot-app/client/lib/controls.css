@@ -1,0 +1,80 @@
+/* Controls page: gamepad diagram beside the binding list. */
+
+.layer-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 18px 0 16px; }
+.layer-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--s1);
+    border: 1px solid var(--bd);
+}
+.layer-tab.active { background: var(--s3); border-color: var(--accent-dim); color: var(--tx); }
+.layer-tab.pit.active { border-color: var(--warn); }
+.layer-tab.sim.active { border-color: var(--tx-faint); }
+.layer-count {
+    font-size: 0.7rem;
+    background: var(--bg);
+    border-radius: 9px;
+    padding: 1px 6px;
+    color: var(--tx-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.controls-split { display: grid; grid-template-columns: minmax(340px, 520px) 1fr; gap: 22px; align-items: start; }
+@media (max-width: 900px) { .controls-split { grid-template-columns: 1fr; } }
+
+.diagram-box {
+    background: var(--s1);
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    padding: 12px 14px 14px;
+    position: sticky;
+    top: 68px;
+}
+svg.pad { width: 100%; height: auto; display: block; }
+.pad-body { fill: var(--s2); stroke: var(--bd); stroke-width: 2; }
+
+.ctl { stroke-width: 1.5; transition: fill 0.12s, stroke 0.12s; cursor: default; outline: none; }
+.ctl-unbound { fill: var(--s3); stroke: #333c4d; opacity: 0.5; }
+.ctl-other { fill: var(--s3); stroke: var(--bd); }
+.ctl-bound { fill: var(--accent-dim); stroke: var(--accent); }
+.ctl-modifier { fill: #7a5a12; stroke: var(--warn); }
+.ctl.hover { fill: var(--accent); stroke: #cfe0ff; stroke-width: 2.5; }
+.ctl-label { fill: var(--tx); font: 600 12px var(--sans); opacity: 0.85; }
+
+.when { text-align: center; color: var(--tx-dim); font-size: 0.82rem; margin-top: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 12px; font-size: 0.72rem; color: var(--tx-faint); }
+.legend span { display: flex; align-items: center; gap: 5px; }
+.sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; border: 1px solid; }
+.sw.bound { background: var(--accent-dim); border-color: var(--accent); }
+.sw.modifier { background: #7a5a12; border-color: var(--warn); }
+.sw.other { background: var(--s3); border-color: var(--bd); }
+.sw.unbound { background: var(--s3); border-color: #333c4d; opacity: 0.5; }
+
+.binding-list { display: flex; flex-direction: column; gap: 8px; }
+.binding {
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    gap: 12px;
+    background: var(--s1);
+    border: 1px solid var(--bd);
+    border-left: 3px solid var(--bd);
+    border-radius: 9px;
+    padding: 11px 13px;
+    transition: border-color 0.12s, background 0.12s;
+}
+.binding.hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--s2); }
+.binding-key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font: 700 1rem var(--mono);
+    color: var(--tx);
+}
+.binding-edge { font: 500 0.66rem var(--sans); color: var(--tx-faint); text-transform: uppercase; letter-spacing: 0.5px; }
+.binding-action { font-weight: 600; }
+.binding-detail { color: var(--tx-dim); font-size: 0.82rem; margin-top: 3px; }
+.binding-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
+.binding-meta code { background: var(--s3); padding: 1px 6px; border-radius: 4px; font-size: 0.72rem; color: var(--tx-dim); }
+.binding-src { font: 0.7rem var(--mono); color: var(--tx-faint); margin-left: auto; }
