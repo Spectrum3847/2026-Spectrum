@@ -51,6 +51,20 @@
       "followers": [], "logsMotorConnected": true, "source": "subsystems/hood/Hood.java:37-77",
       "note": "Peak voltage is capped at 3 V. On 2026-09-04 this motor reported exactly 0 V and 0 A in 9 of 11 launch windows while a position was commanded -- the signature of control frames not arriving." }
   ],
+  "turret": {
+    "$comment": "Travel limits and tolerances from TurretConfig. Not logged, so the turret page reads them here.",
+    "reverseDeg": -180,
+    "forwardDeg": 162,
+    "toleranceDeg": 2,
+    "unwrapToleranceDeg": 10,
+    "unwrapExitMarginDeg": 45,
+    "peakVolts": 6,
+    "sensorToMechanismRatio": 39.78,
+    "zeroFaces": "away from the intake",
+    "zeroErrorKey": "Vision/TurretLL/HeadingErrorDeg",
+    "zeroErrorNote": "This key IS the turret zero error: the turret camera's heading minus the gyro's. A steady offset means a bad zero; an offset that walks means the mechanism moved relative to the encoder.",
+    "source": "src/main/java/frc/robot/subsystems/turret/Turret.java:30-65"
+  },
   "swerve": {
     "logKeyRoot": "Swerve/Currents",
     "drive": { "canIds": [1, 11, 21, 31], "bus": "canivore", "supplyAmps": 40, "statorAmps": 80,
