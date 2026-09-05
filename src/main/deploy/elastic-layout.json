@@ -42,7 +42,7 @@
             "x": 0.0,
             "y": 128.0,
             "width": 896.0,
-            "height": 640.0,
+            "height": 512.0,
             "type": "Field",
             "properties": {
               "topic": "/SmartDashboard/Field2d",
@@ -61,26 +61,13 @@
           {
             "title": "Auto Chooser",
             "x": 0.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 896.0,
             "height": 128.0,
             "type": "Split Button Chooser",
             "properties": {
               "topic": "/SmartDashboard/Auto Chooser",
               "period": 0.06
-            }
-          },
-          {
-            "title": "Shot Model",
-            "x": 0.0,
-            "y": 896.0,
-            "width": 896.0,
-            "height": 128.0,
-            "type": "Large Text Display",
-            "properties": {
-              "topic": "/Robot/ShotCalc/HubPolyModel",
-              "period": 0.06,
-              "data_type": "string"
             }
           },
           {
@@ -123,10 +110,35 @@
             }
           },
           {
-            "title": "Hood Model Offset (deg)",
-            "x": 896.0,
-            "y": 768.0,
-            "width": 384.0,
+            "title": "Alerts",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
+            "type": "Alerts",
+            "properties": {
+              "topic": "/SmartDashboard/Alerts",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Shot Model",
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 512.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/Robot/ShotCalc/HubPolyModel",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Hood Model (deg)",
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 256.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -138,9 +150,9 @@
           },
           {
             "title": "Hood Trim (deg)",
-            "x": 896.0,
-            "y": 896.0,
-            "width": 384.0,
+            "x": 1536.0,
+            "y": 384.0,
+            "width": 256.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -148,18 +160,6 @@
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
-            }
-          },
-          {
-            "title": "Alerts",
-            "x": 1280.0,
-            "y": 0.0,
-            "width": 512.0,
-            "height": 512.0,
-            "type": "Alerts",
-            "properties": {
-              "topic": "/SmartDashboard/Alerts",
-              "period": 0.06
             }
           },
           {
@@ -229,74 +229,6 @@
               "true_icon": "None",
               "false_icon": "None"
             }
-          },
-          {
-            "title": "Turret Cam",
-            "x": 1280.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/Robot/Vision/TurretLL/ConnectionStatus",
-              "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4283215696,
-              "false_color": 4294198070,
-              "true_icon": "None",
-              "false_icon": "None"
-            }
-          },
-          {
-            "title": "Left Cam",
-            "x": 1536.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/Robot/Vision/BackLeftLL/ConnectionStatus",
-              "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4283215696,
-              "false_color": 4294198070,
-              "true_icon": "None",
-              "false_icon": "None"
-            }
-          },
-          {
-            "title": "Right Cam",
-            "x": 1280.0,
-            "y": 896.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/Robot/Vision/BackRightLL/ConnectionStatus",
-              "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4283215696,
-              "false_color": 4294198070,
-              "true_icon": "None",
-              "false_icon": "None"
-            }
-          },
-          {
-            "title": "Initialized",
-            "x": 1536.0,
-            "y": 896.0,
-            "width": 256.0,
-            "height": 128.0,
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/Robot/Initialized",
-              "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4283215696,
-              "false_color": 4294198070,
-              "true_icon": "None",
-              "false_icon": "None"
-            }
           }
         ]
       }
@@ -311,7 +243,7 @@
             "x": 0.0,
             "y": 0.0,
             "width": 1024.0,
-            "height": 768.0,
+            "height": 512.0,
             "type": "Field",
             "properties": {
               "topic": "/SmartDashboard/Field2d",
@@ -330,7 +262,7 @@
           {
             "title": "Shift Time",
             "x": 0.0,
-            "y": 768.0,
+            "y": 512.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Match Time",
@@ -344,26 +276,27 @@
             }
           },
           {
-            "title": "In Shift",
+            "title": "Battery",
             "x": 512.0,
-            "y": 768.0,
+            "y": 512.0,
             "width": 512.0,
             "height": 128.0,
-            "type": "Boolean Box",
+            "type": "Voltage View",
             "properties": {
-              "topic": "/Robot/Match Data/InShift",
+              "topic": "/Robot/BatteryLogger/BatteryVoltage",
               "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4283215696,
-              "false_color": 4294198070,
-              "true_icon": "None",
-              "false_icon": "None"
+              "data_type": "double",
+              "min_value": 6.0,
+              "max_value": 13.0,
+              "divisions": 8,
+              "inverted": false,
+              "orientation": "horizontal"
             }
           },
           {
             "title": "Super State",
             "x": 0.0,
-            "y": 896.0,
+            "y": 640.0,
             "width": 1024.0,
             "height": 128.0,
             "type": "Large Text Display",
@@ -485,29 +418,11 @@
             "x": 1024.0,
             "y": 512.0,
             "width": 768.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
               "period": 0.06
-            }
-          },
-          {
-            "title": "Battery",
-            "x": 1024.0,
-            "y": 896.0,
-            "width": 768.0,
-            "height": 128.0,
-            "type": "Voltage View",
-            "properties": {
-              "topic": "/Robot/BatteryLogger/BatteryVoltage",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 6.0,
-              "max_value": 13.0,
-              "divisions": 8,
-              "inverted": false,
-              "orientation": "horizontal"
             }
           }
         ]
@@ -541,7 +456,7 @@
             "x": 0.0,
             "y": 384.0,
             "width": 896.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Turret/PositionDegrees",
@@ -557,7 +472,7 @@
           {
             "title": "Vision Age (s)",
             "x": 0.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Text Display",
@@ -571,40 +486,12 @@
           {
             "title": "Turret Cam Age (s)",
             "x": 384.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/TurretLL/EstimateAgeSeconds",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Commanded (deg)",
-            "x": 0.0,
-            "y": 896.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Turret/CommandedDegrees",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Position Error (deg)",
-            "x": 384.0,
-            "y": 896.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Turret/PositionError",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
@@ -641,63 +528,28 @@
             }
           },
           {
-            "title": "Unwrapping",
+            "title": "Commanded (deg)",
             "x": 896.0,
             "y": 512.0,
             "width": 384.0,
             "height": 128.0,
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/Robot/Turret/Unwrapping",
-              "period": 0.06,
-              "data_type": "boolean",
-              "true_color": 4294951936,
-              "false_color": 4283215696,
-              "true_icon": "None",
-              "false_icon": "None"
-            }
-          },
-          {
-            "title": "Stator Current (A)",
-            "x": 896.0,
-            "y": 640.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/Turret/StatorCurrent",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": -50.0,
-              "max_value": 50.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
-            "title": "Voltage",
-            "x": 896.0,
-            "y": 768.0,
-            "width": 384.0,
-            "height": 128.0,
             "type": "Text Display",
             "properties": {
-              "topic": "/Robot/Turret/Voltage",
+              "topic": "/Robot/Turret/CommandedDegrees",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
             }
           },
           {
-            "title": "Temp (C)",
+            "title": "Position Error (deg)",
             "x": 896.0,
-            "y": 896.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
-              "topic": "/Robot/Turret/Temp",
+              "topic": "/Robot/Turret/PositionError",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
@@ -753,63 +605,35 @@
             }
           },
           {
-            "title": "Travel Total (deg)",
+            "title": "Trim Efficiency (1.0 = real slip)",
             "x": 1280.0,
             "y": 512.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
-              "topic": "/Robot/Turret/TravelTotalDeg",
+              "topic": "/Robot/Vision/TurretZero/TrimEfficiency",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
             }
           },
           {
-            "title": "Zero Error Filtered (deg)",
+            "title": "Stator Current (A)",
             "x": 1280.0,
             "y": 640.0,
             "width": 512.0,
             "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Vision/TurretZero/FilteredErrorDeg",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Supply Current (A)",
-            "x": 1280.0,
-            "y": 768.0,
-            "width": 512.0,
-            "height": 128.0,
             "type": "Number Bar",
             "properties": {
-              "topic": "/Robot/Turret/SupplyCurrent",
+              "topic": "/Robot/Turret/StatorCurrent",
               "period": 0.06,
               "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 40.0,
+              "min_value": -50.0,
+              "max_value": 50.0,
               "divisions": 5,
               "inverted": false,
               "orientation": "horizontal"
-            }
-          },
-          {
-            "title": "Commanded (rot/s)",
-            "x": 1280.0,
-            "y": 896.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Turret/CommandedRotPerSec",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
             }
           }
         ]
@@ -843,7 +667,7 @@
             "x": 0.0,
             "y": 384.0,
             "width": 896.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Hood/PositionDegrees",
@@ -859,7 +683,7 @@
           {
             "title": "Feeder RPM",
             "x": 0.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Text Display",
@@ -873,40 +697,12 @@
           {
             "title": "Rotor RPM",
             "x": 384.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Rotor/RPM",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Tower RPM",
-            "x": 0.0,
-            "y": 896.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/LauncherTower/RPM",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Launcher Commanded RPM",
-            "x": 384.0,
-            "y": 896.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Launcher/CommandedRPM",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
@@ -983,37 +779,9 @@
             }
           },
           {
-            "title": "Exit Speed (m/s)",
-            "x": 896.0,
-            "y": 640.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/ShotCalc/ExitSpeedMs",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Yaw Offset (deg)",
-            "x": 896.0,
-            "y": 768.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/ShotCalc/YawOffsetDeg",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
             "title": "Hood Trim (deg)",
             "x": 896.0,
-            "y": 896.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Text Display",
@@ -1076,23 +844,9 @@
             }
           },
           {
-            "title": "Vision Age (s)",
-            "x": 1280.0,
-            "y": 512.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/SuperStructure/ShotReady/SecondsSinceVision",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
             "title": "Shot Model",
             "x": 1280.0,
-            "y": 640.0,
+            "y": 512.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Large Text Display",
@@ -1103,28 +857,14 @@
             }
           },
           {
-            "title": "Hood Model Offset (deg)",
+            "title": "Hood Model (deg)",
             "x": 1280.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HoodModelOffsetDegrees",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Turret Trim (deg)",
-            "x": 1280.0,
-            "y": 896.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
@@ -1161,7 +901,7 @@
             "x": 0.0,
             "y": 384.0,
             "width": 896.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current",
@@ -1177,7 +917,7 @@
           {
             "title": "CANivore Bus (%)",
             "x": 0.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Number Bar",
@@ -1193,45 +933,9 @@
             }
           },
           {
-            "title": "Swerve Drive Stator (A)",
-            "x": 384.0,
-            "y": 768.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/Swerve/Currents/DriveStatorCurrent",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 400.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
-            "title": "Swerve Steer Stator (A)",
-            "x": 0.0,
-            "y": 896.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/Swerve/Currents/SteerStatorCurrent",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 200.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
             "title": "Energy Used (Wh)",
             "x": 384.0,
-            "y": 896.0,
+            "y": 640.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
@@ -1333,27 +1037,9 @@
             }
           },
           {
-            "title": "Hood (A)",
-            "x": 896.0,
-            "y": 640.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/BatteryLogger/Current/Mechanisms/Hood",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 60.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
             "title": "Swerve Drive (A)",
             "x": 896.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Number Bar",
@@ -1363,24 +1049,6 @@
               "data_type": "double",
               "min_value": 0.0,
               "max_value": 200.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
-            "title": "Swerve Steer (A)",
-            "x": 896.0,
-            "y": 896.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/BatteryLogger/Current/Mechanisms/SwerveSteer",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 60.0,
               "divisions": 5,
               "inverted": false,
               "orientation": "horizontal"
@@ -1477,54 +1145,18 @@
             }
           },
           {
-            "title": "Extension Left (A)",
+            "title": "Swerve Steer (A)",
             "x": 1280.0,
             "y": 640.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Number Bar",
             "properties": {
-              "topic": "/Robot/BatteryLogger/Current/Mechanisms/IntakeExtensionLeft",
+              "topic": "/Robot/BatteryLogger/Current/Mechanisms/SwerveSteer",
               "period": 0.06,
               "data_type": "double",
               "min_value": 0.0,
               "max_value": 60.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
-            "title": "Extension Right (A)",
-            "x": 1280.0,
-            "y": 768.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/BatteryLogger/Current/Mechanisms/IntakeExtensionRight",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 60.0,
-              "divisions": 5,
-              "inverted": false,
-              "orientation": "horizontal"
-            }
-          },
-          {
-            "title": "roboRIO (A)",
-            "x": 1280.0,
-            "y": 896.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Number Bar",
-            "properties": {
-              "topic": "/Robot/BatteryLogger/Current/Controls/roboRIO",
-              "period": 0.06,
-              "data_type": "double",
-              "min_value": 0.0,
-              "max_value": 10.0,
               "divisions": 5,
               "inverted": false,
               "orientation": "horizontal"
@@ -1561,7 +1193,7 @@
             "x": 0.0,
             "y": 384.0,
             "width": 896.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/DogLog/QueuedLogs",
@@ -1575,23 +1207,112 @@
             }
           },
           {
-            "title": "Vision Age (s)",
+            "title": "CommandScheduler (s)",
             "x": 0.0,
-            "y": 768.0,
+            "y": 640.0,
             "width": 384.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
-              "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
+              "topic": "/Robot/Scheduler/CommandScheduler",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
             }
           },
           {
-            "title": "CANivore Bus (%)",
+            "title": "Vision Periodic (s)",
             "x": 384.0,
-            "y": 768.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/Scheduler/Vision",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Alerts",
+            "x": 896.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Alerts",
+            "properties": {
+              "topic": "/SmartDashboard/Alerts",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Turret Cam",
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Vision/TurretLL/ConnectionStatus",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Left Cam",
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Vision/BackLeftLL/ConnectionStatus",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Right Cam",
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Vision/BackRightLL/ConnectionStatus",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Scheduler",
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
+            "type": "Scheduler",
+            "properties": {
+              "topic": "/SmartDashboard/Scheduler",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "CANivore Bus (%)",
+            "x": 1280.0,
+            "y": 256.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Number Bar",
@@ -1607,10 +1328,24 @@
             }
           },
           {
+            "title": "Vision Age (s)",
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 512.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
             "title": "Turret Cam Age (s)",
-            "x": 0.0,
-            "y": 896.0,
-            "width": 384.0,
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -1622,93 +1357,13 @@
           },
           {
             "title": "Heading Correction (deg)",
-            "x": 384.0,
-            "y": 896.0,
+            "x": 1280.0,
+            "y": 640.0,
             "width": 512.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/HeadingCorrection/ErrorDeg",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Alerts",
-            "x": 896.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 768.0,
-            "type": "Alerts",
-            "properties": {
-              "topic": "/SmartDashboard/Alerts",
-              "period": 0.06
-            }
-          },
-          {
-            "title": "CommandScheduler (s)",
-            "x": 896.0,
-            "y": 768.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Scheduler/CommandScheduler",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Vision Periodic (s)",
-            "x": 896.0,
-            "y": 896.0,
-            "width": 384.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Scheduler/Vision",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Scheduler",
-            "x": 1280.0,
-            "y": 0.0,
-            "width": 512.0,
-            "height": 768.0,
-            "type": "Scheduler",
-            "properties": {
-              "topic": "/SmartDashboard/Scheduler",
-              "period": 0.06
-            }
-          },
-          {
-            "title": "Left Cam Age (s)",
-            "x": 1280.0,
-            "y": 768.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Vision/BackLeftLL/EstimateAgeSeconds",
-              "period": 0.06,
-              "data_type": "double",
-              "show_submit_button": false
-            }
-          },
-          {
-            "title": "Right Cam Age (s)",
-            "x": 1280.0,
-            "y": 896.0,
-            "width": 512.0,
-            "height": 128.0,
-            "type": "Text Display",
-            "properties": {
-              "topic": "/Robot/Vision/BackRightLL/EstimateAgeSeconds",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
