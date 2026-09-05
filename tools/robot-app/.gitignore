@@ -1,3 +1,9 @@
 node_modules/
 dist/
 config.local.json
+
+# The repo root ignores `logs/` for robot log files, which also swallowed this app's Logs PAGE.
+# It was committed nowhere, so a fresh clone built every page except that one and its nav tab
+# 404'd. Re-include it explicitly. scripts/check-drift.mjs fails the build if any page goes
+# untracked again.
+!client/pages/logs/

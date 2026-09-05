@@ -199,7 +199,14 @@ test/            node:test coverage of the analysis maths
 
 ## When a page shows the wrong content
 
-If a nav tab lands on the home page, `dist/` is out of date — the page you clicked was built into
+The Logs page once did this for a reason worth knowing: the repo root's `.gitignore` has `logs/`
+for robot log files, and it silently swallowed `client/pages/logs/`. The page worked for anyone
+who had it on disk and 404'd for everyone who cloned. `tools/robot-app/.gitignore` re-includes it,
+and `scripts/check-drift.mjs` now fails if any page directory is untracked, so it cannot recur
+quietly. If you add a page and the drift check complains, run the `git check-ignore -v` command it
+prints — a root ignore rule is probably eating it.
+
+Otherwise, if a nav tab lands on the home page, `dist/` is out of date — the page you clicked was built into
 `dist/` at some earlier point and no longer matches `client/`. The server now says so instead of
 quietly serving the home page: the startup banner prints `client STALE` or `client INCOMPLETE`,
 and the page itself returns a message naming what to run.

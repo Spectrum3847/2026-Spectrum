@@ -16,6 +16,7 @@
  * Exits non-zero on drift, printing what to change on each side.
  */
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -231,10 +232,51 @@ function checkElasticLayout() {
     }
 }
 
+// ---------------------------------------------------------------- pages are tracked
+
+/**
+ * Every page directory must actually be in git.
+ *
+ * The repo root ignores `logs/` for robot log files, which silently swallowed this app's Logs
+ * page. It worked for everyone who had it on disk and 404'd for everyone who cloned. Nothing
+ * pointed at the cause, so check it rather than trusting it.
+ */
+function checkPagesTracked() {
+    const pagesDir = path.join(APP, "client", "pages");
+    if (!fs.existsSync(pagesDir)) return;
+
+    let tracked;
+    try {
+        tracked = new Set(
+            execFileSync("git", ["ls-files", "--", "tools/robot-app/client/pages"], { cwd: REPO, encoding: "utf8" })
+                .split("\n")
+                .filter(Boolean)
+        );
+    } catch {
+        notes.push("Could not run git ls-files, so page tracking is unchecked.");
+        return;
+    }
+
+    for (const entry of fs.readdirSync(pagesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const files = fs.readdirSync(path.join(pagesDir, entry.name));
+        for (const f of files) {
+            const rel = `tools/robot-app/client/pages/${entry.name}/${f}`;
+            if (!tracked.has(rel)) {
+                problems.push(
+                    `${rel} is not tracked by git. A fresh clone will not have it, Vite will not build that page, ` +
+                        `and its nav tab will 404. Check \`git check-ignore -v ${rel}\` -- a .gitignore rule is probably eating it.`
+                );
+            }
+        }
+    }
+}
+
 // ---------------------------------------------------------------- run
 
 checkControls();
 checkLimits();
+checkPagesTracked();
 checkElasticLayout();
 
 if (notes.length) {
