@@ -25,12 +25,14 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.hardware.TalonFXFactory;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.CachedDouble;
 import frc.spectrumLib.util.CanDeviceId;
 import frc.spectrumLib.util.Conversions;
@@ -87,6 +89,18 @@ public abstract class Mechanism implements Subsystem {
 
     /** Alert displayed when an unexpected current reading is detected during diagnostics. */
     Alert currentAlert = new Alert("", AlertType.kWarning);
+
+    /** One alert per follower, raised when it stops pulling its share of the load. */
+    private Alert[] followerAlerts = new Alert[0];
+
+    /**
+     * Seconds each follower has been silent while its leader was loaded. Any sign of life zeroes
+     * it.
+     */
+    private double[] followerMismatchSeconds = new double[0];
+
+    /** FPGA time of the previous follower check, for integrating the mismatch. */
+    private double followerCheckLastSeconds = 0;
 
     /** The last closed-loop position setpoint (in rotations) sent to the motor. */
     private double target = 0;
@@ -155,6 +169,21 @@ public abstract class Mechanism implements Subsystem {
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
                 configureStatusSignals(followerMotors[i]);
+            }
+
+            followerAlerts = new Alert[config.followerConfigs.length];
+            followerMismatchSeconds = new double[config.followerConfigs.length];
+            for (int i = 0; i < config.followerConfigs.length; i++) {
+                FollowerConfig f = config.followerConfigs[i];
+                followerAlerts[i] =
+                        new Alert(
+                                f.getName()
+                                        + " (CAN "
+                                        + f.getId().getDeviceNumber()
+                                        + ") is not drawing current while "
+                                        + config.getName()
+                                        + " is loaded - check its power leads",
+                                AlertType.kError);
             }
         }
 
@@ -264,12 +293,84 @@ public abstract class Mechanism implements Subsystem {
         if (isAttached()) {
             double motorCurrent = motor.getSupplyCurrent().getValueAsDouble();
             double followersCurrent = 0;
-            for (TalonFX follower : followerMotors) {
-                followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
+            for (int i = 0; i < followerMotors.length; i++) {
+                double amps = followerMotors[i].getSupplyCurrent().getValueAsDouble();
+                followersCurrent += amps;
+                checkFollowerAlive(i, amps, motorCurrent);
             }
             Robot.getBatteryLogger()
                     .reportCurrentUsage(batteryKey, motorCurrent + followersCurrent);
         }
+    }
+
+    /** Leader supply current above which a healthy follower must be pulling its share. */
+    private static final double FOLLOWER_CHECK_LEADER_AMPS = 8.0;
+
+    /** Follower supply current at or below which it is doing no work at all. */
+    private static final double FOLLOWER_DEAD_AMPS = 0.5;
+
+    /**
+     * Seconds of accumulated mismatch before it is called out.
+     *
+     * <p>Accumulated rather than continuous, because nothing here stays loaded for long: a launch
+     * burst runs one to three seconds, and the longest unbroken stretch of the launcher tower's
+     * leader above the threshold in either 2026-09-05 log was 2.78 s. A rule wanting an
+     * uninterrupted fault window would have watched that tower run all day on one motor and said
+     * nothing. Short bursts add up instead.
+     *
+     * <p>Replayed against that day's logs, 1.5 s trips the dead tower follower in both logs while
+     * the two healthy followers reach 0.00 s and 0.50 s -- three times the margin.
+     */
+    private static final double FOLLOWER_DEAD_SECONDS = 1.5;
+
+    /** Ceiling on one loop's contribution, so a disabled stretch cannot bank a fault. */
+    private static final double FOLLOWER_MAX_LOOP_SECONDS = 0.5;
+
+    /**
+     * Raises an alert when a follower stops pulling while its leader is clearly working.
+     *
+     * <p>A permanent follower is invisible when it dies. It shares a gearbox with its leader, so
+     * the mechanism keeps moving on one motor at half the torque and nothing on a dashboard looks
+     * wrong. On 2026-09-05 the launcher tower ran the whole day on one motor with its second one's
+     * power lead off; it took reading the difference between {@code BatteryLogger/Current/
+     * Mechanisms/*} (leader plus followers) and {@code LauncherTower/SupplyCurrent} (leader only)
+     * across three logs to see it, because that difference was the only place the fault existed.
+     *
+     * <p>Now it says so itself. Each follower's draw is published on its own key, and a follower
+     * that draws nothing while its leader is loaded raises a Driver Station error.
+     *
+     * <p>Note this only catches a dead <em>power</em> path. A follower off the CAN bus entirely
+     * never updates its signal, so it reads a constant zero and trips this the same way -- which is
+     * the right outcome, even if the message names the wrong wire.
+     *
+     * @param index which follower, indexing {@code config.followerConfigs}
+     * @param followerAmps that follower's supply current this loop
+     * @param leaderAmps the leader's supply current this loop
+     */
+    private void checkFollowerAlive(int index, double followerAmps, double leaderAmps) {
+        if (index >= followerAlerts.length || followerAlerts[index] == null) {
+            return;
+        }
+        Telemetry.log(
+                "Followers/" + config.followerConfigs[index].getName() + "/SupplyCurrent",
+                followerAmps,
+                "amps");
+
+        double now = Timer.getFPGATimestamp();
+        double dt =
+                Math.min(Math.max(now - followerCheckLastSeconds, 0), FOLLOWER_MAX_LOOP_SECONDS);
+        if (index == followerMotors.length - 1) {
+            followerCheckLastSeconds = now;
+        }
+
+        if (followerAmps > FOLLOWER_DEAD_AMPS) {
+            // Any draw at all means the power path is intact; forget everything before it.
+            followerMismatchSeconds[index] = 0;
+        } else if (leaderAmps > FOLLOWER_CHECK_LEADER_AMPS) {
+            followerMismatchSeconds[index] += dt;
+        }
+
+        followerAlerts[index].set(followerMismatchSeconds[index] >= FOLLOWER_DEAD_SECONDS);
     }
 
     /**
