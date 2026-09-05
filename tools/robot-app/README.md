@@ -29,6 +29,7 @@ npm run dev          # Vite on 5173, API proxied to the Express server on 5801
 | --- | --- |
 | **Pilot** / **Operator** | Button maps with a live controller diagram, one layer per modifier chord, including the disabled-mode pit controls that are otherwise only findable by reading `Robot.java`. |
 | **Logs** | Finds the robot, lists `.wpilog` files on it, pulls them into the team logs repo, and indexes headline numbers into a committed manifest. |
+| **Turret** | Where it pointed on a scrubbable dial, whether it reached its command, and whether it slipped — cross-checked against the turret camera. |
 | **Power** | Per-motor current against its configured limit, how often each motor is pinned there, battery sag and pack internal resistance, energy per mechanism, and a main-breaker thermal simulation. |
 | **CAN Bus** | Bus utilization, error counters heading for bus-off, motors that stopped answering, and the device inventory. |
 | **Swerve Align** | Pin the modules, read the CANcoders live over NT4, and write the offsets into the robot config file. |
@@ -68,6 +69,52 @@ lists them all at the bottom; the ones that bite hardest:
 - **`Scheduler/*` is in seconds**, not milliseconds.
 - **Brownout is not logged** and the threshold is set to 4.6 V, well under the 6.8 V default, so
   the RIO holds on far longer than stock. Sag has to be read off the voltage trace.
+
+## Turret slip
+
+The turret has two independent views of where it points, and that is the whole basis of the page:
+
+| | |
+| --- | --- |
+| `Turret/PositionDegrees` | where the encoder thinks it is |
+| `Vision/TurretLL/HeadingErrorDeg` | how far the turret camera disagrees with the gyro |
+
+The second key **is** the turret zero error. A steady offset means the zero is wrong — re-zero and
+move on. An offset that *walks or steps* means the mechanism moved relative to its encoder, which
+is what slipping is, and re-zeroing will not save you.
+
+Two slips look nothing alike and the page keeps them apart:
+
+- **Encoder loses counts, mechanism did not move.** Position jumps, the controller sees a sudden
+  error and drives it out. The **clawed back** column measures that recovery. The camera never
+  notices, because nothing actually moved.
+- **Mechanism moves, encoder did not.** Position is unchanged, so the controller sees nothing
+  wrong and does nothing. Only the camera notices. The **left wrong** column is this, and the
+  robot cannot fix it — it does not know.
+
+**Limelight corrections** are the third column of the story. Vision never corrects the turret's
+zero; the controller only trusts the encoder. What vision corrects is the robot *pose*, and the
+commanded turret angle is computed from that pose, so every accepted estimate nudges where the
+turret is told to point. The page measures that nudge in turret degrees, per camera, plus the
+gross-heading safety net and any manual LB+Select re-seed.
+
+The sting: the turret camera's transform is built from the turret angle, so a slipped turret feeds
+it a wrong transform, its estimates get rejected, and you lose the camera that would have revealed
+the slip. The page reports how long the turret camera spent distrusted.
+
+Unwrap windows are excluded from every check. A full-turn slew is legitimate — the handoff doc
+records one at t=101s going -206° to +153° mid-shot — and would otherwise be the largest "slip" in
+every log.
+
+**Testing.** There is no turret log to test against yet (the April logs are from the competition
+robot, which had no turret), so `test/helpers/turret-fixture.mjs` synthesises one with a
+mechanical slip, an encoder jump and an unwrap injected at known times and sizes, and
+`test/turret.test.mjs` asserts each comes back out correctly classified. A slip detector that
+silently never fires is worse than no detector.
+
+**New checks appear automatically.** Any `Turret/*` key the page has no bespoke view for is listed
+under "Other turret channels", so checks added to the robot code show up without anyone editing
+this app first.
 
 ## Swerve alignment
 

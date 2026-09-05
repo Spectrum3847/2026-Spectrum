@@ -7,6 +7,7 @@ const CARDS = [
     { href: "/pages/controls-pilot/", title: "Pilot controls", body: "Driver button map: the LT/RT launch chords, LB reorients, and the disabled-mode pit controls that live nowhere else." },
     { href: "/pages/controls-operator/", title: "Operator controls", body: "Hood and turret offset nudges, feed targeting, the feed override, and the turret zero button." },
     { href: "/pages/logs/", title: "Logs", body: "Find the robot, pull .wpilog files off it, and index them into the team logs repo." },
+    { href: "/pages/turret/", title: "Turret", body: "Where it pointed, whether it reached its command, and whether it slipped \u2014 cross-checked against the turret camera." },
     { href: "/pages/power/", title: "Power", body: "Per-motor current against its configured limit, battery sag, energy per subsystem, and breaker trip simulation." },
     { href: "/pages/can/", title: "CAN Bus", body: "Bus utilization, error counters heading for bus-off, and motors that stopped answering mid-match." },
     { href: "/pages/swerve-align/", title: "Swerve Align", body: "Pin the modules, read the CANcoders over NetworkTables, and write the offsets straight into the robot config." },

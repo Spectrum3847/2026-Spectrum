@@ -5,6 +5,7 @@ const PAGES = [
     { href: "/pages/controls-pilot/", label: "Pilot" },
     { href: "/pages/controls-operator/", label: "Operator" },
     { href: "/pages/logs/", label: "Logs" },
+    { href: "/pages/turret/", label: "Turret" },
     { href: "/pages/power/", label: "Power" },
     { href: "/pages/can/", label: "CAN Bus" },
     { href: "/pages/swerve-align/", label: "Swerve Align" },

@@ -53,9 +53,11 @@ export function logPicker({ onLoad, current }) {
         }
     });
 
+    let lastList = [];
     (async () => {
         try {
             const r = await api("/api/logs");
+            lastList = r.logs;
             const wanted = current || new URLSearchParams(location.search).get("log");
             if (!r.logs.length) {
                 select.replaceChildren(el("option", { value: "" }, "no synced logs — sync some on the Logs page"));
@@ -66,10 +68,23 @@ export function logPicker({ onLoad, current }) {
                 el("option", { value: "" }, "choose a log…"),
                 ...r.logs.map((l) => el("option", { value: l.name, selected: l.name === wanted }, `${l.name}  (${fmtBytes(l.bytes)})`))
             );
-            if (wanted && r.logs.some((l) => l.name === wanted)) await loadByName(wanted);
-            else status.textContent = "";
         } catch (e) {
             select.replaceChildren(el("option", { value: "" }, `server error: ${e.message}`));
+            return;
+        }
+
+        // Loading and rendering is deliberately outside the catch above. A page that throws while
+        // rendering is not a server error, and reporting it as one in the log dropdown sends
+        // whoever is debugging it looking in the wrong place.
+        try {
+            const wanted = current || new URLSearchParams(location.search).get("log");
+            if (wanted && lastList.some((l) => l.name === wanted)) await loadByName(wanted);
+            else status.textContent = "";
+        } catch (e) {
+            status.textContent = "";
+            box.append(el("div", { class: "notice bad", style: "flex-basis:100%" },
+                el("strong", {}, "This page failed to render that log. "), e.message));
+            throw e;
         }
     })();
 
