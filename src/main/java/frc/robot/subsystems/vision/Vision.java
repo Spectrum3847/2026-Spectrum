@@ -284,13 +284,19 @@ public class Vision implements Subsystem {
      * Called every robot loop iteration by the WPILib scheduler.
      *
      * <ol>
-     *   <li>Publishes the live camera mount transform and the robot heading, then flushes NT.
+     *   <li>Clears every camera's per-loop NetworkTables snapshot so this loop reads fresh data.
+     *   <li>Publishes the live camera mount transform and the robot heading, then performs the
+     *       loop's single NetworkTables flush (the orientation writes themselves do not flush).
      *   <li>Runs pose-estimation updates appropriate to the current robot mode.
      *   <li>Logs camera telemetry.
      * </ol>
      */
     @Override
     public void periodic() {
+        for (Limelight limelight : allLimelights) {
+            limelight.invalidate();
+        }
+
         updateTurretCameraPose();
         setLimeLightOrientation();
 
@@ -342,6 +348,7 @@ public class Vision implements Subsystem {
      * two itself.
      */
     private void setLimeLightOrientation() {
+        // These writes do not flush; periodic() flushes once after all per-loop writes.
         double yaw = Robot.getSwerve().getRobotPose().getRotation().getDegrees();
         for (Limelight limelight : swerveLimelights) {
             limelight.setRobotOrientation(yaw);
@@ -377,7 +384,7 @@ public class Vision implements Subsystem {
                                 turretRotation.getRadians()));
 
         turretLL.updateCameraPose(cameraPose);
-        Telemetry.log("Vision/TurretCameraPose", cameraPose.toString());
+        Telemetry.log("Vision/TurretCameraPose", cameraPose);
     }
 
     /**
@@ -574,6 +581,7 @@ public class Vision implements Subsystem {
             return null;
         }
 
+        // Tag count intentionally comes from the MT1 estimate so the tiering matches MT1 exactly.
         boolean multiTags = ll.multipleTagsInView();
         double targetSize = ll.getTargetSize();
         Pose2d megaTag2Pose2d = ll.getMegaTag2_Pose2d();
