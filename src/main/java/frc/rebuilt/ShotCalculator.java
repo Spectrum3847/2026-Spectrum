@@ -330,17 +330,16 @@ public class ShotCalculator {
                     0.0);
 
     /**
-     * Active hub model. {@link #CEILING_3M_HUB_MODEL} is the one that actually scores; {@link
-     * #HUB_MODEL} is the full-field fit and has not yet been made to work. The active model name is
-     * logged to {@code ShotCalc/HubPolyModel} — check it before a match.
+     * Active hub model. The name is logged to {@code ShotCalc/HubPolyModel} — check it before a
+     * match, because the two fits do not shoot the same and nothing else makes the difference
+     * obvious.
      *
-     * <p>Switched back to the ceiling fit on 2026-09-05 after a day of testing under it. Whatever
-     * the full-field model was fitted against, it does not describe this robot: it overshot by one
-     * to two feet consistently, and neither the flywheel nor the hood showed a matching bias, which
-     * leaves the model itself. Going back to a lofted trajectory under a 3 m ceiling is a real
-     * constraint to re-check before trusting this on a field with headroom.
+     * <p>Back on the full-field fit to test the -4 deg hood trim it now carries. It shot 3 to 4
+     * feet past the hub centre without it, which its own table says is about four degrees of hood.
+     * If that trim does not close the gap, {@link #CEILING_3M_HUB_MODEL} is the known-good fallback
+     * — it scores, at the cost of a trajectory shaped to stay under a 3 m roof.
      */
-    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
+    private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
 
     // =========================================================================
     // State — Velocity Derivative Filters
