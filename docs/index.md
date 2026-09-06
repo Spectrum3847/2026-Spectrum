@@ -32,6 +32,7 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 * [Setup Guide](setup.md) — environment, JDK, WPILib, clone the repo.
 * [2026 Season Specific](other-guides/2026-season-specific.md) — what's actually in this codebase: subsystems, state machine, per-robot configs.
 * [Offseason Handoff 2026-09-05](other-guides/offseason-handoff-2026-09-05.md) — what changed on the 09-04 bench day, operating procedure the code assumes, and the prioritized open items.
+* [Loop Time and CPU Handoff 2026-09-05](other-guides/loop-time-handoff-2026-09-05.md) — the saturated-CPU diagnosis, what was cut and why, the pre-existing odometry errors, and how to measure tonight's deploy.
 * [Programming Tips and Best Practices](other-guides/tips.md) — the small habits that keep this codebase maintainable.
 * [Photon Guide to Programming](other-guides/photon-guide-to-programming.md) — how we think about FRC software design.
 
