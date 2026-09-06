@@ -35,21 +35,7 @@ public class IntakeExtension implements Subsystem {
             @Getter private final double minRotations = 0.0;
 
             @Getter private final double supplyCurrentLimit = 80;
-
-            /**
-             * Stall torque cap for the extensions.
-             *
-             * <p>Was 80 A. In the 2026-09-05 17:10 log both axes sat at that limit for the whole of
-             * every launch -- in {@code FULL_EXTEND} as much as in {@code AGITATE} -- which is the
-             * extension stalling against the fuel bed, not squeezing it. That is 160 A stator
-             * across the pair producing heat and no motion, and about 33 A of supply on a robot
-             * that sagged to 7.97 V at its peak.
-             *
-             * <p>Halved. If a full hopper no longer agitates, raise this before changing the
-             * agitate percentages -- it is the stall ceiling, not the commanded position.
-             */
-            @Getter private final double statorCurrentLimit = 40;
-
+            @Getter private final double statorCurrentLimit = 80;
             @Getter private final double lowerSupplyCurrentLimit = 40;
             @Getter private final double lowerSupplyCurrentTime = 1;
 
