@@ -8,19 +8,35 @@
 
 The layout lives at [`src/main/deploy/elastic-layout.json`](../../src/main/deploy/elastic-layout.json). It deploys to the roboRIO with the rest of the static files via GradleRIO's `frcStaticFileDeploy`, so anyone connecting to the robot can pull the same tabs.
 
-There are five tabs right now:
+There are six tabs:
 
-**Pre-Match** — auto chooser, FMS info, robot-init state, alerts, and `Field2d`. This is what's on screen between matches.
+**Pre-Match** — FMS info, battery, the turret camera stream, alerts, `Field2d` with the auto path and the three camera pose markers, shot model and hood trim, motor and camera connection boxes, heading-seeded, and the auto chooser. This is what is on screen between matches. It carries one camera stream, not three, on purpose: every MJPEG stream costs radio bandwidth against the 4 Mbps field cap, and this is the tab that is open while the robot sits on the field before auto. The connection boxes and the Field2d markers say whether the chassis cameras are up and seeing tags.
 
-**Match** — what the drivers and operators care about during a match: current state, alliance info, scoring readiness, vision status.
+**Match** — `Field2d`, SHOT READY with its two inputs, vision age, distance, launcher RPM, hood angle, shift time, battery, alerts and the current super state. Nothing else.
 
-**Launching** — launcher and hood telemetry: wheel velocities, target distance, on-target booleans. The page you stare at when shots aren't landing.
+**Turret** — tracking error and position graphs, the turret camera, slip and trim numbers, ready-to-shoot. The page for turret zero and slip problems.
 
-**Diagnostic** — subsystem health, current draw, fault flags. Deeper telemetry for when something's actually broken.
+**Shooting** — launcher RPM and hood position graphs against the shot calculator's wanted values, the feed path RPMs, and the hood trims. The page you stare at when shots are not landing.
 
-**Git Status** — branch, commit, and build timestamp from `BuildConstants`. The "what's actually running on this robot" tab.
+**Power** — battery voltage and total current graphs, per-mechanism current bars, follower currents (a dead follower is only visible here), CANivore utilization and energy used.
 
-If you add a widget, edit the layout in Elastic and save it back to the file. Spotless leaves JSON alone, so let Elastic round-trip it instead of hand-editing whitespace.
+**Diagnostic** — loop time graph, RIO CPU graph, loop mean and overrun share, GC time, available memory, heap, the scheduler, alerts, camera connections and estimate ages. See [System health alerts](#system-health-alerts).
+
+If you add a widget, edit the layout in Elastic and save it back to the file, and make sure the topic it reads is published by a `Telemetry.logDash` or `logDashAlways` call; plain `Telemetry.log` keys are not on NetworkTables. Spotless leaves JSON alone, so let Elastic round-trip it instead of hand-editing whitespace.
+
+## System Health Alerts
+
+`SystemLoadMonitor` samples the roboRIO once a second and publishes `System/CpuPercent`, `System/MemAvailableMB`, `System/HeapUsedMB`, `System/Gc/MsPerSecond` and the loop period mean, max and overrun share under `System/Loop/`. It raises Driver Station alerts, which show in every Alerts widget:
+
+| alert | condition |
+|---|---|
+| roboRIO CPU high (warning) | CPU at or above 85 % for 10 s; clears under 80 % |
+| Robot loop overrunning (warning) | more than half the loops over 25 ms for 5 s; clears under a quarter |
+| Robot loop stalled while enabled (error) | one enabled loop over 200 ms; stays up 10 s |
+| GC pause while enabled (warning) | 100 ms or more of collector time in one second while enabled; stays up 10 s |
+| roboRIO memory low (warning) | under 24 MB available for 10 s |
+
+On 2026-09-05 the CPU sat at 92 to 95 percent all day and nothing on the dashboard said so. If the CPU alert shows in practice, the fix is less logging, fewer CAN frames or less NetworkTables traffic, not a bigger heap. Thresholds are constants at the top of `SystemLoadMonitor`.
 
 ## NetworkTables, In Brief
 

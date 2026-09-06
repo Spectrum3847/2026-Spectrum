@@ -64,6 +64,7 @@ import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.framework.SpectrumRobot;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.BatteryLogger;
+import frc.spectrumLib.telemetry.SystemLoadMonitor;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import frc.spectrumLib.util.CrashTracker;
@@ -87,6 +88,9 @@ public class Robot extends SpectrumRobot {
     @Getter private static final Field2d field2d = new Field2d();
     public static Telemetry telemetry = new Telemetry();
     public static boolean autonWarmedUp = false;
+
+    /** CPU, loop period, GC and memory on the dashboard, with alerts when they stay bad. */
+    private final SystemLoadMonitor systemLoad = new SystemLoadMonitor();
 
     public static class Config {
         public final SwerveConfig swerve = new SwerveConfig();
@@ -378,6 +382,7 @@ public class Robot extends SpectrumRobot {
     @Override
     public void robotPeriodic() {
         RobotLoop.next();
+        systemLoad.periodic();
         /*
          * Real-time priority for the loop body only. On 2026-09-05 the rio CPU sat at 92-95% and
          * the DogLog, NetworkTables and JIT threads preempted this thread in the middle of loops;

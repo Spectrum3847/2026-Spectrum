@@ -84,32 +84,6 @@
             }
           },
           {
-            "title": "Left Camera",
-            "x": 896.0,
-            "y": 256.0,
-            "width": 384.0,
-            "height": 256.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-left",
-              "period": 0.2,
-              "rotation_turns": 0
-            }
-          },
-          {
-            "title": "Right Camera",
-            "x": 896.0,
-            "y": 512.0,
-            "width": 384.0,
-            "height": 256.0,
-            "type": "Camera Stream",
-            "properties": {
-              "topic": "/CameraPublisher/limelight-right",
-              "period": 0.2,
-              "rotation_turns": 0
-            }
-          },
-          {
             "title": "Alerts",
             "x": 1280.0,
             "y": 0.0,
@@ -228,6 +202,71 @@
               "false_color": 4294198070,
               "true_icon": "None",
               "false_icon": "None"
+            }
+          },
+          {
+            "title": "Turret Cam",
+            "x": 896.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Vision/TurretLL/ConnectionStatus",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Left Cam",
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Vision/BackLeftLL/ConnectionStatus",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Right Cam",
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/Robot/Vision/BackRightLL/ConnectionStatus",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Vision Age (s)",
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
             }
           }
         ]
@@ -1175,7 +1214,7 @@
             "x": 0.0,
             "y": 0.0,
             "width": 896.0,
-            "height": 384.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Scheduler/robotPeriodic",
@@ -1189,28 +1228,10 @@
             }
           },
           {
-            "title": "DogLog Queued (max 1000)",
-            "x": 0.0,
-            "y": 384.0,
-            "width": 896.0,
-            "height": 256.0,
-            "type": "Graph",
-            "properties": {
-              "topic": "/Robot/DogLog/QueuedLogs",
-              "period": 0.033,
-              "data_type": "double",
-              "time_displayed": 30.0,
-              "min_value": 0.0,
-              "max_value": 1000.0,
-              "color": 4294198070,
-              "line_width": 2.0
-            }
-          },
-          {
             "title": "CommandScheduler (s)",
             "x": 0.0,
             "y": 640.0,
-            "width": 384.0,
+            "width": 256.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -1222,9 +1243,9 @@
           },
           {
             "title": "Vision Periodic (s)",
-            "x": 384.0,
+            "x": 256.0,
             "y": 640.0,
-            "width": 512.0,
+            "width": 256.0,
             "height": 128.0,
             "type": "Text Display",
             "properties": {
@@ -1364,6 +1385,98 @@
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/HeadingCorrection/ErrorDeg",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Loop Mean (ms)",
+            "x": 0.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/System/Loop/MeanPeriodMs",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Loops over 25 ms (%)",
+            "x": 256.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Number Bar",
+            "properties": {
+              "topic": "/Robot/System/Loop/OverrunPercent",
+              "period": 0.06,
+              "data_type": "double",
+              "min_value": 0.0,
+              "max_value": 100.0,
+              "divisions": 4,
+              "inverted": false,
+              "orientation": "horizontal"
+            }
+          },
+          {
+            "title": "GC (ms per s)",
+            "x": 640.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/System/Gc/MsPerSecond",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "RIO CPU (%)",
+            "x": 0.0,
+            "y": 384.0,
+            "width": 896.0,
+            "height": 256.0,
+            "type": "Graph",
+            "properties": {
+              "topic": "/Robot/System/CpuPercent",
+              "period": 0.033,
+              "data_type": "double",
+              "time_displayed": 60.0,
+              "min_value": 0.0,
+              "max_value": 100.0,
+              "color": 4294198070,
+              "line_width": 2.0
+            }
+          },
+          {
+            "title": "Mem Avail (MB)",
+            "x": 512.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/System/MemAvailableMB",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Heap (MB)",
+            "x": 768.0,
+            "y": 640.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/System/HeapUsedMB",
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
