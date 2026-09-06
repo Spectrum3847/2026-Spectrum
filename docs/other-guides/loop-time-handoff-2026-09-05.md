@@ -5,9 +5,9 @@
 ## Where things stand
 
 - The loop overruns come from a saturated roboRIO CPU, not from one slow call. Every Driver Station log from 2026-09-05 shows RIO CPU at 92 to 95 percent, enabled or disabled, and every section of a slow loop stretched together, which is what preemption looks like.
-- Three commits landed on `2026-offseason-bot` tonight: `ffb0be3` cuts load on every thread, `c4d7b54` adds system-health alerts and refreshes the Diagnostic tab, `8fb4f29` reverts the one change that misfired (real-time main thread priority).
+- Three commits landed on `2026-offseason-bot` tonight: `ffb0be3` cuts load on every thread, `c4d7b54` adds system-health alerts and refreshes the Diagnostic tab, `704030d` reverts the one change that misfired (real-time main thread priority). In between, `d5bcc36` from the shop laptop reworked `tools/archive-logs.sh` to name release assets by path and to stop deleting rio files that were never uploaded.
 - The robot was deployed once tonight, before the revert. The Driver Station showed stale swerve odometry signals and `WaitForAll -1003` errors while disabled. Those are pre-existing, at rates matching the daytime logs (see below). They were not caused by the new code, but the priority change was reverted because it can only make them worse.
-- **Not yet measured:** CPU, CANivore utilization, loop period and the -1003 rate with `8fb4f29` deployed. That is the first job.
+- **Not yet measured:** CPU, CANivore utilization, loop period and the -1003 rate with `704030d` deployed. That is the first job.
 - The shop laptop's working tree may hold an uncommitted change from another agent: `BaseStatusSignal.setUpdateFrequencyForAll(20, moduleCurrentSignals)` in `Swerve`. It is harmless (commit it or drop it) but it does not touch the red errors; that agent's diagnosis attributed them to the Java `refreshAll`, and the location string proves otherwise (see Gotchas).
 
 ## What the logs showed
@@ -72,11 +72,11 @@ Other numbers: 1800 to 2800 log records per second (94 per loop in the 18:38 log
 
 ## The real-time priority revert
 
-`Threads.setCurrentThreadPriority(true, 99)` for the loop body (the 6328 pattern) was tried and reverted in `8fb4f29`. With the loop body still 15 to 30 ms long, a SCHED_FIFO main thread owned one core for most of every period and Phoenix's frame dispatch lost its turn on that core. The stale odometry errors were already present at similar rates without it, so it was not the cause, but it cannot help them either. Get the loop under budget by doing less; do not reintroduce the priority.
+`Threads.setCurrentThreadPriority(true, 99)` for the loop body (the 6328 pattern) was tried and reverted in `704030d`. With the loop body still 15 to 30 ms long, a SCHED_FIFO main thread owned one core for most of every period and Phoenix's frame dispatch lost its turn on that core. The stale odometry errors were already present at similar rates without it, so it was not the cause, but it cannot help them either. Get the loop under budget by doing less; do not reintroduce the priority.
 
 ## Tonight's test, step by step
 
-1. Deploy `8fb4f29` or later. Confirm the Driver Station console is not spamming anything new.
+1. Deploy `704030d` or later. Confirm the Driver Station console is not spamming anything new.
 2. Sit disabled for two minutes with the **Diagnostic** tab open. Read RIO CPU (%), Loops over 25 ms (%), Loop Mean (ms), CANivore Bus (%), and the Alerts widget. Count red -1003 lines per minute and compare with the table above.
 3. Enable, drive hard, shoot a few cycles. Watch SHOT READY on the Match tab, the follower bars on the Power tab, and whether any of the five new alerts appears (CPU high, loop overrunning, loop stalled, GC pause, memory low).
 4. Pull the logs. From the repo, `./gradlew archiveLogs -PdryRun` lists what is on the rio; `./gradlew archiveLogs` uploads to a new release; `-Pdelete` clears the rio afterwards. Driver Station logs are in `C:\Users\Public\Documents\FRC\Log Files` on the DS laptop; zip the day's `.dslog` and `.dsevents` into the same release by hand.
