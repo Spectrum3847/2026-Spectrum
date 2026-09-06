@@ -179,14 +179,11 @@ public class Launcher extends Mechanism {
         Telemetry.log("Launcher/WantedState", wantedState.toString());
         Telemetry.log("Launcher/SystemState", systemState.toString());
         Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
-        Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
+        logDiagnostics("Launcher", true);
+        // Flywheel speed stays at loop rate: spin-up and the dip as each ball passes are shot data.
+        Telemetry.logDash("Launcher/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("Launcher/CommandedRPM", commandedRPM, "RPM");
-        Telemetry.log("Launcher/AtSpeed", isAtSpeed());
-        Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
-        Telemetry.log("Launcher/MotorConnected", isMotorConnected());
+        Telemetry.logDash("Launcher/AtSpeed", isAtSpeed());
     }
 
     // --------------------------------------------------------------------------------

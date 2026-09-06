@@ -142,15 +142,23 @@ public class IntakeExtension implements Subsystem {
         @Override
         public void periodic() {
             logBatteryUsage();
-            String prefix = getName() + "/";
-            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
-            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
-            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
-            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
-            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
+            if (currentCommandKey == null) {
+                // Built once; this used to concatenate eight strings every loop.
+                currentCommandKey = getName() + "/CurrentCommand";
+                positionKey = getName() + "/Position";
+                rpmKey = getName() + "/RPM";
+            }
+            Telemetry.log(currentCommandKey, getCurrentCommandName());
+            logDiagnostics(getName());
+            Telemetry.log(positionKey, getPositionRotations(), "rotations");
+            if (Telemetry.slowLogThisLoop()) {
+                Telemetry.log(rpmKey, getVelocityRPM(), "RPM");
+            }
         }
+
+        private String currentCommandKey;
+        private String positionKey;
+        private String rpmKey;
 
         /** Closed-loop Motion Magic to an absolute rotation target. */
         public void goToRotations(double rotations) {
@@ -294,15 +302,23 @@ public class IntakeExtension implements Subsystem {
         @Override
         public void periodic() {
             logBatteryUsage();
-            String prefix = getName() + "/";
-            Telemetry.log(prefix + "CurrentCommand", getCurrentCommandName());
-            Telemetry.log(prefix + "Voltage", getVoltage(), "volts");
-            Telemetry.log(prefix + "StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log(prefix + "SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log(prefix + "Position", getPositionRotations(), "rotations");
-            Telemetry.log(prefix + "RPM", getVelocityRPM(), "RPM");
-            Telemetry.log(prefix + "Temp", getTemp(), "deg_C");
+            if (currentCommandKey == null) {
+                // Built once; this used to concatenate eight strings every loop.
+                currentCommandKey = getName() + "/CurrentCommand";
+                positionKey = getName() + "/Position";
+                rpmKey = getName() + "/RPM";
+            }
+            Telemetry.log(currentCommandKey, getCurrentCommandName());
+            logDiagnostics(getName());
+            Telemetry.log(positionKey, getPositionRotations(), "rotations");
+            if (Telemetry.slowLogThisLoop()) {
+                Telemetry.log(rpmKey, getVelocityRPM(), "RPM");
+            }
         }
+
+        private String currentCommandKey;
+        private String positionKey;
+        private String rpmKey;
 
         /** Closed-loop Motion Magic to an absolute rotation target. */
         public void goToRotations(double rotations) {

@@ -88,11 +88,10 @@ public class DyeRotor implements Subsystem {
         public void periodic() {
             logBatteryUsage();
             Telemetry.log("Rotor/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("Rotor/Voltage", getVoltage(), "volts");
-            Telemetry.log("Rotor/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("Rotor/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("Rotor/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("Rotor/Temp", getTemp(), "deg_C");
+            logDiagnostics("Rotor");
+            if (Telemetry.slowLogThisLoop()) {
+                Telemetry.logDash("Rotor/RPM", getVelocityRPM(), "RPM");
+            }
         }
         /**
          * Sets the rotor velocity.
@@ -181,11 +180,10 @@ public class DyeRotor implements Subsystem {
         public void periodic() {
             logBatteryUsage();
             Telemetry.log("Feeder/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("Feeder/Voltage", getVoltage(), "volts");
-            Telemetry.log("Feeder/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("Feeder/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("Feeder/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("Feeder/Temp", getTemp(), "deg_C");
+            logDiagnostics("Feeder");
+            if (Telemetry.slowLogThisLoop()) {
+                Telemetry.logDash("Feeder/RPM", getVelocityRPM(), "RPM");
+            }
         }
         /**
          * Sets the feeder rpm.

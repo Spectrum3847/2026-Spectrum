@@ -7,6 +7,7 @@ import static edu.wpi.first.units.Units.Inches;
 import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Seconds;
 
+import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
@@ -22,12 +23,15 @@ import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
@@ -43,10 +47,10 @@ import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.rebuilt.RobotBumpSim;
 import frc.robot.Robot;
+import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.swerve.MapleSimSwerveDrivetrain;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Supplier;
 import lombok.Getter;
@@ -182,7 +186,15 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         optimizeBusUtilization();
         // Must come after optimizeBusUtilization(), which silences the CANcoder signals it wants.
         alignment = new SwerveAlignment(getModules(), config);
-        registerTelemetry(this::log);
+
+        var modules = getModules();
+        moduleCurrentSignals = new BaseStatusSignal[modules.length * 4];
+        for (int i = 0; i < modules.length; i++) {
+            moduleCurrentSignals[4 * i] = modules[i].getDriveMotor().getStatorCurrent(false);
+            moduleCurrentSignals[4 * i + 1] = modules[i].getDriveMotor().getSupplyCurrent(false);
+            moduleCurrentSignals[4 * i + 2] = modules[i].getSteerMotor().getStatorCurrent(false);
+            moduleCurrentSignals[4 * i + 3] = modules[i].getSteerMotor().getSupplyCurrent(false);
+        }
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -190,85 +202,97 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Periodic and Setup Methods
     // --------------------------------------------------------------------------------
+    // ── Per-loop drivetrain state ──────────────────────────────────────────────
+
+    /** Snapshot of the drivetrain state for this loop; see {@link #loopState()}. */
+    private SwerveDriveState loopState;
+
+    /** Loop the snapshot was taken on, or -1 for none. */
+    private long loopStateLoop = -1;
+
     /**
-     * Minimum spacing between swerve state publishes, in seconds.
+     * The drivetrain state, read once per loop.
      *
-     * <p>CTRE runs this callback on the odometry thread, not the main loop: in the 2026-09-05 17:10
-     * log {@code Swerve/State/Pose} alone landed 197 records a second, the single largest producer
-     * in a log that overran DogLog's queue and dropped data. Odometry still integrates at full
-     * rate; only the telemetry is thinned, to a little above the 50 Hz main loop.
+     * <p>{@code getState()} is a JNI call plus the odometry lock plus a copy, and the pose was
+     * being pulled that way a dozen times a loop (vision, shot calculator, superstructure, turret,
+     * Field2d, zone triggers). Every caller in a loop now sees the same snapshot, which is also the
+     * right semantics: a shot solution and the turret aiming it should agree on where the robot is.
+     * The snapshot is dropped whenever the pose is changed on purpose (vision fusion, resets), so a
+     * correction made early in the loop is seen by everything after it.
+     *
+     * @return this loop's drivetrain state
      */
-    private static final double STATE_LOG_PERIOD_SECONDS = 0.02;
-
-    private double lastStateLogSeconds = 0;
-
-    /** Log. */
-    protected void log(SwerveDriveState state) {
-        double now = Timer.getFPGATimestamp();
-        if (now - lastStateLogSeconds < STATE_LOG_PERIOD_SECONDS) {
-            return;
+    protected SwerveDriveState loopState() {
+        long loop = RobotLoop.count();
+        if (loopState == null || loopStateLoop != loop) {
+            loopState = getState().clone();
+            loopStateLoop = loop;
         }
-        lastStateLogSeconds = now;
+        return loopState;
+    }
 
+    /** Forgets this loop's state snapshot so the next read sees a pose change made this loop. */
+    private void invalidateLoopState() {
+        loopStateLoop = -1;
+    }
+
+    /**
+     * Logs pose, module targets, module states and chassis speeds from the main loop.
+     *
+     * <p>This used to be CTRE's {@code registerTelemetry} callback, which runs on the odometry
+     * thread while it holds the drivetrain state lock. Four struct serializations and a queue put
+     * per call happened under that lock, and when the DogLog queue filled, the queue-full report
+     * with its stack trace did too. In the 2026-09-05 Driver Station logs the dropped entries were
+     * exactly these four keys, and {@code Swerve.periodic} showed up at 100-200 ms in overrun
+     * traces, waiting on that lock from {@code setControl}. Logging the loop's own snapshot here
+     * costs the odometry thread nothing and keeps odometry at 250 Hz.
+     */
+    private void logSwerveState() {
+        SwerveDriveState state = loopState();
         Telemetry.log("Swerve/State/Pose", state.Pose);
         Telemetry.log("Swerve/State/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/State/MeasuredStates", state.ModuleStates);
         Telemetry.log("Swerve/State/MeasuredSpeeds", state.Speeds);
     }
-    /** Logs the battery usage. */
+
+    // ── Currents ──────────────────────────────────────────────────────────────
+
+    /** Drive and steer stator and supply current signals for every module, refreshed together. */
+    private BaseStatusSignal[] moduleCurrentSignals = new BaseStatusSignal[0];
+
+    private double driveStatorCurrent;
+    private double driveSupplyCurrent;
+    private double steerStatorCurrent;
+    private double steerSupplyCurrent;
+
+    /**
+     * Reports drive and steer supply current to the battery logger every loop and logs the four
+     * current sums at 10 Hz.
+     *
+     * <p>The sixteen module current signals are refreshed in one Phoenix call on the 10 Hz tick and
+     * held between ticks. They used to be refreshed one JNI call each, every loop, through four
+     * streams; the battery logger's energy integral tolerates a 100 ms sample-and-hold.
+     */
     protected void logBatteryUsage() {
-        // Each sum walks all four modules and refreshes their signals; compute each once.
-        double steerSupplyCurrent = getSteerMotorSupplyCurrents();
-        double driveSupplyCurrent = getDriveMotorSupplyCurrents();
-        double driveStatorCurrent = getDriveMotorStatorCurrents();
-        double steerStatorCurrent = getSteerMotorStatorCurrents();
+        if (Telemetry.slowLogThisLoop() && moduleCurrentSignals.length > 0) {
+            BaseStatusSignal.refreshAll(moduleCurrentSignals);
+            driveStatorCurrent = 0;
+            driveSupplyCurrent = 0;
+            steerStatorCurrent = 0;
+            steerSupplyCurrent = 0;
+            for (int i = 0; i < moduleCurrentSignals.length; i += 4) {
+                driveStatorCurrent += moduleCurrentSignals[i].getValueAsDouble();
+                driveSupplyCurrent += moduleCurrentSignals[i + 1].getValueAsDouble();
+                steerStatorCurrent += moduleCurrentSignals[i + 2].getValueAsDouble();
+                steerSupplyCurrent += moduleCurrentSignals[i + 3].getValueAsDouble();
+            }
+            Telemetry.log("Swerve/Currents/DriveStatorCurrent", driveStatorCurrent);
+            Telemetry.log("Swerve/Currents/SteerStatorCurrent", steerStatorCurrent);
+            Telemetry.log("Swerve/Currents/DriveSupplyCurrent", driveSupplyCurrent);
+            Telemetry.log("Swerve/Currents/SteerSupplyCurrent", steerSupplyCurrent);
+        }
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerSupplyCurrent);
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveSupplyCurrent);
-
-        Telemetry.log("Swerve/Currents/DriveStatorCurrent", driveStatorCurrent);
-        Telemetry.log("Swerve/Currents/SteerStatorCurrent", steerStatorCurrent);
-        Telemetry.log("Swerve/Currents/DriveSupplyCurrent", driveSupplyCurrent);
-        Telemetry.log("Swerve/Currents/SteerSupplyCurrent", steerSupplyCurrent);
-    }
-    /**
-     * Returns the sum of the drive motor stator currents.
-     *
-     * @return the sum of the drive motor stator currents across all modules
-     */
-    protected double getDriveMotorStatorCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getDriveMotor().getStatorCurrent().getValueAsDouble())
-                .sum();
-    }
-    /**
-     * Returns the sum of the steer motor stator currents.
-     *
-     * @return the sum of the steer motor stator currents across all modules
-     */
-    protected double getSteerMotorStatorCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getSteerMotor().getStatorCurrent().getValueAsDouble())
-                .sum();
-    }
-    /**
-     * Returns the sum of the drive motor supply currents.
-     *
-     * @return the sum of the drive motor supply currents across all modules
-     */
-    protected double getDriveMotorSupplyCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getDriveMotor().getSupplyCurrent().getValueAsDouble())
-                .sum();
-    }
-    /**
-     * Returns the sum of the steer motor supply currents.
-     *
-     * @return the sum of the steer motor supply currents across all modules
-     */
-    protected double getSteerMotorSupplyCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getSteerMotor().getSupplyCurrent().getValueAsDouble())
-                .sum();
     }
 
     /**
@@ -286,6 +310,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
         Telemetry.log(
                 "Swerve/TeleopRotationVelocityCoefficient", getTeleopRotationVelocityCoefficient());
+        logSwerveState();
         logBatteryUsage();
         alignment.log();
 
@@ -412,7 +437,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         if (this.mapleSimSwerveDrivetrain != null) {
             return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
-        return getState().Pose;
+        return loopState().Pose;
     }
 
     /**
@@ -446,6 +471,38 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             Timer.delay(0.05); // Wait for simulation to update
         }
         super.resetPose(pose);
+        invalidateLoopState();
+    }
+
+    @Override
+    public void resetTranslation(Translation2d translation) {
+        super.resetTranslation(translation);
+        invalidateLoopState();
+    }
+
+    @Override
+    public void resetRotation(Rotation2d rotation) {
+        super.resetRotation(rotation);
+        invalidateLoopState();
+    }
+
+    @Override
+    public void seedFieldCentric() {
+        super.seedFieldCentric();
+        invalidateLoopState();
+    }
+
+    @Override
+    public void addVisionMeasurement(Pose2d visionRobotPose, double timestampSeconds) {
+        super.addVisionMeasurement(visionRobotPose, timestampSeconds);
+        invalidateLoopState();
+    }
+
+    @Override
+    public void addVisionMeasurement(
+            Pose2d visionRobotPose, double timestampSeconds, Matrix<N3, N1> visionStdDevs) {
+        super.addVisionMeasurement(visionRobotPose, timestampSeconds, visionStdDevs);
+        invalidateLoopState();
     }
 
     // --------------------------------------------------------------------------------
@@ -582,7 +639,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
      * @return the current robot chassis speeds
      */
     public ChassisSpeeds getCurrentRobotChassisSpeeds() {
-        return getKinematics().toChassisSpeeds(getState().ModuleStates);
+        return getKinematics().toChassisSpeeds(loopState().ModuleStates);
     }
 
     // --------------------------------------------------------------------------------

@@ -21,12 +21,13 @@ import lombok.Setter;
  * cached per channel name, so steady-state operation performs no string splitting or concatenation.
  * The set of channel names is small and fixed after the first loop.
  *
- * <p>Only current is published every loop. Power and energy are published at {@link
- * #SLOW_LOG_PERIOD_SECONDS}, because this class is the single largest producer of log records on
- * the robot and the loop period tracks that volume almost linearly. In the 2026-09-05 18:38 log it
- * accounted for 32.3 of the 94 records written per loop -- a third of everything -- while the loop
- * ran at 33 Hz with a median period of 27.4 ms. Current is the channel worth watching live; power
- * is current times pack voltage and energy is its integral, so neither needs 50 Hz to stay useful.
+ * <p>Current is published at 10 Hz ({@link Telemetry#slowLogThisLoop()}) and power and energy at
+ * {@link #SLOW_LOG_PERIOD_SECONDS}, because this class was the single largest producer of log
+ * records on the robot and the loop period tracks that volume almost linearly. In the 2026-09-05
+ * 18:38 log it accounted for 32.3 of the 94 records written per loop -- a third of everything --
+ * while the loop ran at 33 Hz with a median period of 27.4 ms. Current is the channel worth
+ * watching live; power is current times pack voltage and energy is its integral, so neither needs
+ * 50 Hz to stay useful.
  */
 public class BatteryLogger {
 
@@ -177,20 +178,28 @@ public class BatteryLogger {
                 lastSlowLogSeconds = now;
             }
 
-            Telemetry.log("BatteryLogger/Current", totalCurrent, "amps");
-            Telemetry.log("BatteryLogger/BatteryVoltage", batteryVoltage, "volts");
+            // Currents at 10 Hz; total current, pack voltage, energy and the per-mechanism currents
+            // are on the Driver Station dashboard and in the robot app, hence logDash.
+            boolean logCurrent = Telemetry.slowLogThisLoop();
+            if (logCurrent) {
+                Telemetry.logDash("BatteryLogger/Current", totalCurrent, "amps");
+                Telemetry.logDash("BatteryLogger/BatteryVoltage", batteryVoltage, "volts");
+            }
             if (logSlow) {
                 Telemetry.log("BatteryLogger/Power", totalPower, "watts");
-                Telemetry.log("BatteryLogger/Energy", joulesToWattHours(totalEnergy), "wh");
+                Telemetry.logDashAlways(
+                        "BatteryLogger/Energy", joulesToWattHours(totalEnergy), "wh");
             }
 
             for (var entry : subsystemCurrents.entrySet()) {
                 String key = entry.getKey();
                 double amps = entry.getValue();
-                Telemetry.log(
-                        currentLogKeys.computeIfAbsent(key, k -> "BatteryLogger/Current/" + k),
-                        amps,
-                        "amps");
+                if (logCurrent) {
+                    Telemetry.logDash(
+                            currentLogKeys.computeIfAbsent(key, k -> "BatteryLogger/Current/" + k),
+                            amps,
+                            "amps");
+                }
                 if (logSlow) {
                     Telemetry.log(
                             powerLogKeys.computeIfAbsent(key, k -> "BatteryLogger/Power/" + k),

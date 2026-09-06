@@ -96,11 +96,10 @@ public class FuelIntake implements Subsystem {
         public void periodic() {
             logBatteryUsage();
             Telemetry.log("IntakeRoller/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("IntakeRoller/Voltage", getVoltage(), "volts");
-            Telemetry.log("IntakeRoller/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("IntakeRoller/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("IntakeRoller/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("IntakeRoller/Temp", getTemp(), "deg_C");
+            logDiagnostics("IntakeRoller");
+            if (Telemetry.slowLogThisLoop()) {
+                Telemetry.log("IntakeRoller/RPM", getVelocityRPM(), "RPM");
+            }
         }
         /**
          * Sets the roller voltage.
@@ -199,11 +198,10 @@ public class FuelIntake implements Subsystem {
         public void periodic() {
             logBatteryUsage();
             Telemetry.log("IntakeKicker/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("IntakeKicker/Voltage", getVoltage(), "volts");
-            Telemetry.log("IntakeKicker/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("IntakeKicker/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("IntakeKicker/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("IntakeKicker/Temp", getTemp(), "deg_C");
+            logDiagnostics("IntakeKicker");
+            if (Telemetry.slowLogThisLoop()) {
+                Telemetry.log("IntakeKicker/RPM", getVelocityRPM(), "RPM");
+            }
         }
         /**
          * Sets the kicker voltage.

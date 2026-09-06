@@ -121,11 +121,10 @@ public class LauncherTower extends Mechanism {
         Telemetry.log("LauncherTower/WantedState", wantedState.toString());
         Telemetry.log("LauncherTower/SystemState", systemState.toString());
         Telemetry.log("LauncherTower/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("LauncherTower/Voltage", getVoltage(), "volts");
-        Telemetry.log("LauncherTower/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("LauncherTower/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("LauncherTower/Temp", getTemp(), "deg_C");
+        logDiagnostics("LauncherTower");
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
+        }
     }
 
     // --------------------------------------------------------------------------------

@@ -38,6 +38,8 @@ public class SwerveAlignment {
         "FrontLeft", "FrontRight", "BackLeft", "BackRight"
     };
 
+    private static final String TIMESTAMP_KEY = KEY_PREFIX + "Timestamp";
+
     /** Rate at which the CANcoder signals are refreshed and published, in Hz. */
     private static final double PUBLISH_HZ = 20.0;
 
@@ -48,6 +50,15 @@ public class SwerveAlignment {
     private static class ModuleEncoder {
         private final String name;
         private final int encoderId;
+        // Log keys, built once here rather than concatenated on every publish
+        private final String absoluteRotationsKey;
+        private final String rawRotationsKey;
+        private final String appliedOffsetKey;
+        private final String appliedOffsetValidKey;
+        private final String configOffsetKey;
+        private final String steerVelocityKey;
+        private final String connectedKey;
+        private final String encoderIdKey;
         private final StatusSignal<Angle> absolutePosition;
         private final StatusSignal<AngularVelocity> velocity;
         private final double configOffsetRotations;
@@ -57,6 +68,15 @@ public class SwerveAlignment {
         private ModuleEncoder(String name, CANcoder encoder, double configOffsetRotations) {
             this.name = name;
             this.encoderId = encoder.getDeviceID();
+            String key = KEY_PREFIX + name + "/";
+            this.absoluteRotationsKey = key + "AbsoluteRotations";
+            this.rawRotationsKey = key + "RawRotations";
+            this.appliedOffsetKey = key + "AppliedOffset";
+            this.appliedOffsetValidKey = key + "AppliedOffsetValid";
+            this.configOffsetKey = key + "ConfigOffset";
+            this.steerVelocityKey = key + "SteerVelocity";
+            this.connectedKey = key + "Connected";
+            this.encoderIdKey = key + "EncoderId";
             this.absolutePosition = encoder.getAbsolutePosition();
             this.velocity = encoder.getVelocity();
             this.configOffsetRotations = configOffsetRotations;
@@ -149,24 +169,28 @@ public class SwerveAlignment {
 
         BaseStatusSignal.refreshAll(allSignals);
 
+        // The alignment web app reads these live over NetworkTables and the whole-log mirror is
+        // off, so each key is published directly. This runs on its own 20 Hz cadence while
+        // disabled, which need not line up with the slow-tier loops, hence logDashAlways.
         for (ModuleEncoder module : moduleEncoders) {
-            String key = KEY_PREFIX + module.name + "/";
             double absoluteRotations =
                     wrapRotations(module.absolutePosition.getValue().in(Rotations));
             double rawRotations = wrapRotations(absoluteRotations - module.appliedOffsetRotations);
 
-            Telemetry.log(key + "AbsoluteRotations", absoluteRotations);
-            Telemetry.log(key + "RawRotations", rawRotations);
-            Telemetry.log(key + "AppliedOffset", module.appliedOffsetRotations);
-            Telemetry.log(key + "AppliedOffsetValid", module.appliedOffsetValid);
-            Telemetry.log(key + "ConfigOffset", module.configOffsetRotations);
-            Telemetry.log(key + "SteerVelocity", module.velocity.getValue().in(RotationsPerSecond));
-            Telemetry.log(key + "Connected", module.absolutePosition.getStatus().isOK());
-            Telemetry.log(key + "EncoderId", (long) module.encoderId);
+            Telemetry.logDashAlways(module.absoluteRotationsKey, absoluteRotations);
+            Telemetry.logDashAlways(module.rawRotationsKey, rawRotations);
+            Telemetry.logDashAlways(module.appliedOffsetKey, module.appliedOffsetRotations);
+            Telemetry.logDashAlways(module.appliedOffsetValidKey, module.appliedOffsetValid);
+            Telemetry.logDashAlways(module.configOffsetKey, module.configOffsetRotations);
+            Telemetry.logDashAlways(
+                    module.steerVelocityKey, module.velocity.getValue().in(RotationsPerSecond));
+            Telemetry.logDashAlways(
+                    module.connectedKey, module.absolutePosition.getStatus().isOK());
+            Telemetry.logDashAlways(module.encoderIdKey, (long) module.encoderId);
         }
 
         // Lets the web app tell "the numbers are not moving" apart from "the robot went away".
-        Telemetry.log(KEY_PREFIX + "Timestamp", Timer.getFPGATimestamp());
+        Telemetry.logDashAlways(TIMESTAMP_KEY, Timer.getFPGATimestamp());
     }
 
     /**

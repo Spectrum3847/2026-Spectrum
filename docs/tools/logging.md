@@ -11,7 +11,7 @@ Robot logs are the difference between "the elevator stopped working at champs an
 ```java
 // frc.robot.Robot
 Telemetry.start(
-    /* ntPublish     */ true,
+    /* ntMirror      */ false,
     /* captureDs     */ true,
     /* captureNt     */ false,
     /* captureConsole*/ true,
@@ -22,12 +22,26 @@ Telemetry.start(
 
 Each flag maps to a `DogLogOptions` setter — toggling them changes what ends up in the `.wpilog` files on the RIO.
 
-* `ntPublish` mirrors every logged value to NetworkTables so [Elastic](elastic.md) and AdvantageScope can see it live.
+* `ntMirror` is the starting position of the SmartDashboard switch `Telemetry/MirrorLogsToNT`, which mirrors *every* logged value to NetworkTables. It is off: on 2026-09-05 the mirror plus a NetworkTables flush every loop was a full-time job for one of the roboRIO's two cores. Flip the switch in Elastic when AdvantageScope needs the full live stream in the shop; it is forced off whenever the FMS is attached. The dashboard gets its values another way, see [What reaches the dashboard](#what-reaches-the-dashboard).
 * `captureDs` / `captureConsole` snapshot Driver Station messages and `System.out` into the log.
 * `logExtras` (PDH currents, CAN utilization, radio status) is currently off — flip to `true` when you want the extra noise for diagnostics.
 * `tunableOnFMS` controls DogLog's NT tunables; `TuneValue` uses `SmartDashboard` (NetworkTables) regardless, so treat tunables as a practice-only policy and remove/guard them for competition.
 
 `Telemetry.logAlerts()` runs in `periodic()` and pulls anything published to NetworkTables under `SmartDashboard/Alerts` (errors, warnings, infos) into the log file with deduplication, so a flapping alert doesn't fill the disk.
+
+## What reaches the dashboard
+
+With the mirror off, a value only appears on NetworkTables if the code publishes it on purpose. `Telemetry` has three tiers for this:
+
+| call | wpilog | NetworkTables | use for |
+|---|---|---|---|
+| `Telemetry.log(key, value)` | every call (DogLog skips unchanged values) | never | everything |
+| `Telemetry.logDash(key, value)` | every call | every fifth loop (10 Hz) | the keys an Elastic layout or the robot app shows |
+| `Telemetry.logDashAlways(key, value)` | every call | every call | dashboard keys logged on their own cadence (once at boot, once a second, the swerve alignment publisher) |
+
+`Telemetry.slowLogThisLoop()` is true on the same every-fifth loop. Wrap anything that does not need 20 ms resolution in it: motor currents, temperatures, camera status, shot-calculator outputs while not launching. `Mechanism.logDiagnostics(prefix)` does this for voltage, currents, temperature and connection on every mechanism.
+
+Before adding a widget to the Elastic layout, make sure the key it reads is a `logDash` (or `logDashAlways`) call; the layout in `src/main/deploy/elastic-layout.json` is the list of what has to stay live. The `Scheduler/*` loop timers are dashboard keys and are logged in **seconds**, the same units DogLog's own timer used.
 
 ## Logging Values
 

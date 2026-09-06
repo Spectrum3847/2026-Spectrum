@@ -36,6 +36,9 @@ public class LimelightHelpers {
     private static final Map<String, DoubleArrayEntry> doubleArrayEntries =
             new ConcurrentHashMap<>();
 
+    /** Scalar entries by "table/entry", so per-loop reads and writes skip the JNI name lookup. */
+    private static final Map<String, NetworkTableEntry> scalarEntries = new ConcurrentHashMap<>();
+
     /** Represents a Color/Retroreflective Target Result extracted from JSON Output */
     public static class LimelightTarget_Retro {
 
@@ -1312,7 +1315,13 @@ public class LimelightHelpers {
      * @return the limelight nt table entry
      */
     public static NetworkTableEntry getLimelightNTTableEntry(String tableName, String entryName) {
-        return getLimelightNTTable(tableName).getEntry(entryName);
+        // NetworkTable.getEntry() is a JNI name lookup that allocates a new handle wrapper every
+        // call. This path serves every scalar read and write (tv, ta, tid, pipeline, IMU mode,
+        // orientation, camera pose), several per camera per loop, so cache the entries the same
+        // way the double-array path below already does.
+        return scalarEntries.computeIfAbsent(
+                tableName + "/" + entryName,
+                k -> getLimelightNTTable(tableName).getEntry(entryName));
     }
     /**
      * Returns the limelight double array entry.

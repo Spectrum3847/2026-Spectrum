@@ -48,13 +48,15 @@ The **Self-Test Snapshot** dumps everything the device knows about itself: firmw
 
 ## Hoot Logs
 
-Phoenix 6 records `.hoot` logs to the CANivore's onboard storage. [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java) configures the path:
+Phoenix 6 can record `.hoot` signal logs for every CAN device. The robot turns the automatic recording off (`SignalLogger.enableAutoLogging(false)` in `Robot`): on 2026-09-05 the hoot files were a large share of the 2.2 GB of logs on the roboRIO's SD card, written alongside the wpilog on a CPU that was already saturated, and nobody was replaying them. To capture one on purpose, call `SignalLogger.start()` (and `stop()`) or start it from Tuner X, then pull it with **Log Extractor**. The signals are higher-resolution than the wpilog and worth having when tuning a mechanism.
+
+The hoot path in [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java) is not a recording location:
 
 ```java
 canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
 ```
 
-After a match, pull the logs in Tuner X via **Log Extractor**. The signals are higher-resolution than what NetworkTables sees and survive even if the radio drops — useful for post-match analysis when the NT capture is incomplete.
+It names a hoot file to *replay* in simulation and does nothing on the robot.
 
 ## When Something Looks Wrong
 

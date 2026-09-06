@@ -3,6 +3,7 @@ package frc.robot.pilot;
 import static edu.wpi.first.units.Units.MetersPerSecond;
 import static edu.wpi.first.units.Units.RadiansPerSecond;
 
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.gamepads.Gamepad;
@@ -79,7 +80,13 @@ public class Pilot extends Gamepad {
         leftStickCurve.setScalar(config.getLeftStickScalar());
         rightStickCurve.setScalar(config.getRightStickScalar());
 
-        setDefaultCommand(rumbleCommand(0, 1).withName("Pilot.noRumble"));
+        // Clear the rumble once, then hold the gamepad. The old default was a one-second rumble
+        // command at zero intensity that finished and was rescheduled every second, so its
+        // initialize() and two HAL rumble writes showed up in every loop-overrun epoch print.
+        setDefaultCommand(
+                Commands.runOnce(() -> rumbleController(0, 0), this)
+                        .andThen(Commands.idle(this))
+                        .withName("Pilot.noRumble"));
 
         Telemetry.print("Pilot Subsystem Initialized: ");
     }

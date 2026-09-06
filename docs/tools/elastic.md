@@ -24,7 +24,7 @@ If you add a widget, edit the layout in Elastic and save it back to the file. Sp
 
 ## NetworkTables, In Brief
 
-Elastic talks to the robot over NetworkTables. Anything the robot publishes — `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.log` (which mirrors to NT when configured) — is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
+Elastic talks to the robot over NetworkTables. Anything the robot publishes — `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.logDash` (plain `Telemetry.log` stays in the wpilog unless the `Telemetry/MirrorLogsToNT` switch is on) — is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
 
 The reverse direction works too. The auto chooser writes back over NT to a `SendableChooser`. Live-tunable values use `SmartDashboard.getNumber(...)` wrapped by `TuneValue` (see [PID Tuning](pid-tuning.md)).
 

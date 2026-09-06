@@ -122,10 +122,27 @@ pose never moved. Now diagnosable: `Vision/BackLeftLL/EstimateAgeSeconds` and `I
 the last session its age was 0.03 to 0.07 s, so it may have been a one-off; watch it.
 
 ### 3.8 Loop time
-Not yet measured on the robot before/after. Keys: `Scheduler/robotPeriodic`, `Scheduler/Vision`,
-`Scheduler/SuperStructure`, `Scheduler/CommandScheduler`. The swerve telemetry callback still logs four
-struct entries at 250 Hz from the odometry thread while holding the drivetrain state lock (the team
-chose to keep it); if overruns persist, that is the next thing to cut.
+Measured across all eight 2026-09-05 robot logs and the Driver Station logs (evening of 2026-09-05):
+
+- The roboRIO CPU sat at 92 to 95 percent in every DS log, enabled or disabled. Enabled loop period
+  median was 26 to 39 ms and 57 to 93 percent of enabled loops missed 25 ms. That is starvation, not
+  one slow call: every section of the loop stretched together.
+- Of an enabled loop (18:38 log, medians): `CommandScheduler.run` 15 ms, `Vision.periodic` 4.5 ms,
+  the rest of `robotPeriodic` 2.8 ms, `SuperStructure` 0.6 ms, outside `robotPeriodic` 3 ms.
+- Every loop over 300 ms was while disabled, inside the scheduler, 25 to 33 s after boot or on an
+  auto-chooser change: PathPlanner warmup and trajectory generation, harmless. Worst enabled loop was
+  232 ms. The GC theory did not hold for the big stalls; `-Xlog:gc*` is still on to settle the
+  130 to 230 ms enabled episodes.
+- The `Scheduler/*` timers are logged in seconds.
+
+What changed in response (same evening): the log-to-NetworkTables mirror is off (dashboard keys go
+through `Telemetry.logDash`), Phoenix hoot auto-logging is off, mechanism status frames dropped from
+250 Hz to 100 Hz for leaders and 20 Hz for followers and diagnostics (odometry stays at 250 Hz), every
+mechanism refreshes its signals with one `refreshAll` per loop, `CANBus.getStatus()` runs at 1 Hz,
+swerve state is logged from the main loop instead of the odometry callback, the drivetrain state is
+read once per loop, vision telemetry runs at 10 Hz with MegaTag2 parsed only for the turret camera,
+the main thread runs at real-time priority for the loop body, and a full GC runs on every disable.
+Compare the DS CPU trace and the `Scheduler/robotPeriodic` distribution against the 2026-09-05 logs.
 
 ### 3.9 Smaller items
 - Turret `positionKv` is 10 V per rot/s; a Kraken through 39.78:1 needs about 5. Feedforward overdrives

@@ -472,25 +472,38 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Logs connection status, integration status, tag status, pose, tag count, and target size for
-     * the camera via its {@link VisionLogger}, and updates the {@code Field2d} widget with the
-     * reported robot pose.
+     * Runs the turret zero servo every loop, then logs camera telemetry.
+     *
+     * <p>Status booleans and strings are logged every loop: DogLog only writes them when they
+     * change, and "integrated this loop" is a per-loop truth. Everything that moves every frame
+     * (poses, tag count, target size, estimate age, the Field2d camera markers) is logged at 10 Hz.
+     * This ran 30 log calls, three MegaTag2 parses and three Field2d updates every loop and took a
+     * median 4.5 ms of a 20 ms budget on 2026-09-05; only the turret camera's MegaTag2 estimate is
+     * ever fused, so only it pays for the parse now.
      */
     public void logTelemetry() {
+        correctTurretZero();
+
         for (VisionLogger logger : allLoggers) {
-            logger.getCameraConnection();
             logger.getIntegratingStatus();
+            logger.getIntegratedThisLoop();
             logger.getLogStatus();
             logger.getTagStatus();
+        }
+
+        if (!Telemetry.slowLogThisLoop()) {
+            return;
+        }
+
+        for (VisionLogger logger : allLoggers) {
+            logger.getCameraConnection();
             logger.getPose();
-            logger.getMegaPose();
             logger.getTagCount();
             logger.getTargetSize();
             logger.getEstimateAge();
-            logger.getIntegratedThisLoop();
         }
+        turretLogger.getMegaPose();
         Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
-        correctTurretZero();
 
         // Null-safe; returns Pose2d.kZero when no data
         Robot.getField2d().getObject(backLeftLL.getCameraName()).setPose(getBackLeftMegaTag1Pose());
@@ -503,7 +516,8 @@ public class Vision implements Subsystem {
             Telemetry.log(
                     "Vision/TurretLL/TurretAngle", turretRotationSupplier.getAsDouble(), "deg");
         }
-        Telemetry.log(
+        // On the dashboard.
+        Telemetry.logDash(
                 "Vision/SecondsSinceAcceptedEstimate",
                 secondsSinceLastAcceptedEstimate(),
                 "seconds");
@@ -557,7 +571,9 @@ public class Vision implements Subsystem {
                                 turretRotation.getRadians()));
 
         turretLL.updateCameraPose(cameraPose);
-        Telemetry.log("Vision/TurretCameraPose", cameraPose);
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.log("Vision/TurretCameraPose", cameraPose);
+        }
     }
 
     /**
@@ -604,7 +620,7 @@ public class Vision implements Subsystem {
         // Warn only while disabled: once the match is running, saying so does not help anyone and
         // the gross heading correction is the thing that has to save it.
         notSeededAlert.set(!poseHeadingSeeded && Util.disabled.getAsBoolean());
-        Telemetry.log("Vision/PoseHeadingSeeded", poseHeadingSeeded);
+        Telemetry.logDash("Vision/PoseHeadingSeeded", poseHeadingSeeded);
     }
 
     /**
@@ -685,7 +701,10 @@ public class Vision implements Subsystem {
                             errorDeg, best.getName()));
         }
 
-        Telemetry.log("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
+        // NaN is not equal to itself, so an unmeasurable error would otherwise write every loop.
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.logDash("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
+        }
         Telemetry.log("Vision/HeadingCorrection/Armed", gross);
         Telemetry.log("Vision/HeadingCorrection/Applied", applied);
     }
@@ -833,15 +852,19 @@ public class Vision implements Subsystem {
         }
 
         Telemetry.log("Vision/TurretZero/Measurable", measurable);
-        Telemetry.log("Vision/TurretZero/TrimEfficiency", turretZeroTrimEfficiency);
-        Telemetry.log("Vision/TurretZero/FilteredErrorDeg", turretZeroFilteredErrorDeg, "deg");
-        Telemetry.log("Vision/TurretZero/SlipDegPerMinute", turretSlipDegPerMinute, "deg");
-        Telemetry.log(
-                "Vision/TurretZero/SlipDegPerKiloDegTravel", turretSlipDegPerKiloDegTravel, "deg");
-        Telemetry.log(
-                "Vision/TurretZero/CorrectedTotalDeg",
-                Robot.getTurret().getZeroCorrectionTotalDegrees(),
-                "deg");
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.logDash("Vision/TurretZero/TrimEfficiency", turretZeroTrimEfficiency);
+            Telemetry.log("Vision/TurretZero/FilteredErrorDeg", turretZeroFilteredErrorDeg, "deg");
+            Telemetry.logDash("Vision/TurretZero/SlipDegPerMinute", turretSlipDegPerMinute, "deg");
+            Telemetry.logDash(
+                    "Vision/TurretZero/SlipDegPerKiloDegTravel",
+                    turretSlipDegPerKiloDegTravel,
+                    "deg");
+            Telemetry.log(
+                    "Vision/TurretZero/CorrectedTotalDeg",
+                    Robot.getTurret().getZeroCorrectionTotalDegrees(),
+                    "deg");
+        }
     }
 
     /**

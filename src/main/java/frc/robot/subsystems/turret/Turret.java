@@ -205,19 +205,17 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/WantedState", wantedState.toString());
         Telemetry.log("Turret/SystemState", systemState.toString());
         Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Turret/Voltage", getVoltage(), "volts");
-        Telemetry.log("Turret/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("Turret/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("Turret/Temp", getTemp(), "deg_C");
-        Telemetry.log("Turret/MotorConnected", isMotorConnected());
-        Telemetry.log("Turret/CommandedDegrees", commandedDegrees, "deg");
+        // The turret is the most-watched mechanism on the dashboard, so its loop-rate values are
+        // all logDash; the diagnostics are 10 Hz like every other mechanism.
+        logDiagnostics("Turret", true);
+        Telemetry.logDash("Turret/CommandedDegrees", commandedDegrees, "deg");
         updateTravel();
-        Telemetry.log("Turret/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.logDash("Turret/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Turret/TravelTotalDeg", travelTotalDegrees, "deg");
-        Telemetry.log("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
+        Telemetry.logDash("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
         Telemetry.log("Turret/CommandedRotPerSec", mechOmegaRotPerSec, "rot/sec");
         Telemetry.log("Turret/Unwrapping", unwrapping);
-        Telemetry.log("Turret/ReadyToShoot", isReadyToShoot());
+        Telemetry.logDash("Turret/ReadyToShoot", isReadyToShoot());
     }
     /**
      * Declares the turret's current physical position to be its zero (facing away from the intake).
@@ -271,7 +269,7 @@ public class Turret extends Mechanism {
         if (!Double.isNaN(lastTravelPositionDegrees)) {
             lastTravelPositionDegrees += errorDegrees;
         }
-        Telemetry.log("Turret/ZeroCorrectionTotalDeg", zeroCorrectionTotalDegrees, "deg");
+        Telemetry.logDash("Turret/ZeroCorrectionTotalDeg", zeroCorrectionTotalDegrees, "deg");
     }
 
     /**

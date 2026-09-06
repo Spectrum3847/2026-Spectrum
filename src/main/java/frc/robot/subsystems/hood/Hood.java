@@ -189,15 +189,11 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/WantedState", wantedState.toString());
         Telemetry.log("Hood/SystemState", systemState.toString());
         Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Hood/Voltage", getVoltage(), "volts");
-        Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
+        logDiagnostics("Hood", true);
         Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.logDash("Hood/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
         Telemetry.log("Hood/AtAngle", isAtAngle());
-        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
-        Telemetry.log("Hood/MotorConnected", isMotorConnected());
     }
 
     // --------------------------------------------------------------------------------

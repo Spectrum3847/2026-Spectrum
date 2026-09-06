@@ -62,7 +62,8 @@ public class VisionLogger {
      */
     public double getEstimateAge() {
         double age = limelight.getLastEstimateAgeSeconds();
-        Telemetry.log(estimateAgeKey, age, "seconds");
+        // On the dashboard (Elastic watches the turret camera's age).
+        Telemetry.logDash(estimateAgeKey, age, "seconds");
         return age;
     }
 
@@ -85,7 +86,8 @@ public class VisionLogger {
      */
     public boolean getCameraConnection() {
         boolean connected = limelight.isCameraConnected();
-        Telemetry.log(connectionKey, connected);
+        // On the dashboard: one indicator per camera.
+        Telemetry.logDash(connectionKey, connected);
         return connected;
     }
 

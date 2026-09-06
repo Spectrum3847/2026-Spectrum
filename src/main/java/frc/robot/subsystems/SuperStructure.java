@@ -183,7 +183,7 @@ public class SuperStructure {
         previousSuperState = currentSuperState;
 
         Telemetry.log("SuperStructure/WantedSuperState", wantedSuperState.toString());
-        Telemetry.log("SuperStructure/CurrentSuperState", currentSuperState.toString());
+        Telemetry.logDash("SuperStructure/CurrentSuperState", currentSuperState.toString());
         Telemetry.log(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
     }
@@ -324,13 +324,13 @@ public class SuperStructure {
             }
         }
 
-        Telemetry.log("SuperStructure/ShotReady/LauncherAtSpeed", launcherAtSpeed);
+        Telemetry.logDash("SuperStructure/ShotReady/LauncherAtSpeed", launcherAtSpeed);
         Telemetry.log("SuperStructure/ShotReady/HoodAtAngle", hoodAtAngle);
-        Telemetry.log("SuperStructure/ShotReady/TurretOnTarget", turretOnTarget);
+        Telemetry.logDash("SuperStructure/ShotReady/TurretOnTarget", turretOnTarget);
         Telemetry.log("SuperStructure/ShotReady/ShotInRange", shotInRange);
         Telemetry.log("SuperStructure/ShotReady/PoseTrusted", poseTrusted);
         Telemetry.log("SuperStructure/ShotReady/RangeOk", rangeOk);
-        Telemetry.log("SuperStructure/ShotReady/Composite", shotReady);
+        Telemetry.logDash("SuperStructure/ShotReady/Composite", shotReady);
         Telemetry.log("SuperStructure/ShotReady/StartReady", startReady);
         Telemetry.log("SuperStructure/ShotReady/KeepReady", keepReady);
         Telemetry.log("SuperStructure/ShotReady/GateOpen", feedGateOpen);
@@ -339,8 +339,11 @@ public class SuperStructure {
         Telemetry.log("SuperStructure/ShotReady/HoldingFeed", launching && !isFeedAllowed());
         Telemetry.log("SuperStructure/ShotReady/LaunchingLoops", launchingLoops);
         Telemetry.log("SuperStructure/ShotReady/HeldFeedLoops", heldFeedLoops);
-        Telemetry.log("SuperStructure/ShotReady/SecondsSinceVision", secondsSinceVision, "seconds");
-        Telemetry.log("Turret/TrackingErrorDegrees", turret.getTrackingErrorDegrees(), "deg");
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.logDash(
+                    "SuperStructure/ShotReady/SecondsSinceVision", secondsSinceVision, "seconds");
+        }
+        Telemetry.logDash("Turret/TrackingErrorDegrees", turret.getTrackingErrorDegrees(), "deg");
     }
 
     /**

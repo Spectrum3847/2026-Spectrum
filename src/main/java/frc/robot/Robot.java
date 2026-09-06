@@ -1,6 +1,7 @@
 package frc.robot;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.FollowPathCommand;
@@ -16,6 +17,7 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -58,6 +60,7 @@ import frc.robot.subsystems.turret.Turret;
 import frc.robot.subsystems.turret.Turret.TurretConfig;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.Vision.VisionConfig;
+import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.framework.SpectrumRobot;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.BatteryLogger;
@@ -127,7 +130,16 @@ public class Robot extends SpectrumRobot {
     /** Creates a new Robot instance. */
     public Robot() {
         super();
-        Telemetry.start(true, true, false, true, false, true, PrintPriority.NORMAL);
+        /*
+         * Phoenix otherwise starts writing .hoot signal logs for every CAN device a second after
+         * the first enable. Nobody replays them in Tuner X, and on 2026-09-05 they were a large
+         * share of the 2.2 GB on the rio's SD card, written alongside the wpilog on a machine whose
+         * CPU was already at 92-95%. SignalLogger.start() still works for a deliberate capture.
+         */
+        SignalLogger.enableAutoLogging(false);
+
+        // Mirror-to-NetworkTables off; see Telemetry.start() for what the dashboard gets instead.
+        Telemetry.start(false, true, false, true, false, true, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
@@ -203,12 +215,13 @@ public class Robot extends SpectrumRobot {
 
         RobotController.setBrownoutVoltage(Units.Volts.of(4.6));
 
-        Telemetry.log("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
-        Telemetry.log("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
-        Telemetry.log("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
-        Telemetry.log("BuildConstants/GitDate", BuildConstants.GIT_DATE);
-        Telemetry.log("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
-        Telemetry.log(
+        // Logged once; the robot app reads these over NetworkTables, so publish them directly.
+        Telemetry.logDashAlways("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
+        Telemetry.logDashAlways("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
+        Telemetry.logDashAlways("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
+        Telemetry.logDashAlways("BuildConstants/GitDate", BuildConstants.GIT_DATE);
+        Telemetry.logDashAlways("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
+        Telemetry.logDashAlways(
                 "BuildConstants/GitDirty",
                 switch (BuildConstants.DIRTY) {
                     case 0 -> "All changes committed";
@@ -364,6 +377,14 @@ public class Robot extends SpectrumRobot {
      */
     @Override
     public void robotPeriodic() {
+        RobotLoop.next();
+        /*
+         * Real-time priority for the loop body only. On 2026-09-05 the rio CPU sat at 92-95% and
+         * the DogLog, NetworkTables and JIT threads preempted this thread in the middle of loops;
+         * every section of the loop stretched together, which is what preemption looks like. The
+         * finally block hands the CPU back so those threads get the rest of the period.
+         */
+        Threads.setCurrentThreadPriority(true, 99);
         try {
             Telemetry.time("Scheduler/robotPeriodic");
 
@@ -396,18 +417,13 @@ public class Robot extends SpectrumRobot {
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
             var shift = ShiftHelpers.getOfficialShiftInfo();
             Telemetry.log("Match Data/InShift", shift.active());
-            Telemetry.log("Match Data/TimeLeftInShift", shift.remainingTime(), "seconds");
+            Telemetry.logDash("Match Data/TimeLeftInShift", shift.remainingTime(), "seconds");
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
             batteryLogger.logPower();
 
-            var canInfo = mainCANBus.getStatus();
-            Telemetry.log("CANivore/BusUtilization", canInfo.BusUtilization * 100, "%");
-            Telemetry.log("CANivore/BusOffCount", canInfo.BusOffCount);
-            Telemetry.log("CANivore/TxFullCount", canInfo.TxFullCount);
-            Telemetry.log("CANivore/ReceiveErrorCounter", canInfo.REC);
-            Telemetry.log("CANivore/TransmitErrorCounter", canInfo.TEC);
+            logCanBusStatus();
 
             field2d.setRobotPose(swerve.getRobotPose());
 
@@ -416,12 +432,62 @@ public class Robot extends SpectrumRobot {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
+        } finally {
+            Threads.setCurrentThreadPriority(false, 10);
         }
     }
+
+    /** FPGA time of the last CANivore status read. */
+    private double lastCanStatusSeconds = Double.NEGATIVE_INFINITY;
+
+    /**
+     * Reads and logs CANivore bus health once a second.
+     *
+     * <p>CTRE documents {@code CANBus.getStatus()} as blocking for up to 1 ms, and it ran every
+     * loop through 2026-09-05: up to 5% of the budget for counters that are cumulative and a
+     * utilization figure that moves over seconds. Nothing is lost at 1 Hz; a bus-off or a TX-full
+     * event still shows within a second.
+     */
+    private void logCanBusStatus() {
+        double now = Timer.getFPGATimestamp();
+        if (now - lastCanStatusSeconds < 1.0) {
+            return;
+        }
+        lastCanStatusSeconds = now;
+
+        var canInfo = mainCANBus.getStatus();
+        Telemetry.logDashAlways("CANivore/BusUtilization", canInfo.BusUtilization * 100, "%");
+        Telemetry.log("CANivore/BusOffCount", canInfo.BusOffCount);
+        Telemetry.log("CANivore/TxFullCount", canInfo.TxFullCount);
+        Telemetry.log("CANivore/ReceiveErrorCounter", canInfo.REC);
+        Telemetry.logDashAlways("CANivore/TransmitErrorCounter", canInfo.TEC);
+    }
+
+    /** Seconds between deliberate full collections while sitting disabled. */
+    private static final double DISABLED_GC_PERIOD_SECONDS = 60.0;
+
+    private double lastDisabledGcSeconds = Double.NEGATIVE_INFINITY;
+
+    /**
+     * Runs a full garbage collection now, while the robot cannot move.
+     *
+     * <p>Serial GC's one long pause is the full collection it runs when old gen fills; on a 100 MB
+     * heap on this CPU that is the half-second-and-up class of stall, and while it runs the loop
+     * stops feeding the watchdog and the robot drops out mid-match. Emptying old gen at every
+     * disable (which includes the auto-to-teleop gap) and once a minute while sitting disabled
+     * means every enabled period starts with as much headroom as the heap has. The pause still
+     * happens; it happens here, where it costs nothing.
+     */
+    private void collectGarbageWhileDisabled() {
+        lastDisabledGcSeconds = Timer.getFPGATimestamp();
+        System.gc();
+    }
+
     /** Disabled init. */
     @Override
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
+        collectGarbageWhileDisabled();
 
         // Put the robot back on the selected auto's starting pose. On the field vision overwrites
         // this within a loop or two; in simulation it is the only thing that ever does it.
@@ -464,6 +530,10 @@ public class Robot extends SpectrumRobot {
     /** Disabled periodic. */
     @Override
     public void disabledPeriodic() {
+        if (Timer.getFPGATimestamp() - lastDisabledGcSeconds >= DISABLED_GC_PERIOD_SECONDS) {
+            collectGarbageWhileDisabled();
+        }
+
         String fullAutoName = auton.getAutonomousCommand().getName();
         boolean leftStart = !fullAutoName.endsWith(" - Right");
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();

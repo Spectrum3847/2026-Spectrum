@@ -505,24 +505,31 @@ public class ShotCalculator {
                         distanceNoLookahead,
                         tofFinal);
 
-        Telemetry.log("ShotCalc/LookaheadPose", lookaheadPose);
-        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDist, "meters");
-        Telemetry.log("ShotCalc/DistanceNoLookahead", distanceNoLookahead, "meters");
-        Telemetry.log("ShotCalc/TurretAngleDeg", turretAngle.getDegrees(), "degrees");
-        Telemetry.log("ShotCalc/YawOffsetDeg", yawOffsetDeg, "degrees");
-        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
-        Telemetry.log("ShotCalc/ExitSpeedMs", exitSpeedMs, "m/s");
-        Telemetry.log("ShotCalc/RadialVelocityMs", radialVelocity, "m/s");
-        Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
-        Telemetry.log("ShotCalc/TimeOfFlight", tofFinal, "seconds");
-        Telemetry.log("ShotCalc/FeedShot", feed);
-        Telemetry.log("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
-        Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
-        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
-        Telemetry.log(
-                "ShotCalc/HoodModelOffsetDegrees", WANTED_HUB_MODEL.hoodOffsetDeg(), "degrees");
-        Telemetry.log("ShotCalc/Target", target);
+        // Fifteen keys that move with the pose every loop. Loop rate while a shot is in progress,
+        // when they are the record of what was aimed; 10 Hz the rest of the time.
+        boolean launching =
+                Robot.getSuperStructure() != null
+                        && Robot.getSuperStructure().currentStateIsLaunching();
+        if (launching || Telemetry.slowLogThisLoop()) {
+            Telemetry.log("ShotCalc/LookaheadPose", lookaheadPose);
+            Telemetry.logDash("ShotCalc/DistanceMeters", lookaheadDist, "meters");
+            Telemetry.log("ShotCalc/DistanceNoLookahead", distanceNoLookahead, "meters");
+            Telemetry.logDash("ShotCalc/TurretAngleDeg", turretAngle.getDegrees(), "degrees");
+            Telemetry.log("ShotCalc/YawOffsetDeg", yawOffsetDeg, "degrees");
+            Telemetry.logDash("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
+            Telemetry.logDash("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
+            Telemetry.log("ShotCalc/ExitSpeedMs", exitSpeedMs, "m/s");
+            Telemetry.log("ShotCalc/RadialVelocityMs", radialVelocity, "m/s");
+            Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
+            Telemetry.logDash("ShotCalc/TimeOfFlight", tofFinal, "seconds");
+            Telemetry.log("ShotCalc/FeedShot", feed);
+            Telemetry.logDash("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
+            Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
+            Telemetry.logDash("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
+            Telemetry.logDash(
+                    "ShotCalc/HoodModelOffsetDegrees", WANTED_HUB_MODEL.hoodOffsetDeg(), "degrees");
+            Telemetry.log("ShotCalc/Target", target);
+        }
 
         return latestParameters;
     }

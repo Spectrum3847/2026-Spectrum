@@ -11,7 +11,7 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 * Mechanism class wraps all the TalonFX configurations and control mode calls so they are easier to use.
 * Heavy use of Triggers as states for activating commands. This all but eliminates the need for complex multi-mechanism command groups.
 * Simulation classes allow us to build a good representation of the complete robot in sim so more of the code can be tested without the robot.
-* CachedDouble: Allows a value to only be updated once per periodic loop. This is useful for CANbus calls to sensors or motors, etc.
+* Mechanism refreshes all of a motor's status signals with one Phoenix `refreshAll` per robot loop (keyed on `RobotLoop`), so every getter in a loop sees the same sample and the loop makes one JNI call per mechanism instead of eight. CachedDouble is still available for the same once-per-loop pattern on any supplier.
 * LED classes that use the CTRE CANdle for animations, easily have multiple strips on one port, has priorities for when to override animations that are currently running, different animations for each control mode, etc.
 
 ### Build Tools and Extensions
