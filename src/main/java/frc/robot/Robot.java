@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -384,12 +383,13 @@ public class Robot extends SpectrumRobot {
         RobotLoop.next();
         systemLoad.periodic();
         /*
-         * Real-time priority for the loop body only. On 2026-09-05 the rio CPU sat at 92-95% and
-         * the DogLog, NetworkTables and JIT threads preempted this thread in the middle of loops;
-         * every section of the loop stretched together, which is what preemption looks like. The
-         * finally block hands the CPU back so those threads get the rest of the period.
+         * Deliberately NOT raised to real-time priority. Tried on 2026-09-05: with the loop body
+         * still 15-30 ms long, a SCHED_FIFO main thread owned one core for most of every period and
+         * Phoenix's CAN frame dispatch lost its turn. The 250 Hz swerve odometry thread, which
+         * tolerates about 8 ms of frame lag, reported stale Position/Velocity/Yaw signals and
+         * WaitForAll -1003 errors within seconds of deploy, sitting disabled. Priority is not a
+         * substitute for a loop body under budget; cut the work first.
          */
-        Threads.setCurrentThreadPriority(true, 99);
         try {
             Telemetry.time("Scheduler/robotPeriodic");
 
@@ -437,8 +437,6 @@ public class Robot extends SpectrumRobot {
             // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
-        } finally {
-            Threads.setCurrentThreadPriority(false, 10);
         }
     }
 
