@@ -114,3 +114,48 @@ Targets: RIO CPU under 75 percent, enabled loop period median under 20 ms, CANiv
 ## Files touched tonight
 
 `build.gradle`, `Robot`, `SpectrumRobot`, `RobotLoop` (new), `Telemetry`, `SystemLoadMonitor` (new), `BatteryLogger`, `Mechanism`, `Swerve`, `SwerveAlignment`, `Vision`, `VisionLogger`, `LimelightHelpers`, `ShotCalculator`, `SuperStructure`, `Turret`, `Launcher`, `LauncherTower`, `Hood`, `DyeRotor`, `FuelIntake`, `IntakeExtension`, `Pilot`, `elastic-layout.json`, `scripts/looptime.js` and `scripts/dslog.js` (new), and the docs for logging, DogLog, Elastic, Tuner X and the offseason handoff.
+
+## Results from the shop laptop, 2026-09-05 22:00 to 22:20
+
+*Robot on the bench at 10.85.15.2 (team number 8515 in `.wpilib/wpilib_preferences.json`; the 3847 addresses do not answer). Disabled the whole time. Rio clock is UTC, so rio log names are five hours ahead of the Driver Station file names.*
+
+**The -1003 and stale-signal errors are gone with `704030d` deployed.** Deployed `bd8b047` at 22:07:56. Nine minutes disabled: zero `WaitForAll -1003`, zero `1000 CAN message is stale`, zero talon fx 18 errors. Same bench, same wiring, same evening.
+
+What was actually running before that: the jar on the rio was built at 21:27:56, before the revert commit existed, so the 21:28 Driver Station session was the **real-time priority build**. Its numbers, against the old-code session just before it and the fixed build after:
+
+| DS session | Code | RIO CPU med | CANivore bus | Loop body med | -1003 | Stale warnings |
+|---|---|---|---|---|---|---|
+| 20:53, 7 min | `a9b761e` (old) | 95% | 67% | 14.1 ms | 11 (2/min) | 16 |
+| 21:28, 31 min | `c4d7b54` + RT priority 99 | 57% | 46% | 2.8 ms | 116 (18/min early) | 682 |
+| 22:07, 9 min | `bd8b047` (revert in) | 62% | 46% | 5 ms warming up | **0** | **0** |
+
+The 21:28 errors were front-loaded: 22 in the first minute, 14, 7, 7, 11, 7, then about one a minute after ten minutes. That is the JIT warming up. Early on the loop body is long and interpreted, a SCHED_FIFO 99 main thread holds a core for all of it, and Phoenix's threads miss their turn. As the body shrank the errors thinned out. Bus utilization was already down to 46 percent in that session, so the bus was not what was tripping the odometry thread; the priority was. The revert fixed it; nothing else changed between the two builds.
+
+**The daytime and 09-04 rates were mostly talon fx 18.** In the 09-04 23:51 session the -1003 errors came every 3.00 s for 40 minutes, 810 of them, and 774 were each followed within half a second by `-10021 Device firmware could not be retrieved` for talon fx 18. Phoenix retried the unpowered follower every three seconds and each retry stalled the frame path long enough to trip the odometry thread's two-period timeout. Talon 18 has power now and neither error has appeared since. Sessions with talon 18 quiet had 0 to 4 -1003s in total.
+
+**Odometry stays at 250 Hz.** No reason to drop to 200 or 150 Hz on this evidence. Revisit only if -1003s come back while enabled with the bus under 55 percent.
+
+### What the rio looks like now (disabled, warm, from `/proc`)
+
+- Two cores. Busy 69 to 73 percent by `/proc/stat` over 30 s, of which user 40, sys 23 to 27, softirq 5 to 7. The Driver Station reports 62 percent median for the same build. The system time is CAN and USB work, not Java.
+- About 23,000 context switches a second.
+- The CANivore enumerates at **USB Full Speed, 12 Mbps** (`/sys/bus/usb/devices/1-1.2/speed`), behind the rio's internal hub, with 1,100 USB interrupts a second. That is what the device is; it is not a fault, but every CAN frame batch pays a 1 ms USB frame.
+- Hottest threads (percent of one core, 10 s sample): main robot thread 35; Phoenix odometry thread (SCHED_RR priority 1) 16; two CANivore transport threads (SCHED_RR 3 and 2) 14 and 11; two unnamed native threads at normal priority 15 and 8; DogLog log thread 11; rio CAN `can_recv` 5; PathPlanner `ADStar Planning` 4. The main thread is at normal priority (policy 0), which confirms the revert is what is running. WPILib's HAL notifier is the one SCHED_FIFO thread, at priority 40, and is idle.
+- The main thread at 35 percent with a 3 to 5 ms loop body is more than the body accounts for. The rest is the loop's own overhead outside `robotPeriodic` (DS refresh, SmartDashboard, LiveWindow) plus JIT early on. Worth a look if CPU needs to come down further; not related to the CAN errors.
+- Seven loops over 200 ms in the first eight minutes disabled: the deliberate full GC every 60 s while disabled, plus PathPlanner warmup. Expected.
+
+### Still to do
+
+1. Enable and drive with `bd8b047` or later. Everything above is disabled-only; the enabled loop and bus numbers in the tables at the top are still from the old code.
+2. Archive tonight's logs: rio `FRC_20260906_014905` (old code, 20:49 to 21:27), `FRC_20260906_022826` (RT-priority build, 21:28 to 22:07), `FRC_20260906_030756` (revert), and the Driver Station files `2026_09_05 20_53_13`, `21_28_03`, `22_07_36`.
+3. Commit or drop the uncommitted `setUpdateFrequencyForAll(20, moduleCurrentSignals)` in `Swerve` if it is still in someone's tree; it was not on this laptop.
+4. `scripts/dslog.js` counts the `Tracer` epoch prints as loop overruns; its "loop overrun prints" number is high by those.
+
+### Enabled on the cart, 22:54 to 23:47 (two teleop runs, 185 s and 183 s, no stick input, turret belt off)
+
+- **CAN:** two `WaitForAll -1003` in the first run (t=1560 and t=1658 in `FRC_20260906_030756.wpilog`, one with stale Position/Velocity on talon fx 2), none in the second. 0.3 per minute enabled overall. Not correlated with CPU bursts.
+- **Load enabled:** CPU 88 to 92 percent busy by both `SystemLoadMonitor` and a `/proc` sampler on the rio (disabled: 65 to 70). CANivore bus 58 percent (disabled 46). Loop period median 20.1 ms, 10 to 13 percent of loops over 25 ms, body median 7.2 ms. The rise is the swerve control frames: with `TELEOP_DRIVE` active Phoenix sends eight TorqueCurrentFOC requests every 4 ms regardless of stick input, and the kernel USB work that comes with them is the roughly 40 percent of one core that no thread owns (`irq/53-e0002000` shows 15 percent, the rest is hardirq/softirq on the `cpu` line).
+- **Thread split enabled** (percent of one core, 3 min average): main 22, Phoenix odometry (SCHED_RR 1) 23, CANivore transport threads 10 and 6, two unnamed native threads 9 and 4, DogLog 8, `FRC_NetCommDaemon` 5, eth irq 4.
+- **Unexplained once:** in the first run, seven-second stretches at t=1518 and t=1579 (60 s apart, 22 s after enable) where every loop was 30 to 130 ms and every section stretched together, vision 2 to 40 ms, scheduler 4 to 60 ms. Pure contention from something else, not GC (no full collection in this JVM while enabled, `Gc/MsPerSecond` flat). Did not recur in the second run with the sampler watching. If it comes back, `/tmp/sampler.sh` on the rio (one awk pass per second into `/home/lvuser/sample.txt`) will name the thread; parse with the pattern in this session's scripts, watching for the double space after `cpu` in `/proc/stat`.
+- **Subsystems behaved as designed:** Launcher `IDLE_PREP` 700 RPM at 2 V, DyeRotor `IDLE_SLOW_INDEX` -20 RPM, turret `AIM_AT_TARGET` from odometry with no tags (1028 degrees of travel with the belt off), hood and tower off, swerve holding on the cart at 4 A drive and 6 A steer stator. Alerts: only gamepads disconnected and pose not vision-seeded. Battery 11.85 V, known low.
+- **Next lever if CPU headroom matters:** odometry 250 to 200 Hz in the `Swerve` constructor. Cuts odometry thread, control frames, USB interrupts and bus by a fifth. Not needed for the CAN errors; those were the priority build and talon 18.
