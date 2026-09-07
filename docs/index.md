@@ -23,7 +23,7 @@ By the end of step 8 you'll know enough Java and enough about command-based FRC 
 
 ---
 
-## I already know how to program, show me the reference
+## I already know how to program: show me the reference
 
 Self-contained pages, browse as the work demands. Each one assumes you can read Java and have a basic mental model of WPILib command-based robots.
 
@@ -70,6 +70,6 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 
 ## Each doc tells you what it expects
 
-Every page starts with a one-line note about audience and prerequisites. If a reference page says "assumes you've read [Class Generation](coding-conventions/class-generation.md)", read that first, the reference docs don't repeat shared context.
+Every page starts with a one-line note about audience and prerequisites. If a reference page says "assumes you've read [Class Generation](coding-conventions/class-generation.md)", read that first; the reference docs don't repeat shared context.
 
 When you find something unclear or wrong, fix it. Documentation is part of the codebase; PRs that improve docs are merged the same way as PRs that change code. See [Commits and Pull Requests](coding-conventions/commits-pull-requests.md) for the workflow.

@@ -59,7 +59,7 @@ while (condition) {
 }
 ```
 
-In command-based robot code, true `while` loops doing I/O or sensor polling inside `periodic()` are uncommon, the scheduler's 20 ms loop handles that for you. But the concept shows up in setup code or utility methods where you're waiting on a result before continuing.
+In command-based robot code, true `while` loops doing I/O or sensor polling inside `periodic()` are uncommon; the scheduler's 20 ms loop handles that for you. But the concept shows up in setup code or utility methods where you're waiting on a result before continuing.
 
 ```java
 boolean targetFound = false;
@@ -81,7 +81,7 @@ do {
 } while (targetPos != 0);
 ```
 
-This is uncommon in the codebase, only reach for it when you need that "run at least once" guarantee.
+This is uncommon in the codebase; only reach for it when you need that "run at least once" guarantee.
 
 ## Variables Inside vs. Outside Loops
 

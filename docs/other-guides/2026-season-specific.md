@@ -32,13 +32,13 @@ Each config can mark a mechanism present or absent via `setAttached(boolean)` so
 
 ## States and Triggers
 
-Each subsystem exposes a `setWantedState(<Subsystem>.WantedState)` entry point and runs its own `WantedState`/`SystemState` machine internally. Triggers are conditions that fire commands, a `pilot.X` press, a sensor reading, a `SpectrumState` another subsystem flipped.
+Each subsystem exposes a `setWantedState(<Subsystem>.WantedState)` entry point and runs its own `WantedState`/`SystemState` machine internally. Triggers are conditions that fire commands, such as a `pilot.X` press, a sensor reading, or a `SpectrumState` another subsystem flipped.
 
-The high-level orchestrator is [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java). It maps the `WantedSuperState` enum (below) to a coordinated configuration across every mechanism. `setWantedSuperState(WantedSuperState)` is the entry point (with `setStateCommand(...)` as the command wrapper used by bindings), when `INTAKE_FUEL` fires, `SuperStructure` fans that intent out to each subsystem's `setWantedState(...)`: the fuel intake runs, the indexer bed slow-indexes, the extension extends, and the launcher/hood hold their prep/aim states.
+The high-level orchestrator is [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java). It maps the `WantedSuperState` enum (below) to a coordinated configuration across every mechanism. `setWantedSuperState(WantedSuperState)` is the entry point (with `setStateCommand(...)` as the command wrapper used by bindings); when `INTAKE_FUEL` fires, `SuperStructure` fans that intent out to each subsystem's `setWantedState(...)`: the fuel intake runs, the indexer bed slow-indexes, the extension extends, and the launcher/hood hold their prep/aim states.
 
 ## Pose Estimation
 
-Swerve odometry and Limelight MegaTag readings feed a WPILib `SwerveDrivePoseEstimator`. The filtering, weighting, and which Limelight to trust live in [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java), read [Vision](../tools/vision.md) for the full integration scheme.
+Swerve odometry and Limelight MegaTag readings feed a WPILib `SwerveDrivePoseEstimator`. The filtering, weighting, and which Limelight to trust live in [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java); read [Vision](../tools/vision.md) for the full integration scheme.
 
 ## 2026 Robot States
 
@@ -59,7 +59,7 @@ These are the entries in `SuperStructure.WantedSuperState`, applied by `setWante
 | `EJECT`                             | Spit fuel back out.                                                  |
 | `FORCE_HOME`                        | Drive every mechanism to its home position.                          |
 
-`CurrentSuperState` mirrors these, `handleStateTransition()` maps the wanted state to the current one each loop.
+`CurrentSuperState` mirrors these; `handleStateTransition()` maps the wanted state to the current one each loop.
 
 A few field-location triggers live on `SuperStructure` itself rather than in the enum: `robotInNeutralZone()`, `robotInEnemyZone()`, `robotInFeedZone()`, `robotInScoreZone()` (which delegate to the swerve pose).
 

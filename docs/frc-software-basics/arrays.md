@@ -83,9 +83,9 @@ For how this pattern fits into subsystem design, see [Class Generation](../codin
 
 ## Array Errors
 
-`ArrayIndexOutOfBoundsException`, you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
+`ArrayIndexOutOfBoundsException`: you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
 
-`NullPointerException`, you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
+`NullPointerException`: you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
 
 ---
 

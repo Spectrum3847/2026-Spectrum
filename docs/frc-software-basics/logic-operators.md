@@ -31,8 +31,8 @@ s1 == s2;       // may be false, compares memory address
 `&&` (AND) returns `true` only when both sides are `true`. `||` (OR) returns `true` when either side is `true`.
 
 ```java
-(5 == 5) && (4 == 4)   // true , both sides true
-(5 == 5) || (5 == 4)   // true , left side is true
+(5 == 5) && (4 == 4)   // true, both sides true
+(5 == 5) || (5 == 4)   // true, left side is true
 (5 == 4) && (5 == 5)   // false, left side is false
 (5 == 4) || (5 == 3)   // false, both sides false
 ```
@@ -88,7 +88,7 @@ Once any branch runs, the rest are skipped. That's different from writing three 
 
 ### Switch
 
-When you're branching on a single enum or integer value, a `switch` often reads more clearly than a stack of `else if`. The codebase uses Java's modern arrow-syntax switch expressions, `SuperStructure.handleStateTransitions()` maps each wanted state to a current one:
+When you're branching on a single enum or integer value, a `switch` often reads more clearly than a stack of `else if`. The codebase uses Java's modern arrow-syntax switch expressions; `SuperStructure.handleStateTransitions()` maps each wanted state to a current one:
 
 ```java
 private CurrentSuperState handleStateTransitions() {
@@ -101,11 +101,11 @@ private CurrentSuperState handleStateTransitions() {
 }
 ```
 
-The arrow form doesn't fall through between cases, so you don't need `break` statements. The older colon-syntax switch does fall through unless you `break` explicitly, that's a common source of bugs if you're used to the newer form.
+The arrow form doesn't fall through between cases, so you don't need `break` statements. The older colon-syntax switch does fall through unless you `break` explicitly; that's a common source of bugs if you're used to the newer form.
 
 ## Strings
 
-`String` isn't a primitive type but it's used constantly. It's immutable, operations return a new string rather than modifying the original.
+`String` isn't a primitive type but it's used constantly. It's immutable; operations return a new string rather than modifying the original.
 
 ```java
 String name = "Spectrum";

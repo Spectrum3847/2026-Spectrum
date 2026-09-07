@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-The first 15 seconds of a match are unattended, the robot runs whatever sequence was selected before the match started. For 2026 we use [PathPlanner](https://pathplanner.dev) for path-following and our own `Auton` class to stitch paths and shoot sequences together.
+The first 15 seconds of a match are unattended; the robot runs whatever sequence was selected before the match started. For 2026 we use [PathPlanner](https://pathplanner.dev) for path-following and our own `Auton` class to stitch paths and shoot sequences together.
 
 ## How It's Wired
 
@@ -12,7 +12,7 @@ Most of the routine logic lives in one file: [`frc.robot.auton.Auton`](../../src
 * A handful of `EventTrigger`s with names that match the markers in the `.auto` files, `intake`, `shotPrep`, `shoot`, `clearState`, `unjam`, `poseUpdate`. When PathPlanner crosses one, the matching `Trigger` fires whatever command has been bound to it in [`Robot.java`](../../src/main/java/frc/robot/Robot.java) (e.g. `Auton.autonIntake.onTrue(...)`).
 * The `launch()` command, which flips the `autonLaunching` state, sets `WantedSuperState.LAUNCH_WITH_SQUEEZE` for 2.5 seconds, then returns to `IDLE`. Every auto chains some number of `SpectrumAuton(...)` segments together with `launch()` between them.
 
-`Robot.autonomousInit` calls `Auton.init()`, which schedules the selected command and starts an FPGA timer. `Robot.autonomousExit` calls `printAutoDuration()` so the console shows how long the routine actually took (or how much it had left when teleop took over). The timer trick is borrowed from team 6328, it makes "did the auto finish in time" answerable at a glance.
+`Robot.autonomousInit` calls `Auton.init()`, which schedules the selected command and starts an FPGA timer. `Robot.autonomousExit` calls `printAutoDuration()` so the console shows how long the routine actually took (or how much it had left when teleop took over). The timer trick is borrowed from team 6328; it makes "did the auto finish in time" answerable at a glance.
 
 ## The Routine Catalog
 
@@ -46,7 +46,7 @@ Every meaningful behavior during an auto routine fires from an event marker, not
 2. `Auton.java` declares a matching `public static final EventTrigger autonIntake = new EventTrigger("intake");` etc.
 3. `Robot.java` binds those triggers to whatever super-state should fire, e.g. `Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL))`.
 
-The advantage is the auto file stays declarative, "intake from here to here, then shoot", instead of hardcoding timings that drift the moment the robot accelerates differently.
+The advantage is the auto file stays declarative: "intake from here to here, then shoot", instead of hardcoding timings that drift the moment the robot accelerates differently.
 
 ## Adding a New Auto
 

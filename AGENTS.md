@@ -5,7 +5,7 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 
 ## Documentation (read this first)
 
-`docs/` is the source of truth for this codebase, read the relevant page instead of guessing, and update the docs when your changes affect behavior. (Verified 2026-08-03: `docs/index.md` exists and cross-links the pages below.)
+`docs/` is the source of truth for this codebase; read the relevant page instead of guessing, and update the docs when your changes affect behavior. (Verified 2026-08-03: `docs/index.md` exists and cross-links the pages below.)
 
 - `docs/index.md`: full doc map
 - `docs/other-guides/2026-season-specific.md`: what's in the codebase: subsystems, state machine, controls, per-robot configs
@@ -39,7 +39,7 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 
 ## Important Notes
 
-1. Run `./gradlew build` after any Java change, it auto-formats and runs SpotBugs/tests. Re-run if it fails on formatting.
+1. Run `./gradlew build` after any Java change; it auto-formats and runs SpotBugs/tests. Re-run if it fails on formatting.
 2. Never edit `BuildConstants.java`.
 3. New subsystem → register in `Robot.java` + `Coordinator.java`. New state → `State.java` + `Coordinator.java` + `RobotStates.java`. New paths/autos → `src/main/deploy/pathplanner/` + register in `Auton.java`. Hardware config → the `*2026.java` config class.
 4. Line endings must be **LF (UNIX)**; `.gitattributes` enforces `eol=lf`.

@@ -6,7 +6,7 @@ We use the [Android Open Source Project (AOSP) coding standards](https://source.
 
 ## Spotless Does the Mechanical Work
 
-[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.15.0").aosp()` and friends. There's no need to manually format anything, just `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
+[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.15.0").aosp()` and friends. There's no need to manually format anything; just run `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
 
 ## The Spirit, Borrowed from AOSP
 
@@ -50,7 +50,7 @@ This isn't a hard rule, but every existing subsystem follows it, and a reader sk
 
 ## Line Length
 
-`googleJavaFormat` wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured, pull out a local, split a chained `Commands.sequence(...)` across multiple lines with one command per line, etc. Don't fight the formatter; let it tell you where things are too dense.
+`googleJavaFormat` wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured: pull out a local, split a chained `Commands.sequence(...)` across multiple lines with one command per line, etc. Don't fight the formatter; let it tell you where things are too dense.
 
 ## When to Diverge
 

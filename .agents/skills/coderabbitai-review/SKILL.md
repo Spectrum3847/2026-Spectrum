@@ -74,7 +74,7 @@ Classify every comment:
 | Style preference only         | Apply only if it matches the repo conventions in `docs/coding-conventions/`; otherwise reply briefly and resolve. |
 
 Rule of thumb: fix fast, cheap, real issues; reply with evidence for everything
-else. Never blindly apply a suggestion, verify it against the actual code
+else. Never blindly apply a suggestion; verify it against the actual code
 first (read the file, check the behavior).
 
 ### 4. Fix and push
@@ -114,7 +114,7 @@ Repeat steps 3–5 until CodeRabbit approves the PR.
 - CodeRabbit posts inline comments on specific lines of the diff; these are
   fetched via `gh api repos/<owner>/<repo>/pulls/<PR>/comments` (not
   `gh pr view --comments`, which shows general PR review comments only).
-  Pushes that don't change the line may not re-trigger a comment, the bot
+  Pushes that don't change the line may not re-trigger a comment. The bot
   reports "existing comments not addressed" instead.
 - The bot runs as a status check; a green status can arrive before the review
   comment is posted, so re-check comments after checks pass.

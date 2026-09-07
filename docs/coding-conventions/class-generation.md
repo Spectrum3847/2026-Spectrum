@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-Conventions for designing classes and methods. Most of what follows is reinforced throughout `frc.spectrumLib`, if you're not sure how to structure something new, copy what an existing subsystem like `Launcher` or `Hood` already does.
+Conventions for designing classes and methods. Most of what follows is reinforced throughout `frc.spectrumLib`. If you're not sure how to structure something new, copy what an existing subsystem like `Launcher` or `Hood` already does.
 
 ## Subsystem Layout
 

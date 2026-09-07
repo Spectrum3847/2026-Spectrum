@@ -6,7 +6,7 @@ The basics docs in this section cover Java as a language. This page is the bridg
 
 ## The Command-Based Framework Replaces Most Loops
 
-The biggest shift from general Java to FRC Java is that WPILib's command-based framework handles repetition for you. `teleop` and `autonomous` aren't loops you write, the scheduler calls `periodic()` on every subsystem, then runs whatever commands are scheduled, 50 times a second.
+The biggest shift from general Java to FRC Java is that WPILib's command-based framework handles repetition for you. `teleop` and `autonomous` aren't loops you write. The scheduler calls `periodic()` on every subsystem, then runs whatever commands are scheduled, 50 times a second.
 
 That means `while` loops doing continuous robot control are almost never the right tool. Instead of:
 

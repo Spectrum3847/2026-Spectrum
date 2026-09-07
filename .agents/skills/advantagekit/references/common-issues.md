@@ -32,7 +32,7 @@ Robot code logic must be single-threaded for reliable replay. Thread timing vari
 **If a thread is truly necessary:**
 
 - Restrict it entirely to the IO implementation layer
-- The thread may collect sensor data internally and expose it through `updateInputs()`, this syncs to the main loop
+- The thread may collect sensor data internally and expose it through `updateInputs()`; this syncs to the main loop
 - Never call `Logger.recordOutput()` or `Logger.processInputs()` from a background thread
 
 ### What Not To Do
@@ -85,7 +85,7 @@ public class Robot extends LoggedRobot {
         Logger.addDataReceiver(new NT4Publisher());
         Logger.start(); // must be before any subsystem construction
 
-        robotContainer = new RobotContainer(); // safe, Logger is running
+        robotContainer = new RobotContainer(); // safe: Logger is running
     }
 }
 ```

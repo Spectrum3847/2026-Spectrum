@@ -32,7 +32,7 @@ this.swerveConfig = new SwerveConfig()
 
 To get that, annotate the class with `@Accessors(chain = true)`. Example in [`frc.spectrumLib.vision.Limelight`](../../src/main/java/frc/spectrumLib/vision/Limelight.java). Without it, the setters return `void` and chaining produces compile errors that are easy to misread ("cannot invoke `setMaxSpeed` on void").
 
-`@Accessors(chain = true)` is per-class, annotating one class doesn't affect others. If your `*Config` needs chaining and you didn't add it, the IDE will let you write `.setX(...).setY(...)` but the compile will fail.
+`@Accessors(chain = true)` is per-class; annotating one class doesn't affect others. If your `*Config` needs chaining and you didn't add it, the IDE will let you write `.setX(...).setY(...)` but the compile will fail.
 
 ## Other Annotations We Use
 
@@ -50,7 +50,7 @@ What we *don't* use:
 
 ## How It Works (Briefly)
 
-Lombok hooks into the Java compiler as an annotation processor. When `compileJava` runs, Lombok scans for its annotations and emits the corresponding method bytecode directly into the `.class` files. There's no source-code generation step you can see in the repo, the `.java` files genuinely don't contain the getters.
+Lombok hooks into the Java compiler as an annotation processor. When `compileJava` runs, Lombok scans for its annotations and emits the corresponding method bytecode directly into the `.class` files. There's no source-code generation step you can see in the repo; the `.java` files genuinely don't contain the getters.
 
 This has two implications:
 

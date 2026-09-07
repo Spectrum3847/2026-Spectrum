@@ -10,7 +10,7 @@ The fast path is in VSCode: `Ctrl+Shift+P → WPILib: Simulate Robot Code`. Grad
 
 From the terminal: `./gradlew simulateJava` does the same thing.
 
-Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriverstation()` from [`build.gradle`](../../build.gradle) wired up, Glass and the simulated DS come up by default. Elastic will also connect to `localhost` if you point it there.
+Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriverstation()` from [`build.gradle`](../../build.gradle) wired up; Glass and the simulated DS come up by default. Elastic will also connect to `localhost` if you point it there.
 
 ## RobotSim, Our Side-View Drawing
 
@@ -28,7 +28,7 @@ These came from Team 604's sample project and were adapted; the principle of "al
 
 ## Fuel Physics
 
-Game-piece physics, spawning, intake pickup, and projectile flight, runs through [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by `RobotSim` as its `ballSim` field and publishing to NetworkTables under `Sim/Fuel`. (MapleSim still simulates the swerve *drivetrain* via [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), but no longer the game pieces.)
+Game-piece physics, spawning, intake pickup, and projectile flight run through [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by `RobotSim` as its `ballSim` field and publishing to NetworkTables under `Sim/Fuel`. (MapleSim still simulates the swerve *drivetrain* via [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), but no longer the game pieces.)
 
 `RobotSim` sets it up in its constructor:
 
@@ -64,7 +64,7 @@ The sim is for *logic* validation. Mechanical and tuning validation happens on t
 
 A few things to check first when a sim result doesn't match reality:
 
-* `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere, the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
+* `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere; the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
 * `mapleSimDrive` is built from the per-robot swerve config. If you tweaked module positions in code but didn't redeploy/rebuild before running sim, MapleSim is still simulating yesterday's drivetrain.
 * The `FuelPhysicsSim` intake zone in `configBallSimRobot()` is in meters. A units mixup silently produces an intake box that catches nothing (or everything).
 
