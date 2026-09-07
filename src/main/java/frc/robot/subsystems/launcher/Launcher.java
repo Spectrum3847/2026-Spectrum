@@ -29,7 +29,14 @@ public class Launcher extends Mechanism {
                 Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
-        @Getter private final double supplyCurrentLimit = 80;
+        /**
+         * Was 80, then 65 after the 2026-09-06 21:49 log showed a squeeze launch pulling the
+         * battery to 8.3 V with the flywheels at 57 and 45 A supply. At 65 the shots got
+         * inconsistent and balls collided in the air: supply headroom is the flywheel's recovery
+         * time between balls. 75 keeps most of it.
+         */
+        @Getter private final double supplyCurrentLimit = 75;
+
         @Getter private final double statorCurrentLimit = 80;
         @Getter private final double forwardStatorCurrentLimit = statorCurrentLimit;
         @Getter private final double reverseStatorCurrentLimit = -10;
@@ -79,13 +86,22 @@ public class Launcher extends Mechanism {
         OFF,
         IDLE_PREP,
         LAUNCH,
+        /** Flywheel backwards, to push a ball stuck at the wheels back down during an unjam. */
+        REVERSE,
     }
 
     public enum SystemState {
         OFF,
         IDLE_PREP,
         LAUNCH,
+        REVERSE,
     }
+
+    /**
+     * Flywheel speed while unjamming. Modest on purpose: the reverse torque limit is only 10 A
+     * stator, so this is a nudge, not a launch in the other direction.
+     */
+    private static final double UNJAM_RPM = -1000;
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
@@ -103,6 +119,7 @@ public class Launcher extends Mechanism {
             case OFF -> SystemState.OFF;
             case IDLE_PREP -> SystemState.IDLE_PREP;
             case LAUNCH -> SystemState.LAUNCH;
+            case REVERSE -> SystemState.REVERSE;
         };
     }
     /** Flywheel speed commanded this loop (RPM); 0 when stopped. */
@@ -122,6 +139,9 @@ public class Launcher extends Mechanism {
             case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedRPM = params.flywheelSpeed();
+                break;
+            case REVERSE:
+                wantedRPM = UNJAM_RPM;
                 break;
         }
         commandedRPM = wantedRPM;

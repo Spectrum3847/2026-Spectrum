@@ -218,22 +218,108 @@ function checkElasticLayout() {
     };
     walk(path.join(REPO, "src/main/java"));
 
-    const logged = new Set();
+    /*
+     * A key counts as produced three ways, because the robot code builds them three ways.
+     *
+     * Matching only Telemetry.log("literal") reported 94 dead bindings against a layout where
+     * nearly all of them were live: the mechanisms cache keys as `prefix + "/StatorCurrent"`, the
+     * cameras as `"Vision/" + name + "/TagCount"`, the loop timings come from Telemetry.time(),
+     * and DogLog publishes SystemStats and its own diagnostics with no call in this repo at all. A
+     * check that cries wolf 94 times is worse than no check -- that noise floor is what let
+     * /Robot/Applied State sit dead on two tabs.
+     */
+    const LOG_CALL =
+        /(?:Telemetry\.(?:log|logDash|logDashAlways|time|timeEnd)|DogLog\.log|tunable)\s*\(\s*/g;
+
+    // Keys the DogLog library itself publishes; nothing in src/main/java names them.
+    const LIBRARY_PREFIXES = ["SystemStats/", "DogLog/", "RadioStatus/", "PowerDistribution/"];
+
+    const exact = new Set();
+    const prefixes = new Set();
+    const suffixes = new Set();
+
     for (const f of javaFiles) {
         const src = fs.readFileSync(f, "utf8");
-        for (const m of src.matchAll(/(?:Telemetry\.log|DogLog\.log|tunable)\s*\(\s*"([^"]+)"/g)) logged.add(m[1]);
-        // Keys built as getName() + "/Suffix" -- record the suffix so we can match loosely.
-        for (const m of src.matchAll(/logKey\s*\+\s*"([^"]+)"/g)) logged.add("*" + m[1]);
+
+        // A log call's first argument, up to the comma or closing paren that ends it.
+        for (const m of src.matchAll(LOG_CALL)) {
+            const arg = firstArgument(src, m.index + m[0].length);
+            if (arg === null) continue;
+            harvest(arg, exact, prefixes, suffixes);
+        }
+
+        // Keys cached in a field first, then logged by variable: `voltageKey = prefix + "/Voltage"`.
+        for (const m of src.matchAll(/\b\w*[Kk]ey\w*\s*=\s*([^;]{0,200});/g)) {
+            if (m[1].includes("+")) harvest(m[1], new Set(), prefixes, suffixes);
+        }
     }
-    const suffixes = [...logged].filter((k) => k.startsWith("*")).map((k) => k.slice(1));
+
+    const produced = (key) =>
+        exact.has(key) ||
+        LIBRARY_PREFIXES.some((p) => key.startsWith(p)) ||
+        [...prefixes].some((p) => p.length > 1 && key.startsWith(p)) ||
+        [...suffixes].some((s) => s.length > 1 && key.endsWith(s));
 
     for (const topic of topics) {
         if (!topic.startsWith("/Robot/")) continue;
         const key = topic.slice("/Robot/".length);
-        if (logged.has(key)) continue;
-        if (suffixes.some((s) => key.endsWith(s.replace(/^\//, "/")))) continue;
+        if (produced(key)) continue;
         notes.push(`elastic-layout.json binds ${topic}, which no Telemetry.log call produces. That widget is dead on the dashboard.`);
     }
+}
+
+/**
+ * Sorts the string literals of a key expression into exact keys, prefixes and suffixes.
+ *
+ * A literal with a `+` after it opens a key; one with a `+` before it closes a key; a literal that
+ * is the whole expression is a key. Classifying by the adjacent operator rather than by position in
+ * the expression is what catches keys built inside a call, as BatteryLogger does:
+ * `Telemetry.log(currentLogKeys.computeIfAbsent(k, x -> "BatteryLogger/Current/" + x), amps)`.
+ */
+function harvest(expr, exact, prefixes, suffixes) {
+    const whole = expr.match(/^\s*"([^"]*)"\s*$/);
+    if (whole) {
+        exact.add(whole[1]);
+        return;
+    }
+    for (const m of expr.matchAll(/"([^"]*)"/g)) {
+        const lit = m[1];
+        if (lit.length < 2) continue;
+        const before = expr.slice(0, m.index).trimEnd();
+        const after = expr.slice(m.index + m[0].length).trimStart();
+        if (after.startsWith("+")) prefixes.add(lit);
+        if (before.endsWith("+")) suffixes.add(lit);
+    }
+}
+
+/**
+ * The first argument of a call, given the offset just past its opening paren.
+ *
+ * Splitting on the first comma would cut `Telemetry.log("A/B", x)` correctly and
+ * `Telemetry.log(p + ", " + q, x)` wrong, so this walks the text tracking string literals and
+ * nesting depth and stops at the comma or paren that actually ends the argument.
+ *
+ * @returns the argument source, or null if the call is unterminated within the scan window
+ */
+function firstArgument(src, start) {
+    let depth = 0;
+    let inString = false;
+    for (let i = start; i < src.length && i < start + 400; i++) {
+        const c = src[i];
+        if (inString) {
+            if (c === "\\") i++;
+            else if (c === '"') inString = false;
+            continue;
+        }
+        if (c === '"') inString = true;
+        else if (c === "(" || c === "[") depth++;
+        else if (c === "]") depth--;
+        else if (c === ")") {
+            if (depth === 0) return src.slice(start, i);
+            depth--;
+        } else if (c === "," && depth === 0) return src.slice(start, i);
+    }
+    return null;
 }
 
 // ---------------------------------------------------------------- pages are tracked

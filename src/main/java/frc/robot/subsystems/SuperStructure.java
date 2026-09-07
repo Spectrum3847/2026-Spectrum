@@ -60,6 +60,7 @@ public class SuperStructure {
         AUTON_LAUNCH_WITHOUT_SQUEEZE,
         AUTON_INTAKE_FUEL,
         UNJAM,
+        KICKER_UNJAM,
         FORCE_HOME,
     }
 
@@ -77,6 +78,7 @@ public class SuperStructure {
         AUTON_LAUNCH_WITHOUT_SQUEEZE,
         AUTON_INTAKE_FUEL,
         UNJAM,
+        KICKER_UNJAM,
         FORCE_HOME,
     }
 
@@ -119,18 +121,26 @@ public class SuperStructure {
     /**
      * How long a launch runs fully extended before the extensions start agitating.
      *
-     * <p>The agitate cycle oscillates the extensions between 40% and 70%, so it squeezes the fuel
-     * bed rather than just stirring it. With a full hopper that squeeze arrives against far more
-     * fuel than it was tuned on: in the 2026-09-05 17:10 log both extensions sat at their 80 A
-     * stator limit for the whole of every launch, agitating or not, which is a stall, not a
-     * squeeze. Starting it later leaves the burst more time to draw the bed down first.
+     * <p>Defaults to zero: agitate now backs off on stator current, so it pulls a short stroke and
+     * pushes back out as soon as it meets fuel instead of squeezing the bed at the 80 A stator
+     * limit, and it can start with the launch the way 4414 runs it. The old 40% to 70% squeeze
+     * needed a 2 s delay so a full hopper could draw down first; in the 2026-09-05 17:10 log both
+     * extensions sat at their limit for whole launches with that squeeze.
      *
-     * <p>Tunable from NetworkTables so it can be dialed in during a session without a redeploy.
-     * Launch bursts in that log ran 1.1 s to 3.5 s, so a value above about 3 s means most bursts
-     * never agitate at all.
+     * <p>Tunable from NetworkTables so a delay can be put back during a session without a redeploy.
      */
     private static final DoubleSubscriber secondsToSqueeze =
-            Telemetry.tunable("SuperStructure/SecondsToSqueeze", 2.0);
+            Telemetry.tunable("SuperStructure/SecondsToSqueeze", 0.0);
+
+    /**
+     * Picks the extension state for the not-intaking states. In our alliance zone, where we can
+     * launch, agitate the extension (if intaking sent it out) so the fuel is loose and ready to
+     * feed, and pull it in once it comes free. Elsewhere fall back to the given state.
+     */
+    private IntakeExtension.WantedState agitateInScoreZoneElse(
+            IntakeExtension.WantedState otherwise) {
+        return isRobotInScoreZone() ? IntakeExtension.WantedState.CONDITIONAL_AGITATE : otherwise;
+    }
     /**
      * Returns {@code true} if the current super state is one of the launch states.
      *
@@ -153,10 +163,14 @@ public class SuperStructure {
      *     state
      */
     public boolean currentStateIsIntaking() {
-        return currentSuperState == CurrentSuperState.INTAKE_FUEL
-                || currentSuperState == CurrentSuperState.AUTON_INTAKE_FUEL
-                || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
-                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
+        return isIntakingState(currentSuperState);
+    }
+
+    private static boolean isIntakingState(CurrentSuperState state) {
+        return state == CurrentSuperState.INTAKE_FUEL
+                || state == CurrentSuperState.AUTON_INTAKE_FUEL
+                || state == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
+                || state == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
     /**
      * Returns {@code true} if the squeeze state condition is met.
@@ -173,6 +187,11 @@ public class SuperStructure {
         // Restart the squeeze timer exactly once when first entering a squeeze state
         if (isSqueezeState(currentSuperState) && !isSqueezeState(previousSuperState)) {
             intakeSqueezeTimer.restart();
+        }
+
+        // Pressing intake again drives a coasting extension back out.
+        if (isIntakingState(currentSuperState) && !isIntakingState(previousSuperState)) {
+            intakeExtension.requestExtend();
         }
 
         // Must run before applyStates(): the launch states read the gate to pick feeder states.
@@ -377,6 +396,7 @@ public class SuperStructure {
             case AUTON_LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
             case AUTON_INTAKE_FUEL -> CurrentSuperState.AUTON_INTAKE_FUEL;
             case UNJAM -> CurrentSuperState.UNJAM;
+            case KICKER_UNJAM -> CurrentSuperState.KICKER_UNJAM;
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
         };
     }
@@ -420,7 +440,10 @@ public class SuperStructure {
                 autonTrackTarget();
                 break;
             case UNJAM:
-                unjam();
+                unjam(FuelIntake.WantedState.REVERSE);
+                break;
+            case KICKER_UNJAM:
+                unjam(FuelIntake.WantedState.REVERSE_KEEP_KICKER);
                 break;
             case FORCE_HOME:
                 forceHome();
@@ -436,7 +459,7 @@ public class SuperStructure {
         swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
+        intakeExtension.setWantedState(agitateInScoreZoneElse(IntakeExtension.WantedState.STOPPED));
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.OFF);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -452,7 +475,8 @@ public class SuperStructure {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        // Slow sweep about the aim so incoming fuel cannot pack against the turret.
+        turret.setWantedState(Turret.WantedState.AIM_SWEEP);
         hood.setWantedState(Hood.WantedState.HOME);
     }
     /** Track target. */
@@ -462,7 +486,8 @@ public class SuperStructure {
         swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        intakeExtension.setWantedState(
+                agitateInScoreZoneElse(IntakeExtension.WantedState.CONDITIONAL_EXTEND));
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -547,14 +572,15 @@ public class SuperStructure {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        turret.setWantedState(Turret.WantedState.AIM_SWEEP);
         hood.setWantedState(Hood.WantedState.HOME);
     }
     /** Auton track target. */
     private void autonTrackTarget() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
+        intakeExtension.setWantedState(
+                agitateInScoreZoneElse(IntakeExtension.WantedState.CONDITIONAL_EXTEND));
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
@@ -581,16 +607,23 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
         applyGatedFeed();
     }
-    /** Unjam. */
-    private void unjam() {
+    /**
+     * Unjam: extension fully out so nothing is pinched, every roller in the fuel path backwards
+     * (intake, dye rotor and feeder, tower, flywheel) so fuel moves away from the launcher, and the
+     * turret shaking 10 deg either side to free anything tucked against it.
+     *
+     * @param intakeState how the intake rollers run: fully reversed for the normal unjam, or
+     *     reversed with the kicker kept forward for the kicker unjam
+     */
+    private void unjam(FuelIntake.WantedState intakeState) {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
+        fuelIntake.setWantedState(intakeState);
         dyeRotor.setWantedState(DyeRotor.WantedState.UNJAM);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
-        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.REVERSE);
         launcherTower.setWantedState(LauncherTower.WantedState.UNJAM);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        turret.setWantedState(Turret.WantedState.UNJAM_SHAKE);
         hood.setWantedState(Hood.WantedState.HOME);
     }
     /** Force home. */

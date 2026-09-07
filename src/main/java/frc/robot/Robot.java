@@ -290,6 +290,10 @@ public class Robot extends SpectrumRobot {
         pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        // Kicker unjam: same as unjam, but the intake kicker keeps running forward
+        pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.KICKER_UNJAM));
+        pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         pilot.home_select.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.home_select.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
@@ -318,7 +322,6 @@ public class Robot extends SpectrumRobot {
 
         pilot.coastA.onTrue(
                 intakeExtension.coastModeCommand().alongWith(turret.coastModeCommand()));
-        pilot.brakeB.onTrue(intakeExtension.brakeModeCommand());
         pilot.visionPoseReset_LB_Select.onTrue(vision.resetVisionPoseCommand());
 
         operator.coastA.onTrue(
