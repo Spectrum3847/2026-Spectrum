@@ -22,7 +22,7 @@ const limitFrac = args.includes("--limit-frac") ? Number(args[args.indexOf("--li
 
 // Stator limits (A) by log prefix, from the configs.
 const STATOR_LIMITS = [
-    ["Turret", 50],
+    ["Turret", 80],
     ["Hood", 80],
     ["IntakeExtension", 80],
     ["IntakeRoller", 80],

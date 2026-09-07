@@ -110,7 +110,7 @@ public class IntakeExtension implements Subsystem {
 
             @Getter private final double skewBaselineMaxRPM = 18;
             /** Larger differences at the stop are a pushed or slipped side, not a zero offset. */
-            @Getter private final double skewBaselineMaxInches = 0.5;
+            @Getter private final double skewBaselineMaxInches = 1.0;
 
             /**
              * Full extend target. 99 rather than 100 because the extension has to be almost all the
@@ -641,6 +641,8 @@ public class IntakeExtension implements Subsystem {
     private boolean agitateFullRetract = false;
     /** True once the extension has reached the retracted stop; it just holds there. */
     private boolean agitateRetracted = false;
+    /** Where it was when it counted as retracted; held from here. */
+    private double agitateRetractedRotations = 0;
     /** FPGA time the stator current was last below the loaded threshold during a pull. */
     private double agitateLastUnloaded = 0;
     /** Whether the current pull has met fuel resistance. */
@@ -699,7 +701,10 @@ public class IntakeExtension implements Subsystem {
 
         if (agitateRetracted) {
             sentOutByIntakeState = false;
-            commandBothRotations(minRot, true);
+            // Hold where it stopped rather than keep pushing at the floor. In the 2026-09-07 00:07
+            // log the right side sat 0.17 rot short of the floor drawing 30 A for the rest of every
+            // burst trying to close a gap the fuel would not give.
+            commandBothRotations(agitateRetractedRotations, true);
             return;
         }
 
@@ -745,6 +750,7 @@ public class IntakeExtension implements Subsystem {
         if (agitateFullRetract) {
             if (position <= minRot + tolerance) {
                 agitateRetracted = true;
+                agitateRetractedRotations = position;
                 sentOutByIntakeState = false;
             }
         } else if (agitateTimer.hasElapsed(cfg.getAgitateHalfPeriodSecs())) {
@@ -874,6 +880,7 @@ public class IntakeExtension implements Subsystem {
             if (!extendSteadyTiming) {
                 extendSteadyTiming = true;
                 extendSteadyTimer.restart();
+                steadySkewStart = left.getPositionRotations() - right.getPositionRotations();
             }
             steady = extendSteadyTimer.hasElapsed(cfg.getExtendSteadySecs());
         } else {
@@ -953,12 +960,58 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
-    /** True when the two encoders read within the skew-baseline tolerance of each other. */
+    /**
+     * A side that reads past the extended stop cannot be there, so its zero is wrong and the
+     * direction of the error is known: set it to max. Each side is judged on its own, every loop,
+     * because the right side kept walking out past max while coasting with no power applied
+     * (2026-09-06 23:59 log: 3.66 to 4.53 rot in two seconds, six times in one session), and a
+     * once-per-rest correction was undone within a second. Throttled per side so a drifting encoder
+     * does not turn into a stream of position writes.
+     */
+    private void clampPastMax() {
+        LeftConfig cfg = config.getLeftConfig();
+        double limit =
+                cfg.getMaxRotations()
+                        + cfg.inchesToRotations(cfg.getExtendAtTargetToleranceInches());
+        double now = Timer.getFPGATimestamp();
+        if (left.getPositionRotations() > limit && now - lastLeftClamp >= PAST_MAX_CLAMP_PERIOD) {
+            left.zeroAtMax();
+            lastLeftClamp = now;
+            pastMaxClamps++;
+        }
+        if (right.getPositionRotations() > limit && now - lastRightClamp >= PAST_MAX_CLAMP_PERIOD) {
+            right.zeroAtMax();
+            lastRightClamp = now;
+            pastMaxClamps++;
+        }
+    }
+
+    private static final double PAST_MAX_CLAMP_PERIOD = 0.1;
+    private double lastLeftClamp = Double.NEGATIVE_INFINITY;
+    private double lastRightClamp = Double.NEGATIVE_INFINITY;
+    private int pastMaxClamps = 0;
+
+    /** Left minus right when the current steady period began; see {@link #sidesAgree()}. */
+    private double steadySkewStart = 0;
+
+    /**
+     * True when the two encoders can be zeroed together: their difference is within the baseline
+     * cap and has not changed over the steady period. A constant difference is a zero offset (the
+     * 2026-09-07 00:07 log: left 3.29, right 3.53 on every one of four extends, to the hundredth)
+     * and re-zeroing both to max is right. A difference still changing while the sides are "still"
+     * is one side creeping, and zeroing would write the creep into its frame.
+     */
     private boolean sidesAgree() {
         LeftConfig cfg = config.getLeftConfig();
-        return Math.abs(left.getPositionRotations() - right.getPositionRotations())
-                <= cfg.inchesToRotations(cfg.getSkewBaselineMaxInches());
+        double skew = left.getPositionRotations() - right.getPositionRotations();
+        boolean small = Math.abs(skew) <= cfg.inchesToRotations(cfg.getSkewBaselineMaxInches());
+        boolean stable =
+                Math.abs(skew - steadySkewStart) <= cfg.inchesToRotations(SKEW_STABLE_INCHES);
+        return small && stable;
     }
+
+    /** Skew may change by at most this much over a steady period and still count as stable. */
+    private static final double SKEW_STABLE_INCHES = 0.1;
 
     private int restResyncs = 0;
 
@@ -1305,6 +1358,7 @@ public class IntakeExtension implements Subsystem {
     /** Runs the periodic update. */
     @Override
     public void periodic() {
+        clampPastMax();
         updateDeployedLatch();
         systemState = handleStateTransition();
         applyStates();
@@ -1327,6 +1381,7 @@ public class IntakeExtension implements Subsystem {
         Telemetry.log("IntakeExtension/ExtendPhase", extendPhase.toString());
         Telemetry.log("IntakeExtension/OutPointRelearns", outPointRelearns);
         Telemetry.log("IntakeExtension/RestResyncs", restResyncs);
+        Telemetry.log("IntakeExtension/PastMaxClamps", pastMaxClamps);
         Telemetry.log("IntakeExtension/Deployed", deployed);
         Telemetry.log(
                 "IntakeExtension/RetractLimitRotations", retractLimitRotations(), "rotations");
