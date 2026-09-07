@@ -3,6 +3,7 @@ package frc.robot.subsystems.fuelIntake;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Robot;
@@ -152,7 +153,14 @@ public class FuelIntake implements Subsystem {
         public static class IntakeKickerConfig extends Config {
 
             @Getter private final double supplyCurrentLimit = 40;
-            @Getter private final double statorCurrentLimit = 80;
+            /**
+             * Was 80. The kicker gets pushed into the bumper, which is where its drag comes from
+             * and is not an easy mechanical fix, so it ran 90 A at the 99th percentile with 129 A
+             * peaks and was the hottest motor on the robot on 2026-09-06 (67 C). It does not need
+             * the torque; cap it.
+             */
+            @Getter private final double statorCurrentLimit = 50;
+
             @Getter private final double lowerSupplyCurrentLimit = 40;
             @Getter private final double lowerSupplyCurrentTime = 1;
 
@@ -256,6 +264,47 @@ public class FuelIntake implements Subsystem {
         REVERSE_KEEP_KICKER,
     }
 
+    /** Kicker does not need to spin fast; 12 V just heated it against the bumper. */
+    private static final double KICKER_INTAKE_VOLTS = 8;
+
+    /** Kicker reverse during unjam. Full voltage stalled it at the limit for 18 of 19 s. */
+    private static final double KICKER_REVERSE_VOLTS = -6;
+
+    /** A reversed kicker this slow, drawing this much, for this long, is jammed: stop it. */
+    private static final double KICKER_STALL_RPM = 50;
+
+    private static final double KICKER_STALL_STATOR_AMPS = 35;
+    private static final double KICKER_STALL_SECS = 1.0;
+
+    private final Timer kickerStallTimer = new Timer();
+    private boolean kickerStallTiming = false;
+    /** Once set, the kicker stays off until the intake leaves the reverse state. */
+    private boolean kickerStallLatched = false;
+
+    /**
+     * Reverse voltage for the kicker during unjam, or zero once it has jammed. The latch clears
+     * only when the state changes, so a stuck kicker rests until unjam is released and pressed
+     * again rather than grinding for as long as the button is held.
+     */
+    private double kickerReverseVoltsWithStallLatch() {
+        if (kickerStallLatched) {
+            return 0;
+        }
+        boolean stalledNow =
+                Math.abs(kicker.getVelocityRPM()) < KICKER_STALL_RPM
+                        && Math.abs(kicker.getStatorCurrent()) > KICKER_STALL_STATOR_AMPS;
+        if (!stalledNow) {
+            kickerStallTiming = false;
+        } else if (!kickerStallTiming) {
+            kickerStallTiming = true;
+            kickerStallTimer.restart();
+        } else if (kickerStallTimer.hasElapsed(KICKER_STALL_SECS)) {
+            kickerStallLatched = true;
+            return 0;
+        }
+        return KICKER_REVERSE_VOLTS;
+    }
+
     private WantedState wantedState = WantedState.NEUTRAL;
     private SystemState systemState = SystemState.NEUTRAL;
     /**
@@ -289,7 +338,7 @@ public class FuelIntake implements Subsystem {
                 break;
             case INTAKE:
                 wantedRollerVoltage = 12;
-                wantedKickerVoltage = 12;
+                wantedKickerVoltage = KICKER_INTAKE_VOLTS;
                 break;
             case SLOW_INTAKE:
                 wantedRollerVoltage = 6;
@@ -297,11 +346,11 @@ public class FuelIntake implements Subsystem {
                 break;
             case REVERSE:
                 wantedRollerVoltage = -12;
-                wantedKickerVoltage = -12;
+                wantedKickerVoltage = kickerReverseVoltsWithStallLatch();
                 break;
             case REVERSE_KEEP_KICKER:
                 wantedRollerVoltage = -12;
-                wantedKickerVoltage = 12;
+                wantedKickerVoltage = KICKER_INTAKE_VOLTS;
                 break;
             case OFF:
                 roller.rollerStop();
@@ -336,9 +385,14 @@ public class FuelIntake implements Subsystem {
     @Override
     public void periodic() {
         systemState = handleStateTransition();
+        if (systemState != SystemState.REVERSE) {
+            kickerStallLatched = false;
+            kickerStallTiming = false;
+        }
         applyStates();
 
         Telemetry.log("FuelIntake/WantedState", wantedState.toString());
         Telemetry.log("FuelIntake/SystemState", systemState.toString());
+        Telemetry.log("FuelIntake/KickerStallLatched", kickerStallLatched);
     }
 }

@@ -132,6 +132,8 @@ public class Turret extends Mechanism {
         AIM_AT_TARGET,
         /** Shake side to side about where the turret is, to free fuel tucked against it. */
         UNJAM_SHAKE,
+        /** Aim at the target with a slow sweep laid on top, so fuel cannot settle against it. */
+        AIM_SWEEP,
     }
 
     public enum SystemState {
@@ -139,6 +141,26 @@ public class Turret extends Mechanism {
         IDLE,
         AIM_AT_TARGET,
         UNJAM_SHAKE,
+        AIM_SWEEP,
+    }
+
+    // ---- Intake sweep ----
+
+    /**
+     * While intaking the turret drifts slowly back and forth about its aim, this far each side, one
+     * full cycle per period. Slow on purpose: the point is to keep fuel from packing against the
+     * turret (2026-09-06 logs: it jammed at the 80 A torque limit around -90 and -30 deg, mostly
+     * while intaking), not to shake anything loose.
+     */
+    private static final double SWEEP_AMPLITUDE_DEG = 20;
+
+    private static final double SWEEP_PERIOD_SECS = 6.0;
+
+    /** Sine sweep offset for this loop, in degrees. */
+    private double sweepOffsetDeg() {
+        double phase =
+                2.0 * Math.PI * (Timer.getFPGATimestamp() % SWEEP_PERIOD_SECS) / SWEEP_PERIOD_SECS;
+        return SWEEP_AMPLITUDE_DEG * Math.sin(phase);
     }
 
     private WantedState wantedState = WantedState.OFF;
@@ -158,6 +180,7 @@ public class Turret extends Mechanism {
             case IDLE -> SystemState.IDLE;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
             case UNJAM_SHAKE -> SystemState.UNJAM_SHAKE;
+            case AIM_SWEEP -> SystemState.AIM_SWEEP;
         };
     }
 
@@ -226,7 +249,10 @@ public class Turret extends Mechanism {
                 setPosition(() -> degreesToRotations(() -> 0.0));
                 return;
             case AIM_AT_TARGET:
-                applyAimAtTarget();
+                applyAimAtTarget(0.0);
+                return;
+            case AIM_SWEEP:
+                applyAimAtTarget(sweepOffsetDeg());
                 return;
             case UNJAM_SHAKE:
                 applyUnjamShake();
@@ -365,7 +391,7 @@ public class Turret extends Mechanism {
     }
 
     /** Applies the aim at target. */
-    private void applyAimAtTarget() {
+    private void applyAimAtTarget(double offsetDeg) {
         var params = ShotCalculator.getInstance().getParameters();
 
         // Convert FIELD-RELATIVE angle to MECHANISM-RELATIVE angle
@@ -373,7 +399,8 @@ public class Turret extends Mechanism {
         double desiredMechDegrees =
                 params.turretAngle().getDegrees()
                         - robotHeadingDeg
-                        - config.getZeroOffsetFromRobotFront().getDegrees();
+                        - config.getZeroOffsetFromRobotFront().getDegrees()
+                        + offsetDeg;
 
         double commanded = resolveTurretAngle(desiredMechDegrees);
         commandedDegrees = commanded;

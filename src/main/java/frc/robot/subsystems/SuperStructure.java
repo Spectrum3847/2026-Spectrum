@@ -475,7 +475,8 @@ public class SuperStructure {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        // Slow sweep about the aim so incoming fuel cannot pack against the turret.
+        turret.setWantedState(Turret.WantedState.AIM_SWEEP);
         hood.setWantedState(Hood.WantedState.HOME);
     }
     /** Track target. */
@@ -571,7 +572,7 @@ public class SuperStructure {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
+        turret.setWantedState(Turret.WantedState.AIM_SWEEP);
         hood.setWantedState(Hood.WantedState.HOME);
     }
     /** Auton track target. */
