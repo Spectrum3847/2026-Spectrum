@@ -109,7 +109,8 @@ public class Auton {
     // Named TWOMANOSTBTB because Java identifiers can't start with a digit; the auto file it loads
     // is "2MANOSTBTB FULL.auto".
     public Command TWOMANOSTBTB(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("2MANOSTBTB FULL", mirrored))
+        return Commands.sequence(
+                        Commands.waitSeconds(2), SpectrumAuton("2MANOSTBTB FULL", mirrored))
                 .withName("2MANOSTBTB FULL - " + (mirrored ? "Right" : "Left"));
     }
 

@@ -95,7 +95,7 @@
   "rotationTargets": [
     {
       "waypointRelativePos": 0.3407934893184077,
-      "rotationDegrees": 0.0
+      "rotationDegrees": -90.0
     },
     {
       "waypointRelativePos": 0.9986436080027148,
@@ -208,7 +208,7 @@
   "folder": "OSTBTB",
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": -90.0
   },
   "useDefaultConstraints": true
 }

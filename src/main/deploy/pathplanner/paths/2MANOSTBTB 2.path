@@ -124,7 +124,7 @@
     },
     {
       "name": "intake",
-      "waypointRelativePos": 0.1,
+      "waypointRelativePos": 2.3333333333333286,
       "endWaypointRelativePos": null,
       "command": null
     }
