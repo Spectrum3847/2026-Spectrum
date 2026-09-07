@@ -69,7 +69,7 @@ drivetrain.driveToPositionCommand(pos).deadlineWith(intake.runIntakeCommand(1.0)
 
 ## Requirements
 
-Compositions automatically inherit the union of all member requirements. A composition touching drivetrain, intake, and shooter reserves all three for its entire duration—even if only one runs at a time (e.g. in a sequence).
+Compositions automatically inherit the union of all member requirements. A composition touching drivetrain, intake, and shooter reserves all three for its entire duration, even if only one runs at a time (e.g. in a sequence).
 
 ---
 

@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-[Lombok](https://projectlombok.org/) is an annotation processor that generates boilerplate at compile time — getters, setters, constructors, equals/hashCode — so we don't have to hand-write it. The plugin lives in [`build.gradle`](../../build.gradle) (`io.freefair.lombok` 9.1.0), so the wiring is already done. This page is about which annotations we actually use and where.
+[Lombok](https://projectlombok.org/) is an annotation processor that generates boilerplate at compile time, getters, setters, constructors, equals/hashCode, so we don't have to hand-write it. The plugin lives in [`build.gradle`](../../build.gradle) (`io.freefair.lombok` 9.1.0), so the wiring is already done. This page is about which annotations we actually use and where.
 
 ## The Two Annotations You'll See Most
 

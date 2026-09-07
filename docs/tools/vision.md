@@ -71,7 +71,7 @@ The Limelight itself has the source-of-truth pipeline configuration (exposure, g
 * Picks which pipeline to use (`backTagPipeline`, `leftTagPipeline`, `rightTagPipeline`, all 0 currently).
 * Toggles the LED via `blinkLimelights()` / `solidLimelight()` for visual identification during setup.
 
-Everything else — pipeline contents, camera intrinsics calibration, AprilTag map — is set on the Limelight web UI. Upload the seasonal AprilTag map (`AprilTagFields.k2026RebuiltWelded`) before practice.
+Everything else, pipeline contents, camera intrinsics calibration, AprilTag map, is set on the Limelight web UI. Upload the seasonal AprilTag map (`AprilTagFields.k2026RebuiltWelded`) before practice.
 
 ## Game-Piece Detection (Future Work)
 

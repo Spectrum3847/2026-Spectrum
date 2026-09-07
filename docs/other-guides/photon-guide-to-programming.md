@@ -14,7 +14,7 @@ That said, a few minutes of design before writing saves hours of debugging. If y
 
 If a system isn't clicking, draw it. A state machine for the intake sequence on a whiteboard is faster to get right than a `SuperStructure` method you'll rewrite three times. Flowcharts, block diagrams, rough sketches, whatever gets the structure out of your head and onto paper so you can see if it makes sense.
 
-The [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java) class in this repo coordinates multi-subsystem behaviors by picking a `WantedSuperState` enum value and fanning it out to each subsystem. Drawing the state graph before building it in code — which states transition to which, what triggers each transition — makes the code almost write itself.
+The [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java) class in this repo coordinates multi-subsystem behaviors by picking a `WantedSuperState` enum value and fanning it out to each subsystem. Drawing the state graph before building it in code, which states transition to which, what triggers each transition, makes the code almost write itself.
 
 ## Shadow a Programmer
 

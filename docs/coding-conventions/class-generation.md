@@ -15,7 +15,7 @@ launcher/
     Launcher.WantedState / SystemState  // inner enums: the state machine
 ```
 
-The subsystem class extends `Mechanism` (from `frc.spectrumLib.mechanism`) and owns the motors and sensors. The `Config` inner class holds every tunable value — gear ratios, current limits, voltages, target poses — as `@Getter private final` fields (no `@Setter`; the values are constants). Each per-robot config file (`FM2026`, `PM2026`, …) selects which mechanisms exist on that robot with `setAttached(true/false)` and supplies robot-specific calibration like `configEncoderOffsets(...)`, so a single codebase covers different physical robots.
+The subsystem class extends `Mechanism` (from `frc.spectrumLib.mechanism`) and owns the motors and sensors. The `Config` inner class holds every tunable value, gear ratios, current limits, voltages, target poses, as `@Getter private final` fields (no `@Setter`; the values are constants). Each per-robot config file (`FM2026`, `PM2026`, …) selects which mechanisms exist on that robot with `setAttached(true/false)` and supplies robot-specific calibration like `configEncoderOffsets(...)`, so a single codebase covers different physical robots.
 
 Instead of a separate command-factory class, each subsystem drives itself with an in-class state machine: `WantedState`/`SystemState` enums, a `setWantedState(WantedState)` entry point, a `handleStateTransition()` that maps wanted → system state, and an `applyStates()` called from `periodic()` that issues the motor request. The orchestrator [`SuperStructure`](../../src/main/java/frc/robot/subsystems/SuperStructure.java) sits above them: its `setWantedSuperState(WantedSuperState)` (or the `setStateCommand(...)` command wrapper) fans a single robot-level intent out to each subsystem's `setWantedState(...)`. Gamepad bindings and `Auton` talk to `SuperStructure`, not to the mechanisms directly.
 
@@ -32,11 +32,11 @@ public Launcher(LauncherConfig config) {
 }
 ```
 
-A mechanism `Config` is an immutable value holder — `@Getter private final` fields, no setters. Config *objects* that are assembled at a call site instead use chained setters (via `@Accessors(chain = true)` — see [Project Lombok](project-lombok.md)) so they read like a builder; `LimelightConfig` and the `frc.spectrumLib.sim` configs (`ArmConfig`, `LinearConfig`, `RollerConfig`) are the examples. For pure-value classes that genuinely warrant different construction shapes (constructing from inches versus meters, say), a builder is still preferred over a pile of overloads. If you do end up with multiple constructors, chain them through `this(...)` so the actual initialization logic lives in exactly one place.
+A mechanism `Config` is an immutable value holder, `@Getter private final` fields, no setters. Config *objects* that are assembled at a call site instead use chained setters (via `@Accessors(chain = true)`, see [Project Lombok](project-lombok.md)) so they read like a builder; `LimelightConfig` and the `frc.spectrumLib.sim` configs (`ArmConfig`, `LinearConfig`, `RollerConfig`) are the examples. For pure-value classes that genuinely warrant different construction shapes (constructing from inches versus meters, say), a builder is still preferred over a pile of overloads. If you do end up with multiple constructors, chain them through `this(...)` so the actual initialization logic lives in exactly one place.
 
 ## Methods
 
-Keep them single-purpose. A subsystem method that both computes a setpoint *and* drives the motor is hard to test and hard to override per-robot. Pull the math into a small helper — often a `DoubleSupplier` — and let the command factory just schedule things.
+Keep them single-purpose. A subsystem method that both computes a setpoint *and* drives the motor is hard to test and hard to override per-robot. Pull the math into a small helper, often a `DoubleSupplier`, and let the command factory just schedule things.
 
 For long `if` chains: if you're past about three conditions, extract them. A `switch` on an enum reads better than nested `if`s once a pattern emerges, a subsystem's `handleStateTransition()` (e.g. in `Launcher`/`Hood`, a `switch` over `WantedState`) is a decent template for that. And for anything that's checked every loop and might run a command, return a `Trigger` (via the `At/Above/Below` helpers on `Mechanism`) instead of a raw `boolean`. The scheduler handles re-evaluation; you don't have to.
 

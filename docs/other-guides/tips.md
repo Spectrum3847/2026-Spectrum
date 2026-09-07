@@ -18,7 +18,7 @@ If you're confused about which way something points, draw it. A quick sketch on 
 
 Most command and trigger factory methods in this codebase take a `DoubleSupplier` instead of a raw `double`. The difference is that a `DoubleSupplier` is evaluated each time it's called, while a plain `double` is captured once when the command is scheduled.
 
-For setpoints that may shift while a command runs — shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue) — you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
+For setpoints that may shift while a command runs, shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue), you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
 
 The launcher shows this pattern:
 

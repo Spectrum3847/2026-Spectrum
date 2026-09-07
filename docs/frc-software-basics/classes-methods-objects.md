@@ -81,7 +81,7 @@ public class IndexerBed extends Mechanism {
 
 ## Lambdas and Method References
 
-When a method expects a function as a parameter — like a `DoubleSupplier` or `Command` factory — you can pass a lambda rather than writing a whole named method:
+When a method expects a function as a parameter, like a `DoubleSupplier` or `Command` factory, you can pass a lambda rather than writing a whole named method:
 
 ```java
 // lambda: () -> body

@@ -70,6 +70,6 @@ Hook into scheduler events for logging or telemetry:
 
 ## Key Behaviors
 
-- Commands execute in scheduling order within a single iteration—one command's `end()` completes before another's `execute()` runs.
+- Commands execute in scheduling order within a single iteration, one command's `end()` completes before another's `execute()` runs.
 - Subsystem `periodic()` always runs before any command `execute()`.
 - Default commands are scheduled at the **end** of the iteration, after command execution.

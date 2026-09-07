@@ -17,7 +17,7 @@ The version is pinned in `gradle/wrapper/gradle-wrapper.properties`, and `./grad
 | `./gradlew simulateJava`  | Launch the WPILib GUI simulator. (The VSCode `WPILib: Simulate Robot Code` command is usually faster.)                  |
 | `./gradlew javadoc`       | Generate JavaDoc HTML into `build/docs/javadoc/`.                                                                       |
 | `./gradlew spotlessApply` | Apply the AOSP code style across every `.java`, `.gradle`, `.xml`, and `.md` file. Runs automatically on `compileJava`. |
-| `./gradlew spotlessCheck` | Verify formatting without rewriting, what CI runs.                                                                     |
+| `./gradlew spotlessCheck` | Verify formatting without rewriting, what CI runs.                                                                      |
 | `./gradlew spotbugsMain`  | Run SpotBugs static analysis. The HTML report lands at `build/reports/spotbugs.html`.                                   |
 | `./gradlew tasks`         | List every task, including ones not documented here.                                                                    |
 

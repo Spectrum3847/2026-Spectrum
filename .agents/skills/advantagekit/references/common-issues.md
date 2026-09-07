@@ -8,7 +8,7 @@ Replay works by re-running identical code with identical logged inputs. Any data
 
 |                        Source                        |                    Problem                    |                       Fix                        |
 |------------------------------------------------------|-----------------------------------------------|--------------------------------------------------|
-| `Timer.getFPGATimestamp()`                           | Raw FPGA time, not deterministic             | Use `Timer.getTimestamp()`                       |
+| `Timer.getFPGATimestamp()`                           | Raw FPGA time, not deterministic              | Use `Timer.getTimestamp()`                       |
 | NetworkTables / dashboard inputs                     | Values change outside the logging cycle       | Log as inputs through IO layer                   |
 | YAGSL, Phoenix 6 swerve libraries                    | Bypass IO abstraction, call hardware directly | Use AKit's swerve template instead               |
 | `Math.random()` / random number generators           | Non-deterministic by nature                   | Log seed or generated values as inputs           |

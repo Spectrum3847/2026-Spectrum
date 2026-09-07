@@ -2,7 +2,7 @@
 
 ## What Is Output Logging?
 
-Output logging records computed values (not raw sensor inputs) so they can be viewed in AdvantageScope or regenerated during replay. Unlike inputs — which are fixed sensor readings — outputs are recalculated each time code runs, enabling retroactive analysis.
+Output logging records computed values (not raw sensor inputs) so they can be viewed in AdvantageScope or regenerated during replay. Unlike inputs, which are fixed sensor readings, outputs are recalculated each time code runs, enabling retroactive analysis.
 
 ```java
 // In periodic() or commands:
@@ -50,16 +50,16 @@ This guarantees the same logic that ran on the robot is used for replay, so odom
 
 All types support single values, 1D arrays, and 2D arrays unless noted.
 
-|    Category    |                                    Types                                     |                                     Notes                                     |
-|----------------|------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| Primitives     | `boolean`, `int`, `long`, `float`, `double`, `String`                        |,                                                                             |
+|    Category    |                                    Types                                     |                                    Notes                                     |
+|----------------|------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| Primitives     | `boolean`, `int`, `long`, `float`, `double`, `String`                        | ,                                                                            |
 | WPILib structs | `Translation2d/3d`, `Pose2d/3d`, `Rotation2d/3d`, `SwerveModuleState`, etc.  | Preferred over protobuf, no delay                                            |
 | Protobuf       | Any WPILib protobuf type                                                     | **⚠️ First log can take >100ms**, log once while disabled                    |
 | Records        | Custom `record` classes (fields: primitives, enums, structs, nested records) | **⚠️ Same first-log delay as protobuf**, log while disabled; no array fields |
-| Enums          | Any enum                                                                     | Logged as `name()` string                                                     |
-| Colors         | WPILib `Color`                                                               | Logged as hex triplet string                                                  |
-| Mechanisms     | `LoggedMechanism2d`                                                          | Output only                                                                   |
-| Suppliers      | `BooleanSupplier`, `IntSupplier`, `LongSupplier`, `DoubleSupplier`           | Output only                                                                   |
+| Enums          | Any enum                                                                     | Logged as `name()` string                                                    |
+| Colors         | WPILib `Color`                                                               | Logged as hex triplet string                                                 |
+| Mechanisms     | `LoggedMechanism2d`                                                          | Output only                                                                  |
+| Suppliers      | `BooleanSupplier`, `IntSupplier`, `LongSupplier`, `DoubleSupplier`           | Output only                                                                  |
 
 **Protobuf / Record first-use pattern**, call once during `disabledInit()` to absorb the delay:
 

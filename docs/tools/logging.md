@@ -70,7 +70,7 @@ Telemetry.print("AUTO_SHOT_TIMEOUT_TRIGGERED", PrintPriority.HIGH);      // alwa
 
 The `PrintPriority.NORMAL` / `PrintPriority.HIGH` distinction filters console spam without dropping the log entry. `HIGH` always reaches stdout (and the Driver Station); `NORMAL` only prints if the configured priority is also `NORMAL`. Either way, the message hits the log.
 
-Use it sparingly. Anything that should be in the log but doesn't need to be on a driver's screen — sensor readings, command lifecycle — should be `log(...)`, not `print(...)`. Reserve prints for true initialization milestones and fault events.
+Use it sparingly. Anything that should be in the log but doesn't need to be on a driver's screen, sensor readings, command lifecycle, should be `log(...)`, not `print(...)`. Reserve prints for true initialization milestones and fault events.
 
 ## Faults
 

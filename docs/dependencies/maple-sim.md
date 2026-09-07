@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-MapleSim is a physics-based simulation library — `org.ironmaple.simulation.*` — that models the swerve drivetrain and the per-season arena. It plugs into WPILib's simulation loop, and the result is a GUI sim that's a lot closer to reality than a stock WPILib one. (Game-piece physics — intake, flight, scoring — is *not* MapleSim on this robot; that runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), covered in [Simulation](../tools/simulation.md).)
+MapleSim is a physics-based simulation library, `org.ironmaple.simulation.*`, that models the swerve drivetrain and the per-season arena. It plugs into WPILib's simulation loop, and the result is a GUI sim that's a lot closer to reality than a stock WPILib one. (Game-piece physics, intake, flight, scoring, is *not* MapleSim on this robot; that runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), covered in [Simulation](../tools/simulation.md).)
 
 Vendor JSON: [`vendordeps/maple-sim.json`](../../vendordeps/maple-sim.json).
 

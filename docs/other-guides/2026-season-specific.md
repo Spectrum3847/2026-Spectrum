@@ -20,13 +20,13 @@ The full structural conventions live in [Class Generation](../coding-conventions
 
 We build multiple physical robots each season and run the same code on all of them. The `Rio.id` field, looked up from the RoboRIO serial number in `frc.spectrumLib.hardware.Rio`, decides which configuration is loaded at startup. All configs live under `src/main/java/frc/robot/configs`:
 
-|    Config    |                  Bot                  |                                                                Use                                                                |
-|--------------|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+|    Config    |                 Bot                  |                                                                Use                                                                |
+|--------------|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | `FM2026`     | Final Machine, the competition robot | Precise calibration, the bot we travel with.                                                                                      |
-| `PM2026`     | Practice Machine                      | Mirrors competition, minor wear-and-tear tweaks.                                                                                  |
-| `XM2026`     | Experimental Machine                  | In-season experimentation and prototyping. Encoder offsets and attachment flags vary. (Off-season work gets its own `OM` config.) |
-| `AM2026`     | Alpha Machine                         | Earlier prototype, used pre-build.                                                                                                |
-| `PHOTON2026` | Photon's machine                      | The robot run by Photon, our sister team.                                                                                         |
+| `PM2026`     | Practice Machine                     | Mirrors competition, minor wear-and-tear tweaks.                                                                                  |
+| `XM2026`     | Experimental Machine                 | In-season experimentation and prototyping. Encoder offsets and attachment flags vary. (Off-season work gets its own `OM` config.) |
+| `AM2026`     | Alpha Machine                        | Earlier prototype, used pre-build.                                                                                                |
+| `PHOTON2026` | Photon's machine                     | The robot run by Photon, our sister team.                                                                                         |
 
 Each config can mark a mechanism present or absent via `setAttached(boolean)` so a bot without the launcher doesn't try to initialize one.
 
@@ -44,20 +44,20 @@ Swerve odometry and Limelight MegaTag readings feed a WPILib `SwerveDrivePoseEst
 
 These are the entries in `SuperStructure.WantedSuperState`, applied by `setWantedSuperState(...)`. Each one drives a coordinated setup across launcher, hood, fuel intake, indexer bed/tower, and intake extension.
 
-|                State                |                             What it does                              |
-|-------------------------------------|-----------------------------------------------------------------------|
-| `IDLE`                              | Ready, neutral. Subsystems home.                                      |
+|                State                |                             What it does                             |
+|-------------------------------------|----------------------------------------------------------------------|
+| `IDLE`                              | Ready, neutral. Subsystems home.                                     |
 | `INTAKE_FUEL`                       | Active fuel collection, intake runs, bed indexes, extension extends. |
-| `TRACK_TARGET`                      | Launcher + hood aim while the robot is free to drive.                 |
-| `LAUNCH_WITH_SQUEEZE`               | Aim + launch with the delayed-close "squeeze" sequence.               |
-| `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY` | Squeeze launch without the delayed close.                             |
-| `LAUNCH_WITHOUT_SQUEEZE`            | Aim + launch while the intake stays extended.                         |
-| `LAUNCH_WITH_BRAKE`                 | Launch while holding the drivetrain in brake.                         |
-| `AUTON_TRACK_TARGET`                | Auton-mode aim.                                                       |
-| `AUTON_INTAKE_FUEL`                 | Auton-mode fuel collection.                                           |
-| `UNJAM`                             | Clear jammed fuel from intake or indexer.                             |
-| `EJECT`                             | Spit fuel back out.                                                   |
-| `FORCE_HOME`                        | Drive every mechanism to its home position.                           |
+| `TRACK_TARGET`                      | Launcher + hood aim while the robot is free to drive.                |
+| `LAUNCH_WITH_SQUEEZE`               | Aim + launch with the delayed-close "squeeze" sequence.              |
+| `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY` | Squeeze launch without the delayed close.                            |
+| `LAUNCH_WITHOUT_SQUEEZE`            | Aim + launch while the intake stays extended.                        |
+| `LAUNCH_WITH_BRAKE`                 | Launch while holding the drivetrain in brake.                        |
+| `AUTON_TRACK_TARGET`                | Auton-mode aim.                                                      |
+| `AUTON_INTAKE_FUEL`                 | Auton-mode fuel collection.                                          |
+| `UNJAM`                             | Clear jammed fuel from intake or indexer.                            |
+| `EJECT`                             | Spit fuel back out.                                                  |
+| `FORCE_HOME`                        | Drive every mechanism to its home position.                          |
 
 `CurrentSuperState` mirrors these, `handleStateTransition()` maps the wanted state to the current one each loop.
 
@@ -65,7 +65,7 @@ A few field-location triggers live on `SuperStructure` itself rather than in the
 
 ## Vision Hardware
 
-Three Limelight 4s — back, left, right — for AprilTag-based pose estimation. `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` is the seasonal map. Game-piece detection is not currently wired up; QuestNav is on the radar but unintegrated. Details in [Vision](../tools/vision.md).
+Three Limelight 4s, back, left, right, for AprilTag-based pose estimation. `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` is the seasonal map. Game-piece detection is not currently wired up; QuestNav is on the radar but unintegrated. Details in [Vision](../tools/vision.md).
 
 ## Controls Layout
 
@@ -84,7 +84,7 @@ The pilot drives and runs the fuel cycle; the operator handles offset trims and 
 
 ### Pilot, everything else
 
-* Left stick — field-relative translation; right stick — rotation (exponential curves, deadzone in `Pilot`'s config).
+* Left stick: field-relative translation; right stick: rotation (exponential curves, deadzone in `Pilot`'s config).
 * `X` (hold), `TRACK_TARGET` (launcher + hood aim while driving); release → `IDLE`.
 * `A` (hold), `UNJAM`; release → `IDLE`.
 * `LT + LB`: `EJECT`; release → `IDLE`.

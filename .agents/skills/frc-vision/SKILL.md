@@ -17,7 +17,7 @@ metadata:
 
 ## Our Setup
 
-- **Subsystem:** [`frc.robot.subsystems.vision.Vision`](../../../src/main/java/frc/robot/subsystems/vision/Vision.java) `implements Subsystem`. It manages three Limelights — `backLL`, `leftLL`, `rightLL` (hostnames `limelight-back/left/right`) — held in `allLimelights`, and fuses them into the swerve `SwerveDrivePoseEstimator`.
+- **Subsystem:** [`frc.robot.subsystems.vision.Vision`](../../../src/main/java/frc/robot/subsystems/vision/Vision.java) `implements Subsystem`. It manages three Limelights, `backLL`, `leftLL`, `rightLL` (hostnames `limelight-back/left/right`), held in `allLimelights`, and fuses them into the swerve `SwerveDrivePoseEstimator`.
 - **Wrapper:** [`frc.spectrumLib.vision.Limelight`](../../../src/main/java/frc/spectrumLib/vision/Limelight.java) wraps the vendored `LimelightHelpers`. Real methods: `getMegaTag1_Pose3d()`, `getMegaTag2_Pose2d()`, `getMegaTag1_PoseEstimate()`, `getMegaTag1PoseTimestamp()`, `getTagCountInView()`, `getRawFiducial()` (can return null), `setRobotOrientation(degrees[, rate])`, `sendValidStatus()/sendInvalidStatus()`.
 - **Field layout:** WPILib `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)`, not PhotonLib.
 

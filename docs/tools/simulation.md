@@ -18,8 +18,8 @@ Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriver
 
 The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim` / `LinearSim` / `RollerSim` in the subsystem's constructor, route it to update its angle/position/velocity from the motor's `getSimState()`, and append it onto `RobotSim.leftView`. The sim classes do the math to map motor rotations into the visualization.
 
-|   Helper    |                                              What it draws                                               |
-|-------------|----------------------------------------------------------------------------------------------------------|
+|   Helper    |                                              What it draws                                              |
+|-------------|---------------------------------------------------------------------------------------------------------|
 | `ArmSim`    | A pivoting ligament, hood, shooter pivot, arm.                                                          |
 | `LinearSim` | A telescoping/sliding ligament, elevator, intake extension.                                             |
 | `RollerSim` | A spinning indicator with direction + relative speed, intake roller, indexer wheels, launcher flywheel. |
@@ -28,7 +28,7 @@ These came from Team 604's sample project and were adapted; the principle of "al
 
 ## Fuel Physics
 
-Game-piece physics — spawning, intake pickup, and projectile flight — runs through [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by `RobotSim` as its `ballSim` field and publishing to NetworkTables under `Sim/Fuel`. (MapleSim still simulates the swerve *drivetrain* via [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), but no longer the game pieces.)
+Game-piece physics, spawning, intake pickup, and projectile flight, runs through [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by `RobotSim` as its `ballSim` field and publishing to NetworkTables under `Sim/Fuel`. (MapleSim still simulates the swerve *drivetrain* via [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), but no longer the game pieces.)
 
 `RobotSim` sets it up in its constructor:
 

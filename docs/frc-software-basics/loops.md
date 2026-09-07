@@ -106,7 +106,7 @@ Declare outside the loop when you need to use the value after it finishes (like 
 
 ## Common Loop Errors
 
-An infinite loop — one whose condition is always `true` — will freeze the robot or the simulation. The most common cause is a counter that moves the wrong direction:
+An infinite loop, one whose condition is always `true`, will freeze the robot or the simulation. The most common cause is a counter that moves the wrong direction:
 
 ```java
 // infinite loop: i starts at 24, increments, condition i > 6 is always true

@@ -28,7 +28,7 @@ The `Trigger.whileTrue()` call handles the "keep doing this while the condition 
 
 **If/else and logic operators**, everywhere. Conditions gate command scheduling, check sensor state, and drive branching in subsystem logic. `Launcher.java` checks `isAttached()` before configuring motors; `Swerve.java` checks `isSimulation()` to decide which drivetrain to initialize.
 
-**Classes and objects** — the entire robot is structured around them. Each mechanism is a class. `SuperStructure` and every subsystem — all classes. See [Class Generation](../coding-conventions/class-generation.md) for how they're organized.
+**Classes and objects**: the entire robot is structured around them. Each mechanism is a class. `SuperStructure` and every subsystem are all classes. See [Class Generation](../coding-conventions/class-generation.md) for how they're organized.
 
 **Enums**, heavily used. `SuperStructure` defines the top-level robot states (`WantedSuperState`: `IDLE`, `TRACK_TARGET`, `INTAKE_FUEL`, etc.). A `switch` on that enum drives `handleStateTransitions()`. When you see a mechanism that has multiple named modes (`WantedState`/`SystemState`), those modes are an enum too.
 

@@ -6,7 +6,7 @@ How we use Git on this repo. Short version: small commits, descriptive messages,
 
 ## Keep Your Branch Current
 
-Before opening a PR — and ideally every day or two while a feature is in flight — pull `main` into your branch. Drift is cheap to resolve in small bites and expensive once it's days behind.
+Before opening a PR, and ideally every day or two while a feature is in flight, pull `main` into your branch. Drift is cheap to resolve in small bites and expensive once it's days behind.
 
 ```sh
 git fetch origin

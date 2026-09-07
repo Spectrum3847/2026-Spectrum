@@ -17,7 +17,7 @@ PID is one piece of the controller. On a Phoenix 6 TalonFX, the slot also takes 
 * **kA**, output per unit of target acceleration.
 * **kG**, constant output to hold against gravity (arms, elevators).
 
-The *units* of these gains depend on the control request. Under voltage requests they're volts (kV in V/rps, etc.); under the TorqueCurrentFOC requests this code uses for FOC position/velocity loops (`setMMPositionFoc`, `setVelocityTorqueCurrentFOC`) they're amps (kV in A/rps). Same numbers mean very different things across the two, so re-tune — don't copy gains — when a mechanism switches request type. `Mechanism.java`'s own javadoc flags kS as "static friction compensation (volts or amps)" for this reason.
+The *units* of these gains depend on the control request. Under voltage requests they're volts (kV in V/rps, etc.); under the TorqueCurrentFOC requests this code uses for FOC position/velocity loops (`setMMPositionFoc`, `setVelocityTorqueCurrentFOC`) they're amps (kV in A/rps). Same numbers mean very different things across the two, so re-tune, don't copy gains, when a mechanism switches request type. `Mechanism.java`'s own javadoc flags kS as "static friction compensation (volts or amps)" for this reason.
 
 For controllable mechanisms, tune feedforward first. PID then only has to correct what feedforward got wrong.
 
@@ -39,7 +39,7 @@ We run PID *on the motor controller*, not on the roboRIO. Phoenix 6 TalonFX moto
 
 Defaults for each mechanism live in its inner `*Config` class (`LauncherConfig`, `HoodConfig`, etc.). To override per-robot, mutate them inside the matching `*2026.java` config before the subsystem is constructed.
 
-WPILib-side PID — `ProfiledPIDController` for chassis rotation, for example — is constructed directly in the subsystem and can be re-tuned in `periodic()` if a `TuneValue` is hooked up.
+WPILib-side PID, `ProfiledPIDController` for chassis rotation, for example, is constructed directly in the subsystem and can be re-tuned in `periodic()` if a `TuneValue` is hooked up.
 
 ## Live Tuning with `TuneValue`
 

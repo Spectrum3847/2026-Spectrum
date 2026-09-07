@@ -24,13 +24,13 @@ If you add a widget, edit the layout in Elastic and save it back to the file. Sp
 
 ## NetworkTables, In Brief
 
-Elastic talks to the robot over NetworkTables. Anything the robot publishes — `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.log` (which mirrors to NT when configured) — is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
+Elastic talks to the robot over NetworkTables. Anything the robot publishes, `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.log` (which mirrors to NT when configured), is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
 
 The reverse direction works too. The auto chooser writes back over NT to a `SendableChooser`. Live-tunable values use `SmartDashboard.getNumber(...)` wrapped by `TuneValue` (see [PID Tuning](pid-tuning.md)).
 
 ## Connecting
 
-Install Elastic (WPILib installer is the easy path; releases also up on [GitHub](https://github.com/Gold872/elastic-dashboard/releases) for Linux/macOS). Point it at the robot — `roborio-3847-frc.local` for the real bot, `localhost` for sim — and load the layout from `File → Open Layout`. Once you've connected to a robot once, there's a "Download from robot" option that grabs whatever the RIO has deployed.
+Install Elastic (WPILib installer is the easy path; releases also up on [GitHub](https://github.com/Gold872/elastic-dashboard/releases) for Linux/macOS). Point it at the robot, `roborio-3847-frc.local` for the real bot, `localhost` for sim, and load the layout from `File → Open Layout`. Once you've connected to a robot once, there's a "Download from robot" option that grabs whatever the RIO has deployed.
 
 On the driver-station laptop, pin Elastic to the same monitor position every match. The match-day team relies on muscle memory, and a relocated widget at the wrong moment is exactly the kind of small problem that ends up costing points.
 

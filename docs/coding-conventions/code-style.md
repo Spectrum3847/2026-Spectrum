@@ -18,7 +18,7 @@ If you're touching `Launcher.java`, look at how the rest of that file is organiz
 
 * **Classes / Interfaces:** `UpperCamelCase`, `Launcher`, `LauncherConfig`, `SuperStructure`.
 * **Methods / variables:** `lowerCamelCase`, `getVelocityRPM()`, `kPSlot0`.
-* **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, the `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything tunable — even something like `WHEEL_BASE_INCHES` that varies between robots — goes in a `*Config` class as a regular field, not a constant.
+* **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, the `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything tunable, even something like `WHEEL_BASE_INCHES` that varies between robots, goes in a `*Config` class as a regular field, not a constant.
 * **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`. `State.LAUNCH_WITH_SQUEEZE`, `Telemetry.Fault.CAMERA_OFFLINE`.
 
 Acronyms get treated as words. `PidConfig`, not `PIDConfig`. `Rpm` in compound names, not `RPM`. The one exception is when the acronym *is* the whole identifier (a constant `RPM`).

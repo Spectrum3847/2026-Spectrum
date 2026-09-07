@@ -48,7 +48,7 @@ Single-line comments start with `//`. Anything after those two slashes on the sa
 double idlingRPM = 700;  // rotations per minute
 ```
 
-JavaDoc comments use `/** ... */` and attach documentation to classes and methods. Any `public` method — especially on a `*States` class — should have at least a one-line JavaDoc so tooling and teammates can read what it does without opening the implementation:
+JavaDoc comments use `/** ... */` and attach documentation to classes and methods. Any `public` method, especially on a `*States` class, should have at least a one-line JavaDoc so tooling and teammates can read what it does without opening the implementation:
 
 ```java
 /**

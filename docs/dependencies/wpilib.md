@@ -40,7 +40,7 @@ If you're tempted to call `CommandScheduler.getInstance().schedule(...)` from in
 
 We use SmartDashboard for two things: live dashboards (`Auto Chooser`, `Mechanism2d` views), and tunable knobs via `SmartDashboard.putNumber` / `getNumber`. The tunable case is wrapped by [`TuneValue`](../../src/main/java/frc/spectrumLib/TuneValue.java), so prefer that over hand-rolled `getNumber` reads.
 
-For anything else — sensor readings, state transitions, fault flags — go through `Telemetry.log(...)` rather than `SmartDashboard.put*`. `Telemetry` routes everything through DogLog with a consistent key format and writes it to the WPILOG so the log survives the match.
+For anything else, sensor readings, state transitions, fault flags, go through `Telemetry.log(...)` rather than `SmartDashboard.put*`. `Telemetry` routes everything through DogLog with a consistent key format and writes it to the WPILOG so the log survives the match.
 
 ## Simulation
 
