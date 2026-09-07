@@ -59,7 +59,7 @@ metadata:
 - DriverStation state: `/DriverStation/Enabled`, `/DriverStation/Autonomous`, `/DriverStation/Test`, `/DriverStation/AllianceStation`, `/DriverStation/Joystick0/AxisValues`, `/DriverStation/Joystick0/ButtonValues`.
 - Command scheduler: `Swerve/CurrentCommand`, `Commands` (init/end lifecycle), `Alerts`, `Sim/SimPose` (SIM pose), `Sim/RobotPose3d` (SIM bump-corrected pose).
 - Vision: discover `Vision/*` topics, the `limelight-back/left/right` NT tables, and accepted/rejected pose status before assuming names (Limelight MegaTag pipelines).
-- Subsystems: discover the real topic roots before assuming names — this robot has `FuelIntake`, `Launcher`, `IndexerBed`, `IndexerTower`, `Hood`, `Leds`, and the `SuperStructure` orchestrator.
+- Subsystems: discover the real topic roots before assuming names, this robot has `FuelIntake`, `Launcher`, `IndexerBed`, `IndexerTower`, `Hood`, `Leds`, and the `SuperStructure` orchestrator.
 - If topic names differ, prefer the discovered names from `list_live_nt_topics.py` over guessing.
 
 ## Analysis Workflow
