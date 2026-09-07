@@ -34,7 +34,7 @@ Logger.recordOutput("TargetDistanceMeters",
         .getDistance(FieldConstants.hubCenter));
 ```
 
-Replay produces `TargetDistanceMeters` for the full match — retroactively.
+Replay produces `TargetDistanceMeters` for the full match, retroactively.
 
 ## Version Control Integration
 
@@ -44,7 +44,7 @@ AdvantageKit stores Git metadata (commit hash, branch, dirty state) in every log
 2. Add new `Logger.recordOutput()` calls
 3. Run replay
 
-This guarantees the same logic that ran on the robot is used for replay, so odometry and other verified outputs still match — confirming the new outputs are trustworthy.
+This guarantees the same logic that ran on the robot is used for replay, so odometry and other verified outputs still match, confirming the new outputs are trustworthy.
 
 ## Supported Types
 
@@ -52,16 +52,16 @@ All types support single values, 1D arrays, and 2D arrays unless noted.
 
 |    Category    |                                    Types                                     |                                     Notes                                     |
 |----------------|------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| Primitives     | `boolean`, `int`, `long`, `float`, `double`, `String`                        | —                                                                             |
-| WPILib structs | `Translation2d/3d`, `Pose2d/3d`, `Rotation2d/3d`, `SwerveModuleState`, etc.  | Preferred over protobuf — no delay                                            |
-| Protobuf       | Any WPILib protobuf type                                                     | **⚠️ First log can take >100ms** — log once while disabled                    |
-| Records        | Custom `record` classes (fields: primitives, enums, structs, nested records) | **⚠️ Same first-log delay as protobuf** — log while disabled; no array fields |
+| Primitives     | `boolean`, `int`, `long`, `float`, `double`, `String`                        |,                                                                             |
+| WPILib structs | `Translation2d/3d`, `Pose2d/3d`, `Rotation2d/3d`, `SwerveModuleState`, etc.  | Preferred over protobuf, no delay                                            |
+| Protobuf       | Any WPILib protobuf type                                                     | **⚠️ First log can take >100ms**, log once while disabled                    |
+| Records        | Custom `record` classes (fields: primitives, enums, structs, nested records) | **⚠️ Same first-log delay as protobuf**, log while disabled; no array fields |
 | Enums          | Any enum                                                                     | Logged as `name()` string                                                     |
 | Colors         | WPILib `Color`                                                               | Logged as hex triplet string                                                  |
 | Mechanisms     | `LoggedMechanism2d`                                                          | Output only                                                                   |
 | Suppliers      | `BooleanSupplier`, `IntSupplier`, `LongSupplier`, `DoubleSupplier`           | Output only                                                                   |
 
-**Protobuf / Record first-use pattern** — call once during `disabledInit()` to absorb the delay:
+**Protobuf / Record first-use pattern**, call once during `disabledInit()` to absorb the delay:
 
 ```java
 record RobotSnapshot(Pose2d pose) {}
@@ -74,13 +74,13 @@ public void disabledInit() {
 
 ## Syntax Variants
 
-**Varargs for arrays** — pass multiple values without constructing an array:
+**Varargs for arrays**, pass multiple values without constructing an array:
 
 ```java
 Logger.recordOutput("Drive/ModuleStates", stateFL, stateFR, stateBL, stateBR);
 ```
 
-**Units metadata** — attach unit info for correct AdvantageScope visualization:
+**Units metadata**, attach unit info for correct AdvantageScope visualization:
 
 ```java
 Logger.recordOutput("Arm/AngleRad", angleRad, "radians");

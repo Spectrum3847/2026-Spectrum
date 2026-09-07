@@ -4,9 +4,9 @@
 
 ## Java Basics
 
-Java files end in `.java` and the filename must match the public class name inside. Execution in a standard Java program starts from `main()`, but in a WPILib robot project `Robot.java` is the entry point — WPILib calls `robotInit()`, `teleopPeriodic()`, and so on rather than a `main()` you write yourself.
+Java files end in `.java` and the filename must match the public class name inside. Execution in a standard Java program starts from `main()`, but in a WPILib robot project `Robot.java` is the entry point, WPILib calls `robotInit()`, `teleopPeriodic()`, and so on rather than a `main()` you write yourself.
 
-Java uses braces `{}` to group code into blocks. Indentation is cosmetic — the compiler ignores whitespace and relies on braces to know what belongs where. A method body is everything between its opening and closing brace; an `if` block is everything between its pair of braces.
+Java uses braces `{}` to group code into blocks. Indentation is cosmetic, the compiler ignores whitespace and relies on braces to know what belongs where. A method body is everything between its opening and closing brace; an `if` block is everything between its pair of braces.
 
 ```java
 void moveRobot() {
@@ -22,7 +22,7 @@ if (a > b) {
 }
 ```
 
-Every statement ends with a semicolon. Missing one is a compile error — Java won't try to guess where statements end the way Python does.
+Every statement ends with a semicolon. Missing one is a compile error, Java won't try to guess where statements end the way Python does.
 
 ## Spotless Formatting
 
@@ -63,4 +63,4 @@ Block comments (`/* ... */`) exist but are less common than `//` in this codebas
 
 ---
 
-*Previous: [Classes, Methods, & Objects](classes-methods-objects.md) — Next: [Applied to FRC](applied-to-frc.md)*
+*Previous: [Classes, Methods, & Objects](classes-methods-objects.md). Next: [Applied to FRC](applied-to-frc.md)*

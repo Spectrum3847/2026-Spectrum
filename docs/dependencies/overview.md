@@ -2,7 +2,7 @@
 
 *Audience: Reference. No prerequisites.*
 
-This section walks through how each third-party library actually shows up in the codebase: which files use it, what conventions we've settled on, and the gotchas we've already hit. The point isn't to replace the official docs — it's to skip past the "hello world" examples and get straight to "how do we do it here."
+This section walks through how each third-party library actually shows up in the codebase: which files use it, what conventions we've settled on, and the gotchas we've already hit. The point isn't to replace the official docs, it's to skip past the "hello world" examples and get straight to "how do we do it here."
 
 ## What's Actually on the Classpath
 
@@ -20,7 +20,7 @@ To bump a version, swap the JSON via WPILib VSCode's `Manage Vendor Libraries`, 
 
 ## What's Not Actually on the Classpath
 
-`build.gradle` also registers a few JavaDoc-only link bases. These aren't vendor jars we depend on — they just let our generated JavaDoc cross-link to external APIs:
+`build.gradle` also registers a few JavaDoc-only link bases. These aren't vendor jars we depend on, they just let our generated JavaDoc cross-link to external APIs:
 
 * REV Robotics. No REV motor controllers in `2026-Spectrum`, but the link is there in case someone pulls in REV code.
 * Phoenix v5. Same story. Phoenix 6 is a clean break, and we're all-in on it.

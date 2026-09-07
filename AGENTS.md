@@ -5,19 +5,19 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 
 ## Documentation (read this first)
 
-`docs/` is the source of truth for this codebase — read the relevant page instead of guessing, and update the docs when your changes affect behavior. (Verified 2026-08-03: `docs/index.md` exists and cross-links the pages below.)
+`docs/` is the source of truth for this codebase, read the relevant page instead of guessing, and update the docs when your changes affect behavior. (Verified 2026-08-03: `docs/index.md` exists and cross-links the pages below.)
 
-- `docs/index.md` — full doc map
-- `docs/other-guides/2026-season-specific.md` — what's in the codebase: subsystems, state machine, controls, per-robot configs
-- `docs/tools/*.md` — build tools, gradle commands, auton, vision, simulation, logging, PID tuning, Elastic, Phoenix Tuner X
-- `docs/dependencies/*.md` — how we use Phoenix 6, PathPlanner, DogLog, MapleSim, PhotonVision, WPILib
-- `docs/coding-conventions/*.md` — code style (AOSP), class generation, exceptions, Lombok, git workflow
-- `README.md` — repository structure tree
+- `docs/index.md`: full doc map
+- `docs/other-guides/2026-season-specific.md`: what's in the codebase: subsystems, state machine, controls, per-robot configs
+- `docs/tools/*.md`: build tools, gradle commands, auton, vision, simulation, logging, PID tuning, Elastic, Phoenix Tuner X
+- `docs/dependencies/*.md`: how we use Phoenix 6, PathPlanner, DogLog, MapleSim, PhotonVision, WPILib
+- `docs/coding-conventions/*.md`: code style (AOSP), class generation, exceptions, Lombok, git workflow
+- `README.md`: repository structure tree
 
 ## Build & Development
 
 - **Java 17** is required. If it's not the default JDK, use sdkman; fallback: download a Temurin 17 archive to a temp directory, extract it there, and point `JAVA_HOME` at the extracted JDK (or prepend its `bin` directory to `PATH`) before invoking `./gradlew`. Source: Eclipse Temurin releases at <https://adoptium.net/temurin/releases/> (recorded 2026-08-02). Full setup: `docs/setup.md`.
-- `./gradlew build` — compile + Spotless auto-format + tests + SpotBugs. Also: `./gradlew simulateJava`, `./gradlew deploy`, `./gradlew test`, `./gradlew spotlessApply`.
+- `./gradlew build`: compile + Spotless auto-format + tests + SpotBugs. Also: `./gradlew simulateJava`, `./gradlew deploy`, `./gradlew test`, `./gradlew spotlessApply`.
 - **Spotless auto-formats on every build** (Google Java Format **AOSP**, 4-space indent, LF line endings; covers `.java`, `.gradle`, `.xml`, `.md`, `.gitignore`). Re-run `./gradlew build` if the first pass fails on formatting. CI runs `spotlessCheck`.
 - Known issues: `src/main/java/frc/robot/BuildConstants.java` is auto-generated (never edit or commit it); SpotBugs report at `build/reports/spotbugs.html` (exclude filter `excludeFilter-spotbugs.xml`); ErrorProne may elevate warnings to errors.
 - **WPILib's `Trigger` is vendored** (patched copy at `src/main/java/edu/wpi/first/wpilibj2/command/button/Trigger.java`, default start condition `false`). Do not replace with the upstream version.
@@ -39,7 +39,7 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 
 ## Important Notes
 
-1. Run `./gradlew build` after any Java change — it auto-formats and runs SpotBugs/tests. Re-run if it fails on formatting.
+1. Run `./gradlew build` after any Java change, it auto-formats and runs SpotBugs/tests. Re-run if it fails on formatting.
 2. Never edit `BuildConstants.java`.
 3. New subsystem → register in `Robot.java` + `Coordinator.java`. New state → `State.java` + `Coordinator.java` + `RobotStates.java`. New paths/autos → `src/main/deploy/pathplanner/` + register in `Auton.java`. Hardware config → the `*2026.java` config class.
 4. Line endings must be **LF (UNIX)**; `.gitattributes` enforces `eol=lf`.

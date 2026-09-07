@@ -6,7 +6,7 @@ The IO layer separates hardware interaction from control logic, enabling logging
 
 ### @AutoLog Annotation
 
-Annotate the inputs inner class with `@AutoLog` — the annotation processor generates a `<ClassName>AutoLogged` class that implements `LoggableInputs` with automatic `toLog()` / `fromLog()` serialization.
+Annotate the inputs inner class with `@AutoLog`, the annotation processor generates a `<ClassName>AutoLogged` class that implements `LoggableInputs` with automatic `toLog()` / `fromLog()` serialization.
 
 **Always instantiate the generated `AutoLogged` class, not the original:**
 
@@ -42,7 +42,7 @@ All [supported types](https://docs.advantagekit.org/data-flow/supported-types) a
 
 ### Units in Input Fields
 
-Two approaches — pick one consistently:
+Two approaches, pick one consistently:
 
 **Naming convention** (simpler):
 
@@ -76,7 +76,7 @@ Flywheel flywheel = Robot.isReal()
     : new Flywheel(new FlywheelIOSim());
 ```
 
-For replay (no hardware, no sim physics — inputs come from the log):
+For replay (no hardware, no sim physics, inputs come from the log):
 
 ```java
 new Flywheel(new FlywheelIO() {}) // anonymous no-op implementation
@@ -86,7 +86,7 @@ new Flywheel(new FlywheelIO() {}) // anonymous no-op implementation
 
 ## Dashboard Inputs
 
-Direct NetworkTables access (`SmartDashboard.getNumber()`, `SmartDashboard.getString()`, etc.) **will not work correctly in replay** — these values are non-deterministic and not logged.
+Direct NetworkTables access (`SmartDashboard.getNumber()`, `SmartDashboard.getString()`, etc.) **will not work correctly in replay**, these values are non-deterministic and not logged.
 
 ### Logged Replacements
 
@@ -124,8 +124,8 @@ private final LoggedDashboardChooser<Command> autoChooser =
 
 ### Coprocessor / Vision Data
 
-NetworkTables data from coprocessors (e.g., PhotonVision, Limelight) must also go through an IO layer. Treat the coprocessor as a hardware device — read NT values inside `updateInputs()` so they are logged and replayable. See the AKit vision template project for a complete example.
+NetworkTables data from coprocessors (e.g., PhotonVision, Limelight) must also go through an IO layer. Treat the coprocessor as a hardware device, read NT values inside `updateInputs()` so they are logged and replayable. See the AKit vision template project for a complete example.
 
 ### Tuning Values
 
-Publish tuning values under the `/Tuning` NT path when using the logged network classes — AdvantageScope supports live tuning via this path.
+Publish tuning values under the `/Tuning` NT path when using the logged network classes, AdvantageScope supports live tuning via this path.

@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-Conventions for designing classes and methods. Most of what follows is reinforced throughout `frc.spectrumLib` — if you're not sure how to structure something new, copy what an existing subsystem like `Launcher` or `Hood` already does.
+Conventions for designing classes and methods. Most of what follows is reinforced throughout `frc.spectrumLib`, if you're not sure how to structure something new, copy what an existing subsystem like `Launcher` or `Hood` already does.
 
 ## Subsystem Layout
 
@@ -38,9 +38,9 @@ A mechanism `Config` is an immutable value holder — `@Getter private final` fi
 
 Keep them single-purpose. A subsystem method that both computes a setpoint *and* drives the motor is hard to test and hard to override per-robot. Pull the math into a small helper — often a `DoubleSupplier` — and let the command factory just schedule things.
 
-For long `if` chains: if you're past about three conditions, extract them. A `switch` on an enum reads better than nested `if`s once a pattern emerges — a subsystem's `handleStateTransition()` (e.g. in `Launcher`/`Hood`, a `switch` over `WantedState`) is a decent template for that. And for anything that's checked every loop and might run a command, return a `Trigger` (via the `At/Above/Below` helpers on `Mechanism`) instead of a raw `boolean`. The scheduler handles re-evaluation; you don't have to.
+For long `if` chains: if you're past about three conditions, extract them. A `switch` on an enum reads better than nested `if`s once a pattern emerges, a subsystem's `handleStateTransition()` (e.g. in `Launcher`/`Hood`, a `switch` over `WantedState`) is a decent template for that. And for anything that's checked every loop and might run a command, return a `Trigger` (via the `At/Above/Below` helpers on `Mechanism`) instead of a raw `boolean`. The scheduler handles re-evaluation; you don't have to.
 
-Use parameters generously. Explicit parameters make methods readable and testable. But avoid the boolean-flag pattern — a method that takes `boolean reverse` is usually two methods with clearer names (`forward()` and `reverse()`).
+Use parameters generously. Explicit parameters make methods readable and testable. But avoid the boolean-flag pattern, a method that takes `boolean reverse` is usually two methods with clearer names (`forward()` and `reverse()`).
 
 For setpoints that may change while a command is running (joystick input, target distance, tunable dashboard values), accept a `DoubleSupplier` rather than a fixed `double`. The reasoning is in [Tips](../other-guides/tips.md#doublesupplier-vs-double).
 

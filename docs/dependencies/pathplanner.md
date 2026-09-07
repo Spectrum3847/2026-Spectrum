@@ -37,7 +37,7 @@ AutoBuilder.configure(
         this);
 ```
 
-Those PID constants get re-tuned every year. Don't change them without coordinating with whoever owns auto tuning — small shifts have outsized effects on whether a path lands on its end pose.
+Those PID constants get re-tuned every year. Don't change them without coordinating with whoever owns auto tuning, small shifts have outsized effects on whether a path lands on its end pose.
 
 ## Event Triggers
 
@@ -60,7 +60,7 @@ Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON
 Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
 ```
 
-Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `WantedSuperState` (or whatever command you want) in `Robot.configureBindings()`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly — if your trigger isn't firing, that's the first thing to double-check.
+Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `WantedSuperState` (or whatever command you want) in `Robot.configureBindings()`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly, if your trigger isn't firing, that's the first thing to double-check.
 
 ## The Auto Chooser
 
@@ -73,17 +73,17 @@ pathChooser.addOption("TBTB Right", TBTB(true));
 SmartDashboard.putData("Auto Chooser", pathChooser);
 ```
 
-Each option ultimately returns `new PathPlannerAuto(autoName, mirrored)`. The `mirrored` flag is how a single `.auto` file becomes both the "Left" and "Right" variants — `PathPlannerPath.mirrorPath()` mirrors across the center line of *the same* alliance, while `PathPlannerPath.flipPath()` flips for red versus blue (which the alliance lambda in `AutoBuilder` does for you inside an `.auto`).
+Each option ultimately returns `new PathPlannerAuto(autoName, mirrored)`. The `mirrored` flag is how a single `.auto` file becomes both the "Left" and "Right" variants, `PathPlannerPath.mirrorPath()` mirrors across the center line of *the same* alliance, while `PathPlannerPath.flipPath()` flips for red versus blue (which the alliance lambda in `AutoBuilder` does for you inside an `.auto`).
 
 If you're loading a path directly from Java instead of through an `.auto`, the alliance flip is *not* automatic. You're on the hook for `flipPath()` and `mirrorPath()` yourself.
 
 ## Warmup
 
-`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` (once per session, guarded by `autonWarmedUp`) so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup the same way — `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
+`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` (once per session, guarded by `autonWarmedUp`) so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup the same way, `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
 
 ## Loading a Path From Java
 
-For the occasional one-off (a recovery routine, a fallback after a failed pose update), `PathPlannerPath.fromPathFile("MyPath")` is what you want. It throws `IOException`, `ParseException`, and `FileVersionException` — catch them all and report through `DriverStation.reportError` and `Telemetry.print` so a missing or malformed file doesn't silently kill the auto.
+For the occasional one-off (a recovery routine, a fallback after a failed pose update), `PathPlannerPath.fromPathFile("MyPath")` is what you want. It throws `IOException`, `ParseException`, and `FileVersionException`, catch them all and report through `DriverStation.reportError` and `Telemetry.print` so a missing or malformed file doesn't silently kill the auto.
 
 ## Gotchas
 

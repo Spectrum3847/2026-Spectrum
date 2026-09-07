@@ -7,15 +7,15 @@
 PID drives a measured value toward a target. The three terms:
 
 * **kP** responds to the current error. Bigger kP pulls harder; too big and the system oscillates.
-* **kI** accumulates past error. It kills off steady-state error (a flywheel that always lags 1% behind target, say). Almost always small — too much causes windup.
+* **kI** accumulates past error. It kills off steady-state error (a flywheel that always lags 1% behind target, say). Almost always small, too much causes windup.
 * **kD** responds to how fast the error is changing. It damps overshoot and ringing.
 
 PID is one piece of the controller. On a Phoenix 6 TalonFX, the slot also takes feedforward terms:
 
-* **kS** — output needed to *just* start moving (static friction).
-* **kV** — output per unit of target velocity.
-* **kA** — output per unit of target acceleration.
-* **kG** — constant output to hold against gravity (arms, elevators).
+* **kS**, output needed to *just* start moving (static friction).
+* **kV**, output per unit of target velocity.
+* **kA**, output per unit of target acceleration.
+* **kG**, constant output to hold against gravity (arms, elevators).
 
 The *units* of these gains depend on the control request. Under voltage requests they're volts (kV in V/rps, etc.); under the TorqueCurrentFOC requests this code uses for FOC position/velocity loops (`setMMPositionFoc`, `setVelocityTorqueCurrentFOC`) they're amps (kV in A/rps). Same numbers mean very different things across the two, so re-tune — don't copy gains — when a mechanism switches request type. `Mechanism.java`'s own javadoc flags kS as "static friction compensation (volts or amps)" for this reason.
 
@@ -25,10 +25,10 @@ For controllable mechanisms, tune feedforward first. PID then only has to correc
 
 The pieces in motion:
 
-* **Setpoint** — what you want (a position, velocity, or angle).
-* **Process variable** — what the sensor actually reads.
-* **Error** — setpoint minus process variable.
-* **Output** — voltage (or torque current) the controller produces from current, past, and predicted error.
+* **Setpoint**, what you want (a position, velocity, or angle).
+* **Process variable**, what the sensor actually reads.
+* **Error**, setpoint minus process variable.
+* **Output**, voltage (or torque current) the controller produces from current, past, and predicted error.
 
 ## Where PID Lives in the Code
 
@@ -54,7 +54,7 @@ public void periodic() {
 }
 ```
 
-`getSupplier()` returns a `DoubleSupplier`, so you can pass the tunable straight into a command factory. Don't take `TuneValue`s to competition unless you mean to — pull them or hide them behind a debug flag once gains are settled.
+`getSupplier()` returns a `DoubleSupplier`, so you can pass the tunable straight into a command factory. Don't take `TuneValue`s to competition unless you mean to, pull them or hide them behind a debug flag once gains are settled.
 
 ## A Workflow That Works
 
@@ -78,6 +78,6 @@ CTRE's Phoenix 6 closed-loop guide for slot configuration, units, and gain conve
 
 WPILib's docs for the WPILib-side controllers (`ProfiledPIDController`, etc.) and for SysId, which produces feedforward constants from a system characterization run.
 
-The Phoenix Tuner X plotter ([Phoenix Tuner X](phoenix-tuner-x.md)) — live-plotting setpoint against process variable is by far the fastest way to know whether a tweak helped or made things worse.
+The Phoenix Tuner X plotter ([Phoenix Tuner X](phoenix-tuner-x.md)), live-plotting setpoint against process variable is by far the fastest way to know whether a tweak helped or made things worse.
 
 A SysId routine for the swerve drive already lives in [`frc.spectrumLib.swerve.SysID`](../../src/main/java/frc/spectrumLib/swerve/SysID.java). It's a useful template if you ever need to characterize another mechanism the same way.

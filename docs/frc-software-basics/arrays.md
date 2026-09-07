@@ -9,7 +9,7 @@ int[] x = {3, 8, 4, 7};
 // x[0] is 3, x[1] is 8, x[2] is 4, x[3] is 7
 ```
 
-The size is fixed at creation. Once you create an `int[4]`, it holds exactly four ints for its lifetime. If you need a resizable list, Java has `ArrayList` — but for most robot code, fixed arrays are fine.
+The size is fixed at creation. Once you create an `int[4]`, it holds exactly four ints for its lifetime. If you need a resizable list, Java has `ArrayList`, but for most robot code, fixed arrays are fine.
 
 ## Declaring and Initializing
 
@@ -83,10 +83,10 @@ For how this pattern fits into subsystem design, see [Class Generation](../codin
 
 ## Array Errors
 
-`ArrayIndexOutOfBoundsException` — you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
+`ArrayIndexOutOfBoundsException`, you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
 
-`NullPointerException` — you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
+`NullPointerException`, you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
 
 ---
 
-*Previous: [Logic-Based Operators & Strings](logic-operators.md) — Next: [Loops](loops.md)*
+*Previous: [Logic-Based Operators & Strings](logic-operators.md). Next: [Loops](loops.md)*

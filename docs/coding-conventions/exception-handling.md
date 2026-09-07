@@ -6,7 +6,7 @@ Robot code runs in a single process that's responsible for moving a lot of mass 
 
 ## Never Write an Empty Catch
 
-> "Anytime somebody has an empty catch clause they should have a creepy feeling. There are definitely times when it is actually the correct thing to do, but at least you have to think about it." — James Gosling
+> "Anytime somebody has an empty catch clause they should have a creepy feeling. There are definitely times when it is actually the correct thing to do, but at least you have to think about it." Attributed to James Gosling.
 
 If you have a reason to catch and not log, write it down in a one-line comment so a future reader sees you thought about it. Otherwise, at minimum:
 
@@ -17,11 +17,11 @@ If you have a reason to catch and not log, write it down in a one-line comment s
 }
 ```
 
-Use [`Telemetry.print(..., PrintPriority.HIGH)`](../tools/logging.md) — it ends up in the WPILib log *and* on the Driver Station console. `e.printStackTrace()` adds the full trace to stderr, which is also captured if `captureConsole` is on (it is, see `Telemetry.start(...)`).
+Use [`Telemetry.print(..., PrintPriority.HIGH)`](../tools/logging.md), it ends up in the WPILib log *and* on the Driver Station console. `e.printStackTrace()` adds the full trace to stderr, which is also captured if `captureConsole` is on (it is, see `Telemetry.start(...)`).
 
 ## Don't Catch `Exception` Broadly
 
-Catching `Exception` or `Throwable` at the top of a method silences `NullPointerException`, `ClassCastException`, and `OutOfMemoryError` along with whatever you actually wanted to catch. Those generic exceptions almost always mean a real bug — let them propagate so the WPILib robot wrapper can log them and the match continues with whatever it can.
+Catching `Exception` or `Throwable` at the top of a method silences `NullPointerException`, `ClassCastException`, and `OutOfMemoryError` along with whatever you actually wanted to catch. Those generic exceptions almost always mean a real bug, let them propagate so the WPILib robot wrapper can log them and the match continues with whatever it can.
 
 Catch the *specific* exception you're handling:
 
@@ -36,7 +36,7 @@ try {
 }
 ```
 
-This is the actual pattern in [`Auton.followSinglePath`](../../src/main/java/frc/robot/auton/Auton.java) — three specific exceptions, joined with `|`, fallback to a print command that names the failure mode.
+This is the actual pattern in [`Auton.followSinglePath`](../../src/main/java/frc/robot/auton/Auton.java), three specific exceptions, joined with `|`, fallback to a print command that names the failure mode.
 
 ## Prefer Validating Inputs Over Catching `NullPointerException`
 
@@ -50,7 +50,7 @@ if (auton != null) {
 return new PrintCommand("*** AUTON COMMAND IS NULL ***");
 ```
 
-That's how `Auton.getAutonomousCommand()` handles "what if nothing's selected" — explicit check, explicit fallback, no `try { … } catch (NullPointerException)`.
+That's how `Auton.getAutonomousCommand()` handles "what if nothing's selected", explicit check, explicit fallback, no `try { … } catch (NullPointerException)`.
 
 Same logic for `ArrayIndexOutOfBoundsException`: bounds-check before indexing rather than trapping the throw.
 
@@ -58,8 +58,8 @@ Same logic for `ArrayIndexOutOfBoundsException`: bounds-check before indexing ra
 
 You want `try-catch` when:
 
-* You're at a boundary with code you don't control — file I/O, network calls, vendor SDK methods that declare checked exceptions.
-* The recoverable behavior is meaningful — fall back to a default, retry once, switch to a degraded mode.
+* You're at a boundary with code you don't control, file I/O, network calls, vendor SDK methods that declare checked exceptions.
+* The recoverable behavior is meaningful, fall back to a default, retry once, switch to a degraded mode.
 * You want to *log and continue* rather than crash. Per-loop sensor reads are a common case: a bad read shouldn't crash the loop, just produce a sentinel value and log the issue.
 
 You don't want `try-catch` when:
@@ -80,7 +80,7 @@ e.printStackTrace();
 
 ## Faults
 
-For known failure modes, use the named entries in `Telemetry.Fault` (`CAMERA_OFFLINE`, `AUTO_SHOT_TIMEOUT_TRIGGERED`, `BROWNOUT`). The enum is the shared vocabulary; log the fault via `Telemetry.print(Fault.X.name(), PrintPriority.HIGH)` so it's easy to grep after a match. Add new entries as new fault classes emerge — they're cheap and they make post-match analysis much faster than free-text searches through `Prints`.
+For known failure modes, use the named entries in `Telemetry.Fault` (`CAMERA_OFFLINE`, `AUTO_SHOT_TIMEOUT_TRIGGERED`, `BROWNOUT`). The enum is the shared vocabulary; log the fault via `Telemetry.print(Fault.X.name(), PrintPriority.HIGH)` so it's easy to grep after a match. Add new entries as new fault classes emerge, they're cheap and they make post-match analysis much faster than free-text searches through `Prints`.
 
 ## See Also
 

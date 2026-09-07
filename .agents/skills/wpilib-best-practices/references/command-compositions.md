@@ -5,11 +5,11 @@
 
 ## Contents
 
-- [Composition Types](#composition-types) — sequence, parallel, race, deadline, repeat
-- [Requirements](#requirements) — requirement union behavior
-- [End Condition Decorators](#end-condition-decorators) — timeout, until, onlyWhile, onlyIf
-- [End Behavior Decorators](#end-behavior-decorators) — finallyDo, handleInterrupt
-- [Conditional Commands](#conditional-commands) — either, SelectCommand
+- [Composition Types](#composition-types): sequence, parallel, race, deadline, repeat
+- [Requirements](#requirements): requirement union behavior
+- [End Condition Decorators](#end-condition-decorators): timeout, until, onlyWhile, onlyIf
+- [End Behavior Decorators](#end-behavior-decorators): finallyDo, handleInterrupt
+- [Conditional Commands](#conditional-commands): either, SelectCommand
 - [ProxyCommand](#proxycommand)
 - [Disabled Behavior & Cancellation](#disabled-behavior--cancellation)
 

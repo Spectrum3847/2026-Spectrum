@@ -5,8 +5,8 @@
 
 ## Contents
 
-- [Project Structure](#project-structure) — `Robot`, `RobotContainer`, `Constants`, directory layout
-- [Command Definition Patterns](#command-definition-patterns) — pattern selection, factory methods, subclassing
+- [Project Structure](#project-structure): `Robot`, `RobotContainer`, `Constants`, directory layout
+- [Command Definition Patterns](#command-definition-patterns): pattern selection, factory methods, subclassing
 - [Common Anti-Patterns](#common-anti-patterns)
 
 ---

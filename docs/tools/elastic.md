@@ -10,15 +10,15 @@ The layout lives at [`src/main/deploy/elastic-layout.json`](../../src/main/deplo
 
 There are five tabs right now:
 
-**Pre-Match** — auto chooser, FMS info, robot-init state, alerts, and `Field2d`. This is what's on screen between matches.
+**Pre-Match**, auto chooser, FMS info, robot-init state, alerts, and `Field2d`. This is what's on screen between matches.
 
-**Match** — what the drivers and operators care about during a match: current state, alliance info, scoring readiness, vision status.
+**Match**, what the drivers and operators care about during a match: current state, alliance info, scoring readiness, vision status.
 
-**Launching** — launcher and hood telemetry: wheel velocities, target distance, on-target booleans. The page you stare at when shots aren't landing.
+**Launching**, launcher and hood telemetry: wheel velocities, target distance, on-target booleans. The page you stare at when shots aren't landing.
 
-**Diagnostic** — subsystem health, current draw, fault flags. Deeper telemetry for when something's actually broken.
+**Diagnostic**, subsystem health, current draw, fault flags. Deeper telemetry for when something's actually broken.
 
-**Git Status** — branch, commit, and build timestamp from `BuildConstants`. The "what's actually running on this robot" tab.
+**Git Status**, branch, commit, and build timestamp from `BuildConstants`. The "what's actually running on this robot" tab.
 
 If you add a widget, edit the layout in Elastic and save it back to the file. Spotless leaves JSON alone, so let Elastic round-trip it instead of hand-editing whitespace.
 

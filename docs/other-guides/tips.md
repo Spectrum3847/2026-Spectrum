@@ -6,7 +6,7 @@ Practical things that come up often enough to be worth writing down.
 
 ## Clean Your Java Workspace
 
-If VS Code is showing red squiggles on code that definitely compiles, or IntelliSense is behaving strangely, the language server's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `Java: Clean Language Server Workspace`. If that doesn't do it, run `./gradlew clean build` from the terminal — see [Gradle](../tools/gradle.md) for what that actually does.
+If VS Code is showing red squiggles on code that definitely compiles, or IntelliSense is behaving strangely, the language server's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `Java: Clean Language Server Workspace`. If that doesn't do it, run `./gradlew clean build` from the terminal, see [Gradle](../tools/gradle.md) for what that actually does.
 
 ## Coordinate Systems
 
@@ -50,11 +50,11 @@ myTrigger.whileTrue(
         .withTimeout(5.0));
 ```
 
-This is idiomatic in the codebase — you'll see it everywhere in the `*States` files. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
+This is idiomatic in the codebase, you'll see it everywhere in the `*States` files. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
 
 ## Simulation Before Robot Time
 
-Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths — most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P → WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
+Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths, most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P → WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
 
 Reserve time on the real robot for things that genuinely require it: tuning gains, calibrating offsets, testing hardware interactions. Don't develop new features on the robot.
 
@@ -71,7 +71,7 @@ Small, focused branches have fewer merge conflicts and are much easier to review
 
 ## Logging is Free
 
-Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition — these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. The pattern used in every `*States` file is:
+Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition, these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. The pattern used in every `*States` file is:
 
 ```java
 private static Command log(Command cmd) {
