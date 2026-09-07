@@ -266,6 +266,76 @@ public class Vision implements Subsystem {
          */
         @Getter final double turretZeroMaxErrorDeg = 15.0;
 
+        // -- Turret zero re-home ----------------------------------------------
+        //
+        // The trim above walks the zero a fraction of a degree at a time and refuses anything over
+        // turretZeroMaxErrorDeg, which is right for slip and useless for a gross error. On
+        // 2026-09-07 the turret sat about 90 deg out -- pointed at the trench instead of the hub --
+        // and the trim ignored it completely: the error was 94 deg, the ceiling 15, so every sample
+        // was "not measurable" and thrown away. It dutifully trimmed the 10 deg of ordinary slip
+        // underneath and left the quarter turn alone. Nothing else could fix it either, because a
+        // turret camera whose mount transform is 90 deg wrong gets its pose estimates rejected for
+        // disagreeing with the pose (turretHeadingMismatchDeg), so the camera could not correct the
+        // robot and the robot could not correct the camera.
+        //
+        // This is the way out: when the camera says the zero is grossly wrong, and keeps saying the
+        // same thing, take it in one step and forget the accumulated history. It is deliberately
+        // hard to trigger, because it is a large instantaneous change to a mechanism that may be
+        // aimed at something.
+
+        /**
+         * Tags the turret camera must see before a re-home is considered.
+         *
+         * <p>One, and that is deliberate. Tag count is the right gate for trusting a camera's
+         * absolute pose, and it is the wrong gate here. On the 2026-09-07 log the turret camera saw
+         * exactly one tag for all 34 samples of the 94 deg error, so a two- or three-tag rule would
+         * never have fired on the only fault it exists to fix -- the same way requiring three tags
+         * would have suppressed the genuine -104 deg boot-heading correction on 2026-09-05.
+         *
+         * <p>What separates a real offset from a bad single-tag solve is not how many tags, it is
+         * whether the number holds still. Those 34 samples included 27 reading -93.7 to -95.7 deg,
+         * a 2 deg spread; a single-tag guess wanders across tens of degrees. So the consistency
+         * gates below carry the weight, and the divergence latch is the backstop if they are ever
+         * fooled: a re-home that does not bring the error near zero disables further trimming
+         * instead of snapping again.
+         */
+        @Getter final int turretZeroRehomeMinTags = 1;
+
+        /**
+         * Least time between re-homes, in seconds.
+         *
+         * <p>A re-home is a large instantaneous change. If one does not settle the error, the
+         * answer is the divergence latch, not another snap a third of a second later.
+         */
+        @Getter final double turretZeroRehomeCooldownSeconds = 5.0;
+
+        /**
+         * Consecutive agreeing samples required before a re-home fires.
+         *
+         * <p>This is the safety, not the error ceiling. A single frame can read 170 deg out; what a
+         * real mechanical offset looks like is the same large number, frame after frame, while the
+         * robot and turret sit still. At roughly 50 Hz this is a third of a second of agreement.
+         */
+        @Getter final int turretZeroRehomeSamples = 15;
+
+        /**
+         * How tightly those samples must agree, in degrees, peak to peak.
+         *
+         * <p>Wide enough to tolerate three-tag noise, far tighter than the spread of a camera that
+         * is guessing.
+         */
+        @Getter final double turretZeroRehomeSpreadDeg = 4.0;
+
+        /**
+         * Smallest error worth re-homing for.
+         *
+         * <p>Below this the trim handles it. Set above {@link #getTurretZeroMaxErrorDeg()} so the
+         * two never contend for the same error: under 15 deg the trim walks it, over 20 the re-home
+         * takes it in one step, and the band between is left to the trim so a marginal reading
+         * cannot snap the turret.
+         */
+        @Getter final double turretZeroRehomeMinErrorDeg = 20.0;
+
         /**
          * Measurable samples in a row before the filter is allowed to move the encoder.
          *
@@ -760,6 +830,124 @@ public class Vision implements Subsystem {
      * rate is published, and past {@link VisionConfig#getTurretSlipAlertDegPerMinute()} it raises
      * an alert -- vision papering over a mechanical fault should be loud about it, not silent.
      */
+    /**
+     * The agreeing run so far: how many, their sum, and their extremes.
+     *
+     * <p>No buffer needed. The spread gate already keeps every sample in a run within a few degrees
+     * of the others, so the mean of the run and its median cannot differ by more than that -- and
+     * tracking min and max gives a true peak-to-peak rather than distance from whichever sample
+     * happened to arrive first.
+     */
+    private int turretZeroRehomeCount = 0;
+
+    private double turretZeroRehomeSum = 0;
+    private double turretZeroRehomeMin = 0;
+    private double turretZeroRehomeMax = 0;
+
+    /** FPGA time of the last re-home, so one cannot follow another straight away. */
+    private double turretZeroLastRehomeSeconds = Double.NEGATIVE_INFINITY;
+
+    /** Total the re-home has moved the zero, kept apart from slip so it cannot pollute the rate. */
+    @Getter private double turretZeroRehomeTotalDeg = 0;
+
+    private final Alert turretRehomedAlert =
+            new Alert(
+                    "Turret zero was re-homed from the camera. If this keeps happening the belt is"
+                            + " skipping badly, not creeping.",
+                    AlertType.kWarning);
+
+    /**
+     * Takes a gross turret zero error out in one step, once the camera has said the same thing
+     * enough times in a row to be believed.
+     *
+     * <p>Everything here is about not doing it by accident. The robot and the turret must be still,
+     * the turret camera must have at least {@link VisionConfig#getTurretZeroRehomeMinTags()} tags,
+     * the robot's own heading must already be vision-seeded and currently backed by a chassis
+     * camera that can see tags -- the turret camera cannot vouch for a pose whose error is the
+     * thing being measured -- and nothing may be launching. Then {@link
+     * VisionConfig#getTurretZeroRehomeSamples()} readings have to agree to within {@link
+     * VisionConfig#getTurretZeroRehomeSpreadDeg()} peak to peak.
+     *
+     * <p>When it fires, the accumulated history goes with it: the trim filter, the slip window and
+     * the divergence latch are all cleared, because they describe a zero that no longer exists.
+     * Slip measured across a re-home is not slip.
+     *
+     * @param errorDeg this loop's camera-minus-pose heading error, or NaN
+     * @param stationary whether the chassis is within the stationary gates
+     * @param turretStill whether the turret is within the slew gate
+     * @return {@code true} when a re-home was applied this loop
+     */
+    private boolean checkTurretZeroRehome(
+            double errorDeg, boolean stationary, boolean turretStill) {
+        double now = Timer.getFPGATimestamp();
+        boolean trustworthy =
+                !Double.isNaN(errorDeg)
+                        && Math.abs(errorDeg) >= config.getTurretZeroRehomeMinErrorDeg()
+                        && stationary
+                        && turretStill
+                        && turretLL.getTagCountInView() >= config.getTurretZeroRehomeMinTags()
+                        && poseHeadingSeeded
+                        && !Robot.getSuperStructure().currentStateIsLaunching()
+                        && now - turretZeroLastRehomeSeconds
+                                >= config.getTurretZeroRehomeCooldownSeconds();
+
+        if (!trustworthy) {
+            turretZeroRehomeCount = 0;
+            Telemetry.log("Vision/TurretZero/RehomeProgress", 0);
+            return false;
+        }
+
+        // A sample that would widen the run past the spread gate starts the count over: a real
+        // offset reads the same every frame, a guess does not.
+        double low =
+                turretZeroRehomeCount == 0 ? errorDeg : Math.min(turretZeroRehomeMin, errorDeg);
+        double high =
+                turretZeroRehomeCount == 0 ? errorDeg : Math.max(turretZeroRehomeMax, errorDeg);
+        if (high - low > config.getTurretZeroRehomeSpreadDeg()) {
+            turretZeroRehomeCount = 0;
+            low = errorDeg;
+            high = errorDeg;
+        }
+        if (turretZeroRehomeCount == 0) {
+            turretZeroRehomeSum = 0;
+        }
+        turretZeroRehomeMin = low;
+        turretZeroRehomeMax = high;
+        turretZeroRehomeSum += errorDeg;
+        turretZeroRehomeCount++;
+        Telemetry.log("Vision/TurretZero/RehomeProgress", turretZeroRehomeCount);
+
+        if (turretZeroRehomeCount < config.getTurretZeroRehomeSamples()) {
+            return false;
+        }
+
+        double step = turretZeroRehomeSum / turretZeroRehomeCount;
+
+        Robot.getTurret().applyZeroCorrectionDegrees(step);
+        turretZeroRehomeTotalDeg += step;
+        turretZeroRehomeCount = 0;
+        turretZeroLastRehomeSeconds = now;
+
+        // Forget the old zero's history rather than carry it across the discontinuity.
+        turretZeroFilteredErrorDeg = Double.NaN;
+        turretZeroMeasurableStreak = 0;
+        turretZeroLastApplySeconds = now;
+        turretZeroRateWindowDeg = 0;
+        turretZeroRateWindowAbsDeg = 0;
+        turretZeroRateWindowStartSeconds = Double.NaN;
+        turretZeroDivergenceStartSeconds = Double.NaN;
+        turretZeroDiverged = false;
+        turretZeroDivergedAlert.set(false);
+
+        turretRehomedAlert.set(true);
+        Telemetry.print(
+                String.format(
+                        "Vision: turret zero re-homed %.1f deg from the camera (%d tags).",
+                        step, (int) turretLL.getTagCountInView()));
+        Telemetry.log("Vision/TurretZero/RehomeTotalDeg", turretZeroRehomeTotalDeg, "deg");
+        return true;
+    }
+
     private void correctTurretZero() {
         double now = Timer.getFPGATimestamp();
         double errorDeg = turretCameraHeadingErrorDeg();
@@ -770,13 +958,21 @@ public class Vision implements Subsystem {
                                 <= config.getGrossHeadingMaxLinearSpeed()
                         && Math.abs(speeds.omegaRadiansPerSecond)
                                 <= config.getGrossHeadingMaxOmega();
+        boolean turretStill =
+                Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
+                        <= config.getTurretZeroMaxTurretOmega();
+
+        // Gross errors first: the trim below cannot reach them, and while one stands the turret is
+        // aimed somewhere else entirely.
+        if (checkTurretZeroRehome(errorDeg, stationary, turretStill)) {
+            return;
+        }
 
         boolean measurable =
                 !Double.isNaN(errorDeg)
                         && Math.abs(errorDeg) <= config.getTurretZeroMaxErrorDeg()
                         && stationary
-                        && Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
-                                <= config.getTurretZeroMaxTurretOmega();
+                        && turretStill;
 
         if (!measurable) {
             // Drop the filter rather than let it coast on stale samples into the next window.
