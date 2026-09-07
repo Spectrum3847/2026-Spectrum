@@ -28,39 +28,50 @@ public class BatteryLogger {
     private static final int WINDOW_60S_SAMPLES = (int) (60.0 / LOOP_PERIOD_SECS);
 
     /** When {@code false} all methods are no-ops, allowing the logger to be disabled at runtime. */
-    @Setter private boolean enabled = false;
+    @Setter
+    private boolean enabled = false;
 
     /**
      * Running total of current draw accumulated since the last {@link #logPower()} call, in amps.
      */
-    @Getter private double totalCurrent = 0.0;
+    @Getter
+    private double totalCurrent = 0.0;
 
     /** Running total of power accumulated since the last {@link #logPower()} call, in watts. */
-    @Getter private double totalPower = 0.0;
+    @Getter
+    private double totalPower = 0.0;
 
     /** Cumulative energy consumed over the entire enabled session, in joules. */
-    @Getter private double totalEnergy = 0.0;
+    @Getter
+    private double totalEnergy = 0.0;
 
     /** Peak instantaneous current observed since reset, in amps. */
-    @Getter private double maxCurrent = 0.0;
+    @Getter
+    private double maxCurrent = 0.0;
 
     /** Peak instantaneous power observed since reset, in watts. */
-    @Getter private double maxPower = 0.0;
+    @Getter
+    private double maxPower = 0.0;
 
     /** Highest rolling-average current over a 20-second window, in amps. */
-    @Getter private double max20sCurrentA = 0.0;
+    @Getter
+    private double max20sCurrentA = 0.0;
 
     /** Highest rolling-average current over a 45-second window, in amps. */
-    @Getter private double max45sCurrentA = 0.0;
+    @Getter
+    private double max45sCurrentA = 0.0;
 
     /** Highest rolling-average current over a 60-second window, in amps. */
-    @Getter private double max60sCurrentA = 0.0;
+    @Getter
+    private double max60sCurrentA = 0.0;
 
     /** Battery terminal voltage used to convert current to power, in volts. */
-    @Setter private double batteryVoltage = 12.6;
+    @Setter
+    private double batteryVoltage = 12.6;
 
     /** Estimated current drawn by the RoboRIO itself, in amps. */
-    @Setter private double rioCurrent = 0.0;
+    @Setter
+    private double rioCurrent = 0.0;
 
     private final Map<String, Double> subsystemCurrents = new HashMap<>();
     private final Map<String, Double> subsystemPowers = new HashMap<>();
@@ -187,10 +198,7 @@ public class BatteryLogger {
 
         // Per-subsystem cumulative energy.
         for (var entry : subsystemEnergies.entrySet()) {
-            Telemetry.log(
-                    "BatteryLogger/Energy/" + entry.getKey(),
-                    joulesToWattHours(entry.getValue()),
-                    "wh");
+            Telemetry.log("BatteryLogger/Energy/" + entry.getKey(), joulesToWattHours(entry.getValue()), "wh");
         }
 
         // Reset per-loop totals.
@@ -200,16 +208,13 @@ public class BatteryLogger {
 
     private void updateRollingWindows(double currentSample) {
         rollingCurrent20s =
-                updateRollingWindow(
-                        currentHistory20s, rollingCurrent20s, currentSample, WINDOW_20S_SAMPLES);
+                updateRollingWindow(currentHistory20s, rollingCurrent20s, currentSample, WINDOW_20S_SAMPLES);
 
         rollingCurrent45s =
-                updateRollingWindow(
-                        currentHistory45s, rollingCurrent45s, currentSample, WINDOW_45S_SAMPLES);
+                updateRollingWindow(currentHistory45s, rollingCurrent45s, currentSample, WINDOW_45S_SAMPLES);
 
         rollingCurrent60s =
-                updateRollingWindow(
-                        currentHistory60s, rollingCurrent60s, currentSample, WINDOW_60S_SAMPLES);
+                updateRollingWindow(currentHistory60s, rollingCurrent60s, currentSample, WINDOW_60S_SAMPLES);
 
         double avg20s = rollingCurrent20s / currentHistory20s.size();
         double avg45s = rollingCurrent45s / currentHistory45s.size();
@@ -220,8 +225,7 @@ public class BatteryLogger {
         max60sCurrentA = Math.max(max60sCurrentA, avg60s);
     }
 
-    private double updateRollingWindow(
-            Deque<Double> history, double runningSum, double sample, int maxSamples) {
+    private double updateRollingWindow(Deque<Double> history, double runningSum, double sample, int maxSamples) {
 
         history.addLast(sample);
         runningSum += sample;

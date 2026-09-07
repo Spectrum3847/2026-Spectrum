@@ -58,27 +58,29 @@ public class Vision implements Subsystem {
      */
     public static class VisionConfig {
 
-        @Getter final String name = "Vision";
+        @Getter
+        final String name = "Vision";
 
         // -- Back Limelight ---------------------------------------------------
 
         /** NetworkTables hostname for the rear-facing Limelight. */
-        @Getter final String backLL = "limelight-back";
+        @Getter
+        final String backLL = "limelight-back";
 
         /**
          * Robot-relative pose of the rear Limelight. Translation in metres (x, y, z); rotation in
          * degrees (roll, pitch, yaw).
          */
         @Getter
-        final LimelightConfig backConfig =
-                new LimelightConfig(backLL)
-                        .withTranslation(-0.3084987734, 0.2134100126, 0.6502249886)
-                        .withRotation(0, 0, 180);
+        final LimelightConfig backConfig = new LimelightConfig(backLL)
+                .withTranslation(-0.3084987734, 0.2134100126, 0.6502249886)
+                .withRotation(0, 0, 180);
 
         // -- Left Limelight ---------------------------------------------------
 
         /** NetworkTables hostname for the left-facing Limelight. */
-        @Getter final String leftLL = "limelight-left";
+        @Getter
+        final String leftLL = "limelight-left";
 
         /**
          * Robot-relative pose of the left Limelight. Translation in metres (x, y, z); rotation in
@@ -91,17 +93,17 @@ public class Vision implements Subsystem {
         // -- Right Limelight --------------------------------------------------
 
         /** NetworkTables hostname for the right-facing Limelight. */
-        @Getter final String rightLL = "limelight-right";
+        @Getter
+        final String rightLL = "limelight-right";
 
         /**
          * Robot-relative pose of the right Limelight. Translation in metres (x, y, z); rotation in
          * degrees (roll, pitch, yaw).
          */
         @Getter
-        final LimelightConfig rightConfig =
-                new LimelightConfig(rightLL)
-                        .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
-                        .withRotation(0, 0, -90);
+        final LimelightConfig rightConfig = new LimelightConfig(rightLL)
+                .withTranslation(-0.04445, 0.3027487722, 0.7137249886)
+                .withRotation(0, 0, -90);
 
         // -- Turret geometry --------------------------------------------------
 
@@ -112,14 +114,18 @@ public class Vision implements Subsystem {
 
         /** Turret pivot to camera offset (metres). */
         @Getter
-        final Translation2d turretCenterToCamera =
-                new Translation2d(Units.inchesToMeters(-5.641455), 0);
+        final Translation2d turretCenterToCamera = new Translation2d(Units.inchesToMeters(-5.641455), 0);
 
         // -- Pipeline indices -------------------------------------------------
 
-        @Getter final int backTagPipeline = 0;
-        @Getter final int leftTagPipeline = 0;
-        @Getter final int rightTagPipeline = 0;
+        @Getter
+        final int backTagPipeline = 0;
+
+        @Getter
+        final int leftTagPipeline = 0;
+
+        @Getter
+        final int rightTagPipeline = 0;
 
         // -- Pose estimation covariance ---------------------------------------
 
@@ -127,32 +133,36 @@ public class Vision implements Subsystem {
          * Default translational standard deviation for vision pose measurements (metres). Lower
          * values trust vision more; higher values trust odometry more.
          */
-        @Getter double visionStdDevX = 0.5;
+        @Getter
+        double visionStdDevX = 0.5;
 
         /**
          * @see #visionStdDevX
          */
-        @Getter double visionStdDevY = 0.5;
+        @Getter
+        double visionStdDevY = 0.5;
 
         /**
          * Default rotational standard deviation for vision pose measurements (radians). Only used
          * for MT1; MT2 heading is always discarded ({@link #kLargeVariance}).
          */
-        @Getter double visionStdDevTheta = 0.2;
+        @Getter
+        double visionStdDevTheta = 0.2;
 
         /**
          * Variance used to effectively ignore a measurement dimension (e.g., heading from MT2 or
          * single-tag MT1).
          */
-        @Getter final double kLargeVariance = 999999.0;
+        @Getter
+        final double kLargeVariance = 999999.0;
 
         /** Measurements older than this many seconds are not fused. */
-        @Getter final double kMaxTimeDeltaSeconds = 0.1;
+        @Getter
+        final double kMaxTimeDeltaSeconds = 0.1;
 
         /** Pre-built std-dev matrix using the default X/Y/theta values. */
         @Getter
-        final Matrix<N3, N1> visionStdMatrix =
-                VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
+        final Matrix<N3, N1> visionStdMatrix = VecBuilder.fill(visionStdDevX, visionStdDevY, visionStdDevTheta);
     }
 
     // =========================================================================
@@ -160,13 +170,16 @@ public class Vision implements Subsystem {
     // =========================================================================
 
     /** Rear-facing Limelight instance. */
-    @Getter public final Limelight backLL;
+    @Getter
+    public final Limelight backLL;
 
     /** Left-facing Limelight instance. */
-    @Getter public final Limelight leftLL;
+    @Getter
+    public final Limelight leftLL;
 
     /** Right-facing Limelight instance. */
-    @Getter public final Limelight rightLL;
+    @Getter
+    public final Limelight rightLL;
 
     /** All three Limelights in one array for bulk operations. */
     public final Limelight[] allLimelights;
@@ -186,7 +199,8 @@ public class Vision implements Subsystem {
     private final int[] redTags = {2, 3, 4, 5, 8, 9, 10, 11, 12};
 
     /** Field layout loaded once at construction and shared across the robot. */
-    @Getter private static AprilTagFieldLayout tagLayout;
+    @Getter
+    private static AprilTagFieldLayout tagLayout;
 
     private final VisionConfig config;
 
@@ -325,9 +339,7 @@ public class Vision implements Subsystem {
      * MegaTag1 estimate from the best Limelight.
      */
     private void enabledLimelightUpdates() {
-        if (Util.teleop.getAsBoolean()
-                || Auton.autonPoseUpdate.getAsBoolean()
-                || Auton.autonLaunching.getAsBoolean()) {
+        if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean() || Auton.autonLaunching.getAsBoolean()) {
             Limelight bestLimelight = getBestLimelight();
             integrateSingleEstimate(getMT1VisionEstimate(bestLimelight, false));
         }
@@ -372,15 +384,11 @@ public class Vision implements Subsystem {
         RawFiducial[] tags = ll.getRawFiducial();
         double highestAmbiguity = -1;
         ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        double robotLinearSpeed = Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
         // Distance from current odometry pose to the MT1 estimate
         double mt1PoseDifference =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getTranslation()
-                        .getDistance(megaTag1Pose2d.getTranslation());
+                Robot.getSwerve().getRobotPose().getTranslation().getDistance(megaTag1Pose2d.getTranslation());
 
         // Ambiguity scan — reject immediately if any tag exceeds 0.9
         ll.setTagStatus("");
@@ -455,8 +463,7 @@ public class Vision implements Subsystem {
             degStds = 0.01;
         }
 
-        Pose2d integratedPose =
-                new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
+        Pose2d integratedPose = new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
         // The pose estimator expects the heading std-dev in radians; degStds is in degrees.
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds));
@@ -498,14 +505,10 @@ public class Vision implements Subsystem {
         double targetSize = ll.getTargetSize();
         Pose2d megaTag2Pose2d = ll.getMegaTag2_Pose2d();
         ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        double robotLinearSpeed = Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
         double mt2PoseDifference =
-                Robot.getSwerve()
-                        .getRobotPose()
-                        .getTranslation()
-                        .getDistance(megaTag2Pose2d.getTranslation());
+                Robot.getSwerve().getRobotPose().getTranslation().getDistance(megaTag2Pose2d.getTranslation());
 
         if (rejectionCheck(ll, megaTag2Pose2d, targetSize)) {
             return null;
@@ -539,8 +542,7 @@ public class Vision implements Subsystem {
 
         double degStds = config.getKLargeVariance();
 
-        Pose2d integratedPose =
-                new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
+        Pose2d integratedPose = new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
 
         return new VisionFieldPoseEstimate(
                 integratedPose,
@@ -593,8 +595,7 @@ public class Vision implements Subsystem {
             return true;
         }
 
-        if (Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond)
-                >= 1.6) {
+        if (Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond) >= 1.6) {
             ll.sendInvalidStatus("Rotation Speed Rejection");
             return true;
         }
@@ -718,8 +719,7 @@ public class Vision implements Subsystem {
      * unknown.
      */
     public boolean tagsInView() {
-        DriverStation.Alliance alliance =
-                DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue);
+        DriverStation.Alliance alliance = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue);
         int[] allianceTags = (alliance == DriverStation.Alliance.Blue) ? blueTags : redTags;
         return Arrays.stream(allLimelights)
                 .mapToInt(ll -> (int) ll.getClosestTagID())
@@ -747,10 +747,7 @@ public class Vision implements Subsystem {
     public void resetPoseToVision() {
         Limelight ll = getBestLimelight();
         resetPoseToVision(
-                ll.targetInView(),
-                ll.getMegaTag1_Pose3d(),
-                ll.getMegaTag2_Pose2d(),
-                ll.getMegaTag1PoseTimestamp());
+                ll.targetInView(), ll.getMegaTag1_Pose3d(), ll.getMegaTag2_Pose2d(), ll.getMegaTag1PoseTimestamp());
     }
 
     /**
@@ -774,8 +771,7 @@ public class Vision implements Subsystem {
      * @param poseTimestamp the FPGA timestamp of the pose estimate
      * @return {@code true} if the pose was accepted and the reset was applied
      */
-    public boolean resetPoseToVision(
-            boolean targetInView, Pose3d botpose3D, Pose2d megaPose, double poseTimestamp) {
+    public boolean resetPoseToVision(boolean targetInView, Pose3d botpose3D, Pose2d megaPose, double poseTimestamp) {
 
         if (!targetInView) return false;
 

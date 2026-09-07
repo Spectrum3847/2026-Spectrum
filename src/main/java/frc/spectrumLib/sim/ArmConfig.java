@@ -12,51 +12,84 @@ import lombok.Setter;
 public class ArmConfig {
 
     /** Number of Kraken X60 motors driving the arm. */
-    @Getter @Setter private int numMotors = 1;
+    @Getter
+    @Setter
+    private int numMotors = 1;
     /** Initial X position of the arm pivot in the Mechanism2d canvas (metres). */
-    @Getter @Setter private double initialX;
+    @Getter
+    @Setter
+    private double initialX;
     /** Initial Y position of the arm pivot in the Mechanism2d canvas (metres). */
-    @Getter @Setter private double initialY;
+    @Getter
+    @Setter
+    private double initialY;
     /** Current X position of the arm pivot used during simulation updates (metres). */
-    @Getter @Setter private double pivotX;
+    @Getter
+    @Setter
+    private double pivotX;
     /** Current Y position of the arm pivot used during simulation updates (metres). */
-    @Getter @Setter private double pivotY;
+    @Getter
+    @Setter
+    private double pivotY;
     /** Motor rotations required for one full revolution of the arm mechanism. */
-    @Getter @Setter private double ratio;
+    @Getter
+    @Setter
+    private double ratio;
     /** Visual length of the arm ligament in the Mechanism2d canvas (metres). */
-    @Getter @Setter private double length;
+    @Getter
+    @Setter
+    private double length;
     /** Moment of inertia used by the physics simulation (kg·m²). */
-    @Getter @Setter private double simMOI = 1.2;
+    @Getter
+    @Setter
+    private double simMOI = 1.2;
     /**
      * Distance from the pivot to the arm's centre of gravity used by the physics simulation
      * (metres).
      */
-    @Getter @Setter private double simCGLength = 0.2;
+    @Getter
+    @Setter
+    private double simCGLength = 0.2;
     /** Minimum allowable arm angle (radians). */
-    @Getter @Setter private double minAngle;
+    @Getter
+    @Setter
+    private double minAngle;
     /** Maximum allowable arm angle (radians). */
-    @Getter @Setter private double maxAngle;
+    @Getter
+    @Setter
+    private double maxAngle;
     /** Arm angle at the start of the simulation (radians). */
-    @Getter @Setter private double startingAngle;
+    @Getter
+    @Setter
+    private double startingAngle;
     /** Whether the physics simulation should apply gravitational force to the arm. */
-    @Getter @Setter private boolean simulateGravity = true;
+    @Getter
+    @Setter
+    private boolean simulateGravity = true;
     /** Whether this arm is attached to a parent {@link Mount}. */
-    @Getter private boolean mounted = false;
+    @Getter
+    private boolean mounted = false;
     /** The parent mount this arm is attached to, or {@code null} if not mounted. */
-    @Getter private Mount mount;
+    @Getter
+    private Mount mount;
     /** X position of the mount at simulation start (metres). */
-    @Getter private double initMountX;
+    @Getter
+    private double initMountX;
     /** Y position of the mount at simulation start (metres). */
-    @Getter private double initMountY;
+    @Getter
+    private double initMountY;
     /** Angle of the mount at simulation start (radians). */
-    @Getter private double initMountAngle;
+    @Getter
+    private double initMountAngle;
     /**
      * When {@code true} the arm's visual angle is expressed in absolute robot-frame degrees; when
      * {@code false} it is relative to the parent mount's current angle.
      */
-    @Getter private boolean absAngle;
+    @Getter
+    private boolean absAngle;
     /** Color used to draw the arm ligament in the Mechanism2d canvas. */
-    @Getter private Color8Bit color = new Color8Bit(Color.kBlue);
+    @Getter
+    private Color8Bit color = new Color8Bit(Color.kBlue);
 
     /**
      * Creates an ArmConfig with the required physical and display parameters. Angle arguments are

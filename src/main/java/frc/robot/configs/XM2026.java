@@ -8,10 +8,7 @@ public class XM2026 extends Config {
     public XM2026() {
         super();
         swerve.configEncoderOffsets(
-                0.1892089844 - 0.5,
-                -0.2736816406 + 0.5,
-                -0.404052734375 + 0.5,
-                -0.478759765625 + 0.5);
+                0.1892089844 - 0.5, -0.2736816406 + 0.5, -0.404052734375 + 0.5, -0.478759765625 + 0.5);
 
         // Attached Mechanisms
         pilot.setAttached(true);

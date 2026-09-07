@@ -19,13 +19,26 @@ import lombok.Getter;
 
 public class SuperStructure extends SubsystemBase {
 
-    @Getter private final Swerve swerve;
-    @Getter private final FuelIntake fuelIntake;
-    @Getter private final IntakeExtension intakeExtension;
-    @Getter private final IndexerTower indexerTower;
-    @Getter private final IndexerBed indexerBed;
-    @Getter private final Launcher launcher;
-    @Getter private final Hood hood;
+    @Getter
+    private final Swerve swerve;
+
+    @Getter
+    private final FuelIntake fuelIntake;
+
+    @Getter
+    private final IntakeExtension intakeExtension;
+
+    @Getter
+    private final IndexerTower indexerTower;
+
+    @Getter
+    private final IndexerBed indexerBed;
+
+    @Getter
+    private final Launcher launcher;
+
+    @Getter
+    private final Hood hood;
 
     private static final double REGULAR_TELEOP_TRANSLATION_COEFFICIENT = 1.0;
     private static final double SHOOTING_TELEOP_TRANSLATION_COEFFICIENT = 0.1;
@@ -61,8 +74,12 @@ public class SuperStructure extends SubsystemBase {
         FORCE_HOME,
     }
 
-    @Getter private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
-    @Getter private CurrentSuperState currentSuperState = CurrentSuperState.IDLE;
+    @Getter
+    private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
+
+    @Getter
+    private CurrentSuperState currentSuperState = CurrentSuperState.IDLE;
+
     private CurrentSuperState previousSuperState = CurrentSuperState.IDLE;
 
     public SuperStructure(
@@ -104,20 +121,19 @@ public class SuperStructure extends SubsystemBase {
 
         Telemetry.log("SuperStructure/WantedSuperState", wantedSuperState.toString());
         Telemetry.log("SuperStructure/CurrentSuperState", currentSuperState.toString());
-        Telemetry.log(
-                "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
+        Telemetry.log("SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
     }
 
     private CurrentSuperState handleStateTransitions() {
         return switch (wantedSuperState) {
-            case IDLE -> Util.autoMode.getAsBoolean() || Util.disabled.getAsBoolean()
-                    ? CurrentSuperState.AUTON_IDLE
-                    : CurrentSuperState.IDLE;
+            case IDLE ->
+                Util.autoMode.getAsBoolean() || Util.disabled.getAsBoolean()
+                        ? CurrentSuperState.AUTON_IDLE
+                        : CurrentSuperState.IDLE;
             case INTAKE_FUEL -> CurrentSuperState.INTAKE_FUEL;
             case TRACK_TARGET -> CurrentSuperState.TRACK_TARGET;
             case LAUNCH_WITH_SQUEEZE -> CurrentSuperState.LAUNCH_WITH_SQUEEZE;
-            case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> CurrentSuperState
-                    .LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
+            case LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY -> CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY;
             case LAUNCH_WITHOUT_SQUEEZE -> CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE;
             case LAUNCH_WITH_BRAKE -> CurrentSuperState.LAUNCH_WITH_BRAKE;
             case AUTON_TRACK_TARGET -> CurrentSuperState.AUTON_TRACK_TARGET;
@@ -320,20 +336,18 @@ public class SuperStructure extends SubsystemBase {
     // ── Public API ─────────────────────────────────────────────────────────────
 
     public Command coastMechanisms() {
-        return Commands.runOnce(
-                        () -> {
-                            intakeExtension.setBrakeMode(false);
-                            hood.setBrakeMode(false);
-                        })
+        return Commands.runOnce(() -> {
+                    intakeExtension.setBrakeMode(false);
+                    hood.setBrakeMode(false);
+                })
                 .ignoringDisable(true);
     }
 
     public Command brakeMechanisms() {
-        return Commands.runOnce(
-                        () -> {
-                            intakeExtension.setBrakeMode(true);
-                            hood.setBrakeMode(true);
-                        })
+        return Commands.runOnce(() -> {
+                    intakeExtension.setBrakeMode(true);
+                    hood.setBrakeMode(true);
+                })
                 .ignoringDisable(true);
     }
 

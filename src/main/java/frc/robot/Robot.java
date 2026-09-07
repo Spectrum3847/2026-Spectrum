@@ -71,9 +71,15 @@ import org.json.simple.parser.ParseException;
  * and manages all subsystems and their configurations.
  */
 public class Robot extends SpectrumRobot {
-    @Getter private static RobotSim robotSim;
-    @Getter private static Config config;
-    @Getter private static final Field2d field2d = new Field2d();
+    @Getter
+    private static RobotSim robotSim;
+
+    @Getter
+    private static Config config;
+
+    @Getter
+    private static final Field2d field2d = new Field2d();
+
     public static Telemetry telemetry = new Telemetry();
     public static boolean autonWarmedUp = false;
 
@@ -90,21 +96,50 @@ public class Robot extends SpectrumRobot {
         public final VisionConfig vision = new VisionConfig();
     }
 
-    @Getter private static Swerve swerve;
-    @Getter private static FuelIntake fuelIntake;
-    @Getter private static IntakeExtension intakeExtension;
-    @Getter private static IndexerTower indexerTower;
-    @Getter private static IndexerBed indexerBed;
-    @Getter private static Operator operator;
-    @Getter private static Pilot pilot;
-    @Getter private static Launcher launcher;
-    @Getter private static Hood hood;
-    @Getter private static Vision vision;
-    @Getter private static Leds leds;
-    @Getter private static Auton auton;
-    @Getter private static SuperStructure superStructure;
-    @Getter private static BatteryLogger batteryLogger;
-    @Getter private static CANBus mainCANBus;
+    @Getter
+    private static Swerve swerve;
+
+    @Getter
+    private static FuelIntake fuelIntake;
+
+    @Getter
+    private static IntakeExtension intakeExtension;
+
+    @Getter
+    private static IndexerTower indexerTower;
+
+    @Getter
+    private static IndexerBed indexerBed;
+
+    @Getter
+    private static Operator operator;
+
+    @Getter
+    private static Pilot pilot;
+
+    @Getter
+    private static Launcher launcher;
+
+    @Getter
+    private static Hood hood;
+
+    @Getter
+    private static Vision vision;
+
+    @Getter
+    private static Leds leds;
+
+    @Getter
+    private static Auton auton;
+
+    @Getter
+    private static SuperStructure superStructure;
+
+    @Getter
+    private static BatteryLogger batteryLogger;
+
+    @Getter
+    private static CANBus mainCANBus;
 
     public Robot() {
         super();
@@ -121,9 +156,9 @@ public class Robot extends SpectrumRobot {
                 case PM_2026:
                     config = new PM2026();
                     break;
-                    // case FM_2026:
-                    //     config = new FM2026();
-                    //     break;
+                // case FM_2026:
+                //     config = new FM2026();
+                //     break;
                 default: // SIM and UNKNOWN
                     config = new FM2026();
                     break;
@@ -157,14 +192,7 @@ public class Robot extends SpectrumRobot {
             Timer.delay(canInitDelay);
 
             superStructure =
-                    new SuperStructure(
-                            swerve,
-                            fuelIntake,
-                            intakeExtension,
-                            indexerTower,
-                            indexerBed,
-                            launcher,
-                            hood);
+                    new SuperStructure(swerve, fuelIntake, intakeExtension, indexerTower, indexerBed, launcher, hood);
 
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
@@ -206,39 +234,28 @@ public class Robot extends SpectrumRobot {
 
     public void configureBindings() {
         // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
-        pilot.LT.onTrue(
-                Commands.either(
-                        superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
-                        Commands.none(),
-                        pilot.RT.negate()));
+        pilot.LT.onTrue(Commands.either(
+                superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL), Commands.none(), pilot.RT.negate()));
 
         // RT alone → launch; do nothing if LT is already held (RT+LT handled below)
-        pilot.RT.onTrue(
-                Commands.either(
-                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
-                        Commands.none(),
-                        pilot.LT.negate()));
+        pilot.RT.onTrue(Commands.either(
+                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
+                Commands.none(),
+                pilot.LT.negate()));
 
         // RT + LT both held → launch (intake stays extended; resolves to LAUNCH_WITHOUT_SQUEEZE)
-        pilot.RT
-                .and(pilot.LT)
-                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE));
+        pilot.RT.and(pilot.LT).onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE));
 
         // LT released while RT still held → launch (no delay; resolves to
         // LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)
-        pilot.LT.onFalse(
-                Commands.either(
-                        superStructure.setStateCommand(
-                                WantedSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
-                        Commands.none(),
-                        pilot.RT));
+        pilot.LT.onFalse(Commands.either(
+                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY),
+                Commands.none(),
+                pilot.RT));
 
         // RT released while LT still held → resume intaking
-        pilot.RT.onFalse(
-                Commands.either(
-                        superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
-                        Commands.none(),
-                        pilot.LT));
+        pilot.RT.onFalse(Commands.either(
+                superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL), Commands.none(), pilot.LT));
 
         // Both released → idle
         pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
@@ -268,11 +285,9 @@ public class Robot extends SpectrumRobot {
 
         operator.LB
                 .and(operator.YButton)
-                .onTrue(
-                        Commands.parallel(
-                                        intakeExtension.resetCurrentPositionToMaxCommand(),
-                                        operator.rumbleCommand(1, 0.5))
-                                .ignoringDisable(true));
+                .onTrue(Commands.parallel(
+                                intakeExtension.resetCurrentPositionToMaxCommand(), operator.rumbleCommand(1, 0.5))
+                        .ignoringDisable(true));
 
         operator.selectButton.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         operator.selectButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
@@ -288,15 +303,12 @@ public class Robot extends SpectrumRobot {
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
 
         // Auton Triggers
-        Auton.autonIntake.onTrue(
-                superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
-        Auton.autonShotPrep.onTrue(
-                superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
-        Auton.autonUnjam.onTrue(
-                Commands.sequence(
-                        superStructure.setStateCommand(WantedSuperState.UNJAM),
-                        Commands.waitSeconds(1),
-                        superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
+        Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
+        Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
+        Auton.autonUnjam.onTrue(Commands.sequence(
+                superStructure.setStateCommand(WantedSuperState.UNJAM),
+                Commands.waitSeconds(1),
+                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
 
@@ -340,7 +352,8 @@ public class Robot extends SpectrumRobot {
             CommandScheduler.getInstance().run();
 
             Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
-            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
+            Telemetry.log(
+                    "Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
             Telemetry.log(
                     "Match Data/TimeLeftInShift",
                     ShiftHelpers.getOfficialShiftInfo().remainingTime(),
@@ -373,16 +386,14 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("### Disabled Init Starting ### ");
 
         if (!autonWarmedUp) {
-            Command autonStartCommand =
-                    Commands.sequence(
-                                    FollowPathCommand.warmupCommand(),
-                                    PathfindingCommand.warmupCommand(),
-                                    Commands.runOnce(
-                                            () -> {
-                                                Telemetry.log("Initialized", true);
-                                                autonWarmedUp = true;
-                                            }))
-                            .ignoringDisable(true);
+            Command autonStartCommand = Commands.sequence(
+                            FollowPathCommand.warmupCommand(),
+                            PathfindingCommand.warmupCommand(),
+                            Commands.runOnce(() -> {
+                                Telemetry.log("Initialized", true);
+                                autonWarmedUp = true;
+                            }))
+                    .ignoringDisable(true);
             CommandScheduler.getInstance().schedule(autonStartCommand);
         }
 
@@ -424,41 +435,32 @@ public class Robot extends SpectrumRobot {
                 // Flip the paths if on red alliance
                 Optional<Alliance> alliance = DriverStation.getAlliance();
                 if (alliance.isPresent() && alliance.get() == Alliance.Red) {
-                    pathPlannerPaths =
-                            pathPlannerPaths.stream()
-                                    .map(PathPlannerPath::flipPath)
-                                    .collect(Collectors.toList());
+                    pathPlannerPaths = pathPlannerPaths.stream()
+                            .map(PathPlannerPath::flipPath)
+                            .collect(Collectors.toList());
                 }
 
                 // Mirror the paths if starting on the right
                 if (!leftStart) {
-                    pathPlannerPaths =
-                            pathPlannerPaths.stream()
-                                    .map(PathPlannerPath::mirrorPath)
-                                    .collect(Collectors.toList());
+                    pathPlannerPaths = pathPlannerPaths.stream()
+                            .map(PathPlannerPath::mirrorPath)
+                            .collect(Collectors.toList());
                 }
 
                 if (!pathPlannerPaths.isEmpty()) {
                     // Set the robot pose to the starting pose of the first path
                     swerve.resetPose(
-                            pathPlannerPaths
-                                    .get(0)
-                                    .getStartingHolonomicPose()
-                                    .orElse(new Pose2d()));
+                            pathPlannerPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
 
                     // Warm up the starting path
-                    Command warmUpPath =
-                            Commands.sequence(
-                                            AutoBuilder.followPath(pathPlannerPaths.get(0))
-                                                    .withTimeout(0.5),
-                                            Commands.runOnce(
-                                                    () -> {
-                                                        Telemetry.print(
-                                                                "Auton Warmed Up",
-                                                                PrintPriority.HIGH);
-                                                        Telemetry.log("Auton Warmed Up", true);
-                                                    }))
-                                    .ignoringDisable(true);
+                    Command warmUpPath = Commands.sequence(
+                                    AutoBuilder.followPath(pathPlannerPaths.get(0))
+                                            .withTimeout(0.5),
+                                    Commands.runOnce(() -> {
+                                        Telemetry.print("Auton Warmed Up", PrintPriority.HIGH);
+                                        Telemetry.log("Auton Warmed Up", true);
+                                    }))
+                            .ignoringDisable(true);
                     CommandScheduler.getInstance().schedule(warmUpPath);
                 } else {
                     Telemetry.print("Warning: No paths loaded for auto: " + baseAutoName);
@@ -467,15 +469,9 @@ public class Robot extends SpectrumRobot {
                 // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
                 for (PathPlannerPath path : pathPlannerPaths) {
-                    poses.addAll(
-                            path.getAllPathPoints().stream()
-                                    .map(
-                                            point ->
-                                                    new Pose2d(
-                                                            point.position.getX(),
-                                                            point.position.getY(),
-                                                            Rotation2d.kZero))
-                                    .collect(Collectors.toList()));
+                    poses.addAll(path.getAllPathPoints().stream()
+                            .map(point -> new Pose2d(point.position.getX(), point.position.getY(), Rotation2d.kZero))
+                            .collect(Collectors.toList()));
                 }
                 field2d.getObject("Auto Routine").setPoses(poses);
             } else {

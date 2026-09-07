@@ -37,61 +37,143 @@ public class IntakeExtension extends Mechanism {
 
     public static class IntakeExtensionConfig extends Config {
 
-        @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 5;
+        @Getter
+        private final double initPosition = 0;
+
+        @Getter
+        private final double triggerTolerance = 5;
 
         /* Intake Extension config settings */
-        @Getter private final double zeroSpeed = -0.1;
-        @Getter private final double holdMaxSpeedRPM = 18;
+        @Getter
+        private final double zeroSpeed = -0.1;
 
-        @Getter private final double maxRotations = 2.8;
-        @Getter private final double minRotations = 0.0;
+        @Getter
+        private final double holdMaxSpeedRPM = 18;
 
-        @Getter private final double supplyCurrentLimit = 20;
-        @Getter private final double statorCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentLimit = 20;
-        @Getter private final double lowerSupplyCurrentTime = 0;
+        @Getter
+        private final double maxRotations = 2.8;
 
-        @Getter private final double positionKp = 13;
-        @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 1.0;
-        @Getter private final double positionKs = 2.0;
-        @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = 0;
-        @Getter private final double gearRatio = 11.25;
-        @Getter private final double mmCruiseVelocity = 100;
-        @Getter private final double mmAcceleration = 300;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double slowMmCruiseVelocity = 4;
-        @Getter private final double slowMmAcceleration = 20;
-        @Getter private final double slowMmJerk = 1000;
+        @Getter
+        private final double minRotations = 0.0;
 
-        @Getter private final double sensorToMechanismRatio = 11.25;
-        @Getter private final double rotorToSensorRatio = 1;
-        @Getter private final double CANcoderRotorToSensorRatio = 1.7;
-        @Getter private final double CANcoderSensorToMechanismRatio = 1;
-        @Getter private final double CANcoderOffset = 0;
-        @Getter private final boolean CANcoderAttached = false;
+        @Getter
+        private final double supplyCurrentLimit = 20;
+
+        @Getter
+        private final double statorCurrentLimit = 40;
+
+        @Getter
+        private final double lowerSupplyCurrentLimit = 20;
+
+        @Getter
+        private final double lowerSupplyCurrentTime = 0;
+
+        @Getter
+        private final double positionKp = 13;
+
+        @Getter
+        private final double positionKi = 0;
+
+        @Getter
+        private final double positionKd = 0;
+
+        @Getter
+        private final double positionKv = 1.0;
+
+        @Getter
+        private final double positionKs = 2.0;
+
+        @Getter
+        private final double positionKa = 0;
+
+        @Getter
+        private final double positionKg = 0;
+
+        @Getter
+        private final double gearRatio = 11.25;
+
+        @Getter
+        private final double mmCruiseVelocity = 100;
+
+        @Getter
+        private final double mmAcceleration = 300;
+
+        @Getter
+        private final double mmJerk = 1000;
+
+        @Getter
+        private final double slowMmCruiseVelocity = 4;
+
+        @Getter
+        private final double slowMmAcceleration = 20;
+
+        @Getter
+        private final double slowMmJerk = 1000;
+
+        @Getter
+        private final double sensorToMechanismRatio = 11.25;
+
+        @Getter
+        private final double rotorToSensorRatio = 1;
+
+        @Getter
+        private final double CANcoderRotorToSensorRatio = 1.7;
+
+        @Getter
+        private final double CANcoderSensorToMechanismRatio = 1;
+
+        @Getter
+        private final double CANcoderOffset = 0;
+
+        @Getter
+        private final boolean CANcoderAttached = false;
 
         /* Resync / stall-homing settings (toward the fully-extended hard stop) */
-        @Getter private final double homingVoltage = 6;
-        @Getter private final double homingStallRPM = 50.0;
-        @Getter private final double homingMinTimeSecs = 0.3;
-        @Getter private final double homingStallDebounceSecs = 0.15;
-        @Getter private final double homingTimeoutSecs = 3.0;
+        @Getter
+        private final double homingVoltage = 6;
+
+        @Getter
+        private final double homingStallRPM = 50.0;
+
+        @Getter
+        private final double homingMinTimeSecs = 0.3;
+
+        @Getter
+        private final double homingStallDebounceSecs = 0.15;
+
+        @Getter
+        private final double homingTimeoutSecs = 3.0;
 
         /* Sim Configs */
-        @Getter private final double intakeX = Units.inchesToMeters(70);
-        @Getter private final double intakeY = Units.inchesToMeters(23);
-        @Getter private final double extensionMass = 10.0;
-        @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-        @Getter private final double extensionGearing = 11.25;
-        @Getter private final double angle = 180;
-        @Getter private final double staticLength = 10;
-        @Getter private final double movingLength = 55;
-        @Getter private final double lineWidth = 20;
-        @Getter private final double maxExtensionHeight = 40;
+        @Getter
+        private final double intakeX = Units.inchesToMeters(70);
+
+        @Getter
+        private final double intakeY = Units.inchesToMeters(23);
+
+        @Getter
+        private final double extensionMass = 10.0;
+
+        @Getter
+        private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
+
+        @Getter
+        private final double extensionGearing = 11.25;
+
+        @Getter
+        private final double angle = 180;
+
+        @Getter
+        private final double staticLength = 10;
+
+        @Getter
+        private final double movingLength = 55;
+
+        @Getter
+        private final double lineWidth = 20;
+
+        @Getter
+        private final double maxExtensionHeight = 40;
 
         public IntakeExtensionConfig() {
             super("IntakeExtension", 4, Rio.CANIVORE);
@@ -142,12 +224,8 @@ public class IntakeExtension extends Mechanism {
                 configMinMaxRotations(left.getMinRotations(), left.getMaxRotations());
                 configPIDGains(0, left.getPositionKp(), left.getPositionKi(), left.getPositionKd());
                 configFeedForwardGains(
-                        left.getPositionKs(),
-                        left.getPositionKv(),
-                        left.getPositionKa(),
-                        left.getPositionKg());
-                configMotionMagic(
-                        left.getMmCruiseVelocity(), left.getMmAcceleration(), left.getMmJerk());
+                        left.getPositionKs(), left.getPositionKv(), left.getPositionKa(), left.getPositionKg());
+                configMotionMagic(left.getMmCruiseVelocity(), left.getMmAcceleration(), left.getMmJerk());
                 configSupplyCurrentLimit(left.getSupplyCurrentLimit(), true);
                 configStatorCurrentLimit(left.getStatorCurrentLimit(), true);
                 configLowerSupplyCurrentLimit(left.getLowerSupplyCurrentLimit());
@@ -162,7 +240,8 @@ public class IntakeExtension extends Mechanism {
             }
         }
 
-        @Getter private final RightConfig rightConfig;
+        @Getter
+        private final RightConfig rightConfig;
 
         public IntakeExtensionRight(IntakeExtensionConfig leftConfig) {
             super(new RightConfig(leftConfig));
@@ -176,10 +255,8 @@ public class IntakeExtension extends Mechanism {
         }
 
         /** Slow (dynamic Motion Magic voltage) move to a rotation target. */
-        public void goToRotationsSlow(
-                double rotations, double cruiseVelocity, double acceleration, double jerk) {
-            setDynMMPositionVoltage(
-                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
+        public void goToRotationsSlow(double rotations, double cruiseVelocity, double acceleration, double jerk) {
+            setDynMMPositionVoltage(() -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
         }
 
         /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
@@ -219,8 +296,12 @@ public class IntakeExtension extends Mechanism {
 
     // ---- Subsystem plumbing ----
 
-    @Getter private final IntakeExtensionConfig config;
-    @Getter private IntakeExtensionSim sim;
+    @Getter
+    private final IntakeExtensionConfig config;
+
+    @Getter
+    private IntakeExtensionSim sim;
+
     private final IntakeExtensionRight right;
 
     public IntakeExtension(IntakeExtensionConfig config) {
@@ -299,9 +380,7 @@ public class IntakeExtension extends Mechanism {
                 sentOutByIntakeState = true;
                 yield SystemState.FULL_EXTEND;
             }
-            case CONDITIONAL_EXTEND -> sentOutByIntakeState
-                    ? SystemState.FULL_EXTEND
-                    : SystemState.STOPPED;
+            case CONDITIONAL_EXTEND -> sentOutByIntakeState ? SystemState.FULL_EXTEND : SystemState.STOPPED;
             case FULL_RETRACT -> {
                 sentOutByIntakeState = false;
                 yield SystemState.FULL_RETRACT;
@@ -466,9 +545,7 @@ public class IntakeExtension extends Mechanism {
      * @return a command that completes once both sides are re-zeroed
      */
     public Command resyncCommand() {
-        return startEnd(
-                        () -> setWantedState(WantedState.RESYNC),
-                        () -> setWantedState(WantedState.STOPPED))
+        return startEnd(() -> setWantedState(WantedState.RESYNC), () -> setWantedState(WantedState.STOPPED))
                 .until(this::isResyncComplete)
                 .withName("IntakeExtension.resync");
     }

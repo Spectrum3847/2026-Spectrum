@@ -17,35 +17,76 @@ public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
 
-        @Getter private final double initPosition = 9;
+        @Getter
+        private final double initPosition = 9;
 
-        @Getter private final double maxRotations = 0.137;
-        @Getter private final double minRotations = 0.024;
+        @Getter
+        private final double maxRotations = 0.137;
+
+        @Getter
+        private final double minRotations = 0.024;
 
         /* Hood config values */
-        @Getter private final double supplyCurrentLimit = 40;
-        @Getter private final double statorCurrentLimit = 60;
-        @Getter private final double lowerSupplyCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentTime = 1;
-        @Getter private final double positionKp = 3000;
-        @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 220;
-        @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 25;
-        @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = 0;
+        @Getter
+        private final double supplyCurrentLimit = 40;
 
-        @Getter private final double gearRatio = 51.667;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double holdMaxSpeedRPM = 18;
+        @Getter
+        private final double statorCurrentLimit = 60;
+
+        @Getter
+        private final double lowerSupplyCurrentLimit = 40;
+
+        @Getter
+        private final double lowerSupplyCurrentTime = 1;
+
+        @Getter
+        private final double positionKp = 3000;
+
+        @Getter
+        private final double positionKi = 0;
+
+        @Getter
+        private final double positionKd = 220;
+
+        @Getter
+        private final double positionKv = 0;
+
+        @Getter
+        private final double positionKs = 25;
+
+        @Getter
+        private final double positionKa = 0;
+
+        @Getter
+        private final double positionKg = 0;
+
+        @Getter
+        private final double gearRatio = 51.667;
+
+        @Getter
+        private final double mmCruiseVelocity = 50;
+
+        @Getter
+        private final double mmAcceleration = 200;
+
+        @Getter
+        private final double mmJerk = 1000;
+
+        @Getter
+        private final double holdMaxSpeedRPM = 18;
 
         /* Sim Configs */
-        @Getter private final double hoodX = Units.inchesToMeters(62.5);
-        @Getter private final double hoodY = Units.inchesToMeters(50);
-        @Getter private final double simRatio = 51.667;
-        @Getter private final double length = Units.inchesToMeters(10);
+        @Getter
+        private final double hoodX = Units.inchesToMeters(62.5);
+
+        @Getter
+        private final double hoodY = Units.inchesToMeters(50);
+
+        @Getter
+        private final double simRatio = 51.667;
+
+        @Getter
+        private final double length = Units.inchesToMeters(10);
 
         public HoodConfig() {
             super("Hood", 15, Rio.CANIVORE);
@@ -115,8 +156,11 @@ public class Hood extends Mechanism {
         setMMPositionFoc(() -> finalWantedPosition);
     }
 
-    @Getter private final HoodConfig config;
-    @Getter private HoodSim sim;
+    @Getter
+    private final HoodConfig config;
+
+    @Getter
+    private HoodSim sim;
 
     public Hood(HoodConfig config) {
         super(config);
@@ -171,14 +215,7 @@ public class Hood extends Mechanism {
     class HoodSim extends ArmSim {
         public HoodSim(Mechanism2d mech, TalonFXSimState armMotorSim) {
             super(
-                    new ArmConfig(
-                                    config.hoodX,
-                                    config.hoodY,
-                                    config.simRatio,
-                                    config.length,
-                                    90,
-                                    180 - 9,
-                                    180 - 9)
+                    new ArmConfig(config.hoodX, config.hoodY, config.simRatio, config.length, 90, 180 - 9, 180 - 9)
                             .setSimulatedGravity(false),
                     mech,
                     armMotorSim,

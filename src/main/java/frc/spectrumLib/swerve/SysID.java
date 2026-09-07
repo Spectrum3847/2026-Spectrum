@@ -21,13 +21,16 @@ public class SysID {
     // private Swerve swerve;
 
     /** SysId routine that characterizes linear translation drive gains. */
-    @Getter private final SysIdRoutine SysIdRoutineTranslation;
+    @Getter
+    private final SysIdRoutine SysIdRoutineTranslation;
 
     /** SysId routine that characterizes rotational drive gains. */
-    @Getter private final SysIdRoutine SysIdRoutineRotation;
+    @Getter
+    private final SysIdRoutine SysIdRoutineRotation;
 
     /** SysId routine that characterizes steer-module gains. */
-    @Getter private final SysIdRoutine SysIdRoutineSteer;
+    @Getter
+    private final SysIdRoutine SysIdRoutineSteer;
 
     /** The routine currently selected for quasistatic and dynamic test commands. */
     private final SysIdRoutine RoutineToApply;
@@ -37,12 +40,10 @@ public class SysID {
             new SwerveRequest.SysIdSwerveTranslation();
 
     /** CTRE swerve request used during the rotation characterization routine. */
-    private final SwerveRequest.SysIdSwerveRotation RotationCharacterization =
-            new SwerveRequest.SysIdSwerveRotation();
+    private final SwerveRequest.SysIdSwerveRotation RotationCharacterization = new SwerveRequest.SysIdSwerveRotation();
 
     /** CTRE swerve request used during the steer-gains characterization routine. */
-    private final SwerveRequest.SysIdSwerveSteerGains SteerCharacterization =
-            new SwerveRequest.SysIdSwerveSteerGains();
+    private final SwerveRequest.SysIdSwerveSteerGains SteerCharacterization = new SwerveRequest.SysIdSwerveSteerGains();
 
     /**
      * Constructs all three SysId routines and selects {@link #SysIdRoutineTranslation} as the
@@ -56,48 +57,28 @@ public class SysID {
 
         /* Use one of these sysid routines for your particular test */
         String stateTxt = "state";
-        SysIdRoutineTranslation =
-                new SysIdRoutine(
-                        new SysIdRoutine.Config(
-                                null,
-                                Volts.of(4),
-                                null,
-                                state -> SignalLogger.writeString(stateTxt, state.toString())),
-                        new SysIdRoutine.Mechanism(
-                                volts ->
-                                        swerve.setControl(
-                                                TranslationCharacterization.withVolts(volts)),
-                                null,
-                                swerve));
+        SysIdRoutineTranslation = new SysIdRoutine(
+                new SysIdRoutine.Config(
+                        null, Volts.of(4), null, state -> SignalLogger.writeString(stateTxt, state.toString())),
+                new SysIdRoutine.Mechanism(
+                        volts -> swerve.setControl(TranslationCharacterization.withVolts(volts)), null, swerve));
 
-        SysIdRoutineRotation =
-                new SysIdRoutine(
-                        new SysIdRoutine.Config(
-                                null,
-                                Volts.of(4),
-                                null,
-                                state -> SignalLogger.writeString(stateTxt, state.toString())),
-                        new SysIdRoutine.Mechanism(
-                                roationalRate ->
-                                        swerve.setControl(
-                                                RotationCharacterization.withRotationalRate(
-                                                        roationalRate.baseUnitMagnitude())),
-                                // it actual
-                                // rotational rate
-                                null,
-                                swerve));
+        SysIdRoutineRotation = new SysIdRoutine(
+                new SysIdRoutine.Config(
+                        null, Volts.of(4), null, state -> SignalLogger.writeString(stateTxt, state.toString())),
+                new SysIdRoutine.Mechanism(
+                        roationalRate -> swerve.setControl(
+                                RotationCharacterization.withRotationalRate(roationalRate.baseUnitMagnitude())),
+                        // it actual
+                        // rotational rate
+                        null,
+                        swerve));
 
-        SysIdRoutineSteer =
-                new SysIdRoutine(
-                        new SysIdRoutine.Config(
-                                null,
-                                Volts.of(7),
-                                null,
-                                state -> SignalLogger.writeString(stateTxt, state.toString())),
-                        new SysIdRoutine.Mechanism(
-                                volts -> swerve.setControl(SteerCharacterization.withVolts(volts)),
-                                null,
-                                swerve));
+        SysIdRoutineSteer = new SysIdRoutine(
+                new SysIdRoutine.Config(
+                        null, Volts.of(7), null, state -> SignalLogger.writeString(stateTxt, state.toString())),
+                new SysIdRoutine.Mechanism(
+                        volts -> swerve.setControl(SteerCharacterization.withVolts(volts)), null, swerve));
 
         /* Change this to the sysid routine you want to test */
         RoutineToApply = SysIdRoutineTranslation;

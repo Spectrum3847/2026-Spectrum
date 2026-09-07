@@ -160,13 +160,16 @@ public abstract class Gamepad implements Subsystem {
     private boolean printed = false; // Used to only print Gamepad Not Detected once
 
     /** Exponential response curve applied to both left-stick axes. */
-    @Getter protected final ExpCurve leftStickCurve;
+    @Getter
+    protected final ExpCurve leftStickCurve;
 
     /** Exponential response curve applied to both right-stick axes. */
-    @Getter protected final ExpCurve rightStickCurve;
+    @Getter
+    protected final ExpCurve rightStickCurve;
 
     /** Exponential response curve applied to both analog trigger axes. */
-    @Getter protected final ExpCurve triggersCurve;
+    @Getter
+    protected final ExpCurve triggersCurve;
 
     /** Trigger active during the teleoperated period. */
     protected Trigger teleop = Util.teleop;
@@ -186,43 +189,65 @@ public abstract class Gamepad implements Subsystem {
      */
     public static class Config {
         /** Human-readable controller name used in alerts and telemetry. */
-        @Getter private String name;
+        @Getter
+        private String name;
 
         /** USB port number as shown in the DriverStation application (0-indexed). */
-        @Getter private int port; // USB port on the DriverStation app
+        @Getter
+        private int port; // USB port on the DriverStation app
 
         // A configured value to say if we should use this controller on this robot
         /**
          * Whether this controller should be used on the current robot; {@code false} disables it.
          */
-        @Getter @Setter private boolean attached;
+        @Getter
+        @Setter
+        private boolean attached;
 
         /** Deadzone applied to both left-stick axes before the exponential curve. */
-        @Getter @Setter double leftStickDeadzone = 0.001;
+        @Getter
+        @Setter
+        double leftStickDeadzone = 0.001;
 
         /** Exponent for the left-stick exponential response curve (1.0 = linear). */
-        @Getter @Setter double leftStickExp = 1.0;
+        @Getter
+        @Setter
+        double leftStickExp = 1.0;
 
         /** Output scalar applied after the left-stick exponential curve. */
-        @Getter @Setter double leftStickScalar = 1.0;
+        @Getter
+        @Setter
+        double leftStickScalar = 1.0;
 
         /** Deadzone applied to both right-stick axes before the exponential curve. */
-        @Getter @Setter double rightStickDeadzone = 0.001;
+        @Getter
+        @Setter
+        double rightStickDeadzone = 0.001;
 
         /** Exponent for the right-stick exponential response curve. */
-        @Getter @Setter double rightStickExp = 1.0;
+        @Getter
+        @Setter
+        double rightStickExp = 1.0;
 
         /** Output scalar applied after the right-stick exponential curve. */
-        @Getter @Setter double rightStickScalar = 1.0;
+        @Getter
+        @Setter
+        double rightStickScalar = 1.0;
 
         /** Deadzone applied to both analog trigger axes before the exponential curve. */
-        @Getter @Setter double triggersDeadzone = 0.002;
+        @Getter
+        @Setter
+        double triggersDeadzone = 0.002;
 
         /** Exponent for the analog-trigger exponential response curve. */
-        @Getter @Setter double triggersExp = 1.0;
+        @Getter
+        @Setter
+        double triggersExp = 1.0;
 
         /** Output scalar applied after the analog-trigger exponential curve. */
-        @Getter @Setter double triggersScalar = 1.0;
+        @Getter
+        @Setter
+        double triggersScalar = 1.0;
 
         /**
          * Creates a gamepad configuration for the given port.
@@ -249,28 +274,15 @@ public abstract class Gamepad implements Subsystem {
      */
     protected Gamepad(Config config) {
         this.config = config;
-        disconnectedAlert =
-                new Alert(config.name + " Gamepad Disconnected", Alert.AlertType.kError);
+        disconnectedAlert = new Alert(config.name + " Gamepad Disconnected", Alert.AlertType.kError);
 
         // Curve objects that we use to configure the controller axis objects
         leftStickCurve =
-                new ExpCurve(
-                        config.getLeftStickExp(),
-                        0,
-                        config.getLeftStickScalar(),
-                        config.getLeftStickDeadzone());
-        rightStickCurve =
-                new ExpCurve(
-                        config.getRightStickExp(),
-                        0,
-                        config.getRightStickScalar(),
-                        config.getRightStickDeadzone());
+                new ExpCurve(config.getLeftStickExp(), 0, config.getLeftStickScalar(), config.getLeftStickDeadzone());
+        rightStickCurve = new ExpCurve(
+                config.getRightStickExp(), 0, config.getRightStickScalar(), config.getRightStickDeadzone());
         triggersCurve =
-                new ExpCurve(
-                        config.getTriggersExp(),
-                        0,
-                        config.getTriggersScalar(),
-                        config.getTriggersDeadzone());
+                new ExpCurve(config.getTriggersExp(), 0, config.getTriggersScalar(), config.getTriggersDeadzone());
 
         if (config.attached) {
             xboxController = new CommandXboxController(config.port);
@@ -280,28 +292,17 @@ public abstract class Gamepad implements Subsystem {
             Y = xboxController.y();
             leftBumper = xboxController.leftBumper();
             rightBumper = xboxController.rightBumper();
-            leftTrigger =
-                    xboxController.leftTrigger(
-                            config.triggersDeadzone); // Assuming a default threshold of 0.5
-            rightTrigger =
-                    xboxController.rightTrigger(
-                            config.triggersDeadzone); // Assuming a default threshold of 0.5
+            leftTrigger = xboxController.leftTrigger(config.triggersDeadzone); // Assuming a default threshold of 0.5
+            rightTrigger = xboxController.rightTrigger(config.triggersDeadzone); // Assuming a default threshold of 0.5
             leftStickClick = xboxController.leftStick();
             rightStickClick = xboxController.rightStick();
             start = xboxController.start();
             select = xboxController.back();
             upDpad = xboxController.povUp();
             downDpad = xboxController.povDown();
-            leftDpad =
-                    xboxController
-                            .povLeft()
-                            .or(xboxController.povUpLeft())
-                            .or(xboxController.povDownLeft());
+            leftDpad = xboxController.povLeft().or(xboxController.povUpLeft()).or(xboxController.povDownLeft());
             rightDpad =
-                    xboxController
-                            .povRight()
-                            .or(xboxController.povDownRight())
-                            .or(xboxController.povUpRight());
+                    xboxController.povRight().or(xboxController.povDownRight()).or(xboxController.povUpRight());
             leftStickY = leftYTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
             leftStickX = leftXTrigger(Threshold.ABS_GREATER, config.leftStickDeadzone);
             rightStickY = rightYTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);
@@ -582,8 +583,7 @@ public abstract class Gamepad implements Subsystem {
      * @return trigger active when the right stick is deflected beyond the threshold
      */
     public Trigger rightStick(double threshold) {
-        return new Trigger(
-                () -> Math.abs(getRightX()) >= threshold || Math.abs(getRightY()) >= threshold);
+        return new Trigger(() -> Math.abs(getRightX()) >= threshold || Math.abs(getRightY()) >= threshold);
     }
 
     /**
@@ -594,25 +594,23 @@ public abstract class Gamepad implements Subsystem {
      * @return trigger active when the left stick is deflected beyond the threshold
      */
     public Trigger leftStick(double threshold) {
-        return new Trigger(
-                () -> Math.abs(getLeftX()) >= threshold || Math.abs(getLeftY()) >= threshold);
+        return new Trigger(() -> Math.abs(getLeftX()) >= threshold || Math.abs(getLeftY()) >= threshold);
     }
 
     private Trigger axisTrigger(Threshold t, double threshold, DoubleSupplier v) {
-        return new Trigger(
-                () -> {
-                    double value = v.getAsDouble();
-                    switch (t) {
-                        case GREATER:
-                            return value > threshold;
-                        case LESS:
-                            return value < threshold;
-                        case ABS_GREATER: // Also called Deadband
-                            return Math.abs(value) > threshold;
-                        default:
-                            return false;
-                    }
-                });
+        return new Trigger(() -> {
+            double value = v.getAsDouble();
+            switch (t) {
+                case GREATER:
+                    return value > threshold;
+                case LESS:
+                    return value < threshold;
+                case ABS_GREATER: // Also called Deadband
+                    return Math.abs(value) > threshold;
+                default:
+                    return false;
+            }
+        });
     }
 
     /**
@@ -639,11 +637,9 @@ public abstract class Gamepad implements Subsystem {
      * @return a Command object that can be used to rumble the controller with the specified
      *     intensities and duration
      */
-    public Command rumbleCommand(
-            double leftIntensity, double rightIntensity, double durationSeconds) {
+    public Command rumbleCommand(double leftIntensity, double rightIntensity, double durationSeconds) {
         return Commands.sequence(
-                        new InstantCommand(
-                                () -> rumbleController(leftIntensity, rightIntensity), this),
+                        new InstantCommand(() -> rumbleController(leftIntensity, rightIntensity), this),
                         Commands.waitSeconds(durationSeconds),
                         new InstantCommand(() -> rumbleController(0, 0), this))
                 .ignoringDisable(true)

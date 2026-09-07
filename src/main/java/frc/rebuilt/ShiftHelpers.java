@@ -26,8 +26,7 @@ public class ShiftHelpers {
         DISABLED;
     }
 
-    public record ShiftInfo(
-            ShiftEnum currentShift, double elapsedTime, double remainingTime, boolean active) {}
+    public record ShiftInfo(ShiftEnum currentShift, double elapsedTime, double remainingTime, boolean active) {}
 
     private static Timer shiftTimer = new Timer();
     private static final ShiftEnum[] shiftsEnums = ShiftEnum.values();
@@ -44,7 +43,9 @@ public class ShiftHelpers {
     private static final boolean[] inactiveSchedule = {true, false, true, false, true, true};
     private static final double timeResetThreshold = 3.0;
     private static double shiftTimerOffset = 0.0;
-    @Setter private static Supplier<Optional<Boolean>> allianceWinOverride = () -> Optional.empty();
+
+    @Setter
+    private static Supplier<Optional<Boolean>> allianceWinOverride = () -> Optional.empty();
 
     public static Optional<Boolean> getAllianceWinOverride() {
         return allianceWinOverride.get();
@@ -86,14 +87,11 @@ public class ShiftHelpers {
         boolean[] currentSchedule;
         Alliance startAlliance = getFirstActiveAlliance();
         currentSchedule =
-                startAlliance == DriverStation.getAlliance().orElse(Alliance.Blue)
-                        ? activeSchedule
-                        : inactiveSchedule;
+                startAlliance == DriverStation.getAlliance().orElse(Alliance.Blue) ? activeSchedule : inactiveSchedule;
         return currentSchedule;
     }
 
-    private static ShiftInfo getShiftInfo(
-            boolean[] currentSchedule, double[] shiftStartTimes, double[] shiftEndTimes) {
+    private static ShiftInfo getShiftInfo(boolean[] currentSchedule, double[] shiftStartTimes, double[] shiftEndTimes) {
         double timerValue = shiftTimer.get();
         double currentTime = timerValue - shiftTimerOffset;
         double stateTimeElapsed = currentTime;
@@ -148,8 +146,7 @@ public class ShiftHelpers {
             active = currentSchedule[currentShiftIndex];
             currentShift = shiftsEnums[currentShiftIndex];
         }
-        ShiftInfo shiftInfo =
-                new ShiftInfo(currentShift, stateTimeElapsed, stateTimeRemaining, active);
+        ShiftInfo shiftInfo = new ShiftInfo(currentShift, stateTimeElapsed, stateTimeRemaining, active);
         return shiftInfo;
     }
 
