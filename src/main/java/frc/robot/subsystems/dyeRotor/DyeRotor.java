@@ -3,6 +3,7 @@ package frc.robot.subsystems.dyeRotor;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.DoubleSubscriber;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.RobotSim;
@@ -135,9 +136,22 @@ public class DyeRotor implements Subsystem {
 
         public static class FeederConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 80;
-            @Getter @Setter private double supplyCurrentLowerLimit = 0;
-            @Getter @Setter private double supplyCurrentLowerTime = 1.0;
+            /**
+             * Was 80. The feeder was the single biggest draw at the 8.3 V battery minimum in the
+             * 2026-09-06 21:49 log, 77 A supply. Trimmed a little; feed rate between balls depends
+             * on this.
+             */
+            @Getter @Setter private double supplyCurrentLimit = 75;
+
+            /**
+             * No lower limit. It was 0 with a 1 s lower time, which never engaged because the
+             * feeder never held 80 A for a second; a 40 A lower limit under a 65 A cap did engage
+             * during long bursts and starved the feed. A lower time of zero disables the lower
+             * limit.
+             */
+            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+
+            @Getter @Setter private double supplyCurrentLowerTime = 0.0;
             @Getter @Setter private double statorCurrentLimit = 120;
 
             @Getter @Setter private double velocityKp = 0.5; // 0.5
@@ -259,6 +273,65 @@ public class DyeRotor implements Subsystem {
     private static final DoubleSubscriber indexMaxFeederRPM =
             Telemetry.tunable("DyeRotor/IndexMaxFeederRPM", 1300.0);
 
+    // ---- Idle rotor stall check ----
+
+    /** Slow reverse spin that keeps fuel loose while idling and intaking. */
+    private static final double IDLE_ROTOR_RPM = -20;
+
+    /**
+     * Below this speed and above this stator current, for this long, the idle rotor is packed
+     * against fuel rather than stirring it. In the 2026-09-06 22:25 log it sat that way at the 80 A
+     * stator limit for 27 s, 88 percent of it at zero RPM, and went from 26 to 50 C.
+     */
+    private static final double STALL_RPM = 5;
+
+    private static final double STALL_STATOR_AMPS = 60;
+    private static final double STALL_DEBOUNCE_SECS = 0.15;
+    /** How long the rotor rests after a stall before trying the slow spin again. */
+    private static final double STALL_BACKOFF_SECS = 1.0;
+
+    private final Timer stallTimer = new Timer();
+    private boolean stallTiming = false;
+    private boolean stallBackoff = false;
+    private int stallCount = 0;
+
+    /**
+     * Returns the idle spin speed, or zero while backing off from a stall. A stall is the rotor
+     * nearly stopped while drawing heavy stator current for the debounce time. This is done in
+     * software rather than with a lower current limit because limits are config writes, and one
+     * that fails to restore leaves the rotor weak for the rest of the match.
+     */
+    private double idleRotorRpmWithStallCheck(double rpm) {
+        if (stallBackoff) {
+            if (stallTimer.hasElapsed(STALL_BACKOFF_SECS)) {
+                stallBackoff = false;
+                stallTiming = false;
+            } else {
+                return 0;
+            }
+        }
+
+        boolean stalledNow =
+                Math.abs(rotor.getVelocityRPM()) < STALL_RPM
+                        && Math.abs(rotor.getStatorCurrent()) > STALL_STATOR_AMPS;
+        if (!stalledNow) {
+            stallTiming = false;
+            return rpm;
+        }
+        if (!stallTiming) {
+            stallTiming = true;
+            stallTimer.restart();
+            return rpm;
+        }
+        if (stallTimer.hasElapsed(STALL_DEBOUNCE_SECS)) {
+            stallBackoff = true;
+            stallCount++;
+            stallTimer.restart();
+            return 0;
+        }
+        return rpm;
+    }
+
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
     /**
@@ -293,11 +366,12 @@ public class DyeRotor implements Subsystem {
                 wantedRPMIndex = indexMaxFeederRPM.get();
                 break;
             case IDLE_SLOW_INDEX:
-                wantedRPMSpin = -20;
+                wantedRPMSpin = idleRotorRpmWithStallCheck(IDLE_ROTOR_RPM);
                 wantedRPMIndex = 0;
                 break;
             case UNJAM:
-                wantedRPMSpin = 0;
+                // Both backwards: the rotor unpacks the bed while the feeder pushes fuel back out.
+                wantedRPMSpin = -100;
                 wantedRPMIndex = -1000;
                 break;
         }
@@ -336,5 +410,7 @@ public class DyeRotor implements Subsystem {
 
         Telemetry.log("DyeRotor/WantedState", wantedState.toString());
         Telemetry.log("DyeRotor/SystemState", systemState.toString());
+        Telemetry.log("DyeRotor/RotorStallBackoff", stallBackoff);
+        Telemetry.log("DyeRotor/RotorStallCount", stallCount);
     }
 }

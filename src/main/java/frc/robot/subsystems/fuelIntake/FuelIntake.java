@@ -241,6 +241,10 @@ public class FuelIntake implements Subsystem {
         OFF,
         INTAKE,
         SLOW_INTAKE,
+        /** Rollers and kicker backwards, to spit fuel out during an unjam. */
+        REVERSE,
+        /** Rollers backwards but the kicker still forward, for the kicker unjam. */
+        REVERSE_KEEP_KICKER,
     }
 
     public enum SystemState {
@@ -248,6 +252,8 @@ public class FuelIntake implements Subsystem {
         OFF,
         INTAKE,
         SLOW_INTAKE,
+        REVERSE,
+        REVERSE_KEEP_KICKER,
     }
 
     private WantedState wantedState = WantedState.NEUTRAL;
@@ -266,6 +272,8 @@ public class FuelIntake implements Subsystem {
             case NEUTRAL -> SystemState.NEUTRAL;
             case INTAKE -> SystemState.INTAKE;
             case SLOW_INTAKE -> SystemState.SLOW_INTAKE;
+            case REVERSE -> SystemState.REVERSE;
+            case REVERSE_KEEP_KICKER -> SystemState.REVERSE_KEEP_KICKER;
             case OFF -> SystemState.OFF;
         };
     }
@@ -286,6 +294,14 @@ public class FuelIntake implements Subsystem {
             case SLOW_INTAKE:
                 wantedRollerVoltage = 6;
                 wantedKickerVoltage = 6;
+                break;
+            case REVERSE:
+                wantedRollerVoltage = -12;
+                wantedKickerVoltage = -12;
+                break;
+            case REVERSE_KEEP_KICKER:
+                wantedRollerVoltage = -12;
+                wantedKickerVoltage = 12;
                 break;
             case OFF:
                 roller.rollerStop();

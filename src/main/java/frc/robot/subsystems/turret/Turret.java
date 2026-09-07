@@ -7,6 +7,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
@@ -50,11 +51,18 @@ public class Turret extends Mechanism {
          * N-m at 80 A, and the 18:38 log showed 86 to 96 A sustained with a 105 A peak, which is
          * 8.3 to 9.7 N-m. On a 24t HTD-5 pulley that is 435 to 507 N of belt tension.
          *
-         * <p>50 A puts it near 290 N. Tracking a target is not a high-torque job; if the turret
-         * stops keeping up with a fast slew this is the first number to raise, but raise it knowing
-         * what it costs the belt.
+         * <p>50 A puts it near 290 N. That was the right trade while the belt was skipping and it
+         * is the wrong one now: at 50 the turret jams more often than it did at 80, and it costs
+         * shots. On the 2026-09-07 03:25 log the turret sat pinned at the limit -- stator p50 50.0
+         * A, peak 55.8 -- for a thirteen-second unwrap from -49 to +72 deg, and two launch presses
+         * landed inside that sweep with everything else ready. Tracking a target is not a
+         * high-torque job, but unwrapping against a stop is, and the limit was set for the first.
+         *
+         * <p>Back to 80. If the belt starts skipping again, this is the first number to look at --
+         * but read {@code Vision/TurretZero/SlipDegPerKiloDegTravel} before touching it, because
+         * that is the measurement that says whether the belt is actually the problem.
          */
-        @Getter private final double torqueCurrentLimit = 50;
+        @Getter private final double torqueCurrentLimit = 80;
 
         @Getter private final double positionKp = 800;
         @Getter private final double positionKi = 100;
@@ -122,12 +130,15 @@ public class Turret extends Mechanism {
         OFF,
         IDLE,
         AIM_AT_TARGET,
+        /** Shake side to side about where the turret is, to free fuel tucked against it. */
+        UNJAM_SHAKE,
     }
 
     public enum SystemState {
         OFF,
         IDLE,
         AIM_AT_TARGET,
+        UNJAM_SHAKE,
     }
 
     private WantedState wantedState = WantedState.OFF;
@@ -146,7 +157,53 @@ public class Turret extends Mechanism {
             case OFF -> SystemState.OFF;
             case IDLE -> SystemState.IDLE;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case UNJAM_SHAKE -> SystemState.UNJAM_SHAKE;
         };
+    }
+
+    private SystemState previousSystemState = SystemState.OFF;
+
+    // ---- Unjam shake ----
+
+    /** Half the shake's swing: the turret goes this far each side of where it started. */
+    private static final double SHAKE_AMPLITUDE_DEG = 10;
+    /** Time at each side before flipping. A 20 deg step settles in well under this. */
+    private static final double SHAKE_HALF_PERIOD_SECS = 0.4;
+
+    private final Timer shakeTimer = new Timer();
+    private double shakeCenterDegrees = 0;
+    private boolean shakePositive = false;
+
+    /**
+     * Steps the turret between two positions ten degrees either side of where it was when the shake
+     * began, flipping every half period. The centre is shifted if needed so both sides stay inside
+     * the soft limits.
+     */
+    private void applyUnjamShake() {
+        double minDeg = config.getMinRotations() * 360.0;
+        double maxDeg = config.getMaxRotations() * 360.0;
+
+        if (previousSystemState != SystemState.UNJAM_SHAKE) {
+            shakeCenterDegrees =
+                    MathUtil.clamp(
+                            getPositionDegrees(),
+                            minDeg + SHAKE_AMPLITUDE_DEG,
+                            maxDeg - SHAKE_AMPLITUDE_DEG);
+            shakePositive = false;
+            shakeTimer.restart();
+        }
+
+        if (shakeTimer.hasElapsed(SHAKE_HALF_PERIOD_SECS)) {
+            shakePositive = !shakePositive;
+            shakeTimer.restart();
+        }
+
+        unwrapping = false;
+        mechOmegaRotPerSec = 0;
+        commandedDegrees =
+                shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG);
+        final double target = commandedDegrees;
+        setPosition(() -> degreesToRotations(() -> target));
     }
     // Whether the turret is unwrapping to avoid wire wrap.
     @Getter private boolean unwrapping = false;
@@ -170,6 +227,9 @@ public class Turret extends Mechanism {
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget();
+                return;
+            case UNJAM_SHAKE:
+                applyUnjamShake();
                 return;
         }
     }
@@ -202,6 +262,7 @@ public class Turret extends Mechanism {
         systemState = handleStateTransition();
         logBatteryUsage();
         applyStates();
+        previousSystemState = systemState;
         Telemetry.log("Turret/WantedState", wantedState.toString());
         Telemetry.log("Turret/SystemState", systemState.toString());
         Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
