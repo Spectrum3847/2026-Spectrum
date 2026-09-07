@@ -14,14 +14,14 @@ Three [Limelight 4](https://limelightvision.io)s, named for where they sit on th
 | Left      | `limelight-left`  | Side view for tags at oblique angles. |
 | Right     | `limelight-right` | Mirror of left.                       |
 
-The 3D mounting transforms are in [`Vision.VisionConfig`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) — `withTranslation(x, y, z)` is robot-frame meters, `withRotation(roll, pitch, yaw)` is degrees. Update these when CAD changes; the MegaTag pose math is only as good as the camera-to-robot transform you give it.
+The 3D mounting transforms are in [`Vision.VisionConfig`](../../src/main/java/frc/robot/subsystems/vision/Vision.java), `withTranslation(x, y, z)` is robot-frame meters, `withRotation(roll, pitch, yaw)` is degrees. Update these when CAD changes; the MegaTag pose math is only as good as the camera-to-robot transform you give it.
 
 ## MegaTag 1 vs. MegaTag 2
 
 Both are Limelight pipelines that estimate the robot pose from AprilTag detections. The difference matters:
 
 * **MegaTag 1 (MT1)** publishes a full `Pose3d` derived from camera intrinsics + tag geometry. It includes rotation, but a single-tag MT1 pose has high yaw ambiguity (you can't tell which way a flat square is facing from one camera frame).
-* **MegaTag 2 (MT2)** publishes a `Pose2d` and *requires* the robot's heading (we feed it from the gyro via `setRobotOrientation`). Because the yaw comes from the gyro, MT2 is much more stable. We log MT2 only when the robot is disabled — when enabled, the gyro is the trusted heading source and MT2 wouldn't add new information.
+* **MegaTag 2 (MT2)** publishes a `Pose2d` and *requires* the robot's heading (we feed it from the gyro via `setRobotOrientation`). Because the yaw comes from the gyro, MT2 is much more stable. We log MT2 only when the robot is disabled, when enabled, the gyro is the trusted heading source and MT2 wouldn't add new information.
 
 Our integration scheme reflects that:
 
@@ -51,11 +51,11 @@ If a measurement survives, it's tagged with standard deviations based on confide
 | Close, large target       | 0.5 m  | huge (don't fuse) |
 | Stable, low ambiguity     | 1.5 m  | huge              |
 
-`integrateSingleEstimate(...)` then calls `swerve.addVisionMeasurement(pose, timestamp, stdDevs)`. The pose estimator weighs that against odometry by the inverse of the stds — small std means "trust this a lot."
+`integrateSingleEstimate(...)` then calls `swerve.addVisionMeasurement(pose, timestamp, stdDevs)`. The pose estimator weighs that against odometry by the inverse of the stds, small std means "trust this a lot."
 
 ## Choosing the Best Limelight
 
-`getBestLimelight()` ranks the three by `tagCountInView + targetSize` and returns the winner. We only integrate from one Limelight per loop. This is deliberate — multi-camera fusion is implemented (`fuseEstimates`, `integrateMultipleEstimates`) but currently unused. The fusion math comes from team 254's 2025 codebase and uses inverse-variance weighting plus an odometry-based projection to align timestamps; it's there if/when we decide single-camera integration leaves accuracy on the table.
+`getBestLimelight()` ranks the three by `tagCountInView + targetSize` and returns the winner. We only integrate from one Limelight per loop. This is deliberate, multi-camera fusion is implemented (`fuseEstimates`, `integrateMultipleEstimates`) but currently unused. The fusion math comes from team 254's 2025 codebase and uses inverse-variance weighting plus an odometry-based projection to align timestamps; it's there if/when we decide single-camera integration leaves accuracy on the table.
 
 ## Resetting Pose
 
@@ -68,20 +68,20 @@ If a measurement survives, it's tagged with standard deviations based on confide
 
 The Limelight itself has the source-of-truth pipeline configuration (exposure, gain, AprilTag family, decimation, etc.). The robot code only:
 
-* Picks which pipeline to use (`backTagPipeline`, `leftTagPipeline`, `rightTagPipeline` — all 0 currently).
+* Picks which pipeline to use (`backTagPipeline`, `leftTagPipeline`, `rightTagPipeline`, all 0 currently).
 * Toggles the LED via `blinkLimelights()` / `solidLimelight()` for visual identification during setup.
 
-Everything else — pipeline contents, camera intrinsics calibration, AprilTag map — is set on the Limelight web UI. Upload the seasonal AprilTag map (`AprilTagFields.k2026RebuiltWelded`) before practice.
+Everything else, pipeline contents, camera intrinsics calibration, AprilTag map, is set on the Limelight web UI. Upload the seasonal AprilTag map (`AprilTagFields.k2026RebuiltWelded`) before practice.
 
 ## Game-Piece Detection (Future Work)
 
-We don't currently run a fuel-detection pipeline. A neural-detector pipeline on the Limelights, or a separate coprocessor, is the option if we want one for 2026 — no code exists for it in `2026-Spectrum` yet.
+We don't currently run a fuel-detection pipeline. A neural-detector pipeline on the Limelights, or a separate coprocessor, is the option if we want one for 2026, no code exists for it in `2026-Spectrum` yet.
 
 ## QuestNav
 
-Mentioned in older drafts of this doc but not currently integrated. The plan, if it lands, is to use a Meta Quest's inside-out tracking as an additional pose source — the math integrates cleanly into the same `addVisionMeasurement(...)` pipeline, just with a different sigma profile. No code exists for it in `2026-Spectrum` yet.
+Mentioned in older drafts of this doc but not currently integrated. The plan, if it lands, is to use a Meta Quest's inside-out tracking as an additional pose source, the math integrates cleanly into the same `addVisionMeasurement(...)` pipeline, just with a different sigma profile. No code exists for it in `2026-Spectrum` yet.
 
 ## See Also
 
-* [Auton](auton.md) — `autoUpdatePose` is one of the triggers that enables vision integration during teleop or auton.
-* [Phoenix Tuner X](phoenix-tuner-x.md) — gyro calibration, which feeds MT2.
+* [Auton](auton.md): `autoUpdatePose` is one of the triggers that enables vision integration during teleop or auton.
+* [Phoenix Tuner X](phoenix-tuner-x.md): gyro calibration, which feeds MT2.

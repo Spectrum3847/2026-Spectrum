@@ -12,13 +12,13 @@ metadata:
 - Keep this skill updated whenever a future agent discovers a repeatable MapleSim workflow, command, API mismatch, or Spectrum-2026-specific simulation convention.
 - Preserve the existing spectrumLib abstraction. Do not rewrite `Swerve`, `SwerveModule`, PathPlanner autos, or `MapleSimSwerveDrivetrain` unless the task explicitly requires it.
 - For drivetrain simulation, prefer MapleSim as the physics source while preserving the existing telemetry surface. Spectrum 3847 SIM swerve uses `frc.spectrumLib.swerve.MapleSimSwerveDrivetrain` on `CTRE` Phoenix TalonFX motors/controllers; keep the lightweight non-MapleSim `SimpleMotorFeedforward` path available and do not reintroduce the Phoenix remote-CANcoder sim bridge unless the steering instability that caused azimuth wind/crawl has been solved.
-- Check the SIM gate before debugging: MapleSim is constructed and updated only in SIM mode (see `Swerve.startSimThread()` and `RobotSim`), gated by Phoenix `Utils.isSimulation()`. Real and replay modes never run MapleSim. Our robot has no `MapleSimConstants.useMapleSim`-style kill switch — MapleSim is always used in SIM.
+- Check the SIM gate before debugging: MapleSim is constructed and updated only in SIM mode (see `Swerve.startSimThread()` and `RobotSim`), gated by Phoenix `Utils.isSimulation()`. Real and replay modes never run MapleSim. Our robot has no `MapleSimConstants.useMapleSim`-style kill switch, MapleSim is always used in SIM.
 - Keep real and replay modes isolated from MapleSim. It runs only under Phoenix `Utils.isSimulation()`.
 - Record durable progress and verification notes in `.agents/maple-sim-implementation.md` when changing MapleSim behavior.
 
 ## Current Integration Shape
 
-> Tailored for Spectrum 3847 (2026). Our swerve sim lives in `frc.spectrumLib.swerve.MapleSimSwerveDrivetrain`, driven from `Swerve` and `RobotSim` — we do not use the IO/`MapleSimConstants` split assumed by some other team code. Verify names in `src/main/java` before trusting external examples.
+> Tailored for Spectrum 3847 (2026). Our swerve sim lives in `frc.spectrumLib.swerve.MapleSimSwerveDrivetrain`, driven from `Swerve` and `RobotSim`, we do not use the IO/`MapleSimConstants` split assumed by some other team code. Verify names in `src/main/java` before trusting external examples.
 
 - Vendor dependency: `vendordeps/maple-sim.json`.
 - SIM drivetrain owner: `Swerve` constructs `MapleSimSwerveDrivetrain` (wrapping `SwerveDriveSimulation`) and calls `startSimThread()`, which runs `mapleSimSwerveDrivetrain.update()` (advances `SimulatedArena.simulationPeriodic()`, then injects the simulated pose/yaw into the CTRE TalonFX/CANcoder/`CANvirtual` Pigeon2 sim).
@@ -102,7 +102,7 @@ metadata:
 - Auto chooser selection succeeds (Elastic / NT auto chooser to a registered PathPlanner auto), and the sim logs the WPILOG.
 - Auto chooser selection succeeds (Elastic → PathPlanner named auto).
 - `Sim/SimPose` (Pose2d) and `Sim/RobotPose3d` (Pose3d) both move during auto/teleop; `Sim/RobotPose3d` is the AdvantageScope 3D Field robot source (log type `Pose3d`).
-- `Swerve/State/Pose` (odometry) tracks `Sim/SimPose` in open-field driving; after hard contact with fixed MapleSim walls/obstacles, odometry may keep integrating slip while the MapleSim body stops — collision debugging should use `Sim/RobotPose3d`.
+- `Swerve/State/Pose` (odometry) tracks `Sim/SimPose` in open-field driving; after hard contact with fixed MapleSim walls/obstacles, odometry may keep integrating slip while the MapleSim body stops, collision debugging should use `Sim/RobotPose3d`.
 - `Swerve/SystemState` toggles correctly and `Swerve/CurrentCommand` shows the active command.
 - `Swerve/Currents/DriveStatorCurrent` and `Swerve/Currents/SteerStatorCurrent` are nonzero during commanded movement.
 - Fuel (`frc.rebuilt.FuelPhysicsSim`, root `Sim/Fuel`): `Sim/Fuel/Stats/BallCount` and `ActiveBalls` reflect active pieces; scored fuel increments `Sim/Fuel/BlueScore`/`RedScore`; in-flight projectiles appear in `Sim/Fuel/InFlight`/`Positions`.

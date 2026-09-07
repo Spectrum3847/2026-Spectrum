@@ -6,7 +6,7 @@ Java is a statically typed language, which means every variable has a fixed type
 
 ```java
 int a = 5;   // declare type, name, and initial value
-a = 3;       // reassign — fine
+a = 3;       // reassign, fine
 ```
 
 These will not compile:
@@ -44,7 +44,7 @@ All `double`s because RPM values have decimal precision. Changing them to `int` 
 
 ## Arithmetic Operators
 
-These require two operands — one on each side.
+These require two operands, one on each side.
 
 | Operator |       Meaning       | Example |
 |----------|---------------------|---------|
@@ -63,8 +63,8 @@ int b = 2;
 int result = a + b; // 7
 result = a - b;     // 3
 result = a * b;     // 10
-result = a / b;     // 2  — integer division, decimal is truncated
-result = a % b;     // 1  — remainder of 5 ÷ 2
+result = a / b;     // 2 , integer division, decimal is truncated
+result = a % b;     // 1 , remainder of 5 ÷ 2
 ```
 
 Integer division truncates, it doesn't round. `3 / 2` gives `1`, not `1.5`. If you need the decimal, at least one side has to be a `double`:
@@ -83,7 +83,7 @@ double errorRPM = currentRPM - targetRPM;
 return Math.abs(errorRPM) < config.getOnTargetToleranceRPM();
 ```
 
-Operator precedence follows PEMDAS. Parentheses first, then multiplication and division (left to right), then addition and subtraction. Java has no exponent operator — use `Math.pow(base, exponent)` instead.
+Operator precedence follows PEMDAS. Parentheses first, then multiplication and division (left to right), then addition and subtraction. Java has no exponent operator, use `Math.pow(base, exponent)` instead.
 
 ## Unary Operators
 
@@ -91,8 +91,8 @@ These work on a single value.
 
 - `++` increments by 1 (`a++` or `++a`)
 - `--` decrements by 1
-- `!` negates a boolean — `!true` is `false`
-- `-` flips the sign — `-a` where `a` is `5` gives `-5`
+- `!` negates a boolean, `!true` is `false`
+- `-` flips the sign, `-a` where `a` is `5` gives `-5`
 
 The distinction between `a++` and `++a` matters when the expression is used in an assignment (`int x = a++` vs `int x = ++a`), but in a standalone statement like a `for` loop counter they're equivalent.
 
@@ -114,9 +114,9 @@ a %= 2;  // a is now 1
 `Math` is a built-in static class for operations that don't have a symbol:
 
 ```java
-Math.sqrt(4)     // 2.0  — square root
-Math.pow(4, 2)   // 16.0 — exponentiation
-Math.abs(-4)     // 4    — absolute value
+Math.sqrt(4)     // 2.0 , square root
+Math.pow(4, 2)   // 16.0, exponentiation
+Math.abs(-4)     // 4   , absolute value
 Math.PI          // 3.141592653589793
 ```
 
@@ -128,4 +128,4 @@ for (double amp : amps) totalAmps += Math.abs(amp);
 
 ---
 
-*Previous: [Setup](../setup.md) — Next: [Logic-Based Operators & Strings](logic-operators.md)*
+*Previous: [Setup](../setup.md). Next: [Logic-Based Operators & Strings](logic-operators.md)*

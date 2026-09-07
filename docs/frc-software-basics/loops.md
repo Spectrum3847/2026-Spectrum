@@ -2,7 +2,7 @@
 
 *Audience: New programmers. Assumes you've read [Arrays & Enums](arrays.md).*
 
-A loop runs a block of code repeatedly — either a fixed number of times or until some condition changes. Read [Applied to FRC](applied-to-frc.md) first for context on when loops appear in robot code versus when the command-based framework handles repetition for you.
+A loop runs a block of code repeatedly, either a fixed number of times or until some condition changes. Read [Applied to FRC](applied-to-frc.md) first for context on when loops appear in robot code versus when the command-based framework handles repetition for you.
 
 ## For Loop
 
@@ -47,7 +47,7 @@ for (Limelight limelight : allLimelights) {
 for (double amp : amps) totalAmps += Math.abs(amp);
 ```
 
-Use the enhanced form when you don't need the index. Use the indexed form when you do — for example, reading `positions[i]` alongside `state.positions[i]` in the same loop.
+Use the enhanced form when you don't need the index. Use the indexed form when you do, for example, reading `positions[i]` alongside `state.positions[i]` in the same loop.
 
 ## While Loop
 
@@ -59,7 +59,7 @@ while (condition) {
 }
 ```
 
-In command-based robot code, true `while` loops doing I/O or sensor polling inside `periodic()` are uncommon — the scheduler's 20 ms loop handles that for you. But the concept shows up in setup code or utility methods where you're waiting on a result before continuing.
+In command-based robot code, true `while` loops doing I/O or sensor polling inside `periodic()` are uncommon, the scheduler's 20 ms loop handles that for you. But the concept shows up in setup code or utility methods where you're waiting on a result before continuing.
 
 ```java
 boolean targetFound = false;
@@ -81,7 +81,7 @@ do {
 } while (targetPos != 0);
 ```
 
-This is uncommon in the codebase — only reach for it when you need that "run at least once" guarantee.
+This is uncommon in the codebase, only reach for it when you need that "run at least once" guarantee.
 
 ## Variables Inside vs. Outside Loops
 
@@ -106,7 +106,7 @@ Declare outside the loop when you need to use the value after it finishes (like 
 
 ## Common Loop Errors
 
-An infinite loop — one whose condition is always `true` — will freeze the robot or the simulation. The most common cause is a counter that moves the wrong direction:
+An infinite loop, one whose condition is always `true`, will freeze the robot or the simulation. The most common cause is a counter that moves the wrong direction:
 
 ```java
 // infinite loop: i starts at 24, increments, condition i > 6 is always true
@@ -117,4 +117,4 @@ Syntax errors the compiler will catch: forgetting `int` before the counter varia
 
 ---
 
-*Previous: [Arrays & Enums](arrays.md) — Next: [Classes, Methods, & Objects](classes-methods-objects.md)*
+*Previous: [Arrays & Enums](arrays.md). Next: [Classes, Methods, & Objects](classes-methods-objects.md)*

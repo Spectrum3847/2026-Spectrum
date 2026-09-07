@@ -5,8 +5,8 @@
 
 ## Contents
 
-- [Project Structure](#project-structure) — `Robot`, `RobotContainer`, `Constants`, directory layout
-- [Command Definition Patterns](#command-definition-patterns) — pattern selection, factory methods, subclassing
+- [Project Structure](#project-structure): `Robot`, `RobotContainer`, `Constants`, directory layout
+- [Command Definition Patterns](#command-definition-patterns): pattern selection, factory methods, subclassing
 - [Common Anti-Patterns](#common-anti-patterns)
 
 ---
@@ -16,7 +16,7 @@
 |    Class/Dir     |                                Responsibility                                 |
 |------------------|-------------------------------------------------------------------------------|
 | `Main`           | Entry point (Java only). Do not modify.                                       |
-| `Robot`          | Control flow. Keep minimal—declarative paradigm.                              |
+| `Robot`          | Control flow. Keep minimal, declarative paradigm.                             |
 | `RobotContainer` | Subsystems, button bindings, autonomous selection. Most setup lives here.     |
 | `Constants`      | Global constants (speeds, PID gains, ports). Use inner classes per subsystem. |
 | `Subsystems/`    | User-defined subsystem classes                                                |
@@ -69,7 +69,7 @@ public Command runIntakeCommand(double percent) {
 }
 ```
 
-Use: `intakeButton.whileTrue(intake.runIntakeCommand(1.0));` or in sequences. **Do not** use for multi-subsystem—causes circular dependencies.
+Use: `intakeButton.whileTrue(intake.runIntakeCommand(1.0));` or in sequences. **Do not** use for multi-subsystem, causes circular dependencies.
 
 ### Static Command Factories
 
@@ -124,7 +124,7 @@ public Command turnToAngle(double targetDegrees) {
 
 ### Subclassing Command
 
-**When**: Significant internal state or complex multi-step logic; multi-subsystem; OOP style preferred. Verbose for simple commands—prefer factory methods when possible.
+**When**: Significant internal state or complex multi-step logic; multi-subsystem; OOP style preferred. Verbose for simple commands, prefer factory methods when possible.
 
 ```java
 public class TurnToAngleCommand extends Command {

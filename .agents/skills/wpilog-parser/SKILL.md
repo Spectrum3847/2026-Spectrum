@@ -6,7 +6,7 @@ license: MIT
 
 # wpilog-parser
 
-WPILOG is the standard format used by FRC loggers — the 2026-Spectrum robot logs via **DogLog** (`frc.spectrumLib.telemetry.Telemetry extends DogLog`), so robots publish topics like `Swerve/State/Pose`, `Swerve/SystemState`, `Sim/RobotPose3d`, `Sim/Fuel`. The wpilog-parser library makes it easy to read and analyze the log files using TS/JS.
+WPILOG is the standard format used by FRC loggers, the 2026-Spectrum robot logs via **DogLog** (`frc.spectrumLib.telemetry.Telemetry extends DogLog`), so robots publish topics like `Swerve/State/Pose`, `Swerve/SystemState`, `Sim/RobotPose3d`, `Sim/Fuel`. The wpilog-parser library makes it easy to read and analyze the log files using TS/JS.
 
 Upstream repo: <https://github.com/jonahsnider/wpilog-parser/>. Logs saved as `.wpilog` (see `simulation/` and `robot/` output dirs).
 

@@ -2,23 +2,23 @@
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-A reference for the shortcuts and commands that come up often. If you're new, the ones worth memorizing first are `F2`, `Ctrl+D`, `Ctrl+Shift+P`, and the multi-cursor shortcuts — they pay off immediately.
+A reference for the shortcuts and commands that come up often. If you're new, the ones worth memorizing first are `F2`, `Ctrl+D`, `Ctrl+Shift+P`, and the multi-cursor shortcuts, they pay off immediately.
 
 ## VS Code
 
-|       Shortcut        |                                                                What it does                                                                 |
-|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| `Tab`                 | Accept an inline Copilot suggestion.                                                                                                        |
-| `Ctrl+Right Arrow`    | Accept the next word of a suggestion.                                                                                                       |
-| `F2`                  | Rename — renames all references to a variable, method, or class across the project. Use this instead of find-and-replace; it's scope-aware. |
-| `Ctrl+/`              | Toggle line comment on the selected text.                                                                                                   |
-| `Ctrl+Click` or `F12` | Go to definition — jumps to where a method or class is declared.                                                                            |
-| `Alt+Shift+F12`       | Find all references — shows every call site for a symbol.                                                                                   |
-| `Ctrl+P`              | Quick open — fuzzy-search files by name. Faster than the Explorer for navigating a codebase.                                                |
-| `Ctrl+Shift+P`        | Command Palette — run any VS Code or WPILib command by name. This is how you launch sim, clean the workspace, or deploy.                    |
-| `Ctrl+`` ` `` `       | Toggle the integrated terminal.                                                                                                             |
-| `Ctrl+Shift+V`        | Preview Markdown in a side panel — useful when editing docs.                                                                                |
-| `Shift+Alt+Down`      | Duplicate the current line or selected block.                                                                                               |
+|       Shortcut        |                                                                What it does                                                                |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `Tab`                 | Accept an inline Copilot suggestion.                                                                                                       |
+| `Ctrl+Right Arrow`    | Accept the next word of a suggestion.                                                                                                      |
+| `F2`                  | Rename, renames all references to a variable, method, or class across the project. Use this instead of find-and-replace; it's scope-aware. |
+| `Ctrl+/`              | Toggle line comment on the selected text.                                                                                                  |
+| `Ctrl+Click` or `F12` | Go to definition, jumps to where a method or class is declared.                                                                            |
+| `Alt+Shift+F12`       | Find all references, shows every call site for a symbol.                                                                                   |
+| `Ctrl+P`              | Quick open, fuzzy-search files by name. Faster than the Explorer for navigating a codebase.                                                |
+| `Ctrl+Shift+P`        | Command Palette, run any VS Code or WPILib command by name. This is how you launch sim, clean the workspace, or deploy.                    |
+| `Ctrl+`` ` `` `       | Toggle the integrated terminal.                                                                                                            |
+| `Ctrl+Shift+V`        | Preview Markdown in a side panel, useful when editing docs.                                                                                |
+| `Shift+Alt+Down`      | Duplicate the current line or selected block.                                                                                              |
 
 ## Multi-Cursor Editing
 
@@ -31,7 +31,7 @@ Multi-cursor is one of the highest-value things to learn in VS Code. It lets you
 | `Ctrl+Shift+L`         | Select all occurrences of the highlighted text at once.                                                  |
 | `Ctrl+Alt+Up/Down`     | Add a cursor above or below the current line.                                                            |
 | `Alt+Click`            | Place a cursor at any clicked location.                                                                  |
-| `Middle Click + Drag`  | Column select — places cursors on every line you drag across.                                            |
+| `Middle Click + Drag`  | Column select, places cursors on every line you drag across.                                             |
 | `Alt+Shift+Arrow Keys` | Expand or shrink the selection by word, line, or block.                                                  |
 
 A common use: highlight `public`, then `Ctrl+Shift+L` to select every instance in a file, type `private` and you've renamed them all at once.
@@ -73,6 +73,6 @@ See [Phoenix Tuner X](../tools/phoenix-tuner-x.md) for the full workflow.
 
 ## Git in VS Code
 
-The Source Control panel (`Ctrl+Shift+G`) handles staging, committing, pushing, and pulling. For branch management and pull requests, the GitHub Pull Requests and Issues extension integrates directly — you can review PRs, leave comments, and merge without leaving the editor.
+The Source Control panel (`Ctrl+Shift+G`) handles staging, committing, pushing, and pulling. For branch management and pull requests, the GitHub Pull Requests and Issues extension integrates directly, you can review PRs, leave comments, and merge without leaving the editor.
 
 If you prefer the terminal, see [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for the conventions this project uses.

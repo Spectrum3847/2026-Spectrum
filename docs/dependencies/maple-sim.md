@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-MapleSim is a physics-based simulation library — `org.ironmaple.simulation.*` — that models the swerve drivetrain and the per-season arena. It plugs into WPILib's simulation loop, and the result is a GUI sim that's a lot closer to reality than a stock WPILib one. (Game-piece physics — intake, flight, scoring — is *not* MapleSim on this robot; that runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), covered in [Simulation](../tools/simulation.md).)
+MapleSim is a physics-based simulation library, `org.ironmaple.simulation.*`, that models the swerve drivetrain and the per-season arena. It plugs into WPILib's simulation loop, and the result is a GUI sim that's a lot closer to reality than a stock WPILib one. (Game-piece physics, intake, flight, scoring, is *not* MapleSim on this robot; that runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), covered in [Simulation](../tools/simulation.md).)
 
 Vendor JSON: [`vendordeps/maple-sim.json`](../../vendordeps/maple-sim.json).
 
@@ -12,11 +12,11 @@ The swerve drivetrain runs through [`MapleSimSwerveDrivetrain`](../../src/main/j
 
 The 2026 field comes from MapleSim's season-specific arena, `Arena2026Rebuilt`, constructed inside `MapleSimSwerveDrivetrain`. It gets replaced every year when the new game ships, so plan to revisit it in the offseason.
 
-Game pieces are *not* MapleSim on this robot — fuel spawning, intake pickup, and projectile flight all run through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java) (`RobotSim.ballSim`, published to `Sim/Fuel`). See [Simulation](../tools/simulation.md) for that side.
+Game pieces are *not* MapleSim on this robot, fuel spawning, intake pickup, and projectile flight all run through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java) (`RobotSim.ballSim`, published to `Sim/Fuel`). See [Simulation](../tools/simulation.md) for that side.
 
 ## Guarding Sim Code
 
-MapleSim only stands up under simulation, so its entry points are gated on `Utils.isSimulation()` (or `RobotBase.isSimulation()` — both work; pick whichever matches the surrounding file's imports). The drivetrain sim (`mapleSimSwerveDrivetrain`) is only constructed on that path, so it stays `null` on the RIO.
+MapleSim only stands up under simulation, so its entry points are gated on `Utils.isSimulation()` (or `RobotBase.isSimulation()`, both work; pick whichever matches the surrounding file's imports). The drivetrain sim (`mapleSimSwerveDrivetrain`) is only constructed on that path, so it stays `null` on the RIO.
 
 ## Drivetrain Hookup
 
@@ -26,7 +26,7 @@ MapleSim only stands up under simulation, so its entry points are gated on `Util
 
 `mapleSimDrive.getSimulatedDriveTrainPose()` is what `Swerve.getRobotPose()` returns in sim. `mapleSimDrive.setSimulationWorldPose(pose)` is the teleport call `Swerve.resetPose(...)` uses when an auto seeds the pose.
 
-The sim thread is a WPILib `Notifier` (`simNotifier`) ticking at `config.getSimLoopPeriod()`. Don't slow it down without checking physics behavior — MapleSim integrates dynamics on every tick.
+The sim thread is a WPILib `Notifier` (`simNotifier`) ticking at `config.getSimLoopPeriod()`. Don't slow it down without checking physics behavior, MapleSim integrates dynamics on every tick.
 
 ## Constants That Need to Track Reality
 

@@ -1,6 +1,6 @@
 # Setup Guide
 
-*Audience: New programmers. No prerequisites — start here.*
+*Audience: New programmers. No prerequisites, start here.*
 
 To set up the project you'll need:
 
@@ -22,7 +22,7 @@ If you prefer a GUI, [GitHub Desktop](https://desktop.github.com/download/) work
 
 ## VSCode
 
-Open the `2026-Spectrum` folder in WPILib VSCode (or your preferred editor). To run the simulator, press `Ctrl+Shift+P` and type `sim`, then click **WPILib: Simulate Robot Code**. Gradle will build the project, then prompt you to choose between **GUI Sim** and a real Driver Station. Pick **GUI Sim** — it launches Glass with joysticks and a Field2d view.
+Open the `2026-Spectrum` folder in WPILib VSCode (or your preferred editor). To run the simulator, press `Ctrl+Shift+P` and type `sim`, then click **WPILib: Simulate Robot Code**. Gradle will build the project, then prompt you to choose between **GUI Sim** and a real Driver Station. Pick **GUI Sim**, it launches Glass with joysticks and a Field2d view.
 
 ## Java Notes
 
@@ -39,7 +39,7 @@ Run `java -version` to confirm the active JDK before building.
 
 ## WPILib Notes
 
-Download the latest stable WPILib installer from the [GitHub releases page](https://github.com/wpilibsuite/allwpilib/releases/). Make sure you're getting the 2026 release — a 2027 installer will have breaking changes that are incompatible with this project. If you want a nightly build, the [WPILib nightly installer frontend](https://project516.dev/wpilib-nightly-installers) is easier than navigating GitHub Actions artifacts directly.
+Download the latest stable WPILib installer from the [GitHub releases page](https://github.com/wpilibsuite/allwpilib/releases/). Make sure you're getting the 2026 release, a 2027 installer will have breaking changes that are incompatible with this project. If you want a nightly build, the [WPILib nightly installer frontend](https://project516.dev/wpilib-nightly-installers) is easier than navigating GitHub Actions artifacts directly.
 
 ## Next Steps
 

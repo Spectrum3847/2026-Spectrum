@@ -1,6 +1,6 @@
 ---
 name: coderabbitai-review
-description: Review an open PR with CodeRabbit — triage its comments, fix valid issues, push, and loop until the review approves. Use when a PR on this repo has a CodeRabbit review pending or needs one.
+description: Review an open PR with CodeRabbit, triage its comments, fix valid issues, push, and loop until the review approves. Use when a PR on this repo has a CodeRabbit review pending or needs one.
 license: MIT
 ---
 
@@ -74,7 +74,7 @@ Classify every comment:
 | Style preference only         | Apply only if it matches the repo conventions in `docs/coding-conventions/`; otherwise reply briefly and resolve. |
 
 Rule of thumb: fix fast, cheap, real issues; reply with evidence for everything
-else. Never blindly apply a suggestion — verify it against the actual code
+else. Never blindly apply a suggestion, verify it against the actual code
 first (read the file, check the behavior).
 
 ### 4. Fix and push
@@ -114,7 +114,7 @@ Repeat steps 3–5 until CodeRabbit approves the PR.
 - CodeRabbit posts inline comments on specific lines of the diff; these are
   fetched via `gh api repos/<owner>/<repo>/pulls/<PR>/comments` (not
   `gh pr view --comments`, which shows general PR review comments only).
-  Pushes that don't change the line may not re-trigger a comment — the bot
+  Pushes that don't change the line may not re-trigger a comment, the bot
   reports "existing comments not addressed" instead.
 - The bot runs as a status check; a green status can arrive before the review
   comment is posted, so re-check comments after checks pass.
@@ -123,5 +123,5 @@ Repeat steps 3–5 until CodeRabbit approves the PR.
 
 ## Further Reading
 
-- `docs/coding-conventions/commits-pull-requests.md` — commit and PR conventions
-- `docs/tools/build-tools.md` — build and static-analysis tooling
+- `docs/coding-conventions/commits-pull-requests.md`: commit and PR conventions
+- `docs/tools/build-tools.md`: build and static-analysis tooling

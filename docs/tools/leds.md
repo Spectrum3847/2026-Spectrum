@@ -2,7 +2,7 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-The robot's LEDs are live: [`Leds`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) (`frc.robot.subsystems.leds`) extends `SpectrumLEDs` and drives a Phoenix 6 CANdle — device ID 1 on the CANivore, a 20-LED RGB external strip.
+The robot's LEDs are live: [`Leds`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) (`frc.robot.subsystems.leds`) extends `SpectrumLEDs` and drives a Phoenix 6 CANdle, device ID 1 on the CANivore, a 20-LED RGB external strip.
 
 ## Library: `SpectrumLEDs`
 
@@ -37,7 +37,7 @@ Hardware-animation patterns (blink, breathe, rainbow) are driven by the CANdle's
 
 ## Driving Patterns from Commands
 
-`setPattern(pattern, priority)` returns a `Command` that applies the pattern every loop. It calls `.ignoringDisable(true)`, so LED commands keep running while the robot is disabled — exactly what you want for status lights.
+`setPattern(pattern, priority)` returns a `Command` that applies the pattern every loop. It calls `.ignoringDisable(true)`, so LED commands keep running while the robot is disabled, exactly what you want for status lights.
 
 ```java
 public Command idleLights() {

@@ -8,7 +8,7 @@ Replay works by re-running identical code with identical logged inputs. Any data
 
 |                        Source                        |                    Problem                    |                       Fix                        |
 |------------------------------------------------------|-----------------------------------------------|--------------------------------------------------|
-| `Timer.getFPGATimestamp()`                           | Raw FPGA time — not deterministic             | Use `Timer.getTimestamp()`                       |
+| `Timer.getFPGATimestamp()`                           | Raw FPGA time, not deterministic              | Use `Timer.getTimestamp()`                       |
 | NetworkTables / dashboard inputs                     | Values change outside the logging cycle       | Log as inputs through IO layer                   |
 | YAGSL, Phoenix 6 swerve libraries                    | Bypass IO abstraction, call hardware directly | Use AKit's swerve template instead               |
 | `Math.random()` / random number generators           | Non-deterministic by nature                   | Log seed or generated values as inputs           |
@@ -32,7 +32,7 @@ Robot code logic must be single-threaded for reliable replay. Thread timing vari
 **If a thread is truly necessary:**
 
 - Restrict it entirely to the IO implementation layer
-- The thread may collect sensor data internally and expose it through `updateInputs()` — this syncs to the main loop
+- The thread may collect sensor data internally and expose it through `updateInputs()`, this syncs to the main loop
 - Never call `Logger.recordOutput()` or `Logger.processInputs()` from a background thread
 
 ### What Not To Do
@@ -85,7 +85,7 @@ public class Robot extends LoggedRobot {
         Logger.addDataReceiver(new NT4Publisher());
         Logger.start(); // must be before any subsystem construction
 
-        robotContainer = new RobotContainer(); // safe — Logger is running
+        robotContainer = new RobotContainer(); // safe, Logger is running
     }
 }
 ```

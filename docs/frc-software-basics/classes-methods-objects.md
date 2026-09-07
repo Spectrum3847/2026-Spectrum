@@ -29,7 +29,7 @@ accessModifier returnType methodName(parameterType parameterName) {
 }
 ```
 
-A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types — `SuperStructure.robotInFeedZone()` returns a `Trigger`, for example.
+A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types, `SuperStructure.robotInFeedZone()` returns a `Trigger`, for example.
 
 ## Scope and Access Modifiers
 
@@ -41,7 +41,7 @@ The convention in this codebase: config fields are `private` (exposed through a 
 public class IndexerBed extends Mechanism {
     @Getter private final double indexerVoltageOut = 8;  // private field, read via getter
     // ...
-    public void setWantedState(WantedState state) {       // public — SuperStructure calls this
+    public void setWantedState(WantedState state) {       // public, SuperStructure calls this
         this.wantedState = state;
     }
 }
@@ -81,7 +81,7 @@ public class IndexerBed extends Mechanism {
 
 ## Lambdas and Method References
 
-When a method expects a function as a parameter — like a `DoubleSupplier` or `Command` factory — you can pass a lambda rather than writing a whole named method:
+When a method expects a function as a parameter, like a `DoubleSupplier` or `Command` factory, you can pass a lambda rather than writing a whole named method:
 
 ```java
 // lambda: () -> body
@@ -91,10 +91,10 @@ launcher.runVelocityTcFocRPM(() -> config.getIdlingRPM())
 launcher.runVelocityTcFocRPM(config::getIdlingRPM)
 ```
 
-Both are equivalent. The method reference form reads more clearly when there's nothing else in the lambda body. Lambdas are how commands in this codebase stay connected to live config values — if `idlingRPM` changes at runtime (through a `TuneValue`, say), the command sees the new value because it re-evaluates the supplier each loop.
+Both are equivalent. The method reference form reads more clearly when there's nothing else in the lambda body. Lambdas are how commands in this codebase stay connected to live config values, if `idlingRPM` changes at runtime (through a `TuneValue`, say), the command sees the new value because it re-evaluates the supplier each loop.
 
 This is covered further in [Tips](../other-guides/tips.md#doublesupplier-vs-double).
 
 ---
 
-*Previous: [Loops](loops.md) — Next: [Formatting Code & Comments](formatting-code.md)*
+*Previous: [Loops](loops.md). Next: [Formatting Code & Comments](formatting-code.md)*
