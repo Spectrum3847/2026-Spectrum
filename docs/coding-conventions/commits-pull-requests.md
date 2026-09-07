@@ -61,6 +61,6 @@ Delete the branch (GitHub will offer). If your feature came with documentation c
 
 ## When Things Go Sideways
 
-Merge conflict you can't resolve? Push your branch, ping the reviewer in the PR, and resolve together. Don't `git reset --hard` to "start fresh" without backing the work up first, local-only commits that get reset are gone.
+Merge conflict you can't resolve? Push your branch, ping the reviewer in the PR, and resolve together. Don't `git reset --hard` to "start fresh" without backing the work up first; local-only commits that get reset are gone.
 
 `git push --force` (and `--force-with-lease`) are appropriate after a rebase of *your own* branch, but never on shared branches and never on `main`. If you're unsure, ask before force-pushing.

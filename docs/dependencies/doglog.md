@@ -94,7 +94,7 @@ Add to this enum when you find yourself logging the same fault from multiple fil
 
 `withNtTunables(true)` controls DogLog's own tunable entries; it does not affect `TuneValue`/`SmartDashboard` writes. If you want to prevent match-day tuning, remove or guard `TuneValue` call sites separately.
 
-Don't add instance methods to `Telemetry`. It's a static façade on purpose, once half the codebase calls `telemetry.log(...)` and the other half calls `Telemetry.log(...)`; both sides are wrong forever.
+Don't add instance methods to `Telemetry`. It's a static façade on purpose. Once half the codebase calls `telemetry.log(...)` and the other half calls `Telemetry.log(...)`, both sides are wrong forever.
 
 ## Further Reading
 
