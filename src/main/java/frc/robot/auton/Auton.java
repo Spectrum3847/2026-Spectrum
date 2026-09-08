@@ -16,8 +16,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import org.json.simple.parser.ParseException;
@@ -110,8 +112,17 @@ public class Auton {
     // is "2MANOSTBTB FULL.auto".
     public Command TWOMANOSTBTB(boolean mirrored) {
         return Commands.sequence(
-                        Commands.waitSeconds(2), SpectrumAuton("2MANOSTBTB FULL", mirrored))
+                        Commands.waitSeconds(2),
+                        SpectrumAuton("2MANOSTBTB FULL", mirrored))
                 .withName("2MANOSTBTB FULL - " + (mirrored ? "Right" : "Left"));
+    }
+
+    public Command launchAndIntake() {
+        return new InstantCommand(
+                () -> {
+                    robotSuperStructure.setStateCommand(
+                            WantedSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE);
+                });
     }
 
     /**
