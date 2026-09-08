@@ -41,7 +41,7 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 * [Build Tools and Other Development Utilities](tools/build-tools.md) — Spotless, SpotBugs, Lombok, VSCode extensions.
 * [Gradle](tools/gradle.md) — `./gradlew build`, deploy, sim, and the rest of the build commands.
 * [Autonomous Programming (Auton)](tools/auton.md) — PathPlanner, the auto chooser, event triggers.
-* [Vision Systems](tools/vision.md) — three Limelights, MegaTag fusion, pose-estimator integration.
+* [Vision Systems](tools/vision.md) — three Limelights, MegaTag fusion, pose-estimator integration, and calibrating the cameras from the robot app.
 * [Simulation](tools/simulation.md) — running the robot without a robot.
 * [Logging and Data Analysis](tools/logging.md) — DogLog, `Telemetry`, `.wpilog` files.
 * [Phoenix Tuner X](tools/phoenix-tuner-x.md) — motor configuration, swerve offsets, plotter.

@@ -81,10 +81,17 @@ public class Vision implements Subsystem {
          * 12.490 in left of centre, 17.058 in up.
          *
          * <p>Rotation: the camera is mounted upside down (roll 180) on the angled rear-left corner
-         * panel, looking out over that corner (yaw +135, i.e. rear-left) and 60 deg above
+         * panel, looking out over that corner (yaw +135, i.e. rear-left) and 31.8 deg above
          * horizontal. If the Limelight web UI image orientation is set to flip the image 180 deg,
-         * enter roll 0 there instead of 180. These match the values entered in the camera's web UI
-         * on 2026-09-04.
+         * enter roll 0 there instead of 180.
+         *
+         * <p>The pitch was 60 until 2026-09-07, when the camera was measured on a stationary robot
+         * and found to be nowhere near it. Three independent readings agreed: the AprilTag solves
+         * for tags 21 and 24 put the optical axis 32.2 and 31.3 deg above horizontal, and the
+         * camera's own accelerometer put it at 31.8 (the rear-left unit read 28.7 the same way).
+         * 31.8 is the accelerometer figure and sits between the two tag solves. It describes where
+         * the camera is actually pointing, not where the mount was meant to put it -- if the
+         * bracket gets fixed to the CAD intent, this goes back to 60.
          *
          * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
          * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
@@ -97,7 +104,7 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(-11.103), // forward (behind centre)
                                 Units.inchesToMeters(-12.490), // right (left of centre)
                                 Units.inchesToMeters(17.058)) // up
-                        .withRotation(180, 60, 135) // upside down, 60 deg up, facing rear-left
+                        .withRotation(180, 31.8, 135) // upside down, 31.8 deg up, facing rear-left
                         .setAttached(true);
 
         // -- Back-Right Limelight ---------------------------------------------
@@ -111,10 +118,13 @@ public class Vision implements Subsystem {
          * centre, 13.315 in right of centre, 17.458 in up.
          *
          * <p>Rotation: the camera is mounted upside down (roll 180) on the angled rear-right corner
-         * panel, looking out over that corner (yaw -135, i.e. rear-right) and 60 deg above
+         * panel, looking out over that corner (yaw -135, i.e. rear-right) and 31.8 deg above
          * horizontal. If the Limelight web UI image orientation is set to flip the image 180 deg,
-         * enter roll 0 there instead of 180. These match the values entered in the camera's web UI
-         * on 2026-09-04.
+         * enter roll 0 there instead of 180.
+         *
+         * <p>Measured, not from CAD -- see the note on {@link #backLeftConfig}. This is the camera
+         * the 2026-09-07 measurement was taken on: 32.2 and 31.3 deg from the tag 21 and 24 solves,
+         * 31.8 from its accelerometer.
          *
          * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
          * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
@@ -127,7 +137,8 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(-10.064), // forward (behind centre)
                                 Units.inchesToMeters(13.315), // right
                                 Units.inchesToMeters(17.458)) // up
-                        .withRotation(180, 60, -135) // upside down, 60 deg up, facing rear-right
+                        .withRotation(
+                                180, 31.8, -135) // upside down, 31.8 deg up, facing rear-right
                         .setAttached(true);
 
         // -- Turret Limelight -------------------------------------------------
@@ -147,6 +158,13 @@ public class Vision implements Subsystem {
          * the live turret-rotated transform, so the camera reports a robot pose directly. The
          * values here supply the parts that do not move with the turret (height, roll, pitch) and
          * are also used by {@link Limelight#getDistanceToTarget(double)}.
+         *
+         * <p>The pitch was 60 until 2026-09-07, when it was measured on a stationary robot: the
+         * camera's accelerometer put the optical axis 28.5 deg above horizontal and the tag 24
+         * solve put it at 29.5, so 30 is entered here. Roll measured -4, near enough to the 0 in
+         * this config that the camera is mounted upright as intended. Like the chassis cameras (see
+         * {@link #backLeftConfig}), this describes where the camera actually points, not what the
+         * mount was meant to give -- fix the bracket and this goes back to 60.
          */
         @Getter
         final LimelightConfig turretConfig =
@@ -155,7 +173,7 @@ public class Vision implements Subsystem {
                                 -0.138, // forward at turret zero (unused; see turretCenterToCamera)
                                 0.0, // right (unused)
                                 Units.inchesToMeters(18.632)) // up (measured on robot, not CAD)
-                        .withRotation(0, 60, 0); // yaw unused; live turret angle is used
+                        .withRotation(0, 30, 0); // yaw unused; live turret angle is used
 
         // -- Turret geometry --------------------------------------------------
 

@@ -9,6 +9,7 @@ const PAGES = [
     { href: "/pages/power/", label: "Power" },
     { href: "/pages/can/", label: "CAN Bus" },
     { href: "/pages/swerve-align/", label: "Swerve Align" },
+    { href: "/pages/cameras/", label: "Cameras" },
 ];
 
 /**

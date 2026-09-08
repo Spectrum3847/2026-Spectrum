@@ -33,6 +33,7 @@ npm run dev          # Vite on 5173, API proxied to the Express server on 5801
 | **Power** | Per-motor current against its configured limit, how often each motor is pinned there, battery sag and pack internal resistance, energy per mechanism, and a main-breaker thermal simulation. |
 | **CAN Bus** | Bus utilization, error counters heading for bus-off, motors that stopped answering, and the device inventory. |
 | **Swerve Align** | Pin the modules, read the CANcoders live over NT4, and write the offsets into the robot config file. |
+| **Cameras** | Each Limelight live, its mount checked against `Vision.java` by accelerometer and AprilTag solve, auto-tuned exposure, and the fixes written back to the Java and the camera. |
 
 ## The two data files
 
@@ -138,6 +139,55 @@ call shapes it has to survive.
 Robot side: `SwerveAlignment.java` publishes raw CANcoder data under `/Robot/Swerve/Align/`.
 The full walkthrough is [`docs/tools/swerve-alignment.md`](../../docs/tools/swerve-alignment.md).
 
+## Cameras
+
+The Cameras page is the second place the app **writes to the source tree**: it rewrites roll, pitch
+and height inside the three `LimelightConfig` chains in
+`src/main/java/frc/robot/subsystems/vision/Vision.java`, and nothing else. Forward, right and yaw
+are not offered, because a robot sitting still on a flat floor cannot measure them -- they need a
+surveyed robot position and stay CAD.
+
+The same split as swerve alignment: **the browser talks to the cameras, the server talks to the
+source tree.** `client/lib/limelight.js` calls each Limelight's own HTTP API on port 5807 straight
+from the browser (the cameras send `Access-Control-Allow-Origin: *`); `server/lib/vision-config.js`
+is the only thing that touches the `.java` file. It replaces individual numeric literals in place,
+leaves every comment alone, and wraps the `.withRotation(...)` line the way
+`googleJavaFormat().aosp()` does when its trailing comment pushes it past 100 columns, so
+`spotlessCheck` stays green.
+
+**Why the Java and not the camera's web UI.** `Vision.sendCameraSettings()` pushes the six mount
+numbers to each camera every couple of seconds, so a value typed into the camera lasts about that
+long. A write from this page lands in the Java first and, by default, also saves into the camera's
+pipeline with `update-pipeline?flush=1`, so the camera boots with the right numbers before the code
+has pushed anything.
+
+**Two ways to measure a mount, neither needing to know where the robot is:**
+
+- The camera's **accelerometer** (`results.imu.data[7..9]`, proper acceleration in g). Gravity in
+  the camera frame gives pitch directly. Works with no tag in view, so every card shows it live.
+- The **AprilTag solve** (`t6c_ts`, the camera's pose in the tag's frame). Field tags hang
+  vertically at known heights, so the optical axis against the tag's vertical is pitch, the
+  camera's horizontal axis against it is roll, and the offset below the tag centre is height. Tag
+  heights come from `data/apriltag-2026-rebuilt-welded.json`, copied from WPILib 2026.2.1.
+
+Both were checked against frames captured from this robot on 2026-09-07 (`test/fixtures/`), the
+day the cameras turned out to be mounted at 30 deg rather than the 60 in the code: the tag solve
+reproduces the hand-computed 32.2 and 31.3 deg for tags 21 and 24 and puts the back-right camera
+0.437 m up against 0.443 in CAD. `test/camera-cal.test.mjs` pins those numbers.
+
+**Auto-tune image** sweeps `exposure`, then `lcgain` (sensor gain), then `black_level` on the live
+pipeline without flushing, holds each setting for 1.5 s, and scores it by detection rate, tag count,
+ambiguity, corner jitter and pose jitter across the frames, with a tiny preference for shorter
+exposure (less motion blur). The original settings are restored when the sweep ends; nothing is
+saved until **Apply**. Point the camera at tags at a realistic range first.
+
+**Known quirk:** every camera reads its yaw back (`t6c_rs`) with the opposite sign to what was
+set. It is a reporting convention, not an error -- the back-right and turret cameras, with
+independent mounts, agreed on the robot's pose to 5 cm while showing it -- so the mount table
+compares yaw by magnitude.
+
+The walkthrough is [`docs/tools/vision.md`](../../docs/tools/vision.md).
+
 ## Theming
 
 Colors come from the team site (`spectrum3847.org`, `src/styles/custom.css`): deep purple
@@ -221,6 +271,8 @@ Add a nav entry in `client/lib/ui.js` (`PAGES`). Useful pieces:
 | `lib/charts.js` | Chart.js defaults, time charts, limit lines, enabled-time shading, decimation |
 | `lib/log-loader.js` | The log picker used by Power and CAN |
 | `lib/nt4.js` | Read-only NT4 client; connects the browser straight to the robot |
+| `lib/limelight.js` | A Limelight's own HTTP API (status, results, pipeline read and update), straight from the browser |
+| `lib/camera-cal.js` | Mount angles from the accelerometer and the tag solve; detection-quality scoring for the exposure sweep |
 | `/api/robot/probe` | Which RIO address is reachable |
 | `/api/logs` | Synced logs and their manifest entries |
 
@@ -236,10 +288,11 @@ server/          Express API: robot discovery, SSH log transfer, manifest, git
   lib/summary.js headline numbers extracted at sync time
   lib/manifest.js manifest read/write, commit and push
   lib/swerve-config.js reads and rewrites the encoder offsets in the robot config
+  lib/vision-config.js reads and rewrites the Limelight mounts in Vision.java
 client/          Vite frontend, one entry per page
   lib/           shared parser, log model, charts, UI helpers
   pages/         one directory per page
-data/            controls.json, robot-profile.json
+data/            controls.json, robot-profile.json, the 2026 AprilTag field layout
 scripts/         check-drift.mjs
 test/            node:test coverage of the analysis maths
 ```

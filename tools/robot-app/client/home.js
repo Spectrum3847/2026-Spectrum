@@ -11,6 +11,7 @@ const CARDS = [
     { href: "/pages/power/", title: "Power", body: "Per-motor current against its configured limit, battery sag, energy per subsystem, and breaker trip simulation." },
     { href: "/pages/can/", title: "CAN Bus", body: "Bus utilization, error counters heading for bus-off, and motors that stopped answering mid-match." },
     { href: "/pages/swerve-align/", title: "Swerve Align", body: "Pin the modules, read the CANcoders over NetworkTables, and write the offsets straight into the robot config." },
+    { href: "/pages/cameras/", title: "Cameras", body: "Live view of each Limelight, its mount checked against the code by accelerometer and AprilTag solve, auto-tuned exposure, and the fixes written back to Vision.java and the camera." },
 ];
 
 document.getElementById("cards").append(

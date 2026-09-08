@@ -1,0 +1,48 @@
+/* Cameras page: three Limelight cards, each with a live stream, a mount check and two calibrators. */
+
+.cam-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); align-items: start; }
+
+.cam-card h2 { margin: 0 0 2px; font-size: 1.15rem; }
+.cam-card .ntname { color: var(--tx-faint); font-family: var(--mono); font-size: 0.8rem; }
+.cam-card .host-row { display: flex; gap: 8px; align-items: center; margin: 10px 0; flex-wrap: wrap; }
+.cam-card .host-row input { width: 200px; }
+.cam-card .host-row label { font-size: 0.8rem; color: var(--tx-dim); display: flex; gap: 5px; align-items: center; }
+
+.stream { width: 100%; aspect-ratio: 16 / 10; background: var(--s3); border-radius: 8px; object-fit: contain; display: block; }
+.stream.hidden { display: none; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.chip {
+    font-size: 0.74rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--s2);
+    border: 1px solid var(--bd);
+    color: var(--tx-dim);
+    font-variant-numeric: tabular-nums;
+}
+.chip b { color: var(--tx); font-weight: 600; }
+.chip.ok { border-color: var(--ok); }
+.chip.warn { border-color: var(--warn); background: var(--warn-bg); }
+.chip.bad { border-color: var(--bad); background: var(--bad-bg); }
+
+.cam-card h3 { margin: 18px 0 6px; }
+.cam-card table { font-size: 0.8rem; }
+.cam-card td, .cam-card th { padding: 5px 8px; }
+td.mismatch { color: var(--bad); font-weight: 600; }
+td.dim { color: var(--tx-faint); }
+tr.best td { background: var(--ok-bg); font-weight: 600; }
+tr.best td:first-child::before { content: "\2605  "; color: var(--ok); }
+
+.checklist { list-style: none; padding: 0; margin: 6px 0 10px; }
+.checklist li { margin: 3px 0; font-size: 0.83rem; }
+.checklist label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.checklist input { margin-top: 3px; }
+
+.hint { font-size: 0.8rem; color: var(--tx-faint); margin: 4px 0 8px; }
+.progress { font-size: 0.82rem; color: var(--tx-dim); margin: 8px 0; min-height: 1.2em; }
+.sweep-inputs { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; font-size: 0.8rem; margin: 8px 0; }
+.sweep-inputs input { width: 100%; font-family: var(--mono); }
+
+.pose-table td.num { font-family: var(--mono); }
+.footnote { font-size: 0.78rem; color: var(--tx-faint); margin-top: 6px; }
