@@ -926,6 +926,34 @@
               "data_type": "double",
               "show_submit_button": false
             }
+          },
+          {
+            "title": "Turret Trim (deg)",
+            "x": 1792,
+            "y": 0,
+            "width": 384,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Shots Logged",
+            "x": 1792,
+            "y": 128,
+            "width": 384,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/ShotCalc/Shot/Index",
+              "period": 0.06,
+              "data_type": "int",
+              "show_submit_button": false
+            }
           }
         ]
       }

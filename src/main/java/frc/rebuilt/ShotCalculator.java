@@ -8,12 +8,16 @@ import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Preferences;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 
 @SuppressWarnings("unused")
 public class ShotCalculator {
@@ -85,25 +89,338 @@ public class ShotCalculator {
      */
     public static final double HOOD_OFFSET_STEP_DEG = 0.25;
 
+    /** Degrees per operator D-pad press on the turret trim. */
+    public static final double TURRET_OFFSET_STEP_DEG = 1.0;
+
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
-    /** Increase hood angle offset. */
+
+    /**
+     * Largest trim either axis will hold, degrees either side of zero.
+     *
+     * <p>The hood model moves the shot about a foot per degree near where this robot shoots, so ten
+     * degrees is ten feet of range, far past any correction a real fit needs. The cap is not there
+     * to stop the operator, who cannot press the D-pad forty times by accident; it is there because
+     * the trims now come back off the rio's flash at boot, and a corrupt or hand-edited preference
+     * should not be able to command the turret twenty degrees off target before anyone notices. The
+     * hood is clamped again downstream against its soft limits; the turret trim is not, which is
+     * the axis this actually protects.
+     */
+    public static final double MAX_TRIM_DEG = 10.0;
+
+    /**
+     * Preferences key the hood trim persists under. Flat name, no slash: {@link Preferences} keeps
+     * everything in one NetworkTables table, and a slash would nest a sub-table its own {@code
+     * getKeys()} does not walk.
+     *
+     * <p>Public because it is the name of a value that outlives the code that wrote it. Anything
+     * reading a trim off a rio -- a test, the robot app, someone in the pit with Elastic's
+     * Preferences widget -- needs the same string this class uses, not a copy of it.
+     */
+    public static final String HOOD_TRIM_PREF_KEY = "ShotHoodTrimDeg";
+
+    /** Preferences key the turret trim persists under. See {@link #HOOD_TRIM_PREF_KEY}. */
+    public static final String TURRET_TRIM_PREF_KEY = "ShotTurretTrimDeg";
+
+    /**
+     * Reads both trims back off the rio.
+     *
+     * <p>Call once during robot construction, before any binding can move a trim. Until 2026-09-08
+     * these were plain static fields, so every redeploy zeroed whatever the operator had dialled in
+     * and the only way to keep a correction was for someone to remember the number and fold it into
+     * the model's {@code hoodOffsetDeg} by hand. That is exactly what the -4 and then -5 degree hub
+     * trims in the git log are.
+     *
+     * <p>{@link Preferences} lives in flash, so a trim now survives a power cycle as well as a
+     * redeploy. That is the point and it is also the risk: a trim dialled in against a shop ceiling
+     * last week silently applies at the next event. The mitigation is this method's boot print and
+     * the operator's Start+Select reset, not an expiry. An expiry would zero the trim in the middle
+     * of a session the operator thought was still calibrated, which is the worse failure.
+     */
+    public static void loadPersistedTrims() {
+        Preferences.initDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
+        Preferences.initDouble(TURRET_TRIM_PREF_KEY, STARTING_TURRET_ANGLE_OFFSET);
+
+        double storedHood = Preferences.getDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
+        double storedTurret =
+                Preferences.getDouble(TURRET_TRIM_PREF_KEY, STARTING_TURRET_ANGLE_OFFSET);
+
+        HOOD_ANGLE_OFFSET = MathUtil.clamp(storedHood, -MAX_TRIM_DEG, MAX_TRIM_DEG);
+        TURRET_ANGLE_OFFSET = MathUtil.clamp(storedTurret, -MAX_TRIM_DEG, MAX_TRIM_DEG);
+
+        if (HOOD_ANGLE_OFFSET != storedHood || TURRET_ANGLE_OFFSET != storedTurret) {
+            Telemetry.print(
+                    String.format(
+                            "!!! Stored shot trims were out of range (hood %.2f, turret %.2f) and"
+                                    + " were clamped to +/- %.1f deg. Something other than the"
+                                    + " operator D-pad wrote them.",
+                            storedHood, storedTurret, MAX_TRIM_DEG),
+                    PrintPriority.HIGH);
+            writeTrimPreferences();
+        }
+
+        if (HOOD_ANGLE_OFFSET != 0 || TURRET_ANGLE_OFFSET != 0) {
+            Telemetry.print(
+                    String.format(
+                            "!!! Persisted shot trims are in effect: hood %+.2f deg, turret %+.2f"
+                                    + " deg. These came off the rio, not from this session."
+                                    + " Operator Start+Select zeroes both.",
+                            HOOD_ANGLE_OFFSET, TURRET_ANGLE_OFFSET),
+                    PrintPriority.HIGH);
+        } else {
+            Telemetry.print("Shot trims loaded from the rio: both zero.", PrintPriority.HIGH);
+        }
+    }
+
+    private static void writeTrimPreferences() {
+        Preferences.setDouble(HOOD_TRIM_PREF_KEY, HOOD_ANGLE_OFFSET);
+        Preferences.setDouble(TURRET_TRIM_PREF_KEY, TURRET_ANGLE_OFFSET);
+    }
+
+    /**
+     * Applies a trim nudge, persists it, and logs it as a shot outcome.
+     *
+     * <p>Every press is a judgement about the last burst: hood down means it went long, hood up
+     * means it fell short, and the turret pair say which side it missed on. That makes the D-pad
+     * the outcome signal, so there are no separate short/made/long buttons; a made shot is the
+     * absence of a press. See {@code docs/tools/shot-log.md} for how the two record streams pair
+     * up.
+     *
+     * @param hood true for the hood axis, false for the turret axis
+     * @param deltaDeg signed nudge in degrees, before clamping
+     */
+    private static void nudgeTrim(boolean hood, double deltaDeg) {
+        double before = hood ? HOOD_ANGLE_OFFSET : TURRET_ANGLE_OFFSET;
+        double after = MathUtil.clamp(before + deltaDeg, -MAX_TRIM_DEG, MAX_TRIM_DEG);
+        if (hood) {
+            HOOD_ANGLE_OFFSET = after;
+        } else {
+            TURRET_ANGLE_OFFSET = after;
+        }
+        // Preferences writes go to flash and through NetworkTables. Safe here, in a command that
+        // runs once per press; never do this from a periodic.
+        writeTrimPreferences();
+        logTrimEvent(hood, after - before, after, false);
+    }
+
+    /** Increase hood angle offset. The operator's way of saying the last shot fell short. */
     public static Command increaseHoodAngleOffset() {
-        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET += HOOD_OFFSET_STEP_DEG)
-                .ignoringDisable(true);
+        return Commands.runOnce(() -> nudgeTrim(true, HOOD_OFFSET_STEP_DEG))
+                .ignoringDisable(true)
+                .withName("ShotCalculator.increaseHoodTrim");
     }
-    /** Decrease hood angle offset. */
+
+    /** Decrease hood angle offset. The operator's way of saying the last shot went long. */
     public static Command decreaseHoodAngleOffset() {
-        return Commands.runOnce(() -> HOOD_ANGLE_OFFSET -= HOOD_OFFSET_STEP_DEG)
-                .ignoringDisable(true);
+        return Commands.runOnce(() -> nudgeTrim(true, -HOOD_OFFSET_STEP_DEG))
+                .ignoringDisable(true)
+                .withName("ShotCalculator.decreaseHoodTrim");
     }
+
     /** Increase turret angle offset. */
     public static Command increaseTurretAngleOffset() {
-        return Commands.runOnce(() -> TURRET_ANGLE_OFFSET += 1).ignoringDisable(true);
+        return Commands.runOnce(() -> nudgeTrim(false, TURRET_OFFSET_STEP_DEG))
+                .ignoringDisable(true)
+                .withName("ShotCalculator.increaseTurretTrim");
     }
+
     /** Decrease turret angle offset. */
     public static Command decreaseTurretAngleOffset() {
-        return Commands.runOnce(() -> TURRET_ANGLE_OFFSET -= 1).ignoringDisable(true);
+        return Commands.runOnce(() -> nudgeTrim(false, -TURRET_OFFSET_STEP_DEG))
+                .ignoringDisable(true)
+                .withName("ShotCalculator.decreaseTurretTrim");
+    }
+
+    /**
+     * Zeroes both trims and clears them from flash.
+     *
+     * <p>Bound to a two-button chord because it has to be reachable in the pit without being
+     * reachable by accident. A persisted trim nobody can clear from the driver station is worse
+     * than one that evaporates.
+     *
+     * @return the reset command
+     */
+    public static Command resetTrimsCommand() {
+        return Commands.runOnce(
+                        () -> {
+                            double hoodBefore = HOOD_ANGLE_OFFSET;
+                            double turretBefore = TURRET_ANGLE_OFFSET;
+                            HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
+                            TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
+                            writeTrimPreferences();
+                            logTrimEvent(
+                                    true, HOOD_ANGLE_OFFSET - hoodBefore, HOOD_ANGLE_OFFSET, true);
+                            logTrimEvent(
+                                    false,
+                                    TURRET_ANGLE_OFFSET - turretBefore,
+                                    TURRET_ANGLE_OFFSET,
+                                    true);
+                            Telemetry.print(
+                                    String.format(
+                                            "Shot trims reset to zero (were hood %+.2f, turret"
+                                                    + " %+.2f).",
+                                            hoodBefore, turretBefore),
+                                    PrintPriority.HIGH);
+                        })
+                .ignoringDisable(true)
+                .withName("ShotCalculator.resetTrims");
+    }
+
+    // =========================================================================
+    // Shot Records
+    // =========================================================================
+    //
+    // Two sparse streams, one row per event, both wpilog-only:
+    //
+    //   ShotCalc/Shot/*  one row when the feed gate opens, saying what was aimed
+    //   ShotCalc/Trim/*  one row per operator D-pad press, saying how it went
+    //
+    // Neither is a loop-rate stream. Balls per burst are counted afterwards from the dips in
+    // Launcher/RPM, which is kept at loop rate for exactly that (Launcher.java 203).
+    //
+    // DogLog skips a record whose value has not changed, so a burst at the same distance with the
+    // same model writes Index and TimestampSeconds and little else. Read a row by taking each
+    // key's last value at or before that row's timestamp; see docs/tools/shot-log.md.
+
+    /** Bursts since boot. The pairing key between a shot row and the trim row that judges it. */
+    private static long shotIndex = 0;
+
+    /** FPGA time of the last burst, or NaN before the first one. */
+    private static double lastShotTimestampSeconds = Double.NaN;
+
+    /** Distance of the last burst, so a trim row carries the range it is judging. */
+    private static double lastShotDistanceMeters = Double.NaN;
+
+    /** D-pad presses since boot. */
+    private static long trimEventIndex = 0;
+
+    // Snapshot of the per-loop values a shot row needs that ShootingParameters does not carry.
+    // Written on every getParameters() computation, read on the loop the gate opens.
+    private static String activeModelName = "none";
+    private static double activeModelHoodOffsetDeg = 0;
+    private static double activeRadialVelocityMs = 0;
+    private static double activeTangentialVelocityMs = 0;
+    private static boolean activeFeedShot = false;
+
+    /**
+     * Writes one row describing the burst that is starting.
+     *
+     * <p>Called on the rising edge of the feed gate, which is the first loop fuel is allowed into
+     * the flywheel and so the last loop on which the aim was still a prediction. Everything here is
+     * either what the model asked for or what the mechanism actually did, on that loop.
+     *
+     * <p>Two omissions are deliberate. There is no outcome field, because the outcome arrives later
+     * as a trim press. And the vision turret-zero split, {@code
+     * Vision/TurretZero/PoseHeadingErrorDeg} and {@code TurretOnlyErrorDeg}, is not copied in: it
+     * is already logged at 10 Hz and joins on time, and duplicating it here would let the two drift
+     * apart.
+     *
+     * @param poseTrusted whether vision had accepted an estimate recently enough to believe the
+     *     distance, as computed by the feed gate
+     */
+    public static void recordShot(boolean poseTrusted) {
+        ShootingParameters params = getInstance().getParameters();
+        double now = Timer.getFPGATimestamp();
+
+        shotIndex++;
+        lastShotTimestampSeconds = now;
+        lastShotDistanceMeters = params.distanceNoLookahead();
+
+        // The one key on NetworkTables: the operator needs to see bursts counting up to know
+        // records are being written at all. One publish per burst is nothing next to the loop-rate
+        // traffic the 09-05 tiers exist to control.
+        Telemetry.logDashAlways("ShotCalc/Shot/Index", shotIndex);
+
+        Telemetry.log("ShotCalc/Shot/TimestampSeconds", now, "seconds");
+        Telemetry.log("ShotCalc/Shot/MatchTimeSeconds", DriverStation.getMatchTime(), "seconds");
+        Telemetry.log("ShotCalc/Shot/DistanceMeters", params.distanceNoLookahead(), "meters");
+        Telemetry.log("ShotCalc/Shot/LookaheadDistanceMeters", params.distance(), "meters");
+        Telemetry.log("ShotCalc/Shot/WantedRPM", params.flywheelSpeed(), "RPM");
+        Telemetry.log("ShotCalc/Shot/WantedHoodDeg", params.hoodAngle(), "degrees");
+        Telemetry.log("ShotCalc/Shot/ExitSpeedMs", params.exitSpeedMs(), "m/s");
+        Telemetry.log("ShotCalc/Shot/TimeOfFlightSeconds", params.timeOfFlight(), "seconds");
+        Telemetry.log("ShotCalc/Shot/RadialVelocityMs", activeRadialVelocityMs, "m/s");
+        Telemetry.log("ShotCalc/Shot/TangentialVelocityMs", activeTangentialVelocityMs, "m/s");
+        Telemetry.log("ShotCalc/Shot/Model", activeModelName);
+        Telemetry.log("ShotCalc/Shot/HoodModelOffsetDeg", activeModelHoodOffsetDeg, "degrees");
+        Telemetry.log("ShotCalc/Shot/HoodTrimDeg", HOOD_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/Shot/TurretTrimDeg", TURRET_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/Shot/FeedShot", activeFeedShot);
+        Telemetry.log("ShotCalc/Shot/InRange", params.isValid());
+        Telemetry.log("ShotCalc/Shot/PoseTrusted", poseTrusted);
+
+        // Actuals. Null-guarded because a sim or a bench run can call this before every mechanism
+        // exists, and a missing number should read as NaN rather than crash the loop.
+        Telemetry.log(
+                "ShotCalc/Shot/ActualRPM",
+                Robot.getLauncher() == null ? Double.NaN : Robot.getLauncher().getVelocityRPM(),
+                "RPM");
+        Telemetry.log(
+                "ShotCalc/Shot/ActualHoodDeg",
+                Robot.getHood() == null ? Double.NaN : Robot.getHood().getPositionDegrees(),
+                "degrees");
+        // Measured minus commanded, matching Turret/TrackingErrorDegrees. Note that
+        // Turret/PositionError is logged with the OPPOSITE sign (Turret.java 309); this key follows
+        // getTrackingErrorDegrees(). Which way in the world a positive value points is not
+        // documented anywhere on the turret, so read it as a magnitude unless you have checked.
+        Telemetry.log(
+                "ShotCalc/Shot/TurretErrorDeg",
+                Robot.getTurret() == null
+                        ? Double.NaN
+                        : Robot.getTurret().getTrackingErrorDegrees(),
+                "degrees");
+        if (Robot.getSwerve() != null) {
+            Telemetry.log("ShotCalc/Shot/Pose", Robot.getSwerve().getRobotPose());
+        }
+    }
+
+    /**
+     * Writes one row for an operator trim press, and pairs it with the burst it is judging.
+     *
+     * <p>{@code ShotIndex} and {@code SecondsSinceShot} are the pairing. A press seconds after a
+     * burst is a verdict on that burst; a press in the pit with no burst behind it carries index -1
+     * and an infinite age, and analysis drops it. Deciding what counts as "seconds after" is the
+     * reader's job, not this method's, so the age is logged rather than thresholded here.
+     *
+     * @param hood true for the hood axis, false for the turret axis
+     * @param deltaDeg how far the trim actually moved, after clamping; zero at the limit
+     * @param valueDeg the trim's new value
+     * @param reset true when this row is the Start+Select reset rather than a judgement
+     */
+    private static void logTrimEvent(
+            boolean hood, double deltaDeg, double valueDeg, boolean reset) {
+        double now = Timer.getFPGATimestamp();
+        double secondsSinceShot =
+                Double.isNaN(lastShotTimestampSeconds)
+                        ? Double.POSITIVE_INFINITY
+                        : now - lastShotTimestampSeconds;
+
+        String verdict;
+        if (reset) {
+            verdict = "Reset";
+        } else if (deltaDeg == 0) {
+            // The trim was already at MAX_TRIM_DEG. The press is still a verdict about the shot,
+            // and losing it would bias the dataset towards whichever direction had room left.
+            verdict = "AtLimit";
+        } else if (hood) {
+            // Hood up means the operator is adding range, so the ball fell short.
+            verdict = deltaDeg > 0 ? "Short" : "Long";
+        } else {
+            // A CCW trim correction means the ball landed CW of the target.
+            verdict = deltaDeg > 0 ? "MissedCW" : "MissedCCW";
+        }
+
+        trimEventIndex++;
+        Telemetry.log("ShotCalc/Trim/Index", trimEventIndex);
+        Telemetry.log("ShotCalc/Trim/TimestampSeconds", now, "seconds");
+        Telemetry.log("ShotCalc/Trim/Axis", hood ? "Hood" : "Turret");
+        Telemetry.log("ShotCalc/Trim/DeltaDeg", deltaDeg, "degrees");
+        Telemetry.log("ShotCalc/Trim/ValueDeg", valueDeg, "degrees");
+        Telemetry.log("ShotCalc/Trim/Verdict", verdict);
+        Telemetry.log(
+                "ShotCalc/Trim/ShotIndex", Double.isNaN(lastShotTimestampSeconds) ? -1 : shotIndex);
+        Telemetry.log("ShotCalc/Trim/SecondsSinceShot", secondsSinceShot, "seconds");
+        Telemetry.log("ShotCalc/Trim/ShotDistanceMeters", lastShotDistanceMeters, "meters");
     }
 
     // =========================================================================
@@ -488,6 +805,15 @@ public class ShotCalculator {
         // ── Flywheel speed: exit speed (m/s) → RPM ───────────────────────────
         double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
 
+        // Snapshot for the shot record: the five values a burst row needs that
+        // ShootingParameters does not carry. Kept here rather than widened into the record because
+        // nothing in the control path reads them.
+        activeModelName = model.name;
+        activeModelHoodOffsetDeg = model.hoodOffsetDeg();
+        activeRadialVelocityMs = radialVelocity;
+        activeTangentialVelocityMs = tangentialVelocity;
+        activeFeedShot = feed;
+
         // ── Validity ──────────────────────────────────────────────────────────
         boolean isValid =
                 distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
@@ -524,7 +850,7 @@ public class ShotCalculator {
             Telemetry.logDash("ShotCalc/TimeOfFlight", tofFinal, "seconds");
             Telemetry.log("ShotCalc/FeedShot", feed);
             Telemetry.logDash("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
-            Telemetry.log("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
+            Telemetry.logDash("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
             Telemetry.logDash("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
             Telemetry.logDash(
                     "ShotCalc/HoodModelOffsetDegrees", WANTED_HUB_MODEL.hoodOffsetDeg(), "degrees");

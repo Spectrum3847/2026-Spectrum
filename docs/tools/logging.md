@@ -109,7 +109,18 @@ Log: motor voltages and currents, sensor readings, calculated setpoints, command
 
 Don't log: anything inside a tight inner loop on every iteration (DogLog handles per-loop logging but logging the same value 50 times per loop is wasted disk). Don't log secrets — there aren't any in robot code, but the warning lives here as a reminder.
 
+## One Row Per Event
+
+Not everything worth logging is a signal sampled over time. A burst of fuel and an operator's
+verdict on where it landed are events, and they are logged as one sparse row each under
+`ShotCalc/Shot/*` and `ShotCalc/Trim/*` rather than as another loop-rate stream. Reading them takes
+a little care, because DogLog skips a record whose value has not changed: take each key's last value
+at or before the row's timestamp, rather than expecting every key at every row.
+
+See [Shot Records and Trim Events](shot-log.md).
+
 ## See Also
 
 * [DogLog dependency page](../dependencies/doglog.md) for version, JavaDoc link, and the option flags themselves.
+* [Shot Records and Trim Events](shot-log.md) — the per-burst and per-trim rows, and how to join them.
 * [Elastic Dashboard](elastic.md) — the live NetworkTables view that reads from the same publish stream.

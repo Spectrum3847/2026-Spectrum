@@ -204,6 +204,10 @@ public class Robot extends SpectrumRobot {
                 robotSim = new RobotSim(superStructure);
             }
 
+            // Before any binding can move a trim, and late enough that NetworkTables is up
+            // for Preferences. Prints at HIGH priority when a stored trim is non-zero.
+            ShotCalculator.loadPersistedTrims();
+
             configureBindings();
 
             batteryLogger.setEnabled(true);
@@ -297,10 +301,14 @@ public class Robot extends SpectrumRobot {
         pilot.home_select.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.home_select.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        // Each press is also the shot-outcome signal: hood down says the last burst went long,
+        // hood up says it fell short. Logged as ShotCalc/Trim/* and paired with the most recent
+        // ShotCalc/Shot/* row. See docs/tools/shot-log.md.
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
         operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
+        operator.resetShotTrims_StartSelect.onTrue(ShotCalculator.resetTrimsCommand());
 
         // Held: feed regardless of the shot-readiness gates, for a bad sensor or a deliberate dump.
         superStructure.setFeedOverride(operator.YButton);

@@ -23,6 +23,14 @@ public class Operator extends Gamepad {
     public final Trigger coastA = AButton.and(disabled);
     public final Trigger zeroTurretB = BButton.and(disabled);
 
+    /*
+     * Zeroes the persisted hood and turret trims. A chord of the two buttons nothing else uses,
+     * live enabled as well as disabled: the trims now survive a power cycle, so the operator has to
+     * be able to clear a stale one without a redeploy, and neither button is reachable by accident
+     * mid-match.
+     */
+    public final Trigger resetShotTrims_StartSelect = startButton.and(selectButton);
+
     public final Trigger leftStickPress = leftStickClick;
     public final Trigger rightStickPress = rightStickClick;
 

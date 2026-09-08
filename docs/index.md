@@ -49,6 +49,7 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 * [Swerve Alignment](tools/swerve-alignment.md) — the page that zeroes the modules and writes the offsets into the code.
 * [Robot App](../tools/robot-app/README.md) — the local web app it lives in: control maps, log sync, power and CAN-bus analysis.
 * [PID Tuning](tools/pid-tuning.md) — gains, feedforward, the workflow.
+* [Shot Records and Trim Events](tools/shot-log.md) — the one-row-per-burst log, why the operator D-pad is the outcome signal, and how the trims persist.
 * [Elastic Dashboard](tools/elastic.md) — driver-station UI, NetworkTables.
 * [LEDs](tools/leds.md) — `SpectrumLEDs` patterns and CANdle plans.
 * [Development Environment Shortcuts](other-guides/shortcuts.md) — keyboard and CLI shortcuts.

@@ -50,15 +50,23 @@ Two other constants convert the model to this robot: `RPM_PER_MPS` = 365 (line 1
 `InterpolatingTreeMap`s, `heightMap` and `distanceOffsetMap`, each seeded with a single zero entry.
 They are the skeleton of a distance-indexed correction table that was never filled in.
 
-### 1.2 The operator's trims evaporate
+### 1.2 The operator's trims persist, and every burst leaves a record
 
-`HOOD_ANGLE_OFFSET` and `TURRET_ANGLE_OFFSET` (`ShotCalculator.java` 76 and 89) are
-`public static double` fields, bound to the operator D-pad in `src/main/java/frc/robot/Robot.java`
-lines 300-303. They live in RAM. A code restart puts them back to zero, so whatever the operator
-dialled in during a session is gone at the next deploy unless someone remembers the number and
-folds it into `hoodOffsetDeg` by hand. That is the -4, then -5, in the table above. Both trims are
-logged (`ShotCalc/HoodAngleOffsetDegrees`, `ShotCalc/TurretAngleOffsetDegrees`), so the wpilogs
-do hold them.
+**Done 2026-09-08.** This section described the trims evaporating on every deploy; item 3.1 below
+fixed it. `HOOD_ANGLE_OFFSET` and `TURRET_ANGLE_OFFSET` are stored with WPILib `Preferences` under
+`ShotHoodTrimDeg` and `ShotTurretTrimDeg`, read once by `ShotCalculator.loadPersistedTrims()`
+during robot construction, written inside each trim command, capped at `MAX_TRIM_DEG` (10 deg), and
+cleared by an operator Start+Select chord. A non-zero trim prints at `HIGH` priority at boot. They
+survive a power cycle as well as a redeploy, which was the deliberate choice (section 4, question
+3); the boot print and the reset chord are the mitigation, not an expiry.
+
+Every burst now writes one row under `ShotCalc/Shot/*` on the rising edge of the feed gate, and
+every operator D-pad press writes one under `ShotCalc/Trim/*` carrying the distance of the burst it
+is judging. There are no separate short/made/long buttons: the D-pad already is the outcome signal,
+and a made shot is the absence of a press (section 4, question 2). Full schema and the join recipe
+are in `docs/tools/shot-log.md`.
+
+What is still by hand is folding a settled trim into the model's `hoodOffsetDeg`. That is item 3.2.
 
 `tools/robot-app/data/controls.json` said the hood step was 0.1 deg until 2026-09-08, days after
 the code had moved to 0.25 (`HOOD_OFFSET_STEP_DEG`, line 86). Fixed, but note the gap it showed:
@@ -107,8 +115,10 @@ and `Turret/VelocityRotPerSec` (the measured one); `Hood/CommandedDegrees`,
 `LauncherTower/CommandedRPM`, `LauncherTower/RPM`. `ShotCalc/*` logs
 fifteen keys at loop rate while launching and 10 Hz otherwise (`ShotCalculator.java` around
 505-531), including distance, wanted RPM, wanted hood, exit speed, time of flight, model name and
-both trims. `SuperStructure/ShotReady/*` logs the feed gate and every input to it. What is missing
-is any record of the outcome.
+both trims. `SuperStructure/ShotReady/*` logs the feed gate and every input to it. Since 2026-09-08 the
+outcome is recorded too, as two sparse per-event streams rather than another sampled signal:
+`ShotCalc/Shot/*`, one row on each rising edge of the feed gate, and `ShotCalc/Trim/*`, one row per
+operator trim press with the distance of the burst it judges. See `docs/tools/shot-log.md`.
 
 ## 2. Ground rules for anyone working here
 
@@ -161,37 +171,40 @@ Each item stands alone. 3.1 makes every later item better because it is the data
 that 3.2 and 3.3 both want; do it first if both are going to happen, otherwise fold it into
 whichever comes first.
 
-### 3.1 Persist the trims and record every shot
+### 3.1 Persist the trims and record every shot — DONE 2026-09-08
 
-**Goal.** A deploy no longer zeroes the operator's trims, and every burst leaves a record in the log
-that says what was aimed and, when the operator says so, where it went.
+**What landed.** `ShotCalculator.loadPersistedTrims()` reads both trims from `Preferences` during
+robot construction; `nudgeTrim()` clamps, writes flash and logs on every press; `resetTrimsCommand()`
+zeroes both, bound to `operator.resetShotTrims_StartSelect` (Start+Select), live in every mode.
+`ShotCalculator.recordShot(poseTrusted)` writes one row per burst, called from
+`SuperStructure.updateFeedGate()` on the rising edge of `feedGateOpen`. Both streams are
+`Telemetry.log`, wpilog only, with one deliberate exception: `ShotCalc/Shot/Index` goes out over
+NetworkTables via `logDashAlways` so the operator can watch bursts count up on the Shooting tab and
+know records are being written. `ShotCalc/TurretAngleOffsetDegrees` moved from `log` to `logDash`
+for the same reason: a trim that persists has to be readable before a match.
 
-**Build.**
+**The mark buttons were dropped, deliberately.** The three-button plan above was answered with a
+better signal: the operator already says what happened by trimming, so a hood-down press is "that
+one went long" and a hood-up press is "that one fell short". Every press is logged under
+`ShotCalc/Trim/*` with its verdict, the index and age of the burst it is judging, and that burst's
+distance denormalised onto the row so a distance-binned fit is one pass over one channel. A made
+shot is the absence of a press, which means makes are counted as bursts with no trim behind them.
+No new operator buttons were spent on outcomes.
 
-1. Persist `HOOD_ANGLE_OFFSET` and `TURRET_ANGLE_OFFSET` with WPILib `Preferences`
-   (`edu.wpi.first.wpilibj.Preferences`): read at class init, write inside the four
-   `increase*`/`decrease*` commands (`ShotCalculator.java` 91-107). Add a way to reset both to zero
-   (a chord, or a disabled-only button), and `Telemetry.print` at boot whenever a persisted trim is
-   non-zero so nobody is surprised by it.
-2. On the rising edge of `feedGateOpen` (`SuperStructure.java` 337), log one shot record: FPGA
-   time, `ShotCalc/DistanceNoLookahead`, `ShotCalc/FlywheelSpeedRPM`, `ShotCalc/HoodAngleDeg`,
-   actual `Launcher/RPM`, actual `Hood/PositionDegrees`, `Turret/PositionError`,
-   `ShotCalc/HubPolyModel`, both trims, `ShotCalc/FeedShot`, `ShotReady/PoseTrusted` and the pose.
-   A struct under `ShotCalc/Shot/*`, or a set of keys written once per burst; the point is one row
-   per burst, not another loop-rate stream. Balls per burst can be counted afterwards from the dips
-   in `Launcher/RPM`, which is kept at loop rate for exactly this reason (`Launcher.java` 203).
-3. Three operator marks: short, made, long. Log each as `ShotCalc/Shot/Mark` with the time; the
-   app pairs a mark with the most recent burst. Pick buttons that are free in `data/controls.json`
-   and ask the operator before deciding. Update `controls.json`.
+**Schema, the join recipe, and the argument for all of it** are in `docs/tools/shot-log.md`, linked
+from `docs/index.md` and from `logging.md`.
 
-**Acceptance.** Deploy twice with a non-zero trim set in between; the trim survives. A practice log
-contains one record per burst plus the marks. `npm run check` is clean. `docs/tools/elastic.md`
-and the Shooting tab of `src/main/deploy/elastic-layout.json` mention the marks.
+**What 3.2 still needs from a human.** Nothing in the code. Take a practice log, join the two
+streams, and the first reading worth doing by hand is in the doc's last section: a long/short bias
+constant across distances is an exit-speed error (`RPM_PER_MPS`, `MPS_FACTOR`), one that grows with
+distance is an angle error.
 
-**Gotchas.** `Preferences` writes go through NT to the RIO's flash; write in the command, never in
-periodic. Keep the shot record off NT (plain `Telemetry.log`).
-
-**Size.** Half a day.
+**Not verified on hardware.** Everything below the compile boundary is untested until someone
+deploys: that `Preferences` survives a power cycle on this rio, that the boot print appears, and
+that the gate's rising edge fires once per burst rather than several times if `keepReady` chatters.
+Watch `ShotCalc/Shot/Index` against the `Launcher/RPM` dips on the first practice log; if the index
+climbs faster than the bursts, the gate needs a debounce on the closing edge, not on the opening
+one.
 
 ### 3.2 A Shooting page: trims to Java, outcomes to a correction table
 
@@ -350,11 +363,15 @@ writing anything new on top.
 ## 4. Open questions for the humans
 
 1. Where are the polynomial fit script and its data? (3.7)
-2. Which operator buttons may the shot marks take? (3.1)
-3. Should trims persist across power cycles (which `Preferences` does) or only across deploys?
-   Across power cycles means a stale trim from last week silently applies at the next event; the
-   boot-time print in 3.1 is the mitigation. The alternative is a reset in `disabledInit` after
-   some minutes disabled.
+2. ~~Which operator buttons may the shot marks take?~~ **Answered 2026-09-08: none.** No marks.
+   The D-pad trim presses are the outcome signal, since a shot going long already gets the hood
+   trimmed down and one falling short gets it trimmed up. A made shot is the absence of a press.
+   Start+Select, two buttons nothing else used, became the trim reset.
+3. ~~Should trims persist across power cycles or only across deploys?~~ **Answered 2026-09-08:
+   across power cycles, and then the settled value gets folded into the code (3.2).** Plain
+   `Preferences`, with a boot print and the Start+Select reset as the mitigation for a stale trim.
+   No expiry: zeroing a trim after some minutes disabled would surprise the operator in the middle
+   of a session they thought was still calibrated.
 4. Is a publish path from the app to the robot over NT4 acceptable? `nt4.js` is deliberately
    read-only today. 3.3 needs to write `Tuning/*`. The alternative is typing values into Elastic,
    which works but loses the step table's context.
@@ -373,3 +390,7 @@ writing anything new on top.
 | Log rates | diagnostics 10 Hz; aimed-mechanism position and command 50 Hz; turret, launcher and tower voltage 50 Hz | `Mechanism.logDiagnostics`; section 1.4 |
 | DogLog | 2026.5.0, has `tunable(key, default, onChange)` | Gradle cache |
 | `tunableOnFMS` | true, deliberately; no guard wanted | `Robot.java` 145 |
+| Trim cap | 10 deg either axis, on load and on every press | `MAX_TRIM_DEG`, `ShotCalculator.java` |
+| Trim storage | `Preferences`, keys `ShotHoodTrimDeg` and `ShotTurretTrimDeg`; survives a power cycle | `ShotCalculator.loadPersistedTrims()` |
+| Trim reset | operator Start+Select, live in every mode | `Robot.java` 311 |
+| Shot record | one row per burst on the feed gate's rising edge; `Index` is the only key on NT | `ShotCalc/Shot/*`, `docs/tools/shot-log.md` |

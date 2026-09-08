@@ -284,6 +284,9 @@ public class SuperStructure {
     /** True while the gate is open and fuel is allowed into the flywheel. */
     private boolean feedGateOpen = false;
 
+    /** Previous loop's gate, so the rising edge can be caught for the shot record. */
+    private boolean feedGateOpenLastLoop = false;
+
     /** Operator hold to feed regardless of the gate, for a bad sensor or a deliberate dump. */
     private BooleanSupplier feedOverride = () -> false;
 
@@ -335,6 +338,14 @@ public class SuperStructure {
         // Closing the gate on leaving a launch state means the next burst re-earns the strict
         // window rather than inheriting the last one's open gate.
         feedGateOpen = launching && (feedGateOpen ? keepReady : startReady);
+
+        // One row per burst, on the first loop fuel is allowed through: the last loop on which the
+        // aim was still a prediction. The operator's D-pad supplies the outcome later, so this is
+        // half a dataset row and ShotCalc/Trim/* is the other half.
+        if (feedGateOpen && !feedGateOpenLastLoop) {
+            ShotCalculator.recordShot(poseTrusted);
+        }
+        feedGateOpenLastLoop = feedGateOpen;
 
         if (launching) {
             launchingLoops++;

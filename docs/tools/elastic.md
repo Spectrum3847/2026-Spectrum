@@ -16,7 +16,7 @@ There are six tabs:
 
 **Turret** — tracking error and position graphs, the turret camera, slip and trim numbers, ready-to-shoot. The page for turret zero and slip problems.
 
-**Shooting** — launcher RPM and hood position graphs against the shot calculator's wanted values, the feed path RPMs, and the hood trims. The page you stare at when shots are not landing.
+**Shooting** — launcher RPM and hood position graphs against the shot calculator's wanted values, the feed path RPMs, both operator trims, and `Shots Logged`. The page you stare at when shots are not landing. The trims persist across a redeploy and a power cycle now, so reading them here before a match matters; `Shots Logged` is `ShotCalc/Shot/Index`, and it counting up is how you know a burst left a record. See [Shot Records and Trim Events](shot-log.md).
 
 **Power** — battery voltage and total current graphs, per-mechanism current bars, follower currents (a dead follower is only visible here), CANivore utilization and energy used.
 
