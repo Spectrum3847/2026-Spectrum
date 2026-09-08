@@ -1,6 +1,8 @@
 package frc.spectrumLib.vision;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.util.Units;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
@@ -31,6 +33,10 @@ public class VisionLogger {
     private final String targetSizeKey;
     private final String estimateAgeKey;
     private final String integratedKey;
+    private final String mountTiltKey;
+    private final String mountPitchKey;
+    private final String mountRollKey;
+    private final String mountHeightKey;
 
     /**
      * Constructs a logger for the given Limelight camera.
@@ -52,6 +58,10 @@ public class VisionLogger {
         targetSizeKey = prefix + "TargetSize";
         estimateAgeKey = prefix + "EstimateAgeSeconds";
         integratedKey = prefix + "IntegratedThisLoop";
+        mountTiltKey = prefix + "MountCheck/TiltDeg";
+        mountPitchKey = prefix + "MountCheck/PitchDeg";
+        mountRollKey = prefix + "MountCheck/RollDeg";
+        mountHeightKey = prefix + "MountCheck/HeightMeters";
     }
 
     /**
@@ -144,6 +154,44 @@ public class VisionLogger {
         Pose2d pose = limelight.getMegaTag2_Pose2d();
         Telemetry.log(mt2PoseKey, pose);
         return pose;
+    }
+
+    /**
+     * Logs the out-of-plane part of the MegaTag1 estimate, for checking the camera's mount angles
+     * against the values entered in its web UI.
+     *
+     * <p>MegaTag1 reports the <b>robot's</b> full 3-D pose: it solves the camera's pose from the
+     * tag, then applies the camera-to-robot transform from the camera's entered offsets. With the
+     * robot sitting flat on the carpet the truth is height 0, pitch 0, roll 0, so whatever these
+     * read is the error in the entered mount rotation. {@code TiltDeg} is the total angle between
+     * the reported robot Z axis and field up: it equals the magnitude of the mount rotation error
+     * regardless of the camera's yaw, so it is the one number to read. A camera entered at 60 deg
+     * that is really mounted at 55 shows about 5 deg of tilt.
+     *
+     * <p>{@code PitchDeg} and {@code RollDeg} say which way, but they are in the <b>robot</b>
+     * frame, not the camera's: a pitch error of d on a camera yawed at psi lands as roll
+     * -d*sin(psi) and pitch d*cos(psi). For the rear cameras at yaw +/-135 that splits evenly
+     * between the two, and for the turret camera the split rotates with the turret — another reason
+     * to read TiltDeg.
+     *
+     * <p>Read these with the robot stationary on a flat floor and at least one tag in view; real
+     * chassis tilt (an obstacle, or weight transfer under acceleration) shows up here too. Nothing
+     * is logged when no tag is in view, so the values do not fall to zero between sightings.
+     *
+     * <p>Free to call: the MegaTag1 sample is read from NetworkTables once per loop and cached, so
+     * this adds no camera query beyond {@link #getPose()}.
+     */
+    public void logMountCheck() {
+        if (limelight.getTagCountInView() < 1) {
+            return;
+        }
+        Pose3d pose = limelight.getMegaTag1_Pose3d();
+        double pitch = pose.getRotation().getY();
+        double roll = pose.getRotation().getX();
+        Telemetry.log(mountTiltKey, Units.radiansToDegrees(Math.hypot(pitch, roll)), "deg");
+        Telemetry.log(mountPitchKey, Units.radiansToDegrees(pitch), "deg");
+        Telemetry.log(mountRollKey, Units.radiansToDegrees(roll), "deg");
+        Telemetry.log(mountHeightKey, pose.getZ(), "meters");
     }
 
     /**

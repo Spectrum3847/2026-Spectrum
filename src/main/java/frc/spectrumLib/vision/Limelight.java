@@ -609,6 +609,36 @@ public class Limelight {
     }
 
     /**
+     * Writes this camera's configured mount pose ({@link LimelightConfig#withTranslation} and
+     * {@link LimelightConfig#withRotation}) to the camera over NetworkTables, making the code the
+     * source of truth for the offsets instead of the values typed into the web UI.
+     *
+     * <p>The six values are stored in exactly the convention the camera wants -- forward, right, up
+     * in metres, then roll, pitch, yaw in degrees -- so they go across unchanged. That is the same
+     * order and sign as the boxes in the web UI, so what is in {@code VisionConfig} can be read
+     * straight off against what a camera is showing.
+     *
+     * <p>A Limelight keeps its own copy in flash and falls back to it on boot, so this has to be
+     * republished rather than written once: a camera that reboots mid-match otherwise silently
+     * reverts to whatever was last typed into it. See the resend loop in {@code Vision.periodic()}.
+     *
+     * <p>Does not flush NetworkTables; the caller flushes once after all per-loop writes.
+     */
+    public void pushConfiguredCameraPose() {
+        if (!isAttached()) {
+            return;
+        }
+        LimelightHelpers.setCameraPose_RobotSpace(
+                config.name,
+                config.forward,
+                config.right,
+                config.up,
+                config.roll,
+                config.pitch,
+                config.yaw);
+    }
+
+    /**
      * Sets the robot orientation and yaw rate for the Limelight's internal IMU fusion (MegaTag2).
      *
      * <p>Does not flush NetworkTables; the caller is responsible for a single flush after all

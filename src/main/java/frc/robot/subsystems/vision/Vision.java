@@ -86,8 +86,9 @@ public class Vision implements Subsystem {
          * enter roll 0 there instead of 180. These match the values entered in the camera's web UI
          * on 2026-09-04.
          *
-         * <p>Documentation only for pose solving: chassis cameras use the offsets entered in the
-         * Limelight web UI, so keep the two in sync.
+         * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
+         * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
+         * its web UI. Change the mount, change it here.
          */
         @Getter
         final LimelightConfig backLeftConfig =
@@ -115,8 +116,9 @@ public class Vision implements Subsystem {
          * enter roll 0 there instead of 180. These match the values entered in the camera's web UI
          * on 2026-09-04.
          *
-         * <p>Documentation only for pose solving: chassis cameras use the offsets entered in the
-         * Limelight web UI, so keep the two in sync.
+         * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
+         * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
+         * its web UI. Change the mount, change it here.
          */
         @Getter
         final LimelightConfig backRightConfig =
@@ -247,14 +249,16 @@ public class Vision implements Subsystem {
         // the pose heading to 0.00 deg, and the shots missed by feet.
 
         /**
-         * Below this the error is noise, not slip; do not spend a CAN write on it.
+         * Below this the filtered error is noise, not slip; do not spend a CAN write on it.
          *
-         * <p>0.3 was inside the measurement noise, so the servo kept paying a write to chase frames
-         * that disagreed with each other. Replaying the 2026-09-05 20:25 log, 0.5 drops about one
-         * write in ten with no change in how much correction actually lands -- and the CANivore is
-         * already at 68 to 78 percent.
+         * <p>Was 0.5, which was set against raw frames. Across the 2026-09-06/07 logs the raw error
+         * had a median of 0.0 deg and a 90th percentile of 3 to 5 deg, so 70 percent of samples
+         * cleared 0.5 while the zero was in fact right. A converged filter (see {@link
+         * #turretZeroFilterHoldSeconds}) has a noise standard deviation of 0.1 to 0.2 deg, so 1.0
+         * is about five sigma of it, and still well under the 2 to 3.5 deg a launch burst built up
+         * on 2026-09-05 when the belt really was slipping.
          */
-        @Getter final double turretZeroDeadbandDeg = 0.5;
+        @Getter final double turretZeroDeadbandDeg = 1.0;
 
         /**
          * Refuse anything wilder than this; that size wants a human, not a servo.
@@ -337,15 +341,31 @@ public class Vision implements Subsystem {
         @Getter final double turretZeroRehomeMinErrorDeg = 20.0;
 
         /**
-         * Measurable samples in a row before the filter is allowed to move the encoder.
+         * Measurable samples since the filter was seeded before it is allowed to move the encoder.
+         * Gaps shorter than {@link #turretZeroFilterHoldSeconds} do not reset the count.
          *
-         * <p>The filter is dropped whenever a sample is unmeasurable and re-seeded from the next
-         * raw frame, so without this a single frame arriving after a gap is a full-authority
-         * correction. That is what happened on 2026-09-05: 94 corrections moved the zero 82.7 deg
-         * in total to achieve 33.4 deg of net change, with nine of them slamming the +/-3 deg rate
-         * limit immediately after a gap, in alternating directions.
+         * <p>Was 5, with the filter dropped on every unmeasurable loop. In the 2026-09-06/07 logs
+         * the median measurable run was two loops, so the filter was re-seeded from a raw frame
+         * constantly and, at alpha 0.05, had moved only 23 percent of the way toward the truth when
+         * five samples unlocked it. The result was a servo acting on single frames: 62 percent of
+         * its steps were pinned at the rate limit, in coin-flip directions -- 424 steps and 253 deg
+         * of encoder writes for 26 deg of net change over a night. 25 samples is 72 percent
+         * converged, and with the hold below it is reached in most measurable windows (80 percent
+         * of measurable time was in runs of a second or longer).
          */
-        @Getter final int turretZeroMinMeasurableSamples = 5;
+        @Getter final int turretZeroMinMeasurableSamples = 25;
+
+        /**
+         * How long the filter survives without a measurable sample before it is dropped.
+         *
+         * <p>Measurability flickers: 76 percent of the gaps in the 2026-09-06/07 logs were under
+         * 0.1 s and 91 percent under 0.5 s, mostly the turret or chassis briefly moving past the
+         * stillness gates. The quantity being filtered is an encoder offset, which does not depend
+         * on where the turret is pointing, so a filter that holds through a gap is still describing
+         * the same thing when measurement resumes. Past this it is dropped, since a long gap
+         * usually means the robot went somewhere else.
+         */
+        @Getter final double turretZeroFilterHoldSeconds = 1.0;
 
         /**
          * Fastest the trim may walk the encoder, in degrees per second.
@@ -382,6 +402,46 @@ public class Vision implements Subsystem {
          * Cumulative correction per minute above which the mechanism, not the zero, is the fault.
          */
         @Getter final double turretSlipAlertDegPerMinute = 5.0;
+
+        // -- Telling slip from pose heading error ------------------------------
+        //
+        // The trim's measurement is turret camera heading minus POSE heading, so it reads a pose
+        // heading error exactly as it reads a turret zero error, and corrects the turret for both.
+        // Heading is gyro-only while enabled and only reset above grossHeadingErrorDeg, so a pose
+        // heading 5 to 9 deg off stays that way and the turret absorbs it. That is what the
+        // 2026-09-06/07 logs show: the turret camera's and the chassis camera's heading errors
+        // moved together sample by sample (r = 0.65 to 0.94 in every log, 0.71 pooled), which two
+        // cameras can only do if the thing they are both compared against is what is wrong. On
+        // 2026-09-05, when the belt really slipped, they did not (r = 0.08 pooled).
+        //
+        // The trim absorbing pose error is what puts shots in the hub with a wrong heading, so it
+        // is left alone. But it moves the soft limits with it and makes the slip diagnostics lie,
+        // so the two parts are separated here for the dashboard and the alerts: the chassis
+        // camera's disagreement with the pose is the pose part, and turret-minus-chassis is what
+        // the turret alone accounts for.
+
+        /**
+         * Low-pass, per sample, on the pose-heading error and the turret-only error. Slower than
+         * the trim filter because these are diagnostics; they need to be right, not quick.
+         */
+        @Getter final double turretZeroReferenceFilterAlpha = 0.02;
+
+        /**
+         * A chassis-camera reading older than this is not a reference for the turret-only error.
+         */
+        @Getter final double chassisReferenceMaxAgeSeconds = 0.5;
+
+        /** Without a fresh chassis reading for this long, the reference filters are dropped. */
+        @Getter final double chassisReferenceDropSeconds = 5.0;
+
+        /**
+         * Filtered pose-heading error above which the trim is judged to be absorbing pose error
+         * rather than slip. Below the gross-heading threshold on purpose: this warns, it does not
+         * correct.
+         */
+        @Getter final double poseHeadingAbsorbAlertDeg = 4.0;
+
+        @Getter final double poseHeadingAbsorbHoldSeconds = 3.0;
 
         /**
          * Outstanding error that, if the trim cannot clear it, means the trim is making it worse.
@@ -438,14 +498,17 @@ public class Vision implements Subsystem {
     private final VisionConfig config;
 
     /**
-     * How often the IMU mode is re-sent to every camera. A Limelight that boots after the robot, or
-     * reboots mid-session, comes up in mode 0 with no robot heading and produces garbage MegaTag2
-     * poses; a one-time write at startup cannot recover from that, so the mode is republished on
-     * this period. It is a single double write per camera.
+     * How often the settings the robot owns -- IMU mode, and the chassis cameras' mount poses --
+     * are re-sent to every camera.
+     *
+     * <p>A Limelight that boots after the robot, or reboots mid-session, comes up in IMU mode 0
+     * with no robot heading and produces garbage MegaTag2 poses, and falls back to the mount pose
+     * saved in its own flash. A one-time write at startup cannot recover from either, so both are
+     * republished on this period. It costs one double and one six-double array per camera.
      */
-    private static final double IMU_MODE_RESEND_PERIOD_SECS = 2.0;
+    private static final double SETTINGS_RESEND_PERIOD_SECS = 2.0;
 
-    private double lastImuModeSendFpgaSeconds = Double.NEGATIVE_INFINITY;
+    private double lastSettingsSendFpgaSeconds = Double.NEGATIVE_INFINITY;
 
     // =========================================================================
     // Construction
@@ -493,7 +556,7 @@ public class Vision implements Subsystem {
         for (Limelight limelight : allLimelights) {
             limelight.setLEDMode(false);
         }
-        sendImuModes();
+        sendCameraSettings();
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -530,8 +593,8 @@ public class Vision implements Subsystem {
 
         updateTurretCameraPose();
         setLimeLightOrientation();
-        if (Timer.getFPGATimestamp() - lastImuModeSendFpgaSeconds >= IMU_MODE_RESEND_PERIOD_SECS) {
-            sendImuModes();
+        if (Timer.getFPGATimestamp() - lastSettingsSendFpgaSeconds >= SETTINGS_RESEND_PERIOD_SECS) {
+            sendCameraSettings();
         }
 
         NetworkTableInstance.getDefault().flush();
@@ -571,6 +634,7 @@ public class Vision implements Subsystem {
             logger.getTagCount();
             logger.getTargetSize();
             logger.getEstimateAge();
+            logger.logMountCheck();
         }
         turretLogger.getMegaPose();
         Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
@@ -748,6 +812,10 @@ public class Vision implements Subsystem {
             }
         }
 
+        // Kept for the turret zero servo, which uses it to separate pose error from slip.
+        chassisHeadingErrorDeg = errorDeg;
+        chassisHeadingErrorSeconds = now;
+
         boolean gross =
                 !Double.isNaN(errorDeg)
                         && stationary
@@ -792,6 +860,28 @@ public class Vision implements Subsystem {
     private double turretZeroDivergenceStartSeconds = Double.NaN;
     private boolean turretZeroDiverged = false;
 
+    /** FPGA time the measurement became unmeasurable; NaN while it is measurable. */
+    private double turretZeroUnmeasurableSinceSeconds = Double.NaN;
+
+    /**
+     * Best chassis camera's MegaTag1 heading minus the pose heading, from the last gross-heading
+     * check, or NaN when that check had no fresh multi-tag reading. See {@link
+     * VisionConfig#getPoseHeadingAbsorbAlertDeg()} for why the turret servo wants this.
+     */
+    private double chassisHeadingErrorDeg = Double.NaN;
+
+    private double chassisHeadingErrorSeconds = Double.NEGATIVE_INFINITY;
+    private double chassisReferenceStaleSinceSeconds = Double.NaN;
+    private double turretOnlyFilteredErrorDeg = Double.NaN;
+    private double poseHeadingFilteredErrorDeg = Double.NaN;
+    private double poseHeadingAbsorbStartSeconds = Double.NaN;
+
+    private final Alert poseHeadingAbsorbAlert =
+            new Alert(
+                    "Turret zero trim is absorbing a pose heading error, not slip: chassis cameras"
+                            + " disagree with the gyro heading.",
+                    AlertType.kWarning);
+
     private final Alert turretZeroDivergedAlert =
             new Alert(
                     "Turret zero trim disabled: correcting is not reducing the error, so the"
@@ -809,16 +899,22 @@ public class Vision implements Subsystem {
      * Continuously walks the turret encoder toward what the turret camera says, correcting both a
      * bad power-on zero and ongoing mechanical slip.
      *
-     * <p>{@link #turretCameraHeadingErrorDeg()} is actual turret angle minus reported. The camera's
-     * mount transform is built from this very encoder, so a non-zero reading is the encoder being
-     * wrong and nothing else -- confirmed on 2026-09-05, where the swerve cameras agreed with the
-     * pose heading to within a couple of degrees all run while this read -37 deg.
+     * <p>{@link #turretCameraHeadingErrorDeg()} is the turret camera's heading minus the pose
+     * heading. The camera's mount transform is built from the turret encoder, so a turret zero
+     * error shows up here in full -- but so does a pose heading error, and the reading cannot tell
+     * them apart. On 2026-09-05 the swerve cameras agreed with the pose to a couple of degrees
+     * while this read -37 deg: turret. On 2026-09-06/07 the swerve cameras disagreed with the pose
+     * by 5 to 9 deg and this reading tracked theirs sample for sample: pose. {@link
+     * #updateTurretReferenceErrors} publishes the two parts separately.
      *
      * <p>This started life as a one-shot: measure, correct once, and give up if the error came
      * back, on the theory that an error which survives correction means the sign is wrong. That was
-     * wrong for the actual fault. The turret slips, roughly 0.4 percent of every degree it travels,
-     * so the error <em>always</em> comes back and the only useful response is to keep correcting.
-     * Hence a rate-limited servo rather than a one-shot, and no give-up.
+     * wrong for the fault of 2026-09-05, when the belt gave up about 0.36 percent of every degree
+     * it travelled (3.6 deg per 1000 deg, one direction, in every log) and the error always came
+     * back. Hence a rate-limited servo rather than a one-shot, and no give-up. By 2026-09-06/07 the
+     * measured slip was 0.4 to 0.6 deg per 1000 deg with the step directions a coin flip, i.e.
+     * nothing detectable; the servo's authority is kept anyway so that if the belt goes again it is
+     * corrected within the match.
      *
      * <p>What still stops it: a launch, because moving the turret with fuel in the air is worse
      * than the miss it would fix; a slewing turret or a moving robot, because the reading is not
@@ -931,6 +1027,8 @@ public class Vision implements Subsystem {
         // Forget the old zero's history rather than carry it across the discontinuity.
         turretZeroFilteredErrorDeg = Double.NaN;
         turretZeroMeasurableStreak = 0;
+        turretZeroUnmeasurableSinceSeconds = Double.NaN;
+        turretOnlyFilteredErrorDeg = Double.NaN;
         turretZeroLastApplySeconds = now;
         turretZeroRateWindowDeg = 0;
         turretZeroRateWindowAbsDeg = 0;
@@ -975,29 +1073,46 @@ public class Vision implements Subsystem {
                         && turretStill;
 
         if (!measurable) {
-            // Drop the filter rather than let it coast on stale samples into the next window.
-            turretZeroFilteredErrorDeg = Double.NaN;
-            turretZeroMeasurableStreak = 0;
-        } else if (Double.isNaN(turretZeroFilteredErrorDeg)) {
-            turretZeroFilteredErrorDeg = errorDeg;
-            turretZeroMeasurableStreak = 1;
-            /*
-             * Measurement just resumed, so start the rate limiter's clock here. Otherwise the
-             * elapsed time since the last apply is however long the gap was, and the first step
-             * out of that gap gets the full one-second allowance -- a 3 deg jump off a filter
-             * holding exactly one raw frame.
-             */
-            turretZeroLastApplySeconds = now;
+            if (Double.isNaN(turretZeroUnmeasurableSinceSeconds)) {
+                turretZeroUnmeasurableSinceSeconds = now;
+            }
+            // Hold the filter through a short gap; drop it after a long one. The offset it holds
+            // does not depend on where the turret points, and the gaps are mostly a fraction of a
+            // second of the stillness gates flickering (see turretZeroFilterHoldSeconds).
+            if (now - turretZeroUnmeasurableSinceSeconds
+                    >= config.getTurretZeroFilterHoldSeconds()) {
+                turretZeroFilteredErrorDeg = Double.NaN;
+                turretZeroMeasurableStreak = 0;
+            }
         } else {
-            turretZeroFilteredErrorDeg +=
-                    config.getTurretZeroFilterAlpha() * (errorDeg - turretZeroFilteredErrorDeg);
-            turretZeroMeasurableStreak++;
+            boolean resumed = !Double.isNaN(turretZeroUnmeasurableSinceSeconds);
+            turretZeroUnmeasurableSinceSeconds = Double.NaN;
+            boolean seeded = Double.isNaN(turretZeroFilteredErrorDeg);
+            if (seeded) {
+                turretZeroFilteredErrorDeg = errorDeg;
+                turretZeroMeasurableStreak = 1;
+            } else {
+                turretZeroFilteredErrorDeg +=
+                        config.getTurretZeroFilterAlpha() * (errorDeg - turretZeroFilteredErrorDeg);
+                turretZeroMeasurableStreak++;
+            }
+            if (seeded || resumed) {
+                /*
+                 * Measurement just started or resumed, so start the rate limiter's clock here.
+                 * Otherwise the elapsed time since the last apply is however long the gap was, and
+                 * the first step out of it gets the full one-second allowance -- a 3 deg jump.
+                 */
+                turretZeroLastApplySeconds = now;
+            }
         }
 
+        updateTurretReferenceErrors(now, errorDeg, measurable);
         updateTurretSlipRate(now);
 
+        // Never write the encoder off a held filter: unmeasurable may mean the turret is slewing.
         boolean applicable =
-                !turretZeroDiverged
+                measurable
+                        && !turretZeroDiverged
                         && !Double.isNaN(turretZeroFilteredErrorDeg)
                         && turretZeroMeasurableStreak >= config.getTurretZeroMinMeasurableSamples()
                         && Math.abs(turretZeroFilteredErrorDeg) >= config.getTurretZeroDeadbandDeg()
@@ -1024,6 +1139,8 @@ public class Vision implements Subsystem {
             // The encoder just moved by step, so the outstanding error did too. Without this the
             // filter would re-apply the same correction until fresh frames caught up.
             turretZeroFilteredErrorDeg -= step;
+            // The turret-only reading goes through the same encoder, so it moved by step as well.
+            turretOnlyFilteredErrorDeg -= step;
             Telemetry.log("Vision/TurretZero/LastStepDeg", step, "deg");
 
             // Trimming should be shrinking this. If it is not, the sign is wrong, and continuing
@@ -1064,6 +1181,83 @@ public class Vision implements Subsystem {
     }
 
     /**
+     * Splits the servo's measurement into the part the pose heading accounts for and the part the
+     * turret alone does, and warns when the servo is spending its correction on the former.
+     *
+     * <p>The chassis cameras are bolted to the frame, so their MegaTag1 heading minus the pose
+     * heading has no turret in it: that is the pose part. Turret camera minus chassis camera has no
+     * pose in it: that is the turret part. Both are slow low-passes for the dashboard; neither
+     * moves the encoder. The turret part is drained by each applied step exactly as the trim filter
+     * is, since the same encoder is under both.
+     *
+     * @param now current FPGA time in seconds
+     * @param errorDeg this loop's turret camera minus pose heading, or NaN
+     * @param measurable whether the trim considers errorDeg usable this loop
+     */
+    private void updateTurretReferenceErrors(double now, double errorDeg, boolean measurable) {
+        boolean chassisFresh =
+                !Double.isNaN(chassisHeadingErrorDeg)
+                        && now - chassisHeadingErrorSeconds
+                                <= config.getChassisReferenceMaxAgeSeconds();
+        double alpha = config.getTurretZeroReferenceFilterAlpha();
+
+        if (chassisFresh) {
+            chassisReferenceStaleSinceSeconds = Double.NaN;
+            poseHeadingFilteredErrorDeg =
+                    Double.isNaN(poseHeadingFilteredErrorDeg)
+                            ? chassisHeadingErrorDeg
+                            : poseHeadingFilteredErrorDeg
+                                    + alpha
+                                            * (chassisHeadingErrorDeg
+                                                    - poseHeadingFilteredErrorDeg);
+            if (measurable) {
+                double turretOnly = errorDeg - chassisHeadingErrorDeg;
+                turretOnlyFilteredErrorDeg =
+                        Double.isNaN(turretOnlyFilteredErrorDeg)
+                                ? turretOnly
+                                : turretOnlyFilteredErrorDeg
+                                        + alpha * (turretOnly - turretOnlyFilteredErrorDeg);
+            }
+        } else {
+            if (Double.isNaN(chassisReferenceStaleSinceSeconds)) {
+                chassisReferenceStaleSinceSeconds = now;
+            } else if (now - chassisReferenceStaleSinceSeconds
+                    >= config.getChassisReferenceDropSeconds()) {
+                // Sitting disabled or driving without tags: say nothing rather than something old.
+                poseHeadingFilteredErrorDeg = Double.NaN;
+                turretOnlyFilteredErrorDeg = Double.NaN;
+            }
+        }
+
+        boolean absorbing =
+                !Double.isNaN(poseHeadingFilteredErrorDeg)
+                        && Math.abs(poseHeadingFilteredErrorDeg)
+                                >= config.getPoseHeadingAbsorbAlertDeg();
+        if (!absorbing) {
+            poseHeadingAbsorbStartSeconds = Double.NaN;
+            poseHeadingAbsorbAlert.set(false);
+        } else if (Double.isNaN(poseHeadingAbsorbStartSeconds)) {
+            poseHeadingAbsorbStartSeconds = now;
+        } else if (now - poseHeadingAbsorbStartSeconds >= config.getPoseHeadingAbsorbHoldSeconds()
+                && !poseHeadingAbsorbAlert.get()) {
+            poseHeadingAbsorbAlert.setText(
+                    String.format(
+                            "Turret zero trim is absorbing a %.1f deg pose heading error, not slip:"
+                                    + " chassis cameras disagree with the gyro heading. Shots still"
+                                    + " land; turret soft limits are off by that much.",
+                            poseHeadingFilteredErrorDeg));
+            poseHeadingAbsorbAlert.set(true);
+        }
+
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.logDash(
+                    "Vision/TurretZero/PoseHeadingErrorDeg", poseHeadingFilteredErrorDeg, "deg");
+            Telemetry.logDash(
+                    "Vision/TurretZero/TurretOnlyErrorDeg", turretOnlyFilteredErrorDeg, "deg");
+        }
+    }
+
+    /**
      * Tracks how much correction the turret is absorbing per minute.
      *
      * <p>A healthy turret needs one correction after power-on and nothing more. A steady demand for
@@ -1090,7 +1284,10 @@ public class Vision implements Subsystem {
             double net = Math.abs(turretZeroRateWindowDeg);
             turretSlipDegPerMinute = net * 60.0 / elapsed;
             turretSlipDegPerKiloDegTravel = travelled > 1.0 ? net * 1000.0 / travelled : 0;
-            turretSlipAlert.set(turretSlipDegPerMinute >= config.getTurretSlipAlertDegPerMinute());
+            // Correction spent on a pose heading error is not slip; that has its own alert.
+            turretSlipAlert.set(
+                    turretSlipDegPerMinute >= config.getTurretSlipAlertDegPerMinute()
+                            && !poseHeadingAbsorbAlert.get());
             // 1.0 means every correction pulled the same way, which is what real slip looks like.
             // Well above that is the servo chasing noise, and the belt is not the thing to check.
             turretZeroTrimEfficiency =
@@ -1492,18 +1689,30 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Publishes the IMU mode to every camera. Chassis cameras use mode 1 (internal IMU seeded by
-     * the pushed robot heading); the turret camera uses mode 0 (external heading only) because its
-     * frame yaws with the turret. Called at construction and then every {@link
-     * #IMU_MODE_RESEND_PERIOD_SECS} from {@link #periodic()} so a camera that reboots picks the
-     * mode back up instead of staying in its default mode 0.
+     * Publishes the settings the robot owns to every camera: the IMU mode, and the chassis cameras'
+     * mount poses.
+     *
+     * <p>Chassis cameras use IMU mode 1 (internal IMU seeded by the pushed robot heading); the
+     * turret camera uses mode 0 (external heading only) because its frame yaws with the turret.
+     *
+     * <p>The mount poses come from {@link VisionConfig}, which makes the code the source of truth
+     * for them rather than the values typed into each camera's web UI. Both cameras keep their own
+     * copy in flash and boot from it, so this is republished rather than written once.
+     *
+     * <p>Called at construction and then every {@link #SETTINGS_RESEND_PERIOD_SECS} from {@link
+     * #periodic()}, so a camera that reboots mid-match picks both back up instead of running on its
+     * default mode 0 and whatever offsets were last saved to it.
      */
-    private void sendImuModes() {
+    private void sendCameraSettings() {
         for (Limelight limelight : swerveLimelights) {
             limelight.setIMUmode(1);
+            // The turret camera is excluded on purpose: updateTurretCameraPose() overwrites its
+            // mount pose every loop with the live turret-rotated transform, so a fixed one here
+            // would be stale the moment it landed.
+            limelight.pushConfiguredCameraPose();
         }
         turretLL.setIMUmode(0);
-        lastImuModeSendFpgaSeconds = Timer.getFPGATimestamp();
+        lastSettingsSendFpgaSeconds = Timer.getFPGATimestamp();
     }
 
     // =========================================================================
