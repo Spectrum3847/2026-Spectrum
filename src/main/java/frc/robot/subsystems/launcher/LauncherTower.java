@@ -34,6 +34,8 @@ public class LauncherTower extends Mechanism {
             configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
+            // The tower's feedforward is fit from logs, which needs voltage on every sample.
+            setFastOutputLogging(true);
             setFollowerConfigs(
                     new FollowerConfig(
                             "LauncherTower Back", 18, Rio.CANIVORE, MotorAlignmentValue.Opposed));
@@ -82,6 +84,7 @@ public class LauncherTower extends Mechanism {
         double wantedRPM = 0;
         switch (systemState) {
             case OFF:
+                commandedRPM = 0;
                 stop();
                 return;
             case INDEX_MAX:
@@ -94,9 +97,13 @@ public class LauncherTower extends Mechanism {
                 wantedRPM = -1500;
                 break;
         }
+        commandedRPM = wantedRPM;
         final double finalWantedRPM = wantedRPM;
         setVelocityRPM(() -> finalWantedRPM);
     }
+
+    /** Tower speed commanded this loop (RPM); 0 when stopped. */
+    @Getter private double commandedRPM = 0;
 
     @Getter private final LauncherTowerConfig config;
     // @Getter private LauncherTowerSim sim;
@@ -122,9 +129,10 @@ public class LauncherTower extends Mechanism {
         Telemetry.log("LauncherTower/SystemState", systemState.toString());
         Telemetry.log("LauncherTower/CurrentCommand", getCurrentCommandName());
         logDiagnostics("LauncherTower");
-        if (Telemetry.slowLogThisLoop()) {
-            Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
-        }
+        // Loop rate, like the launcher's: the tower's feedforward is fit from these two against
+        // the voltage that fastOutputLogging keeps at the same rate.
+        Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.log("LauncherTower/CommandedRPM", commandedRPM, "RPM");
     }
 
     // --------------------------------------------------------------------------------

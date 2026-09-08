@@ -39,7 +39,7 @@ With the mirror off, a value only appears on NetworkTables if the code publishes
 | `Telemetry.logDash(key, value)` | every call | every fifth loop (10 Hz) | the keys an Elastic layout or the robot app shows |
 | `Telemetry.logDashAlways(key, value)` | every call | every call | dashboard keys logged on their own cadence (once at boot, once a second, the swerve alignment publisher) |
 
-`Telemetry.slowLogThisLoop()` is true on the same every-fifth loop. Wrap anything that does not need 20 ms resolution in it: motor currents, temperatures, camera status, shot-calculator outputs while not launching. `Mechanism.logDiagnostics(prefix)` does this for voltage, currents, temperature and connection on every mechanism.
+`Telemetry.slowLogThisLoop()` is true on the same every-fifth loop. Wrap anything that does not need 20 ms resolution in it: motor currents, temperatures, camera status, shot-calculator outputs while not launching. `Mechanism.logDiagnostics(prefix)` does this for voltage, currents, temperature and connection on every mechanism. The one exception is voltage on a mechanism whose config sets `fastOutputLogging`: that is logged every loop, and its output status frames run at the control rate, so a feedforward fit from the log has a voltage sample for every velocity sample. The turret, launcher and launcher tower set it.
 
 Before adding a widget to the Elastic layout, make sure the key it reads is a `logDash` (or `logDashAlways`) call; the layout in `src/main/deploy/elastic-layout.json` is the list of what has to stay live. The `Scheduler/*` loop timers are dashboard keys and are logged in **seconds**, the same units DogLog's own timer used.
 

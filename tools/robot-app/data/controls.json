@@ -285,7 +285,7 @@
             {
               "control": "dpadUp",
               "edge": "onTrue",
-              "action": "Hood angle +0.1\u00b0",
+              "action": "Hood angle +0.25\u00b0",
               "detail": "Nudges ShotCalculator's HOOD_ANGLE_OFFSET. Persists until code restart. Works while disabled.",
               "trigger": "operator.dPadUp",
               "line": 301
@@ -293,7 +293,7 @@
             {
               "control": "dpadDown",
               "edge": "onTrue",
-              "action": "Hood angle \u22120.1\u00b0",
+              "action": "Hood angle \u22120.25\u00b0",
               "detail": "Shots going long? Come down. Works while disabled.",
               "trigger": "operator.dPadDown",
               "line": 300

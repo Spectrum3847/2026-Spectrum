@@ -60,9 +60,9 @@ folds it into `hoodOffsetDeg` by hand. That is the -4, then -5, in the table abo
 logged (`ShotCalc/HoodAngleOffsetDegrees`, `ShotCalc/TurretAngleOffsetDegrees`), so the wpilogs
 do hold them.
 
-`tools/robot-app/data/controls.json` (line 288) still says the hood step is 0.1 deg; the code moved
-to 0.25 (`HOOD_OFFSET_STEP_DEG`, line 86). The drift check verifies that bindings exist, not what
-their descriptions say.
+`tools/robot-app/data/controls.json` said the hood step was 0.1 deg until 2026-09-08, days after
+the code had moved to 0.25 (`HOOD_OFFSET_STEP_DEG`, line 86). Fixed, but note the gap it showed:
+the drift check verifies that bindings exist, not what their descriptions say.
 
 ### 1.3 Motor gains mean a redeploy per iteration
 
@@ -71,7 +71,7 @@ constructor:
 
 | Mechanism | Gains | Control request |
 | --- | --- | --- |
-| Turret | `positionKp` 800, `positionKi` 100, `positionKv` 10, `positionKs` 0.6; MotionMagic cruise 0.25, accel 0.5 (`Turret.java` 67-79, applied 98-100) | `setMMPosition` sends `MotionMagicVoltage` (`Mechanism.java` 1336-1341), so kV is volts per rot/s despite the comment above it saying current |
+| Turret | `positionKp` 800, `positionKi` 100, `positionKv` 10, `positionKs` 0.6; MotionMagic cruise 0.25, accel 0.5 (`Turret.java` 67-79, applied 98-100) | `setMMPosition` sends `MotionMagicVoltage` (`Mechanism.java` 1336-1341), so kV is volts per rot/s; its Javadoc has said so since 2026-09-08 |
 | Hood | `positionKp/Ki/Kd`, `positionKs/Kv/Ka/Kg`, MotionMagic cruise/accel/jerk (`Hood.java` 66-70); peak 3 V | `setPosition` |
 | Launcher | `velocityKp` 0.5, `velocityKv` 0.1425, `velocityKs` 0 (`Launcher.java` 47-49, applied 64-65) | `setVelocityRPM` |
 
@@ -84,8 +84,10 @@ None is a gain. The older `TuneValue` class that `docs/tools/pid-tuning.md` desc
 referenced anywhere in robot code.
 
 Note the flag: `Telemetry.start(false, true, false, true, false, true, ...)` in `Robot.java` 145
-passes `tunableOnFMS = true`, so tunables are read from NT even with the FMS attached. Anything
-that makes gains tunable has to add its own guard.
+passes `tunableOnFMS = true`, so tunables are read from NT even with the FMS attached. That is
+deliberate and stays: a value may need changing pre-match while already attached to the FMS, and
+nobody touches the laptop keyboard during a match, so an accidental mid-match edit is not a real
+risk. Do not add an FMS guard or a master enable to the gains work.
 
 The 2026-09-05 handoff (section 3.9) says turret `positionKv` is about double what a Kraken through
 39.78:1 needs and to "tune from a log of commanded vs measured turret velocity". Nobody has, because
@@ -94,10 +96,15 @@ that is a by-hand log analysis.
 ### 1.4 What the logs already carry
 
 Every `Mechanism` logs voltage, stator current, supply current, temperature and connectivity under
-`<Name>/*` at the 10 Hz slow tier (`Mechanism.logDiagnostics`, lines 807-831). The aimed
-mechanisms log at loop rate (50 Hz): `Turret/CommandedDegrees`, `Turret/PositionDegrees`,
-`Turret/PositionError`, `Turret/CommandedRotPerSec`; `Hood/CommandedDegrees`,
-`Hood/PositionDegrees`, `Hood/RPM`; `Launcher/CommandedRPM`, `Launcher/RPM`. `ShotCalc/*` logs
+`<Name>/*` at the 10 Hz slow tier (`Mechanism.logDiagnostics`). Since 2026-09-08 a config flag,
+`Config.fastOutputLogging`, moves a mechanism's output status frames to 100 Hz and logs its
+`<Name>/Voltage` on every loop; the turret, launcher and launcher tower set it, so their applied
+voltage lines up sample for sample with their velocity. The hood does not, and its voltage stays at
+10 Hz. The aimed mechanisms log at loop rate (50 Hz): `Turret/CommandedDegrees`,
+`Turret/PositionDegrees`, `Turret/PositionError`, `Turret/CommandedRotPerSec` (the wanted rate)
+and `Turret/VelocityRotPerSec` (the measured one); `Hood/CommandedDegrees`,
+`Hood/PositionDegrees`, `Hood/RPM`; `Launcher/CommandedRPM`, `Launcher/RPM`;
+`LauncherTower/CommandedRPM`, `LauncherTower/RPM`. `ShotCalc/*` logs
 fifteen keys at loop rate while launching and 10 Hz otherwise (`ShotCalculator.java` around
 505-531), including distance, wanted RPM, wanted hood, exit speed, time of flight, model name and
 both trims. `SuperStructure/ShotReady/*` logs the feed gate and every input to it. What is missing
@@ -175,8 +182,7 @@ that says what was aimed and, when the operator says so, where it went.
    in `Launcher/RPM`, which is kept at loop rate for exactly this reason (`Launcher.java` 203).
 3. Three operator marks: short, made, long. Log each as `ShotCalc/Shot/Mark` with the time; the
    app pairs a mark with the most recent burst. Pick buttons that are free in `data/controls.json`
-   and ask the operator before deciding. Update `controls.json`, and fix the 0.1 to 0.25 step text
-   while there.
+   and ask the operator before deciding. Update `controls.json`.
 
 **Acceptance.** Deploy twice with a non-zero trim set in between; the trim survives. A practice log
 contains one record per burst plus the marks. `npm run check` is clean. `docs/tools/elastic.md`
@@ -235,10 +241,9 @@ with one button.
 1. Robot: for turret, hood and launcher, register each gain as
    `Telemetry.tunable(key, default, onChange)` with `onChange` calling `configPIDGains`,
    `configFeedForwardGains` or `configMotionMagic` and then `applyTalonConfig(motor)`
-   (`Mechanism.java` 1784) for the leader and each follower. Guard with a `Tuning/Enabled`
-   boolean tunable **and** `!DriverStation.isFMSAttached()`, because `tunableOnFMS` is `true`
-   today (1.3). Keys like `Tuning/Turret/kP`. Do not expose current limits from here; they are
-   safety, not tuning.
+   (`Mechanism.java` 1784) for the leader and each follower. No FMS guard and no master enable:
+   tunables are meant to be editable pre-match while attached (1.3). Keys like
+   `Tuning/Turret/kP`. Do not expose current limits from here; they are safety, not tuning.
 2. Client: `client/pages/gains/`. One card per mechanism: gain fields bound to the tunables over
    NT4 (the read-only `nt4.js` needs a publish path; add it deliberately, for `Tuning/*` topics
    only), a live plot of commanded against measured from the loop-rate keys in 1.4, and a step
@@ -253,8 +258,7 @@ with one button.
    DogLog tunables and this page instead.
 
 **Acceptance.** Change kP on the page while enabled in the shop, watch the step table change,
-write to Java, `spotlessCheck` green, redeploy, same behaviour. With the FMS attached, or
-`Tuning/Enabled` false, NT edits do nothing.
+write to Java, `spotlessCheck` green, redeploy, same behaviour.
 
 **Gotchas.** `applyTalonConfig` is a blocking CAN transaction; apply on change only, never per loop.
 Followers need the same slot gains. The step detector must ignore turret unwrap slews; the Turret
@@ -276,16 +280,15 @@ plot kV over time; drift means belt wear or battery.
 
 **Gotchas.**
 
-- Voltage is at 10 Hz, position and velocity at 50 Hz (1.4). Interpolate voltage onto the fast
-  timestamps for kS and kV. kA from a 10 Hz voltage is not credible: either report only kS and kV,
-  or add a loop-rate `<Name>/Voltage` log while the mechanism is tracking or launching (log only,
-  not NT).
+- Turret, launcher and tower log voltage on every loop since 2026-09-08 (`fastOutputLogging`,
+  1.4), so kA is fittable for them from any log after that date. Older logs, and the hood, have
+  voltage at 10 Hz: interpolate it onto the fast timestamps for kS and kV and do not report kA.
 - Units must match the slot. Turret is `MotionMagicVoltage`, so volts per rot/s of mechanism
   velocity after `sensorToMechanismRatio` 39.78. Check `Mechanism.java` 1140-1400 for the request
   each setter sends before choosing volts or amps; several setters are torque-current.
-- The turret's logged rate is the commanded feedforward (`Turret/CommandedRotPerSec` is
-  `mechOmegaRotPerSec`, the wanted rate, `Turret.java` 411). Differentiate `Turret/PositionDegrees`
-  for the measurement.
+- `Turret/CommandedRotPerSec` is the wanted rate (`mechOmegaRotPerSec`, `Turret.java` 411), not a
+  measurement. Use `Turret/VelocityRotPerSec`, logged since 2026-09-08; on older logs,
+  differentiate `Turret/PositionDegrees`.
 - Turret kV is expected to come out near 5 V per rot/s (09-05 handoff, 3.9). If the fit says 10,
   the handoff was wrong, not the fit; record the result here either way.
 
@@ -343,7 +346,6 @@ writing anything new on top.
   the input data are. If they exist, they belong in `tools/shot-fit/` with the data. If they do
   not, the correction table in 3.2 is the only way to move the model, and this document should say
   so.
-- **`controls.json` step text** (1.2). Fix with 3.1.
 
 ## 4. Open questions for the humans
 
@@ -368,6 +370,6 @@ writing anything new on top.
 | Shots seen so far | 2.2 to 2.6 m, hood 18 to 20 deg | 09-05 handoff, 3.1b |
 | Turret kV | 10 V per rot/s in code; about 5 expected | `Turret.java` 73; 09-05 handoff, 3.9 |
 | Launcher on-target window | 200 RPM | `Launcher.java` 51 |
-| Log rates | diagnostics 10 Hz; aimed-mechanism position and command 50 Hz | `Mechanism.logDiagnostics`; section 1.4 |
+| Log rates | diagnostics 10 Hz; aimed-mechanism position and command 50 Hz; turret, launcher and tower voltage 50 Hz | `Mechanism.logDiagnostics`; section 1.4 |
 | DogLog | 2026.5.0, has `tunable(key, default, onChange)` | Gradle cache |
-| `tunableOnFMS` | true | `Robot.java` 145 |
+| `tunableOnFMS` | true, deliberately; no guard wanted | `Robot.java` 145 |

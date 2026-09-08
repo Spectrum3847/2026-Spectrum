@@ -67,9 +67,14 @@ public class Turret extends Mechanism {
         @Getter private final double positionKp = 800;
         @Getter private final double positionKi = 100;
 
-        // required for shoot on the move capability update until line 67
-        // additional current output per unit of velocity requested
-        // needed because of the velocity setpoint used in the control request
+        /**
+         * Feedforward on the velocity setpoint that shoot-on-the-move puts in the Motion Magic
+         * request, so the turret leads a moving target instead of lagging it. The turret is driven
+         * with {@code MotionMagicVoltage}, so this is volts per rotation per second of turret, not
+         * amps. A Kraken through 39.78:1 works out to about 5 V per rot/s; the 10 here overdrives
+         * while tracking and is on the list to fit from a log (see the tuning handoff). Never tuned
+         * on this robot.
+         */
         @Getter private final double positionKv = 10;
 
         @Getter private final double positionKs = 0.6;
@@ -114,6 +119,8 @@ public class Turret extends Mechanism {
             configContinuousWrap(false);
             configGravityType(false);
             configCounterClockwise_Positive();
+            // The turret's feedforward is fit from logs, which needs voltage on every sample.
+            setFastOutputLogging(true);
         }
         /** Modify motor config. */
         public TurretConfig modifyMotorConfig(TalonFX motor) {
@@ -301,6 +308,8 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/TravelTotalDeg", travelTotalDegrees, "deg");
         Telemetry.logDash("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
         Telemetry.log("Turret/CommandedRotPerSec", mechOmegaRotPerSec, "rot/sec");
+        // Measured, for fitting the feedforward against; the line above is what was asked for.
+        Telemetry.log("Turret/VelocityRotPerSec", getVelocityRPM() / 60.0, "rot/sec");
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.logDash("Turret/ReadyToShoot", isReadyToShoot());
     }

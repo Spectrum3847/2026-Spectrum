@@ -74,6 +74,8 @@ public class Launcher extends Mechanism {
             configForwardVoltageLimit(nominalVoltage);
             configReverseVoltageLimit(-nominalVoltage);
             configCounterClockwise_Positive();
+            // The flywheel's feedforward is fit from logs, which needs voltage on every sample.
+            setFastOutputLogging(true);
             setFollowerConfigs(
                     new FollowerConfig(
                             "Launcher Front Right", 16, Rio.CANIVORE, MotorAlignmentValue.Opposed));

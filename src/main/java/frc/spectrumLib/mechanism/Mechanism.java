@@ -200,7 +200,9 @@ public abstract class Mechanism implements Subsystem {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
             boolean hasFollowers = config.followerConfigs.length > 0;
             configureStatusSignals(
-                    motor, hasFollowers ? SignalRole.FOLLOWED_LEADER : SignalRole.LEADER);
+                    motor,
+                    hasFollowers ? SignalRole.FOLLOWED_LEADER : SignalRole.LEADER,
+                    config.fastOutputLogging);
 
             followerMotors = new TalonFX[config.followerConfigs.length];
             followerSupplySignals = new BaseStatusSignal[config.followerConfigs.length];
@@ -211,7 +213,7 @@ public abstract class Mechanism implements Subsystem {
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
-                configureStatusSignals(followerMotors[i], SignalRole.FOLLOWER);
+                configureStatusSignals(followerMotors[i], SignalRole.FOLLOWER, false);
                 followerSupplySignals[i] = followerMotors[i].getSupplyCurrent(false);
                 followerCurrentKeys[i] =
                         "Followers/" + config.followerConfigs[i].getName() + "/SupplyCurrent";
@@ -274,17 +276,22 @@ public abstract class Mechanism implements Subsystem {
     /**
      * Sets the status frame rates this mechanism relies on and disables everything else. A
      * follower's frames cost the same bandwidth as the leader's, so it gets the diagnostic rate for
-     * everything; a leader that has followers keeps the output frames they mirror.
+     * everything; a leader that has followers keeps the output frames they mirror; a leader whose
+     * feedforward is fit from logs ({@link Config#isFastOutputLogging()}) publishes its output at
+     * the control rate so the logged voltage lines up with the logged velocity.
      *
      * @param talon the motor to configure
      * @param role the motor's job, which decides which frames need to be fast
+     * @param fastOutput {@code true} to publish the output frames at the control rate
      */
-    private static void configureStatusSignals(TalonFX talon, SignalRole role) {
+    private static void configureStatusSignals(TalonFX talon, SignalRole role, boolean fastOutput) {
         double controlHz = role == SignalRole.FOLLOWER ? DIAGNOSTIC_SIGNAL_HZ : CONTROL_SIGNAL_HZ;
         double outputHz =
-                role == SignalRole.FOLLOWED_LEADER
-                        ? FOLLOWED_LEADER_OUTPUT_HZ
-                        : DIAGNOSTIC_SIGNAL_HZ;
+                fastOutput
+                        ? CONTROL_SIGNAL_HZ
+                        : role == SignalRole.FOLLOWED_LEADER
+                                ? FOLLOWED_LEADER_OUTPUT_HZ
+                                : DIAGNOSTIC_SIGNAL_HZ;
         BaseStatusSignal.setUpdateFrequencyForAll(
                 controlHz, talon.getPosition(), talon.getVelocity());
         BaseStatusSignal.setUpdateFrequencyForAll(
@@ -814,6 +821,11 @@ public abstract class Mechanism implements Subsystem {
             motorConnectedKey = prefix + "/MotorConnected";
         }
         if (!Telemetry.slowLogThisLoop()) {
+            // A feedforward fit needs the applied voltage on every velocity sample, not one in
+            // five.
+            if (config.isFastOutputLogging()) {
+                Telemetry.log(voltageKey, getVoltage(), "volts");
+            }
             return;
         }
         if (dashboard) {
@@ -1688,6 +1700,16 @@ public abstract class Mechanism implements Subsystem {
          * mode.
          */
         @Getter @Setter private boolean attached = true;
+
+        /**
+         * Publish the leader's output signals (duty cycle, motor voltage, torque current) at the
+         * control rate and log its applied voltage on every loop instead of at 10 Hz. Set it on the
+         * mechanisms whose feedforward is fit from logs: kS and kV survive a 10 Hz voltage, kA does
+         * not, because the acceleration it multiplies is gone between one sample and the next.
+         * Costs one status frame at 100 Hz on this motor and one double per loop in the log; the
+         * followers are untouched.
+         */
+        @Getter @Setter private boolean fastOutputLogging = false;
 
         /** CAN bus device ID and bus name for the leader motor. */
         @Getter private CanDeviceId id;
