@@ -259,6 +259,35 @@ public class Vision implements Subsystem {
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
 
+        // -- Consensus heading correction -------------------------------------
+        //
+        // The 20 deg gross threshold above was set because ONE camera's MegaTag1 heading is not
+        // trustworthy below that: two-tag geometry noise has a 15 deg tail. Two cameras agreeing
+        // with each other is a different measurement. The turret camera and the chassis camera
+        // share nothing but the field, so when both say the pose heading is off by the same amount,
+        // for two seconds, with the robot and turret still, it is the pose. Replayed on the
+        // 2026-09-06/07 logs this fires four times in 25 enabled minutes, on steady offsets of 7 to
+        // 10 deg (one of them measured 7.5 deg twenty seconds later to within 0.1 deg); on the
+        // 2026-09-05 logs, when the turret camera was reading a slipping belt and not the pose, it
+        // never fires, though the chassis camera alone would have armed for 11 s.
+        //
+        // It only works while the turret zero servo has NOT already absorbed the pose error into
+        // the encoder -- once the turret camera has been trimmed to agree with a wrong pose it is
+        // no longer independent evidence. So the servo is held off while this is arming.
+
+        /** Least chassis-camera heading error worth correcting this way. */
+        @Getter final double consensusHeadingMinErrorDeg = 4.0;
+
+        /**
+         * How closely the turret camera must agree with the chassis camera about the pose error.
+         * Both are single MegaTag1 solves, so a degree or two of disagreement is noise; more than
+         * that means the turret has its own error, and the servo is the right tool for that.
+         */
+        @Getter final double consensusHeadingAgreementDeg = 2.0;
+
+        @Getter final double consensusHeadingHoldSeconds = 2.0;
+        @Getter final double consensusHeadingCooldownSeconds = 5.0;
+
         // -- Turret zero auto-correction --------------------------------------
         //
         // The turret has no absolute reference, so its zero is wherever it pointed at motor
@@ -798,6 +827,16 @@ public class Vision implements Subsystem {
     /** FPGA time at which the gross heading error was first seen; NaN when not armed. */
     private double grossHeadingErrorStartFpgaSeconds = Double.NaN;
 
+    /** FPGA time the two cameras started agreeing on a pose error; NaN when they are not. */
+    private double consensusHeadingStartSeconds = Double.NaN;
+
+    private double consensusHeadingLastSeconds = Double.NEGATIVE_INFINITY;
+
+    /** True while the consensus correction is arming; the turret zero servo waits for it. */
+    private boolean consensusHeadingArming = false;
+
+    @Getter private double consensusHeadingCorrectedTotalDeg = 0;
+
     /**
      * Safety net for enabling before the cameras seeded the pose. If the robot is nearly stationary
      * and the best chassis camera sees two or more tags whose MegaTag1 heading disagrees with the
@@ -859,12 +898,103 @@ public class Vision implements Subsystem {
                             errorDeg, best.getName()));
         }
 
+        boolean consensusApplied =
+                !gross && checkConsensusHeadingError(now, robotPose, mt1Pose, errorDeg, stationary);
+
         // NaN is not equal to itself, so an unmeasurable error would otherwise write every loop.
         if (Telemetry.slowLogThisLoop()) {
             Telemetry.logDash("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
+            Telemetry.logDash(
+                    "Vision/HeadingCorrection/ConsensusCorrectedTotalDeg",
+                    consensusHeadingCorrectedTotalDeg,
+                    "deg");
         }
         Telemetry.log("Vision/HeadingCorrection/Armed", gross);
         Telemetry.log("Vision/HeadingCorrection/Applied", applied);
+        Telemetry.log("Vision/HeadingCorrection/ConsensusArming", consensusHeadingArming);
+        Telemetry.log("Vision/HeadingCorrection/ConsensusApplied", consensusApplied);
+    }
+
+    /**
+     * Corrects a pose heading error below the gross threshold when the turret camera and the
+     * chassis camera agree on it. See the consensus notes in {@link VisionConfig}.
+     *
+     * <p>Heading only: the measurement keeps the current translation and is given a translation
+     * standard deviation large enough that the estimator ignores it, so only the rotation moves.
+     * When it fires, the turret zero servo's filter and the pose-part diagnostics are dropped,
+     * since the error they held was just taken out from the other side.
+     *
+     * @param now current FPGA time in seconds
+     * @param robotPose the current pose
+     * @param mt1Pose the best chassis camera's MegaTag1 pose, or null
+     * @param chassisErrorDeg that camera's heading minus the pose heading, or NaN
+     * @param stationary whether the chassis is within the stationary gates
+     * @return {@code true} when a correction was applied this loop
+     */
+    private boolean checkConsensusHeadingError(
+            double now,
+            Pose2d robotPose,
+            Pose2d mt1Pose,
+            double chassisErrorDeg,
+            boolean stationary) {
+        double turretErrorDeg = turretCameraHeadingErrorDeg();
+        boolean turretStill =
+                Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
+                        <= config.getTurretZeroMaxTurretOmega();
+
+        boolean agreeing =
+                !Double.isNaN(chassisErrorDeg)
+                        && mt1Pose != null
+                        && stationary
+                        && turretStill
+                        && Math.abs(chassisErrorDeg) >= config.getConsensusHeadingMinErrorDeg()
+                        && Math.abs(chassisErrorDeg) < config.getGrossHeadingErrorDeg()
+                        && !Double.isNaN(turretErrorDeg)
+                        && Math.abs(turretErrorDeg) <= config.getTurretZeroMaxErrorDeg()
+                        && Math.abs(turretErrorDeg - chassisErrorDeg)
+                                <= config.getConsensusHeadingAgreementDeg()
+                        && !Robot.getSuperStructure().currentStateIsLaunching()
+                        && now - consensusHeadingLastSeconds
+                                >= config.getConsensusHeadingCooldownSeconds();
+
+        consensusHeadingArming = agreeing;
+        if (!agreeing) {
+            consensusHeadingStartSeconds = Double.NaN;
+            return false;
+        }
+        if (Double.isNaN(consensusHeadingStartSeconds)) {
+            consensusHeadingStartSeconds = now;
+            return false;
+        }
+        if (now - consensusHeadingStartSeconds < config.getConsensusHeadingHoldSeconds()) {
+            return false;
+        }
+
+        Robot.getSwerve()
+                .addVisionMeasurement(
+                        new Pose2d(robotPose.getTranslation(), mt1Pose.getRotation()),
+                        Utils.fpgaToCurrentTime(Timer.getFPGATimestamp()),
+                        VecBuilder.fill(1e3, 1e3, Units.degreesToRadians(0.01)));
+        consensusHeadingCorrectedTotalDeg += chassisErrorDeg;
+        consensusHeadingLastSeconds = now;
+        consensusHeadingStartSeconds = Double.NaN;
+        consensusHeadingArming = false;
+
+        // The error the servo's filter holds was the pose's, and it is gone; so is the pose part.
+        turretZeroFilteredErrorDeg = Double.NaN;
+        turretZeroMeasurableStreak = 0;
+        turretZeroUnmeasurableSinceSeconds = Double.NaN;
+        poseHeadingFilteredErrorDeg = Double.NaN;
+        poseHeadingAbsorbStartSeconds = Double.NaN;
+        poseHeadingAbsorbAlert.set(false);
+        grossHeadingErrorStartFpgaSeconds = Double.NaN;
+
+        Telemetry.print(
+                String.format(
+                        "Vision: pose heading corrected %.1f deg on two-camera consensus (chassis"
+                                + " %.1f, turret %.1f).",
+                        chassisErrorDeg, chassisErrorDeg, turretErrorDeg));
+        return true;
     }
 
     private double turretZeroFilteredErrorDeg = Double.NaN;
@@ -1130,8 +1260,11 @@ public class Vision implements Subsystem {
         updateTurretSlipRate(now);
 
         // Never write the encoder off a held filter: unmeasurable may mean the turret is slewing.
+        // And while the two cameras are agreeing that the POSE is off, do not absorb that error
+        // into the turret; the consensus correction is about to take it out of the pose instead.
         boolean applicable =
                 measurable
+                        && !consensusHeadingArming
                         && !turretZeroDiverged
                         && !Double.isNaN(turretZeroFilteredErrorDeg)
                         && turretZeroMeasurableStreak >= config.getTurretZeroMinMeasurableSamples()
