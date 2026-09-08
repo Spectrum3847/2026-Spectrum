@@ -137,8 +137,9 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(-10.064), // forward (behind centre)
                                 Units.inchesToMeters(13.315), // right
                                 Units.inchesToMeters(17.458)) // up
+                        // Mount measured by the robot app on 2026-09-07
                         .withRotation(
-                                180, 31.8, -135) // upside down, 31.8 deg up, facing rear-right
+                                178.2, 31.8, -135) // upside down, 31.8 deg up, facing rear-right
                         .setAttached(true);
 
         // -- Turret Limelight -------------------------------------------------
@@ -172,8 +173,9 @@ public class Vision implements Subsystem {
                         .withTranslation(
                                 -0.138, // forward at turret zero (unused; see turretCenterToCamera)
                                 0.0, // right (unused)
-                                Units.inchesToMeters(18.632)) // up (measured on robot, not CAD)
-                        .withRotation(0, 30, 0); // yaw unused; live turret angle is used
+                                Units.inchesToMeters(21.217)) // up (measured on robot, not CAD)
+                        // Mount measured by the robot app on 2026-09-07
+                        .withRotation(0.4, 29.4, 0); // yaw unused; live turret angle is used
 
         // -- Turret geometry --------------------------------------------------
 

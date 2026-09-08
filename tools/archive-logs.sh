@@ -17,14 +17,15 @@
 # the upload has been verified.
 #
 # Driver Station logs are a separate job: they live on the laptop, not the robot,
-# so --ds-logs skips the SSH work entirely and uploads them as one zip.
+# so --ds-logs skips the SSH work entirely and uploads them as one zip. It
+# defaults to wherever the Driver Station really writes; see default_ds_log_dir.
 #
 # Usage:
 #   tools/archive-logs.sh                 # copy and upload, leave the rio alone
 #   tools/archive-logs.sh --delete        # ...then remove what was uploaded
 #   tools/archive-logs.sh --dry-run       # list what it would do, touch nothing
 #   tools/archive-logs.sh --keep-local    # leave the working copy behind
-#   tools/archive-logs.sh --ds-logs [DIR] # DS logs only (default "logs/DS Logs")
+#   tools/archive-logs.sh --ds-logs [DIR] # DS logs only (default: the DS log dir)
 #
 set -euo pipefail
 
@@ -35,7 +36,38 @@ REPO="${LOG_REPO:-Spectrum3847/2026-Robot-Logs}"
 # Files this new are skipped: robot code may still be writing them.
 MIN_AGE_MINUTES="${MIN_AGE_MINUTES:-5}"
 
-DS_LOG_DIR="${DS_LOG_DIR:-logs/DS Logs}"
+# Where the Driver Station actually writes. The FRC DS logs under the Public
+# profile -- newer versions into a DSLogs subdirectory, older ones straight into
+# "Log Files" -- so probe for a directory that really holds .dslog files instead
+# of assuming one. The repo's "logs/DS Logs" is just a copy somebody made by
+# hand; defaulting to it meant a --ds-logs run on 2026-09-07 would have uploaded
+# a stale 2026-09-05 set while that night's logs sat on the DS untouched. It
+# stays as the last resort so the script still works on a machine with no DS.
+#
+# Note this default points at live DS files, so --ds-logs --delete now removes
+# the Driver Station's own logs, not a copy of them. Override with DS_LOG_DIR=...
+# in the environment, or by passing a directory to --ds-logs.
+default_ds_log_dir() {
+    local public candidate found
+    if [ -n "${PUBLIC:-}" ] && command -v cygpath >/dev/null 2>&1; then
+        public="$(cygpath -u "$PUBLIC")"
+    else
+        public="/c/Users/Public"
+    fi
+    # -maxdepth 1 so "Log Files" does not match on files that live in its DSLogs
+    # child -- that layout is meant to be caught by the first candidate instead.
+    for candidate in "$public/Documents/FRC/Log Files/DSLogs" "$public/Documents/FRC/Log Files" "logs/DS Logs"; do
+        [ -d "$candidate" ] || continue
+        found="$(find "$candidate" -maxdepth 1 -type f -name '*.dslog' -print -quit 2>/dev/null)"
+        if [ -n "$found" ]; then
+            printf '%s' "$candidate"
+            return
+        fi
+    done
+    printf '%s' "logs/DS Logs"
+}
+
+DS_LOG_DIR="${DS_LOG_DIR:-$(default_ds_log_dir)}"
 
 DELETE=0
 DRY_RUN=0
@@ -275,9 +307,20 @@ if [ "$DELETE" -eq 1 ]; then
     # One connection, not one per file. The 2026-09-05 run spent about five
     # minutes on 123 SSH handshakes to move no data at all.
     {
+        printf "set -e\n"
         printf "rm -f '%s'\n" "${DOWNLOADED[@]}"
-        # Phoenix signal logs live in dated directories; drop the empty ones behind them.
-        printf "find '%s' -mindepth 1 -type d -empty -delete\n" "$REMOTE_DIR"
+        # Phoenix signal logs live in dated directories; drop the empty ones behind
+        # them. The rio's find is BusyBox, which has neither -empty nor -delete, so
+        # this is rmdir on each directory deepest-first: rmdir refuses a non-empty
+        # one, which is exactly the filter we want, and -depth collapses nesting.
+        #
+        # Its failures are expected, so they must not fail the run. The old
+        # "find -type d -empty -delete" was the *last* command in this pipe, and
+        # BusyBox rejecting the option is what made a completely successful delete
+        # of 25 files report "delete failed" and skip the summary on 2026-09-07.
+        printf "set +e\n"
+        printf "find '%s' -mindepth 1 -depth -type d -exec rmdir {} ';' 2>/dev/null\n" "$REMOTE_DIR"
+        printf "exit 0\n"
     } | rio "sh -s" >/dev/null 2>&1 || die "delete failed; the logs are safe on $TAG, the rio still has them"
     say "Remaining on the rio:"
     rio "du -sh '$REMOTE_DIR'; ls '$REMOTE_DIR' | wc -l" | tr -d '\r' | sed 's/^/  /'
