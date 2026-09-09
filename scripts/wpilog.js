@@ -66,6 +66,8 @@ function decode(type, p) {
         case "struct:Pose2d": return { x: p.readDoubleLE(0), y: p.readDoubleLE(8), deg: p.readDoubleLE(16) * 180 / Math.PI };
         case "struct:ChassisSpeeds": return { vx: p.readDoubleLE(0), vy: p.readDoubleLE(8), omega: p.readDoubleLE(16) };
         case "struct:Translation2d": return { x: p.readDoubleLE(0), y: p.readDoubleLE(8) };
+        case "struct:SwerveModuleState": return { mps: p.readDoubleLE(0), deg: p.readDoubleLE(8) * 180 / Math.PI };
+        case "struct:SwerveModuleState[]": { const a = []; for (let i = 0; i + 16 <= p.length; i += 16) a.push({ mps: p.readDoubleLE(i), deg: p.readDoubleLE(i + 8) * 180 / Math.PI }); return a; }
         case "struct:Pose3d": {
             const w = p.readDoubleLE(24), x = p.readDoubleLE(32), y = p.readDoubleLE(40), z = p.readDoubleLE(48);
             const yaw = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) * 180 / Math.PI;

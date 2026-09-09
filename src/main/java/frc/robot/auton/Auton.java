@@ -112,8 +112,7 @@ public class Auton {
     // is "2MANOSTBTB FULL.auto".
     public Command TWOMANOSTBTB(boolean mirrored) {
         return Commands.sequence(
-                        Commands.waitSeconds(2),
-                        SpectrumAuton("2MANOSTBTB FULL", mirrored))
+                        Commands.waitSeconds(2), SpectrumAuton("2MANOSTBTB FULL", mirrored))
                 .withName("2MANOSTBTB FULL - " + (mirrored ? "Right" : "Left"));
     }
 

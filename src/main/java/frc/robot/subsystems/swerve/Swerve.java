@@ -189,11 +189,22 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         var modules = getModules();
         moduleCurrentSignals = new BaseStatusSignal[modules.length * 4];
+        moduleCurrentKeys = new String[modules.length * 4];
         for (int i = 0; i < modules.length; i++) {
             moduleCurrentSignals[4 * i] = modules[i].getDriveMotor().getStatorCurrent(false);
             moduleCurrentSignals[4 * i + 1] = modules[i].getDriveMotor().getSupplyCurrent(false);
             moduleCurrentSignals[4 * i + 2] = modules[i].getSteerMotor().getStatorCurrent(false);
             moduleCurrentSignals[4 * i + 3] = modules[i].getSteerMotor().getSupplyCurrent(false);
+
+            // Built once so the 10 Hz tick does no string concatenation.
+            String module =
+                    i < SwerveAlignment.MODULE_NAMES.length
+                            ? SwerveAlignment.MODULE_NAMES[i]
+                            : "Module" + i;
+            moduleCurrentKeys[4 * i] = CURRENTS_PREFIX + module + "/DriveStatorCurrent";
+            moduleCurrentKeys[4 * i + 1] = CURRENTS_PREFIX + module + "/DriveSupplyCurrent";
+            moduleCurrentKeys[4 * i + 2] = CURRENTS_PREFIX + module + "/SteerStatorCurrent";
+            moduleCurrentKeys[4 * i + 3] = CURRENTS_PREFIX + module + "/SteerSupplyCurrent";
         }
 
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -257,8 +268,14 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
     // ── Currents ──────────────────────────────────────────────────────────────
 
+    /** NetworkTables/DogLog key prefix for the drivetrain's current telemetry. */
+    private static final String CURRENTS_PREFIX = "Swerve/Currents/";
+
     /** Drive and steer stator and supply current signals for every module, refreshed together. */
     private BaseStatusSignal[] moduleCurrentSignals = new BaseStatusSignal[0];
+
+    /** Log key for each entry of {@link #moduleCurrentSignals}, in the same order. */
+    private String[] moduleCurrentKeys = new String[0];
 
     private double driveStatorCurrent;
     private double driveSupplyCurrent;
@@ -272,6 +289,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
      * <p>The sixteen module current signals are refreshed in one Phoenix call on the 10 Hz tick and
      * held between ticks. They used to be refreshed one JNI call each, every loop, through four
      * streams; the battery logger's energy integral tolerates a 100 ms sample-and-hold.
+     *
+     * <p>Each signal is logged per module as well as summed. Only the four sums used to be logged,
+     * which made a single bad module invisible: a drive motor that stopped turning its wheel showed
+     * up as a dip in a total that the other three still dominated. The per-module keys cost twelve
+     * more doubles on a tick that has already paid for the refresh.
      */
     protected void logBatteryUsage() {
         if (Telemetry.slowLogThisLoop() && moduleCurrentSignals.length > 0) {
@@ -281,15 +303,25 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             steerStatorCurrent = 0;
             steerSupplyCurrent = 0;
             for (int i = 0; i < moduleCurrentSignals.length; i += 4) {
-                driveStatorCurrent += moduleCurrentSignals[i].getValueAsDouble();
-                driveSupplyCurrent += moduleCurrentSignals[i + 1].getValueAsDouble();
-                steerStatorCurrent += moduleCurrentSignals[i + 2].getValueAsDouble();
-                steerSupplyCurrent += moduleCurrentSignals[i + 3].getValueAsDouble();
+                double driveStator = moduleCurrentSignals[i].getValueAsDouble();
+                double driveSupply = moduleCurrentSignals[i + 1].getValueAsDouble();
+                double steerStator = moduleCurrentSignals[i + 2].getValueAsDouble();
+                double steerSupply = moduleCurrentSignals[i + 3].getValueAsDouble();
+
+                driveStatorCurrent += driveStator;
+                driveSupplyCurrent += driveSupply;
+                steerStatorCurrent += steerStator;
+                steerSupplyCurrent += steerSupply;
+
+                Telemetry.log(moduleCurrentKeys[i], driveStator);
+                Telemetry.log(moduleCurrentKeys[i + 1], driveSupply);
+                Telemetry.log(moduleCurrentKeys[i + 2], steerStator);
+                Telemetry.log(moduleCurrentKeys[i + 3], steerSupply);
             }
-            Telemetry.log("Swerve/Currents/DriveStatorCurrent", driveStatorCurrent);
-            Telemetry.log("Swerve/Currents/SteerStatorCurrent", steerStatorCurrent);
-            Telemetry.log("Swerve/Currents/DriveSupplyCurrent", driveSupplyCurrent);
-            Telemetry.log("Swerve/Currents/SteerSupplyCurrent", steerSupplyCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "DriveStatorCurrent", driveStatorCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "SteerStatorCurrent", steerStatorCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "DriveSupplyCurrent", driveSupplyCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "SteerSupplyCurrent", steerSupplyCurrent);
         }
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerSupplyCurrent);
         Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveSupplyCurrent);
