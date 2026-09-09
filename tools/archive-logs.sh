@@ -29,7 +29,7 @@
 #
 set -euo pipefail
 
-HOST="${RIO_HOST:-10.85.15.2}"
+HOST="${RIO_HOST:-10.38.47.2}"
 USER_NAME="${RIO_USER:-lvuser}"
 REMOTE_DIR="${RIO_LOG_DIR:-/home/lvuser/logs}"
 REPO="${LOG_REPO:-Spectrum3847/2026-Robot-Logs}"

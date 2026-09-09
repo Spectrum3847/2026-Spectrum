@@ -235,7 +235,7 @@ Probed in this order, and whichever answers on port 22 first wins:
 
 | Address | What it is |
 | --- | --- |
-| `10.85.15.2` | Team 8515 over the radio — the number this robot's radio is configured for |
+| `10.38.47.2` | Team 3847 over the radio — the number this robot's radio is configured for |
 | `roborio-8515-frc.local` | Same, over mDNS |
 | `10.38.47.2` | Team 3847 over the radio |
 | `roborio-3847-frc.local` | Same, over mDNS |

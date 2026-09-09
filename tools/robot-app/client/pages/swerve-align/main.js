@@ -823,7 +823,7 @@ function escapeHtml(text) {
 
 function init() {
     const hostInput = document.getElementById('host');
-    hostInput.value = localStorage.getItem('swerve-align-host') || '10.85.15.2';
+    hostInput.value = localStorage.getItem('swerve-align-host') || '10.38.47.2';
 
     const connectToInput = () => connect(hostInput.value.trim());
     document.getElementById('connect').addEventListener('click', connectToInput);
