@@ -16,15 +16,18 @@ For hardware: `edu.wpi.first.wpilibj` has `DriverStation`, `RobotBase`, `Alert`,
 
 ## Subsystems
 
-Don't extend `SubsystemBase` directly for a TalonFX mechanism. Use [`frc.spectrumLib.mechanism.Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which gives you config, signal caching, and command factories all in one. The vision system is the lone exception — `VisionSystem` extends `SubsystemBase` because there's no motor to wrap.
+Don't extend `SubsystemBase` directly for a TalonFX mechanism. Use [`frc.spectrumLib.mechanism.Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which gives you config, signal caching, and command factories all in one. Vision is the lone exception — `Vision` implements `Subsystem` directly because there's no motor to wrap.
 
 ## Commands and Triggers
 
-Almost everything in this codebase is glued together by `Trigger`. The canonical example lives in [`RobotStates.setupStates()`](../../src/main/java/frc/robot/RobotStates.java):
+Almost everything in this codebase is glued together by `Trigger`. The canonical example lives in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java), which is the one place controls are attached to behavior:
 
 ```java
-pilot.RT.onTrue(
-        Commands.either(applyState(State.INTAKE_FUEL), Commands.none(), pilot.LT.negate()));
+pilot.LT.onTrue(
+        Commands.either(
+                superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
+                Commands.none(),
+                pilot.RT.negate()));
 ```
 
 A few habits worth picking up:
@@ -35,13 +38,13 @@ If you're tempted to call `CommandScheduler.getInstance().schedule(...)` from in
 
 ## Telemetry and Tunables
 
-We use SmartDashboard for two things: live dashboards (`Auto Chooser`, `Mechanism2d` views), and tunable knobs via `SmartDashboard.putNumber` / `getNumber`. The tunable case is wrapped by [`TuneValue`](../../src/main/java/frc/spectrumLib/TuneValue.java), so prefer that over hand-rolled `getNumber` reads.
+We use SmartDashboard for two things: live dashboards (`Auto Chooser`, `Mechanism2d` views), and tunable knobs via `SmartDashboard.putNumber` / `getNumber`. The tunable case is wrapped by [`TuneValue`](../../src/main/java/frc/spectrumLib/telemetry/TuneValue.java), so prefer that over hand-rolled `getNumber` reads. (Nothing in the tree uses `TuneValue` at the moment — it is available, not established.)
 
 For anything else — sensor readings, state transitions, fault flags — go through `Telemetry.log(...)` rather than `SmartDashboard.put*`. `Telemetry` routes everything through DogLog with a consistent key format and writes it to the WPILOG so the log survives the match.
 
 ## Simulation
 
-`RobotBase.isSimulation()` and `Utils.isSimulation()` (from Phoenix) both work; the file you're editing usually dictates which to use. Override `simulationPeriodic()` on a `SubsystemBase` for sim-only updates — that's where the vision sim runs its `visionSim.update(...)`. For per-mechanism visualization, hand a `Mechanism2d` ligament out of `RobotSim` instead of standing up new widgets per subsystem.
+`RobotBase.isSimulation()` and `Utils.isSimulation()` (from Phoenix) both work; the file you're editing usually dictates which to use. Override `simulationPeriodic()` on a subsystem for sim-only updates — that's where the vision sim runs its `visionSim.update(...)`. For per-mechanism visualization, hand a `Mechanism2d` ligament out of `RobotSim` instead of standing up new widgets per subsystem.
 
 ## Alerts
 

@@ -29,7 +29,8 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 * WPILib 2026
 * CTRE Phoenix 6 (using their swerve control code)
 * PathPlanner
-* PhotonLib (For vision simulation)
+* DogLog (telemetry)
+* MapleSim (swerve physics simulation)
 
 ## Project Structure
 
@@ -42,38 +43,46 @@ src
 ├── main: main source code
 │   ├── java: Java source files
 │   │   └── frc: all FRC application code
-│   │       ├── robot: main robot application and subsystems
+│   │       ├── robot: main robot application
+│   │       │   ├── Robot.java: construction, Robot.Config, bindings, periodic hooks
 │   │       │   ├── auton: autonomous routines and PathPlanner integration
-│   │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
-│   │       │   ├── swerve: swerve drive subsystem and controllers
-│   │       │   ├── vision: PhotonVision and Limelight vision subsystem
-│   │       │   ├── launcher: fuel launcher mechanism
-│   │       │   ├── indexerTower: vertical fuel indexer mechanism
-│   │       │   ├── indexerBed: horizontal fuel indexer mechanism
-│   │       │   ├── fuelIntake: ground intake mechanism
-│   │       │   ├── intakeExtension: intake arm extension mechanism
-│   │       │   ├── hood: launcher hood pivot mechanism
-│   │       │   ├── leds: CANdle LED control and animation
-│   │       │   ├── pilot: pilot gamepad bindings and commands
-│   │       │   └── operator: operator gamepad bindings and commands
+│   │       │   ├── configs: per-robot configs extending Robot.Config
+│   │       │   │            (AM2026, FM2026, OM2026, PHOTON2026, PM2026, XM2026)
+│   │       │   ├── pilot: pilot gamepad triggers
+│   │       │   ├── operator: operator gamepad triggers
+│   │       │   └── subsystems
+│   │       │       ├── SuperStructure.java: coordinator; drives every mechanism's wanted state
+│   │       │       ├── swerve: swerve drive, alignment, SwerveConfig
+│   │       │       ├── vision: Limelight/PhotonVision pose estimation
+│   │       │       ├── launcher: flywheel (Launcher) and tower (LauncherTower)
+│   │       │       ├── turret: turret rotation
+│   │       │       ├── dyeRotor: rotor and feeder fuel handling
+│   │       │       ├── fuelIntake: ground intake roller and kicker
+│   │       │       ├── intakeExtension: intake arm extension (left/right pair)
+│   │       │       ├── hood: launcher hood pivot
+│   │       │       └── leds: CANdle LED control and animation
 │   │       ├── spectrumLib: reusable Spectrum team utilities (year-to-year code)
+│   │       │   ├── framework: RobotLoop, SpectrumRobot, SpectrumState
 │   │       │   ├── gamepads: gamepad abstraction layer
+│   │       │   ├── hardware: Rio identity, TalonFXFactory, CANcoder and servo wrappers
 │   │       │   ├── leds: LED management utilities
-│   │       │   ├── mechanism: motor and mechanism base classes
+│   │       │   ├── mechanism: Mechanism base class for every TalonFX mechanism
 │   │       │   ├── sim: physics simulation helpers
 │   │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
-│   │       │   ├── talonFX: TalonFX motor factory and wrappers
-│   │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
+│   │       │   ├── telemetry: Telemetry, BatteryLogger, SystemLoadMonitor, TuneValue
+│   │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking, curves)
 │   │       │   │   └── exceptions: custom exception classes
 │   │       │   └── vision: vision utilities (Limelight helpers)
 │   │       └── rebuilt: 2026 game-specific field and targeting helpers
-│   │           ├── launchingMaps: distance/angle lookup maps for launcher tuning
-│   │           ├── offsets: home offsets and calibration data
-│   │           └── targetFactories: target factory implementations
+│   │           ├── Field.java, FieldHelpers.java, ShiftHelpers.java
+│   │           ├── ShotCalculator.java: distance to hood angle and flywheel RPM
+│   │           ├── FuelPhysicsSim.java, RobotBumpSim.java
+│   │           └── targetFactories: HubTargetFactory, FeedTargetFactory
 │   └── deploy: files deployed to RoboRIO
 │       └── pathplanner: PathPlanner autonomous paths and settings
 │           ├── paths: individual path trajectory files
 │           └── autos: autonomous routine configurations
+├── test: unit tests, mirroring the main source tree
 └── vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
 ```
 

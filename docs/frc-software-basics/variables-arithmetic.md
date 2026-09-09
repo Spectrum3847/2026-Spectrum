@@ -27,7 +27,7 @@ The types you'll encounter most often in this codebase:
 | `int` | whole numbers | `int canID = 8;` |
 | `double` | decimal numbers | `double idlingRPM = 700;` |
 | `boolean` | `true` or `false` | `boolean isAttached = true;` |
-| `String` | text (not technically primitive, but used everywhere) | `String name = "IndexerBed";` |
+| `String` | text (not technically primitive, but used everywhere) | `String name = "DyeRotor";` |
 | `byte` | small signed integer, −128 to 127 | rare in robot code |
 
 You'll also see `final` (the value can't be reassigned) and `static` (belongs to the class rather than a specific instance) used as modifiers. Both are covered in [Classes, Methods, and Objects](classes-methods-objects.md).

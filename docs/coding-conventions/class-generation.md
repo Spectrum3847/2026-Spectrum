@@ -6,18 +6,21 @@ Conventions for designing classes and methods. Most of what follows is reinforce
 
 ## Subsystem Layout
 
-Every mechanism in `frc.robot` is three pieces in one folder:
+Every mechanism in `frc.robot.subsystems` is **one file** holding three things:
 
 ```
-launcher/
-  Launcher.java         // the subsystem itself
-  Launcher.LauncherConfig (inner class)
-  LauncherStates.java   // commands + triggers the rest of the robot uses
+hood/
+  Hood.java
+    ├── class Hood extends Mechanism      // motors, sensors, periodic()
+    ├── static class HoodConfig extends Config   // every tunable
+    └── enum WantedState / enum SystemState      // the state machine
 ```
 
-The subsystem class extends `Mechanism` (from `frc.spectrumLib.mechanism`) and owns the motors and sensors. The `Config` inner class holds every tunable value — gear ratios, current limits, voltages, target poses — annotated with `@Getter`/`@Setter`. Each per-robot config file (`FM2026`, `PM2026`, …) mutates those defaults during construction so a single codebase covers different physical robots.
+The subsystem class extends `Mechanism` (from `frc.spectrumLib.mechanism`) and owns the motors and sensors. The `Config` inner class holds every tunable value — gear ratios, current limits, gains, soft limits — as `@Getter private final`, applied in its constructor through the `config*()` helpers `Mechanism.Config` provides. Each per-robot config file (`OM2026`, `FM2026`, …) sets encoder offsets and `setAttached(...)` flags so a single codebase covers different physical robots.
 
-The `*States` class is `public final` with a private constructor, exposing only `public static` command factories (`intakeFuel()`, `aimAtTarget()`, …). The rest of the robot — `Coordinator`, `RobotStates`, gamepad bindings — talks to the subsystem through `*States`, never directly. That indirection is what makes the trigger graph work and what lets us swap robot configs without rewriting the call sites.
+The state machine is the public API. `setWantedState(WantedState)` is the only way in; `handleStateTransition()` decides the `SystemState`; `applyStates()` writes motor output. The rest of the robot — `SuperStructure` and the gamepad bindings in `Robot.configureBindings()` — asks for a state and never touches motors directly. That indirection is what lets a mechanism refuse or defer a request in one place instead of at every call site.
+
+> Older docs and 2025-era code describe a separate `*States.java` file of `public static` command factories. That layout is gone; do not add one.
 
 Stick to this layout for new subsystems unless there's a concrete reason not to.
 
@@ -38,7 +41,7 @@ The `Config` itself uses chained setters (via `@Accessors(chain = true)` — see
 
 Keep them single-purpose. A subsystem method that both computes a setpoint *and* drives the motor is hard to test and hard to override per-robot. Pull the math into a small helper — often a `DoubleSupplier` — and let the command factory just schedule things.
 
-For long `if` chains: if you're past about three conditions, extract them. A `switch` on an enum reads better than nested `if`s once a pattern emerges — `frc.robot.State.isReadyState` is a decent template for that. And for anything that's checked every loop and might run a command, return a `Trigger` (via the `At/Above/Below` helpers on `Mechanism`) instead of a raw `boolean`. The scheduler handles re-evaluation; you don't have to.
+For long `if` chains: if you're past about three conditions, extract them. A `switch` on an enum reads better than nested `if`s once a pattern emerges — `applyStates()` in any subsystem is the template for that. And for anything that's checked every loop and might run a command, return a `Trigger` (via the `At/Above/Below` helpers on `Mechanism`) instead of a raw `boolean`. The scheduler handles re-evaluation; you don't have to.
 
 Use parameters generously. Explicit parameters make methods readable and testable. But avoid the boolean-flag pattern — a method that takes `boolean reverse` is usually two methods with clearer names (`forward()` and `reverse()`).
 
@@ -48,6 +51,6 @@ A note on streams: they're fine for one-shot setup code. Inside a `periodic()` t
 
 ## Documentation
 
-Every `public` method on a `*States` class is part of the API the rest of the robot consumes. They deserve at least a one-line JavaDoc. `Config` fields should be documented with their units (`rotations`, `meters`, `volts`) so per-robot configs don't drift on what a number means.
+Every `public` method on a subsystem is part of the API the rest of the robot consumes. They deserve at least a one-line JavaDoc. `Config` fields should be documented with their units (`rotations`, `meters`, `volts`) so per-robot configs don't drift on what a number means.
 
 The bigger picture on comments is in [Documentation and Comments](documentation-and-comments.md).

@@ -16,7 +16,7 @@ If you're touching `Launcher.java`, look at how the rest of that file is organiz
 
 ## Naming
 
-* **Classes / Interfaces:** `UpperCamelCase` — `Launcher`, `LauncherConfig`, `RobotStates`.
+* **Classes / Interfaces:** `UpperCamelCase` — `Launcher`, `LauncherConfig`, `SuperStructure`.
 * **Methods / variables:** `lowerCamelCase` — `getVelocityRPM()`, `kPSlot0`.
 * **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, the `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything tunable — even something like `WHEEL_BASE_INCHES` that varies between robots — goes in a `*Config` class as a regular field, not a constant.
 * **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`. `State.LAUNCH_WITH_SQUEEZE`, `Telemetry.Fault.CAMERA_OFFLINE`.
@@ -43,7 +43,7 @@ For a subsystem file like `Launcher.java`, the conventional order is:
 2. Fields (motors, sensors, suppliers, triggers).
 3. Constructor.
 4. `setupStates()`, `setupDefaultCommand()`, `periodic()`.
-5. Public API used by `*States` (getters, setpoint setters, `At/Above/Below` trigger helpers).
+5. Public API used by `SuperStructure` and the bindings (`setWantedState`, getters, `At/Above/Below` trigger helpers).
 6. Private helpers.
 
 This isn't a hard rule, but every existing subsystem follows it, and a reader skimming the file knows where to look. See [Class Generation](class-generation.md) for the why behind this layout.

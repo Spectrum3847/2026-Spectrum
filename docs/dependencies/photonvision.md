@@ -2,15 +2,21 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
+> **Not currently a dependency.** As of 2026-09 there is no `photonlib.json` in `vendordeps/` and
+> nothing in `src/` imports `org.photonvision`. The only trace left in the build is a JavaDoc
+> cross-link base in `build.gradle`. This page describes how PhotonLib was wired up and is kept as
+> the reference for bringing it back — treat every code sample below as history, not as a
+> description of the current tree.
+
 PhotonVision is the vision coprocessor stack — typically an Orange Pi or a Limelight running PhotonVision firmware — that handles AprilTag detection and game-piece recognition. PhotonLib is its on-robot Java client: `PhotonCamera`, pose helpers, and a sim API.
 
-Vendor JSON: [`vendordeps/photonlib.json`](../../vendordeps/photonlib.json).
+## What Vision Does Today
 
-## What's Wired Up Today
+The real-robot vision pipeline goes through Limelights, wrapped by [`Limelight.java`](../../src/main/java/frc/spectrumLib/vision/Limelight.java) and driven by [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) — covered in [Vision](../tools/vision.md). Everything below describes the PhotonLib integration as it stood before it was removed.
 
-The real-robot vision pipeline currently goes through Limelights, wrapped by [`Limelight.java`](../../src/main/java/frc/spectrumLib/vision/Limelight.java) (covered in [Vision](../tools/vision.md)). PhotonLib is in the codebase for two reasons.
+When PhotonLib was on the classpath it was there for two reasons.
 
-First, there's a placeholder `PhotonCamera` in [`VisionSystem.java`](../../src/main/java/frc/robot/vision/VisionSystem.java) waiting for an Orange Pi camera to be named:
+First, a placeholder `PhotonCamera` waiting for an Orange Pi camera to be named:
 
 ```java
 private final PhotonCamera camera = new PhotonCamera("cameraName");
@@ -32,7 +38,7 @@ Those numbers should mirror whatever the real coprocessor measures. Optimistic F
 
 ## How the Sim Hooks In
 
-`VisionSystem` holds one `VisionSystemSim` and adds the field tag layout to it:
+The vision subsystem held one `VisionSystemSim` and added the field tag layout to it:
 
 ```java
 AprilTagFieldLayout tagLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);

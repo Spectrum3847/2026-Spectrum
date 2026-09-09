@@ -5,7 +5,7 @@ This folder contains Copilot/agent prompt templates used by `runSubagent`, `sear
 Available templates
 - `address_pr_comments.md` — Address PR review comments with focused patches.
 - `add_unit_test.md` — Generate a JUnit 5 test skeleton for a target class.
-- `add_robot_state.md` — Add a new high-level robot state and wire it into `State.java`, `RobotStates.java`, and `Coordinator.java`.
+- `add_robot_state.md` — Add a new high-level robot state and wire it into `SuperStructure.java` and `Robot.configureBindings()`.
 - `create_subsystem.md` — Create a new subsystem skeleton following repository conventions.
 - `explore_quick.md` — Quick repository scan for build/CI/auton support.
 - `explore_thorough.md` — Thorough repository audit and recommended templates.

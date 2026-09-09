@@ -41,7 +41,7 @@ WPILib-side PID â€” `ProfiledPIDController` for chassis rotation, for example â€
 
 ## Live Tuning with `TuneValue`
 
-[`TuneValue`](../../src/main/java/frc/spectrumLib/TuneValue.java) wraps SmartDashboard's `putNumber`/`getNumber` so a value can be edited live from [Elastic](elastic.md) without redeploying:
+[`TuneValue`](../../src/main/java/frc/spectrumLib/telemetry/TuneValue.java) wraps SmartDashboard's `putNumber`/`getNumber` so a value can be edited live from [Elastic](elastic.md) without redeploying:
 
 ```java
 private final TuneValue kP = new TuneValue("Launcher/kP", 0.25);

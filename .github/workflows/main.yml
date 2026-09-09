@@ -37,3 +37,14 @@ jobs:
       # Runs a single command using the runners shell
       - name: Compile and run tests on robot code
         run: ./gradlew build
+
+  # Documentation drifting away from the code is what makes this repo expensive to work in, for
+  # people and for AI assistants alike. Broken links are the mechanically catchable part of that.
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check Markdown links resolve
+        run: node scripts/check-doc-links.js

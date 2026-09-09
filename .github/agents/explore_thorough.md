@@ -9,7 +9,7 @@ Required sections (Markdown):
 - **Summary**: 2–3 sentence overview of the repo (language, build, key frameworks).
 - **Build & Commands**: list important commands (gradle wrapper, common tasks) and the main build file path.
 - **CI**: list CI files and a one-line note about what they run.
-- **Key Java Packages & Entry Points**: list `frc.robot` entry classes (`Robot.java`, `Coordinator.java`, `State.java`, `RobotStates.java`) and where they are.
+- **Key Java Packages & Entry Points**: list `frc.robot` entry classes (`Robot.java`, `Main.java`, `subsystems/SuperStructure.java`) and where they are.
 - **Subsystems**: list discovered subsystems (folder, example classes) and a brief note about their patterns (Mechanism subclass + States file).
 - **PathPlanner**: path & autos folder locations and any notable settings.
 - **Recommended Templates**: for each recommended template, include: `name`, `why` (1 sentence), `where it would act` (files/dirs).

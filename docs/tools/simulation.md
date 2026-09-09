@@ -51,7 +51,7 @@ AdvantageScope can also replay the same data from a `.wpilog` after the run. Tha
 
 It catches:
 
-* State-machine bugs: a `Coordinator` state that forgets to set a default mechanism back, command interruptions, race conditions in `setupStates()`.
+* State-machine bugs: a `SuperStructure` state whose `apply*()` forgets to put a mechanism back to a default, command interruptions, race conditions between bindings.
 * PathPlanner trajectories that look fine in the editor but the chassis can't actually drive (over-aggressive velocities, infeasible turn angles).
 * Auto chooser plumbing: Elastic's chooser, auton command names, mirror flag.
 * Vision pose math, when paired with PhotonVisionSim (we don't currently wire that up, but the hook is there).

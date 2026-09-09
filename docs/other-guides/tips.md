@@ -20,23 +20,21 @@ Most command and trigger factory methods in this codebase take a `DoubleSupplier
 
 For setpoints that may shift while a command runs — shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue) — you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
 
-The launcher shows this pattern:
+The hood shows this pattern — `applyStates()` hands `setPosition` a supplier rather than a frozen number:
 
 ```java
-// LauncherStates.java
-public static void idlePrep() {
-    scheduleIfNotRunning(
-            launcher.runVelocityTcFocRPM(config::getIdlingRPM).withName("Launcher.idlePrep"));
-}
+// Hood.java
+final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
+setPosition(() -> finalWantedPosition);
 ```
 
-`config::getIdlingRPM` is a method reference — a `DoubleSupplier` — so if `idlingRPM` is changed at runtime (say, from a per-robot config override), the running command picks up the new value. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
+A method reference like `config::getIdlingRPM` — a `DoubleSupplier` — so if `idlingRPM` is changed at runtime (say, from a per-robot config override), the running command picks up the new value. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
 
 ## Cached Values
 
 Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
 
-The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class already does this for position, velocity, voltage, and current using [`CachedDouble`](../../src/main/java/frc/spectrumLib/CachedDouble.java), which is a `SubsystemBase` that clears its cached flag in `periodic()` and recomputes on first access each loop.
+The pattern in `frc.spectrumLib` is to read once per loop. The `Mechanism` base class collects every status signal it uses and calls Phoenix's `BaseStatusSignal.refreshAll(...)` once per loop, keyed on `RobotLoop.count()`. So every getter in a given loop sees the same sample, and the loop makes one JNI call per mechanism instead of one per signal. [`CachedDouble`](../../src/main/java/frc/spectrumLib/util/CachedDouble.java) is the same once-per-loop idea for an arbitrary supplier; nothing currently uses it, but it is there if you need it.
 
 If you're reading a sensor value that isn't already cached by `Mechanism`, do it in the subsystem's `periodic()` into a field, and have everything else read the field. Don't scatter CAN reads across command bodies.
 
@@ -51,7 +49,7 @@ myTrigger.whileTrue(
         .withTimeout(5.0));
 ```
 
-This is idiomatic in the codebase — you'll see it everywhere in the `*States` files. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
+This is idiomatic in the codebase — you'll see it everywhere bindings are declared. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
 
 ## Simulation Before Robot Time
 
@@ -72,7 +70,7 @@ Small, focused branches have fewer merge conflicts and are much easier to review
 
 ## Logging is Free
 
-Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition — these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. The pattern used in every `*States` file is:
+Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition — these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. A class that wraps many commands usually adds this shorthand:
 
 ```java
 private static Command log(Command cmd) {

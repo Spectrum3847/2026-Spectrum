@@ -17,7 +17,7 @@ Don't write comments that just restate the code. `// loop over modules` above `f
 
 ## JavaDoc
 
-Public methods on `*States` classes and `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious:
+Public methods on subsystems and their `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious:
 
 ```java
 /**
@@ -56,7 +56,7 @@ Don't use `// TODO` for known broken code — fix it or open an Issue and `@Supp
 
 ## Cross-Referencing Code From Docs
 
-This documentation set links into source via relative paths from `docs/` — e.g., `[Launcher.java](../../src/main/java/frc/robot/launcher/Launcher.java)`. Keep those alive:
+This documentation set links into source via relative paths from `docs/` — e.g., `[Launcher.java](../../src/main/java/frc/robot/subsystems/launcher/Launcher.java)`. Keep those alive:
 
 * When you rename a class, grep the `docs/` tree for the old name (`grep -r "OldClassName" docs/`) and fix references.
 * When you delete a class, decide whether the doc reference is still useful (might point to a successor) or should be removed.

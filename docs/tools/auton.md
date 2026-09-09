@@ -9,21 +9,21 @@ The first 15 seconds of a match are unattended — the robot runs whatever seque
 The whole subsystem fits in one file: [`frc.robot.auton.Auton`](../../src/main/java/frc/robot/auton/Auton.java). It owns:
 
 * A `SendableChooser<Command>` that publishes auto names to NetworkTables. Elastic's Pre-Match tab picks this up automatically.
-* A handful of `EventTrigger`s with names that match the markers in the `.auto` files — `intake`, `shotPrep`, `shoot`, `clearState`, `unjam`, `poseUpdate`. When PathPlanner crosses one, the matching `Trigger` fires whatever command [`RobotStates`](../../src/main/java/frc/robot/RobotStates.java) has bound to it.
-* The `launch()` command, which sets `LAUNCH_WITH_SQUEEZE` for 2.5 seconds while `SwerveStates.autonAimAtTarget()` holds heading on the target. Every auto chains some number of `SpectrumAuton(...)` segments together with `launch()` between them.
+* A handful of `EventTrigger`s with names that match the markers in the `.auto` files — `intake`, `shotPrep`, `shoot`, `shootWithIntake`, `clearState`, `unjam`, `poseUpdate`. When PathPlanner crosses one, the matching `Trigger` fires whatever command [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java) has bound to it — in every current case a `superStructure.setStateCommand(...)`.
+* `SpectrumAuton(autoName, mirrored)`, which wraps a `PathPlannerAuto` in a 0.01 s settle. Each routine is a `Commands.sequence(...)` of those, with launching driven by the event markers inside the `.auto` file rather than by a separate command in Java.
 
 `Robot.autonomousInit` calls `Auton.init()`, which schedules the selected command and starts an FPGA timer. `Robot.autonomousExit` calls `printAutoDuration()` so the console shows how long the routine actually took (or how much it had left when teleop took over). The timer trick is borrowed from team 6328 — it makes "did the auto finish in time" answerable at a glance.
 
 ## The Routine Catalog
 
-Every entry in the chooser is just a sequence of `SpectrumAuton(pathName, mirrored)` calls glued together with `launch()`. The naming pattern is `<scoring sequence>` where each letter is a goal column (T/B/D). `TBTB`, for example, runs Top → Bottom → Top → Bottom. Each routine has a Left and Right variant — `mirrored = true` flips poses across the field's midline so the same `.auto` file works from both starting positions.
+Every entry in the chooser is a `Commands.sequence(...)` of `SpectrumAuton(autoName, mirrored)` calls. The naming pattern encodes the scoring sequence, where each letter is a goal column (T/B/D) — `OSTBTB` runs Top → Bottom → Top → Bottom off an `OS` start. Each routine has a Left and Right variant; `mirrored = true` flips poses across the field's midline so the same `.auto` file works from both starting positions.
 
-| Group | Entries | Notes |
+| Entry | Method | Notes |
 | --- | --- | --- |
-| Headliners | `TBTB`, `TBTT`, `TTTT`, `BBBB` | Four-shot routines, all chained `SpectrumAuton + launch` |
-| Optional | `Option TBT`, `Option BBB` | Insert an `OPTIONAL_DELAY` (1.0 s) after the first segment — used when a partner needs the lane to clear |
-| 2nd Man | `2nd-TBTB`, `2nd-BBD` | Begin with `SECOND_MAN_DELAY` (1.0 s) so we're not in the way of an ally's first move |
-| Fallback | `Do Nothing` | Default chooser entry — never let a missing selection mean an unscheduled robot |
+| `OSTBTB Left` / `Right` | `OSTBTB(mirrored)` | Loads the `OSTBTB Full` auto file |
+| `OSRIPPOFF Left` / `Right` | `OSRIPPOFF(mirrored)` | Loads the `OSRIPPOFF Full` auto file |
+| `2MANOSTBTB Left` / `Right` | `TWOMANOSTBTB(mirrored)` | Waits 2 s first so we're not in the way of an ally's first move. Named `TWOMANOSTBTB` because a Java identifier can't start with a digit; the file it loads is `2MANOSTBTB FULL.auto` |
+| `Do Nothing` | `doNothing()` | Default chooser entry — never let a missing selection mean an unscheduled robot |
 
 The `withName(...)` suffix `" - Left"` / `" - Right"` is significant: the field visualizer parses the suffix to decide whether to mirror the rendered pose. Don't drop it.
 
@@ -44,14 +44,14 @@ Every meaningful behavior during an auto routine fires from an event marker, not
 
 1. In PathPlanner, drop a marker on the path and name it (`intake`, `shotPrep`, `shoot`, …).
 2. `Auton.java` declares a matching `public static final EventTrigger autonIntake = new EventTrigger("intake");` etc.
-3. `RobotStates.setupStates()` binds those triggers to whatever robot state should fire — `INTAKE_FUEL`, `TRACK_TARGET`, etc.
+3. `Robot.configureBindings()` binds those triggers to whatever super state should fire — `AUTON_INTAKE_FUEL`, `AUTON_TRACK_TARGET`, etc.
 
 The advantage is the auto file stays declarative — "intake from here to here, then shoot" — instead of hardcoding timings that drift the moment the robot accelerates differently.
 
 ## Adding a New Auto
 
-1. Open PathPlanner, design the new path(s) and `.auto` file. Make sure event-marker names line up with the existing `EventTrigger` list in `Auton.java` (or add a new trigger and bind it in `RobotStates`).
-2. Add a method on `Auton` that returns a `Command`. Follow the existing pattern: `Commands.sequence(SpectrumAuton(...), launch(), SpectrumAuton(...))` and tag it with `.withName("YourAuto Full - " + (mirrored ? "Right" : "Left"))`.
+1. Open PathPlanner, design the new path(s) and `.auto` file. Make sure event-marker names line up with the existing `EventTrigger` list in `Auton.java` (or add a new trigger and bind it in `Robot.configureBindings()`).
+2. Add a method on `Auton` that returns a `Command`. Follow the existing pattern: `Commands.sequence(SpectrumAuton(...))` and tag it with `.withName("YourAuto Full - " + (mirrored ? "Right" : "Left"))`.
 3. Register it in `setupSelectors()` with `pathChooser.addOption("YourAuto Left", yourAuto(false))` plus the mirrored counterpart.
 4. Test in sim first (`./gradlew simulateJava` → select the auto from Elastic's chooser). The `Field2d` preview will show the trajectory; verify the mirrored variant ends up where you expect.
 

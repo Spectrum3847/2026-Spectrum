@@ -116,7 +116,7 @@ Common operations:
 String s = "Hello ";
 String s1 = s + "World";        // concatenation: "Hello World"
 
-String str = "IndexerBed";
+String str = "DyeRotor";
 str.length();                    // 10
 str.charAt(0);                   // 'I'
 str.substring(0, 7);             // "Indexer"

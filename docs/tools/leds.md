@@ -2,11 +2,11 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-> **State of play (2026):** [`CANdleLeds.java`](../../src/main/java/frc/robot/leds/CANdleLeds.java) and [`LedStates.java`](../../src/main/java/frc/robot/leds/LedStates.java) are currently commented out on this branch; LED revival work is happening on the off-season branch. The Phoenix 6 CANdle remains the hardware driver — the WPILib `AddressableLED`-based `SpectrumLEDs` library below is a separate tool that may get integrated alongside it, not a replacement.
+> **State of play (2026):** [`Leds.java`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) exists, but the `Leds` construction in `Robot.java` is commented out, so nothing drives it; LED revival work is happening on the off-season branch. The Phoenix 6 CANdle remains the hardware driver — the WPILib `AddressableLED`-based `SpectrumLEDs` library below is a separate tool that may get integrated alongside it, not a replacement.
 
 ## Library: `SpectrumLEDs`
 
-[`frc.spectrumLib.leds.SpectrumLEDs`](../../src/main/java/frc/spectrumLib/leds/SpectrumLEDs.java) is our wrapper around WPILib's addressable-LED stack. It implements `SpectrumSubsystem`, owns:
+[`frc.spectrumLib.leds.SpectrumLEDs`](../../src/main/java/frc/spectrumLib/leds/SpectrumLEDs.java) is our wrapper around WPILib's addressable-LED stack. It implements WPILib's `Subsystem`, owns:
 
 * An `AddressableLED` (PWM port, set by `Config.port`).
 * An `AddressableLEDBuffer` of fixed length.
@@ -45,17 +45,17 @@ public Command idleLights() {
 }
 ```
 
-The `priority` slot is an integer. `commandPriority` is exposed via `checkPriority(int)` so a higher-priority animation (endgame strobe) can preempt a lower-priority one (alliance breathing) cleanly through a `Trigger` chain. The previous `LedStates.java` used this to layer match-time triggers — that file is the reference for the pattern, even though it's currently commented out.
+The `priority` slot is an integer. `commandPriority` is exposed via `checkPriority(int)` so a higher-priority animation (endgame strobe) can preempt a lower-priority one (alliance breathing) cleanly through a `Trigger` chain. The 2025 `LedStates.java` used this to layer match-time triggers — git history is the reference for that pattern.
 
 ## When the New Wiring Lands
 
-The plan is to revive `CANdleLeds.java` — the Phoenix 6 `CANdle`-backed subsystem — with `LedStates.java` doing what it did before: binding `Trigger`s — auto mode, transition, alliance shift, endgame, "about to shift" — to LED animations of varying priority. The CANdle stays; integrating `SpectrumLEDs` patterns alongside it is a possibility, not the goal. Whoever picks the work back up should:
+The plan is to revive `Leds.java` — the Phoenix 6 `CANdle`-backed subsystem — and bind `Trigger`s — auto mode, transition, alliance shift, endgame, "about to shift" — to LED animations of varying priority. The CANdle stays; integrating `SpectrumLEDs` patterns alongside it is a possibility, not the goal. Whoever picks the work back up should:
 
 1. Uncomment and update `CANdleLeds.java` (CANdle on the CANivore bus, 20 LEDs, RGB strip).
-2. Wire `setupDefaultCommand()` and `setupStates()` through to `LedStates`.
-3. Restore the `Trigger`s in `LedStates.bindTriggers()` (alliance, match-time windows, auto/teleop). The commented-out file has the time windows already worked out for 2026's shift cadence.
+2. Uncomment the `leds` field and construction in `Robot.java` and wire up its default command.
+3. Restore the `Trigger`s (alliance, match-time windows, auto/teleop) in `Robot.configureBindings()`. The 2025 file in git history has the time windows already worked out.
 
 ## See Also
 
 * WPILib's [`AddressableLED`](https://docs.wpilib.org/en/stable/docs/software/hardware-apis/misc/addressable-leds.html) docs for the underlying API.
-* `frc.spectrumLib.SpectrumSubsystem` for the lifecycle hooks (`setupStates`, `setupDefaultCommand`) every subsystem in this codebase implements.
+* [`frc.spectrumLib.framework.SpectrumRobot`](../../src/main/java/frc/spectrumLib/framework/SpectrumRobot.java) for the robot-level lifecycle these hang off.

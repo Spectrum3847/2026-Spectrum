@@ -59,7 +59,7 @@ Examples
 {
   "build": { "commands": ["./gradlew build", "./gradlew test"], "buildFile": "build.gradle" },
   "topPackages": ["frc.robot", "frc.spectrumLib"],
-  "entryPoints": ["src/main/java/frc/robot/Robot.java","src/main/java/frc/robot/Coordinator.java"],
+  "entryPoints": ["src/main/java/frc/robot/Robot.java","src/main/java/frc/robot/subsystems/SuperStructure.java"],
   "suggestedTemplates": ["create-subsystem","add-unit-test"]
 }
 ```
@@ -79,9 +79,9 @@ Examples
 
 Repository pointers (common locations)
 - `src/main/java/frc/robot/Robot.java`
-- `src/main/java/frc/robot/Coordinator.java`
-- `src/main/java/frc/robot/State.java`
-- `src/main/java/frc/robot/RobotStates.java`
+- `src/main/java/frc/robot/subsystems/SuperStructure.java`
+- `src/main/java/frc/robot/pilot/Pilot.java`
+- `src/main/java/frc/robot/operator/Operator.java`
 - `src/main/deploy/pathplanner/paths` and `src/main/deploy/pathplanner/autos`
 - `build.gradle`, `gradlew`
 - `.github/workflows/main.yml`
