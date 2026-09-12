@@ -1345,7 +1345,7 @@ public abstract class Mechanism implements Subsystem {
      * @param rotations the target position in rotations
      * @param slot the gain slot to use (0, 1, or 2)
      */
-    public void setMMPosition(DoubleSupplier rotations, int slot) {
+    protected void setMMPosition(DoubleSupplier rotations, int slot) {
         if (isAttached()) {
             target = rotations.getAsDouble();
             MotionMagicVoltage mm =
@@ -1354,15 +1354,13 @@ public abstract class Mechanism implements Subsystem {
         }
     }
 
-    // ── Motor Control (Public) ─────────────────────────────────────────────────
-
     /**
      * Open-loop percent output control with voltage compensation. The output voltage is {@code
      * percent × voltageCompSaturation}.
      *
      * @param percent fractional output between -1 and +1
      */
-    public void setPercentOutput(DoubleSupplier percent) {
+    protected void setPercentOutput(DoubleSupplier percent) {
         if (isAttached()) {
             VoltageOut output =
                     config.voltageControl.withOutput(
@@ -1377,7 +1375,7 @@ public abstract class Mechanism implements Subsystem {
      *
      * @param voltage the desired voltage in volts
      */
-    public void setVoltageOutput(DoubleSupplier voltage) {
+    protected void setVoltageOutput(DoubleSupplier voltage) {
         if (isAttached()) {
             VoltageOut output = config.voltageControl.withOutput(voltage.getAsDouble());
             motor.setControl(output);
@@ -1390,7 +1388,7 @@ public abstract class Mechanism implements Subsystem {
      *
      * @param voltage the desired voltage in volts
      */
-    public void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
+    protected void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
         if (isAttached()) {
             VoltageOut output =
                     config.voltageControl

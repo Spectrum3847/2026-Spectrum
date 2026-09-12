@@ -25,15 +25,15 @@ npm run dev          # Vite on 5173, API proxied to the Express server on 5801
 
 ## What's here
 
-| Page | What it does |
-| --- | --- |
-| **Pilot** / **Operator** | Button maps with a live controller diagram, one layer per modifier chord, including the disabled-mode pit controls that are otherwise only findable by reading `Robot.java`. |
-| **Logs** | Finds the robot, lists `.wpilog` files on it, pulls them into the team logs repo, and indexes headline numbers into a committed manifest. |
-| **Turret** | Where it pointed on a scrubbable dial, whether it reached its command, and whether it slipped — cross-checked against the turret camera. |
-| **Power** | Per-motor current against its configured limit, how often each motor is pinned there, battery sag and pack internal resistance, energy per mechanism, and a main-breaker thermal simulation. |
-| **CAN Bus** | Bus utilization, error counters heading for bus-off, motors that stopped answering, and the device inventory. |
-| **Swerve Align** | Pin the modules, read the CANcoders live over NT4, and write the offsets into the robot config file. |
-| **Cameras** | Each Limelight live, its mount checked against `Vision.java` by accelerometer and AprilTag solve, auto-tuned exposure, and the fixes written back to the Java and the camera. |
+|           Page           |                                                                                         What it does                                                                                         |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Pilot** / **Operator** | Button maps with a live controller diagram, one layer per modifier chord, including the disabled-mode pit controls that are otherwise only findable by reading `Robot.java`.                 |
+| **Logs**                 | Finds the robot, lists `.wpilog` files on it, pulls them into the team logs repo, and indexes headline numbers into a committed manifest.                                                    |
+| **Turret**               | Where it pointed on a scrubbable dial, whether it reached its command, and whether it slipped — cross-checked against the turret camera.                                                     |
+| **Power**                | Per-motor current against its configured limit, how often each motor is pinned there, battery sag and pack internal resistance, energy per mechanism, and a main-breaker thermal simulation. |
+| **CAN Bus**              | Bus utilization, error counters heading for bus-off, motors that stopped answering, and the device inventory.                                                                                |
+| **Swerve Align**         | Pin the modules, read the CANcoders live over NT4, and write the offsets into the robot config file.                                                                                         |
+| **Cameras**              | Each Limelight live, its mount checked against `Vision.java` by accelerometer and AprilTag solve, auto-tuned exposure, and the fixes written back to the Java and the camera.                |
 
 ## The two data files
 
@@ -75,9 +75,9 @@ lists them all at the bottom; the ones that bite hardest:
 
 The turret has two independent views of where it points, and that is the whole basis of the page:
 
-| | |
-| --- | --- |
-| `Turret/PositionDegrees` | where the encoder thinks it is |
+|                                   |                                                   |
+|-----------------------------------|---------------------------------------------------|
+| `Turret/PositionDegrees`          | where the encoder thinks it is                    |
 | `Vision/TurretLL/HeadingErrorDeg` | how far the turret camera disagrees with the gyro |
 
 The second key **is** the turret zero error. A steady offset means the zero is wrong — re-zero and
@@ -233,13 +233,13 @@ force a specific log into git when it documents something worth keeping.
 
 Probed in this order, and whichever answers on port 22 first wins:
 
-| Address | What it is |
-| --- | --- |
-| `10.38.47.2` | Team 3847 over the radio — the number this robot's radio is configured for |
-| `roborio-8515-frc.local` | Same, over mDNS |
-| `10.38.47.2` | Team 3847 over the radio |
-| `roborio-3847-frc.local` | Same, over mDNS |
-| `172.22.11.2` | USB, works with no radio at all |
+|         Address          |                                 What it is                                 |
+|--------------------------|----------------------------------------------------------------------------|
+| `10.38.47.2`             | Team 3847 over the radio — the number this robot's radio is configured for |
+| `roborio-8515-frc.local` | Same, over mDNS                                                            |
+| `10.38.47.2`             | Team 3847 over the radio                                                   |
+| `roborio-3847-frc.local` | Same, over mDNS                                                            |
+| `172.22.11.2`            | USB, works with no radio at all                                            |
 
 Logs are read from `/U/logs` (the USB stick) and `/home/lvuser/logs` (internal flash).
 
@@ -264,17 +264,17 @@ mountHeader();                                // shared nav + robot status pill
 
 Add a nav entry in `client/lib/ui.js` (`PAGES`). Useful pieces:
 
-| Module | For |
-| --- | --- |
-| `lib/wpilog.js` | `.wpilog` parser, works in the browser and in Node |
-| `lib/log-model.js` | Normalizes a log across both log eras; discovers mechanisms; enabled windows |
-| `lib/charts.js` | Chart.js defaults, time charts, limit lines, enabled-time shading, decimation |
-| `lib/log-loader.js` | The log picker used by Power and CAN |
-| `lib/nt4.js` | Read-only NT4 client; connects the browser straight to the robot |
-| `lib/limelight.js` | A Limelight's own HTTP API (status, results, pipeline read and update), straight from the browser |
+|       Module        |                                                   For                                                   |
+|---------------------|---------------------------------------------------------------------------------------------------------|
+| `lib/wpilog.js`     | `.wpilog` parser, works in the browser and in Node                                                      |
+| `lib/log-model.js`  | Normalizes a log across both log eras; discovers mechanisms; enabled windows                            |
+| `lib/charts.js`     | Chart.js defaults, time charts, limit lines, enabled-time shading, decimation                           |
+| `lib/log-loader.js` | The log picker used by Power and CAN                                                                    |
+| `lib/nt4.js`        | Read-only NT4 client; connects the browser straight to the robot                                        |
+| `lib/limelight.js`  | A Limelight's own HTTP API (status, results, pipeline read and update), straight from the browser       |
 | `lib/camera-cal.js` | Mount angles from the accelerometer and the tag solve; detection-quality scoring for the exposure sweep |
-| `/api/robot/probe` | Which RIO address is reachable |
-| `/api/logs` | Synced logs and their manifest entries |
+| `/api/robot/probe`  | Which RIO address is reachable                                                                          |
+| `/api/logs`         | Synced logs and their manifest entries                                                                  |
 
 For live robot data, import `lib/nt4.js` and talk NT4 straight from the browser — the server does
 not need to be in the middle. The Swerve Align page is the worked example.

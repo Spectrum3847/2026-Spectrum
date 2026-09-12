@@ -20,14 +20,14 @@ gh release download logs-2026-09-05 -R Spectrum3847/2026-Robot-Logs -p "*.zip"
 
 Enabled loop, 18:38 log (medians, p90 in parentheses):
 
-| Section | ms |
-|---|---|
-| CommandScheduler.run (subsystem periodics and commands) | 15.1 (27.5) |
-| Vision.periodic | 4.5 (12.7) |
-| Rest of robotPeriodic (BatteryLogger, CANivore status, Field2d) | 2.8 (7.3) |
-| SuperStructure.periodic | 0.6 (2.7) |
-| Outside robotPeriodic (DS refresh, SmartDashboard) | 3.0 (9.0) |
-| Whole loop period | 30.1 (47.1) |
+|                             Section                             |     ms      |
+|-----------------------------------------------------------------|-------------|
+| CommandScheduler.run (subsystem periodics and commands)         | 15.1 (27.5) |
+| Vision.periodic                                                 | 4.5 (12.7)  |
+| Rest of robotPeriodic (BatteryLogger, CANivore status, Field2d) | 2.8 (7.3)   |
+| SuperStructure.periodic                                         | 0.6 (2.7)   |
+| Outside robotPeriodic (DS refresh, SmartDashboard)              | 3.0 (9.0)   |
+| Whole loop period                                               | 30.1 (47.1) |
 
 Across the eight logs the enabled period median was 26 to 39 ms and 57 to 93 percent of enabled loops missed 25 ms. Every loop over 300 ms was disabled, inside the scheduler, at 25 to 33 s after boot or on an auto-chooser change: PathPlanner warmup and trajectory generation, harmless. The worst enabled loop was 232 ms. The GC theory from the earlier session did not hold for the big stalls; `-Xlog:gc*` is still on (`/home/lvuser/logs/gc.log`) to settle the 130 to 230 ms enabled episodes, and `SystemLoadMonitor` now logs GC time per second directly.
 
@@ -35,36 +35,36 @@ Other numbers: 1800 to 2800 log records per second (94 per loop in the 18:38 log
 
 ## What changed and why
 
-| Change | Where | Why |
-|---|---|---|
-| DogLog to NetworkTables mirror off; per-key `Telemetry.logDash` for dashboard values; `Telemetry/MirrorLogsToNT` switch, forced off on FMS | `Telemetry` | Every logged value was republished to NT and flushed every 20 ms; a full-time job for one core |
-| 10 Hz slow tier (`Telemetry.slowLogThisLoop()`) for currents, temperatures, vision status, battery, shot-calculator outputs while not launching | `Mechanism.logDiagnostics`, `Vision`, `BatteryLogger`, `ShotCalculator` | Cut records per second toward 1000 |
-| One `BaseStatusSignal.refreshAll` per mechanism per loop, keyed on the `RobotLoop` counter; `CachedDouble` subsystems removed from `Mechanism` | `Mechanism` | Over a hundred JNI refreshes per loop |
-| Mechanism status frames: 100 Hz position/velocity on leaders, 50 Hz output frames kept on leaders with followers, 20 Hz for followers and diagnostics | `Mechanism.configureStatusSignals` | Was 250 Hz on every motor and follower; bus at 63 to 77 percent |
-| Swerve odometry stays at 250 Hz. Swerve state logged from `periodic()`, not CTRE's odometry-thread callback; drivetrain state read once per loop (`loopState()`), invalidated on vision fusion and resets; 16 module current signals refreshed together at 10 Hz | `Swerve` | The odometry callback logged under the drivetrain lock and its records were exactly the ones DogLog dropped |
-| Phoenix hoot auto-logging off | `Robot` constructor | A large share of 2.2 GB on the SD card; nobody replays them |
-| `CANBus.getStatus()` at 1 Hz | `Robot.logCanBusStatus` | CTRE: blocks up to 1 ms; ran every loop |
-| Full GC in `disabledInit` and every 60 s while disabled | `Robot` | Serial GC's one long pause happens where it cannot matter |
-| `-XX:MaxGCPauseMillis`, `-XX:GCTimeRatio` removed | `build.gradle` | Ignored by SerialGC |
-| Vision telemetry at 10 Hz, MegaTag2 parsed only for the turret camera, Limelight scalar NT entries cached | `Vision`, `LimelightHelpers` | Vision.periodic was 4.5 ms median |
-| `SystemLoadMonitor`: CPU, memory, GC, heap, loop period once a second under `System/`, with DS alerts | new class, wired first in `robotPeriodic` | Nothing on the dashboard said the CPU was at 93 percent |
-| Elastic layout: Diagnostic tab gets RIO CPU graph and loop-health widgets in place of the dead DogLog queue graph; Pre-Match keeps one camera stream | `src/main/deploy/elastic-layout.json` | Three MJPEG streams on the pre-match tab spend field bandwidth |
-| Pilot default command no longer re-initializes every second | `Pilot` | Showed in every overrun epoch print |
-| **Reverted:** `Threads.setCurrentThreadPriority(true, 99)` around the loop body | `Robot` | See below |
+|                                                                                                                              Change                                                                                                                              |                                  Where                                  |                                                     Why                                                     |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| DogLog to NetworkTables mirror off; per-key `Telemetry.logDash` for dashboard values; `Telemetry/MirrorLogsToNT` switch, forced off on FMS                                                                                                                       | `Telemetry`                                                             | Every logged value was republished to NT and flushed every 20 ms; a full-time job for one core              |
+| 10 Hz slow tier (`Telemetry.slowLogThisLoop()`) for currents, temperatures, vision status, battery, shot-calculator outputs while not launching                                                                                                                  | `Mechanism.logDiagnostics`, `Vision`, `BatteryLogger`, `ShotCalculator` | Cut records per second toward 1000                                                                          |
+| One `BaseStatusSignal.refreshAll` per mechanism per loop, keyed on the `RobotLoop` counter; `CachedDouble` subsystems removed from `Mechanism`                                                                                                                   | `Mechanism`                                                             | Over a hundred JNI refreshes per loop                                                                       |
+| Mechanism status frames: 100 Hz position/velocity on leaders, 50 Hz output frames kept on leaders with followers, 20 Hz for followers and diagnostics                                                                                                            | `Mechanism.configureStatusSignals`                                      | Was 250 Hz on every motor and follower; bus at 63 to 77 percent                                             |
+| Swerve odometry stays at 250 Hz. Swerve state logged from `periodic()`, not CTRE's odometry-thread callback; drivetrain state read once per loop (`loopState()`), invalidated on vision fusion and resets; 16 module current signals refreshed together at 10 Hz | `Swerve`                                                                | The odometry callback logged under the drivetrain lock and its records were exactly the ones DogLog dropped |
+| Phoenix hoot auto-logging off                                                                                                                                                                                                                                    | `Robot` constructor                                                     | A large share of 2.2 GB on the SD card; nobody replays them                                                 |
+| `CANBus.getStatus()` at 1 Hz                                                                                                                                                                                                                                     | `Robot.logCanBusStatus`                                                 | CTRE: blocks up to 1 ms; ran every loop                                                                     |
+| Full GC in `disabledInit` and every 60 s while disabled                                                                                                                                                                                                          | `Robot`                                                                 | Serial GC's one long pause happens where it cannot matter                                                   |
+| `-XX:MaxGCPauseMillis`, `-XX:GCTimeRatio` removed                                                                                                                                                                                                                | `build.gradle`                                                          | Ignored by SerialGC                                                                                         |
+| Vision telemetry at 10 Hz, MegaTag2 parsed only for the turret camera, Limelight scalar NT entries cached                                                                                                                                                        | `Vision`, `LimelightHelpers`                                            | Vision.periodic was 4.5 ms median                                                                           |
+| `SystemLoadMonitor`: CPU, memory, GC, heap, loop period once a second under `System/`, with DS alerts                                                                                                                                                            | new class, wired first in `robotPeriodic`                               | Nothing on the dashboard said the CPU was at 93 percent                                                     |
+| Elastic layout: Diagnostic tab gets RIO CPU graph and loop-health widgets in place of the dead DogLog queue graph; Pre-Match keeps one camera stream                                                                                                             | `src/main/deploy/elastic-layout.json`                                   | Three MJPEG streams on the pre-match tab spend field bandwidth                                              |
+| Pilot default command no longer re-initializes every second                                                                                                                                                                                                      | `Pilot`                                                                 | Showed in every overrun epoch print                                                                         |
+| **Reverted:** `Threads.setCurrentThreadPriority(true, 99)` around the loop body                                                                                                                                                                                  | `Robot`                                                                 | See below                                                                                                   |
 
 ## Pre-existing problems you will see on the Driver Station
 
 **`ERROR -1003 CAN frame not received/too-stale ... ctre::phoenix6::BaseStatusSignal::WaitForAll`** with yellow `1000 CAN message is stale` warnings for talon fx 1, 2, 11, 12, 21, 22, 31, 32 (Position and Velocity) and pigeon 2 0 (Yaw, AngularVelocityZWorld). That is CTRE's native 250 Hz odometry thread timing out. It waits on eighteen signals with a two-period timeout, about 8 ms, and reports whenever frames arrive late because the bus is busy or Phoenix's receive path is short of CPU. Daytime baseline, before any change:
 
-| Session 2026-09-05 | WaitForAll -1003 per minute |
-|---|---|
-| 11:37 | 149 |
-| 11:52 | 49 |
-| 12:09 | 66 |
-| 13:37 | 18 |
-| 15:00 | 4 |
-| 15:25 | 60 |
-| Tonight, priority change still in | about 15 |
+|        Session 2026-09-05         | WaitForAll -1003 per minute |
+|-----------------------------------|-----------------------------|
+| 11:37                             | 149                         |
+| 11:52                             | 49                          |
+| 12:09                             | 66                          |
+| 13:37                             | 18                          |
+| 15:00                             | 4                           |
+| 15:25                             | 60                          |
+| Tonight, priority change still in | about 15                    |
 
 **talon fx 18** (LauncherTower Back, the follower whose power lead was off on 09-05) logged 1189 -1003 errors on its own during the day. Until it is powered, expect its errors to continue and the "Tower Follower" bar on the Power tab plus its Driver Station alert to show it.
 
@@ -123,11 +123,11 @@ Targets: RIO CPU under 75 percent, enabled loop period median under 20 ms, CANiv
 
 What was actually running before that: the jar on the rio was built at 21:27:56, before the revert commit existed, so the 21:28 Driver Station session was the **real-time priority build**. Its numbers, against the old-code session just before it and the fixed build after:
 
-| DS session | Code | RIO CPU med | CANivore bus | Loop body med | -1003 | Stale warnings |
-|---|---|---|---|---|---|---|
-| 20:53, 7 min | `a9b761e` (old) | 95% | 67% | 14.1 ms | 11 (2/min) | 16 |
-| 21:28, 31 min | `c4d7b54` + RT priority 99 | 57% | 46% | 2.8 ms | 116 (18/min early) | 682 |
-| 22:07, 9 min | `bd8b047` (revert in) | 62% | 46% | 5 ms warming up | **0** | **0** |
+|  DS session   |            Code            | RIO CPU med | CANivore bus |  Loop body med  |       -1003        | Stale warnings |
+|---------------|----------------------------|-------------|--------------|-----------------|--------------------|----------------|
+| 20:53, 7 min  | `a9b761e` (old)            | 95%         | 67%          | 14.1 ms         | 11 (2/min)         | 16             |
+| 21:28, 31 min | `c4d7b54` + RT priority 99 | 57%         | 46%          | 2.8 ms          | 116 (18/min early) | 682            |
+| 22:07, 9 min  | `bd8b047` (revert in)      | 62%         | 46%          | 5 ms warming up | **0**              | **0**          |
 
 The 21:28 errors were front-loaded: 22 in the first minute, 14, 7, 7, 11, 7, then about one a minute after ten minutes. That is the JIT warming up. Early on the loop body is long and interpreted, a SCHED_FIFO 99 main thread holds a core for all of it, and Phoenix's threads miss their turn. As the body shrank the errors thinned out. Bus utilization was already down to 46 percent in that session, so the bus was not what was tripping the odometry thread; the priority was. The revert fixed it; nothing else changed between the two builds.
 

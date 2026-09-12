@@ -1,10 +1,10 @@
 plugins {
     id "java"
     id "edu.wpi.first.GradleRIO" version "2026.2.1"
-    id 'com.diffplug.spotless' version '6.12.0'
-    id "com.peterabeles.gversion" version "1.10"
-    id "io.freefair.lombok" version "9.1.0"
-    id "com.github.spotbugs" version "6.0.24"
+    id 'com.diffplug.spotless' version '8.10.1'
+    id "com.peterabeles.gversion" version "1.11.0"
+    id "io.freefair.lombok" version "9.5.0"
+    id "com.github.spotbugs" version "6.5.11"
 }
 
 java {
@@ -112,10 +112,10 @@ dependencies {
     nativeRelease wpi.java.vendor.jniRelease(wpi.platforms.desktop)
     simulationRelease wpi.sim.enableRelease()
 
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation 'com.google.guava:guava:32.1.2-jre'
+    implementation 'com.google.guava:guava:33.7.1-jre'
 }
 
 test {
@@ -131,7 +131,11 @@ wpi.sim.addDriverstation()
 // in order to make them all available at runtime. Also adding the manifest so WPILib
 // knows where to look for our Robot Class.
 jar {
-    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    from {
+        configurations.runtimeClasspath.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
     from sourceSets.main.allSource
     manifest edu.wpi.first.gradlerio.GradleRIOPlugin.javaManifest(ROBOT_MAIN_CLASS)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -179,7 +183,6 @@ javadoc {
         "https://pathplanner.dev/api/java",
         "https://javadoc.doglog.dev",
         "https://shenzhen-robotics-alliance.github.io/maple-sim/javadocs",
-        "https://javadocs.photonvision.org/release",
         "https://docs.oracle.com/en/java/javase/17/docs/api"
     ])
 }
@@ -217,7 +220,7 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         greclipse()
-        indentWithSpaces(4)
+        leadingTabsToSpaces(4)
         trimTrailingWhitespace()
         endWithNewline()
     }
@@ -228,16 +231,26 @@ spotless {
         }
         eclipseWtp('xml')
         trimTrailingWhitespace()
-        indentWithSpaces(2)
+        leadingTabsToSpaces(2)
+        endWithNewline()
+    }
+    flexmark {
+        target fileTree('.') {
+            include '**/*.md'
+            exclude '**/build/**', '**/build-*/**'
+            exclude '.agents/skills/**/SKILL.md'
+        }
+        flexmark()
+        trimTrailingWhitespace()
         endWithNewline()
     }
     format 'misc', {
         target fileTree('.') {
-            include '**/*.md', '**/.gitignore'
+            include '**/.gitignore'
             exclude '**/build/**', '**/build-*/**'
         }
         trimTrailingWhitespace()
-        indentWithSpaces(2)
+        leadingTabsToSpaces(2)
         endWithNewline()
     }
 }

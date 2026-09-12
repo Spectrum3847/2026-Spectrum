@@ -14,7 +14,7 @@ The Java side has three entry points:
 
 * `Swerve.configurePathPlanner()` registers the drivetrain with `AutoBuilder` at boot.
 * `frc.robot.auton.Auton` defines the auto routines, the event triggers, and the `SendableChooser` exposed to the driver station.
-* `Robot.robotInit` runs the PathPlanner warmups so the first auto doesn't hitch.
+* `Robot.disabledInit` schedules the PathPlanner warmups (once per session, guarded by `autonWarmedUp`) so the first auto doesn't hitch.
 
 ## AutoBuilder Wiring
 
@@ -37,7 +37,7 @@ AutoBuilder.configure(
         this);
 ```
 
-Those PID constants get re-tuned every year. Don't change them without coordinating with whoever owns auto tuning — small shifts have outsized effects on whether a path lands on its end pose.
+Those PID constants get re-tuned every year. Don't change them without coordinating with whoever owns auto tuning; small shifts have outsized effects on whether a path lands on its end pose.
 
 ## Event Triggers
 
@@ -52,15 +52,15 @@ public static final EventTrigger autonUnjam      = new EventTrigger("unjam");
 public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
 ```
 
-…and then bound to robot states in `RobotStates.setupStates()`:
+…and then bound to super-states in `Robot.configureBindings()`:
 
 ```java
-Auton.autonIntake.onTrue(applyState(State.INTAKE_FUEL));
-Auton.autonShotPrep.onTrue(applyState(State.TRACK_TARGET_WITH_NO_SWERVE));
-Auton.autonShoot.onTrue(applyState(State.LAUNCH_WITH_SQUEEZE));
+Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
+Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
+Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
 ```
 
-Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `State` (or whatever command you want) in `RobotStates`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly — if your trigger isn't firing, that's the first thing to double-check.
+Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `WantedSuperState` (or whatever command you want) in `Robot.configureBindings()`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly; if your trigger isn't firing, that's the first thing to double-check.
 
 ## The Auto Chooser
 
@@ -73,17 +73,17 @@ pathChooser.addOption("TBTB Right", TBTB(true));
 SmartDashboard.putData("Auto Chooser", pathChooser);
 ```
 
-Each option ultimately returns `new PathPlannerAuto(autoName, mirrored)`. The `mirrored` flag is how a single `.auto` file becomes both the "Left" and "Right" variants — `PathPlannerPath.mirrorPath()` mirrors across the center line of *the same* alliance, while `PathPlannerPath.flipPath()` flips for red versus blue (which the alliance lambda in `AutoBuilder` does for you inside an `.auto`).
+Each option ultimately returns `new PathPlannerAuto(autoName, mirrored)`. The `mirrored` flag is how a single `.auto` file becomes both the "Left" and "Right" variants: `PathPlannerPath.mirrorPath()` mirrors across the center line of *the same* alliance, while `PathPlannerPath.flipPath()` flips for red versus blue (which the alliance lambda in `AutoBuilder` does for you inside an `.auto`).
 
 If you're loading a path directly from Java instead of through an `.auto`, the alliance flip is *not* automatic. You're on the hook for `flipPath()` and `mirrorPath()` yourself.
 
 ## Warmup
 
-`Robot.robotInit` calls `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup at boot for it too — `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
+`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` (once per session, guarded by `autonWarmedUp`) so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup the same way; `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
 
 ## Loading a Path From Java
 
-For the occasional one-off (a recovery routine, a fallback after a failed pose update), `PathPlannerPath.fromPathFile("MyPath")` is what you want. It throws `IOException`, `ParseException`, and `FileVersionException` — catch them all and report through `DriverStation.reportError` and `Telemetry.print` so a missing or malformed file doesn't silently kill the auto.
+For the occasional one-off (a recovery routine, a fallback after a failed pose update), `PathPlannerPath.fromPathFile("MyPath")` is what you want. It throws `IOException`, `ParseException`, and `FileVersionException`, catch them all and report through `DriverStation.reportError` and `Telemetry.print` so a missing or malformed file doesn't silently kill the auto.
 
 ## Gotchas
 

@@ -2,13 +2,13 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-DogLog is a small WPILib logger that writes WPILOG files on the roboRIO and (optionally) re-publishes everything to NetworkTables so dashboards can read it live. We extend it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/Telemetry.java) class, and that's the layer 99% of the code calls.
+DogLog is a small WPILib logger that writes WPILOG files on the roboRIO and (optionally) re-publishes everything to NetworkTables so dashboards can read it live. We extend it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java) class, and that's the layer 99% of the code calls.
 
 Version pinned: 2026.5.0 ([`vendordeps/DogLog.json`](../../vendordeps/DogLog.json)).
 
 ## The `Telemetry` Wrapper
 
-`frc.spectrumLib.Telemetry` extends `dev.doglog.DogLog` and implements `Subsystem`, so the scheduler runs its `periodic()` once a loop. `Robot.java` boots it with:
+`frc.spectrumLib.telemetry.Telemetry` extends `dev.doglog.DogLog` and implements `Subsystem`, so the scheduler runs its `periodic()` once a loop. `Robot.java` boots it with:
 
 ```java
 Telemetry.start(
@@ -23,7 +23,7 @@ Telemetry.start(
 
 Translated to `DogLogOptions`, that publishes everything to NetworkTables (so Elastic and SmartDashboard see it), captures DriverStation events and `System.out` into the WPILOG, and leaves NT tunables editable even on FMS. We also hand DogLog a `PowerDistribution` so PDH currents log automatically.
 
-There's one piece outside of `start(...)` worth knowing: `SmartDashboard.putData(CommandScheduler.getInstance())` exposes the running-commands widget. Don't remove that — it's the fastest way to see what's actually scheduled when something looks wrong.
+There's one piece outside of `start(...)` worth knowing: `SmartDashboard.putData(CommandScheduler.getInstance())` exposes the running-commands widget. Don't remove that; it's the fastest way to see what's actually scheduled when something looks wrong.
 
 ## Logging Values
 
@@ -32,7 +32,7 @@ Telemetry.log("Subsystem/ValueName", value);
 Telemetry.log("Subsystem/ValueName", value, "units");
 ```
 
-Keys use `Subsystem/Path/Name` so both Elastic and AdvantageScope render them as a tree. Look at the existing keys (`Launcher/kP`, `Match Data/MatchTime`, `BuildConstants/GitSHA`) before inventing a new top-level — drift here is what makes logs unsearchable a season later.
+Keys use `Subsystem/Path/Name` so both Elastic and AdvantageScope render them as a tree. Look at the existing keys (`Launcher/RPM`, `Match Data/MatchTime`, `BuildConstants/GitSHA`) before inventing a new top-level key; drift here is what makes logs unsearchable a season later.
 
 DogLog has overloads for doubles, booleans, strings, arrays, and WPILib structs like `Pose2d` and `ChassisSpeeds`. Just call `log` and pass the value.
 
@@ -44,11 +44,11 @@ Auton.autonUnjam.onTrue(
         Commands.sequence(/* ... */)));
 ```
 
-`Telemetry.log(Command)` wraps a command so it writes `Init:` and `End:` entries to the `Commands` key. Only wrap the outermost command in a group — wrapping inner ones just produces log spam.
+`Telemetry.log(Command)` wraps a command so it writes `Init:` and `End:` entries to the `Commands` key. Only wrap the outermost command in a group; wrapping inner ones just produces log spam.
 
 ## Console Prints
 
-`Telemetry.print(...)` does three things at once: stamps the time, decides whether to print to stdout based on a `PrintPriority`, and logs the line under `Prints` so it survives in the WPILOG even if console capture is off. Use it instead of `System.out.println` — bare prints disappear unless `captureConsole` is on, and they don't get a timestamp.
+`Telemetry.print(...)` does three things at once: stamps the time, decides whether to print to stdout based on a `PrintPriority`, and logs the line under `Prints` so it survives in the WPILOG even if console capture is off. Use it instead of `System.out.println`; bare prints disappear unless `captureConsole` is on, and they don't get a timestamp.
 
 Two priorities exist:
 
@@ -94,7 +94,7 @@ The mirror is off by default (`Telemetry.start(false, …)`). On 2026-09-05 ever
 
 `withNtTunables(true)` controls DogLog's own tunable entries; it does not affect `TuneValue`/`SmartDashboard` writes. If you want to prevent match-day tuning, remove or guard `TuneValue` call sites separately.
 
-Don't add instance methods to `Telemetry`. It's a static façade on purpose — once half the codebase calls `telemetry.log(...)` and the other half calls `Telemetry.log(...)`, both sides are wrong forever.
+Don't add instance methods to `Telemetry`. It's a static façade on purpose. Once half the codebase calls `telemetry.log(...)` and the other half calls `Telemetry.log(...)`, both sides are wrong forever.
 
 ## Further Reading
 

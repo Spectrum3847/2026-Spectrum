@@ -60,13 +60,13 @@ Alignment is one page of the robot app — the nav bar at the top also has the p
 
 ## Reading the verdicts
 
-| Verdict | What it means |
-| --- | --- |
-| **Already aligned** | Under 3° of change. The module was fine. |
-| **Normal correction** | 3–30°. What a routine touch-up looks like. |
-| **Wheel likely backwards** | About 180° of change. Either this module is pinned backwards, or the offset in the code was taken with it backwards. |
-| **Unexpected change** | A big jump that isn't a half turn. Usually a pin that isn't seated, or a module wired to a different CANcoder than the code thinks. |
-| **Not captured** | You didn't select this module. Its offset is left alone. |
+|          Verdict           |                                                            What it means                                                            |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| **Already aligned**        | Under 3° of change. The module was fine.                                                                                            |
+| **Normal correction**      | 3–30°. What a routine touch-up looks like.                                                                                          |
+| **Wheel likely backwards** | About 180° of change. Either this module is pinned backwards, or the offset in the code was taken with it backwards.                |
+| **Unexpected change**      | A big jump that isn't a half turn. Usually a pin that isn't seated, or a module wired to a different CANcoder than the code thinks. |
+| **Not captured**           | You didn't select this module. Its offset is left alone.                                                                            |
 
 The two flagged verdicts block the Write button until you say what to do about them.
 

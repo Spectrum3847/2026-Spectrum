@@ -28,13 +28,13 @@ If you add a widget, edit the layout in Elastic and save it back to the file, an
 
 `SystemLoadMonitor` samples the roboRIO once a second and publishes `System/CpuPercent`, `System/MemAvailableMB`, `System/HeapUsedMB`, `System/Gc/MsPerSecond` and the loop period mean, max and overrun share under `System/Loop/`. It raises Driver Station alerts, which show in every Alerts widget:
 
-| alert | condition |
-|---|---|
-| roboRIO CPU high (warning) | CPU at or above 85 % for 10 s; clears under 80 % |
-| Robot loop overrunning (warning) | more than half the loops over 25 ms for 5 s; clears under a quarter |
-| Robot loop stalled while enabled (error) | one enabled loop over 200 ms; stays up 10 s |
-| GC pause while enabled (warning) | 100 ms or more of collector time in one second while enabled; stays up 10 s |
-| roboRIO memory low (warning) | under 24 MB available for 10 s |
+|                  alert                   |                                  condition                                  |
+|------------------------------------------|-----------------------------------------------------------------------------|
+| roboRIO CPU high (warning)               | CPU at or above 85 % for 10 s; clears under 80 %                            |
+| Robot loop overrunning (warning)         | more than half the loops over 25 ms for 5 s; clears under a quarter         |
+| Robot loop stalled while enabled (error) | one enabled loop over 200 ms; stays up 10 s                                 |
+| GC pause while enabled (warning)         | 100 ms or more of collector time in one second while enabled; stays up 10 s |
+| roboRIO memory low (warning)             | under 24 MB available for 10 s                                              |
 
 On 2026-09-05 the CPU sat at 92 to 95 percent all day and nothing on the dashboard said so. If the CPU alert shows in practice, the fix is less logging, fewer CAN frames or less NetworkTables traffic, not a bigger heap. Thresholds are constants at the top of `SystemLoadMonitor`.
 
@@ -46,7 +46,7 @@ The reverse direction works too. The auto chooser writes back over NT to a `Send
 
 ## Connecting
 
-Install Elastic (WPILib installer is the easy path; releases also up on [GitHub](https://github.com/Gold872/elastic-dashboard/releases) for Linux/macOS). Point it at the robot — `roborio-3847-frc.local` for the real bot, `localhost` for sim — and load the layout from `File → Open Layout`. Once you've connected to a robot once, there's a "Download from robot" option that grabs whatever the RIO has deployed.
+Install Elastic (WPILib installer is the easy path; releases are also available on [GitHub](https://github.com/Gold872/elastic-dashboard/releases) for Linux/macOS). Point it at the robot, `roborio-3847-frc.local` for the real bot, `localhost` for sim, and load the layout from `File → Open Layout`. Once you've connected to a robot once, there's a "Download from robot" option that grabs whatever the RIO has deployed.
 
 On the driver-station laptop, pin Elastic to the same monitor position every match. The match-day team relies on muscle memory, and a relocated widget at the wrong moment is exactly the kind of small problem that ends up costing points.
 

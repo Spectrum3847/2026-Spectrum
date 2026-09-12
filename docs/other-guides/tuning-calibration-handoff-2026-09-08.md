@@ -12,11 +12,11 @@ The robot app (`tools/robot-app`) closes the loop on two calibrations, and the r
 on a third. All three have the same shape: **measure on the robot, propose, write the number where
 the code reads it, read it back, and have a check that notices when the two drift apart.**
 
-| Calibration | Measured by | Written to | Landed |
-| --- | --- | --- | --- |
-| Swerve CANcoder offsets | Swerve Align page, over NT4 from the browser | `swerve.configEncoderOffsets(...)` in `src/main/java/frc/robot/configs/OM2026.java` | August |
+|                       Calibration                       |                          Measured by                          |                                                           Written to                                                           |   Landed   |
+|---------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|------------|
+| Swerve CANcoder offsets                                 | Swerve Align page, over NT4 from the browser                  | `swerve.configEncoderOffsets(...)` in `src/main/java/frc/robot/configs/OM2026.java`                                            | August     |
 | Camera roll, pitch, height; exposure, gain, black level | Cameras page, over each Limelight's HTTP API from the browser | the three `LimelightConfig` chains in `src/main/java/frc/robot/subsystems/vision/Vision.java`, and the camera's saved pipeline | 2026-09-07 |
-| Turret zero | Turret camera against the pose heading, in `Vision.java` | the turret encoder, live: a trim for slip, a one-step re-home for gross error | 2026-09-06 |
+| Turret zero                                             | Turret camera against the pose heading, in `Vision.java`      | the turret encoder, live: a trim for slip, a one-step re-home for gross error                                                  | 2026-09-06 |
 
 Three calibrations are still done by editing Java, redeploying, and watching balls land.
 
@@ -32,13 +32,13 @@ repo**, and no current session knows where they are. They cannot be regenerated 
 The only calibration knob is `hoodOffsetDeg`, the last field of each record, edited by hand. The
 last week of the git log for that one number, oldest first:
 
-| Commit | Change |
-| --- | --- |
-| `8a18787` | Use the full-field hub model instead of the shop ceiling fit |
-| `d8ac503` | Go back to the 3 m ceiling shot model |
-| `4f29410` | Give each shot model its own hood trim; hub gets -4 deg |
+|  Commit   |                             Change                              |
+|-----------|-----------------------------------------------------------------|
+| `8a18787` | Use the full-field hub model instead of the shop ceiling fit    |
+| `d8ac503` | Go back to the 3 m ceiling shot model                           |
+| `4f29410` | Give each shot model its own hood trim; hub gets -4 deg         |
 | `eb3d300` | Switch back to the full-field hub model to test its -4 deg trim |
-| `abdc95c` | Trim the hub hood offset one more degree, to -5 |
+| `abdc95c` | Trim the hub hood offset one more degree, to -5                 |
 
 Every one of those was justified by someone watching where balls landed ("3 to 4 feet past the hub
 centre"). No log records where a shot went.
@@ -77,11 +77,11 @@ the drift check verifies that bindings exist, not what their descriptions say.
 Every gain is a `final` in a mechanism's inner `*Config` class and is applied once in the
 constructor:
 
-| Mechanism | Gains | Control request |
-| --- | --- | --- |
-| Turret | `positionKp` 800, `positionKi` 100, `positionKv` 10, `positionKs` 0.6; MotionMagic cruise 0.25, accel 0.5 (`Turret.java` 67-79, applied 98-100) | `setMMPosition` sends `MotionMagicVoltage` (`Mechanism.java` 1336-1341), so kV is volts per rot/s; its Javadoc has said so since 2026-09-08 |
-| Hood | `positionKp/Ki/Kd`, `positionKs/Kv/Ka/Kg`, MotionMagic cruise/accel/jerk (`Hood.java` 66-70); peak 3 V | `setPosition` |
-| Launcher | `velocityKp` 0.5, `velocityKv` 0.1425, `velocityKs` 0 (`Launcher.java` 47-49, applied 64-65) | `setVelocityRPM` |
+| Mechanism |                                                                      Gains                                                                      |                                                               Control request                                                               |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| Turret    | `positionKp` 800, `positionKi` 100, `positionKv` 10, `positionKs` 0.6; MotionMagic cruise 0.25, accel 0.5 (`Turret.java` 67-79, applied 98-100) | `setMMPosition` sends `MotionMagicVoltage` (`Mechanism.java` 1336-1341), so kV is volts per rot/s; its Javadoc has said so since 2026-09-08 |
+| Hood      | `positionKp/Ki/Kd`, `positionKs/Kv/Ka/Kg`, MotionMagic cruise/accel/jerk (`Hood.java` 66-70); peak 3 V                                          | `setPosition`                                                                                                                               |
+| Launcher  | `velocityKp` 0.5, `velocityKv` 0.1425, `velocityKs` 0 (`Launcher.java` 47-49, applied 64-65)                                                    | `setVelocityRPM`                                                                                                                            |
 
 Live tuning exists but is not used for gains. `Telemetry extends DogLog`
 (`src/main/java/frc/spectrumLib/telemetry/Telemetry.java` 44), so
@@ -378,19 +378,19 @@ writing anything new on top.
 
 ## 5. Numbers worth remembering
 
-| Item | Value | Source |
-| --- | --- | --- |
-| Hub model hood trim | -5.0 deg | `ShotCalculator.java` near 225; commit `abdc95c` |
-| Hood trim per D-pad press | 0.25 deg, about a quarter foot of range at 2.5 m | `HOOD_OFFSET_STEP_DEG`, line 86 |
-| Model hood sensitivity | about 1 deg per foot of range near 2.5 m | comment near `ShotCalculator.java` 225 |
-| Exit speed to flywheel | 365 RPM per m/s | `RPM_PER_MPS`, line 124 |
-| Shots seen so far | 2.2 to 2.6 m, hood 18 to 20 deg | 09-05 handoff, 3.1b |
-| Turret kV | 10 V per rot/s in code; about 5 expected | `Turret.java` 73; 09-05 handoff, 3.9 |
-| Launcher on-target window | 200 RPM | `Launcher.java` 51 |
-| Log rates | diagnostics 10 Hz; aimed-mechanism position and command 50 Hz; turret, launcher and tower voltage 50 Hz | `Mechanism.logDiagnostics`; section 1.4 |
-| DogLog | 2026.5.0, has `tunable(key, default, onChange)` | Gradle cache |
-| `tunableOnFMS` | true, deliberately; no guard wanted | `Robot.java` 145 |
-| Trim cap | 10 deg either axis, on load and on every press | `MAX_TRIM_DEG`, `ShotCalculator.java` |
-| Trim storage | `Preferences`, keys `ShotHoodTrimDeg` and `ShotTurretTrimDeg`; survives a power cycle | `ShotCalculator.loadPersistedTrims()` |
-| Trim reset | operator Start+Select, live in every mode | `Robot.java` 311 |
-| Shot record | one row per burst on the feed gate's rising edge; `Index` is the only key on NT | `ShotCalc/Shot/*`, `docs/tools/shot-log.md` |
+|           Item            |                                                  Value                                                  |                      Source                      |
+|---------------------------|---------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| Hub model hood trim       | -5.0 deg                                                                                                | `ShotCalculator.java` near 225; commit `abdc95c` |
+| Hood trim per D-pad press | 0.25 deg, about a quarter foot of range at 2.5 m                                                        | `HOOD_OFFSET_STEP_DEG`, line 86                  |
+| Model hood sensitivity    | about 1 deg per foot of range near 2.5 m                                                                | comment near `ShotCalculator.java` 225           |
+| Exit speed to flywheel    | 365 RPM per m/s                                                                                         | `RPM_PER_MPS`, line 124                          |
+| Shots seen so far         | 2.2 to 2.6 m, hood 18 to 20 deg                                                                         | 09-05 handoff, 3.1b                              |
+| Turret kV                 | 10 V per rot/s in code; about 5 expected                                                                | `Turret.java` 73; 09-05 handoff, 3.9             |
+| Launcher on-target window | 200 RPM                                                                                                 | `Launcher.java` 51                               |
+| Log rates                 | diagnostics 10 Hz; aimed-mechanism position and command 50 Hz; turret, launcher and tower voltage 50 Hz | `Mechanism.logDiagnostics`; section 1.4          |
+| DogLog                    | 2026.5.0, has `tunable(key, default, onChange)`                                                         | Gradle cache                                     |
+| `tunableOnFMS`            | true, deliberately; no guard wanted                                                                     | `Robot.java` 145                                 |
+| Trim cap                  | 10 deg either axis, on load and on every press                                                          | `MAX_TRIM_DEG`, `ShotCalculator.java`            |
+| Trim storage              | `Preferences`, keys `ShotHoodTrimDeg` and `ShotTurretTrimDeg`; survives a power cycle                   | `ShotCalculator.loadPersistedTrims()`            |
+| Trim reset                | operator Start+Select, live in every mode                                                               | `Robot.java` 311                                 |
+| Shot record               | one row per burst on the feed gate's rising edge; `Index` is the only key on NT                         | `ShotCalc/Shot/*`, `docs/tools/shot-log.md`      |

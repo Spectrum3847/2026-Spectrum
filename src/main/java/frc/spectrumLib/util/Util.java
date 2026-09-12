@@ -64,7 +64,8 @@ public class Util {
      * @return {@code true} if {@code min.get() < v.get() < max.get()}
      */
     public static boolean inRange(DoubleSupplier v, DoubleSupplier min, DoubleSupplier max) {
-        return v.getAsDouble() > min.getAsDouble() && v.getAsDouble() < max.getAsDouble();
+        double value = v.getAsDouble();
+        return value > min.getAsDouble() && value < max.getAsDouble();
     }
 
     /**
@@ -131,7 +132,7 @@ public class Util {
      * @return {@code true} if {@code |a - b| <= epsilon}
      */
     public static boolean epsilonEquals(int a, int b, int epsilon) {
-        return (a - epsilon <= b) && (a + epsilon >= b);
+        return ((long) a - epsilon <= b) && ((long) a + epsilon >= b);
     }
 
     /**

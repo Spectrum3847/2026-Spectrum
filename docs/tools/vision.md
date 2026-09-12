@@ -8,11 +8,11 @@ The robot uses three Limelights for AprilTag-based pose estimation. Each one pub
 
 Three Limelight 4s, named for where they sit on the bot:
 
-| Limelight | NT name | Where | Notes |
-| --- | --- | --- | --- |
-| Back-left | `limelight-left` | Rear-left corner panel, upside down, looking out over the corner (yaw +135). | Chassis camera. IMU mode 1. |
-| Back-right | `limelight-right` | Rear-right corner panel, upside down, looking out over the corner (yaw -135). | Chassis camera. IMU mode 1. |
-| Turret | `limelight-turret` | On the turret, upright, facing the robot rear at turret zero. | Its mount yaw is the live turret angle, pushed every loop. IMU mode 0. |
+| Limelight  |      NT name       |                                     Where                                     |                                 Notes                                  |
+|------------|--------------------|-------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| Back-left  | `limelight-left`   | Rear-left corner panel, upside down, looking out over the corner (yaw +135).  | Chassis camera. IMU mode 1.                                            |
+| Back-right | `limelight-right`  | Rear-right corner panel, upside down, looking out over the corner (yaw -135). | Chassis camera. IMU mode 1.                                            |
+| Turret     | `limelight-turret` | On the turret, upright, facing the robot rear at turret zero.                 | Its mount yaw is the live turret angle, pushed every loop. IMU mode 0. |
 
 The NT names are also the cameras' hostnames, so `limelight-left.local` and friends reach them on the robot network.
 
@@ -39,7 +39,7 @@ Under that, live, is the camera's own **accelerometer** reading of its pitch aga
 3. Read the table. Two independent methods are shown:
    * **Accelerometer**: pitch (and a roll magnitude) from gravity in the camera frame. No height.
    * **Tag solve**, per tag and combined: pitch, roll and height from the camera's pose in the tag's frame. Field tags hang vertically at heights the app knows from the 2026 field layout, so the camera's optical axis against the tag's vertical is its pitch and its offset below the tag centre is its height.
-   The two should agree on pitch to about a degree. If they don't, the robot is not flat, the tag is not vertical, or a tag solve is being fooled -- look before writing.
+     The two should agree on pitch to about a degree. If they don't, the robot is not flat, the tag is not vertical, or a tag solve is being fooled -- look before writing.
 4. The **proposal** lists pitch, roll and height against what is in the Java, with the differences that matter pre-ticked. Press **Write to Vision.java**. By default the same values are also saved into the camera's pipeline so it boots correctly before the code has pushed anything.
 5. **Deploy.** The robot only pushes what it was built with.
 
@@ -60,6 +60,7 @@ Every camera reads its mount yaw back with the opposite sign to what was set: se
 Both are Limelight pipelines that estimate the robot pose from AprilTag detections. The difference matters:
 
 * **MegaTag 1 (MT1)** publishes a full `Pose3d` derived from camera intrinsics + tag geometry. It includes rotation, but a single-tag MT1 pose has high yaw ambiguity (you can't tell which way a flat square is facing from one camera frame).
+
 * **MegaTag 2 (MT2)** publishes a `Pose2d` and *requires* the robot's heading (we feed it from the gyro via `setRobotOrientation`). Because the yaw comes from the gyro, MT2 is much more stable.
 
 While **disabled**, the best chassis camera's MT1 seeds the pose, translation and heading. While **enabled**, that camera's MT1 translation and the turret camera's MT2 translation are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
