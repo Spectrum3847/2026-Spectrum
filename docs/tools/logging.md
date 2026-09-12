@@ -2,11 +2,11 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-Robot logs are the difference between "the elevator stopped working at champs and we don't know why" and "the elevator stopped working at champs, here's the CAN dropout that caused it." We use [DogLog](https://doglog.dev) for the heavy lifting and wrap it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/Telemetry.java) class to keep call sites short and add a few project-specific behaviors.
+Robot logs are the difference between "the elevator stopped working at champs and we don't know why" and "the elevator stopped working at champs, here's the CAN dropout that caused it." We use [DogLog](https://doglog.dev) for the heavy lifting and wrap it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java) class to keep call sites short and add a few project-specific behaviors.
 
 ## What Telemetry Is
 
-`frc.spectrumLib.Telemetry` extends DogLog, registers itself as a `Subsystem` so its `periodic()` runs every loop, and starts via `Telemetry.start(...)` in `Robot.java`. The start call configures DogLog options once:
+`frc.spectrumLib.telemetry.Telemetry` extends DogLog, registers itself as a `Subsystem` so its `periodic()` runs every loop, and starts via `Telemetry.start(...)` in `Robot.java`. The start call configures DogLog options once:
 
 ```java
 // frc.robot.Robot
@@ -20,11 +20,11 @@ Telemetry.start(
     /* priority      */ PrintPriority.NORMAL);
 ```
 
-Each flag maps to a `DogLogOptions` setter — toggling them changes what ends up in the `.wpilog` files on the RIO.
+Each flag maps to a `DogLogOptions` setter; toggling them changes what ends up in the `.wpilog` files on the RIO.
 
 * `ntMirror` is the starting position of the SmartDashboard switch `Telemetry/MirrorLogsToNT`, which mirrors *every* logged value to NetworkTables. It is off: on 2026-09-05 the mirror plus a NetworkTables flush every loop was a full-time job for one of the roboRIO's two cores. Flip the switch in Elastic when AdvantageScope needs the full live stream in the shop; it is forced off whenever the FMS is attached. The dashboard gets its values another way, see [What reaches the dashboard](#what-reaches-the-dashboard).
 * `captureDs` / `captureConsole` snapshot Driver Station messages and `System.out` into the log.
-* `logExtras` (PDH currents, CAN utilization, radio status) is currently off — flip to `true` when you want the extra noise for diagnostics.
+* `logExtras` (PDH currents, CAN utilization, radio status) is currently off; flip to `true` when you want the extra noise for diagnostics.
 * `tunableOnFMS` controls DogLog's NT tunables; `TuneValue` uses `SmartDashboard` (NetworkTables) regardless, so treat tunables as a practice-only policy and remove/guard them for competition.
 
 `Telemetry.logAlerts()` runs in `periodic()` and pulls anything published to NetworkTables under `SmartDashboard/Alerts` (errors, warnings, infos) into the log file with deduplication, so a flapping alert doesn't fill the disk.
@@ -33,11 +33,11 @@ Each flag maps to a `DogLogOptions` setter — toggling them changes what ends u
 
 With the mirror off, a value only appears on NetworkTables if the code publishes it on purpose. `Telemetry` has three tiers for this:
 
-| call | wpilog | NetworkTables | use for |
-|---|---|---|---|
-| `Telemetry.log(key, value)` | every call (DogLog skips unchanged values) | never | everything |
-| `Telemetry.logDash(key, value)` | every call | every fifth loop (10 Hz) | the keys an Elastic layout or the robot app shows |
-| `Telemetry.logDashAlways(key, value)` | every call | every call | dashboard keys logged on their own cadence (once at boot, once a second, the swerve alignment publisher) |
+|                 call                  |                   wpilog                   |      NetworkTables       |                                                 use for                                                  |
+|---------------------------------------|--------------------------------------------|--------------------------|----------------------------------------------------------------------------------------------------------|
+| `Telemetry.log(key, value)`           | every call (DogLog skips unchanged values) | never                    | everything                                                                                               |
+| `Telemetry.logDash(key, value)`       | every call                                 | every fifth loop (10 Hz) | the keys an Elastic layout or the robot app shows                                                        |
+| `Telemetry.logDashAlways(key, value)` | every call                                 | every call               | dashboard keys logged on their own cadence (once at boot, once a second, the swerve alignment publisher) |
 
 `Telemetry.slowLogThisLoop()` is true on the same every-fifth loop. Wrap anything that does not need 20 ms resolution in it: motor currents, temperatures, camera status, shot-calculator outputs while not launching. `Mechanism.logDiagnostics(prefix)` does this for voltage, currents, temperature and connection on every mechanism. The one exception is voltage on a mechanism whose config sets `fastOutputLogging`: that is logged every loop, and its output status frames run at the control rate, so a feedforward fit from the log has a voltage sample for every velocity sample. The turret, launcher and launcher tower set it.
 
@@ -53,28 +53,25 @@ Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
 Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
 ```
 
-That's the convention used in [`Launcher.java`](../../src/main/java/frc/robot/launcher/Launcher.java) and every other subsystem. A few things to notice:
+That's the convention used in [`Launcher.java`](../../src/main/java/frc/robot/subsystems/launcher/Launcher.java) and every other subsystem. A few things to notice:
 
 * Keys are `Subsystem/Name`. Hierarchical paths make the NT tree navigable and group cleanly in AdvantageScope.
-* The unit string (`"volts"`, `"amps"`, `"deg_C"`, `"RPM"`) is optional but worth setting — DogLog records it as metadata and AdvantageScope uses it on axis labels.
+* The unit string (`"volts"`, `"amps"`, `"deg_C"`, `"RPM"`) is optional but worth setting; DogLog records it as metadata and AdvantageScope uses it on axis labels.
 * DogLog handles all the common overloads (`double`, `boolean`, `String`, `Pose2d`, arrays). No need to convert.
 
-For values that change per loop, prefer logging inside `periodic()` over scattering log calls in command bodies — `periodic()` is the one place you know the value updates at the loop rate.
+For values that change per loop, prefer logging inside `periodic()` over scattering log calls in command bodies; `periodic()` is the one place you know the value updates at the loop rate.
 
 ## Logging Commands
 
-`Telemetry.log(Command cmd)` returns a decorated command that logs `Commands: Init: <name>` when scheduled and `Commands: End: <name>` when it ends. Every `*States` file uses it:
+`Telemetry.log(Command cmd)` returns a decorated command that logs `Commands: Init: <name>` when scheduled and `Commands: End: <name>` when it ends. Wrap a command in it wherever you want its lifecycle in the log:
 
 ```java
-// LauncherStates.java
-private static Command log(Command cmd) {
-    return Telemetry.log(cmd);
-}
+Telemetry.log(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
 ```
 
-That `log(...)` helper is a static convenience so command factories read `log(intakeFuel())` instead of `Telemetry.log(intakeFuel())`. The convention is shared across `LauncherStates`, `HoodStates`, `IntakeExtensionStates`, `PilotStates`, `IndexerTowerStates`, and so on.
+Each subsystem also logs its own currently-running command every loop in `periodic()` via `Telemetry.log("<Name>/CurrentCommand", getCurrentCommandName())`, so you can see which command owns a mechanism at any point without decorating every factory.
 
-Wrap the *outermost* command factory, not every sub-command — otherwise you get nested log lines for every internal sequence step.
+Wrap the *outermost* command factory, not every sub-command; otherwise you get nested log lines for every internal sequence step.
 
 ## Console Output
 
@@ -87,11 +84,11 @@ Telemetry.print("AUTO_SHOT_TIMEOUT_TRIGGERED", PrintPriority.HIGH);      // alwa
 
 The `PrintPriority.NORMAL` / `PrintPriority.HIGH` distinction filters console spam without dropping the log entry. `HIGH` always reaches stdout (and the Driver Station); `NORMAL` only prints if the configured priority is also `NORMAL`. Either way, the message hits the log.
 
-Use it sparingly. Anything that should be in the log but doesn't need to be on a driver's screen — sensor readings, command lifecycle — should be `log(...)`, not `print(...)`. Reserve prints for true initialization milestones and fault events.
+Use it sparingly. Anything that should be in the log but doesn't need to be on a driver's screen, such as sensor readings or command lifecycle, should be `log(...)`, not `print(...)`. Reserve prints for true initialization milestones and fault events.
 
 ## Faults
 
-`Telemetry.Fault` is a small enum of named conditions (`CAMERA_OFFLINE`, `AUTO_SHOT_TIMEOUT_TRIGGERED`, `BROWNOUT`) declared inside `Telemetry`. It's currently a *catalog* — the enum values exist so the codebase has a shared vocabulary for known failure modes, but there's no `logFault(...)` helper yet. When a known fault fires, log it as a high-priority print using the enum name: `Telemetry.print(Fault.CAMERA_OFFLINE.name(), PrintPriority.HIGH)`. Add new entries as new fault classes emerge; the post-match grep is much faster than scanning free-text strings.
+`Telemetry.Fault` is a small enum of named conditions (`CAMERA_OFFLINE`, `AUTO_SHOT_TIMEOUT_TRIGGERED`, `BROWNOUT`) declared inside `Telemetry`. It's currently a *catalog*; the enum values exist so the codebase has a shared vocabulary for known failure modes, but there's no `logFault(...)` helper yet. When a known fault fires, log it as a high-priority print using the enum name: `Telemetry.print(Fault.CAMERA_OFFLINE.name(), PrintPriority.HIGH)`. Add new entries as new fault classes emerge; the post-match grep is much faster than scanning free-text strings.
 
 ## Pulling Logs Off the RIO
 
@@ -101,13 +98,13 @@ Use it sparingly. Anything that should be in the log but doesn't need to be on a
 2. `AdvantageScope → File → Open Log...` to load a file directly off the RIO, or download via the AdvantageScope "Get logs" feature.
 3. Drag NetworkTables paths from the sidebar into the timeline.
 
-For a live session, AdvantageScope reads NetworkTables directly — start it before connecting Elastic, point it at the same robot, and it streams everything DogLog publishes.
+For a live session, AdvantageScope reads NetworkTables directly: start it before connecting Elastic, point it at the same robot, and it streams everything DogLog publishes.
 
 ## What to Log, What Not to Log
 
 Log: motor voltages and currents, sensor readings, calculated setpoints, command lifecycle, state transitions, vision pose estimates, anything you'd want to graph after a match.
 
-Don't log: anything inside a tight inner loop on every iteration (DogLog handles per-loop logging but logging the same value 50 times per loop is wasted disk). Don't log secrets — there aren't any in robot code, but the warning lives here as a reminder.
+Don't log: anything inside a tight inner loop on every iteration (DogLog handles per-loop logging but logging the same value 50 times per loop is wasted disk). Don't log secrets; there aren't any in robot code, but the warning lives here as a reminder.
 
 ## One Row Per Event
 
@@ -122,5 +119,7 @@ See [Shot Records and Trim Events](shot-log.md).
 ## See Also
 
 * [DogLog dependency page](../dependencies/doglog.md) for version, JavaDoc link, and the option flags themselves.
+
 * [Shot Records and Trim Events](shot-log.md) — the per-burst and per-trim rows, and how to join them.
+
 * [Elastic Dashboard](elastic.md) — the live NetworkTables view that reads from the same publish stream.

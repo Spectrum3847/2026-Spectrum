@@ -33,22 +33,22 @@ Written by `ShotCalculator.recordShot(boolean)`, called from `SuperStructure.upd
 the rising edge of `feedGateOpen`. That is the first loop fuel is allowed into the flywheel, and so
 the last loop on which the aim was still a prediction rather than a result.
 
-| Key | Meaning |
-| --- | --- |
-| `Index` | Bursts since boot. The pairing key. The one key here that is also on NetworkTables, so the operator can see it counting up. |
-| `TimestampSeconds` | FPGA time. |
-| `MatchTimeSeconds` | Match clock, for lining a row up against video. |
-| `DistanceMeters` | `distanceNoLookahead`: the real distance to the target, not the shoot-on-move virtual one. Bin on this. |
-| `LookaheadDistanceMeters` | The virtual-target distance the polynomial was actually evaluated at. |
-| `WantedRPM`, `ActualRPM` | Flywheel commanded and measured. |
-| `WantedHoodDeg`, `ActualHoodDeg` | Hood commanded (trim included) and measured. |
-| `TurretErrorDeg` | Measured minus commanded, matching `Turret/TrackingErrorDegrees`. `Turret/PositionError` is logged with the *opposite* sign (`Turret.java` 309), so do not mix the two. Which way in the world a positive value points is not documented on the turret; read it as a magnitude unless you have checked. |
-| `ExitSpeedMs`, `TimeOfFlightSeconds` | Straight off the polynomial. |
-| `RadialVelocityMs`, `TangentialVelocityMs` | Launcher velocity components. The model is a surface in distance and radial velocity, so a row without these cannot be checked against the fit. |
-| `Model`, `HoodModelOffsetDeg` | Which fit was in use and its own hood trim. This is `FEED_MODEL` on a feed shot, unlike `ShotCalc/HubPolyModel`, which always names the hub model. |
-| `HoodTrimDeg`, `TurretTrimDeg` | The operator's live trims at the moment of the shot. |
-| `FeedShot`, `InRange`, `PoseTrusted` | Whether it was a feed shot, whether the distance was inside the fit's range, and whether vision had accepted an estimate recently enough to believe the distance at all. |
-| `Pose` | Robot pose. |
+|                    Key                     |                                                                                                                                                 Meaning                                                                                                                                                 |
+|--------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Index`                                    | Bursts since boot. The pairing key. The one key here that is also on NetworkTables, so the operator can see it counting up.                                                                                                                                                                             |
+| `TimestampSeconds`                         | FPGA time.                                                                                                                                                                                                                                                                                              |
+| `MatchTimeSeconds`                         | Match clock, for lining a row up against video.                                                                                                                                                                                                                                                         |
+| `DistanceMeters`                           | `distanceNoLookahead`: the real distance to the target, not the shoot-on-move virtual one. Bin on this.                                                                                                                                                                                                 |
+| `LookaheadDistanceMeters`                  | The virtual-target distance the polynomial was actually evaluated at.                                                                                                                                                                                                                                   |
+| `WantedRPM`, `ActualRPM`                   | Flywheel commanded and measured.                                                                                                                                                                                                                                                                        |
+| `WantedHoodDeg`, `ActualHoodDeg`           | Hood commanded (trim included) and measured.                                                                                                                                                                                                                                                            |
+| `TurretErrorDeg`                           | Measured minus commanded, matching `Turret/TrackingErrorDegrees`. `Turret/PositionError` is logged with the *opposite* sign (`Turret.java` 309), so do not mix the two. Which way in the world a positive value points is not documented on the turret; read it as a magnitude unless you have checked. |
+| `ExitSpeedMs`, `TimeOfFlightSeconds`       | Straight off the polynomial.                                                                                                                                                                                                                                                                            |
+| `RadialVelocityMs`, `TangentialVelocityMs` | Launcher velocity components. The model is a surface in distance and radial velocity, so a row without these cannot be checked against the fit.                                                                                                                                                         |
+| `Model`, `HoodModelOffsetDeg`              | Which fit was in use and its own hood trim. This is `FEED_MODEL` on a feed shot, unlike `ShotCalc/HubPolyModel`, which always names the hub model.                                                                                                                                                      |
+| `HoodTrimDeg`, `TurretTrimDeg`             | The operator's live trims at the moment of the shot.                                                                                                                                                                                                                                                    |
+| `FeedShot`, `InRange`, `PoseTrusted`       | Whether it was a feed shot, whether the distance was inside the fit's range, and whether vision had accepted an estimate recently enough to believe the distance at all.                                                                                                                                |
+| `Pose`                                     | Robot pose.                                                                                                                                                                                                                                                                                             |
 
 **Balls per burst are not in the row.** Count them afterwards from the dips in `Launcher/RPM`,
 which is kept at loop rate for exactly this (`Launcher.java` 203).
@@ -64,16 +64,16 @@ something different.
 Written by `ShotCalculator.nudgeTrim()`, so a row exists for the D-pad and for the Start+Select
 reset, and for nothing else.
 
-| Key | Meaning |
-| --- | --- |
-| `Index` | Presses since boot. |
-| `TimestampSeconds` | FPGA time. |
-| `Axis` | `Hood` or `Turret`. |
-| `DeltaDeg` | How far the trim actually moved. Zero when it was already at `MAX_TRIM_DEG`. |
-| `ValueDeg` | The trim's new value. |
-| `Verdict` | `Short`, `Long`, `MissedCW`, `MissedCCW`, `AtLimit`, or `Reset`. |
-| `ShotIndex` | The burst this press is judging, or -1 if there has not been one. |
-| `SecondsSinceShot` | How old that burst is. Infinite if there has not been one. |
+|         Key          |                                             Meaning                                             |
+|----------------------|-------------------------------------------------------------------------------------------------|
+| `Index`              | Presses since boot.                                                                             |
+| `TimestampSeconds`   | FPGA time.                                                                                      |
+| `Axis`               | `Hood` or `Turret`.                                                                             |
+| `DeltaDeg`           | How far the trim actually moved. Zero when it was already at `MAX_TRIM_DEG`.                    |
+| `ValueDeg`           | The trim's new value.                                                                           |
+| `Verdict`            | `Short`, `Long`, `MissedCW`, `MissedCCW`, `AtLimit`, or `Reset`.                                |
+| `ShotIndex`          | The burst this press is judging, or -1 if there has not been one.                               |
+| `SecondsSinceShot`   | How old that burst is. Infinite if there has not been one.                                      |
 | `ShotDistanceMeters` | That burst's distance, denormalised onto the row so a distance-binned fit needs no join at all. |
 
 `Verdict` is named for where the ball went, not which way the trim moved: hood up means the ball

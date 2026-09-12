@@ -116,7 +116,7 @@ public abstract class Gamepad implements Subsystem {
     // Function bumper and trigger buttons
 
     /** Active when neither bumper is pressed. */
-    public Trigger noBumpers;
+    public Trigger noBumpers = kFalse;
 
     /** Active when only the left bumper is pressed. */
     public Trigger leftBumperOnly;
@@ -125,10 +125,10 @@ public abstract class Gamepad implements Subsystem {
     public Trigger rightBumperOnly;
 
     /** Active when both bumpers are pressed simultaneously. */
-    public Trigger bothBumpers;
+    public Trigger bothBumpers = kFalse;
 
     /** Active when neither analog trigger is pressed. */
-    public Trigger noTriggers;
+    public Trigger noTriggers = kFalse;
 
     /** Active when only the left trigger is pressed. */
     public Trigger leftTriggerOnly;
@@ -137,10 +137,10 @@ public abstract class Gamepad implements Subsystem {
     public Trigger rightTriggerOnly;
 
     /** Active when both analog triggers are pressed simultaneously. */
-    public Trigger bothTriggers;
+    public Trigger bothTriggers = kFalse;
 
     /** Active when no bumpers and no triggers are pressed (no modifier held). */
-    public Trigger noModifiers;
+    public Trigger noModifiers = kFalse;
 
     /** Most recently computed left-stick direction; retained when the stick returns to center. */
     private Rotation2d storedLeftStickDirection = new Rotation2d();

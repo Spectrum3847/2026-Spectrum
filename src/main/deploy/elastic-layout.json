@@ -60,14 +60,17 @@
           },
           {
             "title": "Auto Chooser",
+
             "x": 0,
             "y": 640,
             "width": 896,
             "height": 128,
             "type": "Split Button Chooser",
+
             "properties": {
               "topic": "/SmartDashboard/Auto Chooser",
-              "period": 0.06
+              "period": 0.06,
+              "sort_options": false
             }
           },
           {
@@ -195,6 +198,7 @@
             "height": 128,
             "type": "Boolean Box",
             "properties": {
+
               "topic": "/Robot/Vision/PoseHeadingSeeded",
               "period": 0.06,
               "data_type": "boolean",
@@ -264,9 +268,23 @@
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
+
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
+            }
+          },
+          {
+            "title": "CurrentSuperState",
+            "x": 640.0,
+            "y": 768.0,
+            "width": 640.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/Robot/SuperStructure/CurrentSuperState",
+              "period": 0.06,
+              "data_type": "string"
             }
           }
         ]
@@ -275,9 +293,11 @@
     {
       "name": "Match",
       "grid_layout": {
+
         "layouts": [],
         "containers": [
           {
+
             "title": "Field2d",
             "x": 0,
             "y": 0,
@@ -299,6 +319,7 @@
             }
           },
           {
+
             "title": "Shift Time",
             "x": 0,
             "y": 512,
@@ -351,6 +372,7 @@
             "y": 0,
             "width": 768,
             "height": 256,
+
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/Composite",
@@ -481,6 +503,35 @@
               "inverted": false,
               "orientation": "horizontal"
             }
+          },
+          {
+            "title": "CurrentSuperState",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/Robot/SuperStructure/CurrentSuperState",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "TimeLeftInShift",
+            "x": 384.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 384.0,
+            "type": "Match Time",
+            "properties": {
+              "topic": "/Robot/Match Data/TimeLeftInShift",
+              "period": 0.06,
+              "data_type": "double",
+              "time_display_mode": "Minutes and Seconds",
+              "red_start_time": 20,
+              "yellow_start_time": 30
+            }
           }
         ]
       }
@@ -488,7 +539,9 @@
     {
       "name": "Turret",
       "grid_layout": {
+
         "layouts": [],
+
         "containers": [
           {
             "title": "Tracking Error (deg)",
@@ -509,6 +562,7 @@
             }
           },
           {
+
             "title": "Position (deg)",
             "x": 0,
             "y": 384,
@@ -560,6 +614,7 @@
             "y": 0,
             "width": 384,
             "height": 384,
+
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight-turret",
@@ -1251,8 +1306,9 @@
       }
     },
     {
-      "name": "Diagnostic",
+      "name": "Diagnostics",
       "grid_layout": {
+
         "layouts": [],
         "containers": [
           {
@@ -1529,6 +1585,7 @@
             }
           }
         ]
+
       }
     }
   ]

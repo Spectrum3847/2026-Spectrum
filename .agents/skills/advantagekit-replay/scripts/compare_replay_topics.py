@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Compare real and replay WPILOG topic presence for replayable outputs."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import subprocess
+import tempfile
+from pathlib import Path
+
+
+DEFAULT_TOPICS = [
+    "Swerve/TeleopController/vxMPS",
+    "Swerve/TeleopController/vyMPS",
+    "Swerve/TeleopController/omegaRPS",
+    "Swerve/TeleopController/Drive Speed",
+    "Swerve/SwerveStates/Rawgyro",
+    "Swerve/Actual_Velocity",
+    "Vision/CameraPose",
+    "Visualizer/Components",
+    "SuperCalc/LookaheadPose",
+    "SuperCalc/TurretToTargetDistance",
+    "SuperCalc/TurretAngle",
+    "SuperCalc/distance",
+    "Shooter/hoodMotor/PositionSetpoint",
+    "Turret/RotationDemand",
+    "Turret/VelocityDemand",
+    "Intake/Roller Voltage Demand",
+    "Intake/Roller Velocity Demand",
+    "Intake/Extension Voltage Demand",
+    "Intake/Extension Position Demand",
+    "Intake/Extension Position Demand Clamped",
+]
+
+
+JAVA_SOURCE = r'''
+import edu.wpi.first.util.datalog.DataLogReader;
+import edu.wpi.first.util.datalog.DataLogRecord;
+import java.util.*;
+
+public class ListTopicNames {
+    public static void main(String[] args) throws Exception {
+        DataLogReader reader = new DataLogReader(args[0]);
+        Set<String> names = new TreeSet<>();
+        Iterator<DataLogRecord> iterator = reader.iterator();
+        while (true) {
+            DataLogRecord record;
+            try {
+                if (!iterator.hasNext()) break;
+                record = iterator.next();
+            } catch (RuntimeException ex) {
+                break;
+            }
+            try {
+                if (record.isStart()) {
+                    names.add(record.getStartData().name);
+                }
+            } catch (RuntimeException ex) {
+                break;
+            }
+        }
+        for (String name : names) {
+            System.out.println(name);
+        }
+    }
+}
+'''
+
+
+def wpilib_root() -> Path:
+    """Locate the local WPILib installation root directory."""
+    roots = sorted((Path.home() / "wpilib").glob("20*"), reverse=True)
+    if not roots:
+        raise SystemExit("No WPILib install found under ~/wpilib")
+    return roots[0]
+
+
+def _version_key(name: str) -> tuple[int, ...]:
+    """Produce a sort key that orders WPILib versions (alpha < beta < rc < stable)."""
+    key: list[int] = []
+    for part in name.split("."):
+        for token in re.split(r"[-_]", part):
+            if token.isdigit():
+                key.append(int(token))
+            elif token == "alpha":
+                key.append(-1)
+            elif token == "beta":
+                key.append(0)
+            elif token == "rc":
+                key.append(1)
+            else:
+                key.append(2)
+    return tuple(key + [2] * (8 - len(key)))
+
+
+def wpilib_version(root: Path) -> str:
+    """Read a WPILib Maven artifact version from the local repository."""
+    base = root / "maven/edu/wpi/first/wpiutil/wpiutil-java"
+    if not base.is_dir():
+        raise SystemExit(f"No wpiutil-java versions found in {base}")
+    versions = sorted((p.name for p in base.iterdir() if p.is_dir()), key=_version_key)
+    if not versions:
+        raise SystemExit(f"No wpiutil-java versions found in {base}")
+    return versions[-1]
+
+
+def topic_names(repo: Path, log: Path) -> set[str]:
+    """Parse topic names and types from AdvantageKit replay log output."""
+    with tempfile.TemporaryDirectory(prefix="akit-replay-topics-") as tmp:
+        tmp_path = Path(tmp)
+        source = tmp_path / "ListTopicNames.java"
+        classes = tmp_path / "classes"
+        classes.mkdir()
+        source.write_text(JAVA_SOURCE)
+        root = wpilib_root()
+        version = wpilib_version(root)
+        java_home = root / "jdk"
+        wpiutil = root / f"maven/edu/wpi/first/wpiutil/wpiutil-java/{version}/wpiutil-java-{version}.jar"
+        subprocess.run([str(java_home / "bin/javac"), "-cp", str(wpiutil), "-d", str(classes), str(source)], cwd=repo, check=True)
+        result = subprocess.run(
+            [str(java_home / "bin/java"), "-cp", os.pathsep.join([str(classes), str(wpiutil)]), "ListTopicNames", str(log)],
+            cwd=repo,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        return set(result.stdout.splitlines())
+
+
+def resolve(path: str, repo: Path) -> Path:
+    """Resolve the two WPILog files to compare from CLI arguments."""
+    output = Path(path)
+    if not output.is_absolute():
+        output = repo / output
+    if not output.is_file():
+        raise SystemExit(f"Log not found: {output}")
+    return output.resolve()
+
+
+def main() -> None:
+    """Compare topics between two AdvantageKit replay logs."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--repo", default=".", help="Robot repo root")
+    parser.add_argument("--real", required=True, help="Real robot WPILOG")
+    parser.add_argument("--replay", required=True, help="Replay WPILOG")
+    parser.add_argument("--topic", action="append", help="Replayable topic to check; defaults to known gated outputs")
+    args = parser.parse_args()
+
+    repo = Path(args.repo).resolve()
+    real_topics = topic_names(repo, resolve(args.real, repo))
+    replay_topics = topic_names(repo, resolve(args.replay, repo))
+    expected = [topic.removeprefix("/RealOutputs/").removeprefix("/ReplayOutputs/").removeprefix("/") for topic in (args.topic or DEFAULT_TOPICS)]
+
+    present_in_real = ["/RealOutputs/" + topic for topic in expected if "/RealOutputs/" + topic in real_topics]
+    missing_in_replay = ["/ReplayOutputs/" + topic for topic in expected if "/ReplayOutputs/" + topic not in replay_topics]
+
+    print(f"checked={len(expected)}")
+    print(f"presentInReal={len(present_in_real)}")
+    for topic in present_in_real:
+        print(f"real_has\t{topic}")
+    print(f"missingInReplay={len(missing_in_replay)}")
+    for topic in missing_in_replay:
+        print(f"replay_missing\t{topic}")
+
+    if missing_in_replay:
+        raise SystemExit(1)
+    print("status=ok")
+
+
+if __name__ == "__main__":
+    main()
