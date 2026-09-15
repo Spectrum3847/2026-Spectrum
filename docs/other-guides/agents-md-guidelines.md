@@ -89,6 +89,8 @@ Three pieces, all in this repo under `.claude/`:
 2. **`.claude/hooks/require-committer.sh`** runs on `PreToolUse` for `Bash`. Any command that invokes `git ... commit` without an explicit `-c user.name=` and `-c user.email=` is denied and the agent is told to ask; so is one that supplies an agent identity. There is no path to an anonymous commit. `.claude/hooks/require-committer.test.sh` is its test matrix, including the false-positive cases (`git status && echo commit` has to be left alone); run it after editing the hook.
 3. **`.claude/committers.json`** is the team roster: display name plus GitHub no-reply email. The agent reads it and offers the names as choices, so a student picks from a list instead of spelling their email.
 
+**The ask is once per session, not once per commit.** The first commit gets blocked, the agent asks, and the rest of the session reuses that answer; the next session starts over, because `session-git-identity.sh` fires again with no memory of the last one. One student per session is the normal case, and nagging them before every commit would only teach them to tune it out. Worth knowing what this does and doesn't buy you: the hook can see that an identity is *present* on the command, but not whether the agent asked you or remembered from ten minutes ago. A literal per-commit re-ask can't be enforced here — it would only ever be an instruction the agent chooses to follow. Enforced-once beats trusted-every-time.
+
 The resulting commit looks like this, and nothing on the machine is mutated, so the next student starts clean:
 
 ```sh
