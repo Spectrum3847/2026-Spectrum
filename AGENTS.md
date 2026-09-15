@@ -31,6 +31,14 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 - **Telemetry**: DogLog via `frc.spectrumLib.telemetry.Telemetry`; `TuneValue` for live tuning.
 - **Gamepads**: `Pilot.java` / `Operator.java`; bindings in `PilotStates.java` / `OperatorStates.java`.
 
+## Git, Commits, and Pull Requests
+
+Full workflow: `docs/coding-conventions/commits-pull-requests.md`. How to write these rules into a new robot repo's `AGENTS.md`: `docs/other-guides/agents-md-guidelines.md`. The three rules that govern what an agent session does, rather than what it writes:
+
+- **Ask who is committing.** Team computers are shared by several students a day, so the machine's `git config user.name` is not to be trusted. Read `.claude/committers.json`, ask the person at the keyboard which entry is theirs, and pass the identity inline: `git -c user.name="..." -c user.email="..." commit -m "..."`. Never set `git config user.name`/`user.email` (that changes the machine for the next student), and never commit under an agent or bot identity. `.claude/hooks/require-committer.sh` enforces this and will deny a commit that skips it.
+- **No agent attribution.** No `Co-Authored-By` trailer, no "generated with" line, no session URL, in commits or PR descriptions. Commits belong to the student's GitHub account. `.claude/settings.json` turns this off for Claude Code; check the equivalent setting when adding another agent.
+- **One feature per PR.** One branch, one feature, one PR, named for the feature, so a single `git revert` backs it out cleanly at an event. An unrelated fix found mid-branch gets its own branch off `main`, even a one-liner. Refactors ship separately from behavior changes. Don't open a PR unless a human asked for one.
+
 ## Skills Policy
 
 `./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07.)

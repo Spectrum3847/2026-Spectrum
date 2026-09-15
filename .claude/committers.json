@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Team roster for commit authorship on shared computers.",
+    "An agent session reads this, asks the student at the keyboard which entry is theirs,",
+    "and commits with: git -c user.name=\"<name>\" -c user.email=\"<email>\" commit -m \"...\"",
+    "",
+    "email must be the GitHub no-reply address for the account, so GitHub links the commit",
+    "to that profile without publishing a real address. Find it at GitHub -> Settings -> Emails;",
+    "it looks like 12345678+username@users.noreply.github.com.",
+    "",
+    "Add students as they join. Replace the two example entries below."
+  ],
+  "committers": [
+    {
+      "name": "EXAMPLE - replace me",
+      "github": "octocat",
+      "email": "583231+octocat@users.noreply.github.com"
+    },
+    {
+      "name": "EXAMPLE - replace me too",
+      "github": "hubot",
+      "email": "8422842+hubot@users.noreply.github.com"
+    }
+  ]
+}
