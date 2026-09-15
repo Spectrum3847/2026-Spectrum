@@ -65,6 +65,7 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 * [Exception Handling](coding-conventions/exception-handling.md): what to catch, what to let crash.
 * [Project Lombok](coding-conventions/project-lombok.md): `@Getter`, `@Setter`, `@Accessors(chain = true)`.
 * [Commits and Pull Requests](coding-conventions/commits-pull-requests.md): git workflow.
+* [Writing an AGENTS.md for a Robot Repo](other-guides/agents-md-guidelines.md): what to tell an AI coding agent, commit identity on shared computers, one-feature-per-PR.
 
 ---
 

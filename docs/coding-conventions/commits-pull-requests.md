@@ -35,10 +35,29 @@ Format:
 
 Don't commit `BuildConstants.java` changes or formatter-only churn as standalone commits unless that's all the PR is. Roll them into the substantive commit they go with.
 
+### Who You're Committing As
+
+On a team-owned laptop, five people use the same checkout in one build session. Whatever `git config user.name` is set to belongs to whoever sat down last, so check before you commit that it's you:
+
+```sh
+git config user.name
+```
+
+VS Code users: the Git Config User Profiles extension (see the README) switches this from the status bar. For a one-off commit under your own name without touching the machine's config:
+
+```sh
+git -c user.name="Your Name" -c user.email="id+you@users.noreply.github.com" commit -m "..."
+```
+
+The email has to be one GitHub recognizes as yours or the commit shows up authored by nobody. The `@users.noreply.github.com` form always works and doesn't publish your real address; find yours under **GitHub → Settings → Emails**.
+
+AI agent sessions follow the same rule, enforced rather than trusted: see [Writing an AGENTS.md for a Robot Repo](../other-guides/agents-md-guidelines.md). Agent-generated commits are authored by the student driving the session, with no bot co-author trailer.
+
 ## Pull Requests
 
 Open the PR against `main`. Before clicking *Create*:
 
+* **One feature per PR.** This is the rule we bend least. The point is removability: when a mechanism misbehaves at an event, backing out auto-aim should be one `git revert` of one squashed merge, not an hour of separating auto-aim from the LED cleanup that rode along with it. If you found an unrelated bug mid-branch, fix it on its own branch off `main`, even if it's one line. Refactors go in their own PR, separate from the behavior change they enable. If your description needs the word "also," you have two PRs.
 * **CI must pass.** A PR with a red build doesn't get reviewed. Run `./gradlew clean build` locally first; if you can't be bothered locally, CI will catch it and you'll just iterate slower.
 * **Pull `main` first.** A PR that doesn't merge cleanly is a PR that's hard to review.
 * **Self-review the diff.** Skim it before assigning a reviewer. You'll catch debug prints, commented-out code, and accidental file moves about half the time.
