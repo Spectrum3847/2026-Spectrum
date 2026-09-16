@@ -475,12 +475,10 @@ public class Limelight {
         if (!isAttached()) {
             return new RawFiducial[0];
         }
-        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name);
-        if (est == null || est.rawFiducials == null) {
-
-            return new RawFiducial[0];
-        }
-        return mt1Estimate().rawFiducials;
+        // Same per-loop snapshot as every other MegaTag1 getter; this used to do a second full
+        // NetworkTables read and parse of botpose_wpiblue on each call.
+        RawFiducial[] fiducials = mt1Estimate().rawFiducials;
+        return fiducials == null ? new RawFiducial[0] : fiducials;
     }
 
     /**

@@ -69,7 +69,12 @@ While **disabled**, the best chassis camera's MT1 seeds the pose, translation an
 
 `Vision.periodic()` runs before the command scheduler each loop. It publishes the turret-rotated camera transform and the robot heading to every camera, flushes NetworkTables once, then runs the disabled or enabled update and logs.
 
-Each estimate goes through a common rejection gate before it is fused: no target, too old, outside the field, moving too fast, target too small, or (for the turret camera) a MegaTag1 heading that disagrees with the gyro by more than a few degrees -- which, because its mount is built from the turret encoder, means the turret zero is off. Survivors are fused with standard deviations chosen per estimate from tag count and target size.
+Each estimate goes through a common rejection gate before it is fused: no target, too old, outside the field, target too small, spinning too fast, or (for the turret camera) slewing too fast or a MegaTag1 heading that disagrees with the gyro by more than a few degrees -- which, because its mount is built from the turret encoder, means the turret zero is off. MegaTag1 estimates are additionally rejected when the 3-D solve tilts the robot more than 5 deg or lifts it more than `maxZErrorMeters` off the carpet, either of which means a bad solve or a bad mount transform. Survivors are fused with standard deviations chosen per estimate from tag count and target size.
+
+Two of those gates look at history, not just the current loop:
+
+* **Yaw rate** rejects on the *peak* chassis yaw rate over the last `yawRateLookbackSeconds` (0.3 s), because a frame that arrives just after a spin stops was captured during it. The camera stamps MegaTag2 with whatever heading the robot last pushed, so a spin turns latency into heading error and heading error into translation error.
+* **Turret slew** uses `Turret.getSlewOmegaRotPerSec()`, the larger of the commanded and the measured turret velocity. The commanded value alone reads zero while `IDLE` slews the turret home at cruise, and a gate that trusted it was passing frames whose pushed mount transform lagged the image by several degrees. The turret zero trim's "turret still" test uses the same measurement.
 
 ## The turret camera and the turret zero
 

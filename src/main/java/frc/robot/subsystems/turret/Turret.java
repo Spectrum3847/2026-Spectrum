@@ -242,6 +242,23 @@ public class Turret extends Mechanism {
     @Getter private double commandedDegrees = 0;
     @Getter private double mechOmegaRotPerSec = 0;
 
+    /**
+     * How fast the turret is turning relative to the robot, in rotations per second, taking the
+     * larger of what was asked for and what the encoder measures.
+     *
+     * <p>{@link #getMechOmegaRotPerSec()} is the shoot-on-the-move feedforward: a setpoint, and one
+     * that {@code IDLE} hard-sets to zero while the turret is still slewing home at cruise. Vision
+     * gates its turret-camera estimates and its zero trim on "turret still", and a gate that read
+     * zero during a 90 deg/s slew was passing frames whose pushed mount transform lagged the image
+     * by several degrees. The measured velocity catches that; the commanded one still catches the
+     * first loop of a slew before the encoder shows it.
+     *
+     * @return the larger magnitude of the commanded and measured mechanism angular velocity
+     */
+    public double getSlewOmegaRotPerSec() {
+        return Math.max(Math.abs(mechOmegaRotPerSec), Math.abs(getVelocityRPM() / 60.0));
+    }
+
     /** Applies the states. */
     private void applyStates() {
         switch (systemState) {
