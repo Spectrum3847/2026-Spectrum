@@ -8,11 +8,11 @@ The robot uses three Limelights for AprilTag-based pose estimation. Each one pub
 
 Three Limelight 4s, named for where they sit on the bot:
 
-| Limelight  |      NT name       |                                     Where                                     |                                 Notes                                  |
-|------------|--------------------|-------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| Back-left  | `limelight-left`   | Rear-left corner panel, upside down, looking out over the corner (yaw +135).  | Chassis camera. IMU mode 1.                                            |
-| Back-right | `limelight-right`  | Rear-right corner panel, upside down, looking out over the corner (yaw -135). | Chassis camera. IMU mode 1.                                            |
-| Turret     | `limelight-turret` | On the turret, upright, facing the robot rear at turret zero.                 | Its mount yaw is the live turret angle, pushed every loop. IMU mode 0. |
+| Limelight  |      NT name       |                                     Where                                     |                                                              Notes                                                              |
+|------------|--------------------|-------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| Back-left  | `limelight-left`   | Rear-left corner panel, upside down, looking out over the corner (yaw +135).  | Chassis camera. IMU mode 1.                                                                                                     |
+| Back-right | `limelight-right`  | Rear-right corner panel, upside down, looking out over the corner (yaw -135). | Chassis camera. IMU mode 1.                                                                                                     |
+| Turret     | `limelight-turret` | On the turret, upright, facing the robot rear at turret zero.                 | Told it has no planar offset and no yaw; the robot composes the robot pose from the turret angle at the frame time. IMU mode 0. |
 
 The NT names are also the cameras' hostnames, so `limelight-left.local` and friends reach them on the robot network.
 
@@ -20,7 +20,21 @@ The NT names are also the cameras' hostnames, so `limelight-left.local` and frie
 
 Each camera's robot-relative pose is a `LimelightConfig` in [`Vision.VisionConfig`](../../src/main/java/frc/robot/subsystems/vision/Vision.java): `withTranslation(forward, right, up)` in metres and `withRotation(roll, pitch, yaw)` in degrees, in exactly the order and sign the Limelight web UI uses. Pitch is positive with the camera tilted up; an upside-down camera has roll 180.
 
-**The Java is the source of truth, not the camera.** `Vision.sendCameraSettings()` writes those six numbers to each chassis camera over NetworkTables every couple of seconds (and `updateTurretCameraPose()` writes the turret's every loop), so whatever is typed into a camera's web UI survives about that long. Change the mount, change the Java.
+**The Java is the source of truth, not the camera.** `Vision.sendCameraSettings()` writes those six numbers to each chassis camera over NetworkTables every couple of seconds, so whatever is typed into a camera's web UI survives about that long. Change the mount, change the Java. The turret camera is different: it is sent zero forward, zero right and zero yaw with its real height, roll and pitch, because its planar offset and yaw change with the turret and are applied on the robot instead (next section).
+
+## The turret camera
+
+A camera on the turret has a robot-to-camera transform that changes every loop. The camera's solve is for the frame it captured, and the turret angle that belongs with it is the one the turret had *then*, not when the solve arrives 30 to 60 ms later. At 90 deg/s those differ by several degrees, and until 2026-09-15 the robot pushed the live transform to the camera every loop, so the camera applied a transform several degrees stale to every frame taken while the turret was moving and the reported pose moved by range times the lag.
+
+Now the turret camera is told it sits on the robot centre with no yaw, so its `botpose` is its own floor-projected position and heading. `Turret` keeps a two-second `TimeInterpolatableBuffer` of its latency-compensated angle against FPGA time (`Turret.getAngleAt`), and `Vision.solveTurretCamera()` composes the robot pose from the botpose, the turret angle at the frame's timestamp and the gyro heading at that time. The maths is in [`TurretCameraGeometry`](../../src/main/java/frc/robot/subsystems/vision/TurretCameraGeometry.java), which is a pure class with a unit test proving the inverse undoes the forward model. The gyro heading, not the camera's, un-rotates the 0.138 m lever arm from camera to robot centre, so the recovered translation does not inherit the camera's single-tag heading noise; at that arm length even a 5 deg error is 12 mm.
+
+The heading error that drives the turret zero trim is computed the same way, camera-implied robot heading minus gyro heading at the frame time, so it no longer contains the transform lag either. The turret angle history is stored net of zero corrections and the current correction total is added back on lookup, so a frame captured just before a trim step is read in the corrected zero.
+
+A frame whose timestamp has no turret angle in the history is rejected (`No Turret Angle At Frame Rejection`, logged at `Vision/TurretLL/AngleMissingAtFrame`), not solved with a guess. 341 and 581 both arrived at this same design in 2026; 341's fallback to an identity transform on a missing sample is the one part not copied.
+
+`Vision/TurretRioTransform` on the dashboard turns this off and restores the old scheme (push the live transform, fuse the camera's MegaTag2) for comparison at an event. Flipping it re-sends the camera's mount immediately. `Vision/TurretLL/RioTransform` in the log says which mode was active. Note that in the default mode `Vision/TurretLL/MT1Pose` is the camera's floor pose, not a robot pose; `Vision/TurretLL/RobotPose` is the composed robot pose, and it is what the Field2d turret marker shows.
+
+The robot app's Cameras page compares the turret camera's mount against `Vision.java` and will show forward and yaw as zero on the camera; that is correct for this camera. Height, roll and pitch still have to match, and the Measure mount procedure still applies to them.
 
 The MegaTag pose maths is only as good as this transform. On 2026-09-07 all three cameras turned out to be mounted at about 30 deg above horizontal while the code said 60 -- the angle had been read off the wrong side of a 90-degree bracket -- and every pose the cameras reported was displaced accordingly. The fix, and the way to keep it fixed, is the robot app's Cameras page.
 
@@ -69,7 +83,7 @@ The reason for the switch: MT1's translation moves with its own heading solve, a
 
 `Vision/ChassisUseMT2` on the dashboard turns the switch off, which falls the chassis cameras back to MT1 for the whole enabled period. It exists so the two can be compared at an event without a deploy; `Vision/ChassisSource` in the log says which one every estimate came from.
 
-While **enabled**, both chassis cameras' translations (MT2 or MT1 as above) and the turret camera's MT2 translation are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
+While **enabled**, both chassis cameras' translations (MT2 or MT1 as above) and the turret camera's composed MegaTag1 translation (see [The turret camera](#the-turret-camera)) are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
 
 ## How Estimates Flow Into the Pose Estimator
 
@@ -77,7 +91,7 @@ While **enabled**, both chassis cameras' translations (MT2 or MT1 as above) and 
 
 Only the best chassis camera (most tags, then largest target) seeds while disabled, and only its MegaTag1 heading feeds the gross and consensus heading corrections. While enabled every chassis camera that passes the gates is fused; the estimator weights each by the standard deviation its tier assigns, so a one-tag camera on one corner does not drown out a three-tag camera on the other.
 
-Each estimate goes through a common rejection gate before it is fused: no target, too old, outside the field, target too small, spinning too fast, or (for the turret camera) slewing too fast or a MegaTag1 heading that disagrees with the gyro by more than a few degrees -- which, because its mount is built from the turret encoder, means the turret zero is off. MegaTag1 estimates are additionally rejected when the 3-D solve tilts the robot more than 5 deg or lifts it more than `maxZErrorMeters` off the carpet, either of which means a bad solve or a bad mount transform. Survivors are fused with standard deviations chosen per estimate from tag count and target size.
+Each estimate goes through a common rejection gate before it is fused: no target, too old, outside the field, target too small, spinning too fast, or (for the turret camera) slewing too fast, no turret angle recorded for the frame time, or an implied robot heading that disagrees with the gyro by more than a few degrees -- which, because that heading is built from the turret encoder, means the turret zero is off. MegaTag1 estimates are additionally rejected when the 3-D solve tilts the robot more than 5 deg or lifts it more than `maxZErrorMeters` off the carpet, either of which means a bad solve or a bad mount transform. Survivors are fused with standard deviations chosen per estimate from tag count and target size.
 
 Two of those gates look at history, not just the current loop:
 
@@ -86,7 +100,7 @@ Two of those gates look at history, not just the current loop:
 
 ## The turret camera and the turret zero
 
-The turret has no absolute reference, so its zero is wherever it pointed at power-on. The turret camera measures the error directly: its mount transform is built from the turret encoder, so a steady disagreement between its MegaTag1 heading and the pose heading *is* the encoder error. `Vision` trims the zero a fraction of a degree at a time for slip, and re-homes it in one step when the error is gross and steady. The robot app's **Turret** page shows the history.
+The turret has no absolute reference, so its zero is wherever it pointed at power-on. The turret camera measures the error directly: the robot heading it implies is built from the turret encoder, so a steady disagreement between that and the pose heading *is* the encoder error. `Vision` trims the zero a fraction of a degree at a time for slip, and re-homes it in one step when the error is gross and steady. The robot app's **Turret** page shows the history.
 
 ## Adjusting Limelight Settings
 
