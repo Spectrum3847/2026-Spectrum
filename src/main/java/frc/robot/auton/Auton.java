@@ -52,6 +52,10 @@ public class Auton {
         pathChooser.addOption("OSRIPPOFF Right", OSRIPPOFF(true));
         pathChooser.addOption("2MANOSTBTB Left", TWOMANOSTBTB(false));
         pathChooser.addOption("2MANOSTBTB Right", TWOMANOSTBTB(true));
+        pathChooser.addOption("OSCENT Left", OSCENT(false));
+        pathChooser.addOption("OSCENT Right", OSCENT(true));
+        pathChooser.addOption("OSCENTOT Left", OSCENTOT(false));
+        pathChooser.addOption("OSCENTOT Right", OSCENTOT(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
@@ -116,6 +120,17 @@ public class Auton {
                 .withName("2MANOSTBTB FULL - " + (mirrored ? "Right" : "Left"));
     }
 
+    public Command OSCENT(boolean mirrored) {
+        return Commands.sequence(SpectrumAuton("OSCENT Full", mirrored), launchAndIntake())
+                .withName("OSCENT Full -" + (mirrored ? "Right" : "Left"));
+    }
+
+    public Command OSCENTOT(boolean mirrored) {
+        return Commands.sequence(SpectrumAuton("OSCENTOT Full", mirrored), launchAndIntake())
+                .withName("OSCENTOT Full -" + (mirrored ? "Right" : "Left"));
+    }
+
+    // Allows Robot to continue shooting even after path has been completed--at a stand still
     public Command launchAndIntake() {
         return new InstantCommand(
                 () -> {

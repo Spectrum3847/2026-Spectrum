@@ -112,12 +112,28 @@
     },
     {
       "anchor": {
-        "x": 1.635,
+        "x": 3.954042933810376,
         "y": 5.5
       },
       "prevControl": {
-        "x": 2.6523408239700377,
-        "y": 5.488455056179776
+        "x": 4.729379212140374,
+        "y": 5.5
+      },
+      "nextControl": {
+        "x": 3.2447532969656665,
+        "y": 5.5
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 0.595384615384615,
+        "y": 5.925259391771019
+      },
+      "prevControl": {
+        "x": 2.7134678244418082,
+        "y": 5.925259391771019
       },
       "nextControl": null,
       "isLocked": false,
@@ -142,7 +158,7 @@
       "rotationDegrees": 180.0
     },
     {
-      "waypointRelativePos": 6.721939640556105,
+      "waypointRelativePos": 7.45,
       "rotationDegrees": 180.0
     }
   ],
@@ -165,8 +181,21 @@
       "minWaypointRelativePos": 0,
       "maxWaypointRelativePos": 1.9833333333333305,
       "constraints": {
-        "maxVelocity": 1.25,
-        "maxAcceleration": 4.5,
+        "maxVelocity": 1.5,
+        "maxAcceleration": 3.0,
+        "maxAngularVelocity": 360.0,
+        "maxAngularAcceleration": 360.0,
+        "nominalVoltage": 10.0,
+        "unlimited": false
+      }
+    },
+    {
+      "name": "Constraints Zone",
+      "minWaypointRelativePos": 7.1238095238095225,
+      "maxWaypointRelativePos": 8.0,
+      "constraints": {
+        "maxVelocity": 1.0,
+        "maxAcceleration": 1.0,
         "maxAngularVelocity": 360.0,
         "maxAngularAcceleration": 360.0,
         "nominalVoltage": 10.0,
@@ -196,19 +225,19 @@
     },
     {
       "name": "shotPrep",
-      "waypointRelativePos": 6.4523809523809526,
+      "waypointRelativePos": 6.9,
       "endWaypointRelativePos": null,
       "command": null
     },
     {
       "name": "poseUpdate",
-      "waypointRelativePos": 6.499999999999997,
-      "endWaypointRelativePos": 7.0,
+      "waypointRelativePos": 7.0,
+      "endWaypointRelativePos": 8.0,
       "command": null
     },
     {
       "name": "shoot",
-      "waypointRelativePos": 6.614330462020353,
+      "waypointRelativePos": 7.25,
       "endWaypointRelativePos": null,
       "command": null
     }
@@ -223,7 +252,7 @@
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 130.0
+    "rotation": 180.0
   },
   "reversed": false,
   "folder": "OSCENT",
