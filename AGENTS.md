@@ -41,8 +41,6 @@ Full workflow: `docs/coding-conventions/commits-pull-requests.md`. How to write 
 
 ## Skills Policy
 
-<!-- TODO: claude code needs .agents/skills symlinked to .claude/skills. also, I (@project516) removed the current skills, because I stole them from other teams. Skills are best made tailor made for the project. We should make our own skills if needed. -->
-
 `./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07.)
 - New skills must describe our real classes/topics, never generic donor code. Verify names against `src/main/java` and `docs/`.
 - To keep a skill from loading across all agents (opencode, Claude Code, etc.), rename its `SKILL.md` → `SKILL.md.disabled` instead of editing frontmatter. Leave the directory's other files in place.
