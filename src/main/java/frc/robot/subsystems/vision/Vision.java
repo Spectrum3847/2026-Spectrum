@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.rebuilt.Field;
@@ -49,10 +50,12 @@ import lombok.Getter;
  *   <li>Publishes the turret-rotated camera transform ({@link #updateTurretCameraPose()}) and the
  *       robot heading to every camera, then flushes NetworkTables so they solve this frame.
  *   <li>Picks the best chassis camera ({@link #getBestLimelight()}). While disabled it seeds the
- *       pose (translation and heading) from that camera's MT1 only. While enabled it fuses that
- *       camera's MT1 translation and the turret camera's MT2 translation ({@link
- *       #getMT2VisionEstimate(Limelight)}), never heading, unless the gross-heading safety net
- *       fires ({@link #checkGrossHeadingError(Limelight)}).
+ *       pose (translation and heading) from that camera's MT1 only, and watches for that seed to
+ *       hold steady long enough to be trusted ({@link #trackSeedConfirmation(Limelight)}). While
+ *       enabled it fuses that camera's translation, from MT2 once the seed is confirmed and from
+ *       MT1 until then ({@link #chassisUsesMt2()}), plus the turret camera's MT2 translation
+ *       ({@link #getMT2VisionEstimate(Limelight)}), never heading, unless the gross-heading safety
+ *       net fires ({@link #checkGrossHeadingError(Limelight)}).
  *   <li>Logs camera status and pose data via {@link VisionLogger}.
  * </ol>
  *
@@ -258,6 +261,39 @@ public class Vision implements Subsystem {
         @Getter final double grossHeadingHoldSeconds = 1.0;
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
+
+        // -- Chassis camera source while enabled --------------------------------
+        //
+        // MegaTag1 solves heading from tag geometry and its translation moves with that heading:
+        // at two tags the heading has a 15 deg tail (see grossHeadingErrorDeg), which at three
+        // metres is a quarter metre of translation. MegaTag2 pins the heading to the one the robot
+        // pushes and solves translation alone, so it is far steadier while moving -- but it is
+        // only as good as the pushed heading. So the chassis cameras fuse MT1 until the disabled
+        // seeding has put a heading in the pose that has held still long enough to be believed,
+        // and MT2 after that. Heading is never fused from either while enabled.
+
+        /**
+         * Dashboard key for the MT2 switch, so the two sources can be compared at an event without
+         * a deploy. False falls back to MT1 translation for the whole enabled period, which is what
+         * the code did before 2026-09-15.
+         */
+        @Getter final String chassisMt2DashboardKey = "Vision/ChassisUseMT2";
+
+        @Getter final boolean chassisMt2Default = true;
+
+        /**
+         * Consecutive disabled loops (about 50 Hz) in which the best chassis camera must have
+         * seeded the pose from two or more tags, with its heading holding within {@link
+         * #getSeedConfirmSpreadDeg()}, before the seed counts as confirmed. One second.
+         */
+        @Getter final int seedConfirmLoops = 50;
+
+        /**
+         * Peak-to-peak spread (degrees) the MegaTag1 heading may show across the confirmation run.
+         * Four-tag heading holds to about a degree; a two-tag run that wanders past this is the
+         * geometry noise this exists to wait out, and the run starts over.
+         */
+        @Getter final double seedConfirmSpreadDeg = 3.0;
 
         // -- Per-estimate rejection gates ---------------------------------------
 
@@ -652,6 +688,7 @@ public class Vision implements Subsystem {
             limelight.setLEDMode(false);
         }
         sendCameraSettings();
+        SmartDashboard.putBoolean(config.getChassisMt2DashboardKey(), config.isChassisMt2Default());
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
@@ -707,8 +744,7 @@ public class Vision implements Subsystem {
      * change, and "integrated this loop" is a per-loop truth. Everything that moves every frame
      * (poses, tag count, target size, estimate age, the Field2d camera markers) is logged at 10 Hz.
      * This ran 30 log calls, three MegaTag2 parses and three Field2d updates every loop and took a
-     * median 4.5 ms of a 20 ms budget on 2026-09-05; only the turret camera's MegaTag2 estimate is
-     * ever fused, so only it pays for the parse now.
+     * median 4.5 ms of a 20 ms budget on 2026-09-05.
      */
     public void logTelemetry() {
         correctTurretZero();
@@ -732,7 +768,9 @@ public class Vision implements Subsystem {
             logger.getEstimateAge();
             logger.logMountCheck();
         }
-        turretLogger.getMegaPose();
+        for (VisionLogger logger : allLoggers) {
+            logger.getMegaPose();
+        }
         Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
 
         // Null-safe; returns Pose2d.kZero when no data
@@ -844,6 +882,9 @@ public class Vision implements Subsystem {
             integrateSingleEstimate(best, getMT1Estimate(best, true));
             if (best.isIntegratedThisLoop()) {
                 poseHeadingSeeded = true;
+                trackSeedConfirmation(best);
+            } else {
+                seedConfirmStreak = 0;
             }
         }
 
@@ -851,17 +892,100 @@ public class Vision implements Subsystem {
         // the gross heading correction is the thing that has to save it.
         notSeededAlert.set(!poseHeadingSeeded && Util.disabled.getAsBoolean());
         Telemetry.logDash("Vision/PoseHeadingSeeded", poseHeadingSeeded);
+        Telemetry.logDash("Vision/PoseSeedConfirmed", poseSeedConfirmed);
+        Telemetry.log("Vision/SeedConfirmProgress", seedConfirmStreak);
     }
 
     /**
-     * While the robot is enabled (teleop or auto pose-update), fuses the best chassis camera's MT1
-     * translation and the turret camera's MT2 translation, then runs the gross-heading safety net.
+     * True once the disabled seed has held still long enough to be trusted: {@link
+     * VisionConfig#getSeedConfirmLoops()} consecutive seeded loops from two or more tags with the
+     * camera's heading within {@link VisionConfig#getSeedConfirmSpreadDeg()} peak to peak. This is
+     * the switch from MT1 to MT2 for the chassis cameras while enabled. {@link #poseHeadingSeeded}
+     * says a heading has been written; this says it was the same heading for a second.
+     *
+     * <p>Also set by the gross heading correction, since a pose whose heading vision just reset
+     * from a multi-tag solve is in the same position as a confirmed seed.
+     */
+    @Getter private boolean poseSeedConfirmed = false;
+
+    private int seedConfirmStreak = 0;
+    private Rotation2d seedConfirmHeadingRef = Rotation2d.kZero;
+    private double seedConfirmSpreadLow = 0;
+    private double seedConfirmSpreadHigh = 0;
+
+    /**
+     * Advances or resets the seed-confirmation run with this loop's seeded frame. Same shape as the
+     * turret re-home's agreement check: the run ends the moment a sample would widen its spread
+     * past the gate, because a real heading reads the same every frame and a two-tag guess does
+     * not. Headings are compared relative to the run's first sample so the wrap at 180 deg cannot
+     * split a run.
+     *
+     * @param best the chassis camera that seeded the pose this loop
+     */
+    private void trackSeedConfirmation(Limelight best) {
+        if (poseSeedConfirmed || !best.multipleTagsInView()) {
+            seedConfirmStreak = 0;
+            return;
+        }
+        Rotation2d heading = best.getMegaTag1_Pose3d().toPose2d().getRotation();
+        if (seedConfirmStreak == 0) {
+            seedConfirmHeadingRef = heading;
+            seedConfirmSpreadLow = 0;
+            seedConfirmSpreadHigh = 0;
+        }
+        double d = heading.minus(seedConfirmHeadingRef).getDegrees();
+        double low = Math.min(seedConfirmSpreadLow, d);
+        double high = Math.max(seedConfirmSpreadHigh, d);
+        if (high - low > config.getSeedConfirmSpreadDeg()) {
+            seedConfirmHeadingRef = heading;
+            seedConfirmStreak = 0;
+            low = 0;
+            high = 0;
+        }
+        seedConfirmSpreadLow = low;
+        seedConfirmSpreadHigh = high;
+        seedConfirmStreak++;
+
+        if (seedConfirmStreak >= config.getSeedConfirmLoops()) {
+            poseSeedConfirmed = true;
+            Telemetry.print(
+                    String.format(
+                            "Vision: pose seed confirmed from %s (%d tags, %.1f deg spread over"
+                                    + " %d loops); chassis cameras will fuse MegaTag2 while"
+                                    + " enabled.",
+                            best.getName(),
+                            (int) best.getTagCountInView(),
+                            high - low,
+                            seedConfirmStreak));
+        }
+    }
+
+    /**
+     * Whether the chassis cameras should fuse MegaTag2 translation this loop: the seed must be
+     * confirmed and the dashboard switch on. Logged so a log shows which source every estimate came
+     * from.
+     */
+    private boolean chassisUsesMt2() {
+        boolean useMt2 =
+                poseSeedConfirmed
+                        && SmartDashboard.getBoolean(
+                                config.getChassisMt2DashboardKey(), config.isChassisMt2Default());
+        Telemetry.log("Vision/ChassisSource", useMt2 ? "MT2" : "MT1");
+        return useMt2;
+    }
+
+    /**
+     * While the robot is enabled (teleop or auto pose-update), fuses the best chassis camera's
+     * translation (MT2 once the seed is confirmed, MT1 before that) and the turret camera's MT2
+     * translation, then runs the gross-heading safety net.
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
             Limelight best = getBestLimelight();
             markUnselectedLimelights(best);
-            integrateSingleEstimate(best, getMT1Estimate(best, false));
+            integrateSingleEstimate(
+                    best,
+                    chassisUsesMt2() ? getMT2VisionEstimate(best) : getMT1Estimate(best, false));
 
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(turretLL, getMT2VisionEstimate(turretLL));
@@ -939,6 +1063,8 @@ public class Vision implements Subsystem {
                             VecBuilder.fill(0.01, 0.01, Units.degreesToRadians(0.01)));
             grossHeadingErrorStartFpgaSeconds = Double.NaN;
             applied = true;
+            // The heading was just set from a stationary multi-tag solve: as good as a seed.
+            poseSeedConfirmed = true;
             Telemetry.print(
                     String.format(
                             "Vision: gross heading error of %.1f deg corrected from %s",
@@ -1689,11 +1815,13 @@ public class Vision implements Subsystem {
 
     /**
      * Builds a MegaTag2 (heading-fused) pose estimate for a Limelight. MT2 heading is always
-     * discarded (set to {@link VisionConfig#getKLargeVariance()}), since under IMU mode 0 it is
-     * only the heading we pushed in; only its translation is fused. Today this is used for the
-     * turret camera while enabled: its mount transform is pushed every loop with the live turret
-     * angle, so its MT2 translation is a robot pose that leans on the gyro heading rather than on a
-     * single-tag heading solve.
+     * discarded (set to {@link VisionConfig#getKLargeVariance()}), since it is only the heading we
+     * pushed in; only its translation is fused. Used for the turret camera while enabled, and for
+     * the chassis cameras once the seed is confirmed ({@link #chassisUsesMt2()}).
+     *
+     * <p>The tilt and height gates read the same frame's MegaTag1 3-D solve, because MT2 only
+     * publishes a 2-D pose: a camera that has been knocked, or a solve that has gone wrong, shows
+     * up there whichever estimate is being fused.
      *
      * @param ll the Limelight to query
      * @return a {@link VisionFieldPoseEstimate}, or {@code null} if rejected
@@ -1720,6 +1848,17 @@ public class Vision implements Subsystem {
                         .getDistance(megaTag2Pose2d.getTranslation());
 
         if (rejectionCheck(ll, megaTag2Pose2d, targetSize)) {
+            return null;
+        }
+
+        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
+        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > Math.toRadians(5)
+                || Math.abs(megaTag1Pose3d.getRotation().getY()) > Math.toRadians(5)) {
+            ll.sendInvalidStatus("Roll/Pitch Rejection");
+            return null;
+        }
+        if (Math.abs(megaTag1Pose3d.getZ()) > config.getMaxZErrorMeters()) {
+            ll.sendInvalidStatus("Height Rejection");
             return null;
         }
 

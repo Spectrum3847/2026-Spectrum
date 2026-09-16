@@ -63,7 +63,13 @@ Both are Limelight pipelines that estimate the robot pose from AprilTag detectio
 
 * **MegaTag 2 (MT2)** publishes a `Pose2d` and *requires* the robot's heading (we feed it from the gyro via `setRobotOrientation`). Because the yaw comes from the gyro, MT2 is much more stable.
 
-While **disabled**, the best chassis camera's MT1 seeds the pose, translation and heading. While **enabled**, that camera's MT1 translation and the turret camera's MT2 translation are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
+While **disabled**, the best chassis camera's MT1 seeds the pose, translation and heading. While it does, `Vision` watches for the seed to *hold*: `seedConfirmLoops` consecutive seeded loops from two or more tags with the camera's heading inside `seedConfirmSpreadDeg`. When that happens `Vision/PoseSeedConfirmed` goes true (there is a progress counter at `Vision/SeedConfirmProgress`), and from then on the chassis cameras fuse **MT2** translation while enabled. Until then they fuse MT1 translation, which does not depend on the pushed heading being right. The gross-heading correction also confirms the seed, since it has just put a multi-tag heading in the pose.
+
+The reason for the switch: MT1's translation moves with its own heading solve, and at two tags that heading has a 15 deg tail, which at three metres is a quarter metre sideways. MT2 pins heading to the gyro and solves translation alone, so it is far steadier on the move, but it is worthless if the pushed heading is wrong, which is exactly the case before seeding.
+
+`Vision/ChassisUseMT2` on the dashboard turns the switch off, which falls the chassis cameras back to MT1 for the whole enabled period. It exists so the two can be compared at an event without a deploy; `Vision/ChassisSource` in the log says which one every estimate came from.
+
+While **enabled**, the chassis camera's translation (MT2 or MT1 as above) and the turret camera's MT2 translation are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
 
 ## How Estimates Flow Into the Pose Estimator
 
