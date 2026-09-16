@@ -191,7 +191,7 @@
             }
           },
           {
-            "title": "Heading Seeded",
+            "title": "Pose Seed Confirmed",
             "x": 1536,
             "y": 640,
             "width": 256,
@@ -199,7 +199,7 @@
             "type": "Boolean Box",
             "properties": {
 
-              "topic": "/Robot/Vision/PoseHeadingSeeded",
+              "topic": "/Robot/Vision/PoseSeedConfirmed",
               "period": 0.06,
               "data_type": "boolean",
               "true_color": 4283215696,

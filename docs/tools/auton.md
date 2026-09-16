@@ -40,7 +40,7 @@ PathPlanner stores its data in [`src/main/deploy/pathplanner/`](../../src/main/d
 
 ## Event Markers
 
-Every meaningful behavior during an auto routine fires from an event marker, not from a hand-coded `waitSeconds(...)`. The flow is:
+Every meaningful behavior during an auto routine fires from an event marker, not from a hand-coded `waitSeconds(...)`. There is no wait in front of the routine either: each `PathPlannerAuto` is built at boot, so PathPlanner has already generated and cached its trajectories, and the first path command starts driving in the first scheduler loop of auto. The one thing that can slow that down is a pose heading more than 30 deg from the path's starting heading, which makes PathPlanner regenerate the trajectory on the spot; the Pre-Match tab's **Pose Seed Confirmed** box (and the matching DS alert) says whether vision has settled the heading before the match starts. The flow is:
 
 1. In PathPlanner, drop a marker on the path and name it (`intake`, `shotPrep`, `shoot`, …).
 2. `Auton.java` declares a matching `public static final EventTrigger autonIntake = new EventTrigger("intake");` etc.
