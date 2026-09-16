@@ -69,11 +69,13 @@ The reason for the switch: MT1's translation moves with its own heading solve, a
 
 `Vision/ChassisUseMT2` on the dashboard turns the switch off, which falls the chassis cameras back to MT1 for the whole enabled period. It exists so the two can be compared at an event without a deploy; `Vision/ChassisSource` in the log says which one every estimate came from.
 
-While **enabled**, the chassis camera's translation (MT2 or MT1 as above) and the turret camera's MT2 translation are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
+While **enabled**, both chassis cameras' translations (MT2 or MT1 as above) and the turret camera's MT2 translation are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
 
 ## How Estimates Flow Into the Pose Estimator
 
 `Vision.periodic()` runs before the command scheduler each loop. It publishes the turret-rotated camera transform and the robot heading to every camera, flushes NetworkTables once, then runs the disabled or enabled update and logs.
+
+Only the best chassis camera (most tags, then largest target) seeds while disabled, and only its MegaTag1 heading feeds the gross and consensus heading corrections. While enabled every chassis camera that passes the gates is fused; the estimator weights each by the standard deviation its tier assigns, so a one-tag camera on one corner does not drown out a three-tag camera on the other.
 
 Each estimate goes through a common rejection gate before it is fused: no target, too old, outside the field, target too small, spinning too fast, or (for the turret camera) slewing too fast or a MegaTag1 heading that disagrees with the gyro by more than a few degrees -- which, because its mount is built from the turret encoder, means the turret zero is off. MegaTag1 estimates are additionally rejected when the 3-D solve tilts the robot more than 5 deg or lifts it more than `maxZErrorMeters` off the carpet, either of which means a bad solve or a bad mount transform. Survivors are fused with standard deviations chosen per estimate from tag count and target size.
 
