@@ -50,18 +50,18 @@ public class Auton {
 
         pathChooser.setDefaultOption("Do Nothing", doNothing());
 
-        pathChooser.addOption("OSTBTB Left", OSTBTB(false));
-        pathChooser.addOption("OSTBTB Right", OSTBTB(true));
-        pathChooser.addOption("OSRIPPOFF Left", OSRIPPOFF(false));
-        pathChooser.addOption("OSRIPPOFF Right", OSRIPPOFF(true));
-        pathChooser.addOption("2MANOSTBTB Left", TWOMANOSTBTB(false));
-        pathChooser.addOption("2MANOSTBTB Right", TWOMANOSTBTB(true));
-        pathChooser.addOption("OSCENT Left", OSCENT(false));
-        pathChooser.addOption("OSCENT Right", OSCENT(true));
-        pathChooser.addOption("OSCENTOT Left", OSCENTOT(false));
-        pathChooser.addOption("OSCENTOT Right", OSCENTOT(true));
-        pathChooser.addOption("OSRIPPOFF CUTOFF Left", OSRIPOFF_CUTOFF(false));
-        pathChooser.addOption("OSRIPPOFF CUTOFF Right", OSRIPOFF_CUTOFF(true));
+        pathChooser.addOption("Double Swipe Left", OSTBTB(false));
+        pathChooser.addOption("Double Swipe Right", OSTBTB(true));
+        pathChooser.addOption("Single Swipe with Depot Left", OSRIPPOFF(false));
+        pathChooser.addOption("Single Swipe with Depot Right", OSRIPPOFF(true));
+        pathChooser.addOption("2nd Double Swipe Left", TWOMANOSTBTB(false));
+        pathChooser.addOption("2nd Double Swipe Right", TWOMANOSTBTB(true));
+        pathChooser.addOption("Center 1 Swipe Left", OSCENT(false));
+        pathChooser.addOption("Center 1 Swipe Right", OSCENT(true));
+        pathChooser.addOption("Center to Depot Left", OSCENTOT(false));
+        pathChooser.addOption("Center to Depot Right", OSCENTOT(true));
+        pathChooser.addOption("Single Swipe with Depot Cutoff Left", OSRIPOFF_CUTOFF(false));
+        pathChooser.addOption("Single Swipe with Depot Cutoff Right", OSRIPOFF_CUTOFF(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
@@ -103,19 +103,19 @@ public class Auton {
     }
 
     public Command OSTBTB(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSTBTB Full", mirrored))
+        return Commands.sequence(SpectrumAuton("OSTBTB FULL", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("OSTBTB Full - " + (mirrored ? "Right" : "Left"));
+                .withName("OSTBTB FULL - " + (mirrored ? "Right" : "Left"));
     }
 
     public Command OSRIPPOFF(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
+        return Commands.sequence(SpectrumAuton("OSRIPPOFF FULL", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("OSRIPPOFF Full - " + (mirrored ? "Right" : "Left"));
+                .withName("OSRIPPOFF FULL - " + (mirrored ? "Right" : "Left"));
     }
 
     // Named TWOMANOSTBTB because Java identifiers can't start with a digit; the auto file it loads
