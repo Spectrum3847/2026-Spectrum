@@ -90,6 +90,17 @@ Use it sparingly. Anything that should be in the log but doesn't need to be on a
 
 `Telemetry.Fault` is a small enum of named conditions (`CAMERA_OFFLINE`, `AUTO_SHOT_TIMEOUT_TRIGGERED`, `BROWNOUT`) declared inside `Telemetry`. It's currently a *catalog*; the enum values exist so the codebase has a shared vocabulary for known failure modes, but there's no `logFault(...)` helper yet. When a known fault fires, log it as a high-priority print using the enum name: `Telemetry.print(Fault.CAMERA_OFFLINE.name(), PrintPriority.HIGH)`. Add new entries as new fault classes emerge; the post-match grep is much faster than scanning free-text strings.
 
+## Fast Triage Between Matches
+
+When something went wrong in a match and the next one is in ten minutes, do not start in AdvantageScope. Run the triage script from the `fast-log-triage` agent skill on the match log; it makes one pass over the file and prints a ranked list of likely causes with timestamps, what to check on the robot, and what it ruled out:
+
+```sh
+.agents/skills/fast-log-triage/scripts/pull_rio_logs.sh -n 1 ./rio-logs   # copy the newest log off the RIO
+python3 .agents/skills/fast-log-triage/scripts/triage_wpilog.py ./rio-logs  # rank the suspects
+```
+
+It needs only Python 3; no WPILib install or Java. It checks motor disconnects, brownouts and battery dips, loop overruns and CPU, code stalls, console errors and `Alerts`, setpoint tracking for the launcher, hood and turret, stall counters, state-machine and shot-ready gates, vision trust and pose jumps, and auto start placement. The skill page (`.agents/skills/fast-log-triage/SKILL.md`) lists every topic and threshold and maps drive-team symptoms to findings. Use it, or ask an agent to, before the slower topic-by-topic decoding in the `wpilog-decode` skill.
+
 ## Pulling Logs Off the RIO
 
 `.wpilog` files land in `/U/logs/` on the roboRIO. There's an [AdvantageScope](https://docs.advantagescope.org) tool for downloading and analyzing them; the workflow:
@@ -123,3 +134,5 @@ See [Shot Records and Trim Events](shot-log.md).
 * [Shot Records and Trim Events](shot-log.md) — the per-burst and per-trim rows, and how to join them.
 
 * [Elastic Dashboard](elastic.md) — the live NetworkTables view that reads from the same publish stream.
+
+* `.agents/skills/fast-log-triage/SKILL.md` — the between-matches triage script, its detectors, and thresholds.
