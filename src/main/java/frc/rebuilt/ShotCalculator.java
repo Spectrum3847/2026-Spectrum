@@ -102,27 +102,10 @@ public class ShotCalculator {
 
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
-    /**
-     * Flywheel speed trim, percent of the model's RPM. Rides with the hood trim on the operator's
-     * D-pad: up adds range with a flatter hood and a faster wheel, down takes it away. Chezy QM4
-     * (2026-09-19) is why: every shot fell short and thirty-odd hood presses could not buy the
-     * range back, because the hood on its own cannot add speed.
-     */
-    public static final double STARTING_FLYWHEEL_TRIM_PERCENT = 0; // percent of model RPM
-
-    public static double FLYWHEEL_TRIM_PERCENT = STARTING_FLYWHEEL_TRIM_PERCENT;
-
-    /** Percent of model RPM per operator D-pad press, applied alongside the hood step. */
-    public static final double FLYWHEEL_TRIM_STEP_PERCENT = 2.0;
-
-    /** Largest flywheel trim either way, percent. Twenty percent is 550 RPM at a typical shot. */
-    public static final double MAX_FLYWHEEL_TRIM_PERCENT = 20.0;
-
-    /** The three operator trims. */
+    /** The two operator trims. */
     public enum TrimAxis {
         HOOD,
-        TURRET,
-        FLYWHEEL
+        TURRET
     }
 
     /**
@@ -155,11 +138,17 @@ public class ShotCalculator {
      */
     public static final String TURRET_TRIM_PREF_KEY = "ShotTurretTrimDeg";
 
-    /** Preferences key the flywheel trim persists under. See {@link #HOOD_TRIM_PREF_KEY}. */
+    /**
+     * Preferences key a flywheel trim persisted under for one match (Chezy Q11, 2026-09-19).
+     * Removed the same day: the operator walked it to the +20 % cap and then the -20 % cap inside
+     * one match while the shot map itself was wrong, and a second axis moving with every hood press
+     * made the presses impossible to read. RPM comes straight from the model again. {@link
+     * #loadPersistedTrims()} deletes any stored copy so nothing can read it back.
+     */
     public static final String FLYWHEEL_TRIM_PREF_KEY = "ShotFlywheelTrimPct";
 
     /**
-     * Reads both trims back off the rio.
+     * Reads the hood trim back off the rio.
      *
      * <p>Call once during robot construction, before any binding can move a trim. Until 2026-09-08
      * these were plain static fields, so every redeploy zeroed whatever the operator had dialled in
@@ -175,7 +164,6 @@ public class ShotCalculator {
      */
     public static void loadPersistedTrims() {
         Preferences.initDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
-        Preferences.initDouble(FLYWHEEL_TRIM_PREF_KEY, STARTING_FLYWHEEL_TRIM_PERCENT);
 
         // The turret trim is session-only. Drop any copy an older build left in flash so that
         // nothing, including a hand-edited preference, can read it back.
@@ -190,51 +178,42 @@ public class ShotCalculator {
         }
         TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
+        // The flywheel trim lasted one match. Nothing reads it; drop the stored copy.
+        if (Preferences.containsKey(FLYWHEEL_TRIM_PREF_KEY)) {
+            Preferences.remove(FLYWHEEL_TRIM_PREF_KEY);
+        }
+
         double storedHood = Preferences.getDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
-        double storedFlywheel =
-                Preferences.getDouble(FLYWHEEL_TRIM_PREF_KEY, STARTING_FLYWHEEL_TRIM_PERCENT);
-
         HOOD_ANGLE_OFFSET = MathUtil.clamp(storedHood, -MAX_TRIM_DEG, MAX_TRIM_DEG);
-        FLYWHEEL_TRIM_PERCENT =
-                MathUtil.clamp(
-                        storedFlywheel, -MAX_FLYWHEEL_TRIM_PERCENT, MAX_FLYWHEEL_TRIM_PERCENT);
 
-        if (HOOD_ANGLE_OFFSET != storedHood || FLYWHEEL_TRIM_PERCENT != storedFlywheel) {
+        if (HOOD_ANGLE_OFFSET != storedHood) {
             Telemetry.print(
                     String.format(
-                            "!!! Stored shot trims were out of range (hood %.2f deg, flywheel"
-                                    + " %.1f %%) and were clamped. Something other than the"
-                                    + " operator D-pad wrote them.",
-                            storedHood, storedFlywheel),
+                            "!!! Stored hood trim %.2f deg was out of range and was clamped."
+                                    + " Something other than the operator D-pad wrote it.",
+                            storedHood),
                     PrintPriority.HIGH);
             writeTrimPreferences();
         }
 
-        if (HOOD_ANGLE_OFFSET != 0 || FLYWHEEL_TRIM_PERCENT != 0) {
+        if (HOOD_ANGLE_OFFSET != 0) {
             Telemetry.print(
                     String.format(
-                            "!!! Persisted shot trims are in effect: hood %+.2f deg, flywheel"
-                                    + " %+.1f %%. These came off the rio, not from this session."
-                                    + " Operator Start+Select zeroes them.",
-                            HOOD_ANGLE_OFFSET, FLYWHEEL_TRIM_PERCENT),
+                            "!!! Persisted hood trim is in effect: %+.2f deg. This came off the"
+                                    + " rio, not from this session. Operator Start+Select zeroes"
+                                    + " it.",
+                            HOOD_ANGLE_OFFSET),
                     PrintPriority.HIGH);
         } else {
             Telemetry.print(
-                    "Shot trims loaded from the rio: hood and flywheel zero. Turret trim starts at"
-                            + " zero every boot.",
+                    "Hood trim loaded from the rio: zero. Turret trim starts at zero every boot.",
                     PrintPriority.HIGH);
         }
     }
 
-    /** Writes the persisted trims. The turret trim is session-only and is never written. */
+    /** Writes the persisted hood trim. The turret trim is session-only and is never written. */
     private static void writeTrimPreferences() {
         Preferences.setDouble(HOOD_TRIM_PREF_KEY, HOOD_ANGLE_OFFSET);
-        Preferences.setDouble(FLYWHEEL_TRIM_PREF_KEY, FLYWHEEL_TRIM_PERCENT);
-    }
-
-    /** Multiplier the operator's flywheel trim puts on the model's RPM. */
-    private static double flywheelTrimScale() {
-        return 1.0 + FLYWHEEL_TRIM_PERCENT / 100.0;
     }
 
     /**
@@ -247,8 +226,7 @@ public class ShotCalculator {
      * up.
      *
      * @param axis which trim to move
-     * @param delta signed nudge, degrees for the hood and turret and percent for the flywheel,
-     *     before clamping
+     * @param delta signed nudge in degrees, before clamping
      */
     private static void nudgeTrim(TrimAxis axis, double delta) {
         double before;
@@ -257,55 +235,16 @@ public class ShotCalculator {
             before = HOOD_ANGLE_OFFSET;
             after = MathUtil.clamp(before + delta, -MAX_TRIM_DEG, MAX_TRIM_DEG);
             HOOD_ANGLE_OFFSET = after;
-        } else if (axis == TrimAxis.TURRET) {
+            // Preferences writes go to flash and through NetworkTables. Safe here, in a command
+            // that runs once per press; never do this from a periodic.
+            writeTrimPreferences();
+        } else {
+            // The turret trim is session-only and never written.
             before = TURRET_ANGLE_OFFSET;
             after = MathUtil.clamp(before + delta, -MAX_TRIM_DEG, MAX_TRIM_DEG);
             TURRET_ANGLE_OFFSET = after;
-        } else {
-            before = FLYWHEEL_TRIM_PERCENT;
-            after =
-                    MathUtil.clamp(
-                            before + delta, -MAX_FLYWHEEL_TRIM_PERCENT, MAX_FLYWHEEL_TRIM_PERCENT);
-            FLYWHEEL_TRIM_PERCENT = after;
-        }
-        // Preferences writes go to flash and through NetworkTables. Safe here, in a command that
-        // runs once per press; never do this from a periodic. The turret trim is session-only.
-        if (axis != TrimAxis.TURRET) {
-            writeTrimPreferences();
         }
         logTrimEvent(axis, after - before, after, false);
-    }
-
-    /**
-     * Add range: the hood a step flatter and the flywheel a step faster. The operator's way of
-     * saying the last shot fell short.
-     *
-     * @return the command
-     */
-    public static Command increaseRangeTrim() {
-        return Commands.runOnce(
-                        () -> {
-                            nudgeTrim(TrimAxis.HOOD, HOOD_OFFSET_STEP_DEG);
-                            nudgeTrim(TrimAxis.FLYWHEEL, FLYWHEEL_TRIM_STEP_PERCENT);
-                        })
-                .ignoringDisable(true)
-                .withName("ShotCalculator.increaseRangeTrim");
-    }
-
-    /**
-     * Take range away: the hood a step steeper and the flywheel a step slower. The operator's way
-     * of saying the last shot went long.
-     *
-     * @return the command
-     */
-    public static Command decreaseRangeTrim() {
-        return Commands.runOnce(
-                        () -> {
-                            nudgeTrim(TrimAxis.HOOD, -HOOD_OFFSET_STEP_DEG);
-                            nudgeTrim(TrimAxis.FLYWHEEL, -FLYWHEEL_TRIM_STEP_PERCENT);
-                        })
-                .ignoringDisable(true)
-                .withName("ShotCalculator.decreaseRangeTrim");
     }
 
     /** Increase hood angle offset. The operator's way of saying the last shot fell short. */
@@ -337,7 +276,7 @@ public class ShotCalculator {
     }
 
     /**
-     * Zeroes both trims and clears them from flash.
+     * Zeroes both trims and clears the stored hood trim from flash.
      *
      * <p>Bound to a two-button chord because it has to be reachable in the pit without being
      * reachable by accident. A persisted trim nobody can clear from the driver station is worse
@@ -350,10 +289,8 @@ public class ShotCalculator {
                         () -> {
                             double hoodBefore = HOOD_ANGLE_OFFSET;
                             double turretBefore = TURRET_ANGLE_OFFSET;
-                            double flywheelBefore = FLYWHEEL_TRIM_PERCENT;
                             HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
                             TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
-                            FLYWHEEL_TRIM_PERCENT = STARTING_FLYWHEEL_TRIM_PERCENT;
                             writeTrimPreferences();
                             logTrimEvent(
                                     TrimAxis.HOOD,
@@ -365,16 +302,11 @@ public class ShotCalculator {
                                     TURRET_ANGLE_OFFSET - turretBefore,
                                     TURRET_ANGLE_OFFSET,
                                     true);
-                            logTrimEvent(
-                                    TrimAxis.FLYWHEEL,
-                                    FLYWHEEL_TRIM_PERCENT - flywheelBefore,
-                                    FLYWHEEL_TRIM_PERCENT,
-                                    true);
                             Telemetry.print(
                                     String.format(
                                             "Shot trims reset to zero (were hood %+.2f deg, turret"
-                                                    + " %+.2f deg, flywheel %+.1f %%).",
-                                            hoodBefore, turretBefore, flywheelBefore),
+                                                    + " %+.2f deg).",
+                                            hoodBefore, turretBefore),
                                     PrintPriority.HIGH);
                         })
                 .ignoringDisable(true)
@@ -460,7 +392,6 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/Shot/HoodModelOffsetDeg", activeModelHoodOffsetDeg, "degrees");
         Telemetry.log("ShotCalc/Shot/HoodTrimDeg", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Shot/TurretTrimDeg", TURRET_ANGLE_OFFSET, "degrees");
-        Telemetry.log("ShotCalc/Shot/FlywheelTrimPct", FLYWHEEL_TRIM_PERCENT, "percent");
         Telemetry.log("ShotCalc/Shot/FeedShot", activeFeedShot);
         Telemetry.log("ShotCalc/Shot/InRange", params.isValid());
         Telemetry.log("ShotCalc/Shot/PoseTrusted", poseTrusted);
@@ -499,17 +430,11 @@ public class ShotCalculator {
      * reader's job, not this method's, so the age is logged rather than thresholded here.
      *
      * @param axis which trim moved
-     * @param delta how far the trim actually moved, after clamping; zero at the limit. Degrees for
-     *     the hood and turret, percent for the flywheel
-     * @param value the trim's new value, in the same unit
+     * @param delta how far the trim actually moved in degrees, after clamping; zero at the limit
+     * @param value the trim's new value in degrees
      * @param reset true when this row is the Start+Select reset rather than a judgement
      */
     private static void logTrimEvent(TrimAxis axis, double delta, double value, boolean reset) {
-        boolean angle = axis != TrimAxis.FLYWHEEL;
-        double deltaDeg = angle ? delta : Double.NaN;
-        double valueDeg = angle ? value : Double.NaN;
-        double deltaPct = angle ? Double.NaN : delta;
-        double valuePct = angle ? Double.NaN : value;
         double now = Timer.getFPGATimestamp();
         double secondsSinceShot =
                 Double.isNaN(lastShotTimestampSeconds)
@@ -523,8 +448,8 @@ public class ShotCalculator {
             // The trim was already at its cap. The press is still a verdict about the shot, and
             // losing it would bias the dataset towards whichever direction had room left.
             verdict = "AtLimit";
-        } else if (axis != TrimAxis.TURRET) {
-            // Hood up and flywheel up both mean the operator is adding range: the ball fell short.
+        } else if (axis == TrimAxis.HOOD) {
+            // Hood up means the operator is adding range: the ball fell short.
             verdict = delta > 0 ? "Short" : "Long";
         } else {
             // A CCW trim correction means the ball landed CW of the target.
@@ -534,13 +459,9 @@ public class ShotCalculator {
         trimEventIndex++;
         Telemetry.log("ShotCalc/Trim/Index", trimEventIndex);
         Telemetry.log("ShotCalc/Trim/TimestampSeconds", now, "seconds");
-        Telemetry.log(
-                "ShotCalc/Trim/Axis",
-                axis == TrimAxis.HOOD ? "Hood" : axis == TrimAxis.TURRET ? "Turret" : "Flywheel");
-        Telemetry.log("ShotCalc/Trim/DeltaDeg", deltaDeg, "degrees");
-        Telemetry.log("ShotCalc/Trim/ValueDeg", valueDeg, "degrees");
-        Telemetry.log("ShotCalc/Trim/DeltaPct", deltaPct, "percent");
-        Telemetry.log("ShotCalc/Trim/ValuePct", valuePct, "percent");
+        Telemetry.log("ShotCalc/Trim/Axis", axis == TrimAxis.HOOD ? "Hood" : "Turret");
+        Telemetry.log("ShotCalc/Trim/DeltaDeg", delta, "degrees");
+        Telemetry.log("ShotCalc/Trim/ValueDeg", value, "degrees");
         Telemetry.log("ShotCalc/Trim/Verdict", verdict);
         Telemetry.log(
                 "ShotCalc/Trim/ShotIndex", Double.isNaN(lastShotTimestampSeconds) ? -1 : shotIndex);
@@ -787,23 +708,91 @@ public class ShotCalculator {
     // =========================================================================
 
     /**
-     * Range the set shot is fitted for: the robot parked against the tower's field-facing wall,
-     * intake to the wall, shooting the hub.
+     * The fixed shots, one per parking spot. Each is a range to the hub centre and a turret angle;
+     * the hood and flywheel come off the model at that range, at a standstill.
      *
-     * <p>Worked from the field geometry rather than measured. The tower's front face is at {@link
-     * frc.rebuilt.Field.Tower#frontFaceX} (43.51 in) on the tower's centreline, {@code tagY(31)}; a
-     * 30 in bumper puts the robot's centre, and therefore the launcher ({@code robotToLauncher} is
-     * zero), 15 in further out at x = 1.486 m. The hub centre is at {@link
-     * frc.rebuilt.Field.Hub#centerX} and mid-field width, (4.626, 4.035). That is 3.15 m, 10.3 ft.
+     * <p>Ranges are worked from the field geometry, not measured. Robot centre, and therefore the
+     * launcher ({@code robotToLauncher} is zero), sits 15 in inside the bumper of a 30 in robot.
+     * The hub centre is the midpoint of tags 26 and 20, (4.626, 4.035) m.
      *
-     * <p>Forgiving to be off by: the model moves about 0.5 deg of hood and 35 RPM per 15 cm here,
-     * so lining up by eye against the tower is good enough. Well inside the model's fitted 1.5 to
-     * 8.0 m band either way.
+     * <p>The turret's zero points away from the intake, so "intake facing the hub" means the turret
+     * turns a half turn to shoot back over it. {@code -180} rather than {@code +180}: the travel is
+     * -216 to +180 deg, and a command sitting exactly on the forward soft limit has no margin.
+     *
+     * <p>Forgiving to be off by: the model moves about 0.5 deg of hood and 35 RPM per 15 cm at
+     * these ranges, so lining up by eye against the field element is good enough.
      */
-    public static final double SET_SHOT_DISTANCE_METERS = 3.15;
+    public enum SetShot {
+        /**
+         * Parked against the tower's field-facing wall, intake to the wall, turret at zero shooting
+         * the hub. Tower front face 43.51 in on the tower centreline (tag 31, y = 3.746 m), so the
+         * robot centre is at (1.486, 3.746) m: 3.15 m, 10.3 ft.
+         */
+        TOWER("Tower", 3.15, 0.0),
+        /**
+         * Bumper against the hub's near face, intake to the hub, turret over the intake. Hub half
+         * width 23.5 in plus 15 in: 0.98 m. That is below the model's fitted 1.5 m floor, so the
+         * model is evaluated at 1.5 m and clamped there. Untested at the time of writing; treat it
+         * as a lob until the practice field says otherwise.
+         */
+        HUB_FACE("HubFace", 0.978, -180.0),
+        /**
+         * Sitting in the left trench lane with the robot just clear of the trench, intake pointed
+         * at the hub, turret over the intake. Trench opening is 50.34 in wide at the wall, so its
+         * centreline is 3.395 m from the field centreline; the robot centre is 23.5 + 15 in along x
+         * from the hub centre once it has cleared the 47 in trench: 3.53 m. Sitting inside the
+         * trench instead is 3.40 m, 13 cm less, which the model barely notices.
+         */
+        LEFT_TRENCH("LeftTrench", 3.53, -180.0),
+        /** Mirror of {@link #LEFT_TRENCH}. */
+        RIGHT_TRENCH("RightTrench", 3.53, -180.0);
+
+        /** Short name, logged to {@code ShotCalc/SetShot}. */
+        public final String label;
+
+        /** Launcher to hub centre, metres. */
+        public final double distanceMeters;
+
+        /** Turret mechanism angle, degrees from its zero. */
+        public final double turretDegrees;
+
+        SetShot(String label, double distanceMeters, double turretDegrees) {
+            this.label = label;
+            this.distanceMeters = distanceMeters;
+            this.turretDegrees = turretDegrees;
+        }
+    }
 
     /**
-     * Hood angle and flywheel speed for {@link #SET_SHOT_DISTANCE_METERS}, at a standstill.
+     * Range the tower set shot is fitted for. Kept as the name older notes and logs use; the value
+     * is {@link SetShot#TOWER}.
+     */
+    public static final double SET_SHOT_DISTANCE_METERS = SetShot.TOWER.distanceMeters;
+
+    private static volatile SetShot selectedSetShot = SetShot.TOWER;
+
+    /**
+     * Picks which fixed shot the SET_SHOT super state runs. Called from the pilot binding before
+     * the state is requested; the selection sticks until the next binding changes it.
+     *
+     * @param shot the parking spot
+     */
+    public static void selectSetShot(SetShot shot) {
+        selectedSetShot = shot;
+        Telemetry.logDashAlways("ShotCalc/SetShot", shot.label);
+    }
+
+    /**
+     * The fixed shot currently selected.
+     *
+     * @return the selected shot, {@link SetShot#TOWER} until anything picks one
+     */
+    public static SetShot getSelectedSetShot() {
+        return selectedSetShot;
+    }
+
+    /**
+     * Hood angle and flywheel speed for the selected {@link SetShot}, at a standstill.
      *
      * <p>Read off the same fitted surface a tracked shot uses, at a fixed distance with zero
      * velocity, so it moves with the model and with the operator's D-pad hood trim instead of being
@@ -814,17 +803,17 @@ public class ShotCalculator {
      * @return {@code { hoodDegrees, flywheelRPM }}
      */
     private static double[] setShotSolution() {
-        double[] raw = evalPolyRaw(WANTED_HUB_MODEL, SET_SHOT_DISTANCE_METERS, 0.0);
+        double[] raw = evalPolyRaw(WANTED_HUB_MODEL, selectedSetShot.distanceMeters, 0.0);
         double hoodDegrees =
                 MathUtil.clamp(
                         (90 - raw[1]) + WANTED_HUB_MODEL.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
-        return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS * flywheelTrimScale()};
+        return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS};
     }
 
     /**
-     * Hood angle for the set shot, in degrees.
+     * Hood angle for the selected set shot, in degrees.
      *
      * @return the commanded hood angle
      */
@@ -833,12 +822,21 @@ public class ShotCalculator {
     }
 
     /**
-     * Flywheel speed for the set shot, in RPM.
+     * Flywheel speed for the selected set shot, in RPM.
      *
      * @return the commanded flywheel speed
      */
     public static double getSetShotFlywheelRPM() {
         return setShotSolution()[1];
+    }
+
+    /**
+     * Turret mechanism angle for the selected set shot, in degrees from zero.
+     *
+     * @return the commanded turret angle
+     */
+    public static double getSetShotTurretDegrees() {
+        return selectedSetShot.turretDegrees;
     }
 
     // =========================================================================
@@ -986,8 +984,8 @@ public class ShotCalculator {
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
-        // ── Flywheel speed: exit speed (m/s) → RPM, then the operator's trim ─
-        double flywheelSpeed = exitSpeedMs * RPM_PER_MPS * flywheelTrimScale();
+        // ── Flywheel speed: exit speed (m/s) → RPM ──────────────────────────
+        double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
 
         // Snapshot for the shot record: the five values a burst row needs that
         // ShootingParameters does not carry. Kept here rather than widened into the record because

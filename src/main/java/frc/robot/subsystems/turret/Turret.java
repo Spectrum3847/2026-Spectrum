@@ -156,6 +156,12 @@ public class Turret extends Mechanism {
         TEST_SWEEP_LIMITS,
         /** Pit check: hold the turret's zero. Same output path as {@link WantedState#IDLE}. */
         TEST_ZERO,
+        /**
+         * Hold a fixed mechanism angle, set with {@link #setFixedAngleDegrees}. The set shots use
+         * it: no pose, no target, the driver has parked the robot and the angle is the parking
+         * spot's.
+         */
+        FIXED_ANGLE,
     }
 
     public enum SystemState {
@@ -167,13 +173,7 @@ public class Turret extends Mechanism {
         TEST_FOLLOW_TAG,
         TEST_SWEEP_LIMITS,
         TEST_ZERO,
-        /**
-         * Aiming was asked for, but vision has not established the robot pose yet, so the turret
-         * holds at its zero instead of aiming from a heading that is probably wrong. There is no
-         * matching WantedState: nothing commands this, the turret falls into it and leaves again on
-         * its own once {@link frc.robot.subsystems.vision.Vision#isPoseTrustedForAiming()} is true.
-         */
-        WAIT_FOR_POSE,
+        FIXED_ANGLE,
     }
 
     // ---- Intake sweep ----
@@ -206,38 +206,22 @@ public class Turret extends Mechanism {
         this.wantedState = state;
     }
     /**
-     * Whether the turret is allowed to aim right now.
-     *
-     * <p>Aiming subtracts the robot's heading from a field-relative angle, so before vision has
-     * seeded the pose the turret does not aim badly -- it aims off by exactly the heading the robot
-     * happened to power on at, and nothing in the turret's own signals says so. Holding at zero is
-     * the honest answer until a camera has seen a tag. The shake is exempt because it works about
-     * wherever the turret already is and never reads the pose.
-     */
-    private boolean mayAim() {
-        Vision vision = Robot.getVision();
-        // Null only between the turret's construction and vision's, which is before any periodic.
-        return vision == null || vision.isPoseTrustedForAiming();
-    }
-
-    /**
      * Handles the state transition.
      *
-     * <p>The three TEST_ states get no {@link #mayAim()} gate, unlike the two aiming states: none
-     * of them reads the robot pose, so none of them can be wrong by the heading the robot powered
-     * on at. That is the point of all three -- they are the checks you run when the pose is exactly
-     * what you do not trust yet.
+     * <p>No pose gate on the aiming states (removed 2026-09-19): the turret aims from whatever pose
+     * the estimator has, seeded or not, rather than holding at zero until vision trusts it.
      */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case IDLE -> SystemState.IDLE;
-            case AIM_AT_TARGET -> mayAim() ? SystemState.AIM_AT_TARGET : SystemState.WAIT_FOR_POSE;
+            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
             case UNJAM_SHAKE -> SystemState.UNJAM_SHAKE;
-            case AIM_SWEEP -> mayAim() ? SystemState.AIM_SWEEP : SystemState.WAIT_FOR_POSE;
+            case AIM_SWEEP -> SystemState.AIM_SWEEP;
             case TEST_FOLLOW_TAG -> SystemState.TEST_FOLLOW_TAG;
             case TEST_SWEEP_LIMITS -> SystemState.TEST_SWEEP_LIMITS;
             case TEST_ZERO -> SystemState.TEST_ZERO;
+            case FIXED_ANGLE -> SystemState.FIXED_ANGLE;
         };
     }
 
@@ -552,7 +536,6 @@ public class Turret extends Mechanism {
                 stop();
                 return;
             case IDLE:
-            case WAIT_FOR_POSE:
                 // TEST_ZERO shares this branch on purpose: the pit check for "go back to zero"
                 // should exercise the exact output path the robot uses to sit at zero in a match,
                 // not a second one that could behave differently.
@@ -561,6 +544,21 @@ public class Turret extends Mechanism {
                 commandedDegrees = 0;
                 mechOmegaRotPerSec = 0;
                 commandPosition(() -> degreesToRotations(() -> 0.0));
+                return;
+            case FIXED_ANGLE:
+                // Same output path as IDLE, at the set shot's angle instead of zero. A half turn
+                // from wherever the turret was aiming runs under PositionVoltage like IDLE's own
+                // up-to-216 deg return to zero; the soft limits, current limit and stall cut-out
+                // are the guard, as they are there.
+                unwrapping = false;
+                mechOmegaRotPerSec = 0;
+                commandedDegrees =
+                        MathUtil.clamp(
+                                fixedAngleDegrees,
+                                config.getMinRotations() * 360.0,
+                                config.getMaxRotations() * 360.0);
+                final double fixedTarget = commandedDegrees;
+                commandPosition(() -> degreesToRotations(() -> fixedTarget));
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget(0.0);
@@ -583,6 +581,19 @@ public class Turret extends Mechanism {
     @Getter private final TurretConfig config;
 
     @Getter private TurretSim sim;
+
+    /** Angle {@link WantedState#FIXED_ANGLE} holds, mechanism degrees from zero. */
+    @Getter private double fixedAngleDegrees = 0;
+
+    /**
+     * Sets the angle {@link WantedState#FIXED_ANGLE} holds. Clamped to the soft limits when
+     * applied.
+     *
+     * @param degrees mechanism angle, degrees from zero
+     */
+    public void setFixedAngleDegrees(double degrees) {
+        fixedAngleDegrees = degrees;
+    }
 
     /**
      * Creates a new Turret instance.
@@ -1216,7 +1227,7 @@ public class Turret extends Mechanism {
      * @return true when aiming, not mid-unwrap, and within {@code toleranceDegrees}
      */
     public boolean isReadyToShoot(double toleranceDegrees) {
-        return systemState == SystemState.AIM_AT_TARGET
+        return (systemState == SystemState.AIM_AT_TARGET || systemState == SystemState.FIXED_ANGLE)
                 && !unwrapping
                 && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
     }

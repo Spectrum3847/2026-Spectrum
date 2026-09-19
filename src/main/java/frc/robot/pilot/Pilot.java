@@ -48,15 +48,29 @@ public class Pilot extends Gamepad {
     public final Trigger home_select = selectButton.and(noLB);
 
     /*
-     * Forced set shot from the tower, for when the pose is gone.
+     * Fixed shots, for when the pose is gone. LB + a face button, so they can be held while
+     * driving: left index on the bumper, right thumb on the face button, left thumb never leaves
+     * the drive stick. One per parking spot, see ShotCalculator.SetShot.
      *
-     * LB + Y so it can be held while driving: left index on the bumper, right thumb on the face
-     * button, left thumb never leaves the drive stick. Y is the only face button free in teleop --
-     * A, B and X are all bound bare, so LB + any of those would fire UNJAM, KICKER_UNJAM or
-     * TRACK_TARGET at the same time. The sim-only keyboard layer owns Y as well and is given noLB
-     * so the two cannot overlap there either.
+     * A, B and X are also bound bare (unjam, kicker unjam, track target), so those bare bindings
+     * carry noLB or LB + any of them would fire both. Release order matters at the margin: let go
+     * of LB first with the face button still down and the bare binding fires for the rest of the
+     * press. Let go of the face button first, or both together.
      */
-    public final Trigger setShot_LB_Y = LB.and(YButton).and(teleop);
+    public final Trigger setShotLeftTrench_LB_X = LB.and(XButton).and(teleop);
+    public final Trigger setShotRightTrench_LB_B = LB.and(BButton).and(teleop);
+    public final Trigger setShotHubFace_LB_Y = LB.and(YButton).and(teleop);
+    public final Trigger setShotTower_LB_A = LB.and(AButton).and(teleop);
+    public final Trigger anySetShot =
+            setShotLeftTrench_LB_X
+                    .or(setShotRightTrench_LB_B)
+                    .or(setShotHubFace_LB_Y)
+                    .or(setShotTower_LB_A);
+
+    /* Bare face buttons, gated so the chords above own the LB-held press */
+    public final Trigger trackTarget_X = XButton.and(noLB);
+    public final Trigger unjam_A = AButton.and(noLB);
+    public final Trigger kickerUnjam_B = BButton.and(noLB);
 
     /*
      * Turret pit checks, test mode only, held to run.

@@ -29,6 +29,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.ShiftHelpers;
 import frc.rebuilt.ShotCalculator;
+import frc.rebuilt.ShotCalculator.SetShot;
 import frc.rebuilt.targetFactories.FeedTargetFactory;
 import frc.robot.auton.Auton;
 import frc.robot.configs.OM2026;
@@ -307,27 +308,34 @@ public class Robot extends SpectrumRobot {
         // Both released → idle
         pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        pilot.XButton.whileTrue(superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
-        pilot.XButton.onFalse(
+        pilot.trackTarget_X.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        pilot.trackTarget_X.onFalse(
                 Commands.either(
                         Commands.none(),
                         superStructure.setStateCommand(WantedSuperState.IDLE),
                         superStructure::currentStateIsLaunching));
 
-        pilot.AButton.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
-        pilot.AButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.unjam_A.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
+        pilot.unjam_A.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         // Kicker unjam: same as unjam, but the intake kicker keeps running forward
-        pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.KICKER_UNJAM));
-        pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.kickerUnjam_B.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.KICKER_UNJAM));
+        pilot.kickerUnjam_B.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         pilot.home_select.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.home_select.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        // Park against the tower with the intake to it, then hold this: turret to zero, hood and
-        // flywheel to fixed numbers, feed on speed alone. No pose is read and no aim is checked.
-        pilot.setShot_LB_Y.whileTrue(superStructure.setStateCommand(WantedSuperState.SET_SHOT));
-        pilot.setShot_LB_Y.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        // Fixed shots: park at the spot, point the intake where the spot says, hold the chord.
+        // Turret to the spot's angle, hood and flywheel to the spot's range, feed once all three
+        // are there. No pose is read and no aim is checked. See ShotCalculator.SetShot.
+        pilot.setShotLeftTrench_LB_X.whileTrue(superStructure.setShotCommand(SetShot.LEFT_TRENCH));
+        pilot.setShotRightTrench_LB_B.whileTrue(
+                superStructure.setShotCommand(SetShot.RIGHT_TRENCH));
+        pilot.setShotHubFace_LB_Y.whileTrue(superStructure.setShotCommand(SetShot.HUB_FACE));
+        pilot.setShotTower_LB_A.whileTrue(superStructure.setShotCommand(SetShot.TOWER));
+        pilot.anySetShot.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         /*
          * Turret pit checks, pilot D-pad, test mode only, each held for as long as you want it to
@@ -355,12 +363,11 @@ public class Robot extends SpectrumRobot {
                 .onFalse(superStructure.setStateCommand(WantedSuperState.TEST_TURRET_STOP));
 
         // Each press is also the shot-outcome signal: down says the last burst went long, up says
-        // it fell short. Since Chezy QM4 (2026-09-19) a press moves the hood and the flywheel
-        // together, because the hood alone could not buy back a short shot. Logged as
-        // ShotCalc/Trim/* and paired with the most recent ShotCalc/Shot/* row. See
-        // docs/tools/shot-log.md.
-        operator.dPadDown.onTrue(ShotCalculator.decreaseRangeTrim());
-        operator.dPadUp.onTrue(ShotCalculator.increaseRangeTrim());
+        // it fell short. Hood only: the flywheel trim that rode along for one match (Chezy Q11,
+        // 2026-09-19) is gone and RPM comes straight from the model. Logged as ShotCalc/Trim/*
+        // and paired with the most recent ShotCalc/Shot/* row. See docs/tools/shot-log.md.
+        operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
+        operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
         operator.resetShotTrims_StartSelect.onTrue(ShotCalculator.resetTrimsCommand());
@@ -417,14 +424,14 @@ public class Robot extends SpectrumRobot {
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
 
         // Sim bindings for when people with just keyboards at home are doing sim at home
-        // noLB: plain Y is the keyboard launch, LB + Y is the set shot. Without this they would
-        // both fire in a sim and fight over the super state.
+        // noLB: plain Y is the keyboard launch, plain B the keyboard intake; LB + either is a set
+        // shot. Without this they would both fire in a sim and fight over the super state.
         pilot.YButton.and(pilot.noLB)
                 .whileTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
         pilot.YButton.and(pilot.noLB)
                 .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
-        pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
-        pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        pilot.kickerUnjam_B.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
+        pilot.kickerUnjam_B.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.LB.onTrue(FeedTargetFactory.feedLeft());
         pilot.RB.onTrue(FeedTargetFactory.feedRight());
     }

@@ -53,8 +53,10 @@ They are the skeleton of a distance-indexed correction table that was never fill
 ### 1.2 The operator's trims persist, and every burst leaves a record
 
 **Update 2026-09-19.** The turret trim is session-only again (starts at zero every boot, never
-stored) after Chezy QM4 booted with +10° in flash; a flywheel trim (`ShotFlywheelTrimPct`) now
-persists alongside the hood trim and moves with it on D-pad up/down. See `docs/tools/shot-log.md`.
+stored) after Chezy QM4 booted with +10° in flash. A flywheel trim (`ShotFlywheelTrimPct`) was
+added after QM4 and removed after Q11 the same day: the operator walked it to both caps inside one
+match and it made the hood presses unreadable. `loadPersistedTrims()` deletes any stored copy. See
+`docs/tools/shot-log.md`.
 
 **Done 2026-09-08.** This section described the trims evaporating on every deploy; item 3.1 below
 fixed it. `HOOD_ANGLE_OFFSET` and `TURRET_ANGLE_OFFSET` are stored with WPILib `Preferences` under

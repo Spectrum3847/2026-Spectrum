@@ -171,12 +171,15 @@ public class ShotCalculatorTest {
 
         Preferences.setDouble(ShotCalculator.HOOD_TRIM_PREF_KEY, 250.0);
         Preferences.setDouble(ShotCalculator.TURRET_TRIM_PREF_KEY, -180.0);
+        Preferences.setDouble(ShotCalculator.FLYWHEEL_TRIM_PREF_KEY, 20.0);
         ShotCalculator.loadPersistedTrims();
 
         assertEquals(ShotCalculator.MAX_TRIM_DEG, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-9);
         // A stored turret trim, in range or not, is discarded rather than clamped.
         assertEquals(0, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
         assertFalse(Preferences.containsKey(ShotCalculator.TURRET_TRIM_PREF_KEY));
+        // The one-match flywheel trim (Chezy Q11) is deleted from the store on load.
+        assertFalse(Preferences.containsKey(ShotCalculator.FLYWHEEL_TRIM_PREF_KEY));
 
         // And the clamped value is written back, so the bad number is gone rather than waiting.
         assertEquals(
@@ -210,5 +213,54 @@ public class ShotCalculatorTest {
         ShotCalculator.loadPersistedTrims();
         assertEquals(0, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-9);
         assertEquals(0, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
+    }
+
+    /**
+     * Ranges are worked from the field: robot centre 15 in inside the bumper, hub centre at the
+     * midpoint of tags 26 and 20. Recomputed here from the same geometry so a changed constant has
+     * to be argued for.
+     */
+    @Test
+    @DisplayName("Set shot ranges match the field geometry and turret angles fit the travel")
+    void setShotGeometry() {
+        double halfRobot = 15.0 * 0.0254;
+        double hubHalf = 23.5 * 0.0254;
+        double hubX = (4.0219 + 5.2292) / 2.0;
+        double hubY = 4.0346;
+
+        // Tower: front face 43.51 in, on tag 31's y.
+        double towerX = 43.51 * 0.0254 + halfRobot;
+        double tower = Math.hypot(hubX - towerX, hubY - 3.7457);
+        assertEquals(tower, ShotCalculator.SetShot.TOWER.distanceMeters, 0.01);
+
+        // Hub face: bumper on the near face.
+        assertEquals(hubHalf + halfRobot, ShotCalculator.SetShot.HUB_FACE.distanceMeters, 0.01);
+
+        // Trench: lane centre 25.17 in off the wall, robot just clear of the 47 in trench.
+        double laneY = 8.069 - 50.34 / 2.0 * 0.0254;
+        double trench = Math.hypot(hubHalf + halfRobot, laneY - hubY);
+        assertEquals(trench, ShotCalculator.SetShot.LEFT_TRENCH.distanceMeters, 0.01);
+        assertEquals(trench, ShotCalculator.SetShot.RIGHT_TRENCH.distanceMeters, 0.01);
+
+        // Turret travel is -216 to +180 deg; sitting on a soft limit is not a usable angle.
+        for (ShotCalculator.SetShot shot : ShotCalculator.SetShot.values()) {
+            assertTrue(shot.turretDegrees > -216 && shot.turretDegrees < 180, shot.label);
+        }
+    }
+
+    /** The binding picks the shot before the state is requested; the pick has to stick. */
+    @Test
+    @DisplayName("Selecting a set shot changes what the turret is asked for")
+    void selectSetShot() {
+        ShotCalculator.SetShot before = ShotCalculator.getSelectedSetShot();
+        try {
+            ShotCalculator.selectSetShot(ShotCalculator.SetShot.LEFT_TRENCH);
+            assertSame(ShotCalculator.SetShot.LEFT_TRENCH, ShotCalculator.getSelectedSetShot());
+            assertEquals(-180.0, ShotCalculator.getSetShotTurretDegrees(), 1e-9);
+            ShotCalculator.selectSetShot(ShotCalculator.SetShot.TOWER);
+            assertEquals(0.0, ShotCalculator.getSetShotTurretDegrees(), 1e-9);
+        } finally {
+            ShotCalculator.selectSetShot(before);
+        }
     }
 }

@@ -62,7 +62,10 @@ public class SuperStructure {
         UNJAM,
         KICKER_UNJAM,
         FORCE_HOME,
-        /** Pose-independent fixed shot from the tower. See {@link #setShot()}. */
+        /**
+         * Pose-independent fixed shot from a parking spot picked with {@link
+         * ShotCalculator#selectSetShot}. See {@link #setShot()}.
+         */
         SET_SHOT,
         /** Test-mode pit check: turret follows any tag the turret camera sees. */
         TEST_TURRET_FOLLOW_TAG,
@@ -340,14 +343,14 @@ public class SuperStructure {
         boolean shotInRange = ShotCalculator.getInstance().getParameters().isValid();
         // A range check against an untrusted pose is not measuring anything, so it does not vote.
         boolean rangeOk = !poseTrusted || shotInRange;
-        // The set shot is the deliberate exception. Aim and range are both computed from the pose,
-        // and the set shot exists precisely for when there is no pose to compute them from, so
-        // neither gets a vote -- the driver has taken responsibility for pointing the robot. Speed
-        // and hood angle still do: feeding fuel into a flywheel that is not up to speed jams it,
-        // and that is true however the shot was aimed.
+        // The set shot is the deliberate exception to the range check. Range is computed from the
+        // pose, and the set shot exists precisely for when there is no pose to compute it from, so
+        // it gets no vote -- the driver has taken responsibility for parking the robot. Speed, hood
+        // angle and the turret still do: the turret has a fixed angle to reach (a half turn for the
+        // over-the-intake shots), and fuel fed mid-slew goes anywhere.
         boolean setShot = currentSuperState == CurrentSuperState.SET_SHOT;
         boolean shotReady =
-                launcherAtSpeed && hoodAtAngle && (setShot || (turretOnTarget && rangeOk));
+                launcherAtSpeed && hoodAtAngle && turretOnTarget && (setShot || rangeOk);
 
         shotReadyStreak = shotReady ? shotReadyStreak + 1 : 0;
         boolean startReady = shotReadyStreak >= SHOT_READY_DEBOUNCE_LOOPS;
@@ -355,7 +358,7 @@ public class SuperStructure {
         boolean keepReady =
                 launcher.isAboveSpeedFraction(KEEP_FEED_MIN_SPEED_FRACTION)
                         && hood.isAtAngle(KEEP_FEED_HOOD_TOLERANCE_DEG)
-                        && (setShot || turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG));
+                        && turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG);
 
         boolean launching = currentStateIsLaunching();
         // Closing the gate on leaving a launch state means the next burst re-earns the strict
@@ -507,21 +510,22 @@ public class SuperStructure {
 
     // ── State methods ──────────────────────────────────────────────────────────
     /**
-     * Fixed shot from the tower, for when the pose is gone.
+     * Fixed shot from a known parking spot, for when the pose is gone.
      *
      * <p>Every other launch state asks {@link ShotCalculator} where the hub is, which means asking
      * where the robot is. When vision has not seeded the pose that answer is wrong in a way nothing
      * on the robot can detect, and the turret aims off by the robot's power-on heading error. This
-     * state asks nothing: the turret goes to its zero, and the hood and flywheel go to the pair of
-     * numbers that {@link ShotCalculator#SET_SHOT_DISTANCE_METERS} works out to.
+     * state asks nothing: the turret goes to the spot's fixed angle, and the hood and flywheel go
+     * to the pair of numbers the spot's range works out to. Which spot is {@link
+     * ShotCalculator#getSelectedSetShot()}, picked by the pilot binding that requested the state.
      *
-     * <p>The driver does the aiming, by parking the robot: intake against the tower's field-facing
-     * wall, then cheating the heading about 5 deg toward the hub. The turret's zero points away
-     * from the intake, so parking is aiming -- but squared up dead flat against the wall is 5.3 deg
-     * off the hub, because the tower's centreline follows tag 31 and the hub sits on the field
-     * centreline. That is roughly 29 cm of lateral miss at this range, against a goal 41.7 in wide
-     * on the inside, so it still scores; the cheat is there to spend the margin on something else.
-     * Deliberately left in the driver's hands rather than trimmed out with a fixed turret angle.
+     * <p>The driver does the aiming, by parking the robot against the field element and pointing
+     * the intake where the spot says. For the tower shot (turret at zero) that is intake to the
+     * tower's field-facing wall, then cheating the heading about 5 deg toward the hub: squared up
+     * dead flat is 5.3 deg off, because the tower's centreline follows tag 31 and the hub sits on
+     * the field centreline. That is roughly 29 cm of lateral miss at this range, against a goal
+     * 41.7 in wide on the inside, so it still scores. For the over-the-intake shots (turret at
+     * -180) it is the intake pointed at the hub.
      *
      * <p>Nothing here checks any of it -- it cannot, that is the whole point -- so the shot is only
      * as good as the parking.
@@ -537,9 +541,10 @@ public class SuperStructure {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.SET_SHOT);
         hood.setWantedState(Hood.WantedState.SET_SHOT);
-        // IDLE is the turret's zero. Not AIM_AT_TARGET: that reads the pose, and would also sit in
-        // WAIT_FOR_POSE for exactly the reason this state exists.
-        turret.setWantedState(Turret.WantedState.IDLE);
+        // Not AIM_AT_TARGET: that reads the pose, which is the thing this state exists to do
+        // without.
+        turret.setFixedAngleDegrees(ShotCalculator.getSetShotTurretDegrees());
+        turret.setWantedState(Turret.WantedState.FIXED_ANGLE);
         applyGatedFeed();
     }
 
@@ -832,5 +837,20 @@ public class SuperStructure {
      */
     public Command setStateCommand(WantedSuperState state) {
         return new InstantCommand(() -> setWantedSuperState(state));
+    }
+
+    /**
+     * Picks a fixed shot and requests {@link WantedSuperState#SET_SHOT} in one command.
+     *
+     * @param shot the parking spot
+     * @return the command
+     */
+    public Command setShotCommand(ShotCalculator.SetShot shot) {
+        return new InstantCommand(
+                        () -> {
+                            ShotCalculator.selectSetShot(shot);
+                            setWantedSuperState(WantedSuperState.SET_SHOT);
+                        })
+                .withName("SuperStructure.setShot." + shot.label);
     }
 }
