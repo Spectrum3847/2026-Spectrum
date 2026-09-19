@@ -37,7 +37,9 @@ public class TalonFXFactory {
      */
     public static TalonFX createDefaultTalon(CanDeviceId id) {
         var talon = createTalon(id);
-        talon.getConfigurator().apply(getDefaultConfig());
+        CanConfigBudget.run(
+                "Talon " + id.getDeviceNumber(),
+                timeout -> talon.getConfigurator().apply(getDefaultConfig(), timeout));
         return talon;
     }
 
@@ -50,7 +52,9 @@ public class TalonFXFactory {
      */
     public static TalonFX createConfigTalon(CanDeviceId id, TalonFXConfiguration config) {
         var talon = createTalon(id);
-        talon.getConfigurator().apply(config);
+        CanConfigBudget.run(
+                "Talon " + id.getDeviceNumber(),
+                timeout -> talon.getConfigurator().apply(config, timeout));
         return talon;
     }
 
@@ -128,7 +132,10 @@ public class TalonFXFactory {
     /** Creates the talon. */
     private static TalonFX createTalon(CanDeviceId id) {
         TalonFX talon = new TalonFX(id.getDeviceNumber(), new CANBus(id.getBus()));
-        talon.clearStickyFaults();
+        // Blocking, and worthless on a bus with nothing on it.
+        if (!CanConfigBudget.exhausted()) {
+            talon.clearStickyFaults();
+        }
 
         return talon;
     }

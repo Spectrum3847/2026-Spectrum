@@ -35,6 +35,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
 import frc.spectrumLib.framework.RobotLoop;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import frc.spectrumLib.hardware.TalonFXFactory;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.CanDeviceId;
@@ -309,7 +310,12 @@ public abstract class Mechanism implements Subsystem {
         BaseStatusSignal.setUpdateFrequencyForAll(
                 DIAGNOSTIC_SIGNAL_HZ, talon.getStatorCurrent(), talon.getSupplyCurrent());
         talon.getDeviceTemp().setUpdateFrequency(TEMPERATURE_SIGNAL_HZ);
-        talon.optimizeBusUtilization();
+        // A long run of per-signal config calls, and only ever an optimisation. On a dead
+        // bus it is pure boot latency, so it is the first thing dropped once the budget is
+        // spent.
+        if (!CanConfigBudget.exhausted()) {
+            talon.optimizeBusUtilization();
+        }
     }
 
     // ── Subsystem Overrides ────────────────────────────────────────────────────
@@ -1530,8 +1536,14 @@ public abstract class Mechanism implements Subsystem {
                 config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);
                 config.configForwardTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
                 config.configReverseTorqueCurrentLimit(-1 * Math.abs(statorLimit.getAsDouble()));
-                for (int i = 0; i < 10; i++) {
-                    StatusCode result = motor.getConfigurator().apply(config.talonConfig);
+                int attempts = CanConfigBudget.maxAttempts();
+                for (int i = 0; i < attempts; i++) {
+                    StatusCode result =
+                            CanConfigBudget.run(
+                                    config.getName(),
+                                    timeout ->
+                                            motor.getConfigurator()
+                                                    .apply(config.talonConfig, timeout));
                     if (!result.isOK()) {
                         System.out.println(
                                 "Could not apply config changes to "
@@ -1837,7 +1849,9 @@ public abstract class Mechanism implements Subsystem {
          * @param talon the TalonFX motor to configure
          */
         public void applyTalonConfig(TalonFX talon) {
-            StatusCode result = talon.getConfigurator().apply(talonConfig);
+            StatusCode result =
+                    CanConfigBudget.run(
+                            name, timeout -> talon.getConfigurator().apply(talonConfig, timeout));
             if (!result.isOK()) {
                 DriverStation.reportWarning(
                         "Could not apply config changes to " + name + "\'s motor ", false);

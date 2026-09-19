@@ -64,7 +64,11 @@ public class SpectrumCANcoder {
                             ? SensorDirectionValue.Clockwise_Positive
                             : SensorDirectionValue.CounterClockwise_Positive;
             canCoderConfigs.MagnetSensor.AbsoluteSensorDiscontinuityPoint = 0.5;
-            if (canCoderResponseOK(canCoder.getConfigurator().apply(canCoderConfigs))) {
+            if (canCoderResponseOK(
+                    CanConfigBudget.run(
+                            "CANcoder " + CANcoderID,
+                            timeout ->
+                                    canCoder.getConfigurator().apply(canCoderConfigs, timeout)))) {
                 // Modify configuration to use remote CANcoder fused
                 modifyMotorConfig(motor, mechConfig);
             }

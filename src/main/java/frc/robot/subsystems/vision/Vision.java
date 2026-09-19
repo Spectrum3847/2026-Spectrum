@@ -17,6 +17,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -1012,9 +1013,11 @@ public class Vision implements Subsystem {
      * Default mode's turret-camera estimate: the composed robot pose run through the MegaTag1 gates
      * and tiers, with the tilt and height gates reading the camera's own 3-D solve.
      *
+     * @param forceIntegrateXY tight covariance on both translation and heading, for disabled
+     *     seeding; {@code false} while enabled, where the gyro owns heading
      * @return the estimate, or {@code null} if rejected
      */
-    private VisionFieldPoseEstimate getTurretEstimate() {
+    private VisionFieldPoseEstimate getTurretEstimate(boolean forceIntegrateXY) {
         solveTurretCamera();
         if (!turretLL.targetInView()) {
             turretLL.setTagStatus("No Targets in View");
@@ -1030,7 +1033,7 @@ public class Vision implements Subsystem {
             return null;
         }
         return buildMT1Estimate(
-                turretLL, turretLL.getMegaTag1_Pose3d(), turretSolvedRobotPose, false);
+                turretLL, turretLL.getMegaTag1_Pose3d(), turretSolvedRobotPose, forceIntegrateXY);
     }
 
     /**
@@ -1083,9 +1086,11 @@ public class Vision implements Subsystem {
             integrateSingleEstimate(best, getMT1Estimate(best, true));
             if (best.isIntegratedThisLoop()) {
                 poseHeadingSeeded = true;
+                seededFromTurretOnly = false;
                 trackSeedConfirmation(best);
             } else {
                 seedConfirmStreak = 0;
+                seedFromTurretCamera();
             }
         }
 
@@ -1097,6 +1102,54 @@ public class Vision implements Subsystem {
         Telemetry.logDash("Vision/PoseHeadingSeeded", poseHeadingSeeded);
         Telemetry.logDash("Vision/PoseSeedConfirmed", poseSeedConfirmed);
         Telemetry.log("Vision/SeedConfirmProgress", seedConfirmStreak);
+        Telemetry.logDash("Vision/PoseTrustedForAiming", isPoseTrustedForAiming());
+        Telemetry.logDash("Vision/SeededFromTurretOnly", seededFromTurretOnly);
+    }
+
+    /**
+     * True when the only camera that has ever seeded the pose is the turret camera.
+     *
+     * <p>Worth surfacing, because such a seed is a weaker claim than a chassis seed: see {@link
+     * #seedFromTurretCamera()}.
+     */
+    @Getter private boolean seededFromTurretOnly = false;
+
+    /**
+     * Last-resort disabled seed from the turret camera, used only when no chassis camera produced
+     * an estimate this loop.
+     *
+     * <p>The chassis cameras are the better heading source and are tried first. But they look out
+     * over the rear corners, and in the 2026-09-19 Chezy practice match neither of them saw a
+     * single tag in the 387 s before the match -- both reported "No Targets in View" the entire
+     * time, while the turret camera held 1 to 2 tags from 80 s onward. The pose was therefore never
+     * seeded, the robot entered auto on its power-on heading, and the turret zero trim was later
+     * measured absorbing 7.4 deg of pose heading error. A turret seed would have been far better
+     * than none.
+     *
+     * <p>Why it stays the fallback and not a peer: the turret camera's implied robot heading is its
+     * MegaTag1 field heading minus the turret angle, so it inherits the turret zero error, whereas
+     * a chassis camera's MegaTag1 heading is the robot's directly. A turret seed can therefore be
+     * wrong by exactly the turret zero error.
+     *
+     * <p>For the same reason it sets {@link #poseHeadingSeeded} but never {@link
+     * #poseSeedConfirmed}: confirmation is what switches the chassis cameras to MegaTag2 and what
+     * PathPlanner's trajectory reuse leans on, and a turret-derived heading has not earned that.
+     * {@link #trackSeedConfirmation} would also misread it -- that method compares raw MegaTag1
+     * rotations, which for the turret camera is the camera's heading, not the robot's.
+     */
+    private void seedFromTurretCamera() {
+        if (!turretEstimatesAvailable() || !turretRioTransformActive) {
+            return;
+        }
+        integrateSingleEstimate(turretLL, getTurretEstimate(true));
+        if (turretLL.isIntegratedThisLoop() && !poseHeadingSeeded) {
+            poseHeadingSeeded = true;
+            seededFromTurretOnly = true;
+            Telemetry.print(
+                    "Vision: pose seeded from the TURRET camera - no chassis camera had tags."
+                            + " Heading carries the turret zero error; get a chassis camera on"
+                            + " tags to confirm it.");
+        }
     }
 
     /**
@@ -1110,6 +1163,32 @@ public class Vision implements Subsystem {
      * from a multi-tag solve is in the same position as a confirmed seed.
      */
     @Getter private boolean poseSeedConfirmed = false;
+
+    /**
+     * Whether the robot pose has been established well enough to aim the turret from.
+     *
+     * <p>The turret aims by subtracting the robot's heading from a field-relative angle, so an
+     * unseeded pose does not make it aim badly, it makes it aim off by exactly the robot's power-on
+     * heading error -- and there is no way to tell from the turret's own signals that this has
+     * happened. In all three 2026-09-05 test logs the robot was enabled before any camera had
+     * produced a pose. Until vision has written a real one, pointing at where the target is
+     * believed to be is worse than not pointing at all, so {@link
+     * frc.robot.subsystems.turret.Turret} holds at its zero instead.
+     *
+     * <p>Either flag is enough. {@link #poseHeadingSeeded} is only ever set while disabled, so on
+     * its own it would leave the turret parked for a whole match if the robot were enabled before
+     * the cameras booted; {@link #poseSeedConfirmed} is also set by the gross heading correction,
+     * which runs while enabled, and is therefore the in-match recovery path.
+     *
+     * <p>Simulation has no vision at all -- nothing in this repo simulates a Limelight -- but the
+     * simulated pose comes from MapleSim and is ground truth, so it is trusted outright. Without
+     * that the turret would never aim in a sim.
+     *
+     * @return true when the turret may aim from the current pose
+     */
+    public boolean isPoseTrustedForAiming() {
+        return RobotBase.isSimulation() || poseHeadingSeeded || poseSeedConfirmed;
+    }
 
     private int seedConfirmStreak = 0;
     private Rotation2d seedConfirmHeadingRef = Rotation2d.kZero;
@@ -1204,7 +1283,7 @@ public class Vision implements Subsystem {
                 integrateSingleEstimate(
                         turretLL,
                         turretRioTransformActive
-                                ? getTurretEstimate()
+                                ? getTurretEstimate(false)
                                 : getMT2VisionEstimate(turretLL));
             }
 

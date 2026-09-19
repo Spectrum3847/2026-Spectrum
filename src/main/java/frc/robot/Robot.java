@@ -1,6 +1,7 @@
 package frc.robot;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.CANBus.CANBusStatus;
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.pathplanner.lib.auto.AutoBuilder;
@@ -63,6 +64,7 @@ import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.Vision.VisionConfig;
 import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.framework.SpectrumRobot;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.BatteryLogger;
 import frc.spectrumLib.telemetry.SystemLoadMonitor;
@@ -132,6 +134,19 @@ public class Robot extends SpectrumRobot {
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
 
+    /**
+     * The roboRIO's own CAN interface, logged alongside {@link #mainCANBus}.
+     *
+     * <p>Its health used to come from DogLog's {@code logExtras}, which is off (see {@link
+     * frc.spectrumLib.telemetry.Telemetry#start}), so {@code /Robot/SystemStats/CANBus/*} stopped
+     * logging 5.5 s into every boot. In the 2026-09-19 Chezy practice match that left no rio-bus
+     * data at all for the CAN failure: the only reason the CANivore side could be diagnosed is that
+     * {@link #logCanBusStatus()} logs it explicitly. The rio bus carries the intake rollers, and
+     * proving they were still alive is what localised that failure to the CANivore bus -- so it is
+     * worth the second 1 Hz read.
+     */
+    @Getter private static CANBus rioCANBus;
+
     /** Creates a new Robot instance. */
     public Robot() {
         super();
@@ -158,6 +173,7 @@ public class Robot extends SpectrumRobot {
 
             double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
             mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
+            rioCANBus = new CANBus(Rio.RIO_CANBUS);
 
             pilot = new Pilot(config.pilot);
             operator = new Operator(config.operator);
@@ -395,6 +411,12 @@ public class Robot extends SpectrumRobot {
     public void robotPeriodic() {
         RobotLoop.next();
         systemLoad.periodic();
+
+        // Latched here rather than in the mode inits so test mode and any future mode are covered
+        // by the same check. Never cleared: a disable does not un-run an auto.
+        if (DriverStation.isEnabled()) {
+            hasBeenEnabled = true;
+        }
         /*
          * Deliberately NOT raised to real-time priority. Tried on 2026-09-05: with the loop body
          * still 15-30 ms long, a SCHED_FIFO main thread owned one core for most of every period and
@@ -471,12 +493,34 @@ public class Robot extends SpectrumRobot {
         }
         lastCanStatusSeconds = now;
 
-        var canInfo = mainCANBus.getStatus();
-        Telemetry.logDashAlways("CANivore/BusUtilization", canInfo.BusUtilization * 100, "%");
-        Telemetry.log("CANivore/BusOffCount", canInfo.BusOffCount);
-        Telemetry.log("CANivore/TxFullCount", canInfo.TxFullCount);
-        Telemetry.log("CANivore/ReceiveErrorCounter", canInfo.REC);
-        Telemetry.logDashAlways("CANivore/TransmitErrorCounter", canInfo.TEC);
+        logOneCanBus("CANivore", mainCANBus.getStatus());
+        logOneCanBus("RioCANBus", rioCANBus.getStatus());
+
+        // Near-misses matter: a boot that spent 2 s of the 3 s budget is one bad connector
+        // away from the 64 s boot of 2026-09-19.
+        Telemetry.log("CANConfig/BudgetSpentSeconds", CanConfigBudget.getSpentSeconds());
+        Telemetry.log("CANConfig/FailedCalls", CanConfigBudget.getFailedCalls());
+        Telemetry.logDashAlways("CANConfig/BudgetExhausted", CanConfigBudget.exhausted());
+    }
+
+    /**
+     * Logs one bus's health under {@code <prefix>/}.
+     *
+     * <p>{@code Status} is logged too. Every counter below reads 0 on a bus whose status read
+     * itself failed, which looks exactly like a perfectly healthy idle bus; the status code is the
+     * only thing that separates them.
+     *
+     * @param prefix telemetry prefix for this bus
+     * @param canInfo the bus status just read
+     */
+    private void logOneCanBus(String prefix, CANBusStatus canInfo) {
+        Telemetry.logDashAlways(prefix + "/BusUtilization", canInfo.BusUtilization * 100, "%");
+        Telemetry.log(prefix + "/BusOffCount", canInfo.BusOffCount);
+        Telemetry.log(prefix + "/TxFullCount", canInfo.TxFullCount);
+        Telemetry.log(prefix + "/ReceiveErrorCounter", canInfo.REC);
+        Telemetry.logDashAlways(prefix + "/TransmitErrorCounter", canInfo.TEC);
+        Telemetry.log(prefix + "/Status", canInfo.Status.getName());
+        Telemetry.log(prefix + "/StatusOK", canInfo.Status.isOK());
     }
 
     /** Seconds between deliberate full collections while sitting disabled. */
@@ -505,8 +549,10 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("### Disabled Init Starting ### ");
         collectGarbageWhileDisabled();
 
-        // Put the robot back on the selected auto's starting pose. On the field vision overwrites
-        // this within a loop or two; in simulation it is the only thing that ever does it.
+        // Request placement on the selected auto's starting pose. Honoured only before the
+        // first enable -- see mayPlaceAtAutoStart(). This used to be unconditional, on the
+        // assumption that "on the field vision overwrites this within a loop or two", which is
+        // exactly what failed at Chezy on 2026-09-19 with both chassis cameras blind.
         placeAtAutoStart = true;
 
         if (!autonWarmedUp) {
@@ -542,6 +588,27 @@ public class Robot extends SpectrumRobot {
      * from the end of the first.
      */
     private boolean placeAtAutoStart = true;
+
+    /**
+     * True once the robot has been enabled at least once since boot.
+     *
+     * <p>Gates {@link #placeAtAutoStart}. The placement is only ever correct before the match: it
+     * writes the selected auto's starting pose, which is where the robot is about to be put, and
+     * the comment on {@link #disabledInit()} assumed vision would overwrite it "within a loop or
+     * two" on the field.
+     *
+     * <p>In the 2026-09-19 Chezy practice match it did not. Neither chassis camera saw a single tag
+     * in the 387 s before the match -- both reported "No Targets in View" the whole time -- so
+     * nothing ever overwrote the placement. Then the auto-to-teleop disable set the flag again and
+     * snapped the pose from where auto actually finished (12.77, 0.57, -180 deg) back to the auto's
+     * start (11.89, 0.59, +90 deg). Teleop began about 0.9 m and 270 deg wrong, and the heading was
+     * not recovered until the gross-heading net fired 5.6 s in.
+     *
+     * <p>So the placement is now refused once the robot has been enabled. After that the pose
+     * estimator's own output is always a better answer than the start of a path the robot has
+     * already driven.
+     */
+    private boolean hasBeenEnabled = false;
 
     /** Disabled periodic. */
     @Override
@@ -656,13 +723,32 @@ public class Robot extends SpectrumRobot {
 
         // Outside the selection-changed branch on purpose: this also has to run after a disable,
         // when the name has not changed but the robot is sitting wherever the last run left it.
+        // Gated at the point of use, so both triggers (a chooser change and every disabledInit)
+        // are covered by the one check. The request is cleared either way: a placement refused
+        // after an enable must not sit armed and fire later.
         if (placeAtAutoStart && !selectedAutoPaths.isEmpty()) {
-            swerve.resetPose(
-                    selectedAutoPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+            if (mayPlaceAtAutoStart()) {
+                swerve.resetPose(
+                        selectedAutoPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+            }
             placeAtAutoStart = false;
         }
 
         checkStartPose();
+    }
+
+    /**
+     * Whether the robot may still be placed on the selected auto's starting pose.
+     *
+     * <p>Only before the first enable on the real robot. Simulation is exempt: nothing there ever
+     * writes the pose except this placement -- there is no vision in the sim -- so without it the
+     * second run of an auto starts from wherever the first one ended, which is the whole reason the
+     * placement runs on every disable in the first place.
+     *
+     * @return true when the placement is still the best available pose
+     */
+    private boolean mayPlaceAtAutoStart() {
+        return RobotBase.isSimulation() || !hasBeenEnabled;
     }
 
     // -- Start pose check -------------------------------------------------------------------------
@@ -689,6 +775,30 @@ public class Robot extends SpectrumRobot {
     private final Alert startPoseAlert = new Alert("", AlertType.kError);
 
     /**
+     * Raised while the start-pose check cannot run because the pose has never been vision-seeded.
+     */
+    private final Alert startPoseUnverifiedAlert =
+            new Alert(
+                    "Start pose UNVERIFIED - no chassis camera has seeded the pose, so the robot"
+                            + " cannot tell whether it is on the auto's start. Get a chassis"
+                            + " camera on two or more tags before enabling.",
+                    AlertType.kError);
+
+    /**
+     * Blanks the start-pose report: publishes NaN rather than a stale or vacuous number, and
+     * disarms the disagreement alert.
+     *
+     * <p>NaN and not 0: a dashboard reading 0.00 m is indistinguishable from a perfect seed, which
+     * is the trap this whole check exists to close.
+     */
+    private void clearStartPoseReport() {
+        startPoseErrorSinceSeconds = Double.NaN;
+        startPoseAlert.set(false);
+        Telemetry.logDash("Auton/StartPoseErrorMeters", Double.NaN, "m");
+        Telemetry.logDash("Auton/StartHeadingErrorDeg", Double.NaN, "deg");
+    }
+
+    /**
      * Compares the current pose with the selected auto's starting pose and alerts when they
      * disagree. Disabled only; the placement above and vision seeding both happen there, and once
      * the match starts there is nothing anyone can do about it.
@@ -699,10 +809,29 @@ public class Robot extends SpectrumRobot {
                         ? Optional.empty()
                         : selectedAutoPaths.get(0).getStartingHolonomicPose();
         if (start.isEmpty()) {
-            startPoseErrorSinceSeconds = Double.NaN;
-            startPoseAlert.set(false);
+            clearStartPoseReport();
             return;
         }
+
+        // Once the robot has run, the comparison means nothing: the pose is wherever the robot
+        // drove to, and the start of an already-driven path is not an error to report.
+        if (hasBeenEnabled) {
+            clearStartPoseReport();
+            return;
+        }
+
+        // The placement writes the auto's start pose, and vision seeding is the only other thing
+        // that ever writes the pose while disabled. Unseeded, this compares the start pose against
+        // itself and reports a perfect 0.00 m -- which is exactly what it reported in the
+        // 2026-09-19 Chezy practice match, with both chassis cameras blind for the whole 387 s
+        // pre-match and the real heading error later measured at 7.4 deg. A check that reads
+        // "perfect" when it has nothing to check is worse than no check, so it refuses to answer.
+        if (!vision.isPoseHeadingSeeded()) {
+            clearStartPoseReport();
+            startPoseUnverifiedAlert.set(true);
+            return;
+        }
+        startPoseUnverifiedAlert.set(false);
 
         Pose2d pose = swerve.getRobotPose();
         double distanceMeters = pose.getTranslation().getDistance(start.get().getTranslation());
