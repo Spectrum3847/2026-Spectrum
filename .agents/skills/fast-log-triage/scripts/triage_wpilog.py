@@ -71,6 +71,11 @@ SETPOINT_PAIRS = [
     ("Turret/CommandedDegrees", "Turret/PositionDegrees", 5.0, 0.0, 1.0, -1.0),
 ]
 
+# The ShotReady/* keys that feed Composite; the rest are outputs of it or the operator override.
+SHOT_GATE_INPUTS = {"LauncherAtSpeed", "HoodAtAngle", "TurretOnTarget", "RangeOk", "PoseTrusted", "ShotInRange"}
+# Launcher/SystemState values in which isAtSpeed() can be true at all.
+LAUNCH_STATES = {"LAUNCH", "SET_SHOT"}
+
 STALL_COUNTERS = [
     "DyeRotor/RotorStallCount",
     "IntakeExtension/Agitate/StalledPulls",
@@ -599,8 +604,16 @@ class Triage:
             start = None
             worst = 0.0
             spans = []
+            prev_t = None
             for t, m in zip(meas.ts, meas.vs):
                 c = cmd.value_at(t)
+                # A gap in the measured samples is a disable (logDash keys stop while disabled), so
+                # a span must not bridge it: the launcher's "72.8 s" miss in the 2026-09-19 practice
+                # log was a 6 s burst, a 67 s disable, and the next enable's first sample.
+                if prev_t is not None and t - prev_t > 1_000_000 and start is not None:
+                    spans.append((start, prev_t, worst))
+                    start, worst = None, 0.0
+                prev_t = t
                 if c is None or not isinstance(m, (int, float)) or not isinstance(c, (int, float)) or abs(c) < min_cmd or not in_windows(t, self.windows):
                     if start is not None:
                         spans.append((start, t, worst))
@@ -681,9 +694,17 @@ class Triage:
                         self.findings.append(Finding("MEDIUM", f"{wk.split('/')[0]} wanted {worst[0]} but sat in {worst[1]} for {(t - start) / 1e6:.1f} s", start, t, f"{wk} vs {ck}", "State machine could not reach the wanted state: look at that subsystem's readiness gates and setpoint findings.", "states"))
                         break
                     start = None
-        gates = {n: s for n, s in self.series.items() if n.startswith("SuperStructure/ShotReady/") and s.vs and isinstance(s.vs[0], bool)}
-        comp = gates.pop("SuperStructure/ShotReady/Composite", None)
+        # Only the inputs to Composite can block a shot. The other ShotReady/* keys (Override,
+        # StartReady, KeepReady, GateOpen, FeedAllowed, HoldingFeed) are outputs or the operator's
+        # override, and are false most of a match by design: Chezy Q11 (2026-09-19) ranked
+        # "Override 130s, StartReady 130s" as the blockers of a match where every real gate was open.
+        gates = {n: s for n, s in self.series.items() if n.startswith("SuperStructure/ShotReady/") and n.rsplit("/", 1)[-1] in SHOT_GATE_INPUTS and s.vs and isinstance(s.vs[0], bool)}
+        comp = self.series.get("SuperStructure/ShotReady/Composite")
         cmd = self.series.get("Launcher/CommandedRPM")
+        # "Spun up" means a launch state, not the 700 RPM IDLE_PREP idle: isAtSpeed() is false by
+        # definition outside LAUNCH/SET_SHOT, so counting idle time blamed LauncherAtSpeed for 110 s
+        # of a practice session in which every set shot reached speed within a second.
+        lstate = self.series.get("Launcher/SystemState")
         if comp and gates and cmd:
             # while the launcher is spun up and composite is false, which gate is false?
             blame: dict[str, float] = defaultdict(float)
@@ -693,7 +714,11 @@ class Triage:
                 t = a
                 while t < b:
                     c = cmd.value_at(t)
-                    if isinstance(c, (int, float)) and c > 500 and in_windows(t, self.windows):
+                    if lstate:
+                        spun = str(lstate.value_at(t)) in LAUNCH_STATES
+                    else:
+                        spun = isinstance(c, (int, float)) and c > 1000
+                    if spun and in_windows(t, self.windows):
                         total += 0.05
                         for n, s in gates.items():
                             if s.value_at(t) is False:
@@ -704,16 +729,16 @@ class Triage:
                 self.findings.append(
                     Finding(
                         "HIGH",
-                        f"Shot NOT ready for {total:.0f} s while launcher was spun up; blocking gates: " + ", ".join(f"{k} {v:.0f}s" for k, v in top),
+                        f"Shot NOT ready for {total:.0f} s while in a launch state; blocking gates: " + ", ".join(f"{k} {v:.0f}s" for k, v in top),
                         None,
                         None,
-                        "SuperStructure/ShotReady/* false while Launcher/CommandedRPM > 500",
-                        "The first gate named is why fuel did not feed. PoseTrusted → vision; TurretOnTarget → turret; LauncherAtSpeed/HoodAtAngle → those mechanisms; RangeOk → driver position.",
+                        "SuperStructure/ShotReady/Composite false while Launcher/SystemState is LAUNCH or SET_SHOT",
+                        "The first gate named is why fuel did not feed. PoseTrusted → vision; TurretOnTarget → turret; LauncherAtSpeed/HoodAtAngle → those mechanisms; RangeOk → driver position. A few seconds here is normal: every burst re-earns the gate.",
                         "states",
                     )
                 )
             elif comp:
-                self.clean.append("shot-ready gates opened whenever the launcher was spun up")
+                self.clean.append("shot-ready gates opened whenever the launcher was in a launch state")
 
     def _vision(self):
         tr = self.series.get("Vision/PoseTrustedForAiming")

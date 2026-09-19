@@ -1,6 +1,7 @@
 package frc.robot.subsystems.vision;
 
 import com.ctre.phoenix6.Utils;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -35,6 +36,7 @@ import frc.spectrumLib.vision.LimelightHelpers;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import frc.spectrumLib.vision.VisionLogger;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
@@ -303,6 +305,27 @@ public class Vision implements Subsystem {
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
 
+        // -- Placement heading confirmation -------------------------------------
+        //
+        // When no camera has seeded the pose before the match, the robot is sitting on the
+        // selected auto's start pose, placed there by Robot.disabledPeriodic, and that heading is
+        // the best answer available. It stayed unconfirmed until a camera agreed with it, and on
+        // 2026-09-19 (Chezy Q4, Q11, Q17) that took until the robot stopped in front of tags in
+        // teleop, because the only enabled seed path needed the robot slow and a multi-tag solve
+        // at the same moment. In Q17 the turret camera held two to four tags for the first four
+        // seconds of auto while the robot drove, and none of it counted.
+        //
+        // Agreement does not move the pose, so it needs no stillness: a multi-tag heading that
+        // matches the placed heading frame after frame is confirmation, whatever the robot is
+        // doing. Steady disagreement is the placement being wrong, and the best chassis camera
+        // then re-seeds heading and translation the way the disabled seed does.
+
+        /** Largest camera-minus-pose heading difference, degrees, that still counts as agreeing. */
+        @Getter final double placementAgreeDeg = 8.0;
+
+        /** Camera frames, one vote per frame, that must agree or steadily disagree to decide. */
+        @Getter final int placementDecideFrames = 10;
+
         // -- Chassis camera source while enabled --------------------------------
         //
         // MegaTag1 solves heading from tag geometry and its translation moves with that heading:
@@ -501,12 +524,12 @@ public class Vision implements Subsystem {
         /**
          * Smallest error worth re-homing for.
          *
-         * <p>Below this the trim handles it. Set above {@link #getTurretZeroMaxErrorDeg()} so the
-         * two never contend for the same error: under 15 deg the trim walks it, over 20 the re-home
-         * takes it in one step, and the band between is left to the trim so a marginal reading
-         * cannot snap the turret.
+         * <p>Below this the trim handles it. Equal to {@link #getTurretZeroMaxErrorDeg()} so the
+         * two meet: the trim walks anything up to 15 deg and the re-home takes anything from 15 up
+         * in one step. Was 20 until 2026-09-19, which left a 15 to 20 deg band that neither would
+         * touch -- and two rotor turns of boot zero error is 18.1 deg, squarely inside it.
          */
-        @Getter final double turretZeroRehomeMinErrorDeg = 20.0;
+        @Getter final double turretZeroRehomeMinErrorDeg = 15.0;
 
         /**
          * Largest single re-home that will be applied, in degrees.
@@ -1137,6 +1160,13 @@ public class Vision implements Subsystem {
         Telemetry.log("Vision/EnabledSeedCount", enabledSeedCount);
         Telemetry.logDash("Vision/PoseTrustedForAiming", isPoseTrustedForAiming());
         Telemetry.logDash("Vision/SeededFromTurretOnly", seededFromTurretOnly);
+        Telemetry.log(
+                "Vision/Placement/HeadingAssumed", headingFromPlacement && !poseHeadingSeeded);
+        Telemetry.log("Vision/Placement/ChassisAgreeFrames", chassisPlacementVote.agree);
+        Telemetry.log("Vision/Placement/TurretAgreeFrames", turretPlacementVote.agree);
+        Telemetry.log("Vision/Placement/ChassisDisagreeFrames", chassisPlacementVote.disagree);
+        Telemetry.log("Vision/Placement/ConfirmCount", placementConfirmCount);
+        Telemetry.log("Vision/Placement/RefuteCount", placementRefuteCount);
     }
 
     /**
@@ -1349,6 +1379,7 @@ public class Vision implements Subsystem {
             }
 
             checkGrossHeadingError(best);
+            checkPlacementHeading(best);
 
             // Confirm an in-match seed the way a disabled one is confirmed, so the chassis cameras
             // can move on to MegaTag2. Stricter than the disabled version: the multi-tag heading
@@ -1363,6 +1394,195 @@ public class Vision implements Subsystem {
             } else if (!poseSeedConfirmed) {
                 seedConfirmStreak = 0;
             }
+        }
+    }
+
+    // -- Placement heading confirmation ----------------------------------------------------------
+
+    /**
+     * True once {@link frc.robot.Robot} has placed the pose on the selected auto's start and no
+     * camera has seeded it since. The placed heading is then the working assumption, and {@link
+     * #checkPlacementHeading} looks for a camera to confirm or refute it.
+     */
+    @Getter private boolean headingFromPlacement = false;
+
+    /**
+     * Records that the pose was just written from the selected auto's starting pose. Called by
+     * Robot while disabled, before the first enable.
+     */
+    public void notePlacedAtAutoStart() {
+        headingFromPlacement = true;
+    }
+
+    /** One camera's running vote on the placed heading. */
+    private static final class PlacementVote {
+        double lastFrameFpga = Double.NaN;
+        int agree = 0;
+        int disagree = 0;
+        double disagreeRefDeg = 0;
+        double disagreeLow = 0;
+        double disagreeHigh = 0;
+
+        void reset() {
+            agree = 0;
+            disagree = 0;
+            disagreeLow = 0;
+            disagreeHigh = 0;
+        }
+    }
+
+    private final PlacementVote chassisPlacementVote = new PlacementVote();
+    private final PlacementVote turretPlacementVote = new PlacementVote();
+
+    /** Placements confirmed by a camera this power cycle. */
+    private int placementConfirmCount = 0;
+
+    /** Placements refuted and re-seeded by a chassis camera this power cycle. */
+    private int placementRefuteCount = 0;
+
+    private double placementTurretDisagreePrintSeconds = Double.NEGATIVE_INFINITY;
+
+    /**
+     * Confirms or refutes a placed heading from whatever multi-tag solve is available this loop,
+     * moving or not. Runs only while enabled, after {@link #checkGrossHeadingError} has computed
+     * this loop's chassis heading error.
+     *
+     * <p>The chassis camera's vote can also refute: ten frames that disagree with the placed
+     * heading by more than {@link VisionConfig#getPlacementAgreeDeg()} and agree with each other to
+     * within {@link VisionConfig#getSeedConfirmSpreadDeg()} are a real heading, and the pose is
+     * re-seeded from that camera. The turret camera only ever confirms, because its heading carries
+     * the turret zero error and a steady disagreement there is as likely the turret as the
+     * placement; it says so and leaves the decision to the chassis cameras.
+     *
+     * @param best the chassis camera the heading corrections trust this loop
+     */
+    private void checkPlacementHeading(Limelight best) {
+        if (poseHeadingSeeded || !headingFromPlacement) {
+            return;
+        }
+        if (Double.isNaN(chassisHeadingErrorDeg)) {
+            chassisPlacementVote.reset();
+        } else {
+            votePlacement(
+                    chassisPlacementVote,
+                    best,
+                    chassisHeadingErrorDeg,
+                    best.getMegaTag1PoseTimestamp(),
+                    false);
+        }
+        if (poseHeadingSeeded) {
+            return;
+        }
+        double turretErrorDeg =
+                turretEstimatesAvailable()
+                                && turretRioTransformActive
+                                && turretLL.multipleTagsInView()
+                        ? turretCameraHeadingErrorDeg()
+                        : Double.NaN;
+        if (Double.isNaN(turretErrorDeg)) {
+            turretPlacementVote.reset();
+        } else {
+            votePlacement(
+                    turretPlacementVote, turretLL, turretErrorDeg, turretSolvedTimestampFpga, true);
+        }
+    }
+
+    /**
+     * Adds one camera frame to a placement vote and acts when the vote is decided.
+     *
+     * @param vote the camera's running vote
+     * @param ll the camera
+     * @param errorDeg the camera's robot heading minus the pose heading, degrees, wrapped
+     * @param frameFpga the frame's timestamp, so a frame counts once however many loops it lasts
+     * @param turretCamera true for the turret camera, which may confirm but not refute
+     */
+    private void votePlacement(
+            PlacementVote vote,
+            Limelight ll,
+            double errorDeg,
+            double frameFpga,
+            boolean turretCamera) {
+        if (frameFpga == vote.lastFrameFpga) {
+            return;
+        }
+        vote.lastFrameFpga = frameFpga;
+
+        if (Math.abs(errorDeg) <= config.getPlacementAgreeDeg()) {
+            vote.agree++;
+            vote.disagree = 0;
+            if (vote.agree >= config.getPlacementDecideFrames()) {
+                poseHeadingSeeded = true;
+                seededFromTurretOnly = turretCamera;
+                placementConfirmCount++;
+                Telemetry.print(
+                        String.format(
+                                "Vision: placed heading CONFIRMED by %s (%d tags, %d frames within"
+                                        + " %.1f deg). The pose was never camera-seeded; the auto"
+                                        + " start pose was right.",
+                                ll.getName(),
+                                (int) ll.getTagCountInView(),
+                                vote.agree,
+                                config.getPlacementAgreeDeg()),
+                        PrintPriority.HIGH);
+            }
+            return;
+        }
+
+        // Disagreeing. Count only while the disagreement is steady: a real heading reads the
+        // same every frame, a two-tag guess does not.
+        vote.agree = 0;
+        if (vote.disagree == 0) {
+            vote.disagreeRefDeg = errorDeg;
+            vote.disagreeLow = 0;
+            vote.disagreeHigh = 0;
+        }
+        double d = MathUtil.inputModulus(errorDeg - vote.disagreeRefDeg, -180.0, 180.0);
+        double low = Math.min(vote.disagreeLow, d);
+        double high = Math.max(vote.disagreeHigh, d);
+        if (high - low > config.getSeedConfirmSpreadDeg()) {
+            vote.disagreeRefDeg = errorDeg;
+            vote.disagree = 0;
+            low = 0;
+            high = 0;
+        }
+        vote.disagreeLow = low;
+        vote.disagreeHigh = high;
+        vote.disagree++;
+        if (vote.disagree < config.getPlacementDecideFrames()) {
+            return;
+        }
+        vote.disagree = 0;
+
+        double now = Timer.getFPGATimestamp();
+        if (turretCamera) {
+            if (now - placementTurretDisagreePrintSeconds >= 5.0) {
+                placementTurretDisagreePrintSeconds = now;
+                Telemetry.print(
+                        String.format(
+                                "Vision: turret camera disagrees with the placed heading by %.1f"
+                                        + " deg (%d tags, steady). Could be the placement or the"
+                                        + " turret zero; waiting for a chassis camera to decide.",
+                                errorDeg, (int) ll.getTagCountInView()));
+            }
+            return;
+        }
+
+        integrateSingleEstimate(ll, getMT1Estimate(ll, true));
+        if (ll.isIntegratedThisLoop()) {
+            poseHeadingSeeded = true;
+            seededFromTurretOnly = false;
+            placementRefuteCount++;
+            enabledSeedCount++;
+            Telemetry.print(
+                    String.format(
+                            "Vision: placed heading was WRONG by %.1f deg; pose re-seeded from %s"
+                                    + " (%d tags, steady over %d frames). Check how the robot was"
+                                    + " placed for auto.",
+                            errorDeg,
+                            ll.getName(),
+                            (int) ll.getTagCountInView(),
+                            config.getPlacementDecideFrames()),
+                    PrintPriority.HIGH);
         }
     }
 
@@ -1611,6 +1831,49 @@ public class Vision implements Subsystem {
     private double turretSlipDegPerKiloDegTravel = 0;
     private double turretZeroDivergenceStartSeconds = Double.NaN;
     private boolean turretZeroDiverged = false;
+
+    /**
+     * Whether the operator is currently allowing vision to move the turret zero.
+     *
+     * <p>Default {@code false}: nothing in {@link #correctTurretZero()} writes the encoder unless
+     * this is held. Both halves of the servo are behind it -- the slow trim and the gross re-home
+     * -- because both write the zero, and on the 2026-09-19 Chezy Q24 log it was the re-home that
+     * did the damage: 52.4 deg in one step off a 2-tag solve at teleop+108.3 s, which the turret's
+     * own position guard then accepted as a re-frame (131.0 deg became 169.2 deg) and carried into
+     * the soft limits and every aim after it. The drive team's read of that match is that the belt
+     * never slipped, so every degree the servo wrote was the servo chasing a pose heading error --
+     * which is what the trim's own diagnostic said at teleop+93.9 s ("absorbing a pose heading
+     * error, not slip").
+     *
+     * <p>Hold-to-enable rather than a latch, deliberately: this moves a turret that may be aimed at
+     * something, and a held button cannot be left armed into the next match.
+     */
+    private BooleanSupplier turretZeroCorrectionEnable = () -> false;
+
+    /** Last loop's value of {@link #turretZeroCorrectionEnable}, for edge detection. */
+    private boolean turretZeroCorrectionWasEnabled = false;
+
+    /**
+     * Points the turret zero servo's enable at an operator button.
+     *
+     * <p>Mirrors {@link frc.robot.subsystems.SuperStructure#setFeedOverride(BooleanSupplier)}: the
+     * binding is a supplier read every loop, not a command, so it needs no requirements and cannot
+     * interrupt whatever Vision is doing.
+     *
+     * @param enable held true while vision may correct the turret zero
+     */
+    public void setTurretZeroCorrectionEnable(BooleanSupplier enable) {
+        this.turretZeroCorrectionEnable = enable;
+    }
+
+    /**
+     * Whether vision is allowed to move the turret zero this loop.
+     *
+     * @return true while the operator holds the enable
+     */
+    public boolean isTurretZeroCorrectionEnabled() {
+        return turretZeroCorrectionEnable.getAsBoolean();
+    }
 
     /** FPGA time the measurement became unmeasurable; NaN while it is measurable. */
     private double turretZeroUnmeasurableSinceSeconds = Double.NaN;
@@ -1861,8 +2124,62 @@ public class Vision implements Subsystem {
                 >= config.getTurretZeroMotorConnectedSeconds();
     }
 
+    /**
+     * Drops everything the turret zero servo has accumulated.
+     *
+     * <p>Called on both edges of the operator enable. The filter, the sample streak, the slip
+     * window and the re-home vote all describe a stretch of time the servo was watching; after a
+     * gap in which it was not allowed to act, none of them describe now. Re-homing already does
+     * this for the same reason (slip measured across a re-home is not slip).
+     *
+     * <p>The divergence latch is cleared too. It exists to stop a trim that is correcting the wrong
+     * way from walking the reported position past a soft stop on its own, and a human holding the
+     * enable is the judgement it was waiting for -- leaving it latched would make the button do
+     * nothing with no indication why.
+     *
+     * @param now the current FPGA time
+     */
+    private void resetTurretZeroServoState(double now) {
+        turretZeroFilteredErrorDeg = Double.NaN;
+        turretZeroMeasurableStreak = 0;
+        turretZeroUnmeasurableSinceSeconds = Double.NaN;
+        turretOnlyFilteredErrorDeg = Double.NaN;
+        turretZeroLastApplySeconds = now;
+        turretZeroRateWindowDeg = 0;
+        turretZeroRateWindowAbsDeg = 0;
+        turretZeroRateWindowStartSeconds = Double.NaN;
+        turretZeroDivergenceStartSeconds = Double.NaN;
+        turretZeroDiverged = false;
+        turretZeroDivergedAlert.set(false);
+        turretZeroRehomeCount = 0;
+        Telemetry.log("Vision/TurretZero/RehomeProgress", 0);
+    }
+
     private void correctTurretZero() {
         double now = Timer.getFPGATimestamp();
+
+        /*
+         * Off unless the operator is holding the enable. Everything below this writes the turret
+         * encoder, directly (the trim) or in one step (the re-home); see
+         * turretZeroCorrectionEnable for why that is opt-in rather than opt-out.
+         */
+        boolean enabled = turretZeroCorrectionEnable.getAsBoolean();
+        Telemetry.log("Vision/TurretZero/CorrectionEnabled", enabled);
+        if (enabled != turretZeroCorrectionWasEnabled) {
+            resetTurretZeroServoState(now);
+            turretZeroCorrectionWasEnabled = enabled;
+            Telemetry.print(
+                    "Vision: turret zero correction "
+                            + (enabled
+                                    ? "ENABLED by the operator; vision may trim and re-home the"
+                                            + " zero."
+                                    : "disabled; the turret zero is the operator's hand-zero"
+                                            + " until the enable is held again."));
+        }
+        if (!enabled) {
+            return;
+        }
+
         double errorDeg = turretCameraHeadingErrorDeg();
 
         ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();

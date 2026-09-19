@@ -24,6 +24,14 @@ public class Operator extends Gamepad {
     public final Trigger zeroTurretB = BButton.and(disabled);
 
     /*
+     * Held to let vision correct the turret zero -- the trim and the gross re-home both. Off
+     * unless it is held: on Chezy Q24 (2026-09-19) the servo re-homed the zero 52.4 deg mid-match
+     * off a 2-tag solve and the aim went with it. X is free, live enabled as well as disabled, and
+     * nothing else on the operator uses it.
+     */
+    public final Trigger visionTurretFixX = XButton;
+
+    /*
      * Zeroes the persisted hood and turret trims. A chord of the two buttons nothing else uses,
      * live enabled as well as disabled: the trims now survive a power cycle, so the operator has to
      * be able to clear a stale one without a redeploy, and neither button is reachable by accident

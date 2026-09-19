@@ -27,8 +27,26 @@ never 0, and a power cycle does not clear it.
 `Turret.seedFromZeroReference()` undoes that at code start: the rotor's absolute position is
 repeatable for a given turret angle, so subtracting the measured `ZERO_REFERENCE_DEGREES` (5.9765625
 deg on PM_2026, 2026-09-19) makes the parked zero read 0. The correction is only unique within one
-rotor turn, so **park the turret within +/-4.5 deg of zero before restarting code** or it snaps to
-the wrong turn. What it came up reading is logged as `Turret/BootPositionDegrees` and printed.
+rotor turn, so **park the turret within +/-4.5 deg of zero before a power cycle** (aim for 2) or it
+snaps to the wrong turn. What it came up reading is logged as `Turret/BootPositionDegrees` and
+printed.
+
+The seed runs only after a real power cycle. A code restart or a roboRIO reboot leaves the Talon's
+count intact, and re-seeding then would throw a good zero away. `decideBootZero` separates the two
+cases, logged as `Turret/BootDecision`:
+
+* A raw reading outside the band a power-on can produce (-4.5 to +9.05 deg) cannot be a power
+  cycle: the count is **kept**.
+* Inside that band, the reading is compared with the last position the previous code wrote to
+  `/home/lvuser/turret-position.txt` (rewritten whenever the turret moves more than 0.5 deg and on
+  every disable). A match within 0.25 deg is a code restart with the turret parked there: **kept**.
+* Anything else is a power cycle: **seeded** from the reference. If the seeded angle lands within
+  1 deg of the +/-4.5 wrap edge an alert says so, because the turret could equally have been
+  parked on the other side and now reads 9 deg wrong (Chezy Q17 booted 0.3 deg from that edge).
+
+Operator B while disabled still declares the current position zero and forces the file to be
+rewritten. The one case this cannot tell apart is a power cycle whose rotor absolute lands within
+0.25 deg of where the turret was left; parking on zero makes that rare.
 
 That constant is a property of where the motor sits on the belt. It survives power cycles and
 deploys but not a skipped tooth, a re-tension, or a motor swap -- re-measure it after any of those
@@ -164,6 +182,7 @@ New log keys: `Turret/Test/FollowTagInView`, `Turret/Test/FollowTagTxDeg`, `Turr
 * `Dpad Right/Left`: turret-angle offset trim (+/−1°, via `ShotCalculator`). Session-only since
   2026-09-19: it starts at zero every boot and is never stored.
 * `Start + Select`: zero all three trims, including the stored copies.
+* `X` (held): let vision trim and re-home the turret zero. Off unless held, since 2026-09-19; see [vision](../tools/vision.md#the-turret-camera-and-the-turret-zero). Released, the zero is whatever operator-B set and vision only logs what it would have changed.
 * `Select`: `FORCE_HOME`; release → `IDLE`.
 * `LB + Y`: reset the intake-extension position to max (with a rumble confirmation).
 * While disabled: `A` → coast the intake extension and turret, `B` → declare the turret's current position its zero (`Turret.zeroTurretCommand()`), which also releases a turret stall latch.

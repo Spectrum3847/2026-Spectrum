@@ -10,6 +10,9 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,7 +27,15 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.*;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.DoubleSupplier;
 import lombok.*;
 
@@ -645,7 +656,15 @@ public class Turret extends Mechanism {
      * #ZERO_REFERENCE_DEGREES} is all that is needed to undo it: subtract it, and what the turret
      * reads at its parked zero becomes 0. The correction is only unique within one rotor turn, so
      * the difference is wrapped into +/- 4.5 deg -- park the turret within half a rotor turn of
-     * zero before a restart and it lands right, park it further out and it snaps to the wrong turn.
+     * zero before a power cycle and it lands right, park it further out and it snaps to the wrong
+     * turn.
+     *
+     * <p>It must therefore run only after a real power cycle. A code restart or a roboRIO reboot
+     * leaves the Talon's count intact and correct, and re-seeding then would throw a good zero away
+     * (2026-09-19: the seed ran on every code start, and a deploy with the turret at 150 deg would
+     * have told it it was at zero). Two signals separate the cases, see {@link #decideBootZero}: a
+     * raw reading outside the band a power-on can produce, and a raw reading that matches the
+     * position persisted by {@link #persistRawPosition} to the quarter degree.
      */
     private void seedFromZeroReference() {
         if (!isAttached()) {
@@ -659,17 +678,186 @@ public class Turret extends Mechanism {
                                         .getValueAsDouble());
 
         final double rotorTurnDegrees = 360.0 / config.getSensorToMechanismRatio();
+        OptionalDouble persisted = readPersistedRawDegrees();
+        bootDecision = decideBootZero(bootPositionDegrees, persisted, rotorTurnDegrees);
+
+        if (!bootDecision.startsWith("seeded")) {
+            // The Talon kept its count: it was a code restart, not a power cycle.
+            lastPersistedRawDegrees = bootPositionDegrees;
+            Telemetry.print(
+                    String.format(
+                            "Turret zero carried over: reads %.3f deg and the Talon did not lose"
+                                    + " its count (%s). No seed applied.",
+                            bootPositionDegrees, bootDecision),
+                    PrintPriority.HIGH);
+            return;
+        }
+
         double corrected = bootPositionDegrees - ZERO_REFERENCE_DEGREES;
         corrected -= rotorTurnDegrees * Math.round(corrected / rotorTurnDegrees);
         final double seeded = corrected;
 
         motor.setPosition(degreesToRotations(() -> seeded));
+        // The file now describes a frame that no longer exists; rewrite it on the first loop.
+        lastPersistedRawDegrees = Double.NaN;
         Telemetry.print(
                 String.format(
-                        "Turret zero seeded: came up reading %.3f deg, zero reference is %.3f deg,"
-                                + " so it is now %.3f deg. Re-zero with operator B if the turret"
-                                + " was not parked within %.1f deg of zero.",
-                        bootPositionDegrees, ZERO_REFERENCE_DEGREES, seeded, rotorTurnDegrees / 2));
+                        "Turret zero seeded (%s): came up reading %.3f deg, zero reference is %.3f"
+                                + " deg, so it is now %.3f deg. Re-zero with operator B if the"
+                                + " turret was not parked within %.1f deg of zero.",
+                        bootDecision,
+                        bootPositionDegrees,
+                        ZERO_REFERENCE_DEGREES,
+                        seeded,
+                        rotorTurnDegrees / 2),
+                PrintPriority.HIGH);
+
+        double edgeDistance = rotorTurnDegrees / 2 - Math.abs(seeded);
+        if (edgeDistance <= WRAP_EDGE_MARGIN_DEG) {
+            wrapEdgeAlert.setText(
+                    String.format(
+                            "Turret booted %.1f deg from zero, only %.1f deg from the rotor-turn"
+                                    + " wrap. If it was really parked on the other side it is now"
+                                    + " %.1f deg wrong: check the zero mark and re-zero with"
+                                    + " operator B if needed.",
+                            seeded, edgeDistance, rotorTurnDegrees));
+            wrapEdgeAlert.set(true);
+        }
+    }
+
+    // -- Boot zero: power cycle or code restart? -----------------------------------------------
+
+    /**
+     * Where the last known raw Talon position is kept between code starts. On the rio this is
+     * {@code /home/lvuser/turret-position.txt}; never touched in simulation.
+     */
+    private static final File POSITION_FILE =
+            new File(Filesystem.getOperatingDirectory(), "turret-position.txt");
+
+    /** Raw reading change that earns a new write. */
+    private static final double POSITION_FILE_WRITE_STEP_DEG = 0.5;
+
+    /**
+     * A raw reading this close to the persisted one means the Talon never lost its count. The count
+     * does not move while the turret sits, so a match is exact apart from the write step and
+     * encoder noise; a power cycle whose rotor absolute lands this close to where the turret was
+     * left is the one case this cannot tell apart, and parking on zero makes it rare.
+     */
+    private static final double POSITION_FILE_MATCH_DEG = 0.25;
+
+    /** How close to the wrap edge a seeded reading may land before it is called a coin flip. */
+    private static final double WRAP_EDGE_MARGIN_DEG = 1.0;
+
+    private double lastPersistedRawDegrees = Double.NaN;
+    private boolean persistWasEnabled = false;
+
+    @Getter private int positionFileWriteFailures = 0;
+
+    /** What {@link #seedFromZeroReference} decided and why, for the log. */
+    @Getter private String bootDecision = "not attached";
+
+    private final Alert wrapEdgeAlert = new Alert("", AlertType.kWarning);
+
+    private final ExecutorService positionWriter =
+            Executors.newSingleThreadExecutor(
+                    r -> {
+                        Thread t = new Thread(r, "TurretPositionWriter");
+                        t.setDaemon(true);
+                        return t;
+                    });
+
+    /**
+     * Decides whether the raw boot reading is a power cycle to seed from or a count to keep.
+     *
+     * <p>After a power cycle the Talon's position register is the rotor's absolute angle, which is
+     * always inside one rotor turn of zero: 0 to 9.05 deg of turret if Phoenix reports the absolute
+     * in [0, 1) rotations, -4.5 to +4.5 if it reports it in [-0.5, 0.5). Both bands are treated as
+     * possible. A reading outside them cannot be a power cycle, so the count is kept. A reading
+     * inside them that matches the persisted position is a code restart with the turret parked
+     * there, so the count is kept. Anything else is seeded.
+     *
+     * @param rawDegrees the reading at code start
+     * @param persisted the last position the previous code wrote, if any
+     * @param rotorTurnDegrees one rotor turn in mechanism degrees
+     * @return the decision, starting with {@code seeded} or {@code kept}
+     */
+    static String decideBootZero(
+            double rawDegrees, OptionalDouble persisted, double rotorTurnDegrees) {
+        double slack = 0.05;
+        boolean inPowerOnBand =
+                rawDegrees > -rotorTurnDegrees / 2 - slack && rawDegrees < rotorTurnDegrees + slack;
+        if (!inPowerOnBand) {
+            return String.format(
+                    "kept: %.2f deg is outside the %.1f deg band a power-on can produce",
+                    rawDegrees, rotorTurnDegrees);
+        }
+        if (persisted.isPresent()
+                && Math.abs(rawDegrees - persisted.getAsDouble()) <= POSITION_FILE_MATCH_DEG) {
+            return String.format("kept: matches the persisted %.2f deg", persisted.getAsDouble());
+        }
+        if (persisted.isPresent()) {
+            return String.format(
+                    "seeded: in the power-on band and %.2f deg from the persisted %.2f deg",
+                    rawDegrees - persisted.getAsDouble(), persisted.getAsDouble());
+        }
+        return "seeded: in the power-on band and nothing persisted";
+    }
+
+    /**
+     * Reads the position the previous code start persisted.
+     *
+     * @return the raw degrees, or empty when there is no file, it is unreadable, or in simulation
+     */
+    private static OptionalDouble readPersistedRawDegrees() {
+        if (RobotBase.isSimulation() || !POSITION_FILE.isFile()) {
+            return OptionalDouble.empty();
+        }
+        try {
+            String text = Files.readString(POSITION_FILE.toPath(), StandardCharsets.UTF_8).trim();
+            String[] parts = text.split("\\s+");
+            if (parts.length == 0 || parts[0].isEmpty()) {
+                return OptionalDouble.empty();
+            }
+            double value = Double.parseDouble(parts[0]);
+            return Double.isFinite(value) ? OptionalDouble.of(value) : OptionalDouble.empty();
+        } catch (IOException | NumberFormatException e) {
+            Telemetry.print(
+                    "Turret position file unreadable (" + e.getMessage() + "); treating as absent.",
+                    PrintPriority.HIGH);
+            return OptionalDouble.empty();
+        }
+    }
+
+    /**
+     * Writes the raw Talon position to {@link #POSITION_FILE} whenever it has moved more than
+     * {@link #POSITION_FILE_WRITE_STEP_DEG} since the last write, and once more on every disable so
+     * the file is exact while the robot sits. A dozen bytes on a daemon thread; the loop never
+     * waits on the disk.
+     */
+    private void persistRawPosition() {
+        if (!isAttached() || RobotBase.isSimulation()) {
+            return;
+        }
+        boolean enabled = DriverStation.isEnabled();
+        boolean disableEdge = persistWasEnabled && !enabled;
+        persistWasEnabled = enabled;
+
+        double raw = super.getPositionDegrees();
+        if (!disableEdge
+                && !Double.isNaN(lastPersistedRawDegrees)
+                && Math.abs(raw - lastPersistedRawDegrees) < POSITION_FILE_WRITE_STEP_DEG) {
+            return;
+        }
+        lastPersistedRawDegrees = raw;
+        final String text = String.format("%.4f %.3f%n", raw, Timer.getFPGATimestamp());
+        positionWriter.execute(
+                () -> {
+                    try {
+                        Files.writeString(POSITION_FILE.toPath(), text, StandardCharsets.UTF_8);
+                    } catch (IOException e) {
+                        positionFileWriteFailures++;
+                    }
+                });
     }
     /** Runs the periodic update. */
     @Override
@@ -688,6 +876,7 @@ public class Turret extends Mechanism {
         logDiagnostics("Turret", true);
         Telemetry.logDash("Turret/CommandedDegrees", commandedDegrees, "deg");
         updateTravel();
+        persistRawPosition();
         Telemetry.logDash("Turret/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Turret/TravelTotalDeg", travelTotalDegrees, "deg");
         Telemetry.logDash("Turret/PositionError", commandedDegrees - getPositionDegrees(), "deg");
@@ -698,6 +887,8 @@ public class Turret extends Mechanism {
         Telemetry.logDash("Turret/ReadyToShoot", isReadyToShoot());
         updateEnvelopeAlert();
         Telemetry.log("Turret/BootPositionDegrees", bootPositionDegrees, "deg");
+        Telemetry.log("Turret/BootDecision", bootDecision);
+        Telemetry.log("Turret/PositionFileWriteFailures", positionFileWriteFailures);
         Telemetry.log("Turret/PositionSuspect", positionSuspect);
         Telemetry.log("Turret/PositionStepsRejected", positionStepsRejected);
         Telemetry.log("Turret/PositionStepsAccepted", positionStepsAccepted);
@@ -718,6 +909,11 @@ public class Turret extends Mechanism {
                                 motor.setPosition(
                                         degreesToRotations(() -> config.getInitPosition()));
                                 clearStallLatch();
+                                // The frame changed under the file: force a rewrite next loop
+                                // so a code restart does not mistake the new zero for a power
+                                // cycle.
+                                lastPersistedRawDegrees = Double.NaN;
+                                wrapEdgeAlert.set(false);
                             }
                         })
                 .ignoringDisable(true)

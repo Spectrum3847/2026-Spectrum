@@ -375,6 +375,10 @@ public class Robot extends SpectrumRobot {
         // Held: feed regardless of the shot-readiness gates, for a bad sensor or a deliberate dump.
         superStructure.setFeedOverride(operator.YButton);
 
+        // Held: let vision trim and re-home the turret zero. Released, the zero is whatever the
+        // operator hand-zeroed (B, disabled) and vision only reports what it would have changed.
+        vision.setTurretZeroCorrectionEnable(operator.visionTurretFixX);
+
         operator.LB.onTrue(FeedTargetFactory.feedLeft());
         operator.RB.onTrue(FeedTargetFactory.feedRight());
         operator.LB.or(operator.RB).onFalse(FeedTargetFactory.feedDefault());
@@ -801,6 +805,9 @@ public class Robot extends SpectrumRobot {
             if (mayPlaceAtAutoStart()) {
                 swerve.resetPose(
                         selectedAutoPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
+                // Until a camera seeds the pose, this heading is the working assumption and
+                // Vision looks for a multi-tag solve to confirm or refute it, moving or not.
+                vision.notePlacedAtAutoStart();
             }
             placeAtAutoStart = false;
         }

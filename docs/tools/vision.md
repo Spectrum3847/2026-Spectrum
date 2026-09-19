@@ -85,6 +85,13 @@ The reason for the switch: MT1's translation moves with its own heading solve, a
 
 While **enabled**, both chassis cameras' translations (MT2 or MT1 as above) and the turret camera's composed MegaTag1 translation (see [The turret camera](#the-turret-camera)) are fused, never heading -- the gyro owns heading during a match -- unless the gross-heading safety net fires (`checkGrossHeadingError`, for a boot heading that is 90 or 180 deg out). The thresholds and the reasoning behind each are documented at length in `VisionConfig`.
 
+**When nothing seeded the pose before the match** (all three Chezy quals on 2026-09-19: no camera saw a tag from the starting position), the pose is whatever `Robot.disabledPeriodic` placed on the selected auto's start, and `Robot` tells `Vision` so (`notePlacedAtAutoStart`, logged as `Vision/Placement/HeadingAssumed`). That heading is the working assumption and there are two ways out of it while enabled:
+
+* `seedWhileEnabled`: the first fresh multi-tag solve from the best chassis camera while the robot is slow re-seeds heading and translation; failing that, a multi-tag turret-camera solve does, with the caveat that its heading carries the turret zero error (`Vision/SeededFromTurretOnly`).
+* `checkPlacementHeading`: no stillness needed. Any multi-tag solve, chassis or turret camera, whose heading agrees with the placed heading within `placementAgreeDeg` (8 deg) for `placementDecideFrames` (10) camera frames *confirms* it, since agreement does not move the pose. Ten steady chassis-camera frames that disagree *refute* it and re-seed from that camera. The turret camera never refutes, because its disagreement could equally be the turret zero. Counters: `Vision/Placement/{Chassis,Turret}AgreeFrames`, `ChassisDisagreeFrames`, `ConfirmCount`, `RefuteCount`. In Q17 the turret camera held two to four tags for the first four seconds of auto while the robot drove; this would have confirmed the heading then instead of twenty seconds into teleop.
+
+Either way `Vision/PoseHeadingSeeded` goes true, which unlocks the turret zero trim and the start-pose check; `PoseSeedConfirmed` still needs the confirmation run above before the chassis cameras switch to MT2.
+
 ## How Estimates Flow Into the Pose Estimator
 
 `Vision.periodic()` runs before the command scheduler each loop. It publishes the turret-rotated camera transform and the robot heading to every camera, flushes NetworkTables once, then runs the disabled or enabled update and logs.
@@ -101,6 +108,12 @@ Two of those gates look at history, not just the current loop:
 ## The turret camera and the turret zero
 
 The turret has no absolute reference, so its zero is wherever it pointed at power-on. The turret camera measures the error directly: the robot heading it implies is built from the turret encoder, so a steady disagreement between that and the pose heading *is* the encoder error. `Vision` trims the zero a fraction of a degree at a time for slip, and re-homes it in one step when the error is gross and steady. The robot app's **Turret** page shows the history.
+
+**Both halves are off unless the operator holds `X`** (since 2026-09-19). `Vision.setTurretZeroCorrectionEnable()` takes a `BooleanSupplier`, bound in `Robot.configureBindings()` to `operator.visionTurretFixX`; released, `correctTurretZero()` returns before it reads anything and the zero stays whatever operator-B hand-zeroed it to. `Vision/TurretZero/CorrectionEnabled` logs the state and a console line prints on each edge.
+
+Why it is opt-in: on Chezy Q24 the re-home fired at teleop+108.3 s and moved the zero 52.4 deg in one step off a 2-tag solve. `Turret`'s position guard saw the resulting `setPosition` as a >15 deg one-loop step, held it the usual 10 loops and then believed it (`131.0 deg became 169.2 deg`), so the soft limits and every aim after it were in the new frame. The drive team's finding was that the belt had not slipped -- which matches the trim's own diagnostic at teleop+93.9 s, "absorbing a pose heading error, not slip" -- so the servo was correcting the turret for an error that was the pose's. Holding `X` restores the old behaviour when someone has decided the zero really is wrong.
+
+Crossing the enable in either direction drops the trim filter, the sample streak, the slip window, the re-home vote and the divergence latch (`resetTurretZeroServoState`): they describe a stretch the servo was watching, and after a gap in which it was not allowed to act, none of them describe now.
 
 ## Adjusting Limelight Settings
 
