@@ -12,6 +12,8 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.WebServer;
 import edu.wpi.first.units.Units;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
@@ -658,6 +660,73 @@ public class Robot extends SpectrumRobot {
             swerve.resetPose(
                     selectedAutoPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
             placeAtAutoStart = false;
+        }
+
+        checkStartPose();
+    }
+
+    // -- Start pose check -------------------------------------------------------------------------
+    //
+    // While disabled the robot has two ideas of where it is: the selected auto's starting pose,
+    // which the placement above wrote, and whatever vision has seeded since. Vision wins, at 0.01 m
+    // standard deviation, and nothing compared the two. A robot set down on the wrong side, or with
+    // the wrong auto picked, or seeded from a bad solve, therefore enters auto with a confirmed
+    // pose that disagrees with its path by metres, and the first thing the path does is drive to
+    // its own start point. This compares them, puts the numbers on the Pre-Match tab, and raises
+    // an error once they have disagreed for a second.
+
+    /** Distance between the current pose and the auto start pose that raises the alert. */
+    private static final double START_POSE_ALERT_METERS = 0.5;
+
+    /** Heading disagreement that raises the alert; PathPlanner regenerates the trajectory at 30. */
+    private static final double START_HEADING_ALERT_DEG = 10.0;
+
+    /** How long the disagreement must persist, so a seed that is still settling does not flash. */
+    private static final double START_POSE_ALERT_HOLD_SECONDS = 1.0;
+
+    private double startPoseErrorSinceSeconds = Double.NaN;
+
+    private final Alert startPoseAlert = new Alert("", AlertType.kError);
+
+    /**
+     * Compares the current pose with the selected auto's starting pose and alerts when they
+     * disagree. Disabled only; the placement above and vision seeding both happen there, and once
+     * the match starts there is nothing anyone can do about it.
+     */
+    private void checkStartPose() {
+        Optional<Pose2d> start =
+                selectedAutoPaths.isEmpty()
+                        ? Optional.empty()
+                        : selectedAutoPaths.get(0).getStartingHolonomicPose();
+        if (start.isEmpty()) {
+            startPoseErrorSinceSeconds = Double.NaN;
+            startPoseAlert.set(false);
+            return;
+        }
+
+        Pose2d pose = swerve.getRobotPose();
+        double distanceMeters = pose.getTranslation().getDistance(start.get().getTranslation());
+        double headingErrorDeg = pose.getRotation().minus(start.get().getRotation()).getDegrees();
+        Telemetry.logDash("Auton/StartPoseErrorMeters", distanceMeters, "m");
+        Telemetry.logDash("Auton/StartHeadingErrorDeg", headingErrorDeg, "deg");
+
+        boolean off =
+                distanceMeters > START_POSE_ALERT_METERS
+                        || Math.abs(headingErrorDeg) > START_HEADING_ALERT_DEG;
+        double now = Timer.getFPGATimestamp();
+        if (!off) {
+            startPoseErrorSinceSeconds = Double.NaN;
+            startPoseAlert.set(false);
+        } else if (Double.isNaN(startPoseErrorSinceSeconds)) {
+            startPoseErrorSinceSeconds = now;
+        } else if (now - startPoseErrorSinceSeconds >= START_POSE_ALERT_HOLD_SECONDS
+                && !startPoseAlert.get()) {
+            startPoseAlert.setText(
+                    String.format(
+                            "Robot is %.2f m and %.0f deg from the start of %s. Wrong auto, wrong"
+                                    + " side, wrong alliance, or a bad vision seed.",
+                            distanceMeters, headingErrorDeg, autoName));
+            startPoseAlert.set(true);
         }
     }
     /** Disabled exit. */

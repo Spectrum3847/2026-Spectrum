@@ -140,26 +140,27 @@ public class Auton {
     }
 
     /**
-     * Creates a SpectrumAuton command sequence.
+     * Creates the PathPlannerAuto for a routine, built here at boot so its trajectories are
+     * generated and cached before the match (PathPlanner's FollowPathCommand generates the ideal
+     * trajectory in its constructor and reuses it at start if the robot is still and within 30 deg
+     * of the path's starting heading).
      *
-     * <p>This method generates a command sequence that first waits for 0.01 seconds and then
-     * executes a PathPlannerAuto command with the specified autonomous routine name.
+     * <p>Until 2026-09-16 this prepended {@code waitSeconds(0.01)}, a leftover from the 2025
+     * migration. A wait command finishes on the scheduler loop after the one it started in, so it
+     * cost a full loop, 25 to 40 ms at our loop period, of the robot standing still at the start of
+     * every auto. Nothing depended on it: the odometry reset a routine may ask for lives inside
+     * PathPlannerAuto itself.
      *
      * @param autoName the name of the autonomous routine to execute
      * @param mirrored whether the autonomous routine should be mirrored
-     * @return a Command that represents the SpectrumAuton sequence
+     * @return the auto command
      */
     public Command SpectrumAuton(String autoName, boolean mirrored) {
-        Command autoCommand = new PathPlannerAuto(autoName, mirrored);
-        return Commands.waitSeconds(0.01).andThen(autoCommand).withName(autoName);
+        return new PathPlannerAuto(autoName, mirrored).withName(autoName);
     }
-    /** Spectrum auton. */
+    /** Spectrum auton, cut off after {@code duration} seconds. */
     public Command SpectrumAuton(String autoName, boolean mirrored, double duration) {
-        Command autoCommand = new PathPlannerAuto(autoName, mirrored);
-        return Commands.waitSeconds(0.01)
-                .andThen(autoCommand)
-                .withTimeout(duration)
-                .withName(autoName);
+        return new PathPlannerAuto(autoName, mirrored).withTimeout(duration).withName(autoName);
     }
 
     /**

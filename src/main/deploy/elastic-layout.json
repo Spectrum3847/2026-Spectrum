@@ -60,13 +60,11 @@
           },
           {
             "title": "Auto Chooser",
-
             "x": 0,
             "y": 640,
             "width": 896,
             "height": 128,
             "type": "Split Button Chooser",
-
             "properties": {
               "topic": "/SmartDashboard/Auto Chooser",
               "period": 0.06,
@@ -191,15 +189,14 @@
             }
           },
           {
-            "title": "Heading Seeded",
+            "title": "Pose Seed Confirmed",
             "x": 1536,
             "y": 640,
             "width": 256,
             "height": 128,
             "type": "Boolean Box",
             "properties": {
-
-              "topic": "/Robot/Vision/PoseHeadingSeeded",
+              "topic": "/Robot/Vision/PoseSeedConfirmed",
               "period": 0.06,
               "data_type": "boolean",
               "true_color": 4283215696,
@@ -268,7 +265,6 @@
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
-
               "period": 0.06,
               "data_type": "double",
               "show_submit_button": false
@@ -286,6 +282,34 @@
               "period": 0.06,
               "data_type": "string"
             }
+          },
+          {
+            "title": "Start Pose Err (m)",
+            "x": 1280,
+            "y": 768,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/Auton/StartPoseErrorMeters",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
+          },
+          {
+            "title": "Start Heading Err (deg)",
+            "x": 1536,
+            "y": 768,
+            "width": 256,
+            "height": 128,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/Robot/Auton/StartHeadingErrorDeg",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": false
+            }
           }
         ]
       }
@@ -293,11 +317,9 @@
     {
       "name": "Match",
       "grid_layout": {
-
         "layouts": [],
         "containers": [
           {
-
             "title": "Field2d",
             "x": 0,
             "y": 0,
@@ -319,7 +341,6 @@
             }
           },
           {
-
             "title": "Shift Time",
             "x": 0,
             "y": 512,
@@ -372,7 +393,6 @@
             "y": 0,
             "width": 768,
             "height": 256,
-
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/Composite",
@@ -539,9 +559,7 @@
     {
       "name": "Turret",
       "grid_layout": {
-
         "layouts": [],
-
         "containers": [
           {
             "title": "Tracking Error (deg)",
@@ -562,7 +580,6 @@
             }
           },
           {
-
             "title": "Position (deg)",
             "x": 0,
             "y": 384,
@@ -614,7 +631,6 @@
             "y": 0,
             "width": 384,
             "height": 384,
-
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight-turret",
@@ -1308,7 +1324,6 @@
     {
       "name": "Diagnostics",
       "grid_layout": {
-
         "layouts": [],
         "containers": [
           {
@@ -1585,7 +1600,6 @@
             }
           }
         ]
-
       }
     }
   ]

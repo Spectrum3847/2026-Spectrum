@@ -1064,6 +1064,18 @@ public class Vision implements Subsystem {
                             + " power-on heading error",
                     AlertType.kWarning);
 
+    /**
+     * Seeded but not yet confirmed. Matters twice at the start of a match: the chassis cameras stay
+     * on MegaTag1 until the seed is confirmed, and PathPlanner only reuses the trajectory it
+     * generated at boot when the robot's heading is within 30 deg of the path's starting heading,
+     * otherwise it regenerates in the first auto loop and the auto is pointed the wrong way anyway.
+     */
+    private final Alert notConfirmedAlert =
+            new Alert(
+                    "Pose seed not confirmed yet - a chassis camera needs two or more tags, steady,"
+                            + " for about a second before auto starts",
+                    AlertType.kWarning);
+
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             Limelight best = getBestLimelight();
@@ -1079,7 +1091,9 @@ public class Vision implements Subsystem {
 
         // Warn only while disabled: once the match is running, saying so does not help anyone and
         // the gross heading correction is the thing that has to save it.
-        notSeededAlert.set(!poseHeadingSeeded && Util.disabled.getAsBoolean());
+        boolean disabled = Util.disabled.getAsBoolean();
+        notSeededAlert.set(!poseHeadingSeeded && disabled);
+        notConfirmedAlert.set(poseHeadingSeeded && !poseSeedConfirmed && disabled);
         Telemetry.logDash("Vision/PoseHeadingSeeded", poseHeadingSeeded);
         Telemetry.logDash("Vision/PoseSeedConfirmed", poseSeedConfirmed);
         Telemetry.log("Vision/SeedConfirmProgress", seedConfirmStreak);
