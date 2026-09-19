@@ -37,6 +37,7 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 - New skills must describe our real classes/topics, never generic donor code. Verify names against `src/main/java` and `docs/`.
 - To keep a skill from loading across all agents (opencode, Claude Code, etc.), rename its `SKILL.md` → `SKILL.md.disabled` instead of editing frontmatter. Leave the directory's other files in place.
 - **Log problems between matches**: run `.agents/skills/fast-log-triage/scripts/triage_wpilog.py <log>` first (pure Python, seconds, ranked suspects), then go deeper with `wpilog-decode` only on the top finding. (Added 2026-09-19; reader cross-checked against WPILib `DataLogReader`.)
+- **Sync a branch with GitHub**: run `bash .agents/skills/git-sync-upstream/scripts/sync_upstream.sh` (fetch, fast-forward, merge `origin/main`, autostash, conflict list, summary; never pushes). `--dry-run` shows what would come in. (Added 2026-09-19.)
 
 ## Important Notes
 

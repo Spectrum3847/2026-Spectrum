@@ -17,6 +17,8 @@ Both work. Merge keeps the history of when you synced; rebase rewrites your loca
 
 GUI users: GitHub Desktop's *Branch → Update from `main`* does the merge variant.
 
+One-command version (fetch, fast-forward your branch, merge `origin/main`, stash and restore any local edits, print what came in): `bash .agents/skills/git-sync-upstream/scripts/sync_upstream.sh`, or `--dry-run` to preview. It never pushes.
+
 ## Commits
 
 Each commit should answer "*why*" a change happened. The "what" is in the diff. Examples of useful commit subjects on this repo:
