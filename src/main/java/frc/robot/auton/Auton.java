@@ -9,6 +9,8 @@ import com.pathplanner.lib.util.FileVersionException;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -16,12 +18,14 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.json.simple.parser.ParseException;
 
 public class Auton {
@@ -97,19 +101,19 @@ public class Auton {
     }
 
     public Command OSTBTB(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSTBTB FULL", mirrored))
+        return Commands.sequence(SpectrumAuton("OSTBTB Full", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("OSTBTB FULL - " + (mirrored ? "Right" : "Left"));
+                .withName("OSTBTB Full - " + (mirrored ? "Right" : "Left"));
     }
 
     public Command OSRIPPOFF(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSRIPPOFF FULL", mirrored))
+        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("OSRIPPOFF FULL - " + (mirrored ? "Right" : "Left"));
+                .withName("OSRIPPOFF Full - " + (mirrored ? "Right" : "Left"));
     }
 
     // Named TWOMANOSTBTB because Java identifiers can't start with a digit; the auto file it loads
@@ -121,6 +125,9 @@ public class Auton {
     }
 
     public Command OSCENT(boolean mirrored) {
+        // File is "OSCENT FULL.auto": the rio is case-sensitive, so the name must match exactly.
+        // The suffix must be " - Left"/" - Right" with the spaces, or Robot.disabledPeriodic cannot
+        // strip it to find the file and place the robot.
         return Commands.sequence(SpectrumAuton("OSCENT FULL", mirrored), launchWithAgitate())
                 .withName("OSCENT FULL - " + (mirrored ? "Right" : "Left"));
     }
@@ -132,10 +139,43 @@ public class Auton {
 
     // Allows Robot to continue shooting even after path has been completed--at a stand still
     public Command launchWithAgitate() {
-        return new InstantCommand(
-                () -> {
-                    robotSuperStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE);
-                });
+        // Was an InstantCommand that built the state command inside its lambda and dropped it, so
+        // it never set the state. Return the command itself and the sequence schedules it.
+        return robotSuperStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE);
+    }
+
+    /** Auto names the chooser was built with that have no {@code .auto} file on this rio. */
+    private static final List<String> missingAutoFiles = new ArrayList<>();
+
+    private static final Alert missingAutoFileAlert = new Alert("", AlertType.kError);
+
+    /**
+     * Checks at boot that an auto the chooser offers actually exists in deploy/pathplanner/autos.
+     *
+     * <p>PathPlanner reports a missing file to the Driver Station once at construction and then
+     * runs an empty command, which is how Chezy 2026-09-19 QM4 sat still for auto: the code said
+     * "OSCENT Full", the file said "OSCENT FULL.auto", and the rio's filesystem cares about the
+     * difference while the Windows sim does not. This makes it an alert that stays up.
+     *
+     * @param autoName the exact file name without {@code .auto}
+     */
+    private static void verifyAutoFile(String autoName) {
+        if (AutoBuilder.getAllAutoNames().contains(autoName)) {
+            return;
+        }
+        if (!missingAutoFiles.contains(autoName)) {
+            missingAutoFiles.add(autoName);
+        }
+        missingAutoFileAlert.setText(
+                "No .auto file on the rio for: "
+                        + String.join(", ", missingAutoFiles)
+                        + " (names are case-sensitive on the rio). Those autos will do nothing.");
+        missingAutoFileAlert.set(true);
+        Telemetry.print(
+                "!!! No .auto file named '"
+                        + autoName
+                        + "' in deploy/pathplanner/autos. That auto will do nothing.",
+                PrintPriority.HIGH);
     }
 
     /**
@@ -155,10 +195,12 @@ public class Auton {
      * @return the auto command
      */
     public Command SpectrumAuton(String autoName, boolean mirrored) {
+        verifyAutoFile(autoName);
         return new PathPlannerAuto(autoName, mirrored).withName(autoName);
     }
     /** Spectrum auton, cut off after {@code duration} seconds. */
     public Command SpectrumAuton(String autoName, boolean mirrored, double duration) {
+        verifyAutoFile(autoName);
         return new PathPlannerAuto(autoName, mirrored).withTimeout(duration).withName(autoName);
     }
 

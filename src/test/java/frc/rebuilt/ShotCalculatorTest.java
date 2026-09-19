@@ -1,6 +1,7 @@
 package frc.rebuilt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,8 +34,7 @@ public class ShotCalculatorTest {
             originalTurretAngleOffset = null;
         }
         Preferences.setDouble(ShotCalculator.HOOD_TRIM_PREF_KEY, ShotCalculator.HOOD_ANGLE_OFFSET);
-        Preferences.setDouble(
-                ShotCalculator.TURRET_TRIM_PREF_KEY, ShotCalculator.TURRET_ANGLE_OFFSET);
+        Preferences.remove(ShotCalculator.TURRET_TRIM_PREF_KEY);
     }
     /** Verifies shooting parameters record. */
     @Test
@@ -130,7 +130,11 @@ public class ShotCalculatorTest {
         ShotCalculator.loadPersistedTrims();
 
         assertEquals(hood, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-9);
-        assertEquals(turret, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
+        // The turret trim is session-only since 2026-09-19: it was +1 before the restart and is
+        // zero after it, and nothing about it is left in the store.
+        assertTrue(turret != 0);
+        assertEquals(0, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
+        assertFalse(Preferences.containsKey(ShotCalculator.TURRET_TRIM_PREF_KEY));
     }
 
     /** A D-pad held down cannot walk a trim past the cap. */
@@ -170,7 +174,9 @@ public class ShotCalculatorTest {
         ShotCalculator.loadPersistedTrims();
 
         assertEquals(ShotCalculator.MAX_TRIM_DEG, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-9);
-        assertEquals(-ShotCalculator.MAX_TRIM_DEG, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
+        // A stored turret trim, in range or not, is discarded rather than clamped.
+        assertEquals(0, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
+        assertFalse(Preferences.containsKey(ShotCalculator.TURRET_TRIM_PREF_KEY));
 
         // And the clamped value is written back, so the bad number is gone rather than waiting.
         assertEquals(

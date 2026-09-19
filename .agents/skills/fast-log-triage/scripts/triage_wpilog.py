@@ -78,9 +78,19 @@ STALL_COUNTERS = [
     "IntakeExtension/PastMaxClamps",
     "IntakeExtension/OutPointRelearns",
     "IntakeExtension/RestResyncs",
+    "Turret/StallLatchCount",
+    "Turret/PositionStepsRejected",
+    "Turret/PositionStepsAccepted",
     "CANConfig/FailedCalls",
 ]
-STALL_FLAGS = ["FuelIntake/KickerStallLatched", "DyeRotor/RotorStallBackoff", "CANConfig/BudgetExhausted"]
+STALL_FLAGS = [
+    "FuelIntake/KickerStallLatched",
+    "DyeRotor/RotorStallBackoff",
+    "Turret/StallLatched",
+    "Turret/PositionSuspect",
+    "Turret/AngleOutsideEnvelope",
+    "CANConfig/BudgetExhausted",
+]
 
 STATE_PAIRS = [
     ("SuperStructure/WantedSuperState", "SuperStructure/CurrentSuperState"),

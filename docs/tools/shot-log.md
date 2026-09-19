@@ -47,6 +47,7 @@ the last loop on which the aim was still a prediction rather than a result.
 | `RadialVelocityMs`, `TangentialVelocityMs` | Launcher velocity components. The model is a surface in distance and radial velocity, so a row without these cannot be checked against the fit.                                                                                                                                                         |
 | `Model`, `HoodModelOffsetDeg`              | Which fit was in use and its own hood trim. This is `FEED_MODEL` on a feed shot, unlike `ShotCalc/HubPolyModel`, which always names the hub model.                                                                                                                                                      |
 | `HoodTrimDeg`, `TurretTrimDeg`             | The operator's live trims at the moment of the shot.                                                                                                                                                                                                                                                    |
+| `FlywheelTrimPct`                          | The operator's flywheel trim, percent of model RPM, at the moment of the shot. Added 2026-09-19; the D-pad moves it with the hood.                                                                                                                                                                      |
 | `FeedShot`, `InRange`, `PoseTrusted`       | Whether it was a feed shot, whether the distance was inside the fit's range, and whether vision had accepted an estimate recently enough to believe the distance at all.                                                                                                                                |
 | `Pose`                                     | Robot pose.                                                                                                                                                                                                                                                                                             |
 
@@ -64,17 +65,18 @@ something different.
 Written by `ShotCalculator.nudgeTrim()`, so a row exists for the D-pad and for the Start+Select
 reset, and for nothing else.
 
-|         Key          |                                             Meaning                                             |
-|----------------------|-------------------------------------------------------------------------------------------------|
-| `Index`              | Presses since boot.                                                                             |
-| `TimestampSeconds`   | FPGA time.                                                                                      |
-| `Axis`               | `Hood` or `Turret`.                                                                             |
-| `DeltaDeg`           | How far the trim actually moved. Zero when it was already at `MAX_TRIM_DEG`.                    |
-| `ValueDeg`           | The trim's new value.                                                                           |
-| `Verdict`            | `Short`, `Long`, `MissedCW`, `MissedCCW`, `AtLimit`, or `Reset`.                                |
-| `ShotIndex`          | The burst this press is judging, or -1 if there has not been one.                               |
-| `SecondsSinceShot`   | How old that burst is. Infinite if there has not been one.                                      |
-| `ShotDistanceMeters` | That burst's distance, denormalised onto the row so a distance-binned fit needs no join at all. |
+|          Key           |                                             Meaning                                             |
+|------------------------|-------------------------------------------------------------------------------------------------|
+| `Index`                | Presses since boot.                                                                             |
+| `TimestampSeconds`     | FPGA time.                                                                                      |
+| `Axis`                 | `Hood`, `Turret` or `Flywheel`. A D-pad up/down press writes a `Hood` row and a `Flywheel` row. |
+| `DeltaDeg`             | How far the trim actually moved. Zero when it was already at the cap. NaN on `Flywheel` rows.   |
+| `ValueDeg`             | The trim's new value. NaN on `Flywheel` rows.                                                   |
+| `DeltaPct`, `ValuePct` | The same two numbers for a `Flywheel` row, in percent of model RPM. NaN on the angle axes.      |
+| `Verdict`              | `Short`, `Long`, `MissedCW`, `MissedCCW`, `AtLimit`, or `Reset`.                                |
+| `ShotIndex`            | The burst this press is judging, or -1 if there has not been one.                               |
+| `SecondsSinceShot`     | How old that burst is. Infinite if there has not been one.                                      |
+| `ShotDistanceMeters`   | That burst's distance, denormalised onto the row so a distance-binned fit needs no join at all. |
 
 `Verdict` is named for where the ball went, not which way the trim moved: hood up means the ball
 fell **short**, and a counter-clockwise turret correction means the ball landed **clockwise** of
@@ -134,9 +136,14 @@ sketched in `HubTargetFactory`.
 
 ## The trims now persist
 
-`HOOD_ANGLE_OFFSET` and `TURRET_ANGLE_OFFSET` are stored with WPILib `Preferences` under
-`ShotHoodTrimDeg` and `ShotTurretTrimDeg`, written inside the trim commands and read once by
+`HOOD_ANGLE_OFFSET` and `FLYWHEEL_TRIM_PERCENT` are stored with WPILib `Preferences` under
+`ShotHoodTrimDeg` and `ShotFlywheelTrimPct`, written inside the trim commands and read once by
 `ShotCalculator.loadPersistedTrims()` during robot construction. A redeploy no longer zeroes them.
+
+`TURRET_ANGLE_OFFSET` is **not** stored any more (2026-09-19). Chezy QM4 booted with +10° of turret
+trim in flash, the cap, left by an operator pressing D-pad right at a turret that was parked
+waiting for a pose. A turret trim corrects one match's pose error, so it starts at zero every boot;
+`loadPersistedTrims()` deletes any `ShotTurretTrimDeg` an older build left behind.
 
 `Preferences` lives in the rio's flash, so **a trim survives a power cycle too**. That is the point
 and it is also the risk: a trim dialled in against a shop ceiling last week silently applies at the

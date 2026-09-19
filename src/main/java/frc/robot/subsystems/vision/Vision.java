@@ -27,6 +27,7 @@ import frc.rebuilt.FieldHelpers;
 import frc.robot.Robot;
 import frc.robot.auton.Auton;
 import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import frc.spectrumLib.util.Util;
 import frc.spectrumLib.vision.Limelight;
 import frc.spectrumLib.vision.Limelight.LimelightConfig;
@@ -117,7 +118,9 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(-11.103), // forward (behind centre)
                                 Units.inchesToMeters(-12.490), // right (left of centre)
                                 Units.inchesToMeters(17.058)) // up
-                        .withRotation(180, 31.8, 135) // upside down, 31.8 deg up, facing rear-left
+                        // Mount measured by the robot app on 2026-09-19
+                        .withRotation(
+                                179.1, 30.4, 135) // upside down, 30.4 deg up, facing rear-left
                         .setAttached(true);
 
         // -- Back-Right Limelight ---------------------------------------------
@@ -149,10 +152,9 @@ public class Vision implements Subsystem {
                         .withTranslation(
                                 Units.inchesToMeters(-10.064), // forward (behind centre)
                                 Units.inchesToMeters(13.315), // right
-                                Units.inchesToMeters(17.458)) // up
-                        // Mount measured by the robot app on 2026-09-07
-                        .withRotation(
-                                178.2, 31.8, -135) // upside down, 31.8 deg up, facing rear-right
+                                Units.inchesToMeters(15.862)) // up
+                        // Mount measured by the robot app on 2026-09-19
+                        .withRotation(178.9, 30, -135) // upside down, 30 deg up, facing rear-right
                         .setAttached(true);
 
         // -- Turret Limelight -------------------------------------------------
@@ -189,9 +191,9 @@ public class Vision implements Subsystem {
                         .withTranslation(
                                 -0.138, // forward at turret zero (unused; see turretCenterToCamera)
                                 0.0, // right (unused)
-                                Units.inchesToMeters(21.217)) // up (measured on robot, not CAD)
-                        // Mount measured by the robot app on 2026-09-07
-                        .withRotation(0.4, 29.4, 0); // yaw unused; live turret angle is used
+                                Units.inchesToMeters(19.957)) // up (measured on robot, not CAD)
+                        // Mount measured by the robot app on 2026-09-19
+                        .withRotation(1, 28.9, 0); // yaw unused; live turret angle is used
 
         // -- Turret geometry --------------------------------------------------
 
@@ -1132,6 +1134,7 @@ public class Vision implements Subsystem {
         Telemetry.logDash("Vision/PoseHeadingSeeded", poseHeadingSeeded);
         Telemetry.logDash("Vision/PoseSeedConfirmed", poseSeedConfirmed);
         Telemetry.log("Vision/SeedConfirmProgress", seedConfirmStreak);
+        Telemetry.log("Vision/EnabledSeedCount", enabledSeedCount);
         Telemetry.logDash("Vision/PoseTrustedForAiming", isPoseTrustedForAiming());
         Telemetry.logDash("Vision/SeededFromTurretOnly", seededFromTurretOnly);
     }
@@ -1205,10 +1208,10 @@ public class Vision implements Subsystem {
      * believed to be is worse than not pointing at all, so {@link
      * frc.robot.subsystems.turret.Turret} holds at its zero instead.
      *
-     * <p>Either flag is enough. {@link #poseHeadingSeeded} is only ever set while disabled, so on
-     * its own it would leave the turret parked for a whole match if the robot were enabled before
-     * the cameras booted; {@link #poseSeedConfirmed} is also set by the gross heading correction,
-     * which runs while enabled, and is therefore the in-match recovery path.
+     * <p>Either flag is enough. {@link #poseHeadingSeeded} is set by the disabled seed and, since
+     * Chezy QM4 (2026-09-19), by {@link #seedWhileEnabled}, which is the in-match recovery path
+     * when the robot enables before any camera has seen a tag; {@link #poseSeedConfirmed} is also
+     * set by the gross heading correction.
      *
      * <p>Simulation has no vision at all -- nothing in this repo simulates a Limelight -- but the
      * simulated pose comes from MapleSim and is ground truth, so it is trusted outright. Without
@@ -1218,6 +1221,33 @@ public class Vision implements Subsystem {
      */
     public boolean isPoseTrustedForAiming() {
         return RobotBase.isSimulation() || poseHeadingSeeded || poseSeedConfirmed;
+    }
+
+    /**
+     * Whether the turret camera has any AprilTag in frame right now.
+     *
+     * <p>Raw {@code tv}, not a pose: this says a tag is visible, and nothing about whether the
+     * robot knows where it is. Used by the turret's follow-a-tag pit check.
+     *
+     * @return true when the turret Limelight reports a valid target
+     */
+    public boolean isTurretTagInView() {
+        return turretLL.targetInView();
+    }
+
+    /**
+     * The turret camera's horizontal bearing to the tag it is tracking, in degrees.
+     *
+     * <p>Limelight {@code tx}: positive with the tag right of the crosshair, zero when centred.
+     * Because the camera rides the turret and looks along its aim, driving this to zero points the
+     * turret at the tag -- without a pose, a tag map or an alliance. The camera is pitched up about
+     * 29 deg, so a degree here is not exactly a degree of turret azimuth; the sign is right and the
+     * zero is right, which is all a closed loop on it needs.
+     *
+     * @return the bearing in degrees, or 0 when no tag is in view or the camera is not attached
+     */
+    public double getTurretTagBearingDegrees() {
+        return turretLL.getHorizontalOffset();
     }
 
     private int seedConfirmStreak = 0;
@@ -1300,6 +1330,7 @@ public class Vision implements Subsystem {
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
             Limelight best = getBestLimelight();
+            seedWhileEnabled(best);
             boolean useMt2 = chassisUsesMt2();
             for (Limelight limelight : swerveLimelights) {
                 integrateSingleEstimate(
@@ -1318,6 +1349,79 @@ public class Vision implements Subsystem {
             }
 
             checkGrossHeadingError(best);
+
+            // Confirm an in-match seed the way a disabled one is confirmed, so the chassis cameras
+            // can move on to MegaTag2. Stricter than the disabled version: the multi-tag heading
+            // must also agree with the fused heading, since the seed may have come from the turret
+            // camera. Any loop that fails the gate breaks the streak.
+            if (poseHeadingSeeded
+                    && !poseSeedConfirmed
+                    && best.isIntegratedThisLoop()
+                    && !Double.isNaN(chassisHeadingErrorDeg)
+                    && Math.abs(chassisHeadingErrorDeg) <= config.getSeedConfirmSpreadDeg()) {
+                trackSeedConfirmation(best);
+            } else if (!poseSeedConfirmed) {
+                seedConfirmStreak = 0;
+            }
+        }
+    }
+
+    /** Times the pose was seeded while enabled. Logged so a match log shows it happened. */
+    private int enabledSeedCount = 0;
+
+    /**
+     * Seeds the pose during the match when nothing seeded it before enable.
+     *
+     * <p>Chezy 2026-09-19 QM4: no camera saw a tag in the 270 s before the match, the robot enabled
+     * unseeded, and the only in-match recovery was the gross heading correction, which needs a
+     * {@link VisionConfig#getGrossHeadingErrorDeg()} error. The heading was off by about seven
+     * degrees, so it never fired and the turret held its zero for the whole match, while the turret
+     * camera had two or three tags for 45 percent of teleop and the back-right camera two tags for
+     * 24 percent of it.
+     *
+     * <p>So, until something has seeded the pose: the first fresh multi-tag solve from the best
+     * chassis camera, taken while the robot is slow enough for the gross-heading net, is integrated
+     * the way the disabled seed integrates it, heading included. Failing that, the turret camera
+     * seeds as it does while disabled, with the same caveat that its heading carries the turret
+     * zero error. Multi-tag only, both ways: single-tag MegaTag1 headings are what the fifteen
+     * degree tail is made of, and a wrong seed while enabled points the turret wrong with
+     * confidence, which is the thing the lockout exists to prevent.
+     *
+     * @param best the chassis camera the heading corrections trust this loop
+     */
+    private void seedWhileEnabled(Limelight best) {
+        if (isPoseTrustedForAiming()) {
+            return;
+        }
+        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        boolean slow =
+                Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+                                <= config.getGrossHeadingMaxLinearSpeed()
+                        && Math.abs(speeds.omegaRadiansPerSecond)
+                                <= config.getGrossHeadingMaxOmega();
+        if (!slow) {
+            return;
+        }
+        if (best.targetInView() && best.multipleTagsInView()) {
+            integrateSingleEstimate(best, getMT1Estimate(best, true));
+            if (best.isIntegratedThisLoop()) {
+                poseHeadingSeeded = true;
+                seededFromTurretOnly = false;
+                enabledSeedCount++;
+                Telemetry.print(
+                        String.format(
+                                "Vision: pose seeded WHILE ENABLED from %s (%d tags). Nothing had"
+                                        + " seeded it before enable; the turret may aim now.",
+                                best.getName(), (int) best.getTagCountInView()),
+                        PrintPriority.HIGH);
+                return;
+            }
+        }
+        if (turretLL.multipleTagsInView()) {
+            seedFromTurretCamera();
+            if (poseHeadingSeeded) {
+                enabledSeedCount++;
+            }
         }
     }
 

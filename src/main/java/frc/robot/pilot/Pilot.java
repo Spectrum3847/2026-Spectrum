@@ -58,6 +58,18 @@ public class Pilot extends Gamepad {
      */
     public final Trigger setShot_LB_Y = LB.and(YButton).and(teleop);
 
+    /*
+     * Turret pit checks, test mode only, held to run.
+     *
+     * The bare D-pad is the only part of the pilot that nothing else claims: A, B, X, the triggers
+     * and Select are all bound without a mode gate and therefore still live in test mode, and the
+     * LB + D-pad reorients are teleop-only. noLB keeps these and the reorients from ever reading
+     * the same press, whatever mode the robot is in.
+     */
+    public final Trigger testTurretFollowTag_dPadUp = dPadUp.and(noLB).and(testMode);
+    public final Trigger testTurretSweep_dPadLeft = dPadLeft.and(noLB).and(testMode);
+    public final Trigger testTurretZero_dPadDown = dPadDown.and(noLB).and(testMode);
+
     public static class PilotConfig extends Config {
         private double deadzone = 0.10;
         /** Creates a new PilotConfig instance. */

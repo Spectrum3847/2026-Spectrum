@@ -64,6 +64,14 @@ public class SuperStructure {
         FORCE_HOME,
         /** Pose-independent fixed shot from the tower. See {@link #setShot()}. */
         SET_SHOT,
+        /** Test-mode pit check: turret follows any tag the turret camera sees. */
+        TEST_TURRET_FOLLOW_TAG,
+        /** Test-mode pit check: turret runs soft limit to soft limit and back. */
+        TEST_TURRET_SWEEP,
+        /** Test-mode pit check: turret returns to its zero. */
+        TEST_TURRET_ZERO,
+        /** Test mode at rest: every mechanism off, turret held where it is. */
+        TEST_TURRET_STOP,
     }
 
     public enum CurrentSuperState {
@@ -83,6 +91,10 @@ public class SuperStructure {
         KICKER_UNJAM,
         FORCE_HOME,
         SET_SHOT,
+        TEST_TURRET_FOLLOW_TAG,
+        TEST_TURRET_SWEEP,
+        TEST_TURRET_ZERO,
+        TEST_TURRET_STOP,
     }
 
     @Getter private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
@@ -421,6 +433,10 @@ public class SuperStructure {
             case KICKER_UNJAM -> CurrentSuperState.KICKER_UNJAM;
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
             case SET_SHOT -> CurrentSuperState.SET_SHOT;
+            case TEST_TURRET_FOLLOW_TAG -> CurrentSuperState.TEST_TURRET_FOLLOW_TAG;
+            case TEST_TURRET_SWEEP -> CurrentSuperState.TEST_TURRET_SWEEP;
+            case TEST_TURRET_ZERO -> CurrentSuperState.TEST_TURRET_ZERO;
+            case TEST_TURRET_STOP -> CurrentSuperState.TEST_TURRET_STOP;
         };
     }
     /** Applies the states. */
@@ -473,6 +489,18 @@ public class SuperStructure {
                 break;
             case SET_SHOT:
                 setShot();
+                break;
+            case TEST_TURRET_FOLLOW_TAG:
+                testTurret(Turret.WantedState.TEST_FOLLOW_TAG);
+                break;
+            case TEST_TURRET_SWEEP:
+                testTurret(Turret.WantedState.TEST_SWEEP_LIMITS);
+                break;
+            case TEST_TURRET_ZERO:
+                testTurret(Turret.WantedState.TEST_ZERO);
+                break;
+            case TEST_TURRET_STOP:
+                testTurret(Turret.WantedState.OFF);
                 break;
         }
     }
@@ -700,6 +728,39 @@ public class SuperStructure {
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.OFF);
         turret.setWantedState(Turret.WantedState.IDLE);
+        hood.setWantedState(Hood.WantedState.HOME);
+    }
+
+    /**
+     * Runs one of the turret's pit checks with the rest of the robot quiet.
+     *
+     * <p>Bound to the pilot D-pad in test mode only (see {@link frc.robot.Robot}), held to run. The
+     * flywheel, feeder, rotor and intake are all off rather than at their idle states: these checks
+     * are run with people standing at the robot, and the only thing that should move is the turret.
+     * The hood goes home for the same reason -- parked, not held wherever it was left.
+     *
+     * <p>The drive is left in ordinary teleop drive, because the follow-a-tag check is worth
+     * driving around with.
+     *
+     * <p>{@link Turret.WantedState#OFF} is the resting member of this family: releasing a check
+     * button lands here, so letting go stops the turret where it stands instead of handing it back
+     * to {@link #applyIdle()}, which aims at the target. That distinction is the whole reason this
+     * state exists -- these checks are the ones you run when the pose is not to be trusted, and
+     * releasing a button a metre from the robot is not the moment to slew across the travel toward
+     * a hub the robot is only guessing the direction of.
+     *
+     * @param turretState the turret check to run
+     */
+    private void testTurret(Turret.WantedState turretState) {
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(REGULAR_TELEOP_ROTATION_COEFFICIENT);
+        fuelIntake.setWantedState(FuelIntake.WantedState.OFF);
+        dyeRotor.setWantedState(DyeRotor.WantedState.OFF);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.STOPPED);
+        launcher.setWantedState(Launcher.WantedState.OFF);
+        launcherTower.setWantedState(LauncherTower.WantedState.OFF);
+        turret.setWantedState(turretState);
         hood.setWantedState(Hood.WantedState.HOME);
     }
 

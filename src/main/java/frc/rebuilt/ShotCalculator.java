@@ -92,8 +92,38 @@ public class ShotCalculator {
     /** Degrees per operator D-pad press on the turret trim. */
     public static final double TURRET_OFFSET_STEP_DEG = 1.0;
 
+    /**
+     * Session-only since 2026-09-19. Chezy QM4 booted with +10 deg of turret trim in flash, the
+     * cap, left there by an operator pressing D-pad right at a turret that was parked for a pose it
+     * did not have. A turret trim is a correction for one match's pose error, not a calibration, so
+     * it starts at zero every boot and never touches {@link Preferences}.
+     */
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
+
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
+
+    /**
+     * Flywheel speed trim, percent of the model's RPM. Rides with the hood trim on the operator's
+     * D-pad: up adds range with a flatter hood and a faster wheel, down takes it away. Chezy QM4
+     * (2026-09-19) is why: every shot fell short and thirty-odd hood presses could not buy the
+     * range back, because the hood on its own cannot add speed.
+     */
+    public static final double STARTING_FLYWHEEL_TRIM_PERCENT = 0; // percent of model RPM
+
+    public static double FLYWHEEL_TRIM_PERCENT = STARTING_FLYWHEEL_TRIM_PERCENT;
+
+    /** Percent of model RPM per operator D-pad press, applied alongside the hood step. */
+    public static final double FLYWHEEL_TRIM_STEP_PERCENT = 2.0;
+
+    /** Largest flywheel trim either way, percent. Twenty percent is 550 RPM at a typical shot. */
+    public static final double MAX_FLYWHEEL_TRIM_PERCENT = 20.0;
+
+    /** The three operator trims. */
+    public enum TrimAxis {
+        HOOD,
+        TURRET,
+        FLYWHEEL
+    }
 
     /**
      * Largest trim either axis will hold, degrees either side of zero.
@@ -119,8 +149,14 @@ public class ShotCalculator {
      */
     public static final String HOOD_TRIM_PREF_KEY = "ShotHoodTrimDeg";
 
-    /** Preferences key the turret trim persists under. See {@link #HOOD_TRIM_PREF_KEY}. */
+    /**
+     * Preferences key older builds persisted the turret trim under. Nothing writes it any more;
+     * {@link #loadPersistedTrims()} removes it so a rio that still has one cannot apply it.
+     */
     public static final String TURRET_TRIM_PREF_KEY = "ShotTurretTrimDeg";
+
+    /** Preferences key the flywheel trim persists under. See {@link #HOOD_TRIM_PREF_KEY}. */
+    public static final String FLYWHEEL_TRIM_PREF_KEY = "ShotFlywheelTrimPct";
 
     /**
      * Reads both trims back off the rio.
@@ -139,42 +175,66 @@ public class ShotCalculator {
      */
     public static void loadPersistedTrims() {
         Preferences.initDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
-        Preferences.initDouble(TURRET_TRIM_PREF_KEY, STARTING_TURRET_ANGLE_OFFSET);
+        Preferences.initDouble(FLYWHEEL_TRIM_PREF_KEY, STARTING_FLYWHEEL_TRIM_PERCENT);
 
-        double storedHood = Preferences.getDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
-        double storedTurret =
-                Preferences.getDouble(TURRET_TRIM_PREF_KEY, STARTING_TURRET_ANGLE_OFFSET);
-
-        HOOD_ANGLE_OFFSET = MathUtil.clamp(storedHood, -MAX_TRIM_DEG, MAX_TRIM_DEG);
-        TURRET_ANGLE_OFFSET = MathUtil.clamp(storedTurret, -MAX_TRIM_DEG, MAX_TRIM_DEG);
-
-        if (HOOD_ANGLE_OFFSET != storedHood || TURRET_ANGLE_OFFSET != storedTurret) {
+        // The turret trim is session-only. Drop any copy an older build left in flash so that
+        // nothing, including a hand-edited preference, can read it back.
+        if (Preferences.containsKey(TURRET_TRIM_PREF_KEY)) {
             Telemetry.print(
                     String.format(
-                            "!!! Stored shot trims were out of range (hood %.2f, turret %.2f) and"
-                                    + " were clamped to +/- %.1f deg. Something other than the"
+                            "Removed a stored turret trim of %+.2f deg from the rio; the turret trim"
+                                    + " starts at zero every boot now.",
+                            Preferences.getDouble(TURRET_TRIM_PREF_KEY, 0)),
+                    PrintPriority.HIGH);
+            Preferences.remove(TURRET_TRIM_PREF_KEY);
+        }
+        TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
+
+        double storedHood = Preferences.getDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
+        double storedFlywheel =
+                Preferences.getDouble(FLYWHEEL_TRIM_PREF_KEY, STARTING_FLYWHEEL_TRIM_PERCENT);
+
+        HOOD_ANGLE_OFFSET = MathUtil.clamp(storedHood, -MAX_TRIM_DEG, MAX_TRIM_DEG);
+        FLYWHEEL_TRIM_PERCENT =
+                MathUtil.clamp(
+                        storedFlywheel, -MAX_FLYWHEEL_TRIM_PERCENT, MAX_FLYWHEEL_TRIM_PERCENT);
+
+        if (HOOD_ANGLE_OFFSET != storedHood || FLYWHEEL_TRIM_PERCENT != storedFlywheel) {
+            Telemetry.print(
+                    String.format(
+                            "!!! Stored shot trims were out of range (hood %.2f deg, flywheel"
+                                    + " %.1f %%) and were clamped. Something other than the"
                                     + " operator D-pad wrote them.",
-                            storedHood, storedTurret, MAX_TRIM_DEG),
+                            storedHood, storedFlywheel),
                     PrintPriority.HIGH);
             writeTrimPreferences();
         }
 
-        if (HOOD_ANGLE_OFFSET != 0 || TURRET_ANGLE_OFFSET != 0) {
+        if (HOOD_ANGLE_OFFSET != 0 || FLYWHEEL_TRIM_PERCENT != 0) {
             Telemetry.print(
                     String.format(
-                            "!!! Persisted shot trims are in effect: hood %+.2f deg, turret %+.2f"
-                                    + " deg. These came off the rio, not from this session."
-                                    + " Operator Start+Select zeroes both.",
-                            HOOD_ANGLE_OFFSET, TURRET_ANGLE_OFFSET),
+                            "!!! Persisted shot trims are in effect: hood %+.2f deg, flywheel"
+                                    + " %+.1f %%. These came off the rio, not from this session."
+                                    + " Operator Start+Select zeroes them.",
+                            HOOD_ANGLE_OFFSET, FLYWHEEL_TRIM_PERCENT),
                     PrintPriority.HIGH);
         } else {
-            Telemetry.print("Shot trims loaded from the rio: both zero.", PrintPriority.HIGH);
+            Telemetry.print(
+                    "Shot trims loaded from the rio: hood and flywheel zero. Turret trim starts at"
+                            + " zero every boot.",
+                    PrintPriority.HIGH);
         }
     }
 
+    /** Writes the persisted trims. The turret trim is session-only and is never written. */
     private static void writeTrimPreferences() {
         Preferences.setDouble(HOOD_TRIM_PREF_KEY, HOOD_ANGLE_OFFSET);
-        Preferences.setDouble(TURRET_TRIM_PREF_KEY, TURRET_ANGLE_OFFSET);
+        Preferences.setDouble(FLYWHEEL_TRIM_PREF_KEY, FLYWHEEL_TRIM_PERCENT);
+    }
+
+    /** Multiplier the operator's flywheel trim puts on the model's RPM. */
+    private static double flywheelTrimScale() {
+        return 1.0 + FLYWHEEL_TRIM_PERCENT / 100.0;
     }
 
     /**
@@ -186,47 +246,92 @@ public class ShotCalculator {
      * absence of a press. See {@code docs/tools/shot-log.md} for how the two record streams pair
      * up.
      *
-     * @param hood true for the hood axis, false for the turret axis
-     * @param deltaDeg signed nudge in degrees, before clamping
+     * @param axis which trim to move
+     * @param delta signed nudge, degrees for the hood and turret and percent for the flywheel,
+     *     before clamping
      */
-    private static void nudgeTrim(boolean hood, double deltaDeg) {
-        double before = hood ? HOOD_ANGLE_OFFSET : TURRET_ANGLE_OFFSET;
-        double after = MathUtil.clamp(before + deltaDeg, -MAX_TRIM_DEG, MAX_TRIM_DEG);
-        if (hood) {
+    private static void nudgeTrim(TrimAxis axis, double delta) {
+        double before;
+        double after;
+        if (axis == TrimAxis.HOOD) {
+            before = HOOD_ANGLE_OFFSET;
+            after = MathUtil.clamp(before + delta, -MAX_TRIM_DEG, MAX_TRIM_DEG);
             HOOD_ANGLE_OFFSET = after;
-        } else {
+        } else if (axis == TrimAxis.TURRET) {
+            before = TURRET_ANGLE_OFFSET;
+            after = MathUtil.clamp(before + delta, -MAX_TRIM_DEG, MAX_TRIM_DEG);
             TURRET_ANGLE_OFFSET = after;
+        } else {
+            before = FLYWHEEL_TRIM_PERCENT;
+            after =
+                    MathUtil.clamp(
+                            before + delta, -MAX_FLYWHEEL_TRIM_PERCENT, MAX_FLYWHEEL_TRIM_PERCENT);
+            FLYWHEEL_TRIM_PERCENT = after;
         }
         // Preferences writes go to flash and through NetworkTables. Safe here, in a command that
-        // runs once per press; never do this from a periodic.
-        writeTrimPreferences();
-        logTrimEvent(hood, after - before, after, false);
+        // runs once per press; never do this from a periodic. The turret trim is session-only.
+        if (axis != TrimAxis.TURRET) {
+            writeTrimPreferences();
+        }
+        logTrimEvent(axis, after - before, after, false);
+    }
+
+    /**
+     * Add range: the hood a step flatter and the flywheel a step faster. The operator's way of
+     * saying the last shot fell short.
+     *
+     * @return the command
+     */
+    public static Command increaseRangeTrim() {
+        return Commands.runOnce(
+                        () -> {
+                            nudgeTrim(TrimAxis.HOOD, HOOD_OFFSET_STEP_DEG);
+                            nudgeTrim(TrimAxis.FLYWHEEL, FLYWHEEL_TRIM_STEP_PERCENT);
+                        })
+                .ignoringDisable(true)
+                .withName("ShotCalculator.increaseRangeTrim");
+    }
+
+    /**
+     * Take range away: the hood a step steeper and the flywheel a step slower. The operator's way
+     * of saying the last shot went long.
+     *
+     * @return the command
+     */
+    public static Command decreaseRangeTrim() {
+        return Commands.runOnce(
+                        () -> {
+                            nudgeTrim(TrimAxis.HOOD, -HOOD_OFFSET_STEP_DEG);
+                            nudgeTrim(TrimAxis.FLYWHEEL, -FLYWHEEL_TRIM_STEP_PERCENT);
+                        })
+                .ignoringDisable(true)
+                .withName("ShotCalculator.decreaseRangeTrim");
     }
 
     /** Increase hood angle offset. The operator's way of saying the last shot fell short. */
     public static Command increaseHoodAngleOffset() {
-        return Commands.runOnce(() -> nudgeTrim(true, HOOD_OFFSET_STEP_DEG))
+        return Commands.runOnce(() -> nudgeTrim(TrimAxis.HOOD, HOOD_OFFSET_STEP_DEG))
                 .ignoringDisable(true)
                 .withName("ShotCalculator.increaseHoodTrim");
     }
 
     /** Decrease hood angle offset. The operator's way of saying the last shot went long. */
     public static Command decreaseHoodAngleOffset() {
-        return Commands.runOnce(() -> nudgeTrim(true, -HOOD_OFFSET_STEP_DEG))
+        return Commands.runOnce(() -> nudgeTrim(TrimAxis.HOOD, -HOOD_OFFSET_STEP_DEG))
                 .ignoringDisable(true)
                 .withName("ShotCalculator.decreaseHoodTrim");
     }
 
     /** Increase turret angle offset. */
     public static Command increaseTurretAngleOffset() {
-        return Commands.runOnce(() -> nudgeTrim(false, TURRET_OFFSET_STEP_DEG))
+        return Commands.runOnce(() -> nudgeTrim(TrimAxis.TURRET, TURRET_OFFSET_STEP_DEG))
                 .ignoringDisable(true)
                 .withName("ShotCalculator.increaseTurretTrim");
     }
 
     /** Decrease turret angle offset. */
     public static Command decreaseTurretAngleOffset() {
-        return Commands.runOnce(() -> nudgeTrim(false, -TURRET_OFFSET_STEP_DEG))
+        return Commands.runOnce(() -> nudgeTrim(TrimAxis.TURRET, -TURRET_OFFSET_STEP_DEG))
                 .ignoringDisable(true)
                 .withName("ShotCalculator.decreaseTurretTrim");
     }
@@ -245,21 +350,31 @@ public class ShotCalculator {
                         () -> {
                             double hoodBefore = HOOD_ANGLE_OFFSET;
                             double turretBefore = TURRET_ANGLE_OFFSET;
+                            double flywheelBefore = FLYWHEEL_TRIM_PERCENT;
                             HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
                             TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
+                            FLYWHEEL_TRIM_PERCENT = STARTING_FLYWHEEL_TRIM_PERCENT;
                             writeTrimPreferences();
                             logTrimEvent(
-                                    true, HOOD_ANGLE_OFFSET - hoodBefore, HOOD_ANGLE_OFFSET, true);
+                                    TrimAxis.HOOD,
+                                    HOOD_ANGLE_OFFSET - hoodBefore,
+                                    HOOD_ANGLE_OFFSET,
+                                    true);
                             logTrimEvent(
-                                    false,
+                                    TrimAxis.TURRET,
                                     TURRET_ANGLE_OFFSET - turretBefore,
                                     TURRET_ANGLE_OFFSET,
                                     true);
+                            logTrimEvent(
+                                    TrimAxis.FLYWHEEL,
+                                    FLYWHEEL_TRIM_PERCENT - flywheelBefore,
+                                    FLYWHEEL_TRIM_PERCENT,
+                                    true);
                             Telemetry.print(
                                     String.format(
-                                            "Shot trims reset to zero (were hood %+.2f, turret"
-                                                    + " %+.2f).",
-                                            hoodBefore, turretBefore),
+                                            "Shot trims reset to zero (were hood %+.2f deg, turret"
+                                                    + " %+.2f deg, flywheel %+.1f %%).",
+                                            hoodBefore, turretBefore, flywheelBefore),
                                     PrintPriority.HIGH);
                         })
                 .ignoringDisable(true)
@@ -345,6 +460,7 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/Shot/HoodModelOffsetDeg", activeModelHoodOffsetDeg, "degrees");
         Telemetry.log("ShotCalc/Shot/HoodTrimDeg", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Shot/TurretTrimDeg", TURRET_ANGLE_OFFSET, "degrees");
+        Telemetry.log("ShotCalc/Shot/FlywheelTrimPct", FLYWHEEL_TRIM_PERCENT, "percent");
         Telemetry.log("ShotCalc/Shot/FeedShot", activeFeedShot);
         Telemetry.log("ShotCalc/Shot/InRange", params.isValid());
         Telemetry.log("ShotCalc/Shot/PoseTrusted", poseTrusted);
@@ -382,13 +498,18 @@ public class ShotCalculator {
      * and an infinite age, and analysis drops it. Deciding what counts as "seconds after" is the
      * reader's job, not this method's, so the age is logged rather than thresholded here.
      *
-     * @param hood true for the hood axis, false for the turret axis
-     * @param deltaDeg how far the trim actually moved, after clamping; zero at the limit
-     * @param valueDeg the trim's new value
+     * @param axis which trim moved
+     * @param delta how far the trim actually moved, after clamping; zero at the limit. Degrees for
+     *     the hood and turret, percent for the flywheel
+     * @param value the trim's new value, in the same unit
      * @param reset true when this row is the Start+Select reset rather than a judgement
      */
-    private static void logTrimEvent(
-            boolean hood, double deltaDeg, double valueDeg, boolean reset) {
+    private static void logTrimEvent(TrimAxis axis, double delta, double value, boolean reset) {
+        boolean angle = axis != TrimAxis.FLYWHEEL;
+        double deltaDeg = angle ? delta : Double.NaN;
+        double valueDeg = angle ? value : Double.NaN;
+        double deltaPct = angle ? Double.NaN : delta;
+        double valuePct = angle ? Double.NaN : value;
         double now = Timer.getFPGATimestamp();
         double secondsSinceShot =
                 Double.isNaN(lastShotTimestampSeconds)
@@ -398,24 +519,28 @@ public class ShotCalculator {
         String verdict;
         if (reset) {
             verdict = "Reset";
-        } else if (deltaDeg == 0) {
-            // The trim was already at MAX_TRIM_DEG. The press is still a verdict about the shot,
-            // and losing it would bias the dataset towards whichever direction had room left.
+        } else if (delta == 0) {
+            // The trim was already at its cap. The press is still a verdict about the shot, and
+            // losing it would bias the dataset towards whichever direction had room left.
             verdict = "AtLimit";
-        } else if (hood) {
-            // Hood up means the operator is adding range, so the ball fell short.
-            verdict = deltaDeg > 0 ? "Short" : "Long";
+        } else if (axis != TrimAxis.TURRET) {
+            // Hood up and flywheel up both mean the operator is adding range: the ball fell short.
+            verdict = delta > 0 ? "Short" : "Long";
         } else {
             // A CCW trim correction means the ball landed CW of the target.
-            verdict = deltaDeg > 0 ? "MissedCW" : "MissedCCW";
+            verdict = delta > 0 ? "MissedCW" : "MissedCCW";
         }
 
         trimEventIndex++;
         Telemetry.log("ShotCalc/Trim/Index", trimEventIndex);
         Telemetry.log("ShotCalc/Trim/TimestampSeconds", now, "seconds");
-        Telemetry.log("ShotCalc/Trim/Axis", hood ? "Hood" : "Turret");
+        Telemetry.log(
+                "ShotCalc/Trim/Axis",
+                axis == TrimAxis.HOOD ? "Hood" : axis == TrimAxis.TURRET ? "Turret" : "Flywheel");
         Telemetry.log("ShotCalc/Trim/DeltaDeg", deltaDeg, "degrees");
         Telemetry.log("ShotCalc/Trim/ValueDeg", valueDeg, "degrees");
+        Telemetry.log("ShotCalc/Trim/DeltaPct", deltaPct, "percent");
+        Telemetry.log("ShotCalc/Trim/ValuePct", valuePct, "percent");
         Telemetry.log("ShotCalc/Trim/Verdict", verdict);
         Telemetry.log(
                 "ShotCalc/Trim/ShotIndex", Double.isNaN(lastShotTimestampSeconds) ? -1 : shotIndex);
@@ -695,7 +820,7 @@ public class ShotCalculator {
                         (90 - raw[1]) + WANTED_HUB_MODEL.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
-        return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS};
+        return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS * flywheelTrimScale()};
     }
 
     /**
@@ -861,8 +986,8 @@ public class ShotCalculator {
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
-        // ── Flywheel speed: exit speed (m/s) → RPM ───────────────────────────
-        double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
+        // ── Flywheel speed: exit speed (m/s) → RPM, then the operator's trim ─
+        double flywheelSpeed = exitSpeedMs * RPM_PER_MPS * flywheelTrimScale();
 
         // Snapshot for the shot record: the five values a burst row needs that
         // ShootingParameters does not carry. Kept here rather than widened into the record because

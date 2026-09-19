@@ -329,11 +329,38 @@ public class Robot extends SpectrumRobot {
         pilot.setShot_LB_Y.whileTrue(superStructure.setStateCommand(WantedSuperState.SET_SHOT));
         pilot.setShot_LB_Y.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        // Each press is also the shot-outcome signal: hood down says the last burst went long,
-        // hood up says it fell short. Logged as ShotCalc/Trim/* and paired with the most recent
-        // ShotCalc/Shot/* row. See docs/tools/shot-log.md.
-        operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
-        operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
+        /*
+         * Turret pit checks, pilot D-pad, test mode only, each held for as long as you want it to
+         * run. Releasing stops the turret where it stands (TEST_TURRET_STOP) rather than falling
+         * back to IDLE, which aims at the target -- see SuperStructure.testTurret. The last button
+         * pressed owns the turret; the shared onFalse only fires once all three are released.
+         *
+         * Test mode is not a reduced mode here and nothing was needed to make it one. robotPeriodic
+         * runs in every mode, so Vision, SuperStructure, the CommandScheduler and every subsystem
+         * periodic run exactly as they do in teleop, and with them all the DogLog keys. Current
+         * limits, soft limits and the stall cut-out are in the motor config applied at construction
+         * and are never touched per mode. The one thing that would break this is WPILib enabling
+         * LiveWindow in test, which disables the CommandScheduler -- it defaults off and nothing
+         * here calls enableLiveWindowInTest(true). Leave it that way.
+         */
+        pilot.testTurretFollowTag_dPadUp.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.TEST_TURRET_FOLLOW_TAG));
+        pilot.testTurretSweep_dPadLeft.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.TEST_TURRET_SWEEP));
+        pilot.testTurretZero_dPadDown.whileTrue(
+                superStructure.setStateCommand(WantedSuperState.TEST_TURRET_ZERO));
+        pilot.testTurretFollowTag_dPadUp
+                .or(pilot.testTurretSweep_dPadLeft)
+                .or(pilot.testTurretZero_dPadDown)
+                .onFalse(superStructure.setStateCommand(WantedSuperState.TEST_TURRET_STOP));
+
+        // Each press is also the shot-outcome signal: down says the last burst went long, up says
+        // it fell short. Since Chezy QM4 (2026-09-19) a press moves the hood and the flywheel
+        // together, because the hood alone could not buy back a short shot. Logged as
+        // ShotCalc/Trim/* and paired with the most recent ShotCalc/Shot/* row. See
+        // docs/tools/shot-log.md.
+        operator.dPadDown.onTrue(ShotCalculator.decreaseRangeTrim());
+        operator.dPadUp.onTrue(ShotCalculator.increaseRangeTrim());
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
         operator.resetShotTrims_StartSelect.onTrue(ShotCalculator.resetTrimsCommand());
@@ -666,7 +693,11 @@ public class Robot extends SpectrumRobot {
 
         if (fullAutoName.equals("Do Nothing")) {
             field2d.getObject("Auto Routine").setPoses(new ArrayList<>());
+            if (!autoName.equals(selectionKey)) {
+                logAutoSelection(fullAutoName, true, "");
+            }
             autoName = selectionKey;
+            autoFileMissingAlert.set(false);
             selectedAutoPaths = new ArrayList<>();
             return;
         }
@@ -682,11 +713,13 @@ public class Robot extends SpectrumRobot {
         if (!autoName.equals(selectionKey)) {
             autoName = selectionKey;
             Telemetry.log("Auton Warmed Up", false);
+            boolean autoFileFound = AutoBuilder.getAllAutoNames().contains(baseAutoName);
+            logAutoSelection(fullAutoName, autoFileFound, baseAutoName);
             // Drop the old selection's paths now, so a load failure below cannot leave the robot
             // being placed on the previous auto's start pose.
             selectedAutoPaths = new ArrayList<>();
 
-            if (AutoBuilder.getAllAutoNames().contains(baseAutoName)) {
+            if (autoFileFound) {
                 try {
                     pathPlannerPaths = PathPlannerAuto.getPathGroupFromAutoFile(baseAutoName);
                 } catch (IOException | ParseException e) {
@@ -806,6 +839,47 @@ public class Robot extends SpectrumRobot {
     private final Alert startPoseAlert = new Alert("", AlertType.kError);
 
     /**
+     * Raised while the chooser names an auto with no matching {@code .auto} file on the rio.
+     *
+     * <p>Chezy 2026-09-19 QM4: the chooser said OSCENT, the code asked PathPlanner for "OSCENT
+     * Full", the file was "OSCENT FULL.auto", and the rio's filesystem is case-sensitive where the
+     * Windows sim is not. PathPlanner reported the missing file to the Driver Station once at boot
+     * and ran an empty command; nothing on the dashboard said so and the robot sat still for auto.
+     * The wpilog also had no record of which auto was selected, which is what {@link
+     * #logAutoSelection} fixes.
+     */
+    private final Alert autoFileMissingAlert = new Alert("", AlertType.kError);
+
+    /**
+     * Logs an auto selection, and raises or clears {@link #autoFileMissingAlert}.
+     *
+     * @param fullAutoName the chooser command's name
+     * @param autoFileFound whether the base name has a file in deploy/pathplanner/autos
+     * @param baseAutoName the name PathPlanner will be asked for, for the message
+     */
+    private void logAutoSelection(String fullAutoName, boolean autoFileFound, String baseAutoName) {
+        Telemetry.log("Auton/SelectedAuto", fullAutoName);
+        Telemetry.log("Auton/AutoFileFound", autoFileFound);
+        if (autoFileFound) {
+            autoFileMissingAlert.set(false);
+            Telemetry.print("Auto selected: " + fullAutoName, PrintPriority.HIGH);
+        } else {
+            autoFileMissingAlert.setText(
+                    String.format(
+                            "Auto '%s' has NO .auto file named '%s' on the rio (names are"
+                                    + " case-sensitive there). It will do nothing. Pick another.",
+                            fullAutoName, baseAutoName));
+            autoFileMissingAlert.set(true);
+            Telemetry.print(
+                    String.format(
+                            "!!! Auto selected: %s, but there is no .auto file named '%s'. It will"
+                                    + " do nothing.",
+                            fullAutoName, baseAutoName),
+                    PrintPriority.HIGH);
+        }
+    }
+
+    /**
      * Raised while the start-pose check cannot run because the pose has never been vision-seeded.
      */
     private final Alert startPoseUnverifiedAlert =
@@ -907,6 +981,9 @@ public class Robot extends SpectrumRobot {
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
+        String runningAuto = auton.getAutonomousCommand().getName();
+        Telemetry.log("Auton/RunningAuto", runningAuto);
+        Telemetry.print("Auto running: " + runningAuto, PrintPriority.HIGH);
 
         if (Utils.isSimulation()) {
             robotSim.getBallSim().clearBalls();
@@ -978,6 +1055,13 @@ public class Robot extends SpectrumRobot {
 
             Telemetry.print("~~~ Test Init Starting ~~~ ");
 
+            // Enter test mode at rest, the same way teleop enters at IDLE. Without this the robot
+            // carries in whatever super state it was left in, and IDLE in particular spins the
+            // flywheel to IDLE_PREP and puts the turret on the target -- neither of which anyone
+            // standing at the robot to run a pit check is expecting.
+            CommandScheduler.getInstance().cancelAll();
+            superStructure.setWantedSuperState(WantedSuperState.TEST_TURRET_STOP);
+
             Telemetry.print("~~~ Test Init Complete ~~~ ");
         } catch (Throwable t) {
             // intercept error and log it
@@ -991,6 +1075,12 @@ public class Robot extends SpectrumRobot {
     /** Test exit. */
     @Override
     public void testExit() {
+        // A TEST_* super state has no meaning outside test mode and nothing in auton would clear
+        // it: autonomousInit hands over to Auton, which only sets a state when a path command
+        // fires. Leaving test straight into auto would otherwise start the match with every
+        // mechanism off. teleopInit already resets on its own; this covers the rest.
+        CommandScheduler.getInstance().cancelAll();
+        superStructure.setWantedSuperState(WantedSuperState.IDLE);
         Telemetry.print("~~~ Test Exit ~~~ ");
     }
 

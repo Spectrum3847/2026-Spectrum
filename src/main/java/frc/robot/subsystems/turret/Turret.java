@@ -8,6 +8,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -23,6 +25,7 @@ import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.*;
 import java.util.Optional;
+import java.util.function.DoubleSupplier;
 import lombok.*;
 
 public class Turret extends Mechanism {
@@ -145,6 +148,14 @@ public class Turret extends Mechanism {
         UNJAM_SHAKE,
         /** Aim at the target with a slow sweep laid on top, so fuel cannot settle against it. */
         AIM_SWEEP,
+        /**
+         * Pit check: point at whatever tag the turret camera sees. See {@link #applyTestFollowTag}.
+         */
+        TEST_FOLLOW_TAG,
+        /** Pit check: run limit to limit and back. See {@link #applyTestSweepLimits}. */
+        TEST_SWEEP_LIMITS,
+        /** Pit check: hold the turret's zero. Same output path as {@link WantedState#IDLE}. */
+        TEST_ZERO,
     }
 
     public enum SystemState {
@@ -153,6 +164,9 @@ public class Turret extends Mechanism {
         AIM_AT_TARGET,
         UNJAM_SHAKE,
         AIM_SWEEP,
+        TEST_FOLLOW_TAG,
+        TEST_SWEEP_LIMITS,
+        TEST_ZERO,
         /**
          * Aiming was asked for, but vision has not established the robot pose yet, so the turret
          * holds at its zero instead of aiming from a heading that is probably wrong. There is no
@@ -206,7 +220,14 @@ public class Turret extends Mechanism {
         return vision == null || vision.isPoseTrustedForAiming();
     }
 
-    /** Handles the state transition. */
+    /**
+     * Handles the state transition.
+     *
+     * <p>The three TEST_ states get no {@link #mayAim()} gate, unlike the two aiming states: none
+     * of them reads the robot pose, so none of them can be wrong by the heading the robot powered
+     * on at. That is the point of all three -- they are the checks you run when the pose is exactly
+     * what you do not trust yet.
+     */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -214,6 +235,9 @@ public class Turret extends Mechanism {
             case AIM_AT_TARGET -> mayAim() ? SystemState.AIM_AT_TARGET : SystemState.WAIT_FOR_POSE;
             case UNJAM_SHAKE -> SystemState.UNJAM_SHAKE;
             case AIM_SWEEP -> mayAim() ? SystemState.AIM_SWEEP : SystemState.WAIT_FOR_POSE;
+            case TEST_FOLLOW_TAG -> SystemState.TEST_FOLLOW_TAG;
+            case TEST_SWEEP_LIMITS -> SystemState.TEST_SWEEP_LIMITS;
+            case TEST_ZERO -> SystemState.TEST_ZERO;
         };
     }
 
@@ -259,8 +283,159 @@ public class Turret extends Mechanism {
         commandedDegrees =
                 shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG);
         final double target = commandedDegrees;
-        setPosition(() -> degreesToRotations(() -> target));
+        commandPosition(() -> degreesToRotations(() -> target));
     }
+
+    // ---- Test-mode pit checks ----
+    //
+    // Three held-to-run checks bound to the pilot D-pad in test mode (see Robot.configureBindings).
+    // They are ordinary turret states, so they run under the same motor config, the same soft
+    // limits, the same stall cut-out and the same Turret/* logging as a match: test mode runs
+    // robotPeriodic() and the CommandScheduler exactly like teleop, because WPILib only disables
+    // the scheduler in test when LiveWindow is enabled there and this robot never enables it.
+    //
+    // None of them touches the robot pose or ShotCalculator, so they are usable on a cart.
+
+    /** Lowest soft limit of the travel, in degrees. */
+    private double minLimitDegrees() {
+        return config.getMinRotations() * 360.0;
+    }
+
+    /** Highest soft limit of the travel, in degrees. */
+    private double maxLimitDegrees() {
+        return config.getMaxRotations() * 360.0;
+    }
+
+    /**
+     * Fraction of the measured tag bearing the follow check closes each loop.
+     *
+     * <p>The command is rebuilt from the <em>measured</em> angle every loop rather than integrated,
+     * so this is the outer loop's gain and the turret still converges on the tag with no standing
+     * error whatever the exact degrees-per-tx scale is. That matters here: the turret camera is
+     * pitched about 29 deg up, so a degree of {@code tx} is not quite a degree of turret azimuth,
+     * and a gain-independent law is the honest way to handle it. Well under 1 so the outer loop is
+     * slower than the position loop under it.
+     */
+    private static final double TEST_FOLLOW_KP = 0.5;
+
+    /**
+     * Points the turret at whatever AprilTag the turret camera currently sees.
+     *
+     * <p>Deliberately built on the camera's own bearing to the tag ({@code tx}) rather than on a
+     * field-relative aim: no pose, no alliance, no tag map, no {@link ShotCalculator}. Put a tag in
+     * front of the robot on a cart and the turret should follow it. What it checks is the half of
+     * the aiming chain the shot depends on and the pose cannot vouch for -- that the camera, the
+     * turret's zero and the gearbox agree on which way is which, and by how much.
+     *
+     * <p>With no tag in view the turret holds its last command rather than falling back to zero, so
+     * walking a tag out of frame parks it where it was instead of sending it across its travel.
+     */
+    private void applyTestFollowTag() {
+        unwrapping = false;
+        mechOmegaRotPerSec = 0;
+
+        // Entering the state, take over from wherever the turret already is.
+        if (previousSystemState != SystemState.TEST_FOLLOW_TAG) {
+            commandedDegrees =
+                    MathUtil.clamp(getPositionDegrees(), minLimitDegrees(), maxLimitDegrees());
+        }
+
+        Vision vision = Robot.getVision();
+        boolean tagInView = vision != null && vision.isTurretTagInView();
+        Telemetry.log("Turret/Test/FollowTagInView", tagInView);
+
+        if (tagInView) {
+            // Limelight tx is positive with the tag right of the crosshair; the turret is
+            // counter-clockwise-positive, so closing that bearing means going negative.
+            double txDegrees = vision.getTurretTagBearingDegrees();
+            Telemetry.logDash("Turret/Test/FollowTagTxDeg", txDegrees, "deg");
+            commandedDegrees =
+                    MathUtil.clamp(
+                            getPositionDegrees() - TEST_FOLLOW_KP * txDegrees,
+                            minLimitDegrees(),
+                            maxLimitDegrees());
+        }
+
+        final double target = commandedDegrees;
+        commandMMPosition(() -> degreesToRotations(() -> target));
+    }
+
+    /**
+     * How far inside each soft limit the sweep turns around.
+     *
+     * <p>Not zero: the Talon's own soft limit zeroes output in that direction, so a command sitting
+     * exactly on it leaves a standing position error that never closes and the leg never reads as
+     * arrived. A couple of degrees in is reachable and still shows the full travel.
+     */
+    private static final double TEST_SWEEP_MARGIN_DEG = 2.0;
+
+    /** How close to a leg's target counts as having got there. */
+    private static final double TEST_SWEEP_ARRIVAL_DEG = 3.0;
+
+    /**
+     * How long one leg may take before the sweep turns around anyway.
+     *
+     * <p>The full 396 deg of travel is about 4.4 s at the 0.25 rot/s Motion Magic cruise, so this
+     * is several times the honest worst case. It exists so a turret that meets an obstacle
+     * mid-sweep backs off instead of leaning on it: the check is meant to be run with people near
+     * the robot.
+     */
+    private static final double TEST_SWEEP_LEG_TIMEOUT_SECS = 20.0;
+
+    private final Timer sweepLegTimer = new Timer();
+    private boolean sweepingTowardMax = true;
+
+    /**
+     * Runs the turret to one soft limit, then to the other, and keeps going while the button is
+     * held.
+     *
+     * <p>This is the travel check: it shows the whole envelope is reachable, that nothing in the
+     * cable path binds at either end, and -- read against {@code Turret/TravelTotalDeg} and the
+     * reported angle at each end -- whether the belt is giving up teeth. The first leg goes to
+     * whichever limit is further away, so the long run happens while somebody is still watching.
+     *
+     * <p>A leg that stalls or times out turns around rather than pushing. Reversing is also exactly
+     * what releases the stall latch, so the sweep recovers itself.
+     */
+    private void applyTestSweepLimits() {
+        double minDeg = minLimitDegrees() + TEST_SWEEP_MARGIN_DEG;
+        double maxDeg = maxLimitDegrees() - TEST_SWEEP_MARGIN_DEG;
+
+        if (previousSystemState != SystemState.TEST_SWEEP_LIMITS) {
+            double position = getPositionDegrees();
+            sweepingTowardMax = Math.abs(maxDeg - position) >= Math.abs(position - minDeg);
+            sweepLegTimer.restart();
+        }
+
+        double target = sweepingTowardMax ? maxDeg : minDeg;
+        boolean arrived = Math.abs(getPositionDegrees() - target) <= TEST_SWEEP_ARRIVAL_DEG;
+        boolean gaveUp = stallLatched || sweepLegTimer.hasElapsed(TEST_SWEEP_LEG_TIMEOUT_SECS);
+
+        if (arrived || gaveUp) {
+            if (gaveUp && !arrived) {
+                Telemetry.print(
+                        String.format(
+                                "Turret sweep check gave up on the leg to %.1f deg at %.1f deg"
+                                        + " (%s) and is turning around. Something is in the way,"
+                                        + " or the travel is not what the config says it is.",
+                                target,
+                                getPositionDegrees(),
+                                stallLatched ? "stalled" : "timed out"));
+            }
+            sweepingTowardMax = !sweepingTowardMax;
+            sweepLegTimer.restart();
+            target = sweepingTowardMax ? maxDeg : minDeg;
+        }
+
+        unwrapping = false;
+        mechOmegaRotPerSec = 0;
+        commandedDegrees = target;
+        Telemetry.log("Turret/Test/SweepTowardMax", sweepingTowardMax);
+
+        final double commanded = target;
+        commandMMPosition(() -> degreesToRotations(() -> commanded));
+    }
+
     // Whether the turret is unwrapping to avoid wire wrap.
     @Getter private boolean unwrapping = false;
 
@@ -298,6 +473,11 @@ public class Turret extends Mechanism {
      */
     public void recordAngleSample() {
         if (!isAttached()) {
+            return;
+        }
+        if (isPositionSuspect()) {
+            // The reading is being held out; the last good sample is still the truth, and a frame
+            // paired with a jumped angle aims the next shot at nothing.
             return;
         }
         long loop = RobotLoop.count();
@@ -348,14 +528,19 @@ public class Turret extends Mechanism {
         switch (systemState) {
             case OFF:
                 unwrapping = false;
+                clearStallLatch();
                 stop();
                 return;
             case IDLE:
             case WAIT_FOR_POSE:
+                // TEST_ZERO shares this branch on purpose: the pit check for "go back to zero"
+                // should exercise the exact output path the robot uses to sit at zero in a match,
+                // not a second one that could behave differently.
+            case TEST_ZERO:
                 unwrapping = false;
                 commandedDegrees = 0;
                 mechOmegaRotPerSec = 0;
-                setPosition(() -> degreesToRotations(() -> 0.0));
+                commandPosition(() -> degreesToRotations(() -> 0.0));
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget(0.0);
@@ -365,6 +550,12 @@ public class Turret extends Mechanism {
                 return;
             case UNJAM_SHAKE:
                 applyUnjamShake();
+                return;
+            case TEST_FOLLOW_TAG:
+                applyTestFollowTag();
+                return;
+            case TEST_SWEEP_LIMITS:
+                applyTestSweepLimits();
                 return;
         }
     }
@@ -382,14 +573,72 @@ public class Turret extends Mechanism {
         super(config);
         this.config = config;
 
-        // Deliberately no encoder zeroing here. The TalonFX reads zero at motor power-on and keeps
-        // counting across robot-code restarts, so zeroing in the constructor only served to throw
-        // the position away on every code deploy. The turret zero is therefore "wherever the turret
-        // pointed when the motor powered on", which must be facing away from the intake. Use
-        // zeroTurretCommand() (operator B while disabled) if it was powered on somewhere else.
-
+        seedFromZeroReference();
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
+    }
+
+    /**
+     * Reported mechanism angle, in degrees, when the turret is parked at its true zero.
+     *
+     * <p>Measured on PM_2026 on 2026-09-19: with the turret squared to its zero, the rotor's
+     * absolute position was 0.667480 rotations, which the device reports as 0.0166015625 mechanism
+     * rotations. This constant is what makes {@link #seedFromZeroReference()} able to recover the
+     * zero without anyone pointing the turret by hand.
+     *
+     * <p>It is a property of where the motor sits on the belt, so it survives power cycles and code
+     * deploys but <b>not</b> a skipped belt tooth, a re-tensioned belt, or a motor swap. If shots
+     * start leaving by a constant angle after any of those, this number is the first thing to
+     * re-measure: park the turret at zero, read {@code Position} off the Talon in Tuner X, and put
+     * that here.
+     */
+    private static final double ZERO_REFERENCE_DEGREES = 5.9765625;
+
+    /** How long to wait at boot for the first position frame off the CAN bus. */
+    private static final double BOOT_SIGNAL_TIMEOUT_SECONDS = 0.25;
+
+    /** The angle the turret came up reading, before the zero reference was applied. */
+    @Getter private double bootPositionDegrees = Double.NaN;
+
+    /**
+     * Puts the turret's zero back where it belongs at code start.
+     *
+     * <p>Phoenix 6 seeds the position register from the rotor's absolute position at power-on, not
+     * from zero -- "The Talon FX and CANcoder sensors are always initialized to their absolute
+     * position in Phoenix 6" (CTRE's Phoenix 5 to 6 migration guide). One rotor turn is 360 / 39.78
+     * = 9.05 deg of turret, so the turret comes up reading somewhere in that 9 deg band, set by
+     * wherever the rotor magnet happened to stop, and never at 0. That is the whole reason shots
+     * used to leave by a constant angle that changed between runs.
+     *
+     * <p>The rotor's absolute position is repeatable for a given turret angle, so {@link
+     * #ZERO_REFERENCE_DEGREES} is all that is needed to undo it: subtract it, and what the turret
+     * reads at its parked zero becomes 0. The correction is only unique within one rotor turn, so
+     * the difference is wrapped into +/- 4.5 deg -- park the turret within half a rotor turn of
+     * zero before a restart and it lands right, park it further out and it snaps to the wrong turn.
+     */
+    private void seedFromZeroReference() {
+        if (!isAttached()) {
+            return;
+        }
+        bootPositionDegrees =
+                rotationsToDegrees(
+                        () ->
+                                motor.getPosition()
+                                        .waitForUpdate(BOOT_SIGNAL_TIMEOUT_SECONDS)
+                                        .getValueAsDouble());
+
+        final double rotorTurnDegrees = 360.0 / config.getSensorToMechanismRatio();
+        double corrected = bootPositionDegrees - ZERO_REFERENCE_DEGREES;
+        corrected -= rotorTurnDegrees * Math.round(corrected / rotorTurnDegrees);
+        final double seeded = corrected;
+
+        motor.setPosition(degreesToRotations(() -> seeded));
+        Telemetry.print(
+                String.format(
+                        "Turret zero seeded: came up reading %.3f deg, zero reference is %.3f deg,"
+                                + " so it is now %.3f deg. Re-zero with operator B if the turret"
+                                + " was not parked within %.1f deg of zero.",
+                        bootPositionDegrees, ZERO_REFERENCE_DEGREES, seeded, rotorTurnDegrees / 2));
     }
     /** Runs the periodic update. */
     @Override
@@ -397,6 +646,7 @@ public class Turret extends Mechanism {
         recordAngleSample();
         systemState = handleStateTransition();
         logBatteryUsage();
+        updateStallDetection();
         applyStates();
         previousSystemState = systemState;
         Telemetry.log("Turret/WantedState", wantedState.toString());
@@ -415,6 +665,13 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/VelocityRotPerSec", getVelocityRPM() / 60.0, "rot/sec");
         Telemetry.log("Turret/Unwrapping", unwrapping);
         Telemetry.logDash("Turret/ReadyToShoot", isReadyToShoot());
+        updateEnvelopeAlert();
+        Telemetry.log("Turret/BootPositionDegrees", bootPositionDegrees, "deg");
+        Telemetry.log("Turret/PositionSuspect", positionSuspect);
+        Telemetry.log("Turret/PositionStepsRejected", positionStepsRejected);
+        Telemetry.log("Turret/PositionStepsAccepted", positionStepsAccepted);
+        Telemetry.log("Turret/StallLatched", stallLatched);
+        Telemetry.log("Turret/StallLatchCount", stallLatchCount);
     }
     /**
      * Declares the turret's current physical position to be its zero (facing away from the intake).
@@ -429,6 +686,7 @@ public class Turret extends Mechanism {
                             if (isAttached()) {
                                 motor.setPosition(
                                         degreesToRotations(() -> config.getInitPosition()));
+                                clearStallLatch();
                             }
                         })
                 .ignoringDisable(true)
@@ -437,10 +695,12 @@ public class Turret extends Mechanism {
     /**
      * Shifts the encoder so the turret's reported angle matches where it is actually pointing.
      *
-     * <p>The turret has no absolute reference: its zero is wherever it happened to point when the
-     * motor powered on. Get that wrong and every shot leaves by the same angle, in whichever
-     * direction that boot position happened to be off, which is why the miss changes sides between
-     * runs rather than staying put.
+     * <p>The turret's only absolute reference is the rotor's own, which repeats every 9.05 deg of
+     * turret: {@link #seedFromZeroReference()} uses it to recover the zero at boot, but it cannot
+     * tell which of the ~40 rotor turns the turret is on, and it knows nothing about belt slip
+     * after the fact. Get the zero wrong and every shot leaves by the same angle, in whichever
+     * direction it is off, which is why the miss changes sides between runs rather than staying
+     * put.
      *
      * <p>{@code errorDegrees} is actual minus reported, which is exactly what the turret camera
      * measures: its mount transform is built from this encoder, so its MegaTag1 heading is wrong by
@@ -502,6 +762,323 @@ public class Turret extends Mechanism {
         lastTravelPositionDegrees = position;
     }
 
+    // -- Reading guard ---------------------------------------------------------------------------
+
+    /**
+     * Largest believable one-loop change in the reported angle, in degrees.
+     *
+     * <p>Motion Magic cruises at {@code mmCruiseVelocity} = 0.25 rot/s, which is 1.8 deg per 20 ms
+     * loop, and a turret free-running at its 6 V ceiling manages about 7. Fifteen is twice the
+     * fastest thing the mechanism can physically do, and still two decades below what this exists
+     * to catch: on the 2026-09-19 pit log (FRC_20260919_150646, 162.68 s) the reported angle went
+     * from -0.09 to 289.42 deg between two consecutive loops, and the controller drove 235 deg of
+     * real motion into a hard stop on the strength of that one sample.
+     */
+    private static final double MAX_POSITION_STEP_DEGREES = 15.0;
+
+    /**
+     * Consecutive loops a stepped reading must repeat before it is believed.
+     *
+     * <p>A single bad sample is dropped outright and costs nothing. A step still there 10 loops
+     * (200 ms) later is not noise: the encoder really has been re-framed, by a device reset or a
+     * {@code setPosition}, and the sensor is then the only truth on offer, so it is accepted. What
+     * the delay buys is that no output is ever commanded from a one-loop step, and that the
+     * acceptance is loud rather than silent.
+     */
+    private static final int POSITION_STEP_CONFIRM_LOOPS = 10;
+
+    /** How far outside the configured travel the reading may sit before it is called slip. */
+    private static final double ENVELOPE_MARGIN_DEGREES = 5.0;
+
+    private double heldPositionDegrees = Double.NaN;
+    private double positionStepCandidateDegrees = Double.NaN;
+    private int positionStepLoops = 0;
+    private long positionGuardLoop = -1;
+    private boolean positionSuspect = false;
+
+    /** How many distinct impossible steps have been held out this power cycle. */
+    @Getter private int positionStepsRejected = 0;
+
+    /** How many of those went on to repeat themselves long enough to be believed. */
+    @Getter private int positionStepsAccepted = 0;
+
+    private final Alert positionStepAlert =
+            new Alert(
+                    "Turret angle jumped more than "
+                            + (int) MAX_POSITION_STEP_DEGREES
+                            + " deg in one loop. Holding the last good angle, so the turret will"
+                            + " not act on the jump. If this does not clear on its own the encoder"
+                            + " has been re-framed: re-zero the turret (operator B, disabled)"
+                            + " before trusting a shot.",
+                    AlertType.kError);
+
+    private final Alert envelopeAlert = new Alert("", AlertType.kError);
+
+    /**
+     * Validates this loop's reported angle, once per loop.
+     *
+     * <p>Keyed on the loop counter rather than the scheduler, the same way {@link
+     * #recordAngleSample()} is, so Vision -- which runs before {@code CommandScheduler.run()} --
+     * gets this loop's decision rather than the previous one's.
+     */
+    private void updatePositionGuard() {
+        long loop = RobotLoop.count();
+        if (loop == positionGuardLoop) {
+            return;
+        }
+        positionGuardLoop = loop;
+
+        double raw = super.getPositionDegrees();
+        if (Double.isNaN(heldPositionDegrees)) {
+            heldPositionDegrees = raw;
+            return;
+        }
+
+        if (Math.abs(raw - heldPositionDegrees) <= MAX_POSITION_STEP_DEGREES) {
+            heldPositionDegrees = raw;
+            positionStepLoops = 0;
+            positionSuspect = false;
+            positionStepAlert.set(false);
+            return;
+        }
+
+        // Too big to be motion. Count it only while the reading keeps insisting on the same new
+        // value; a reading that wanders is noise starting over, not a re-framed encoder.
+        if (positionStepLoops > 0
+                && Math.abs(raw - positionStepCandidateDegrees) <= MAX_POSITION_STEP_DEGREES) {
+            positionStepLoops++;
+        } else {
+            positionStepLoops = 1;
+            positionStepsRejected++;
+        }
+        positionStepCandidateDegrees = raw;
+        positionSuspect = true;
+        positionStepAlert.set(true);
+
+        if (positionStepLoops >= POSITION_STEP_CONFIRM_LOOPS) {
+            Telemetry.print(
+                    String.format(
+                            "!!! Turret angle re-framed: %.1f deg became %.1f deg and stayed there"
+                                    + " for %d loops, so it is now believed. The soft limits and"
+                                    + " every aim are in that new frame. Re-zero the turret"
+                                    + " (operator B, disabled) before trusting a shot.",
+                            heldPositionDegrees, raw, POSITION_STEP_CONFIRM_LOOPS));
+            // The reading moved without the turret moving, so it is not travel. Same reasoning as
+            // applyZeroCorrectionDegrees: travel is the denominator slip is measured against, and
+            // banking a jump into it makes every slip-per-degree number after it a lie.
+            if (!Double.isNaN(lastTravelPositionDegrees)) {
+                lastTravelPositionDegrees += raw - heldPositionDegrees;
+            }
+            heldPositionDegrees = raw;
+            positionStepLoops = 0;
+            positionSuspect = false;
+            positionStepsAccepted++;
+            positionStepAlert.set(false);
+        }
+    }
+
+    /**
+     * This loop's turret angle, with impossible one-loop steps held out.
+     *
+     * <p>Overrides the mechanism's raw reading so everything downstream -- the aim, the soft limit
+     * arithmetic in {@link #resolveTurretAngle}, the shot gate, travel, and Vision's zero chaser --
+     * sees one consistent angle rather than each making its own decision about whether to trust it.
+     *
+     * @return the guarded turret angle in degrees
+     */
+    @Override
+    public double getPositionDegrees() {
+        updatePositionGuard();
+        return Double.isNaN(heldPositionDegrees) ? super.getPositionDegrees() : heldPositionDegrees;
+    }
+
+    /**
+     * Whether the reported angle is currently being held out as an impossible step.
+     *
+     * @return true while the guard is holding the last good angle
+     */
+    public boolean isPositionSuspect() {
+        updatePositionGuard();
+        return positionSuspect;
+    }
+
+    /** Raises the envelope alert while the reported angle sits outside the configured travel. */
+    private void updateEnvelopeAlert() {
+        double minDeg = config.getMinRotations() * 360.0;
+        double maxDeg = config.getMaxRotations() * 360.0;
+        double position = getPositionDegrees();
+        boolean outside =
+                position < minDeg - ENVELOPE_MARGIN_DEGREES
+                        || position > maxDeg + ENVELOPE_MARGIN_DEGREES;
+        if (outside) {
+            envelopeAlert.setText(
+                    String.format(
+                            "Turret reads %.1f deg, outside its %.0f to %.0f deg of travel. The"
+                                    + " mechanism cannot be there, so the zero has slipped: the"
+                                    + " soft limits are in the wrong frame and every shot leaves"
+                                    + " by the same error. Re-zero (operator B, disabled).",
+                            position, minDeg, maxDeg));
+        }
+        envelopeAlert.set(outside);
+        Telemetry.log("Turret/AngleOutsideEnvelope", outside);
+    }
+
+    // -- Stall protection ------------------------------------------------------------------------
+
+    /**
+     * Fraction of {@code torqueCurrentLimit} that counts as pinned against the ceiling.
+     *
+     * <p>Not the limit itself: a motor held at its limit dithers either side of it. On the
+     * 2026-09-19 pit log the turret read 78.5 to 81.4 A against an 80 A ceiling for the whole
+     * stall, which is why a detector keyed on the exact number saw 1.8 s of a 6.8 s event.
+     */
+    private static final double STALL_STATOR_FRACTION = 0.95;
+
+    /** Below this the turret is not turning. Tracking a target never reads this low for long. */
+    private static final double STALL_VELOCITY_ROT_PER_SEC = 0.02;
+
+    /** How long pinned-and-stopped must hold before the output is cut. */
+    private static final double STALL_SECONDS = 1.0;
+
+    /** How far the other way the turret must be asked to go before the latch releases. */
+    private static final double STALL_RECOVERY_MARGIN_DEGREES = 2.0;
+
+    private final Timer stallTimer = new Timer();
+    private boolean stallTiming = false;
+    private boolean stallLatched = false;
+
+    /** Sign of {@code commanded - measured} when the latch closed: the way it was pushing. */
+    private double stallPushSign = 0;
+
+    /** How many times the turret has been latched out this power cycle. */
+    @Getter private int stallLatchCount = 0;
+
+    private final Alert stallAlert = new Alert("", AlertType.kError);
+
+    /**
+     * Cuts the turret's output once it has been pinned at its current ceiling and not turning for
+     * {@link #STALL_SECONDS}.
+     *
+     * <p>On 2026-09-19 the turret sat at 80 A stator with zero velocity for 6.8 s -- about -2.1 V
+     * applied, 14.3 A off the battery -- against a hard stop, and nothing in the code stopped it.
+     * That is heat into the belt and the gearbox for as long as the state machine keeps asking, and
+     * this belt has skipped teeth at this current before.
+     */
+    private void updateStallDetection() {
+        if (stallLatched) {
+            return;
+        }
+        boolean stalledNow =
+                Math.abs(getStatorCurrent())
+                                >= STALL_STATOR_FRACTION * config.getTorqueCurrentLimit()
+                        && Math.abs(getVelocityRPM() / 60.0) < STALL_VELOCITY_ROT_PER_SEC;
+        if (!stalledNow) {
+            stallTiming = false;
+            return;
+        }
+        if (!stallTiming) {
+            stallTiming = true;
+            stallTimer.restart();
+            return;
+        }
+        if (!stallTimer.hasElapsed(STALL_SECONDS)) {
+            return;
+        }
+        stallLatched = true;
+        stallTiming = false;
+        stallLatchCount++;
+        stallPushSign = Math.signum(commandedDegrees - getPositionDegrees());
+        stallAlert.setText(
+                String.format(
+                        "Turret STALLED at %.1f deg and its output is cut: it was pinned at the"
+                                + " %.0f A ceiling, not turning, for %.1f s while being asked for"
+                                + " %.1f deg. It drives again as soon as it is asked to go the"
+                                + " other way. Check for a jam or a hard stop, and whether the belt"
+                                + " skipped.",
+                        getPositionDegrees(),
+                        config.getTorqueCurrentLimit(),
+                        STALL_SECONDS,
+                        commandedDegrees));
+        stallAlert.set(true);
+        Telemetry.print(
+                String.format(
+                        "!!! Turret stalled at %.1f deg (asked for %.1f) and was cut after %.1f s"
+                                + " at the current limit. Asking it the other way releases it.",
+                        getPositionDegrees(), commandedDegrees, STALL_SECONDS));
+    }
+
+    /**
+     * Whether the turret may drive this loop, releasing the latch when the request reverses.
+     *
+     * <p>A latched turret is not a dead one: the way out of a stop is back the way it came, so a
+     * command pointing to the other side of where it sits clears the latch and drives immediately.
+     * Anything still pushing into the stop gets nothing.
+     *
+     * @return true when the motor may be commanded this loop
+     */
+    private boolean outputAllowed() {
+        if (!stallLatched) {
+            return true;
+        }
+        double request = commandedDegrees - getPositionDegrees();
+        if (stallPushSign != 0
+                && Math.signum(request) == -stallPushSign
+                && Math.abs(request) > STALL_RECOVERY_MARGIN_DEGREES) {
+            clearStallLatch();
+            return true;
+        }
+        return false;
+    }
+
+    /** Releases the stall latch and its alert. */
+    private void clearStallLatch() {
+        stallLatched = false;
+        stallTiming = false;
+        stallPushSign = 0;
+        stallAlert.set(false);
+    }
+
+    /**
+     * Commands a position unless the stall latch is holding the turret out.
+     *
+     * @param rotations the mechanism position to hold, in rotations
+     */
+    private void commandPosition(DoubleSupplier rotations) {
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+        setPosition(rotations);
+    }
+
+    /**
+     * Commands a Motion Magic position unless the stall latch is holding the turret out.
+     *
+     * @param rotations the mechanism position to slew to, in rotations
+     */
+    private void commandMMPosition(DoubleSupplier rotations) {
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+        setMMPosition(rotations);
+    }
+
+    /**
+     * Commands a position with a velocity feedforward unless the stall latch is holding the turret
+     * out.
+     *
+     * @param rotations the mechanism position to hold, in rotations
+     * @param velocityRPS the feedforward velocity, in rotations per second
+     */
+    private void commandPositionWithVelocity(DoubleSupplier rotations, DoubleSupplier velocityRPS) {
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+        setPositionWithVelocity(rotations, velocityRPS);
+    }
+
     /** Applies the aim at target. */
     private void applyAimAtTarget(double offsetDeg) {
         var params = ShotCalculator.getInstance().getParameters();
@@ -526,7 +1103,7 @@ public class Turret extends Mechanism {
             // Motion magic for smooth full-turn slew to the opposite winding, so the cable never
             // binds
             final double unwrapRot = degreesToRotations(() -> commandedDegrees);
-            setMMPosition(() -> unwrapRot);
+            commandMMPosition(() -> unwrapRot);
             return;
         }
 
@@ -542,7 +1119,7 @@ public class Turret extends Mechanism {
 
         final double posRot = degreesToRotations(() -> predictedDegrees);
         final double ffRps = mechOmegaRotPerSec;
-        setPositionWithVelocity(() -> posRot, () -> ffRps);
+        commandPositionWithVelocity(() -> posRot, () -> ffRps);
     }
 
     /**

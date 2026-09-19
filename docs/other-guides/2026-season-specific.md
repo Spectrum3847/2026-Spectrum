@@ -16,6 +16,48 @@ Each subsystem is one file: the subsystem class (extending `Mechanism` for anyth
 
 The full structural conventions live in [Class Generation](../coding-conventions/class-generation.md); don't reinvent the layout when adding a new subsystem.
 
+### Turret zero at boot
+
+Phoenix 6 seeds a Talon FX's position register from the rotor's **absolute** position at power-on,
+not from zero ("The Talon FX and CANcoder sensors are always initialized to their absolute position
+in Phoenix 6", CTRE's migration guide). One rotor turn is 360/39.78 = 9.05 deg of turret, so the
+turret powers on reading somewhere in that 9 deg band depending on where the rotor magnet stopped --
+never 0, and a power cycle does not clear it.
+
+`Turret.seedFromZeroReference()` undoes that at code start: the rotor's absolute position is
+repeatable for a given turret angle, so subtracting the measured `ZERO_REFERENCE_DEGREES` (5.9765625
+deg on PM_2026, 2026-09-19) makes the parked zero read 0. The correction is only unique within one
+rotor turn, so **park the turret within +/-4.5 deg of zero before restarting code** or it snaps to
+the wrong turn. What it came up reading is logged as `Turret/BootPositionDegrees` and printed.
+
+That constant is a property of where the motor sits on the belt. It survives power cycles and
+deploys but not a skipped tooth, a re-tension, or a motor swap -- re-measure it after any of those
+by parking the turret at zero and reading `Position` off the Talon in Tuner X. Operator B while
+disabled remains the manual override.
+
+### Turret reading and output guards
+
+The turret has no absolute reference, so a bad angle is indistinguishable from a real one until it
+does damage. Two guards sit between the encoder and the motor, both in
+[`Turret.java`](../../src/main/java/frc/robot/subsystems/turret/Turret.java):
+
+* **Impossible-step guard.** A reported angle that moves more than 15 deg in one loop is held out,
+  and the last good angle is what the aim, the soft-limit arithmetic, the shot gate, travel and
+  Vision's zero chaser all see. A step that repeats itself for 10 loops (200 ms) is believed after
+  all -- the encoder really has been re-framed -- and says so on the console and in an alert. Logged
+  as `Turret/PositionSuspect`, `Turret/PositionStepsRejected`, `Turret/PositionStepsAccepted`.
+* **Stall latch.** Pinned at 95% of the stator ceiling and not turning for 1 s cuts the turret's
+  output and raises an alert. It is not stuck there: a command pointing to the other side of where
+  it sits releases the latch and drives immediately, as do `OFF` and an operator-B re-zero. Logged
+  as `Turret/StallLatched`, `Turret/StallLatchCount`.
+
+A reported angle outside the configured travel (-216 to +180 deg) raises its own alert and
+`Turret/AngleOutsideEnvelope`: the mechanism cannot be there, so the zero has slipped, the soft
+limits are in the wrong frame, and every shot leaves by the same error. Re-zero before trusting one.
+
+Both guards came out of the 2026-09-19 pit log, where the reported angle stepped 289 deg in one loop
+and the turret then held 80 A stator against a hard stop for 6.8 s.
+
 ## Per-Robot Configurations
 
 We build multiple physical robots each season and run the same code on all of them. The `Rio.id` field, looked up from the RoboRIO serial number in `frc.spectrumLib.hardware.Rio`, decides which configuration is loaded at startup. All configs live under `src/main/java/frc/robot/configs`:
@@ -58,6 +100,10 @@ These are the entries in `SuperStructure.WantedSuperState`, applied by `setWante
 | `UNJAM`                             | Clear jammed fuel from intake or indexer.                            |
 | `EJECT`                             | Spit fuel back out.                                                  |
 | `FORCE_HOME`                        | Drive every mechanism to its home position.                          |
+| `TEST_TURRET_FOLLOW_TAG`            | Test-mode pit check: turret follows any tag the turret camera sees.  |
+| `TEST_TURRET_SWEEP`                 | Test-mode pit check: turret runs soft limit to soft limit and back.  |
+| `TEST_TURRET_ZERO`                  | Test-mode pit check: turret returns to its zero.                     |
+| `TEST_TURRET_STOP`                  | Test mode at rest: everything off, turret held where it stands.      |
 
 `CurrentSuperState` mirrors these; `handleStateTransition()` maps the wanted state to the current one each loop.
 
@@ -90,15 +136,35 @@ The pilot drives and runs the fuel cycle; the operator handles offset trims and 
 * `LT + LB`: `EJECT`; release → `IDLE`.
 * `Select`: `FORCE_HOME`; release → `IDLE`.
 * `LB + Dpad` (up/left/down/right), reorient the robot heading forward/left/back/right.
-* While disabled: `A` → coast mechanisms, `B` → brake mechanisms.
+* While disabled: `A` → coast the intake extension and turret. (`brakeB` is declared in `Pilot.java` but bound to nothing, so `B` does nothing here.)
+
+### Pilot, test mode (turret pit checks)
+
+Three held-to-run turret checks on the bare D-pad, live only while the Driver Station is in Test. All three are pose-independent — no alliance, no tag map, no `ShotCalculator` — so they run on a cart. Nothing else on the robot moves: intake, rotor, tower and flywheel are off and the hood goes home.
+
+* `Dpad Up` (hold), `TEST_TURRET_FOLLOW_TAG`: the turret points at whatever AprilTag the turret Limelight sees, closing the camera's own `tx` bearing. Checks that the camera, the turret zero and the gearbox agree on direction. With no tag in view it holds its last command. Clamped to the soft limits.
+* `Dpad Left` (hold), `TEST_TURRET_SWEEP`: runs to one soft limit, then the other, and keeps going. The travel check — watch `Turret/PositionDegrees` at each end and `Turret/TravelTotalDeg` against `Vision/TurretZero/SlipDegPerKiloDegTravel` for belt slip. A leg that stalls or runs over 20 s turns around instead of pushing.
+* `Dpad Down` (hold), `TEST_TURRET_ZERO`: back to zero, through the same output path the robot uses to sit at zero in a match.
+
+Release any of them and the robot goes to `TEST_TURRET_STOP` — the turret stops where it stands, rather than falling back to `IDLE`, which would aim at the target. Entering test mode starts there too, and `testExit()` resets to `IDLE`.
+
+Test mode is not a reduced mode: `robotPeriodic()` runs in every mode, so Vision, `SuperStructure`, the `CommandScheduler` and every subsystem `periodic()` — and with them all the DogLog keys — behave exactly as in teleop. Current limits, soft limits and the stall cut-out come from the motor config applied at construction and are never changed per mode. The one thing that would break that is WPILib enabling LiveWindow in test, which disables the `CommandScheduler`; it defaults off and nothing calls `enableLiveWindowInTest(true)`. Leave it that way.
+
+Note that the bare `A`, `B`, `X`, `Select` and trigger bindings have no mode gate, so they are also live in test mode. The test checks are on the D-pad precisely because nothing else claims it.
+
+New log keys: `Turret/Test/FollowTagInView`, `Turret/Test/FollowTagTxDeg`, `Turret/Test/SweepTowardMax`.
 
 ### Operator
 
-* `Dpad Down/Up`: hood-angle offset trim (−/+, via `ShotCalculator`).
-* `Dpad Right/Left`: drive-angle offset trim (−/+, via `ShotCalculator`).
+* `Dpad Down/Up`: range trim (via `ShotCalculator`): each press moves the hood 0.25° and the
+  flywheel 2 % of model RPM together; up adds range (the shot fell short), down takes it away
+  (the shot went long). Hood and flywheel trims persist on the rio across power cycles.
+* `Dpad Right/Left`: turret-angle offset trim (+/−1°, via `ShotCalculator`). Session-only since
+  2026-09-19: it starts at zero every boot and is never stored.
+* `Start + Select`: zero all three trims, including the stored copies.
 * `Select`: `FORCE_HOME`; release → `IDLE`.
 * `LB + Y`: reset the intake-extension position to max (with a rumble confirmation).
-* While disabled: `A` → coast mechanisms, `B` → brake mechanisms.
+* While disabled: `A` → coast the intake extension and turret, `B` → declare the turret's current position its zero (`Turret.zeroTurretCommand()`), which also releases a turret stall latch.
 
 ### Hub shifts
 
