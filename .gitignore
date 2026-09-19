@@ -176,8 +176,11 @@ out/
 # Simulation GUI and other tools window save file
 networktables.json
 
-# Simulation data log directory
-logs/
+# Simulation data log directory. Everything in it is scratch except logs/matches/, which holds
+# the real match logs committed for testing; see logs/matches/README.md and
+# tools/copy-match-logs.py.
+logs/*
+!logs/matches/
 
 # Folder that has CTRE Phoenix Sim device config storage
 ctre_sim/

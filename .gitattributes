@@ -11,3 +11,7 @@
 *.md text eol=lf
 *.json text eol=lf
 *.properties text eol=lf
+
+# Robot logs are binary; never normalise their line endings.
+*.wpilog binary
+*.hoot binary

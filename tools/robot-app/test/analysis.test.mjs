@@ -18,9 +18,13 @@ import { summarize } from "../server/lib/summary.js";
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const profile = JSON.parse(fs.readFileSync(path.join(APP, "data/robot-profile.json"), "utf8"));
 
-// Real logs are not committed; skip the integration tests when none are present.
-const LOG_DIR = path.resolve(APP, "../../../2026-Robot-Logs/logs");
-const realLogs = fs.existsSync(LOG_DIR) ? fs.readdirSync(LOG_DIR).filter((f) => f.endsWith(".wpilog")) : [];
+// Real logs: the match logs committed in this repo under logs/matches (see its README; add more
+// with tools/copy-match-logs.py), plus the 2026-Robot-Logs archive when it is checked out beside
+// this repo. Full paths, so the two folders can be mixed.
+const LOG_DIRS = [path.resolve(APP, "../../logs/matches"), path.resolve(APP, "../../../2026-Robot-Logs/logs")];
+const realLogs = LOG_DIRS.filter((d) => fs.existsSync(d)).flatMap((d) =>
+    fs.readdirSync(d).filter((f) => f.endsWith(".wpilog")).map((f) => path.join(d, f)),
+);
 
 test("tripTime is infinite within rating and shrinks as current rises", () => {
     assert.equal(tripTime(CB185_120, 100), Infinity);
@@ -107,8 +111,8 @@ test("parser rejects a file that is not a wpilog", () => {
 });
 
 for (const name of realLogs) {
-    test(`real log parses cleanly: ${name}`, () => {
-        const buf = fs.readFileSync(path.join(LOG_DIR, name));
+    test(`real log parses cleanly: ${path.basename(name)}`, () => {
+        const buf = fs.readFileSync(name);
         const log = parseWpilog(buf, { keep: () => false });
         assert.equal(log.error, null, `parse error: ${log.error}`);
         assert.ok(log.counts.size > 10, "expected a populated entry table");
@@ -123,7 +127,7 @@ if (realLogs.length) {
         // reassuring 12.6 V minimum for a log whose battery actually sagged.
         const name = realLogs.find((f) => f.includes("BreakerPop"));
         if (!name) return;
-        const log = parseWpilog(fs.readFileSync(path.join(LOG_DIR, name)));
+        const log = parseWpilog(fs.readFileSync(name));
         const m = new LogModel(log, profile);
         const v = m.batteryVoltage();
         const alt = m.ch("BatteryLogger/BatteryVoltage");
@@ -133,7 +137,7 @@ if (realLogs.length) {
     test("summarize reports loop time in milliseconds, not raw seconds", () => {
         const name = realLogs.find((f) => f.includes("Q19"));
         if (!name) return;
-        const s = summarize(fs.readFileSync(path.join(LOG_DIR, name)));
+        const s = summarize(fs.readFileSync(name));
         assert.ok(s.loop, "expected loop stats");
         // A 20 ms robot loop: a median in the tens of ms is right, 0.02 would mean raw seconds.
         assert.ok(s.loop.medianMs > 5 && s.loop.medianMs < 200, `median ${s.loop.medianMs} ms is not a plausible loop time`);

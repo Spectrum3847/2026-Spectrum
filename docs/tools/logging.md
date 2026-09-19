@@ -111,6 +111,16 @@ It needs only Python 3; no WPILib install or Java. It checks motor disconnects, 
 
 For a live session, AdvantageScope reads NetworkTables directly: start it before connecting Elastic, point it at the same robot, and it streams everything DogLog publishes.
 
+## Committed Match Logs
+
+A few real match logs are committed under [`logs/matches/`](../../logs/matches/README.md), so every clone has real data for the robot app's tests (`npm test` parses each one) and for the triage script, with no second repository to find. Only logs the FMS renamed with an event and match (`FRC_..._cc_P8.wpilog`) belong there; the rest of `logs/` stays gitignored. Add a new one after each event:
+
+```sh
+python tools/copy-match-logs.py            # scans ~/Documents/Logs, the DS WPILogs folder, logs/ and rio-logs/
+```
+
+It refuses anything over 50 MB and reads each copy back before keeping it. Then describe the log in the folder's README (what happened, what it is good for testing) and commit. Big logs and the full season's worth go to the [2026-Robot-Logs](https://github.com/Spectrum3847/2026-Robot-Logs) archive with `tools/archive-logs.sh`.
+
 ## What to Log, What Not to Log
 
 Log: motor voltages and currents, sensor readings, calculated setpoints, command lifecycle, state transitions, vision pose estimates, anything you'd want to graph after a match.

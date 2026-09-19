@@ -45,3 +45,4 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 3. New subsystem → register in `Robot.java` + `Coordinator.java`. New state → `State.java` + `Coordinator.java` + `RobotStates.java`. New paths/autos → `src/main/deploy/pathplanner/` + register in `Auton.java`. Hardware config → the `*2026.java` config class.
 4. Line endings must be **LF (UNIX)**; `.gitattributes` enforces `eol=lf`.
 5. When you learn new repo facts, append a concise note here (source + date), and keep `docs/` updated too. No secrets or credentials.
+6. Real match logs are committed in `logs/matches/` (the rest of `logs/` is gitignored). Add one with `python tools/copy-match-logs.py`, describe it in `logs/matches/README.md`, and keep them under 50 MB each. The robot app's `npm test` and the fast-log-triage script both run against them. (Added 2026-09-19.)

@@ -247,6 +247,11 @@ duration, enabled time, min voltage, peak current, energy, loop overrun rate and
 log history survives in the repo even when the binaries don't. Use **pin** on the Logs page to
 force a specific log into git when it documents something worth keeping.
 
+Separately from the archive, a handful of real *match* logs are committed in this repository under
+`logs/matches/` (see its README). `npm test` parses every one of them, so a change to `wpilog.js`
+or `log-model.js` is checked against real robot data on every clone, not only when the archive
+happens to be checked out. Add one with `python tools/copy-match-logs.py`.
+
 ## Finding the robot
 
 Probed in this order, and whichever answers on port 22 first wins:
