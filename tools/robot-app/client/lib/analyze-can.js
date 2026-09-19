@@ -34,8 +34,9 @@ function coalesce(windows, gap = 0.25) {
 }
 
 /**
- * Windows where MotorConnected went false. This is the direct signal, but it exists only for
- * Turret, Launcher and Hood, and it only checks the leader -- a dead follower is invisible.
+ * Windows where MotorConnected went false. This is the direct signal, logged by every mechanism,
+ * but it only checks the LEADER -- a dead follower is invisible, which is what
+ * zeroOutputWhileCommanded() below is for.
  */
 export function connectionDropouts(model) {
     const out = [];
@@ -68,7 +69,9 @@ export function connectionDropouts(model) {
  *
  * A controller that is commanded to a position and reports exactly 0 V and 0 A is not a motor
  * that decided to rest -- it is a motor that is not receiving or executing control frames. This
- * needs a commanded-vs-measured pair, so it covers Hood, Turret and Launcher on current logs.
+ * needs a commanded-vs-measured pair, so it covers Hood and Turret (CommandedDegrees against
+ * PositionDegrees) and Launcher and LauncherTower (CommandedRPM against RPM). LauncherTower joined
+ * that list on 2026-09-08, when it started logging CommandedRPM; nothing here changed to include it.
  */
 export function zeroOutputWhileCommanded(model, { minSec = 0.25, tolerance = { degrees: 1.5, rpm: 150 } } = {}) {
     const pairs = [

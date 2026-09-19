@@ -112,7 +112,7 @@ function render(log) {
             el("section", {},
                 el("h2", {}, "MotorConnected dropped"),
                 el("div", { class: "section-note" },
-                    "The direct signal, logged by Turret, Launcher and Hood only, and only for the leader motor."),
+                    "The direct signal. Every mechanism logs it, but only for its leader motor -- a dead follower keeps its leader reporting connected."),
                 ...dropouts.map((d) =>
                     el("div", { class: "notice bad" },
                         el("strong", {}, `${d.motor}: `),

@@ -61,10 +61,18 @@ lists them all at the bottom; the ones that bite hardest:
 - **Per-motor currents are leader-only.** `Launcher/StatorCurrent`, `IntakeRoller/*` and
   `LauncherTower/*` exclude their follower, so true draw is roughly double. The
   `BatteryLogger/Current/Mechanisms/*` column does include followers.
-- **`MotorConnected` exists for only three motors** (Turret, Launcher, Hood) and only checks the
-  leader. A dead Launcher Front Right (CAN 16) is invisible in the log. That is why the CAN page
-  also infers dropouts from motors reporting 0 V and 0 A while a setpoint is pending — the
-  signature that found the dead hood on 2026-09-04.
+- **`MotorConnected` covers every mechanism but only its leader.** Every mechanism logs it, so a
+  missing key means a missing mechanism, not a missing check — but a dead *follower* (Launcher
+  Front Right CAN 16, LauncherTower Back 18, Intake Roller Right 7) leaves its leader reporting
+  connected and is invisible in the log. That is why the CAN page also infers dropouts from motors
+  reporting 0 V and 0 A while a setpoint is pending — the signature that found the dead hood on
+  2026-09-04.
+- **Channels are logged at three different rates.** `Swerve/State/*` comes off the 250 Hz odometry
+  thread; states, commanded values and most RPM/position are 50 Hz; and every `<Name>/Voltage`,
+  `StatorCurrent`, `SupplyCurrent`, `Temp` and `MotorConnected` is on a 10 Hz slow tier. The
+  exception is Turret, Launcher and LauncherTower, which set `fastOutputLogging` so their
+  *voltage alone* is 50 Hz — dense enough to fit a feedforward against, while their currents beside
+  it stay at 10 Hz. A denser voltage trace is not a denser current trace.
 - **The roboRIO CAN bus has no health metrics at all.** The intake roller pair (CAN 6 and 7) lives
   there, so a fault on that bus shows up only as a frozen trace.
 - **`Scheduler/*` is in seconds**, not milliseconds.
@@ -235,9 +243,9 @@ Probed in this order, and whichever answers on port 22 first wins:
 
 |         Address          |                                 What it is                                 |
 |--------------------------|----------------------------------------------------------------------------|
-| `10.38.47.2`             | Team 3847 over the radio — the number this robot's radio is configured for |
+| `10.85.15.2`             | Team 8515 over the radio — the number this robot's radio is configured for |
 | `roborio-8515-frc.local` | Same, over mDNS                                                            |
-| `10.38.47.2`             | Team 3847 over the radio                                                   |
+| `10.38.47.2`             | Team 3847 over the radio — what a reflashed radio would use                |
 | `roborio-3847-frc.local` | Same, over mDNS                                                            |
 | `172.22.11.2`            | USB, works with no radio at all                                            |
 

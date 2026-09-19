@@ -190,6 +190,63 @@ function checkLimits() {
     }
 }
 
+// ---------------------------------------------------------------- logging flags
+
+/**
+ * Verifies the two per-motor logging facts the profile asserts but the log cannot show.
+ *
+ * Both drive what the app draws. `fastOutputLogging` is why three mechanisms have a 50 Hz voltage
+ * trace next to a 10 Hz current trace, which looks like a bug if you do not know it was asked for;
+ * `logsMotorConnected` is the CAN page's "logs connection" flag, and a leader wrongly marked as
+ * reporting its connection is exactly the blind spot that page exists to close.
+ */
+function checkLoggingFlags() {
+    const profile = JSON.parse(fs.readFileSync(path.join(APP, "data/robot-profile.json"), "utf8"));
+    for (const motor of profile.motors) {
+        if (!motor.javaFile) continue;
+        let source;
+        try {
+            source = read(motor.javaFile);
+        } catch {
+            continue; // checkLimits() already reported the missing file.
+        }
+
+        // Config-class flag: `setFastOutputLogging(true)` in the config's constructor.
+        if (motor.javaConfigClass) {
+            const body = classBody(source, motor.javaConfigClass);
+            if (body) {
+                const inJava = /setFastOutputLogging\s*\(\s*true\s*\)/.test(body);
+                const inProfile = motor.fastOutputLogging === true;
+                if (inJava && !inProfile) {
+                    problems.push(
+                        `${motor.javaConfigClass} calls setFastOutputLogging(true), so ${motor.key}/Voltage is logged at 50 Hz, ` +
+                            `but robot-profile.json does not say so. Add "fastOutputLogging": true to the ${motor.key} entry.`
+                    );
+                } else if (!inJava && inProfile) {
+                    problems.push(
+                        `robot-profile.json says ${motor.key} has fastOutputLogging, but ${motor.javaConfigClass} no longer calls ` +
+                            `setFastOutputLogging(true). Its voltage is back on the 10 Hz tier.`
+                    );
+                }
+            }
+        }
+
+        // Mechanism.logDiagnostics() is what publishes <Name>/MotorConnected, for the leader only.
+        const logsDiagnostics = /\blogDiagnostics\s*\(/.test(source);
+        if (motor.logsMotorConnected === true && !logsDiagnostics) {
+            problems.push(
+                `robot-profile.json says ${motor.key} logs MotorConnected, but ${motor.javaFile} never calls logDiagnostics(). ` +
+                    `The CAN page will flag that motor as reporting its connection when nothing publishes the key.`
+            );
+        } else if (motor.logsMotorConnected !== true && logsDiagnostics) {
+            notes.push(
+                `${motor.javaFile} calls logDiagnostics(), so ${motor.key}/MotorConnected is published, but robot-profile.json ` +
+                    `does not mark ${motor.key} as logging it. The CAN page is understating what the log carries.`
+            );
+        }
+    }
+}
+
 // ---------------------------------------------------------------- elastic layout
 
 /**
@@ -444,6 +501,7 @@ export function runDriftCheck() {
     notes.length = 0;
     checkControls();
     checkLimits();
+    checkLoggingFlags();
     checkPagesTracked();
     checkElasticLayout();
     return {
