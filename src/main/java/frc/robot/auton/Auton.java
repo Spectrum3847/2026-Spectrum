@@ -60,6 +60,8 @@ public class Auton {
         pathChooser.addOption("OSCENT Right", OSCENT(true));
         pathChooser.addOption("OSCENTOT Left", OSCENTOT(false));
         pathChooser.addOption("OSCENTOT Right", OSCENTOT(true));
+        pathChooser.addOption("OSRIPPOFF CUTOFF Left", OSRIPOFF_CUTOFF(false));
+        pathChooser.addOption("OSRIPPOFF CUTOFF Right", OSRIPOFF_CUTOFF(true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
@@ -135,6 +137,14 @@ public class Auton {
     public Command OSCENTOT(boolean mirrored) {
         return Commands.sequence(SpectrumAuton("OSCENTOT FULL", mirrored))
                 .withName("OSCENTOT FULL - " + (mirrored ? "Right" : "Left"));
+    }
+
+    public Command OSRIPOFF_CUTOFF(boolean mirrored) {
+        return Commands.sequence(SpectrumAuton("OSRIPOFF CUTOFF", mirrored))
+                // the "- Right" and "- Left" is added to the name of the command so that when the
+                // visualizer checks the name of the command it can determine whether the auto is
+                // mirrored or not and correctly mirror the poses
+                .withName("OSRIPOFF CUTOFF - " + (mirrored ? "Right" : "Left"));
     }
 
     // Allows Robot to continue shooting even after path has been completed--at a stand still
