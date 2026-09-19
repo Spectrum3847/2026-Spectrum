@@ -49,13 +49,13 @@ import lombok.Getter;
  * <ol>
  *   <li>Publishes the turret-rotated camera transform ({@link #updateTurretCameraPose()}) and the
  *       robot heading to every camera, then flushes NetworkTables so they solve this frame.
- *   <li>Picks the best chassis camera ({@link #getBestLimelight()}). While disabled it seeds the
- *       pose (translation and heading) from that camera's MT1 only, and watches for that seed to
- *       hold steady long enough to be trusted ({@link #trackSeedConfirmation(Limelight)}). While
- *       enabled it fuses that camera's translation, from MT2 once the seed is confirmed and from
+ *   <li>While disabled, picks the best chassis camera ({@link #getBestLimelight()}) and seeds the
+ *       pose (translation and heading) from that camera's MT1 only, watching for the seed to hold
+ *       steady long enough to be trusted ({@link #trackSeedConfirmation(Limelight)}). While enabled
+ *       it fuses every chassis camera's translation, from MT2 once the seed is confirmed and from
  *       MT1 until then ({@link #chassisUsesMt2()}), plus the turret camera's MT2 translation
  *       ({@link #getMT2VisionEstimate(Limelight)}), never heading, unless the gross-heading safety
- *       net fires ({@link #checkGrossHeadingError(Limelight)}).
+ *       net fires ({@link #checkGrossHeadingError(Limelight)}) off the best chassis camera.
  *   <li>Logs camera status and pose data via {@link VisionLogger}.
  * </ol>
  *
@@ -975,17 +975,27 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * While the robot is enabled (teleop or auto pose-update), fuses the best chassis camera's
+     * While the robot is enabled (teleop or auto pose-update), fuses every chassis camera's
      * translation (MT2 once the seed is confirmed, MT1 before that) and the turret camera's MT2
-     * translation, then runs the gross-heading safety net.
+     * translation, then runs the gross-heading safety net off the best chassis camera.
+     *
+     * <p>Both chassis cameras, not just the best one. They look out over opposite rear corners, so
+     * they mostly see different tags, and the pose estimator already weights each measurement by
+     * the standard deviation the tiers assign it; throwing the second camera's estimate away was
+     * discarding a measurement the estimator would have weighted correctly on its own. The best
+     * camera is still the one whose MegaTag1 heading the gross and consensus corrections trust.
      */
     private void enabledLimelightUpdates() {
         if (Util.teleop.getAsBoolean() || Auton.autonPoseUpdate.getAsBoolean()) {
             Limelight best = getBestLimelight();
-            markUnselectedLimelights(best);
-            integrateSingleEstimate(
-                    best,
-                    chassisUsesMt2() ? getMT2VisionEstimate(best) : getMT1Estimate(best, false));
+            boolean useMt2 = chassisUsesMt2();
+            for (Limelight limelight : swerveLimelights) {
+                integrateSingleEstimate(
+                        limelight,
+                        useMt2
+                                ? getMT2VisionEstimate(limelight)
+                                : getMT1Estimate(limelight, false));
+            }
 
             if (turretEstimatesAvailable()) {
                 integrateSingleEstimate(turretLL, getMT2VisionEstimate(turretLL));
@@ -1931,7 +1941,8 @@ public class Vision implements Subsystem {
 
     /**
      * Marks every chassis Limelight except {@code bestLimelight} as not integrating, so their
-     * telemetry status reflects that only the selected camera fed the estimator this loop.
+     * telemetry status reflects that only the selected camera fed the estimator this loop. Used
+     * while disabled, where only the best camera seeds the pose.
      *
      * @param bestLimelight the camera being integrated this loop, left untouched
      */
