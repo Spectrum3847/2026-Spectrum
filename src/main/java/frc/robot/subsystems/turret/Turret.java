@@ -5,6 +5,7 @@ import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
@@ -14,11 +15,13 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
+import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.ArmConfig;
 import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.*;
+import java.util.Optional;
 import lombok.*;
 
 public class Turret extends Mechanism {
@@ -242,6 +245,64 @@ public class Turret extends Mechanism {
     @Getter private double commandedDegrees = 0;
     @Getter private double mechOmegaRotPerSec = 0;
 
+    // -- Turret angle history ---------------------------------------------------------------------
+
+    /** How far back a turret angle can be looked up. Vision frames are at most a few tenths old. */
+    private static final double ANGLE_HISTORY_SECONDS = 2.0;
+
+    /**
+     * Turret angle against FPGA time, so a vision frame can be paired with the angle the turret had
+     * when the shutter opened rather than the angle it has when the solve arrives.
+     *
+     * <p>Stores the angle <b>net of zero corrections</b>: reported position minus {@link
+     * #getZeroCorrectionTotalDegrees()} at the time of the sample. That quantity is continuous
+     * through a {@link #applyZeroCorrectionDegrees} step, so when {@link #getAngleAt} adds the
+     * current total back, every entry in the history is expressed in the current zero, and a frame
+     * captured just before a correction reads the corrected angle rather than the stale one.
+     */
+    private final TimeInterpolatableBuffer<Rotation2d> angleHistory =
+            TimeInterpolatableBuffer.createBuffer(ANGLE_HISTORY_SECONDS);
+
+    private long angleSampleLoop = -1;
+
+    /**
+     * Adds this loop's turret angle to the history. Once per loop; later calls in the same loop do
+     * nothing, so Vision (which runs before the scheduler and needs the sample to exist before it
+     * looks up a frame) and {@link #periodic()} can both call it.
+     *
+     * <p>The sample is the latency-compensated position stamped with the current FPGA time, which
+     * is what the frame timestamps from the cameras are compared against.
+     */
+    public void recordAngleSample() {
+        if (!isAttached()) {
+            return;
+        }
+        long loop = RobotLoop.count();
+        if (loop == angleSampleLoop) {
+            return;
+        }
+        angleSampleLoop = loop;
+        angleHistory.addSample(
+                Timer.getFPGATimestamp(),
+                Rotation2d.fromDegrees(
+                        getLatencyCompensatedPositionDegrees() - zeroCorrectionTotalDegrees));
+    }
+
+    /**
+     * The turret angle at an FPGA time, interpolated from the history and expressed in the current
+     * zero. Empty when the history has nothing (turret detached, or nothing recorded yet).
+     * Timestamps newer than the latest sample return the latest sample; older than the oldest
+     * return the oldest.
+     *
+     * @param fpgaSeconds the time to look up, in the FPGA time base
+     * @return the turret angle then, positive counter-clockwise, zero robot-forward
+     */
+    public Optional<Rotation2d> getAngleAt(double fpgaSeconds) {
+        return angleHistory
+                .getSample(fpgaSeconds)
+                .map(angle -> angle.plus(Rotation2d.fromDegrees(zeroCorrectionTotalDegrees)));
+    }
+
     /**
      * How fast the turret is turning relative to the robot, in rotations per second, taking the
      * larger of what was asked for and what the encoder measures.
@@ -309,6 +370,7 @@ public class Turret extends Mechanism {
     /** Runs the periodic update. */
     @Override
     public void periodic() {
+        recordAngleSample();
         systemState = handleStateTransition();
         logBatteryUsage();
         applyStates();

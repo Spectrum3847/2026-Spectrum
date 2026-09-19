@@ -32,6 +32,7 @@ import frc.spectrumLib.vision.Limelight.LimelightConfig;
 import frc.spectrumLib.vision.LimelightHelpers;
 import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import frc.spectrumLib.vision.VisionLogger;
+import java.util.Optional;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
@@ -39,16 +40,24 @@ import lombok.Getter;
  * Vision subsystem that manages the turret-mounted Limelight and fuses its pose estimates into the
  * swerve odometry via WPILib's {@code SwerveDrivePoseEstimator}.
  *
- * <p>Supports optional chassis-mounted cameras (back/left/right, detached by default) plus a
- * turret-mounted camera whose frame rotates with the turret. For the turret, the live
- * robot-to-camera transform (including the turret's yaw) is published every loop so the camera
- * solves for a robot pose directly; chassis cameras use their fixed configured mount.
+ * <p>Supports chassis-mounted cameras plus a turret-mounted camera whose frame rotates with the
+ * turret. Chassis cameras use their fixed configured mount and report a robot pose. The turret
+ * camera is told it sits on the robot centre with no yaw, so what it reports is its own
+ * floor-projected position and heading; {@link #solveTurretCamera()} then composes the robot pose
+ * on the roboRIO from that, the turret angle the turret had at the frame's timestamp ({@link
+ * frc.robot.subsystems.turret.Turret#getAngleAt}) and the gyro heading at that time. The older
+ * scheme, pushing the live turret-rotated transform to the camera every loop so the camera solves a
+ * robot pose itself, is kept behind the {@code Vision/TurretRioTransform} dashboard switch as a
+ * fallback ({@link #updateTurretCameraPose()}); it applies whatever transform the camera last
+ * received to a frame captured tens of milliseconds earlier, so a slewing turret displaces the pose
+ * by range times the lag.
  *
  * <p>Each robot loop iteration the subsystem:
  *
  * <ol>
- *   <li>Publishes the turret-rotated camera transform ({@link #updateTurretCameraPose()}) and the
- *       robot heading to every camera, then flushes NetworkTables so they solve this frame.
+ *   <li>Records this loop's turret angle, publishes the robot heading to every camera (and, in
+ *       fallback mode, the turret-rotated camera transform), then flushes NetworkTables so they
+ *       solve this frame.
  *   <li>While disabled, picks the best chassis camera ({@link #getBestLimelight()}) and seeds the
  *       pose (translation and heading) from that camera's MT1 only, watching for the seed to hold
  *       steady long enough to be trusted ({@link #trackSeedConfirmation(Limelight)}). While enabled
@@ -157,11 +166,14 @@ public class Vision implements Subsystem {
          * location: on the centreline, 0.138 m behind centre. Height is NOT from CAD (the model is
          * known to be wrong there); 18.632 in is the value measured on the robot.
          *
-         * <p>The offsets entered in the Limelight GUI are irrelevant for pose solving: {@link
-         * #updateTurretCameraPose()} overwrites all six values over NetworkTables every loop with
-         * the live turret-rotated transform, so the camera reports a robot pose directly. The
-         * values here supply the parts that do not move with the turret (height, roll, pitch) and
-         * are also used by {@link Limelight#getDistanceToTarget(double)}.
+         * <p>The offsets entered in the Limelight GUI are irrelevant for pose solving. In the
+         * default mode {@link Vision#sendCameraSettings()} pushes zero forward, zero right and zero
+         * yaw with the height, roll and pitch from here, so the camera reports its own
+         * floor-projected pose and the robot composes the robot pose from the turret angle at the
+         * frame time. In fallback mode {@link #updateTurretCameraPose()} pushes the live
+         * turret-rotated transform every loop instead. Either way the values here supply the parts
+         * that do not move with the turret (height, roll, pitch), and they are also used by {@link
+         * Limelight#getDistanceToTarget(double)}.
          *
          * <p>The pitch was 60 until 2026-09-07, when it was measured on a stationary robot: the
          * camera's accelerometer put the optical axis 28.5 deg above horizontal and the tag 24
@@ -191,6 +203,32 @@ public class Vision implements Subsystem {
          * equals the pivot arm as long as robotToTurretCenter really is zero.
          */
         @Getter final Translation2d turretCenterToCamera = new Translation2d(0.138, 0);
+
+        /**
+         * The turret camera's yaw in the robot frame with the turret at zero: it faces the rear.
+         */
+        @Getter final Rotation2d cameraYawAtTurretZero = Rotation2d.k180deg;
+
+        // -- Turret camera transform -------------------------------------------
+        //
+        // The camera's solve is for the frame it captured. The turret angle that belongs with it
+        // is the one the turret had then, not the one it has when the solve arrives 30 to 60 ms
+        // later, and at 90 deg/s those differ by several degrees -- which, applied at the camera
+        // as part of its mount transform, moved the reported pose by range times that angle. So
+        // by default the camera is given a mount with no planar offset and no yaw, the robot keeps
+        // a history of turret angles against time (Turret.getAngleAt), and the robot pose is
+        // composed here from the frame's own timestamp. 341 and 581 both arrived at the same
+        // design in 2026; neither pushes a live transform to the camera.
+
+        /**
+         * Dashboard key for the switch. False restores the previous scheme (push the live
+         * turret-rotated transform to the camera every loop and fuse its MegaTag2 translation) so
+         * the two can be compared at an event without a deploy. Flipping it re-sends the camera's
+         * mount within a loop.
+         */
+        @Getter final String turretRioTransformDashboardKey = "Vision/TurretRioTransform";
+
+        @Getter final boolean turretRioTransformDefault = true;
 
         // -- Pipeline indices -------------------------------------------------
 
@@ -617,6 +655,21 @@ public class Vision implements Subsystem {
 
     private final VisionConfig config;
 
+    /** Planar turret-camera geometry, shared by the roboRIO-side solve and the fallback push. */
+    private final TurretCameraGeometry turretGeometry;
+
+    /** Whether the roboRIO-side turret transform is in use this loop; see the config notes. */
+    private boolean turretRioTransformActive;
+
+    /* Per-loop turret camera solve; see solveTurretCamera(). */
+    private boolean turretSolveComputed = false;
+    private boolean turretSolveValid = false;
+    private boolean turretAngleMissing = false;
+    private Pose2d turretSolvedRobotPose = Pose2d.kZero;
+    private double turretSolvedHeadingErrorDeg = Double.NaN;
+    private double turretSolvedAngleDeg = Double.NaN;
+    private double turretSolvedTimestampFpga = Double.NaN;
+
     /**
      * Ring buffer of recent chassis yaw-rate magnitudes and their FPGA times, sampled once per
      * loop, for the lookback in {@link #peakYawRateRadPerSec()}. Sized for the lookback at 50 Hz
@@ -671,6 +724,15 @@ public class Vision implements Subsystem {
         swerveLimelights = new Limelight[] {backLeftLL, backRightLL};
         allLimelights = new Limelight[] {backLeftLL, backRightLL, turretLL};
 
+        turretGeometry =
+                new TurretCameraGeometry(
+                        config.getRobotToTurretCenter(),
+                        config.getTurretCenterToCamera(),
+                        config.getCameraYawAtTurretZero());
+        turretRioTransformActive = config.isTurretRioTransformDefault();
+        SmartDashboard.putBoolean(
+                config.getTurretRioTransformDashboardKey(), turretRioTransformActive);
+
         int[] validIds =
                 Field.AprilTagLayoutType.OFFICIAL.getLayout().getTags().stream()
                         .mapToInt(tag -> tag.ID)
@@ -722,8 +784,23 @@ public class Vision implements Subsystem {
         for (Limelight limelight : allLimelights) {
             limelight.invalidate();
         }
+        turretSolveComputed = false;
 
-        updateTurretCameraPose();
+        // This loop's angle has to be in the history before any frame is looked up against it.
+        Robot.getTurret().recordAngleSample();
+
+        boolean rio =
+                SmartDashboard.getBoolean(
+                        config.getTurretRioTransformDashboardKey(),
+                        config.isTurretRioTransformDefault());
+        if (rio != turretRioTransformActive) {
+            // The camera's mount has to change with the mode, and not two seconds from now.
+            turretRioTransformActive = rio;
+            sendCameraSettings();
+        }
+        if (!turretRioTransformActive) {
+            updateTurretCameraPose();
+        }
         setLimeLightOrientation();
         if (Timer.getFPGATimestamp() - lastSettingsSendFpgaSeconds >= SETTINGS_RESEND_PERIOD_SECS) {
             sendCameraSettings();
@@ -755,6 +832,8 @@ public class Vision implements Subsystem {
             logger.getLogStatus();
             logger.getTagStatus();
         }
+        Telemetry.log("Vision/TurretLL/RioTransform", turretRioTransformActive);
+        Telemetry.log("Vision/TurretLL/AngleMissingAtFrame", turretAngleMissing);
 
         if (!Telemetry.slowLogThisLoop()) {
             return;
@@ -783,6 +862,11 @@ public class Vision implements Subsystem {
         if (turretLL.isAttached()) {
             Telemetry.log(
                     "Vision/TurretLL/TurretAngle", turretRotationSupplier.getAsDouble(), "deg");
+            solveTurretCamera();
+            // The robot pose this camera implies. In the default mode MT1Pose above is the
+            // camera's own floor pose, so this is the one to compare with the chassis cameras.
+            Telemetry.log("Vision/TurretLL/RobotPose", turretSolvedRobotPose);
+            Telemetry.log("Vision/TurretLL/AngleAtFrameDeg", turretSolvedAngleDeg, "deg");
         }
         // On the dashboard.
         Telemetry.logDash(
@@ -812,22 +896,20 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Publishes the live robot-to-camera transform to the turret Limelight, overriding the offsets
-     * configured in its GUI.
+     * Fallback mode only: publishes the live robot-to-camera transform to the turret Limelight,
+     * overriding the offsets configured in its GUI, so the camera's reported botpose is already a
+     * robot pose.
      *
      * <p>The camera sits at {@code robotToTurretCenter + turretCenterToCamera} rotated by the
-     * current turret angle, and its yaw in the robot frame <i>is</i> the turret angle. Height,
-     * roll, and pitch do not move with the turret and come from {@link
-     * VisionConfig#getTurretConfig()}. Publishing this every loop means the camera's reported
-     * botpose is already a robot pose, so no de-rotation is needed downstream.
+     * current turret angle, and its yaw in the robot frame is the turret angle plus the camera's
+     * yaw at turret zero ({@link TurretCameraGeometry}). Height, roll, and pitch do not move with
+     * the turret and come from {@link VisionConfig#getTurretConfig()}. The camera applies the
+     * transform it most recently received to whatever frame it solves next, which is the lag the
+     * default mode exists to remove.
      */
     private void updateTurretCameraPose() {
-        Rotation2d turretRotation =
-                Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble())
-                        .plus(Rotation2d.k180deg);
-        Translation2d robotToCamera =
-                config.getRobotToTurretCenter()
-                        .plus(config.getTurretCenterToCamera().rotateBy(turretRotation));
+        Rotation2d turretAngle = Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble());
+        Translation2d robotToCamera = turretGeometry.cameraInRobot(turretAngle);
         LimelightConfig cam = config.getTurretConfig();
 
         Pose3d cameraPose =
@@ -836,12 +918,119 @@ public class Vision implements Subsystem {
                         new Rotation3d(
                                 Math.toRadians(cam.getRoll()),
                                 Math.toRadians(cam.getPitch()),
-                                turretRotation.getRadians()));
+                                turretGeometry.cameraYawInRobot(turretAngle).getRadians()));
 
         turretLL.updateCameraPose(cameraPose);
         if (Telemetry.slowLogThisLoop()) {
             Telemetry.log("Vision/TurretCameraPose", cameraPose);
         }
+    }
+
+    /**
+     * Default mode: the mount the turret camera is told it has. No planar offset and no yaw, so its
+     * botpose is its own floor-projected position and heading; height, roll and pitch are real so
+     * the solve is still de-tilted and the tilt and height gates still mean something.
+     */
+    private Pose3d fixedTurretCameraPose() {
+        LimelightConfig cam = config.getTurretConfig();
+        return new Pose3d(
+                new Translation3d(0, 0, cam.getUp()),
+                new Rotation3d(Math.toRadians(cam.getRoll()), Math.toRadians(cam.getPitch()), 0));
+    }
+
+    /**
+     * Computes this loop's turret-camera solve once and caches it: the robot pose the camera
+     * implies, the heading error against the gyro, and why it could not be solved if it could not.
+     *
+     * <p>Default mode: the camera's botpose is its own floor pose (see {@link
+     * #fixedTurretCameraPose()}). The turret angle at the frame's timestamp comes from {@link
+     * frc.robot.subsystems.turret.Turret#getAngleAt}, the robot heading at that time from the
+     * swerve pose history, and {@link TurretCameraGeometry#robotPose} composes the robot pose. The
+     * gyro heading, not the camera's, un-rotates the 0.138 m lever arm, so the translation does not
+     * inherit the camera's single-tag heading noise. The heading error is the camera-implied robot
+     * heading minus the gyro heading <i>at the frame time</i>, which is the turret zero error (or a
+     * pose heading error) free of both the transform lag and the heading change since the frame.
+     *
+     * <p>A frame with no turret angle in the history, or one older than {@link
+     * VisionConfig#getMaxEstimateAgeSeconds()}, is not solved; the caller rejects it.
+     *
+     * <p>Fallback mode: the camera solved the robot pose itself with the last transform pushed to
+     * it, so its botpose is taken as the robot pose and the heading error is against the current
+     * gyro heading, exactly as before.
+     */
+    private void solveTurretCamera() {
+        if (turretSolveComputed) {
+            return;
+        }
+        turretSolveComputed = true;
+        turretSolveValid = false;
+        turretAngleMissing = false;
+        turretSolvedRobotPose = Pose2d.kZero;
+        turretSolvedHeadingErrorDeg = Double.NaN;
+        turretSolvedAngleDeg = Double.NaN;
+        turretSolvedTimestampFpga = Double.NaN;
+
+        if (!turretEstimatesAvailable() || !turretLL.targetInView()) {
+            return;
+        }
+
+        Pose2d botpose = turretLL.getMegaTag1_Pose3d().toPose2d();
+        double frameFpgaSeconds = turretLL.getMegaTag1PoseTimestamp();
+        turretSolvedTimestampFpga = frameFpgaSeconds;
+
+        if (!turretRioTransformActive) {
+            turretSolvedRobotPose = botpose;
+            turretSolvedHeadingErrorDeg =
+                    botpose.getRotation()
+                            .minus(Robot.getSwerve().getRobotPose().getRotation())
+                            .getDegrees();
+            turretSolveValid = true;
+            return;
+        }
+
+        if (Timer.getFPGATimestamp() - frameFpgaSeconds > config.getMaxEstimateAgeSeconds()) {
+            // Too old to look up honestly; the history would clamp to its oldest entry.
+            return;
+        }
+        Optional<Rotation2d> turretAngle = Robot.getTurret().getAngleAt(frameFpgaSeconds);
+        if (turretAngle.isEmpty()) {
+            turretAngleMissing = true;
+            return;
+        }
+        Rotation2d headingAtFrame =
+                Robot.getSwerve().getPoseAtTimestamp(frameFpgaSeconds).getRotation();
+
+        turretSolvedAngleDeg = turretAngle.get().getDegrees();
+        turretSolvedRobotPose =
+                turretGeometry.robotPose(botpose, turretAngle.get(), headingAtFrame);
+        turretSolvedHeadingErrorDeg =
+                turretSolvedRobotPose.getRotation().minus(headingAtFrame).getDegrees();
+        turretSolveValid = true;
+    }
+
+    /**
+     * Default mode's turret-camera estimate: the composed robot pose run through the MegaTag1 gates
+     * and tiers, with the tilt and height gates reading the camera's own 3-D solve.
+     *
+     * @return the estimate, or {@code null} if rejected
+     */
+    private VisionFieldPoseEstimate getTurretEstimate() {
+        solveTurretCamera();
+        if (!turretLL.targetInView()) {
+            turretLL.setTagStatus("No Targets in View");
+            turretLL.sendInvalidStatus("No Targets in View Rejection");
+            return null;
+        }
+        if (turretAngleMissing) {
+            turretLL.sendInvalidStatus("No Turret Angle At Frame Rejection");
+            return null;
+        }
+        if (!turretSolveValid) {
+            turretLL.sendInvalidStatus("Stale Estimate Rejection");
+            return null;
+        }
+        return buildMT1Estimate(
+                turretLL, turretLL.getMegaTag1_Pose3d(), turretSolvedRobotPose, false);
     }
 
     /**
@@ -998,7 +1187,11 @@ public class Vision implements Subsystem {
             }
 
             if (turretEstimatesAvailable()) {
-                integrateSingleEstimate(turretLL, getMT2VisionEstimate(turretLL));
+                integrateSingleEstimate(
+                        turretLL,
+                        turretRioTransformActive
+                                ? getTurretEstimate()
+                                : getMT2VisionEstimate(turretLL));
             }
 
             checkGrossHeadingError(best);
@@ -1645,16 +1838,15 @@ public class Vision implements Subsystem {
     private static final double SLIP_RATE_WINDOW_SECONDS = 60.0;
 
     /**
-     * Turret camera MegaTag1 heading minus the pose heading, wrapped to [-180, 180) degrees, or NaN
-     * when the turret camera has no target. Because the turret camera's mount transform comes from
-     * the turret encoder, a steady non-zero value here is the turret zero error.
+     * The robot heading the turret camera implies minus the gyro heading, wrapped to [-180, 180)
+     * degrees, or NaN when the turret camera has no target or its frame could not be solved. The
+     * camera's heading is turned into a robot heading with the turret encoder, so a steady non-zero
+     * value here is the turret zero error. See {@link #solveTurretCamera()} for which turret angle
+     * and which gyro heading are used.
      */
     private double turretCameraHeadingErrorDeg() {
-        if (!turretEstimatesAvailable() || !turretLL.targetInView()) {
-            return Double.NaN;
-        }
-        Rotation2d cameraHeading = turretLL.getMegaTag1_Pose3d().toPose2d().getRotation();
-        return cameraHeading.minus(Robot.getSwerve().getRobotPose().getRotation()).getDegrees();
+        solveTurretCamera();
+        return turretSolveValid ? turretSolvedHeadingErrorDeg : Double.NaN;
     }
 
     /**
@@ -1667,9 +1859,23 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Builds a MegaTag1 (multi-tag, heading-fused) pose estimate for a chassis Limelight and
-     * decides whether to add it. The camera's botpose is already a robot pose via its configured
-     * mount.
+     * Builds a MegaTag1 pose estimate for a chassis Limelight, whose botpose is already a robot
+     * pose via its configured mount. See {@link #buildMT1Estimate} for the gates and tiers.
+     *
+     * @param ll the Limelight to query
+     * @param forceIntegrateXY passed through to {@link #buildMT1Estimate}
+     * @return the estimate, or {@code null} if rejected
+     */
+    private VisionFieldPoseEstimate getMT1Estimate(Limelight ll, boolean forceIntegrateXY) {
+        Pose3d pose3d = ll.getMegaTag1_Pose3d();
+        return buildMT1Estimate(ll, pose3d, pose3d.toPose2d(), forceIntegrateXY);
+    }
+
+    /**
+     * Builds a MegaTag1 (multi-tag, heading-fused) pose estimate from a camera's 3-D solve and the
+     * robot pose derived from it, and decides whether to add it. For chassis cameras the robot pose
+     * is the solve flattened; for the turret camera it is the roboRIO-side composition from {@link
+     * #solveTurretCamera()}.
      *
      * <p>Rejection criteria (any one triggers rejection):
      *
@@ -1689,13 +1895,16 @@ public class Vision implements Subsystem {
      * heading while enabled. {@code forceIntegrateXY} overrides both to near-zero, used during
      * disabled pre-seeding, which is where the field heading is established.
      *
-     * @param ll the Limelight to query
+     * @param ll the Limelight the solve came from
+     * @param megaTag1Pose3d the camera's 3-D MegaTag1 solve, for the tilt and height gates
+     * @param megaTag1Pose2d the robot pose to fuse
      * @param forceIntegrateXY if {@code true}, bypass std-dev selection and use very tight
      *     covariance (disabled pre-seeding)
      * @return a {@link VisionFieldPoseEstimate} ready to pass to the pose estimator, or {@code
      *     null} if rejected
      */
-    private VisionFieldPoseEstimate getMT1Estimate(Limelight ll, boolean forceIntegrateXY) {
+    private VisionFieldPoseEstimate buildMT1Estimate(
+            Limelight ll, Pose3d megaTag1Pose3d, Pose2d megaTag1Pose2d, boolean forceIntegrateXY) {
         if (!ll.targetInView()) {
             ll.setTagStatus("No Targets in View");
             ll.sendInvalidStatus("No Targets in View Rejection");
@@ -1704,8 +1913,6 @@ public class Vision implements Subsystem {
 
         boolean multiTags = ll.multipleTagsInView();
         double targetSize = ll.getTargetSize();
-        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-        Pose2d megaTag1Pose2d = megaTag1Pose3d.toPose2d();
 
         RawFiducial[] tags = ll.getRawFiducial();
         double highestAmbiguity = -1;
@@ -2091,12 +2298,15 @@ public class Vision implements Subsystem {
     private void sendCameraSettings() {
         for (Limelight limelight : swerveLimelights) {
             limelight.setIMUmode(1);
-            // The turret camera is excluded on purpose: updateTurretCameraPose() overwrites its
-            // mount pose every loop with the live turret-rotated transform, so a fixed one here
-            // would be stale the moment it landed.
             limelight.pushConfiguredCameraPose();
         }
         turretLL.setIMUmode(0);
+        if (turretRioTransformActive) {
+            // No planar offset, no yaw: the camera reports its own floor pose and the robot
+            // composes the robot pose. In fallback mode updateTurretCameraPose() owns this every
+            // loop instead, and a fixed pose here would be stale the moment it landed.
+            turretLL.updateCameraPose(fixedTurretCameraPose());
+        }
         lastSettingsSendFpgaSeconds = Timer.getFPGATimestamp();
     }
 
@@ -2117,13 +2327,13 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Returns the MegaTag1 (MT1) robot pose reported by the turret Limelight. It is already a robot
-     * pose rather than a camera pose, because {@link #updateTurretCameraPose()} publishes the live
-     * mount transform.
+     * Returns the robot pose the turret Limelight's MegaTag1 solve implies, composed on the roboRIO
+     * from the turret angle at the frame time ({@link #solveTurretCamera()}), or {@link
+     * Pose2d#kZero} when there is no usable solve this loop.
      */
     public Pose2d getTurretMegaTag1Pose() {
-        Pose2d pose = turretLL.getMegaTag1_Pose3d().toPose2d();
-        return pose != null ? pose : Pose2d.kZero;
+        solveTurretCamera();
+        return turretSolveValid ? turretSolvedRobotPose : Pose2d.kZero;
     }
 
     /**
@@ -2161,12 +2371,13 @@ public class Vision implements Subsystem {
      * @return {@code true} if the pose was accepted and the reset was applied
      */
     public boolean resetPoseToTurretVision() {
-        if (!turretEstimatesAvailable() || !turretLL.targetInView()) {
+        solveTurretCamera();
+        if (!turretSolveValid) {
             return false;
         }
-        Pose3d robotPose3d = turretLL.getMegaTag1_Pose3d();
+        // The camera's own 3-D solve for the height and tilt checks; the composed pose to reset to.
         return applyPoseReset(
-                robotPose3d, robotPose3d.toPose2d(), turretLL.getMegaTag1PoseTimestamp());
+                turretLL.getMegaTag1_Pose3d(), turretSolvedRobotPose, turretSolvedTimestampFpga);
     }
 
     /**
@@ -2197,9 +2408,13 @@ public class Vision implements Subsystem {
         };
         Telemetry.log("Vision/PoseReset/Before", before);
 
+        // The estimator runs on Phoenix time; every other measurement converts, and this one did
+        // not, so a large enough clock offset made the reset button a silent no-op.
         Robot.getSwerve()
                 .addVisionMeasurement(
-                        resetPose, poseTimestamp, VecBuilder.fill(0.00001, 0.00001, 0.00001));
+                        resetPose,
+                        Utils.fpgaToCurrentTime(poseTimestamp),
+                        VecBuilder.fill(0.00001, 0.00001, 0.00001));
 
         Pose2d updated = Robot.getSwerve().getRobotPose();
         double[] after = {updated.getX(), updated.getY(), updated.getRotation().getDegrees()};

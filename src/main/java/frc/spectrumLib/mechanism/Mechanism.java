@@ -2,6 +2,7 @@ package frc.spectrumLib.mechanism;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.DynamicMotionMagicTorqueCurrentFOC;
@@ -22,6 +23,8 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -110,6 +113,11 @@ public abstract class Mechanism implements Subsystem {
 
     // Status signals read by the getters, refreshed together once per loop (see signalValue)
     private BaseStatusSignal positionSignal;
+
+    /** Typed views of the position and velocity signals, for latency compensation. */
+    private StatusSignal<Angle> positionStatusSignal;
+
+    private StatusSignal<AngularVelocity> velocityStatusSignal;
     private BaseStatusSignal velocitySignal;
     private BaseStatusSignal voltageSignal;
     private BaseStatusSignal statorCurrentSignal;
@@ -221,8 +229,10 @@ public abstract class Mechanism implements Subsystem {
 
             // getX(false) returns the device's signal object without refreshing it; the getters
             // refresh all of them in one Phoenix call per loop.
-            positionSignal = motor.getPosition(false);
-            velocitySignal = motor.getVelocity(false);
+            positionStatusSignal = motor.getPosition(false);
+            velocityStatusSignal = motor.getVelocity(false);
+            positionSignal = positionStatusSignal;
+            velocitySignal = velocityStatusSignal;
             voltageSignal = motor.getMotorVoltage(false);
             statorCurrentSignal = motor.getStatorCurrent(false);
             supplyCurrentSignal = motor.getSupplyCurrent(false);
@@ -894,6 +904,31 @@ public abstract class Mechanism implements Subsystem {
      */
     public double getPositionRotations() {
         return signalValue(positionSignal);
+    }
+
+    /**
+     * Returns the motor position in rotations projected from the signal's own timestamp to now
+     * along the velocity signal, so a mechanism moving at speed reads where it is rather than where
+     * it was when the CAN frame left the motor.
+     *
+     * @return latency-compensated motor position in rotations, or {@code 0} if not attached
+     */
+    public double getLatencyCompensatedPositionRotations() {
+        if (!config.attached || positionStatusSignal == null) {
+            return 0;
+        }
+        refreshSignalsOncePerLoop();
+        return BaseStatusSignal.getLatencyCompensatedValueAsDouble(
+                positionStatusSignal, velocityStatusSignal);
+    }
+
+    /**
+     * Same as {@link #getLatencyCompensatedPositionRotations()} in degrees.
+     *
+     * @return latency-compensated motor position in degrees, or {@code 0} if not attached
+     */
+    public double getLatencyCompensatedPositionDegrees() {
+        return rotationsToDegrees(this::getLatencyCompensatedPositionRotations);
     }
 
     /**
