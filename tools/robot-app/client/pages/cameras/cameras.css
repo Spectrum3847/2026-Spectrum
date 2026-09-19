@@ -27,6 +27,8 @@
 .chip.bad { border-color: var(--bad); background: var(--bad-bg); }
 
 .cam-card h3 { margin: 18px 0 6px; }
+/* Subordinate heading inside a section: the sweep, under the manual image fields. */
+.cam-card h4 { margin: 18px 0 4px; font-size: 0.82rem; font-weight: 600; color: var(--tx-faint); }
 .cam-card table { font-size: 0.8rem; }
 .cam-card td, .cam-card th { padding: 5px 8px; }
 td.mismatch { color: var(--bad); font-weight: 600; }

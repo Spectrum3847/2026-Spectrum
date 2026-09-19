@@ -183,6 +183,16 @@ day the cameras turned out to be mounted at 30 deg rather than the 60 in the cod
 reproduces the hand-computed 32.2 and 31.3 deg for tags 21 and 24 and puts the back-right camera
 0.437 m up against 0.443 in CAD. `test/camera-cal.test.mjs` pins those numbers.
 
+**Set the image values** takes `exposure`, `lcgain` (sensor gain) and `black_level` as typed numbers
+and writes them to this camera or to all three at once, saving to flash. It is the other half of
+auto-tune: the sweep answers "what should these be", this answers "make every camera match the
+numbers I already have", which is the usual pit job once one camera has been dialled in. The fields
+track each camera's saved pipeline until you type in them. Unlike the mount numbers, nothing in the
+robot code pushes these back, so what you write stays written. A value outside the range the sweep
+covers is still sent -- the camera is the one entitled to refuse it -- but it is called out in the
+result line. Each camera reports separately, so one unreachable camera does not hide the two that
+took the write.
+
 **Auto-tune image** sweeps `exposure`, then `lcgain` (sensor gain), then `black_level` on the live
 pipeline without flushing, holds each setting for 1.5 s, and scores it by detection rate, tag count,
 ambiguity, corner jitter and pose jitter across the frames, with a tiny preference for shorter

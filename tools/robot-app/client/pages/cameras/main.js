@@ -10,6 +10,8 @@
  *    into the camera's saved pipeline (so it is right on boot, before the code has pushed anything).
  *  - Auto-tune image: sweep exposure, then sensor gain, then black level, scoring each setting by
  *    how steadily the camera sees the tags in front of it, then save the best to the camera.
+ *  - Set image values: type exposure, sensor gain and black level in and write them to this camera
+ *    or to all of them at once, for when the numbers are already known and only have to be matched.
  *
  * The browser talks to the cameras directly over their HTTP API (lib/limelight.js); only the
  * server touches the .java file (/api/vision). That is the same split the swerve page keeps.
@@ -101,6 +103,7 @@ function makeCamera(cfg) {
         measuring: false,
         measurement: null,
         tuning: null, // { stage, rows, best, original, aborted }
+        setEdited: false, // whether the manual image fields have been typed into
         dom: {},
     };
 }
@@ -251,6 +254,10 @@ function renderPoseSection() {
 // Camera card
 // ---------------------------------------------------------------------------
 
+/** How the pipeline's image keys are labelled and stepped in the manual fields. */
+const IMAGE_LABELS = { exposure: "Exposure (0.01 ms)", lcgain: "Sensor gain", black_level: "Black level" };
+const IMAGE_STEPS = { exposure: "1", lcgain: "0.1", black_level: "1" };
+
 function buildCard(cam) {
     const d = cam.dom;
     d.hostInput = el("input", { type: "text", value: cam.host, spellcheck: "false", title: "Hostname or IP of this camera" });
@@ -279,6 +286,19 @@ function buildCard(cam) {
     d.measureProgress = el("div", { class: "progress" });
     d.measureOut = el("div", {});
 
+    // Image: exact values
+    d.set = {};
+    for (const k of PIPELINE_IMAGE_KEYS) {
+        d.set[k] = el("input", { type: "number", step: IMAGE_STEPS[k], min: "0", title: IMAGE_LABELS[k] });
+        // Once typed into, stop overwriting the field from the camera on every poll.
+        d.set[k].addEventListener("input", () => {
+            cam.setEdited = true;
+        });
+    }
+    d.setBtn = el("button", { class: "primary", onclick: () => applyImageSettings(cam, false) }, "Apply to this camera");
+    d.setAllBtn = el("button", { onclick: () => applyImageSettings(cam, true) }, `Apply to all ${state.cameras.length} cameras`);
+    d.setOut = el("div", { class: "progress" });
+
     // Image tuning
     d.sweep = {};
     for (const k of PIPELINE_IMAGE_KEYS) d.sweep[k] = el("input", { type: "text", value: DEFAULT_SWEEPS[k].join(", ") });
@@ -306,6 +326,14 @@ function buildCard(cam) {
         d.measureOut,
         el("h3", {}, "Image"),
         d.imageNow,
+        el("p", { class: "hint" },
+            "Set the three values directly, or sweep for them below. Both write to the camera's flash; neither is in the robot code, ",
+            "so unlike the mount numbers these are not pushed back over from Vision.java and will stick."),
+        el("div", { class: "sweep-inputs" },
+            ...PIPELINE_IMAGE_KEYS.flatMap((k) => [el("span", {}, IMAGE_LABELS[k]), d.set[k]])),
+        el("div", { class: "row" }, d.setBtn, d.setAllBtn),
+        d.setOut,
+        el("h4", {}, "Or tune it automatically"),
         el("p", { class: "hint" },
             "Sweeps exposure, then sensor gain, then black level, holding each setting for ",
             `${(SWEEP_SAMPLE_MS / 1000).toFixed(1)} s and scoring how steadily the tags in view are detected. `,
@@ -403,6 +431,9 @@ function refreshCard(cam) {
             chip("black level", String(saved.black_level)),
             chip("flip", String(saved.image_flip)),
             chip("res", String(saved.pipeline_res)));
+        if (!cam.setEdited) {
+            for (const k of PIPELINE_IMAGE_KEYS) d.set[k].value = String(saved[k]);
+        }
     }
 
     d.measureBtn.disabled = cam.measuring || !fresh;
@@ -551,6 +582,77 @@ function renderMeasurement(cam) {
 function parseCandidates(text, fallback) {
     const vals = text.split(/[,\s]+/).map(Number).filter(Number.isFinite);
     return vals.length ? vals : fallback;
+}
+
+/**
+ * Writes the three typed image values to one camera or to all of them, and saves to flash.
+ *
+ * Separate from the sweep on purpose. Auto-tune answers "what should these be?"; this answers "make
+ * every camera match the numbers I already have", which is the common pit job -- one camera gets
+ * dialled in by hand or by sweep and the other two have to be told. Applying to all is why the
+ * values are read out of the fields rather than out of this card's own pipeline.
+ *
+ * flush is always true: a value that vanishes on the next power cycle is worse than none, because
+ * it looks set until the robot is rebooted.
+ *
+ * @param {object} cam the card the values were typed into
+ * @param {boolean} all whether to write them to every camera rather than just this one
+ */
+async function applyImageSettings(cam, all) {
+    const d = cam.dom;
+    const values = {};
+    const bad = [];
+    const outOfSweep = [];
+
+    for (const k of PIPELINE_IMAGE_KEYS) {
+        const raw = d.set[k].value.trim();
+        const n = Number(raw);
+        if (raw === "" || !Number.isFinite(n) || n < 0) {
+            bad.push(`${IMAGE_LABELS[k]} needs a number of 0 or more`);
+            continue;
+        }
+        values[k] = n;
+        // The sweep candidates are the range this robot's cameras have actually been run at, so
+        // outside it is worth saying out loud -- but it is the camera's call to refuse, not ours.
+        const lo = Math.min(...DEFAULT_SWEEPS[k]);
+        const hi = Math.max(...DEFAULT_SWEEPS[k]);
+        if (n < lo || n > hi) outOfSweep.push(`${IMAGE_LABELS[k]} ${n} is outside the ${lo}-${hi} this page sweeps`);
+    }
+
+    if (bad.length) {
+        d.setOut.textContent = `Not sent: ${bad.join("; ")}.`;
+        return;
+    }
+
+    const targets = all ? state.cameras : [cam];
+    d.setBtn.disabled = true;
+    d.setAllBtn.disabled = true;
+    d.setOut.textContent = `saving to ${targets.length} camera${targets.length === 1 ? "" : "s"}...`;
+
+    const results = await Promise.all(
+        targets.map(async (t) => {
+            try {
+                await t.client.updatePipeline(values, true);
+                t.pipelineAt = 0; // force a re-read so the chips show what actually landed
+                return { name: t.ntName, ok: true };
+            } catch (e) {
+                return { name: t.ntName, ok: false, msg: e.message };
+            }
+        })
+    );
+
+    const done = results.filter((r) => r.ok).map((r) => r.name);
+    const failed = results.filter((r) => !r.ok);
+    const settings = PIPELINE_IMAGE_KEYS.map((k) => `${k}=${values[k]}`).join(", ");
+
+    const parts = [];
+    parts.push(done.length ? `Saved ${settings} to flash on ${done.join(", ")}.` : `Nothing saved.`);
+    if (failed.length) parts.push(`Failed on ${failed.map((r) => `${r.name} (${r.msg})`).join("; ")}.`);
+    if (outOfSweep.length) parts.push(`Note: ${outOfSweep.join("; ")}.`);
+    d.setOut.textContent = parts.join(" ");
+
+    d.setBtn.disabled = false;
+    d.setAllBtn.disabled = false;
 }
 
 async function autoTune(cam) {
