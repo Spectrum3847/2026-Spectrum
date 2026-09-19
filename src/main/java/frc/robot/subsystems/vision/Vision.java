@@ -259,6 +259,41 @@ public class Vision implements Subsystem {
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
 
+        // -- Per-estimate rejection gates ---------------------------------------
+
+        /**
+         * MegaTag1 solves whose robot height is further than this (metres) from the carpet are
+         * rejected. The robot cannot leave the floor, so a solve that says it did is a bad solve or
+         * a bad mount transform: the 30-versus-60 deg mount pitch of 2026-09-07 would have shown up
+         * here as every pose sitting well above or below zero. The value is the AdvantageKit
+         * template default, on the loose side on purpose until it has been watched at an event;
+         * {@code Vision/<cam>/MountCheck/HeightMeters} logs what healthy frames read.
+         */
+        @Getter final double maxZErrorMeters = 0.75;
+
+        /**
+         * Chassis yaw rate (rad/s) above which no estimate is fused. The camera stamps its heading
+         * from whatever the robot last pushed, so a fast spin turns timestamp error into heading
+         * error, and heading error into MegaTag2 translation error.
+         */
+        @Getter final double maxYawRateRadPerSec = 1.6;
+
+        /**
+         * How far back (seconds) the yaw-rate gate looks. A frame that arrives just after a spin
+         * stops was captured during it, so the gate rejects on the peak rate over this window, not
+         * the rate right now. 254 uses the same 0.3 s; it covers camera latency, NetworkTables
+         * latency and the pose estimator's own lag with room to spare.
+         */
+        @Getter final double yawRateLookbackSeconds = 0.3;
+
+        /**
+         * Turret slew (rot/s, relative to the robot) above which the turret camera's estimates are
+         * rejected. The mount transform pushed to the camera lags the frame it is applied to by the
+         * capture and NetworkTables delay, so a fast slew smears the transform as well as the
+         * image. Measured against {@link frc.robot.subsystems.turret.Turret#getSlewOmegaRotPerSec}.
+         */
+        @Getter final double turretFusionMaxOmega = 0.75;
+
         // -- Consensus heading correction -------------------------------------
         //
         // The 20 deg gross threshold above was set because ONE camera's MegaTag1 heading is not
@@ -547,6 +582,17 @@ public class Vision implements Subsystem {
     private final VisionConfig config;
 
     /**
+     * Ring buffer of recent chassis yaw-rate magnitudes and their FPGA times, sampled once per
+     * loop, for the lookback in {@link #peakYawRateRadPerSec()}. Sized for the lookback at 50 Hz
+     * with room for the loop running slow; older samples simply fall out of the window.
+     */
+    private static final int YAW_RATE_HISTORY = 64;
+
+    private final double[] yawRateHistoryRadPerSec = new double[YAW_RATE_HISTORY];
+    private final double[] yawRateHistorySeconds = new double[YAW_RATE_HISTORY];
+    private int yawRateHistoryIndex = 0;
+
+    /**
      * How often the settings the robot owns -- IMU mode, and the chassis cameras' mount poses --
      * are re-sent to every camera.
      *
@@ -648,6 +694,7 @@ public class Vision implements Subsystem {
 
         NetworkTableInstance.getDefault().flush();
 
+        recordYawRate();
         disabledLimelightUpdates();
         enabledLimelightUpdates();
         logTelemetry();
@@ -939,8 +986,7 @@ public class Vision implements Subsystem {
             boolean stationary) {
         double turretErrorDeg = turretCameraHeadingErrorDeg();
         boolean turretStill =
-                Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
-                        <= config.getTurretZeroMaxTurretOmega();
+                Robot.getTurret().getSlewOmegaRotPerSec() <= config.getTurretZeroMaxTurretOmega();
 
         boolean agreeing =
                 !Double.isNaN(chassisErrorDeg)
@@ -1207,8 +1253,7 @@ public class Vision implements Subsystem {
                         && Math.abs(speeds.omegaRadiansPerSecond)
                                 <= config.getGrossHeadingMaxOmega();
         boolean turretStill =
-                Math.abs(Robot.getTurret().getMechOmegaRotPerSec())
-                        <= config.getTurretZeroMaxTurretOmega();
+                Robot.getTurret().getSlewOmegaRotPerSec() <= config.getTurretZeroMaxTurretOmega();
 
         // Gross errors first: the trim below cannot reach them, and while one stands the turret is
         // aimed somewhere else entirely.
@@ -1496,9 +1541,11 @@ public class Vision implements Subsystem {
      *   <li>No targets in view.
      *   <li>Any tag ambiguity &gt; 0.9 (pose flip risk).
      *   <li>Pose outside the field boundary.
-     *   <li>Robot spin rate &ge; 1.6 rad/s.
+     *   <li>Robot spin rate over the lookback window &ge; {@link
+     *       VisionConfig#getMaxYawRateRadPerSec()}.
      *   <li>Target too small (&le; 0.025 %).
      *   <li>Roll or pitch &gt; 5° (camera physically disturbed).
+     *   <li>Solved height further than {@link VisionConfig#getMaxZErrorMeters()} from the floor.
      * </ul>
      *
      * <p>Accepted estimates are assigned a translation std-dev based on how many tags are visible
@@ -1539,15 +1586,13 @@ public class Vision implements Subsystem {
 
         // Ambiguity scan — reject immediately if any tag exceeds 0.9
         ll.setTagStatus("");
-        if (tags != null) {
-            for (RawFiducial tag : tags) {
-                if (highestAmbiguity < 0 || tag.ambiguity > highestAmbiguity) {
-                    highestAmbiguity = tag.ambiguity;
-                }
-                if (tag.ambiguity > 0.9) {
-                    ll.sendInvalidStatus("High Ambiguity Rejection");
-                    return null;
-                }
+        for (RawFiducial tag : tags) {
+            if (highestAmbiguity < 0 || tag.ambiguity > highestAmbiguity) {
+                highestAmbiguity = tag.ambiguity;
+            }
+            if (tag.ambiguity > 0.9) {
+                ll.sendInvalidStatus("High Ambiguity Rejection");
+                return null;
             }
         }
 
@@ -1560,6 +1605,12 @@ public class Vision implements Subsystem {
         if (Math.abs(megaTag1Pose3d.getRotation().getX()) > Math.toRadians(5)
                 || Math.abs(megaTag1Pose3d.getRotation().getY()) > Math.toRadians(5)) {
             ll.sendInvalidStatus("Roll/Pitch Rejection");
+            return null;
+        }
+
+        // Reject if the solve puts the robot off the floor: a bad solve or a bad mount transform.
+        if (Math.abs(megaTag1Pose3d.getZ()) > config.getMaxZErrorMeters()) {
+            ll.sendInvalidStatus("Height Rejection");
             return null;
         }
 
@@ -1612,7 +1663,7 @@ public class Vision implements Subsystem {
         }
         // The pose estimator expects the heading std-dev in radians; degStds is in degrees.
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds));
-        int numTags = tags == null ? 1 : tags.length;
+        int numTags = Math.max(1, tags.length);
 
         return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
     }
@@ -1637,12 +1688,14 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Builds a MegaTag2 (IMU-fused) pose estimate for a chassis Limelight. MT2 heading is always
-     * discarded (set to {@link VisionConfig#getKLargeVariance()}); only its translation is fused,
-     * which is why it is used mainly while stationary. Not used for the turret camera, whose MT2
-     * heading would be the turret-frame prior we push in.
+     * Builds a MegaTag2 (heading-fused) pose estimate for a Limelight. MT2 heading is always
+     * discarded (set to {@link VisionConfig#getKLargeVariance()}), since under IMU mode 0 it is
+     * only the heading we pushed in; only its translation is fused. Today this is used for the
+     * turret camera while enabled: its mount transform is pushed every loop with the live turret
+     * angle, so its MT2 translation is a robot pose that leans on the gyro heading rather than on a
+     * single-tag heading solve.
      *
-     * @param ll the chassis Limelight to query
+     * @param ll the Limelight to query
      * @return a {@link VisionFieldPoseEstimate}, or {@code null} if rejected
      */
     private VisionFieldPoseEstimate getMT2VisionEstimate(Limelight ll) {
@@ -1785,6 +1838,31 @@ public class Vision implements Subsystem {
         return Timer.getFPGATimestamp() - lastAcceptedEstimateFpgaSeconds;
     }
 
+    /** Samples the chassis yaw rate into the lookback buffer. Called once per loop. */
+    private void recordYawRate() {
+        yawRateHistoryRadPerSec[yawRateHistoryIndex] =
+                Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond);
+        yawRateHistorySeconds[yawRateHistoryIndex] = Timer.getFPGATimestamp();
+        yawRateHistoryIndex = (yawRateHistoryIndex + 1) % YAW_RATE_HISTORY;
+    }
+
+    /**
+     * Largest chassis yaw-rate magnitude seen in the last {@link
+     * VisionConfig#getYawRateLookbackSeconds()}, in rad/s. Frames that reach the robot now were
+     * captured up to a few tenths of a second ago, so the gate has to ask whether the robot was
+     * spinning then, not whether it is spinning now.
+     */
+    private double peakYawRateRadPerSec() {
+        double cutoff = Timer.getFPGATimestamp() - config.getYawRateLookbackSeconds();
+        double peak = 0;
+        for (int i = 0; i < YAW_RATE_HISTORY; i++) {
+            if (yawRateHistorySeconds[i] >= cutoff && yawRateHistoryRadPerSec[i] > peak) {
+                peak = yawRateHistoryRadPerSec[i];
+            }
+        }
+        return peak;
+    }
+
     /**
      * Common rejection gate shared by both MT1 and MT2 pipelines.
      *
@@ -1792,8 +1870,11 @@ public class Vision implements Subsystem {
      *
      * <ul>
      *   <li>Pose outside field boundary.
-     *   <li>Robot spin rate &ge; 1.6 rad/s.
+     *   <li>Peak robot spin rate over the last {@link VisionConfig#getYawRateLookbackSeconds()}
+     *       &ge; {@link VisionConfig#getMaxYawRateRadPerSec()}.
      *   <li>Target size &le; 0.025 % (too far / too small to trust).
+     *   <li>Turret camera only: turret slewing faster than {@link
+     *       VisionConfig#getTurretFusionMaxOmega()}, or its heading disagreeing with the gyro.
      * </ul>
      *
      * @param ll the Limelight (used for status reporting)
@@ -1807,8 +1888,7 @@ public class Vision implements Subsystem {
             return true;
         }
 
-        if (Math.abs(Robot.getSwerve().getCurrentRobotChassisSpeeds().omegaRadiansPerSecond)
-                >= 1.6) {
+        if (peakYawRateRadPerSec() >= config.getMaxYawRateRadPerSec()) {
             ll.sendInvalidStatus("Rotation Speed Rejection");
             return true;
         }
@@ -1819,8 +1899,10 @@ public class Vision implements Subsystem {
         }
 
         // Only the turret camera moves with the turret; reject its estimate while it slews (smear
-        // and mount-transform lag).
-        if (ll == turretLL && Math.abs(Robot.getTurret().getMechOmegaRotPerSec()) >= 0.75) {
+        // and mount-transform lag). Measured as well as commanded: the commanded rate reads zero
+        // while IDLE slews the turret home.
+        if (ll == turretLL
+                && Robot.getTurret().getSlewOmegaRotPerSec() >= config.getTurretFusionMaxOmega()) {
             ll.sendInvalidStatus("Turret Speed Rejection");
             return true;
         }
