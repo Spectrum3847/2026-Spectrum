@@ -175,12 +175,18 @@ out/
 
 # Simulation GUI and other tools window save file
 networktables.json
+networktables.json.bck
 
 # Simulation data log directory. Everything in it is scratch except logs/matches/, which holds
 # the real match logs committed for testing; see logs/matches/README.md and
 # tools/copy-match-logs.py.
 logs/*
 !logs/matches/
+
+# Raw log pulls off the roboRIO (fast-log-triage/scripts/pull_rio_logs.sh). Match logs are
+# copied out of here into logs/matches/ by tools/copy-match-logs.py; the raw folder itself
+# is never committed.
+rio-logs/
 
 # Folder that has CTRE Phoenix Sim device config storage
 ctre_sim/
