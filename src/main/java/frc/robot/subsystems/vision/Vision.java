@@ -461,8 +461,15 @@ public class Vision implements Subsystem {
          * gates below carry the weight, and the divergence latch is the backstop if they are ever
          * fooled: a re-home that does not bring the error near zero disables further trimming
          * instead of snapping again.
+         *
+         * <p>Raised from 1 to 2 after the 2026-09-19 01:46 log. The turret camera picked up one tag
+         * and re-homed the zero by -177.8 deg, and the camera's own heading flipped by 180 deg at
+         * that same instant: the single-tag MegaTag1 mirror ambiguity, not a turret offset. The
+         * consistency gate did not save it because the same camera frame was being counted on every
+         * robot loop -- 15 "agreeing samples" in 0.3 s. Two tags disambiguate the solve; the frame
+         * gate and the cap below are the backstops.
          */
-        @Getter final int turretZeroRehomeMinTags = 1;
+        @Getter final int turretZeroRehomeMinTags = 2;
 
         /**
          * Least time between re-homes, in seconds.
@@ -498,6 +505,29 @@ public class Vision implements Subsystem {
          * cannot snap the turret.
          */
         @Getter final double turretZeroRehomeMinErrorDeg = 20.0;
+
+        /**
+         * Largest single re-home that will be applied, in degrees.
+         *
+         * <p>A mirrored single-tag solve reads about 180 deg out; a real mechanical offset has
+         * never been more than about 105 deg (the genuine -104 deg boot correction on 2026-09-05).
+         * 150 sits between them. Anything over it is refused and printed, because a step that size
+         * is far likelier to be the camera than the turret.
+         */
+        @Getter final double turretZeroRehomeMaxDeg = 150.0;
+
+        /**
+         * How long the turret motor must have been continuously connected before the camera is
+         * allowed to trim or re-home its zero, in seconds.
+         *
+         * <p>In the 2026-09-19 Chezy P8 match the CANivore bus died at 446 s and the turret's
+         * reported position froze at 123.8 deg. The trim then measured "camera heading minus a
+         * frozen turret angle", found a steady 1 deg of error, and stepped the zero about 1 deg a
+         * second until the log ended: 17.4 deg of trim against a motor that was not there. The
+         * motor flapped connected for half a second at a time throughout, so a bare connected check
+         * is not enough; it has to have been back for a while.
+         */
+        @Getter final double turretZeroMotorConnectedSeconds = 2.0;
 
         /**
          * Measurable samples since the filter was seeded before it is allowed to move the encoder.
@@ -1561,6 +1591,15 @@ public class Vision implements Subsystem {
     /** FPGA time of the last re-home, so one cannot follow another straight away. */
     private double turretZeroLastRehomeSeconds = Double.NEGATIVE_INFINITY;
 
+    /** Frame timestamp of the last sample the re-home counted, so a frame is one vote. */
+    private double turretZeroRehomeLastFrameFpga = Double.NaN;
+
+    /** Re-homes refused for being over {@link VisionConfig#getTurretZeroRehomeMaxDeg()}. */
+    private int turretZeroRehomeRefused = 0;
+
+    /** FPGA time the turret motor was last seen disconnected; see {@link #turretMotorTrusted}. */
+    private double turretMotorLastDisconnectSeconds = Double.NEGATIVE_INFINITY;
+
     /** Total the re-home has moved the zero, kept apart from slip so it cannot pollute the rate. */
     @Getter private double turretZeroRehomeTotalDeg = 0;
 
@@ -1578,9 +1617,12 @@ public class Vision implements Subsystem {
      * the turret camera must have at least {@link VisionConfig#getTurretZeroRehomeMinTags()} tags,
      * the robot's own heading must already be vision-seeded and currently backed by a chassis
      * camera that can see tags -- the turret camera cannot vouch for a pose whose error is the
-     * thing being measured -- and nothing may be launching. Then {@link
+     * thing being measured -- the turret motor must have been connected for {@link
+     * VisionConfig#getTurretZeroMotorConnectedSeconds()}, and nothing may be launching. Then {@link
      * VisionConfig#getTurretZeroRehomeSamples()} readings have to agree to within {@link
-     * VisionConfig#getTurretZeroRehomeSpreadDeg()} peak to peak.
+     * VisionConfig#getTurretZeroRehomeSpreadDeg()} peak to peak, where each camera frame counts
+     * once however many loops it stays on screen, and a step over {@link
+     * VisionConfig#getTurretZeroRehomeMaxDeg()} is refused outright.
      *
      * <p>When it fires, the accumulated history goes with it: the trim filter, the slip window and
      * the divergence latch are all cleared, because they describe a zero that no longer exists.
@@ -1601,6 +1643,7 @@ public class Vision implements Subsystem {
                         && turretStill
                         && turretLL.getTagCountInView() >= config.getTurretZeroRehomeMinTags()
                         && poseHeadingSeeded
+                        && turretMotorTrusted(now)
                         && !Robot.getSuperStructure().currentStateIsLaunching()
                         && now - turretZeroLastRehomeSeconds
                                 >= config.getTurretZeroRehomeCooldownSeconds();
@@ -1610,6 +1653,14 @@ public class Vision implements Subsystem {
             Telemetry.log("Vision/TurretZero/RehomeProgress", 0);
             return false;
         }
+
+        // One frame, one vote. The loop runs at 50 Hz and the camera nearer 25, so without this
+        // every frame was counted twice and a single bad frame could carry a third of the gate on
+        // its own (2026-09-19 01:46: 15 samples in 0.3 s, then a -177.8 deg re-home).
+        if (turretSolvedTimestampFpga == turretZeroRehomeLastFrameFpga) {
+            return false;
+        }
+        turretZeroRehomeLastFrameFpga = turretSolvedTimestampFpga;
 
         // A sample that would widen the run past the spread gate starts the count over: a real
         // offset reads the same every frame, a guess does not.
@@ -1636,6 +1687,25 @@ public class Vision implements Subsystem {
         }
 
         double step = turretZeroRehomeSum / turretZeroRehomeCount;
+
+        if (Math.abs(step) > config.getTurretZeroRehomeMaxDeg()) {
+            // Steady, agreed on, and still not believable: a solve that size is the camera's
+            // mirror ambiguity, not the turret. Refuse it, start the cooldown so it cannot retry
+            // every third of a second, and say so where the pit can see it.
+            turretZeroRehomeCount = 0;
+            turretZeroLastRehomeSeconds = now;
+            turretZeroRehomeRefused++;
+            Telemetry.log("Vision/TurretZero/RehomeRefused", turretZeroRehomeRefused);
+            Telemetry.print(
+                    String.format(
+                            "Vision: REFUSED a %.1f deg turret zero re-home (%d tags):"
+                                    + " over the %.0f deg cap, so this is a mirrored camera"
+                                    + " solve, not a turret offset.",
+                            step,
+                            (int) turretLL.getTagCountInView(),
+                            config.getTurretZeroRehomeMaxDeg()));
+            return false;
+        }
 
         Robot.getTurret().applyZeroCorrectionDegrees(step);
         turretZeroRehomeTotalDeg += step;
@@ -1664,6 +1734,29 @@ public class Vision implements Subsystem {
         return true;
     }
 
+    /**
+     * Whether the turret's reported angle can be believed right now.
+     *
+     * <p>Every turret zero measurement is "camera heading minus turret angle minus robot heading".
+     * If the turret motor is off the bus its angle is whatever it last said, and the difference
+     * becomes a steady number that looks exactly like a small zero error. In the 2026-09-19 Chezy
+     * P8 match that steady number was about 1 deg, and the trim walked the zero 17.4 deg against a
+     * position that had frozen at 123.8 deg when the CANivore bus died. The motor came back for
+     * half a second at a time throughout, so the requirement is a continuous run of {@link
+     * VisionConfig#getTurretZeroMotorConnectedSeconds()} connected, not a single good read.
+     *
+     * @param now the current FPGA time
+     * @return true when the turret motor has been connected long enough to trust its angle
+     */
+    private boolean turretMotorTrusted(double now) {
+        if (!Robot.getTurret().isMotorConnected()) {
+            turretMotorLastDisconnectSeconds = now;
+            return false;
+        }
+        return now - turretMotorLastDisconnectSeconds
+                >= config.getTurretZeroMotorConnectedSeconds();
+    }
+
     private void correctTurretZero() {
         double now = Timer.getFPGATimestamp();
         double errorDeg = turretCameraHeadingErrorDeg();
@@ -1683,11 +1776,13 @@ public class Vision implements Subsystem {
             return;
         }
 
+        boolean motorTrusted = turretMotorTrusted(now);
         boolean measurable =
                 !Double.isNaN(errorDeg)
                         && Math.abs(errorDeg) <= config.getTurretZeroMaxErrorDeg()
                         && stationary
-                        && turretStill;
+                        && turretStill
+                        && motorTrusted;
 
         if (!measurable) {
             if (Double.isNaN(turretZeroUnmeasurableSinceSeconds)) {
@@ -1785,6 +1880,7 @@ public class Vision implements Subsystem {
         }
 
         Telemetry.log("Vision/TurretZero/Measurable", measurable);
+        Telemetry.log("Vision/TurretZero/MotorTrusted", motorTrusted);
         if (Telemetry.slowLogThisLoop()) {
             Telemetry.logDash("Vision/TurretZero/TrimEfficiency", turretZeroTrimEfficiency);
             Telemetry.log("Vision/TurretZero/FilteredErrorDeg", turretZeroFilteredErrorDeg, "deg");

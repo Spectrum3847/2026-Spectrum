@@ -71,7 +71,7 @@ LOOKED CLEAN: battery ok (min 11.9 V while enabled); loop timing / CPU / memory 
 
 |         Area          |                                                          Topics                                                          |                                     Fires when                                      |
 |-----------------------|--------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
-| Driver Station        | `DS:enabled` `DS:autonomous` `DS:test` `DS:estop` `DS:matchNumber`                                                       | E-stop; disable + re-enable inside a match; auto shorter than 14 s; log ends enabled |
+| Driver Station        | `DS:enabled` `DS:autonomous` `DS:test` `DS:estop` `DS:matchNumber` `Match Data/MatchNumber`                                                       | E-stop; disable + re-enable inside a match; auto shorter than 14 s; log ends enabled |
 | Motors                | `<Mech>/MotorConnected` `/StatorCurrent` `/Temp` (from `Mechanism.logDiagnostics`)                                       | disconnected ≥ 0.1 s; ≥ 80 A for 1 s; ≥ 80 °C                                       |
 | Power                 | `BatteryLogger/BatteryVoltage` `BatteryLogger/Current` `SystemStats/BrownedOut`                                          | ≤ 6.8 V (brownout); dips < 9 V while enabled; > 250 A                               |
 | Loop / RIO            | `System/Loop/MaxPeriodMs` `System/Loop/OverrunPercent` `System/CpuPercent` `System/MemAvailableMB` `System/Gc/*` `Scheduler/*` | period ≥ 60 ms; overrun ≥ 5 %; CPU ≥ 92 % for 5 s; < 25 MB free; a phase ≥ 100 ms |

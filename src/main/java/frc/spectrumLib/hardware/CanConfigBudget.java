@@ -26,6 +26,16 @@ import java.util.function.DoubleFunction;
  * spent: retries stop, optional calls are skipped, and an alert names it. Boot then completes with
  * a dead bus in roughly the time it takes to fail once per device instead of ten times.
  *
+ * <p><b>Open question, 2026-09-19.</b> This bounds the boot, but it is not the whole of what
+ * happened after that restart. With the bus already dead, CPU sat at a normal 40 to 50 percent for
+ * 20 s after init, then went to 95 to 100 percent at exactly 30.0 s after init completed and stayed
+ * there, with 58 to 77 percent of loops over 25 ms. Nothing in the Java loop changed at that moment
+ * (vision and the scheduler were each under 20 ms) and the DataLog writer thread was starved too,
+ * so the load is native or a background service, not the robot loop. Bench test to find it: unplug
+ * the CANivore, boot, watch {@code System/CpuPercent} at plus 30 s, then try disabling the Phoenix
+ * diagnostics server ({@code Unmanaged.setPhoenixDiagnosticsStartTime(-1)}) and the SignalLogger to
+ * see which one it is. Log: {@code logs/matches/FRC_20260919_034444.wpilog}.
+ *
  * <p>The cap is deliberately cause-agnostic. A cut wire, a powered-down bus, a wrong bus name and a
  * missing CANivore all present identically here, and the correct response to all of them is the
  * same: stop waiting and come up.

@@ -4,8 +4,8 @@
   "name": "2026 Offseason Bot",
   "configClass": "src/main/java/frc/robot/configs/OM2026.java",
   "loopPeriodSec": 0.02,
-  "brownoutVolts": 4.6,
-  "brownoutNote": "RobotController.setBrownoutVoltage(4.6) at Robot.java:204, well below the 6.8 V default. The RIO holds on far longer than stock, and brownout is never logged, so it must be inferred from voltage sag.",
+  "brownoutVolts": 6.0,
+  "brownoutNote": "RobotController.setBrownoutVoltage(6.0) in the Robot constructor, under the 6.75 V roboRIO 2 default. Was 4.6 V from 2026-03-06 to 2026-09-19, when the Chezy P8 battery sag to 8.8 V made a RIO reset look likelier than a brownout. Since 2026-09-19 SystemStats/BrownedOut is logged every loop from robotPeriodic and SystemStats/BrownoutVoltage once a second; before that the key stopped 5.5 s into every boot (it came from DogLog logExtras, which is off) and brownout had to be inferred from voltage sag.",
   "battery": { "nominalVolts": 12.0, "capacityAh": 18.0, "usableWh": 130 },
   "mainBreaker": { "part": "Bussmann CB185-120", "ratedAmps": 120 },
   "buses": [
@@ -73,7 +73,9 @@
       "source": "subsystems/swerve/SwerveConfig.java:116-123" },
     "cancoders": { "canIds": [3, 13, 23, 33], "bus": "canivore" },
     "pigeon": { "canId": 0, "bus": "canivore" },
-    "batteryChannels": ["SwerveDrive", "SwerveSteer"]
+    "batteryChannels": ["SwerveDrive", "SwerveSteer"],
+    "connectedKeyRoot": "Swerve/Modules",
+    "connectedNote": "Swerve/Modules/<FrontLeft|FrontRight|BackLeft|BackRight>/DriveConnected and SteerConnected, logged on the same 10 Hz tick as Swerve/Currents from the refresh status of each motor's stator-current signal (Swerve.logBatteryUsage). Added 2026-09-19: before that the only swerve connection telemetry was Swerve/Align/*/Connected, which publishes while disabled only, and the Chezy P8 bus loss left no direct swerve evidence."
   },
   "logKeys": {
     "prefix": "/Robot/",
@@ -103,6 +105,7 @@
     "Currents are absolute-value summed, so regeneration counts as consumption and braking a flywheel inflates the number.",
     "<Name>/MotorConnected is logged for every mechanism, but it only ever checks the LEADER. A dead follower -- Intake Roller Right (7), Launcher Front Right (16), LauncherTower Back (18) -- leaves its leader reporting connected, so it is invisible here. That is what the CAN page's zero-output inference is for.",
     "Scheduler/* values are in SECONDS, not milliseconds.",
+    "Match Data/EventName, MatchType, MatchNumber, ReplayNumber, Alliance, Station and FMSAttached are logged once a second from Robot.logCanBusStatus (since 2026-09-19). Logs before that carry no match identity as a topic; the file name suffix WPILib adds once the FMS attaches (..._cc_P8.wpilog) is the only record.",
     "Temperature signals update at 4 Hz on the CAN bus but are logged on the 10 Hz slow tier, so */Temp traces are stair-stepped twice over. Do not differentiate them at loop rate.",
     "Logging runs at three rates, so two channels side by side may not be sampled alike. Swerve/State/* comes off the 250 Hz odometry thread; state, commanded values and most mechanism RPM/position are 50 Hz loop rate; and the diagnostics tier -- every <Name>/Voltage, StatorCurrent, SupplyCurrent, Temp and MotorConnected -- is 10 Hz (Telemetry.SLOW_LOG_EVERY_LOOPS = 5).",
     "Turret, Launcher and LauncherTower are the exception to that 10 Hz: they set fastOutputLogging, so their <Name>/Voltage alone is logged at the full 50 Hz while their currents and temperature stay at 10 Hz. It is there so a feedforward can be fit from a log -- kS and kV survive a 10 Hz voltage, kA does not. Do not read a denser voltage trace as a denser current trace."

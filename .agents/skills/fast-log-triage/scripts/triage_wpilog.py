@@ -302,6 +302,18 @@ class Triage:
                 if isinstance(v, (bytes, bytearray)):
                     v = int.from_bytes(v, "little") if len(v) <= 8 else v.hex()
                 self.meta[k[3:]] = str(v)
+        # Robot-side copy of the same facts (Robot.logCanBusStatus, added 2026-09-19): DogLog's
+        # DS capture never carried the match number in the 2026 logs.
+        for k, name in (
+            ("Match Data/EventName", "eventName"),
+            ("Match Data/MatchType", "matchType"),
+            ("Match Data/MatchNumber", "matchNumber"),
+            ("Match Data/Alliance", "alliance"),
+            ("Match Data/Station", "station"),
+        ):
+            s = self.series.get(k)
+            if s and s.vs and name not in self.meta:
+                self.meta[name] = str(s.vs[-1])
 
     def _ds(self):
         es = self.series.get("DS:estop")

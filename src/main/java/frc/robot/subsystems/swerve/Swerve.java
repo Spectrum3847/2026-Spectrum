@@ -48,6 +48,7 @@ import frc.rebuilt.FieldHelpers;
 import frc.rebuilt.RobotBumpSim;
 import frc.robot.Robot;
 import frc.spectrumLib.framework.RobotLoop;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import frc.spectrumLib.swerve.MapleSimSwerveDrivetrain;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
@@ -183,13 +184,18 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         this.register();
 
-        optimizeBusUtilization();
+        // Eight motors' worth of per-signal config calls, and only an optimisation: on a dead bus
+        // it is boot latency for nothing, so it is skipped once the CAN config budget is spent.
+        if (!CanConfigBudget.exhausted()) {
+            optimizeBusUtilization();
+        }
         // Must come after optimizeBusUtilization(), which silences the CANcoder signals it wants.
         alignment = new SwerveAlignment(getModules(), config);
 
         var modules = getModules();
         moduleCurrentSignals = new BaseStatusSignal[modules.length * 4];
         moduleCurrentKeys = new String[modules.length * 4];
+        moduleConnectedKeys = new String[modules.length * 2];
         for (int i = 0; i < modules.length; i++) {
             moduleCurrentSignals[4 * i] = modules[i].getDriveMotor().getStatorCurrent(false);
             moduleCurrentSignals[4 * i + 1] = modules[i].getDriveMotor().getSupplyCurrent(false);
@@ -205,6 +211,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             moduleCurrentKeys[4 * i + 1] = CURRENTS_PREFIX + module + "/DriveSupplyCurrent";
             moduleCurrentKeys[4 * i + 2] = CURRENTS_PREFIX + module + "/SteerStatorCurrent";
             moduleCurrentKeys[4 * i + 3] = CURRENTS_PREFIX + module + "/SteerSupplyCurrent";
+            moduleConnectedKeys[2 * i] = "Swerve/Modules/" + module + "/DriveConnected";
+            moduleConnectedKeys[2 * i + 1] = "Swerve/Modules/" + module + "/SteerConnected";
         }
 
         Telemetry.print(getName() + " Subsystem Initialized");
@@ -277,6 +285,16 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     /** Log key for each entry of {@link #moduleCurrentSignals}, in the same order. */
     private String[] moduleCurrentKeys = new String[0];
 
+    /**
+     * {@code Swerve/Modules/<name>/DriveConnected} and {@code .../SteerConnected}, two per module.
+     *
+     * <p>The only connection telemetry the swerve had was {@code Swerve/Align/.../Connected}, which
+     * publishes while disabled. In the 2026-09-19 Chezy P8 match the CANivore bus died mid-teleop
+     * and the eight drivetrain motors left no direct evidence at all; the failure had to be read
+     * off their currents at 10 Hz. These ride the same 10 Hz refresh as the currents.
+     */
+    private String[] moduleConnectedKeys = new String[0];
+
     private double driveStatorCurrent;
     private double driveSupplyCurrent;
     private double steerStatorCurrent;
@@ -317,6 +335,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 Telemetry.log(moduleCurrentKeys[i + 1], driveSupply);
                 Telemetry.log(moduleCurrentKeys[i + 2], steerStator);
                 Telemetry.log(moduleCurrentKeys[i + 3], steerSupply);
+                // A signal whose refresh failed is a motor that did not answer.
+                Telemetry.log(
+                        moduleConnectedKeys[i / 2], moduleCurrentSignals[i].getStatus().isOK());
+                Telemetry.log(
+                        moduleConnectedKeys[i / 2 + 1],
+                        moduleCurrentSignals[i + 2].getStatus().isOK());
             }
             Telemetry.log(CURRENTS_PREFIX + "DriveStatorCurrent", driveStatorCurrent);
             Telemetry.log(CURRENTS_PREFIX + "SteerStatorCurrent", steerStatorCurrent);

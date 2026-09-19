@@ -12,6 +12,7 @@ import com.ctre.phoenix6.swerve.SwerveModule;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Timer;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 
@@ -101,7 +102,12 @@ public class SwerveAlignment {
          */
         private void readBackAppliedOffset(CANcoder encoder) {
             CANcoderConfiguration deviceConfig = new CANcoderConfiguration();
-            StatusCode status = encoder.getConfigurator().refresh(deviceConfig);
+            // Blocking, once per CANcoder at boot; charged to the CAN config budget so four
+            // absent encoders cost four timeouts, not four times the retry loop.
+            StatusCode status =
+                    CanConfigBudget.run(
+                            "CANcoder " + encoderId,
+                            timeout -> encoder.getConfigurator().refresh(deviceConfig, timeout));
             if (status.isOK()) {
                 appliedOffsetRotations = deviceConfig.MagnetSensor.MagnetOffset;
                 appliedOffsetValid = true;

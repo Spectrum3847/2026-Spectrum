@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import java.util.function.DoubleSupplier;
 import lombok.Getter;
 import lombok.Setter;
@@ -278,7 +279,9 @@ public class SpectrumLEDs implements Subsystem {
                                             .withBrightnessScalar(config.getBrightness())
                                             .withLossOfSignalBehavior(
                                                     config.getLossOfSignalBehavior()));
-            candle.getConfigurator().apply(candleConfig);
+            CanConfigBudget.run(
+                    "CANdle " + config.getDeviceId(),
+                    timeout -> candle.getConfigurator().apply(candleConfig, timeout));
         }
 
         // Pattern fields are initialized here (after config is set) so factory methods

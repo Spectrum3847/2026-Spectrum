@@ -238,7 +238,12 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
 
-        RobotController.setBrownoutVoltage(Units.Volts.of(4.6));
+        // Was 4.6 V from 2026-03-06 to 2026-09-19. The roboRIO 2 default is 6.75 V. At Chezy on
+        // 2026-09-18 the battery sagged to 8.8 V under 250 to 290 A in auto; a worse sag would
+        // have taken the RIO below its own reset point before a 4.6 V brownout ever tripped, and
+        // a RIO reboot mid-match is far worse than a second of disabled outputs. 6.0 V keeps some
+        // margin under a hard launch while still protecting the controller.
+        RobotController.setBrownoutVoltage(Units.Volts.of(6.0));
 
         // Logged once; the robot app reads these over NetworkTables, so publish them directly.
         Telemetry.logDashAlways("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
@@ -468,6 +473,10 @@ public class Robot extends SpectrumRobot {
             Telemetry.logDash("Match Data/TimeLeftInShift", shift.remainingTime(), "seconds");
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
+            // Every loop, not on the 1 Hz tick: a brownout is a few hundred milliseconds. DogLog
+            // only writes it when it changes. This used to come from logExtras, which is off, so
+            // the key stopped logging 5.5 s into every boot.
+            Telemetry.logDash("SystemStats/BrownedOut", RobotController.isBrownedOut());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
             batteryLogger.logPower();
 
@@ -509,6 +518,20 @@ public class Robot extends SpectrumRobot {
         Telemetry.log("CANConfig/BudgetSpentSeconds", CanConfigBudget.getSpentSeconds());
         Telemetry.log("CANConfig/FailedCalls", CanConfigBudget.getFailedCalls());
         Telemetry.logDashAlways("CANConfig/BudgetExhausted", CanConfigBudget.exhausted());
+
+        // FMS match identity. WPILib only renames the .wpilog with event and match once the FMS
+        // attaches, and neither 2026 match log carried the match as a topic, so the log triage
+        // could not say which match it was reading or arm its disable-and-re-enable detector.
+        // Strings and ints that change a handful of times a day; DogLog writes them on change.
+        Telemetry.log("Match Data/EventName", DriverStation.getEventName());
+        Telemetry.log("Match Data/MatchType", DriverStation.getMatchType().name());
+        Telemetry.log("Match Data/MatchNumber", DriverStation.getMatchNumber());
+        Telemetry.log("Match Data/ReplayNumber", DriverStation.getReplayNumber());
+        Telemetry.log(
+                "Match Data/Alliance", DriverStation.getAlliance().map(Enum::name).orElse("NONE"));
+        Telemetry.log("Match Data/Station", DriverStation.getLocation().orElse(0));
+        Telemetry.log("Match Data/FMSAttached", DriverStation.isFMSAttached());
+        Telemetry.log("SystemStats/BrownoutVoltage", RobotController.getBrownoutVoltage(), "volts");
     }
 
     /**
@@ -794,7 +817,8 @@ public class Robot extends SpectrumRobot {
 
     /**
      * Blanks the start-pose report: publishes NaN rather than a stale or vacuous number, and
-     * disarms the disagreement alert.
+     * disarms both alerts. The UNVERIFIED alert in particular used to stay up for the rest of the
+     * power cycle once the robot had run unseeded, because nothing after an enable cleared it.
      *
      * <p>NaN and not 0: a dashboard reading 0.00 m is indistinguishable from a perfect seed, which
      * is the trap this whole check exists to close.
@@ -802,6 +826,7 @@ public class Robot extends SpectrumRobot {
     private void clearStartPoseReport() {
         startPoseErrorSinceSeconds = Double.NaN;
         startPoseAlert.set(false);
+        startPoseUnverifiedAlert.set(false);
         Telemetry.logDash("Auton/StartPoseErrorMeters", Double.NaN, "m");
         Telemetry.logDash("Auton/StartHeadingErrorDeg", Double.NaN, "deg");
     }
