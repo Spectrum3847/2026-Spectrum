@@ -134,11 +134,17 @@ public class IntakeExtension implements Subsystem {
             /**
              * Once the intake has deployed it cannot come all the way back in: the kicker bar arms
              * are in the way. Measured 2026-09-06 23:40 with the extension resting against them:
-             * 1.715 rot on both sides, 47 percent of travel. No command may ask for less than 50
-             * percent once the extension has ever been out past it, so it never touches the arms;
-             * only a power-on with the intake stowed (position near zero) clears the latch.
+             * 1.715 rot on both sides, 47 percent of travel. No command may ask for less than this
+             * once the extension has ever been out past it, so it never touches the arms; only a
+             * power-on with the intake stowed (position near zero) clears the latch.
+             *
+             * <p>Was 50. At Chezy on 2026-09-18 the agitate's full retract settled at 51.6 to 52
+             * percent in every burst (P8 log, 400 to 444 s) and the roller was hitting the kicker
+             * bar side plate there, so the arms are not the only thing in the way. Raised to 60 to
+             * put about an inch of air between the roller and the plate; the agitate still has a
+             * 4.6 in working range above it.
              */
-            @Getter private final double deployedRetractFloorPercent = 50;
+            @Getter private final double deployedRetractFloorPercent = 60;
 
             /** The deployed floor in drum rotations. */
             public double deployedRetractFloorRotations() {
