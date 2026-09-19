@@ -90,6 +90,8 @@ public class Launcher extends Mechanism {
         LAUNCH,
         /** Flywheel backwards, to push a ball stuck at the wheels back down during an unjam. */
         REVERSE,
+        /** Fixed speed for the pose-independent set shot. */
+        SET_SHOT,
     }
 
     public enum SystemState {
@@ -97,6 +99,7 @@ public class Launcher extends Mechanism {
         IDLE_PREP,
         LAUNCH,
         REVERSE,
+        SET_SHOT,
     }
 
     /**
@@ -122,6 +125,7 @@ public class Launcher extends Mechanism {
             case IDLE_PREP -> SystemState.IDLE_PREP;
             case LAUNCH -> SystemState.LAUNCH;
             case REVERSE -> SystemState.REVERSE;
+            case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
     /** Flywheel speed commanded this loop (RPM); 0 when stopped. */
@@ -145,6 +149,9 @@ public class Launcher extends Mechanism {
             case REVERSE:
                 wantedRPM = UNJAM_RPM;
                 break;
+            case SET_SHOT:
+                wantedRPM = ShotCalculator.getSetShotFlywheelRPM();
+                break;
         }
         commandedRPM = wantedRPM;
         final double finalWantedRPM = wantedRPM;
@@ -156,7 +163,7 @@ public class Launcher extends Mechanism {
      * within the configured tolerance of the commanded shot speed. Gates feeding into the flywheel.
      */
     public boolean isAtSpeed() {
-        return systemState == SystemState.LAUNCH
+        return (systemState == SystemState.LAUNCH || systemState == SystemState.SET_SHOT)
                 && Math.abs(getVelocityRPM() - commandedRPM) <= config.getOnTargetToleranceRPM();
     }
 
@@ -171,7 +178,7 @@ public class Launcher extends Mechanism {
      * @return true when launching and at or above {@code fraction} of the commanded speed
      */
     public boolean isAboveSpeedFraction(double fraction) {
-        return systemState == SystemState.LAUNCH
+        return (systemState == SystemState.LAUNCH || systemState == SystemState.SET_SHOT)
                 && commandedRPM > 0
                 && getVelocityRPM() >= commandedRPM * fraction;
     }

@@ -319,6 +319,11 @@ public class Robot extends SpectrumRobot {
         pilot.home_select.onTrue(superStructure.setStateCommand(WantedSuperState.FORCE_HOME));
         pilot.home_select.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
+        // Park against the tower with the intake to it, then hold this: turret to zero, hood and
+        // flywheel to fixed numbers, feed on speed alone. No pose is read and no aim is checked.
+        pilot.setShot_LB_Y.whileTrue(superStructure.setStateCommand(WantedSuperState.SET_SHOT));
+        pilot.setShot_LB_Y.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+
         // Each press is also the shot-outcome signal: hood down says the last burst went long,
         // hood up says it fell short. Logged as ShotCalc/Trim/* and paired with the most recent
         // ShotCalc/Shot/* row. See docs/tools/shot-log.md.
@@ -380,9 +385,12 @@ public class Robot extends SpectrumRobot {
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
 
         // Sim bindings for when people with just keyboards at home are doing sim at home
-        pilot.YButton.whileTrue(
-                superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
-        pilot.YButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+        // noLB: plain Y is the keyboard launch, LB + Y is the set shot. Without this they would
+        // both fire in a sim and fight over the super state.
+        pilot.YButton.and(pilot.noLB)
+                .whileTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
+        pilot.YButton.and(pilot.noLB)
+                .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.BButton.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
         pilot.BButton.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.LB.onTrue(FeedTargetFactory.feedLeft());

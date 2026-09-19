@@ -658,6 +658,65 @@ public class ShotCalculator {
     private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
 
     // =========================================================================
+    // Set shot -- the fallback when the pose is gone
+    // =========================================================================
+
+    /**
+     * Range the set shot is fitted for: the robot parked against the tower's field-facing wall,
+     * intake to the wall, shooting the hub.
+     *
+     * <p>Worked from the field geometry rather than measured. The tower's front face is at {@link
+     * frc.rebuilt.Field.Tower#frontFaceX} (43.51 in) on the tower's centreline, {@code tagY(31)}; a
+     * 30 in bumper puts the robot's centre, and therefore the launcher ({@code robotToLauncher} is
+     * zero), 15 in further out at x = 1.486 m. The hub centre is at {@link
+     * frc.rebuilt.Field.Hub#centerX} and mid-field width, (4.626, 4.035). That is 3.15 m, 10.3 ft.
+     *
+     * <p>Forgiving to be off by: the model moves about 0.5 deg of hood and 35 RPM per 15 cm here,
+     * so lining up by eye against the tower is good enough. Well inside the model's fitted 1.5 to
+     * 8.0 m band either way.
+     */
+    public static final double SET_SHOT_DISTANCE_METERS = 3.15;
+
+    /**
+     * Hood angle and flywheel speed for {@link #SET_SHOT_DISTANCE_METERS}, at a standstill.
+     *
+     * <p>Read off the same fitted surface a tracked shot uses, at a fixed distance with zero
+     * velocity, so it moves with the model and with the operator's D-pad hood trim instead of being
+     * a pair of magic numbers that quietly go stale the next time the model is refitted. It never
+     * touches the robot pose, which is the entire point: this is what gets used when the pose is
+     * the thing that has failed.
+     *
+     * @return {@code { hoodDegrees, flywheelRPM }}
+     */
+    private static double[] setShotSolution() {
+        double[] raw = evalPolyRaw(WANTED_HUB_MODEL, SET_SHOT_DISTANCE_METERS, 0.0);
+        double hoodDegrees =
+                MathUtil.clamp(
+                        (90 - raw[1]) + WANTED_HUB_MODEL.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
+                        Robot.getHood().getConfig().getMinRotations() * 360.0,
+                        Robot.getHood().getConfig().getMaxRotations() * 360.0);
+        return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS};
+    }
+
+    /**
+     * Hood angle for the set shot, in degrees.
+     *
+     * @return the commanded hood angle
+     */
+    public static double getSetShotHoodDegrees() {
+        return setShotSolution()[0];
+    }
+
+    /**
+     * Flywheel speed for the set shot, in RPM.
+     *
+     * @return the commanded flywheel speed
+     */
+    public static double getSetShotFlywheelRPM() {
+        return setShotSolution()[1];
+    }
+
+    // =========================================================================
     // State — Velocity Derivative Filters
     // =========================================================================
 

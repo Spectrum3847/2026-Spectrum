@@ -62,6 +62,8 @@ public class SuperStructure {
         UNJAM,
         KICKER_UNJAM,
         FORCE_HOME,
+        /** Pose-independent fixed shot from the tower. See {@link #setShot()}. */
+        SET_SHOT,
     }
 
     public enum CurrentSuperState {
@@ -80,6 +82,7 @@ public class SuperStructure {
         UNJAM,
         KICKER_UNJAM,
         FORCE_HOME,
+        SET_SHOT,
     }
 
     @Getter private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
@@ -153,7 +156,8 @@ public class SuperStructure {
                 || currentSuperState == CurrentSuperState.LAUNCH_WITHOUT_SQUEEZE
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_BRAKE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE
-                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE;
+                || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE
+                || currentSuperState == CurrentSuperState.SET_SHOT;
     }
     /**
      * Returns {@code true} if the current super state is an intake state or a launch-without-
@@ -324,7 +328,14 @@ public class SuperStructure {
         boolean shotInRange = ShotCalculator.getInstance().getParameters().isValid();
         // A range check against an untrusted pose is not measuring anything, so it does not vote.
         boolean rangeOk = !poseTrusted || shotInRange;
-        boolean shotReady = launcherAtSpeed && hoodAtAngle && turretOnTarget && rangeOk;
+        // The set shot is the deliberate exception. Aim and range are both computed from the pose,
+        // and the set shot exists precisely for when there is no pose to compute them from, so
+        // neither gets a vote -- the driver has taken responsibility for pointing the robot. Speed
+        // and hood angle still do: feeding fuel into a flywheel that is not up to speed jams it,
+        // and that is true however the shot was aimed.
+        boolean setShot = currentSuperState == CurrentSuperState.SET_SHOT;
+        boolean shotReady =
+                launcherAtSpeed && hoodAtAngle && (setShot || (turretOnTarget && rangeOk));
 
         shotReadyStreak = shotReady ? shotReadyStreak + 1 : 0;
         boolean startReady = shotReadyStreak >= SHOT_READY_DEBOUNCE_LOOPS;
@@ -332,7 +343,7 @@ public class SuperStructure {
         boolean keepReady =
                 launcher.isAboveSpeedFraction(KEEP_FEED_MIN_SPEED_FRACTION)
                         && hood.isAtAngle(KEEP_FEED_HOOD_TOLERANCE_DEG)
-                        && turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG);
+                        && (setShot || turret.isReadyToShoot(KEEP_FEED_TURRET_TOLERANCE_DEG));
 
         boolean launching = currentStateIsLaunching();
         // Closing the gate on leaving a launch state means the next burst re-earns the strict
@@ -409,6 +420,7 @@ public class SuperStructure {
             case UNJAM -> CurrentSuperState.UNJAM;
             case KICKER_UNJAM -> CurrentSuperState.KICKER_UNJAM;
             case FORCE_HOME -> CurrentSuperState.FORCE_HOME;
+            case SET_SHOT -> CurrentSuperState.SET_SHOT;
         };
     }
     /** Applies the states. */
@@ -459,10 +471,50 @@ public class SuperStructure {
             case FORCE_HOME:
                 forceHome();
                 break;
+            case SET_SHOT:
+                setShot();
+                break;
         }
     }
 
     // ── State methods ──────────────────────────────────────────────────────────
+    /**
+     * Fixed shot from the tower, for when the pose is gone.
+     *
+     * <p>Every other launch state asks {@link ShotCalculator} where the hub is, which means asking
+     * where the robot is. When vision has not seeded the pose that answer is wrong in a way nothing
+     * on the robot can detect, and the turret aims off by the robot's power-on heading error. This
+     * state asks nothing: the turret goes to its zero, and the hood and flywheel go to the pair of
+     * numbers that {@link ShotCalculator#SET_SHOT_DISTANCE_METERS} works out to.
+     *
+     * <p>The driver does the aiming, by parking the robot: intake against the tower's field-facing
+     * wall, then cheating the heading about 5 deg toward the hub. The turret's zero points away
+     * from the intake, so parking is aiming -- but squared up dead flat against the wall is 5.3 deg
+     * off the hub, because the tower's centreline follows tag 31 and the hub sits on the field
+     * centreline. That is roughly 29 cm of lateral miss at this range, against a goal 41.7 in wide
+     * on the inside, so it still scores; the cheat is there to spend the margin on something else.
+     * Deliberately left in the driver's hands rather than trimmed out with a fixed turret angle.
+     *
+     * <p>Nothing here checks any of it -- it cannot, that is the whole point -- so the shot is only
+     * as good as the parking.
+     *
+     * <p>Deliberately not a drive-to-pose: a pose good enough to drive to is a pose good enough to
+     * aim with, and the case this exists for is not having one.
+     */
+    private void setShot() {
+        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
+        swerve.setTeleopVelocityCoefficient(SHOOTING_TELEOP_TRANSLATION_COEFFICIENT);
+        swerve.setTeleopRotationVelocityCoefficient(SHOOTING_TELEOP_ROTATION_COEFFICIENT);
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.SET_SHOT);
+        hood.setWantedState(Hood.WantedState.SET_SHOT);
+        // IDLE is the turret's zero. Not AIM_AT_TARGET: that reads the pose, and would also sit in
+        // WAIT_FOR_POSE for exactly the reason this state exists.
+        turret.setWantedState(Turret.WantedState.IDLE);
+        applyGatedFeed();
+    }
+
     /** Applies the idle. */
     private void applyIdle() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);

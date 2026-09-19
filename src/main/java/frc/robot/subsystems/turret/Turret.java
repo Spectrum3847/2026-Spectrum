@@ -15,6 +15,7 @@ import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
 import frc.robot.RobotSim;
+import frc.robot.subsystems.vision.Vision;
 import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
@@ -152,6 +153,13 @@ public class Turret extends Mechanism {
         AIM_AT_TARGET,
         UNJAM_SHAKE,
         AIM_SWEEP,
+        /**
+         * Aiming was asked for, but vision has not established the robot pose yet, so the turret
+         * holds at its zero instead of aiming from a heading that is probably wrong. There is no
+         * matching WantedState: nothing commands this, the turret falls into it and leaves again on
+         * its own once {@link frc.robot.subsystems.vision.Vision#isPoseTrustedForAiming()} is true.
+         */
+        WAIT_FOR_POSE,
     }
 
     // ---- Intake sweep ----
@@ -183,14 +191,29 @@ public class Turret extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+    /**
+     * Whether the turret is allowed to aim right now.
+     *
+     * <p>Aiming subtracts the robot's heading from a field-relative angle, so before vision has
+     * seeded the pose the turret does not aim badly -- it aims off by exactly the heading the robot
+     * happened to power on at, and nothing in the turret's own signals says so. Holding at zero is
+     * the honest answer until a camera has seen a tag. The shake is exempt because it works about
+     * wherever the turret already is and never reads the pose.
+     */
+    private boolean mayAim() {
+        Vision vision = Robot.getVision();
+        // Null only between the turret's construction and vision's, which is before any periodic.
+        return vision == null || vision.isPoseTrustedForAiming();
+    }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case IDLE -> SystemState.IDLE;
-            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case AIM_AT_TARGET -> mayAim() ? SystemState.AIM_AT_TARGET : SystemState.WAIT_FOR_POSE;
             case UNJAM_SHAKE -> SystemState.UNJAM_SHAKE;
-            case AIM_SWEEP -> SystemState.AIM_SWEEP;
+            case AIM_SWEEP -> mayAim() ? SystemState.AIM_SWEEP : SystemState.WAIT_FOR_POSE;
         };
     }
 
@@ -328,6 +351,7 @@ public class Turret extends Mechanism {
                 stop();
                 return;
             case IDLE:
+            case WAIT_FOR_POSE:
                 unwrapping = false;
                 commandedDegrees = 0;
                 mechOmegaRotPerSec = 0;

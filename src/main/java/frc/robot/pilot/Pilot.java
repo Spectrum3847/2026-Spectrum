@@ -47,6 +47,17 @@ public class Pilot extends Gamepad {
     public final Trigger visionPoseReset_LB_Select = LB.and(selectButton);
     public final Trigger home_select = selectButton.and(noLB);
 
+    /*
+     * Forced set shot from the tower, for when the pose is gone.
+     *
+     * LB + Y so it can be held while driving: left index on the bumper, right thumb on the face
+     * button, left thumb never leaves the drive stick. Y is the only face button free in teleop --
+     * A, B and X are all bound bare, so LB + any of those would fire UNJAM, KICKER_UNJAM or
+     * TRACK_TARGET at the same time. The sim-only keyboard layer owns Y as well and is given noLB
+     * so the two cannot overlap there either.
+     */
+    public final Trigger setShot_LB_Y = LB.and(YButton).and(teleop);
+
     public static class PilotConfig extends Config {
         private double deadzone = 0.10;
         /** Creates a new PilotConfig instance. */

@@ -85,13 +85,16 @@ public class Hood extends Mechanism {
     public enum WantedState {
         HOME,
         STOPPED,
-        AIM_AT_TARGET
+        AIM_AT_TARGET,
+        /** Fixed angle for the pose-independent set shot. */
+        SET_SHOT
     }
 
     public enum SystemState {
         HOME,
         STOPPED,
-        AIM_AT_TARGET
+        AIM_AT_TARGET,
+        SET_SHOT
     }
 
     private WantedState wantedState = WantedState.HOME;
@@ -110,6 +113,7 @@ public class Hood extends Mechanism {
             case HOME -> SystemState.HOME;
             case STOPPED -> SystemState.STOPPED;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
     /** Hood angle commanded this loop (degrees). */
@@ -136,6 +140,9 @@ public class Hood extends Mechanism {
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedDegrees = params.hoodAngle();
                 break;
+            case SET_SHOT:
+                wantedDegrees = ShotCalculator.getSetShotHoodDegrees();
+                break;
         }
         commandedDegrees = wantedDegrees;
         final double finalWantedDegrees = wantedDegrees;
@@ -160,7 +167,7 @@ public class Hood extends Mechanism {
      * @return true when aiming and within {@code toleranceDegrees} of the commanded angle
      */
     public boolean isAtAngle(double toleranceDegrees) {
-        return systemState == SystemState.AIM_AT_TARGET
+        return (systemState == SystemState.AIM_AT_TARGET || systemState == SystemState.SET_SHOT)
                 && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
     }
 
