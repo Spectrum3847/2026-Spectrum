@@ -97,19 +97,19 @@ public class Auton {
     }
 
     public Command OSTBTB(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSTBTB Full", mirrored))
+        return Commands.sequence(SpectrumAuton("OSTBTB FULL", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("OSTBTB Full - " + (mirrored ? "Right" : "Left"));
+                .withName("OSTBTB FULL - " + (mirrored ? "Right" : "Left"));
     }
 
     public Command OSRIPPOFF(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSRIPPOFF Full", mirrored))
+        return Commands.sequence(SpectrumAuton("OSRIPPOFF FULL", mirrored))
                 // the "- Right" and "- Left" is added to the name of the command so that when the
                 // visualizer checks the name of the command it can determine whether the auto is
                 // mirrored or not and correctly mirror the poses
-                .withName("OSRIPPOFF Full - " + (mirrored ? "Right" : "Left"));
+                .withName("OSRIPPOFF FULL - " + (mirrored ? "Right" : "Left"));
     }
 
     // Named TWOMANOSTBTB because Java identifiers can't start with a digit; the auto file it loads
@@ -121,13 +121,13 @@ public class Auton {
     }
 
     public Command OSCENT(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSCENT Full", mirrored), launchWithAgitate())
-                .withName("OSCENT Full -" + (mirrored ? "Right" : "Left"));
+        return Commands.sequence(SpectrumAuton("OSCENT FULL", mirrored), launchWithAgitate())
+                .withName("OSCENT FULL - " + (mirrored ? "Right" : "Left"));
     }
 
     public Command OSCENTOT(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSCENTOT Full", mirrored))
-                .withName("OSCENTOT Full -" + (mirrored ? "Right" : "Left"));
+        return Commands.sequence(SpectrumAuton("OSCENTOT FULL", mirrored))
+                .withName("OSCENTOT FULL - " + (mirrored ? "Right" : "Left"));
     }
 
     // Allows Robot to continue shooting even after path has been completed--at a stand still
