@@ -295,6 +295,23 @@ public class Turret extends Mechanism {
     // the scheduler in test when LiveWindow is enabled there and this robot never enables it.
     //
     // None of them touches the robot pose or ShotCalculator, so they are usable on a cart.
+    //
+    // Both moving checks drive the motor through commandPosition -- PositionVoltage, gain slot 0,
+    // the same request AIM_AT_TARGET uses (with a zero velocity feedforward, there being no target
+    // velocity to feed). NOT Motion Magic. Both were written with commandMMPosition first and the
+    // difference is not subtle: on FRC_20260919_180624, 163.2 to 177.0 s, the follow check pinned
+    // at 89.7 deg/s -- exactly the 0.25 rot/s mmCruiseVelocity -- and never asked for more than
+    // 2.51 V of its 6 V ceiling, while AIM_AT_TARGET in the P8 match log runs p90 135 deg/s, p99
+    // 385, and uses the full 6.11 V. The profile was throwing away more than half the authority
+    // the mechanism had. Mechanism.setPositionWithVelocity's own javadoc says as much: profiling
+    // introduces steady-state lag on a moving setpoint, which is what these checks track.
+    //
+    // The consequence for the sweep is real and deliberate: it now crosses the travel at teleop
+    // speed rather than at a profiled 90 deg/s, so it reaches the turnaround fast. That is the
+    // point -- it is meant to be the same mechanism behaviour a match sees -- but it is also the
+    // one place here where "same as teleop" costs something, because teleop's own full-travel
+    // move, the cable unwrap in applyAimAtTarget, is profiled for exactly that reason. If the
+    // turnarounds look violent, this is the line to change, not the gains.
 
     /** Lowest soft limit of the travel, in degrees. */
     private double minLimitDegrees() {
@@ -310,13 +327,16 @@ public class Turret extends Mechanism {
      * Fraction of the measured tag bearing the follow check closes each loop.
      *
      * <p>The command is rebuilt from the <em>measured</em> angle every loop rather than integrated,
-     * so this is the outer loop's gain and the turret still converges on the tag with no standing
-     * error whatever the exact degrees-per-tx scale is. That matters here: the turret camera is
-     * pitched about 29 deg up, so a degree of {@code tx} is not quite a degree of turret azimuth,
-     * and a gain-independent law is the honest way to handle it. Well under 1 so the outer loop is
-     * slower than the position loop under it.
+     * so this is the outer loop's gain and the turret converges on the tag with no standing error
+     * whatever the exact degrees-per-tx scale is. That matters here: the turret camera is pitched
+     * about 29 deg up, so a degree of {@code tx} is not quite a degree of turret azimuth. Writing
+     * the law this way means the scale only has to be roughly right, not known: convergence needs
+     * {@code 0 < TEST_FOLLOW_KP * scale < 2}, and the scale is somewhere near 1.
+     *
+     * <p>Was 0.5, which halved the commanded step every loop for no reason -- the inner position
+     * loop is what should be doing the work. 1.0 means "point where the tag is".
      */
-    private static final double TEST_FOLLOW_KP = 0.5;
+    private static final double TEST_FOLLOW_KP = 1.0;
 
     /**
      * Points the turret at whatever AprilTag the turret camera currently sees.
@@ -357,7 +377,7 @@ public class Turret extends Mechanism {
         }
 
         final double target = commandedDegrees;
-        commandMMPosition(() -> degreesToRotations(() -> target));
+        commandPosition(() -> degreesToRotations(() -> target));
     }
 
     /**
@@ -433,7 +453,7 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/Test/SweepTowardMax", sweepingTowardMax);
 
         final double commanded = target;
-        commandMMPosition(() -> degreesToRotations(() -> commanded));
+        commandPosition(() -> degreesToRotations(() -> commanded));
     }
 
     // Whether the turret is unwrapping to avoid wire wrap.

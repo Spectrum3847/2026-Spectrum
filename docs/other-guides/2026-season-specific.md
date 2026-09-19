@@ -142,13 +142,15 @@ The pilot drives and runs the fuel cycle; the operator handles offset trims and 
 
 Three held-to-run turret checks on the bare D-pad, live only while the Driver Station is in Test. All three are pose-independent — no alliance, no tag map, no `ShotCalculator` — so they run on a cart. Nothing else on the robot moves: intake, rotor, tower and flywheel are off and the hood goes home.
 
-* `Dpad Up` (hold), `TEST_TURRET_FOLLOW_TAG`: the turret points at whatever AprilTag the turret Limelight sees, closing the camera's own `tx` bearing. Checks that the camera, the turret zero and the gearbox agree on direction. With no tag in view it holds its last command. Clamped to the soft limits.
+* `Dpad Up` (hold), `TEST_TURRET_FOLLOW_TAG`: the turret points at whatever AprilTag the turret Limelight sees, closing the camera's own `tx` bearing. Checks that the camera, the turret zero and the gearbox agree on direction — confirmed working on `FRC_20260919_180624`, where `tx` converged to under 0.5°. With no tag in view it holds its last command. Clamped to the soft limits.
 * `Dpad Left` (hold), `TEST_TURRET_SWEEP`: runs to one soft limit, then the other, and keeps going. The travel check — watch `Turret/PositionDegrees` at each end and `Turret/TravelTotalDeg` against `Vision/TurretZero/SlipDegPerKiloDegTravel` for belt slip. A leg that stalls or runs over 20 s turns around instead of pushing.
 * `Dpad Down` (hold), `TEST_TURRET_ZERO`: back to zero, through the same output path the robot uses to sit at zero in a match.
 
 Release any of them and the robot goes to `TEST_TURRET_STOP` — the turret stops where it stands, rather than falling back to `IDLE`, which would aim at the target. Entering test mode starts there too, and `testExit()` resets to `IDLE`.
 
 Test mode is not a reduced mode: `robotPeriodic()` runs in every mode, so Vision, `SuperStructure`, the `CommandScheduler` and every subsystem `periodic()` — and with them all the DogLog keys — behave exactly as in teleop. Current limits, soft limits and the stall cut-out come from the motor config applied at construction and are never changed per mode. The one thing that would break that is WPILib enabling LiveWindow in test, which disables the `CommandScheduler`; it defaults off and nothing calls `enableLiveWindowInTest(true)`. Leave it that way.
+
+Both moving checks drive the motor the same way `AIM_AT_TARGET` does — `commandPosition`, i.e. `PositionVoltage` in gain slot 0 at the ±6 V ceiling — not Motion Magic. That is deliberate and it was measured: both were written on Motion Magic first, and on `FRC_20260919_180624` (163.2–177.0 s) the follow check sat pinned at 89.7 °/s, exactly the 0.25 rot/s `mmCruiseVelocity`, drawing no more than 2.51 V of its 6 V, while `AIM_AT_TARGET` in the P8 match log runs p90 135 °/s, p99 385 °/s and uses the full 6.11 V. The profile was discarding more than half the authority the mechanism had. The one cost is that the sweep now crosses the travel at teleop speed and reaches its turnaround quickly; teleop's own full-travel move (the cable unwrap) is profiled precisely because that move is not a tracking move.
 
 Note that the bare `A`, `B`, `X`, `Select` and trigger bindings have no mode gate, so they are also live in test mode. The test checks are on the D-pad precisely because nothing else claims it.
 
