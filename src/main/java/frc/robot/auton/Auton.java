@@ -121,21 +121,20 @@ public class Auton {
     }
 
     public Command OSCENT(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSCENT Full", mirrored), launchAndIntake())
+        return Commands.sequence(SpectrumAuton("OSCENT Full", mirrored), launchWithAgitate())
                 .withName("OSCENT Full -" + (mirrored ? "Right" : "Left"));
     }
 
     public Command OSCENTOT(boolean mirrored) {
-        return Commands.sequence(SpectrumAuton("OSCENTOT Full", mirrored), launchAndIntake())
+        return Commands.sequence(SpectrumAuton("OSCENTOT Full", mirrored))
                 .withName("OSCENTOT Full -" + (mirrored ? "Right" : "Left"));
     }
 
     // Allows Robot to continue shooting even after path has been completed--at a stand still
-    public Command launchAndIntake() {
+    public Command launchWithAgitate() {
         return new InstantCommand(
                 () -> {
-                    robotSuperStructure.setStateCommand(
-                            WantedSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE);
+                    robotSuperStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE);
                 });
     }
 
