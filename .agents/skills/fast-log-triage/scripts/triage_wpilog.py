@@ -25,6 +25,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# The report uses arrows and other non-ASCII glyphs. On Windows the console encoding is
+# cp1252 and print() raised UnicodeEncodeError on the very first real match log
+# (2026-09-19), so the output is forced to UTF-8 rather than depending on the locale.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 from wpilog_fast import Entry, LogFile, decode, find_logs, iter_records, open_log, short_name
 
 SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
@@ -299,9 +306,29 @@ class Triage:
     def _ds(self):
         es = self.series.get("DS:estop")
         if es:
+            # One E-stop is one event. After the stop the DS toggles the flag every time the
+            # driver tries to re-enable, and the 2026-08-01 TXDRI1 Q20 log reported a single stop
+            # at teleop+54 s as eight CRITICAL findings. Toggles that start while already disabled
+            # are folded into the event before them; a stop with no enabled period near it is
+            # the DS being reset on the cart, and only worth a LOW.
+            groups: list[list] = []
             for s, e in true_segments(es, self.log.last_us):
+                if groups and not in_windows(s, self.windows) and s - groups[-1][1] < 30_000_000:
+                    groups[-1][1] = e
+                    groups[-1][2] += 1
+                else:
+                    groups.append([s, e, 1])
+            for s, e, n in groups:
+                live = in_windows(s, self.windows) or any(abs(s - w.end_us) < 2_000_000 for w in self.windows if w.kind != "log")
                 self.findings.append(
-                    Finding("CRITICAL", "Robot was E-STOPPED", s, e, "DS:estop true", "Ask the drive team / FTA what happened; check for a robot fault that made them stop it.", "ds")
+                    Finding(
+                        "CRITICAL" if live else "LOW",
+                        "Robot was E-STOPPED" if live else "E-stop toggled while disabled",
+                        s, e,
+                        "DS:estop true" + (f", toggled {n}x" if n > 1 else ""),
+                        "Ask the drive team / FTA what happened; check for a robot fault that made them stop it." if live else "Driver Station reset, not a robot event.",
+                        "ds",
+                    )
                 )
         # disable + re-enable inside a match (FMS match info present)
         in_match = self.meta.get("matchNumber") not in (None, "0", "")
@@ -738,7 +765,12 @@ class Triage:
         if pose and len(pose) > 2:
             pts = [(t, p) for t, p in zip(pose.ts, pose.vs) if isinstance(p, tuple) and a0.start_us <= t <= a0.end_us]
             if len(pts) >= 2:
-                d = ((pts[-1][1][0] - pts[0][1][0]) ** 2 + (pts[-1][1][1] - pts[0][1][1]) ** 2) ** 0.5
+                # Furthest the pose got from where auto began, not end minus start. In the
+                # 2026-09-19 Chezy P8 log the robot drove the whole auto and the pose was then
+                # snapped back to the start pose on the disable, so end minus start read 0.00 m
+                # and this fired CRITICAL on a working auto.
+                x0, y0 = pts[0][1][0], pts[0][1][1]
+                d = max(((p[0] - x0) ** 2 + (p[1] - y0) ** 2) ** 0.5 for _, p in pts)
                 if d < 0.2 and a0.dur_s > 3:
                     self.findings.append(Finding("CRITICAL", "Robot did NOT move during auto", a0.start_us, a0.end_us, f"Swerve/State/Pose moved {d:.2f} m over {a0.dur_s:.0f} s", "No auto selected, path failed to load (console 'Could not load path planner paths'), or drive motors disconnected.", "auton"))
                 else:
