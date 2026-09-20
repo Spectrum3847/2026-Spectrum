@@ -890,6 +890,7 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/BootDecision", bootDecision);
         Telemetry.log("Turret/PositionFileWriteFailures", positionFileWriteFailures);
         Telemetry.log("Turret/PositionSuspect", positionSuspect);
+        Telemetry.log("Turret/PositionStepBudgetDegrees", positionStepBudgetDegrees, "deg");
         Telemetry.log("Turret/PositionStepsRejected", positionStepsRejected);
         Telemetry.log("Turret/PositionStepsAccepted", positionStepsAccepted);
         Telemetry.log("Turret/StallLatched", stallLatched);
@@ -992,16 +993,47 @@ public class Turret extends Mechanism {
     // -- Reading guard ---------------------------------------------------------------------------
 
     /**
-     * Largest believable one-loop change in the reported angle, in degrees.
+     * Largest believable change in the reported angle between two guarded samples with the turret
+     * standing still, in degrees.
      *
-     * <p>Motion Magic cruises at {@code mmCruiseVelocity} = 0.25 rot/s, which is 1.8 deg per 20 ms
-     * loop, and a turret free-running at its 6 V ceiling manages about 7. Fifteen is twice the
-     * fastest thing the mechanism can physically do, and still two decades below what this exists
-     * to catch: on the 2026-09-19 pit log (FRC_20260919_150646, 162.68 s) the reported angle went
-     * from -0.09 to 289.42 deg between two consecutive loops, and the controller drove 235 deg of
-     * real motion into a hard stop on the strength of that one sample.
+     * <p>This is the fixed part of the step budget; {@link #positionStepBudgetDegrees} adds what
+     * the velocity signal says the turret actually moved in the time since the last sample. Until
+     * 2026-09-19 (Chezy Q50) the 15 deg stood alone and was compared loop to loop as if every loop
+     * were 20 ms. It is not: Q50 ran 282 of its 7979 enabled loops over 30 ms, 34 over 45 ms and
+     * one at 80 ms mid-auto, and the turret was slewing at 0.8 to 1.27 rot/s (290 to 460 deg/s), so
+     * a single slow loop carried 15 to 23 deg of real motion. The guard rejected it, and from then
+     * on every fresh reading was even further from the held angle, so it stayed rejected until the
+     * 10-loop acceptance "re-framed" the turret by 50 to 108 deg five times in the match (220.6,
+     * 220.9, 301.9, 314.1 and 346.9 s), each one a false alarm that also blanked {@code
+     * TurretOnTarget} for 12 s of launch time. Q36 had the same three times at 8 V.
+     *
+     * <p>Fifteen still clears any residual sample jitter with margin and is more than a decade
+     * below what this exists to catch: on the 2026-09-19 pit log (FRC_20260919_150646, 162.68 s)
+     * the reported angle went from -0.09 to 289.42 deg between two consecutive loops with the
+     * turret barely moving, and the controller drove 235 deg of real motion into a hard stop on the
+     * strength of that one sample.
      */
     private static final double MAX_POSITION_STEP_DEGREES = 15.0;
+
+    /**
+     * Multiplier on the motion the velocity signal accounts for, so the budget survives the turret
+     * accelerating between two samples and the position and velocity frames not landing on the same
+     * edge. At 1 rot/s and a 40 ms loop the velocity term is 14.4 deg; 1.5 makes it 21.6, on top of
+     * the fixed 15. A {@code setPosition} re-frame moves the position register and not the
+     * velocity, so at that speed and a nominal loop it still has only 15 + 10.8 deg to hide in, and
+     * the 52 deg re-home Q24 saw is caught as before.
+     */
+    private static final double POSITION_STEP_SLEW_MARGIN = 1.5;
+
+    /**
+     * Bounds on the elapsed time the velocity term may claim, in seconds. The floor is one nominal
+     * loop so a fast double call cannot shrink the budget below the standing-still case; the
+     * ceiling keeps a multi-second stall, or the first sample after enable, from opening the budget
+     * to a full turn.
+     */
+    private static final double POSITION_STEP_MIN_DT_SECONDS = 0.02;
+
+    private static final double POSITION_STEP_MAX_DT_SECONDS = 0.25;
 
     /**
      * Consecutive loops a stepped reading must repeat before it is believed.
@@ -1021,7 +1053,11 @@ public class Turret extends Mechanism {
     private double positionStepCandidateDegrees = Double.NaN;
     private int positionStepLoops = 0;
     private long positionGuardLoop = -1;
+    private double positionGuardTimestamp = Double.NaN;
     private boolean positionSuspect = false;
+
+    /** This loop's step budget, for the log: what the guard would have let through. */
+    @Getter private double positionStepBudgetDegrees = MAX_POSITION_STEP_DEGREES;
 
     /** How many distinct impossible steps have been held out this power cycle. */
     @Getter private int positionStepsRejected = 0;
@@ -1031,10 +1067,11 @@ public class Turret extends Mechanism {
 
     private final Alert positionStepAlert =
             new Alert(
-                    "Turret angle jumped more than "
+                    "Turret angle jumped further in one loop than it could have moved ("
                             + (int) MAX_POSITION_STEP_DEGREES
-                            + " deg in one loop. Holding the last good angle, so the turret will"
-                            + " not act on the jump. If this does not clear on its own the encoder"
+                            + " deg plus the velocity signal's travel). Holding the last good angle,"
+                            + " so the turret will not act on the jump. If this does not clear on"
+                            + " its own the encoder"
                             + " has been re-framed: re-zero the turret (operator B, disabled)"
                             + " before trusting a shot.",
                     AlertType.kError);
@@ -1056,12 +1093,29 @@ public class Turret extends Mechanism {
         positionGuardLoop = loop;
 
         double raw = super.getPositionDegrees();
+        double now = Timer.getFPGATimestamp();
+        double dt = now - positionGuardTimestamp;
+        positionGuardTimestamp = now;
         if (Double.isNaN(heldPositionDegrees)) {
             heldPositionDegrees = raw;
             return;
         }
 
-        if (Math.abs(raw - heldPositionDegrees) <= MAX_POSITION_STEP_DEGREES) {
+        // What the turret could honestly have moved since the last sample: the fixed allowance
+        // plus the velocity signal's travel over the time that actually elapsed, so a slow loop
+        // during a fast slew widens the budget instead of tripping it (Q50, see
+        // MAX_POSITION_STEP_DEGREES). Velocity is in the same status frame as position, so a
+        // re-framed position register does not bring a matching velocity with it.
+        if (Double.isNaN(dt)) {
+            dt = POSITION_STEP_MIN_DT_SECONDS;
+        }
+        dt = MathUtil.clamp(dt, POSITION_STEP_MIN_DT_SECONDS, POSITION_STEP_MAX_DT_SECONDS);
+        double velocityDegPerSec = Math.abs(getVelocityRPM()) * 6.0;
+        double budget =
+                MAX_POSITION_STEP_DEGREES + POSITION_STEP_SLEW_MARGIN * velocityDegPerSec * dt;
+        positionStepBudgetDegrees = budget;
+
+        if (Math.abs(raw - heldPositionDegrees) <= budget) {
             heldPositionDegrees = raw;
             positionStepLoops = 0;
             positionSuspect = false;
@@ -1070,9 +1124,10 @@ public class Turret extends Mechanism {
         }
 
         // Too big to be motion. Count it only while the reading keeps insisting on the same new
-        // value; a reading that wanders is noise starting over, not a re-framed encoder.
-        if (positionStepLoops > 0
-                && Math.abs(raw - positionStepCandidateDegrees) <= MAX_POSITION_STEP_DEGREES) {
+        // value; a reading that wanders is noise starting over, not a re-framed encoder. The same
+        // budget applies, so a turret that keeps slewing while held does not reset the count every
+        // slow loop (the 349 ms hold at Q50 346.5 s).
+        if (positionStepLoops > 0 && Math.abs(raw - positionStepCandidateDegrees) <= budget) {
             positionStepLoops++;
         } else {
             positionStepLoops = 1;

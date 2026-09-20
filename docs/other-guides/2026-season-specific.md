@@ -59,11 +59,17 @@ The turret has no absolute reference, so a bad angle is indistinguishable from a
 does damage. Two guards sit between the encoder and the motor, both in
 [`Turret.java`](../../src/main/java/frc/robot/subsystems/turret/Turret.java):
 
-* **Impossible-step guard.** A reported angle that moves more than 15 deg in one loop is held out,
-  and the last good angle is what the aim, the soft-limit arithmetic, the shot gate, travel and
-  Vision's zero chaser all see. A step that repeats itself for 10 loops (200 ms) is believed after
-  all -- the encoder really has been re-framed -- and says so on the console and in an alert. Logged
-  as `Turret/PositionSuspect`, `Turret/PositionStepsRejected`, `Turret/PositionStepsAccepted`.
+* **Impossible-step guard.** A reported angle that moves further between two samples than the
+  turret could have is held out, and the last good angle is what the aim, the soft-limit
+  arithmetic, the shot gate, travel and Vision's zero chaser all see. The budget is 15 deg plus 1.5
+  times the travel the velocity signal accounts for over the time that actually elapsed (clamped to
+  20 to 250 ms), so a slow loop during a fast slew widens it rather than tripping it. Until Chezy
+  Q50 (2026-09-19) the 15 deg stood alone and assumed a 20 ms loop; with the loop running 30 to 80
+  ms and the turret at 1 rot/s it fired five times on real motion and "re-framed" the turret by 50
+  to 108 deg each time. A step that repeats itself for 10 loops (200 ms) is believed after all --
+  the encoder really has been re-framed -- and says so on the console and in an alert. Logged as
+  `Turret/PositionSuspect`, `Turret/PositionStepBudgetDegrees`, `Turret/PositionStepsRejected`,
+  `Turret/PositionStepsAccepted`.
 * **Stall latch.** Pinned at 95% of the stator ceiling and not turning for 1 s cuts the turret's
   output and raises an alert. It is not stuck there: a command pointing to the other side of where
   it sits releases the latch and drives immediately, as do `OFF` and an operator-B re-zero. Logged
