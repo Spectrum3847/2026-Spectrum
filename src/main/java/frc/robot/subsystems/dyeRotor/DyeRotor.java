@@ -332,6 +332,92 @@ public class DyeRotor implements Subsystem {
         return rpm;
     }
 
+    // ---- Feed auto-unjam ----
+
+    /**
+     * Rotor stator current, in amps, that means the feed is jammed rather than working. The rotor's
+     * velocity loop runs on torque current, so a jam shows up as sustained stator draw well above
+     * what stirring loose fuel takes. Tunable so it can be set against the logs.
+     */
+    private static final DoubleSubscriber autoUnjamAmps =
+            Telemetry.tunable("DyeRotor/AutoUnjamAmps", 55.0);
+
+    /**
+     * How long after feeding starts, or restarts after an unjam, before the current is watched. The
+     * rotor spins up against a packed bed during this time and draws jam-level current
+     * legitimately.
+     */
+    private static final double AUTO_UNJAM_ARM_SECS = 0.4;
+
+    /** How long the current must stay above the threshold, without a break, to count as a jam. */
+    private static final double AUTO_UNJAM_DEBOUNCE_SECS = 0.4;
+
+    /** How long the rotor and feeder reverse before feeding resumes. */
+    private static final double AUTO_UNJAM_REVERSE_SECS = 0.25;
+
+    /** Runs from the start or restart of feeding; the arm time is measured against it. */
+    private final Timer feedTimer = new Timer();
+    /** Runs while the current is continuously above the threshold. */
+    private final Timer jamTimer = new Timer();
+    /** Runs while reversing. */
+    private final Timer reverseTimer = new Timer();
+
+    private boolean feeding = false;
+    private boolean jamTiming = false;
+    private boolean reversing = false;
+    private int autoUnjamCount = 0;
+
+    /**
+     * Returns the system state while {@code INDEX_MAX} is wanted, reversing briefly when the rotor
+     * is jammed. A jam is rotor stator current above the threshold for the debounce time, ignoring
+     * the arm time after feeding starts or restarts. After the reverse, feeding resumes and every
+     * timer starts over, so a jam that comes straight back earns another reverse only after another
+     * full arm and debounce. Follows {@link #idleRotorRpmWithStallCheck} and uses only software so
+     * no current-limit config writes are involved.
+     */
+    private SystemState indexMaxWithAutoUnjam() {
+        if (!feeding) {
+            feeding = true;
+            jamTiming = false;
+            reversing = false;
+            feedTimer.restart();
+            return SystemState.INDEX_MAX;
+        }
+
+        if (reversing) {
+            if (!reverseTimer.hasElapsed(AUTO_UNJAM_REVERSE_SECS)) {
+                return SystemState.UNJAM;
+            }
+            reversing = false;
+            jamTiming = false;
+            feedTimer.restart();
+            return SystemState.INDEX_MAX;
+        }
+
+        if (!feedTimer.hasElapsed(AUTO_UNJAM_ARM_SECS)) {
+            jamTiming = false;
+            return SystemState.INDEX_MAX;
+        }
+
+        boolean jammedNow = Math.abs(rotor.getStatorCurrent()) > autoUnjamAmps.get();
+        if (!jammedNow) {
+            jamTiming = false;
+            return SystemState.INDEX_MAX;
+        }
+        if (!jamTiming) {
+            jamTiming = true;
+            jamTimer.restart();
+            return SystemState.INDEX_MAX;
+        }
+        if (jamTimer.hasElapsed(AUTO_UNJAM_DEBOUNCE_SECS)) {
+            reversing = true;
+            autoUnjamCount++;
+            reverseTimer.restart();
+            return SystemState.UNJAM;
+        }
+        return SystemState.INDEX_MAX;
+    }
+
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
     /**
@@ -342,11 +428,19 @@ public class DyeRotor implements Subsystem {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
-    /** Handles the state transition. */
+    /**
+     * Handles the state transition. {@code INDEX_MAX} may briefly resolve to {@code UNJAM} through
+     * {@link #indexMaxWithAutoUnjam}; leaving {@code INDEX_MAX} for any reason clears that.
+     */
     private SystemState handleStateTransition() {
+        if (wantedState != WantedState.INDEX_MAX) {
+            feeding = false;
+            jamTiming = false;
+            reversing = false;
+        }
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
-            case INDEX_MAX -> SystemState.INDEX_MAX;
+            case INDEX_MAX -> indexMaxWithAutoUnjam();
             case IDLE_SLOW_INDEX -> SystemState.IDLE_SLOW_INDEX;
             case UNJAM -> SystemState.UNJAM;
         };
@@ -412,5 +506,7 @@ public class DyeRotor implements Subsystem {
         Telemetry.log("DyeRotor/SystemState", systemState.toString());
         Telemetry.log("DyeRotor/RotorStallBackoff", stallBackoff);
         Telemetry.log("DyeRotor/RotorStallCount", stallCount);
+        Telemetry.log("DyeRotor/AutoUnjamActive", reversing);
+        Telemetry.log("DyeRotor/AutoUnjamCount", autoUnjamCount);
     }
 }

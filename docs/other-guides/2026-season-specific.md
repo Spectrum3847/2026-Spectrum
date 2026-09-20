@@ -82,6 +82,19 @@ limits are in the wrong frame, and every shot leaves by the same error. Re-zero 
 Both guards came out of the 2026-09-19 pit log, where the reported angle stepped 289 deg in one loop
 and the turret then held 80 A stator against a hard stop for 6.8 s.
 
+### Dye rotor: feed auto-unjam
+
+[`DyeRotor.java`](../../src/main/java/frc/robot/subsystems/dyeRotor/DyeRotor.java) reverses itself
+when the feed jams. While `INDEX_MAX` is wanted, rotor stator current above
+`DyeRotor/AutoUnjamAmps` (tunable, 55 A at boot) held without a break for 0.4 s puts the system
+state in the existing `UNJAM` for 0.25 s (rotor -100 RPM, feeder -1000 RPM), then feeding resumes
+and the timers start over. The first 0.4 s after feeding starts, or restarts after a reverse, is
+not watched: the rotor spinning up against a packed bed draws jam-level current on its own. The
+check lives in `handleStateTransition()`, so `applyStates()` and the rest of the robot see only the
+resulting `UNJAM`; any wanted state other than `INDEX_MAX` clears it. Same software-only shape as
+the idle stall check, so no current-limit config writes. Logged as `DyeRotor/AutoUnjamActive`,
+`DyeRotor/AutoUnjamCount`.
+
 ## Per-Robot Configurations
 
 We build multiple physical robots each season and run the same code on all of them. The `Rio.id` field, looked up from the RoboRIO serial number in `frc.spectrumLib.hardware.Rio`, decides which configuration is loaded at startup. All configs live under `src/main/java/frc/robot/configs`:
