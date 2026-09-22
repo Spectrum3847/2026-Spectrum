@@ -849,16 +849,15 @@ public class Turret extends Mechanism {
     public void periodic() {
         recordAngleSample();
         systemState = handleStateTransition();
-        logBatteryUsage();
         updateStallDetection();
         applyStates();
         previousSystemState = systemState;
-        Telemetry.log("Turret/WantedState", wantedState.toString());
-        Telemetry.log("Turret/SystemState", systemState.toString());
-        Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
+        Telemetry.logState("Turret/WantedState", wantedState);
+        Telemetry.logState("Turret/SystemState", systemState);
         // The turret is the most-watched mechanism on the dashboard, so its loop-rate values are
-        // all logDash; the diagnostics are 10 Hz like every other mechanism.
-        logDiagnostics("Turret", true);
+        // all logDash; the diagnostics are 10 Hz like every other mechanism. No RPM: the velocity
+        // is logged below in rot/sec, next to the commanded rate it is fit against.
+        logStandard("Turret", true, RpmLog.NONE);
         Telemetry.logDash("Turret/CommandedDegrees", commandedDegrees, "deg");
         updateTravel();
         persistRawPosition();

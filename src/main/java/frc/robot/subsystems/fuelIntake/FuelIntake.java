@@ -97,7 +97,7 @@ public class FuelIntake implements Subsystem {
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logStandard("IntakeRoller", false);
+            logStandard("IntakeRoller", false, RpmLog.SLOW);
         }
 
         /**
@@ -199,7 +199,7 @@ public class FuelIntake implements Subsystem {
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logStandard("IntakeKicker", false);
+            logStandard("IntakeKicker", false, RpmLog.SLOW);
         }
 
         /**
@@ -357,8 +357,8 @@ public class FuelIntake implements Subsystem {
         }
         applyStates();
 
-        Telemetry.log("FuelIntake/WantedState", wantedState.toString());
-        Telemetry.log("FuelIntake/SystemState", systemState.toString());
+        Telemetry.logState("FuelIntake/WantedState", wantedState);
+        Telemetry.logState("FuelIntake/SystemState", systemState);
         Telemetry.log("FuelIntake/KickerStallLatched", kickerStallLatched);
     }
 }

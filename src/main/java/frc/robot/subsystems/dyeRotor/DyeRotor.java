@@ -88,7 +88,7 @@ public class DyeRotor implements Subsystem {
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logStandard("Rotor", true);
+            logStandard("Rotor", false, RpmLog.SLOW_DASH);
         }
 
         /**
@@ -187,7 +187,7 @@ public class DyeRotor implements Subsystem {
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logStandard("Feeder", true);
+            logStandard("Feeder", false, RpmLog.SLOW_DASH);
         }
 
         /**
@@ -472,8 +472,8 @@ public class DyeRotor implements Subsystem {
         systemState = handleStateTransition();
         applyStates();
 
-        Telemetry.log("DyeRotor/WantedState", wantedState.toString());
-        Telemetry.log("DyeRotor/SystemState", systemState.toString());
+        Telemetry.logState("DyeRotor/WantedState", wantedState);
+        Telemetry.logState("DyeRotor/SystemState", systemState);
         Telemetry.log("DyeRotor/RotorStallBackoff", stallBackoff);
         Telemetry.log("DyeRotor/RotorStallCount", stallCount);
         Telemetry.log("DyeRotor/AutoUnjamActive", reversing);

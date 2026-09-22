@@ -187,12 +187,9 @@ public class Hood extends Mechanism {
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.log("Hood/WantedState", wantedState.toString());
-        Telemetry.log("Hood/SystemState", systemState.toString());
-        Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
-        logDiagnostics("Hood", true);
-        Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logState("Hood/WantedState", wantedState);
+        Telemetry.logState("Hood/SystemState", systemState);
+        logStandard("Hood", true, RpmLog.LOOP);
         Telemetry.logDash("Hood/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
         Telemetry.log("Hood/AtAngle", isAtAngle());

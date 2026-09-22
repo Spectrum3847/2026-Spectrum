@@ -124,14 +124,11 @@ public class LauncherTower extends Mechanism {
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.log("LauncherTower/WantedState", wantedState.toString());
-        Telemetry.log("LauncherTower/SystemState", systemState.toString());
-        Telemetry.log("LauncherTower/CurrentCommand", getCurrentCommandName());
-        logDiagnostics("LauncherTower");
-        // Loop rate, like the launcher's: the tower's feedforward is fit from these two against
-        // the voltage that fastOutputLogging keeps at the same rate.
-        Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logState("LauncherTower/WantedState", wantedState);
+        Telemetry.logState("LauncherTower/SystemState", systemState);
+        // RPM at loop rate, like the launcher's: the tower's feedforward is fit from RPM and
+        // CommandedRPM against the voltage that fastOutputLogging keeps at the same rate.
+        logStandard("LauncherTower", false, RpmLog.LOOP);
         Telemetry.log("LauncherTower/CommandedRPM", commandedRPM, "RPM");
     }
 }

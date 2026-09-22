@@ -866,14 +866,29 @@ public abstract class Mechanism implements Subsystem {
         }
     }
 
+    /** How {@link #logStandard} logs {@code <prefix>/RPM}. */
+    public enum RpmLog {
+        /** Not logged. */
+        NONE,
+        /** Slow tier, wpilog only. */
+        SLOW,
+        /** Slow tier, also published to the dashboard. */
+        SLOW_DASH,
+        /** Every loop, for data that needs it (shot dips, feedforward fits), wpilog only. */
+        LOOP,
+        /** Every loop, also published to the dashboard. */
+        LOOP_DASH
+    }
+
     /**
-     * The per-loop logging most mechanisms want: battery use, the current command, {@link
-     * #logDiagnostics(String)}, and RPM on the slow tier.
+     * The per-loop logging every mechanism does: battery use, the current command, {@link
+     * #logDiagnostics(String, boolean)}, and RPM.
      *
      * @param prefix log key prefix, e.g. {@code "Feeder"}
-     * @param rpmToDashboard whether RPM is also published to the dashboard
+     * @param dashboardDiagnostics whether the diagnostics are also published to the dashboard
+     * @param rpm how RPM is logged
      */
-    protected void logStandard(String prefix, boolean rpmToDashboard) {
+    protected void logStandard(String prefix, boolean dashboardDiagnostics, RpmLog rpm) {
         logBatteryUsage();
         if (!prefix.equals(standardPrefix)) {
             standardPrefix = prefix;
@@ -881,13 +896,15 @@ public abstract class Mechanism implements Subsystem {
             rpmKey = prefix + "/RPM";
         }
         Telemetry.log(currentCommandKey, getCurrentCommandName());
-        logDiagnostics(prefix);
-        if (Telemetry.slowLogThisLoop()) {
-            if (rpmToDashboard) {
-                Telemetry.logDash(rpmKey, getVelocityRPM(), "RPM");
-            } else {
-                Telemetry.log(rpmKey, getVelocityRPM(), "RPM");
-            }
+        logDiagnostics(prefix, dashboardDiagnostics);
+        boolean slow = rpm == RpmLog.SLOW || rpm == RpmLog.SLOW_DASH;
+        if (rpm == RpmLog.NONE || (slow && !Telemetry.slowLogThisLoop())) {
+            return;
+        }
+        if (rpm == RpmLog.SLOW_DASH || rpm == RpmLog.LOOP_DASH) {
+            Telemetry.logDash(rpmKey, getVelocityRPM(), "RPM");
+        } else {
+            Telemetry.log(rpmKey, getVelocityRPM(), "RPM");
         }
     }
 

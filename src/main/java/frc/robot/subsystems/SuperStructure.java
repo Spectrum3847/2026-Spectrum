@@ -223,8 +223,8 @@ public class SuperStructure {
 
         previousSuperState = currentSuperState;
 
-        Telemetry.log("SuperStructure/WantedSuperState", wantedSuperState.toString());
-        Telemetry.logDash("SuperStructure/CurrentSuperState", currentSuperState.toString());
+        Telemetry.logState("SuperStructure/WantedSuperState", wantedSuperState);
+        Telemetry.logStateDash("SuperStructure/CurrentSuperState", currentSuperState);
         Telemetry.log(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
     }

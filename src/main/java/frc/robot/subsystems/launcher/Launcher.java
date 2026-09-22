@@ -198,14 +198,11 @@ public class Launcher extends Mechanism {
     @Override
     public void periodic() {
         systemState = handleStateTransition();
-        logBatteryUsage();
         applyStates();
-        Telemetry.log("Launcher/WantedState", wantedState.toString());
-        Telemetry.log("Launcher/SystemState", systemState.toString());
-        Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
-        logDiagnostics("Launcher", true);
+        Telemetry.logState("Launcher/WantedState", wantedState);
+        Telemetry.logState("Launcher/SystemState", systemState);
         // Flywheel speed stays at loop rate: spin-up and the dip as each ball passes are shot data.
-        Telemetry.logDash("Launcher/RPM", getVelocityRPM(), "RPM");
+        logStandard("Launcher", true, RpmLog.LOOP_DASH);
         Telemetry.log("Launcher/CommandedRPM", commandedRPM, "RPM");
         Telemetry.logDash("Launcher/AtSpeed", isAtSpeed());
     }

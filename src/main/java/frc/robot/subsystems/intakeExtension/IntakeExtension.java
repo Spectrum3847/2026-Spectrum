@@ -225,7 +225,7 @@ public class IntakeExtension implements Subsystem {
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logStandard(getName(), false);
+            logStandard(getName(), false, RpmLog.SLOW);
             if (positionKey == null) {
                 positionKey = getName() + "/Position";
             }
@@ -1027,8 +1027,8 @@ public class IntakeExtension implements Subsystem {
         systemState = handleStateTransition();
         applyStates();
 
-        Telemetry.log("IntakeExtension/WantedState", wantedState.toString());
-        Telemetry.log("IntakeExtension/SystemState", systemState.toString());
+        Telemetry.logState("IntakeExtension/WantedState", wantedState);
+        Telemetry.logState("IntakeExtension/SystemState", systemState);
         // Dashboard: average of both sides as a percentage of travel, so a bad zero is visible.
         Telemetry.logDash(
                 "IntakeExtension/Percent",

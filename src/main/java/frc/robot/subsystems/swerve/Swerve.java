@@ -303,8 +303,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         systemState = handleStateTransition();
         applyStates();
 
-        Telemetry.log("Swerve/WantedState", wantedState.toString());
-        Telemetry.log("Swerve/SystemState", systemState.toString());
+        Telemetry.logState("Swerve/WantedState", wantedState);
+        Telemetry.logState("Swerve/SystemState", systemState);
         Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
         Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
         Telemetry.log(
