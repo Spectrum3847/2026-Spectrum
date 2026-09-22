@@ -176,6 +176,9 @@ One reading is worth doing by hand now, from a single session: a long or short b
 **constant across distances** is an exit-speed error, so `RPM_PER_MPS` or `MPS_FACTOR` is wrong; one
 that **grows with distance** is a launch-angle error, so the polynomial's angle surface or
 `hoodOffsetDeg` is wrong. Neither of those two speed constants has ever been measured on this robot.
+A bias at **one end of the range only**, the 2026-09-19 near-long, far-fine shape, is what the
+distance-indexed near-shot RPM drop (`ShotCalc/NearShotRpmDrop`) exists for; see the
+[season guide](../other-guides/2026-season-specific.md#shot-map-the-near-shot-rpm-drop).
 
 ## See Also
 

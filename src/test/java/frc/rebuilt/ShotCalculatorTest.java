@@ -246,6 +246,12 @@ public class ShotCalculatorTest {
         for (ShotCalculator.SetShot shot : ShotCalculator.SetShot.values()) {
             assertTrue(shot.turretDegrees > -216 && shot.turretDegrees < 180, shot.label);
         }
+
+        // Intake away from the hub, turret at zero, everywhere but the hub face (2026-09-20).
+        assertEquals(0.0, ShotCalculator.SetShot.TOWER.turretDegrees, 1e-9);
+        assertEquals(0.0, ShotCalculator.SetShot.LEFT_TRENCH.turretDegrees, 1e-9);
+        assertEquals(0.0, ShotCalculator.SetShot.RIGHT_TRENCH.turretDegrees, 1e-9);
+        assertEquals(-180.0, ShotCalculator.SetShot.HUB_FACE.turretDegrees, 1e-9);
     }
 
     /** The binding picks the shot before the state is requested; the pick has to stick. */
@@ -254,8 +260,8 @@ public class ShotCalculatorTest {
     void selectSetShot() {
         ShotCalculator.SetShot before = ShotCalculator.getSelectedSetShot();
         try {
-            ShotCalculator.selectSetShot(ShotCalculator.SetShot.LEFT_TRENCH);
-            assertSame(ShotCalculator.SetShot.LEFT_TRENCH, ShotCalculator.getSelectedSetShot());
+            ShotCalculator.selectSetShot(ShotCalculator.SetShot.HUB_FACE);
+            assertSame(ShotCalculator.SetShot.HUB_FACE, ShotCalculator.getSelectedSetShot());
             assertEquals(-180.0, ShotCalculator.getSetShotTurretDegrees(), 1e-9);
             ShotCalculator.selectSetShot(ShotCalculator.SetShot.TOWER);
             assertEquals(0.0, ShotCalculator.getSetShotTurretDegrees(), 1e-9);

@@ -7,7 +7,9 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
+import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.Timer;
@@ -483,8 +485,185 @@ public class ShotCalculator {
      */
     private static final double MPS_FACTOR = 1;
 
-    /** Scale factor converting polynomial exit speed (m/s) to flywheel RPM. */
-    private static final double RPM_PER_MPS = 365.0;
+    /**
+     * Scale factor converting polynomial exit speed (m/s) to flywheel RPM: the shot's power
+     * transfer, expressed as the RPM it costs to put one m/s on the ball.
+     *
+     * <p>The fitted 365 RPM per m/s against the 4 in wheel is a coupling ratio of 0.515 (ball speed
+     * over wheel surface speed), which is the no-slip figure for a single wheel against a fixed
+     * hood: the ball rolls, so its centre leaves at half the surface speed and the rest goes into
+     * backspin. Grip that is worse than no-slip -- worn wheels, a light squeeze, a cold ball --
+     * moves the real ratio below 0.515, and then every shot lands short at the RPM the model asks
+     * for.
+     *
+     * <p>Fudge it here rather than re-fitting the polynomial. This is the coupling only: raising it
+     * commands more RPM for the same wanted exit speed and leaves the ballistics, the time of
+     * flight, and the sim's ball alone. {@link #MPS_FACTOR} is the other knob and means something
+     * different -- that the ball really does leave faster than the poly says -- so it moves the
+     * simulated ball too.
+     */
+    private static final double RPM_PER_MPS_FITTED = 365.0;
+
+    /**
+     * Boot value: the fitted coupling, unchanged.
+     *
+     * <p>A 6.8 % raise to 390 was drafted after Chezy Q45 to buy half a metre of range everywhere.
+     * It never went on the robot, and the practice-field shooting that followed (2026-09-19,
+     * evening, at 365) said the opposite: the far shots were landing, and it was the shots inside
+     * tower radius that went long. A coupling raise moves every range by {@code dR = 2R * dv/v}, so
+     * it would have made the near shots worse to fix a far problem that was not there. The near
+     * shots are handled by {@link #nearShotRpmDrop(double)} instead, and this number stays at the
+     * fit.
+     *
+     * <p>Rule of thumb if it does need to move: each 1 % (about 3.7 RPM per m/s) is worth 0.07 m at
+     * 3.5 m, and the effect grows with range, so it is the knob for a bias that is the same sign at
+     * every distance and biggest far out. It is the wrong knob for a bias at one end of the range.
+     */
+    private static final double RPM_PER_MPS_DEFAULT = RPM_PER_MPS_FITTED;
+
+    /** Clamp on the live {@link #RPM_PER_MPS_DEFAULT} fudge, +/-20 % of the boot value. */
+    private static final double RPM_PER_MPS_MIN = RPM_PER_MPS_DEFAULT * 0.8;
+
+    private static final double RPM_PER_MPS_MAX = RPM_PER_MPS_DEFAULT * 1.2;
+
+    /**
+     * Live handle on the coupling, on the dashboard as {@code ShotCalc/RpmPerMps}.
+     *
+     * <p>Dashboard only and deliberately not a gamepad axis or a {@link Preferences} key: the
+     * flywheel trim that {@link #FLYWHEEL_TRIM_PREF_KEY} documents was walked to both caps inside
+     * one match and died for it. This is a pit knob that a person types a number into, it starts at
+     * {@link #RPM_PER_MPS_DEFAULT} every boot, and {@code ShotCalc/RpmPerMps} is logged every loop
+     * so a log says which number a shot was taken at. The clamp moves with the boot value, so it is
+     * 292 to 438 at the current default.
+     */
+    private static final DoubleSubscriber RPM_PER_MPS_TUNE =
+            Telemetry.tunable("ShotCalc/RpmPerMps", RPM_PER_MPS_DEFAULT);
+
+    /**
+     * The coupling to command with this loop, clamped to +/-20 % of the fitted value.
+     *
+     * @return RPM per m/s of wanted exit speed
+     */
+    private static double rpmPerMps() {
+        return MathUtil.clamp(
+                RPM_PER_MPS_TUNE.get(RPM_PER_MPS_DEFAULT), RPM_PER_MPS_MIN, RPM_PER_MPS_MAX);
+    }
+
+    // =========================================================================
+    // Near-shot RPM drop -- the shot map correction for inside tower radius
+    // =========================================================================
+
+    /**
+     * Shape of the near-shot correction: fraction of {@link #NEAR_SHOT_RPM_DROP_DEFAULT} to take
+     * off the flywheel command, indexed by distance to the hub in metres. 1.0 at 3.0 m and inside,
+     * zero from 3.75 m out, and rising below 2.5 m.
+     *
+     * <p>Practice-field shooting on 2026-09-19 (at the fitted 365 RPM per m/s) had every hub shot
+     * from about tower radius inward landing long, and the far shots landing. Taking 1.5 deg of
+     * hood out fixed the near shots and dropped the far ones short, because the model's hood is
+     * worth 0.2 m per degree at 2 m and 0.4 m per degree at 3.5 m. The team's preference is to
+     * leave the hood alone and take the range out with exit speed, which also keeps the near shot
+     * lower.
+     *
+     * <p>The size comes from converting that 1.5 deg, about 0.25 to 0.3 m of range, into the exit
+     * speed change that removes the same range at the model's own hood angle, in vacuum: 4.4 % at
+     * 3.0 m, 5.2 % at 2.5 m, 6.8 % at 2.0 m, 10.6 % at 1.5 m. Speed is a weak knob at the steep
+     * near angles (84 deg launch at 1.5 m), which is why the shape rises so fast inside 2.5 m.
+     * Normalised to the 3.0 m value and rounded; the 3.0 m value at 365 RPM per m/s is about 130
+     * RPM by that vacuum sum and about 240 RPM by the model's own hood slope, so the default sits
+     * between them. Endpoints hold outside the table, so the hub-face set shot at 0.98 m gets the
+     * 1.5 m value.
+     */
+    private static final InterpolatingDoubleTreeMap NEAR_SHOT_DROP_SHAPE =
+            new InterpolatingDoubleTreeMap();
+
+    static {
+        NEAR_SHOT_DROP_SHAPE.put(1.5, 1.7);
+        NEAR_SHOT_DROP_SHAPE.put(2.0, 1.25);
+        NEAR_SHOT_DROP_SHAPE.put(2.5, 1.05);
+        NEAR_SHOT_DROP_SHAPE.put(3.0, 1.0);
+        NEAR_SHOT_DROP_SHAPE.put(3.75, 0.0);
+    }
+
+    /**
+     * RPM taken off the hub-shot flywheel command at 3.0 m and inside, before the shape scaling.
+     * Best guess from the 2026-09-19 practice field, see {@link #NEAR_SHOT_DROP_SHAPE}; expect to
+     * move it by 50 to 100 RPM once the near shots have been watched at this value.
+     */
+    private static final double NEAR_SHOT_RPM_DROP_DEFAULT = 150.0;
+
+    /** Clamp on the live near-shot drop. Zero disables it; 400 RPM is about 15 % at 3 m. */
+    private static final double NEAR_SHOT_RPM_DROP_MAX = 400.0;
+
+    /**
+     * Live handle on the near-shot drop, on the dashboard as {@code ShotCalc/NearShotRpmDrop}.
+     *
+     * <p>Same rules as {@link #RPM_PER_MPS_TUNE}: a pit knob a person types a number into, back to
+     * {@link #NEAR_SHOT_RPM_DROP_DEFAULT} every boot, never on the gamepad and never persisted. The
+     * value in force and the RPM actually removed are both logged every loop a shot is in progress.
+     */
+    private static final DoubleSubscriber NEAR_SHOT_RPM_DROP_TUNE =
+            Telemetry.tunable("ShotCalc/NearShotRpmDrop", NEAR_SHOT_RPM_DROP_DEFAULT);
+
+    /**
+     * RPM to take off a hub shot at the given range.
+     *
+     * @param distanceMeters launcher to hub centre, the distance the model was evaluated at
+     * @return a non-negative RPM reduction, zero at and beyond 3.75 m
+     */
+    private static double nearShotRpmDrop(double distanceMeters) {
+        double size =
+                MathUtil.clamp(
+                        NEAR_SHOT_RPM_DROP_TUNE.get(NEAR_SHOT_RPM_DROP_DEFAULT),
+                        0.0,
+                        NEAR_SHOT_RPM_DROP_MAX);
+        return size * NEAR_SHOT_DROP_SHAPE.get(distanceMeters);
+    }
+
+    /**
+     * Flywheel speed the launcher can actually hold, measured rather than specified: 416.5 RPM per
+     * volt applied, the median of eight Chezy match logs (spread 407 to 430, and the inverse of the
+     * fitted {@code velocityKv = 0.1425}). The gearing does not set the ceiling -- the battery
+     * does. At the fastest moment ever logged, 4194 RPM in Q45, the motor was applying 9.94 V
+     * against a 9.95 V bus: saturated, with 5.5 % of that match's launch samples within a volt of
+     * the same wall.
+     */
+    private static final double RPM_PER_VOLT = 416.5;
+
+    /**
+     * Bus voltage to size the ceiling against. Not the 12 V of a resting battery: during a launch
+     * burst the measured bus sits between 8 and 10.5 V, and Q45 touched 7.35 V at 402 A. 9.85 V is
+     * what a healthy pack held at the top of its range.
+     */
+    private static final double USABLE_BUS_VOLTS = 9.85;
+
+    /**
+     * Fastest flywheel speed worth commanding with the current gearing: about 4100 RPM.
+     *
+     * <p>Nothing in the normal range reaches this: the model tops out at 3780 RPM at the fitted
+     * coupling. It is a backstop for a coupling raise or a longer shot.
+     *
+     * <p>Asking for more does not make the ball faster, it makes {@link
+     * frc.robot.subsystems.launcher.Launcher#isAtSpeed()} unsatisfiable -- that gate is a +/-200
+     * RPM window around the command, so a command the flywheel cannot reach keeps the shot-ready
+     * gate shut and no fuel feeds. In Q11 every sample commanded above 4000 RPM read not-at-speed.
+     * Clamping here means a far shot fires a little short instead of not firing at all.
+     *
+     * <p>Raise this when the battery situation improves: the number is {@link #RPM_PER_VOLT} times
+     * the bus volts a burst actually holds, less a little so the gate's window can close.
+     */
+    private static final double MAX_FEASIBLE_FLYWHEEL_RPM =
+            Math.floor(RPM_PER_VOLT * USABLE_BUS_VOLTS / 50.0) * 50.0;
+
+    /**
+     * Caps a wanted flywheel speed at what the hardware can hold.
+     *
+     * @param wantedRPM the model's flywheel speed, fudge already applied
+     * @return the same speed, or {@link #MAX_FEASIBLE_FLYWHEEL_RPM} when it was over the ceiling
+     */
+    private static double feasibleFlywheelRPM(double wantedRPM) {
+        return Math.min(wantedRPM, MAX_FEASIBLE_FLYWHEEL_RPM);
+    }
 
     /**
      * Per-second rate at which drag bleeds off the chassis velocity the ball inherits. Drives
@@ -718,9 +897,19 @@ public class ShotCalculator {
      * <p>The turret's zero points away from the intake, so "intake facing the hub" means the turret
      * turns a half turn to shoot back over it. {@code -180} rather than {@code +180}: the travel is
      * -216 to +180 deg, and a command sitting exactly on the forward soft limit has no margin.
+     * Every spot except the hub face parks intake-away, turret at zero: from most of the tracked
+     * turret positions that is the short move, so the shot is ready sooner than one that latches a
+     * profiled half turn (see {@code Turret.longMoveDegrees}).
      *
      * <p>Forgiving to be off by: the model moves about 0.5 deg of hood and 35 RPM per 15 cm at
      * these ranges, so lining up by eye against the field element is good enough.
+     *
+     * <p>Hood and flywheel are not stored here: {@code setShotSolution()} reads them off the live
+     * hub model, the near-shot RPM drop and the operator's hood trim every loop, so a set shot
+     * follows the shot map without anyone retyping numbers. For reference, at the fitted model with
+     * the 150 RPM drop and zero trim (2026-09-20): Tower 14.3 deg / 2850 RPM, HubFace 6.1 deg /
+     * 2470 RPM, either trench 15.4 deg / 3020 RPM. The logged {@code Hood/CommandedDegrees} and
+     * {@code Launcher/CommandedRPM} are the numbers actually in force.
      */
     public enum SetShot {
         /**
@@ -738,14 +927,17 @@ public class ShotCalculator {
         HUB_FACE("HubFace", 0.978, -180.0),
         /**
          * Sitting in the left trench lane with the robot just clear of the trench, intake pointed
-         * at the hub, turret over the intake. Trench opening is 50.34 in wide at the wall, so its
-         * centreline is 3.395 m from the field centreline; the robot centre is 23.5 + 15 in along x
-         * from the hub centre once it has cleared the 47 in trench: 3.53 m. Sitting inside the
-         * trench instead is 3.40 m, 13 cm less, which the model barely notices.
+         * away from the hub, turret at zero shooting back over the far bumper. Trench opening is
+         * 50.34 in wide at the wall, so its centreline is 3.395 m from the field centreline; the
+         * robot centre is 23.5 + 15 in along x from the hub centre once it has cleared the 47 in
+         * trench: 3.53 m. Sitting inside the trench instead is 3.40 m, 13 cm less, which the model
+         * barely notices. The robot is 30 in square, so which end faces the hub does not move its
+         * centre, and the range is the same as it was intake-to-hub (2026-09-20: turned round so
+         * the turret makes no half turn on the way to the shot).
          */
-        LEFT_TRENCH("LeftTrench", 3.53, -180.0),
+        LEFT_TRENCH("LeftTrench", 3.53, 0.0),
         /** Mirror of {@link #LEFT_TRENCH}. */
-        RIGHT_TRENCH("RightTrench", 3.53, -180.0);
+        RIGHT_TRENCH("RightTrench", 3.53, 0.0);
 
         /** Short name, logged to {@code ShotCalc/SetShot}. */
         public final String label;
@@ -809,7 +1001,9 @@ public class ShotCalculator {
                         (90 - raw[1]) + WANTED_HUB_MODEL.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
-        return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS};
+        double rpm =
+                raw[0] * MPS_FACTOR * rpmPerMps() - nearShotRpmDrop(selectedSetShot.distanceMeters);
+        return new double[] {hoodDegrees, feasibleFlywheelRPM(rpm)};
     }
 
     /**
@@ -985,7 +1179,10 @@ public class ShotCalculator {
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
         // ── Flywheel speed: exit speed (m/s) → RPM ──────────────────────────
-        double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
+        // The near-shot drop is a hub-model correction; feed shots are not characterised.
+        double nearShotDrop = feed ? 0.0 : nearShotRpmDrop(lookaheadDist);
+        double wantedFlywheelSpeed = exitSpeedMs * rpmPerMps() - nearShotDrop;
+        double flywheelSpeed = feasibleFlywheelRPM(wantedFlywheelSpeed);
 
         // Snapshot for the shot record: the five values a burst row needs that
         // ShootingParameters does not carry. Kept here rather than widened into the record because
@@ -1027,6 +1224,11 @@ public class ShotCalculator {
             Telemetry.logDash("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
             Telemetry.logDash("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
             Telemetry.log("ShotCalc/ExitSpeedMs", exitSpeedMs, "m/s");
+            Telemetry.log("ShotCalc/RpmPerMps", rpmPerMps(), "RPM per m/s");
+            Telemetry.log("ShotCalc/FlywheelWantedRPM", wantedFlywheelSpeed, "RPM");
+            Telemetry.log("ShotCalc/NearShotRpmDropApplied", nearShotDrop, "RPM");
+            Telemetry.log(
+                    "ShotCalc/FlywheelClamped", wantedFlywheelSpeed > MAX_FEASIBLE_FLYWHEEL_RPM);
             Telemetry.log("ShotCalc/RadialVelocityMs", radialVelocity, "m/s");
             Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
             Telemetry.logDash("ShotCalc/TimeOfFlight", tofFinal, "seconds");
