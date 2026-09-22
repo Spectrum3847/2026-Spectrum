@@ -1,9 +1,9 @@
 package frc.robot.subsystems.turret;
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -42,8 +42,6 @@ import lombok.*;
 public class Turret extends Mechanism {
 
     public static class TurretConfig extends Config {
-        @Getter @Setter private boolean reversed = false;
-
         @Getter private final double initPosition = 0;
         /** Position error (degrees) within which the turret counts as on target for a shot. */
         @Getter private final double triggerTolerance = 2;
@@ -55,9 +53,6 @@ public class Turret extends Mechanism {
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
         /* Turret config settings */
-        @Getter private final double zeroSpeed = -0.1;
-        @Getter private final double holdMaxSpeedRPM = 18;
-
         @Getter private final double currentLimit = 80;
         @Getter private final double supplyCurrentLowerLimit = 40;
         @Getter private final double supplyCurrentLowerTime = 1.0;
@@ -140,15 +135,6 @@ public class Turret extends Mechanism {
             // The turret's feedforward is fit from logs, which needs voltage on every sample.
             setFastOutputLogging(true);
         }
-        /** Modify motor config. */
-        public TurretConfig modifyMotorConfig(TalonFX motor) {
-            TalonFXConfigurator configurator = motor.getConfigurator();
-            TalonFXConfiguration talonConfigMod = getTalonConfig();
-
-            configurator.apply(talonConfigMod);
-            talonConfig = talonConfigMod;
-            return this;
-        }
     }
 
     public enum WantedState {
@@ -216,6 +202,7 @@ public class Turret extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /**
      * Handles the state transition.
      *
@@ -255,8 +242,8 @@ public class Turret extends Mechanism {
      * the soft limits.
      */
     private void applyUnjamShake() {
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
 
         if (previousSystemState != SystemState.UNJAM_SHAKE) {
             shakeCenterDegrees =
@@ -564,10 +551,7 @@ public class Turret extends Mechanism {
                 unwrapping = false;
                 mechOmegaRotPerSec = 0;
                 commandedDegrees =
-                        MathUtil.clamp(
-                                fixedAngleDegrees,
-                                config.getMinRotations() * 360.0,
-                                config.getMaxRotations() * 360.0);
+                        MathUtil.clamp(fixedAngleDegrees, minLimitDegrees(), maxLimitDegrees());
                 final double fixedTarget = commandedDegrees;
                 commandPosition(() -> degreesToRotations(() -> fixedTarget));
                 return;
@@ -859,6 +843,7 @@ public class Turret extends Mechanism {
                     }
                 });
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
@@ -896,6 +881,7 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/StallLatched", stallLatched);
         Telemetry.log("Turret/StallLatchCount", stallLatchCount);
     }
+
     /**
      * Declares the turret's current physical position to be its zero (facing away from the intake).
      * For use while disabled after a student has pointed the turret at its zero by hand, so a
@@ -920,6 +906,7 @@ public class Turret extends Mechanism {
                 .ignoringDisable(true)
                 .withName("Turret.zeroHere");
     }
+
     /**
      * Shifts the encoder so the turret's reported angle matches where it is actually pointing.
      *
@@ -1186,8 +1173,8 @@ public class Turret extends Mechanism {
 
     /** Raises the envelope alert while the reported angle sits outside the configured travel. */
     private void updateEnvelopeAlert() {
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
         double position = getPositionDegrees();
         boolean outside =
                 position < minDeg - ENVELOPE_MARGIN_DEGREES
@@ -1225,8 +1212,7 @@ public class Turret extends Mechanism {
     /** How far the other way the turret must be asked to go before the latch releases. */
     private static final double STALL_RECOVERY_MARGIN_DEGREES = 2.0;
 
-    private final Timer stallTimer = new Timer();
-    private boolean stallTiming = false;
+    private final Debouncer stallDebouncer = new Debouncer(STALL_SECONDS, DebounceType.kRising);
     private boolean stallLatched = false;
 
     /** Sign of {@code commanded - measured} when the latch closed: the way it was pushing. */
@@ -1254,20 +1240,11 @@ public class Turret extends Mechanism {
                 Math.abs(getStatorCurrent())
                                 >= STALL_STATOR_FRACTION * config.getTorqueCurrentLimit()
                         && Math.abs(getVelocityRPM() / 60.0) < STALL_VELOCITY_ROT_PER_SEC;
-        if (!stalledNow) {
-            stallTiming = false;
-            return;
-        }
-        if (!stallTiming) {
-            stallTiming = true;
-            stallTimer.restart();
-            return;
-        }
-        if (!stallTimer.hasElapsed(STALL_SECONDS)) {
+        if (!stallDebouncer.calculate(stalledNow)) {
             return;
         }
         stallLatched = true;
-        stallTiming = false;
+        stallDebouncer.calculate(false);
         stallLatchCount++;
         stallPushSign = Math.signum(commandedDegrees - getPositionDegrees());
         stallAlert.setText(
@@ -1315,7 +1292,7 @@ public class Turret extends Mechanism {
     /** Releases the stall latch and its alert. */
     private void clearStallLatch() {
         stallLatched = false;
-        stallTiming = false;
+        stallDebouncer.calculate(false);
         stallPushSign = 0;
         stallAlert.set(false);
     }
@@ -1390,8 +1367,8 @@ public class Turret extends Mechanism {
         }
 
         // Lead the moving target by the actuation latency
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
         double predictedDegrees =
                 MathUtil.clamp(
                         commanded
@@ -1409,8 +1386,8 @@ public class Turret extends Mechanism {
      * the limited travel range, and drives the proactive cable-unwrap hysteresis.
      */
     private double resolveTurretAngle(double desiredMechDegrees) {
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
         double currentDeg = getPositionDegrees();
 
         int nMin = (int) Math.ceil((minDeg - desiredMechDegrees) / 360.0);
@@ -1494,15 +1471,15 @@ public class Turret extends Mechanism {
     }
 
     /**
-     * Creates a command that drops both extension axes into coast so the mechanism can be moved by
-     * hand. Runs while disabled, which is the only time it is useful.
+     * Creates a command that drops the turret into coast so it can be moved by hand. Runs while
+     * disabled, which is the only time it is useful.
      *
      * @return the coast-mode command
      */
     public Command coastModeCommand() {
         return new InstantCommand(() -> setBrakeMode(false))
                 .ignoringDisable(true)
-                .withName("IntakeExtension.coastMode");
+                .withName("Turret.coastMode");
     }
 
     // --------------------------------------------------------------------------------

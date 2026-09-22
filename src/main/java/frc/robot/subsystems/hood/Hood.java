@@ -16,8 +16,6 @@ public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
 
-        @Getter private final double initPosition = 0.0;
-
         /* 34.5 deg of travel */
         @Getter private final double maxRotations = 0.095833;
         @Getter private final double minRotations = 0.0;
@@ -84,7 +82,6 @@ public class Hood extends Mechanism {
 
     public enum WantedState {
         HOME,
-        STOPPED,
         AIM_AT_TARGET,
         /** Fixed angle for the pose-independent set shot. */
         SET_SHOT
@@ -92,7 +89,6 @@ public class Hood extends Mechanism {
 
     public enum SystemState {
         HOME,
-        STOPPED,
         AIM_AT_TARGET,
         SET_SHOT
     }
@@ -107,15 +103,16 @@ public class Hood extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case HOME -> SystemState.HOME;
-            case STOPPED -> SystemState.STOPPED;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
             case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
+
     /** Hood angle commanded this loop (degrees). */
     @Getter private double commandedDegrees = 0;
 
@@ -133,9 +130,6 @@ public class Hood extends Mechanism {
                     return;
                 }
                 break;
-            case STOPPED:
-                stop();
-                return;
             case AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedDegrees = params.hoodAngle();
@@ -187,6 +181,7 @@ public class Hood extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {

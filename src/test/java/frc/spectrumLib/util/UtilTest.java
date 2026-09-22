@@ -21,6 +21,7 @@ public class UtilTest {
         assertEquals(0.0, Util.limit(-5.0, 0.0, 10.0), 1e-6);
         assertEquals(7.0, Util.limit(7.0, 0.0, 10.0), 1e-6);
     }
+
     /** Verifies in range. */
     @Test
     @DisplayName("Test inRange methods")
@@ -36,6 +37,7 @@ public class UtilTest {
         assertTrue(Util.inRange(() -> 5.0, () -> 0.0, () -> 10.0));
         assertFalse(Util.inRange(() -> 0.0, () -> 0.0, () -> 10.0));
     }
+
     /** Verifies interpolate. */
     @Test
     @DisplayName("Test interpolate lerp method")
@@ -48,6 +50,7 @@ public class UtilTest {
         assertEquals(10.0, Util.interpolate(10.0, 20.0, -0.5), 1e-6);
         assertEquals(20.0, Util.interpolate(10.0, 20.0, 1.5), 1e-6);
     }
+
     /** Verifies joining strings with a delimiter. */
     @Test
     @DisplayName("Test joinStrings method")
@@ -56,6 +59,7 @@ public class UtilTest {
         assertEquals("apple, banana, cherry", Util.joinStrings(", ", items));
         assertEquals("apple|banana|cherry", Util.joinStrings("|", items));
     }
+
     /** Verifies epsilon equals. */
     @Test
     @DisplayName("Test epsilonEquals for double and integer")
@@ -69,6 +73,7 @@ public class UtilTest {
         assertTrue(Util.epsilonEquals(10, 12, 2));
         assertFalse(Util.epsilonEquals(10, 13, 2));
     }
+
     /** Verifies the allCloseTo list comparison. */
     @Test
     @DisplayName("Test allCloseTo list method")

@@ -211,6 +211,32 @@ public class ShotCalculator {
         }
     }
 
+    /**
+     * Whether each model's {@code hoodOffsetDeg} calibration is applied. Those offsets correct how
+     * the real robot's shots land (the hub model's -5 deg is shots landing long on 2026-09-05); the
+     * simulated ball flies the fitted model, so in simulation they only make it miss.
+     */
+    private static boolean applyModelHoodOffsets = true;
+
+    /** The model's hood calibration offset, or zero when model offsets are off. */
+    private static double modelHoodOffsetDeg(PolyModel model) {
+        return applyModelHoodOffsets ? model.hoodOffsetDeg() : 0;
+    }
+
+    /**
+     * Zeroes every hood and turret trim for simulation: the operator trims start at zero without
+     * reading {@link Preferences} (used instead of {@link #loadPersistedTrims()}, since the sim's
+     * Preferences file on the laptop keeps whatever the last sim session nudged), and each model's
+     * {@code hoodOffsetDeg} calibration is switched off. D-pad nudges still work for the session.
+     */
+    public static void zeroTrimsForSimulation() {
+        HOOD_ANGLE_OFFSET = 0;
+        TURRET_ANGLE_OFFSET = 0;
+        applyModelHoodOffsets = false;
+        Telemetry.print(
+                "Simulation: operator trims and model hood offsets are zero.", PrintPriority.HIGH);
+    }
+
     /** Writes the persisted hood trim. The turret trim is session-only and is never written. */
     private static void writeTrimPreferences() {
         Preferences.setDouble(HOOD_TRIM_PREF_KEY, HOOD_ANGLE_OFFSET);
@@ -806,7 +832,7 @@ public class ShotCalculator {
         double[] raw = evalPolyRaw(WANTED_HUB_MODEL, selectedSetShot.distanceMeters, 0.0);
         double hoodDegrees =
                 MathUtil.clamp(
-                        (90 - raw[1]) + WANTED_HUB_MODEL.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
+                        (90 - raw[1]) + modelHoodOffsetDeg(WANTED_HUB_MODEL) + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
         return new double[] {hoodDegrees, raw[0] * MPS_FACTOR * RPM_PER_MPS};
@@ -980,7 +1006,7 @@ public class ShotCalculator {
         lastHoodAngle = rawHoodAngle;
         double hoodAngle =
                 MathUtil.clamp(
-                        rawHoodAngle + model.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
+                        rawHoodAngle + modelHoodOffsetDeg(model) + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
@@ -991,7 +1017,7 @@ public class ShotCalculator {
         // ShootingParameters does not carry. Kept here rather than widened into the record because
         // nothing in the control path reads them.
         activeModelName = model.name;
-        activeModelHoodOffsetDeg = model.hoodOffsetDeg();
+        activeModelHoodOffsetDeg = modelHoodOffsetDeg(model);
         activeRadialVelocityMs = radialVelocity;
         activeTangentialVelocityMs = tangentialVelocity;
         activeFeedShot = feed;
@@ -1035,7 +1061,9 @@ public class ShotCalculator {
             Telemetry.logDash("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
             Telemetry.logDash("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
             Telemetry.logDash(
-                    "ShotCalc/HoodModelOffsetDegrees", WANTED_HUB_MODEL.hoodOffsetDeg(), "degrees");
+                    "ShotCalc/HoodModelOffsetDegrees",
+                    modelHoodOffsetDeg(WANTED_HUB_MODEL),
+                    "degrees");
             Telemetry.log("ShotCalc/Target", target);
         }
 

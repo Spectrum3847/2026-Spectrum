@@ -97,6 +97,7 @@ public class SpectrumLEDs implements Subsystem {
         HardwareAnimPattern(CANdlePattern impl) {
             this.impl = impl;
         }
+
         /** Apply to. */
         @Override
         public void applyTo(CANdle candle, int startIdx, int numLeds) {

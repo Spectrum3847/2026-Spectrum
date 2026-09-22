@@ -143,6 +143,11 @@ public abstract class Mechanism implements Subsystem {
     private String tempKey;
     private String motorConnectedKey;
 
+    // logStandard() keys, built the same way
+    private String standardPrefix;
+    private String currentCommandKey;
+    private String rpmKey;
+
     /**
      * BatteryLogger channel name for this mechanism, built once to avoid per-loop concatenation.
      */
@@ -278,6 +283,7 @@ public abstract class Mechanism implements Subsystem {
         // constructor decides whether to create the motor hardware based on the flag.
         this(applyAttachedOverride(config, attached));
     }
+
     /** Applies the attached override. */
     private static Config applyAttachedOverride(Config config, boolean attached) {
         config.attached = attached;
@@ -478,6 +484,7 @@ public abstract class Mechanism implements Subsystem {
     public Trigger runningDefaultCommand() {
         return new Trigger(this::isRunningDefaultCommand);
     }
+
     /**
      * Returns {@code true} if the running default command condition is met.
      *
@@ -859,6 +866,31 @@ public abstract class Mechanism implements Subsystem {
         }
     }
 
+    /**
+     * The per-loop logging most mechanisms want: battery use, the current command, {@link
+     * #logDiagnostics(String)}, and RPM on the slow tier.
+     *
+     * @param prefix log key prefix, e.g. {@code "Feeder"}
+     * @param rpmToDashboard whether RPM is also published to the dashboard
+     */
+    protected void logStandard(String prefix, boolean rpmToDashboard) {
+        logBatteryUsage();
+        if (!prefix.equals(standardPrefix)) {
+            standardPrefix = prefix;
+            currentCommandKey = prefix + "/CurrentCommand";
+            rpmKey = prefix + "/RPM";
+        }
+        Telemetry.log(currentCommandKey, getCurrentCommandName());
+        logDiagnostics(prefix);
+        if (Telemetry.slowLogThisLoop()) {
+            if (rpmToDashboard) {
+                Telemetry.logDash(rpmKey, getVelocityRPM(), "RPM");
+            } else {
+                Telemetry.log(rpmKey, getVelocityRPM(), "RPM");
+            }
+        }
+    }
+
     // ── Unit Conversions ───────────────────────────────────────────────────────
 
     /**
@@ -1157,7 +1189,7 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /** Stops the motor output. Does nothing if the mechanism is not attached. */
-    protected void stop() {
+    public void stop() {
         if (isAttached()) {
             motor.stopMotor();
         }

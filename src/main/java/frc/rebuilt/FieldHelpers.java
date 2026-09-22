@@ -16,10 +16,12 @@ public class FieldHelpers {
     public static double flipAngle(double angle) {
         return (angle + 180) % 360;
     }
+
     /** Flip angle. */
     public static Rotation2d flipAngle(Rotation2d angle) {
         return angle.rotateBy(Rotation2d.fromDegrees(180));
     }
+
     /** Flip angle if red. */
     public static double flipAngleIfRed(double blue) {
         if (Field.isRed()) {
@@ -27,6 +29,7 @@ public class FieldHelpers {
         }
         return blue;
     }
+
     /** Flip angle if red. */
     public static Rotation2d flipAngleIfRed(Rotation2d blue) {
         if (Field.isRed()) {
@@ -34,22 +37,27 @@ public class FieldHelpers {
         }
         return blue;
     }
+
     /** Flip if red. */
     public static Translation2d flipIfRed(Translation2d blue) {
         return new Translation2d(flipXifRed(blue.getX()), flipYifRed(blue.getY()));
     }
+
     /** Flip if red. */
     public static Translation3d flipIfRed(Translation3d blue) {
         return new Translation3d(flipXifRed(blue.getX()), flipYifRed(blue.getY()), blue.getZ());
     }
+
     /** Flip if red. */
     public static Pose2d flipIfRed(Pose2d red) {
         return new Pose2d(flipIfRed(red.getTranslation()), flipAngleIfRed(red.getRotation()));
     }
+
     /** Flip x. */
     public static double flipX(double xCoordinate) {
         return Field.fieldLength - xCoordinate;
     }
+
     /** Flip y. */
     public static double flipY(double yCoordinate) {
         return Field.fieldWidth - yCoordinate;
@@ -85,12 +93,14 @@ public class FieldHelpers {
         if (angle < -Math.PI) angle += 2 * Math.PI;
         return angle;
     }
+
     /** Pose out of field. */
     public static boolean poseOutOfField(Pose2d pose2D) {
         double x = pose2D.getX();
         double y = pose2D.getY();
         return (x <= 0 || x >= Field.fieldLength) || (y <= 0 || y >= Field.fieldWidth);
     }
+
     /** Pose out of field. */
     public static boolean poseOutOfField(Pose3d pose3D) {
         return poseOutOfField(pose3D.toPose2d());

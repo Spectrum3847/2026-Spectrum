@@ -68,6 +68,7 @@ public class LauncherTower extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
@@ -106,7 +107,6 @@ public class LauncherTower extends Mechanism {
     @Getter private double commandedRPM = 0;
 
     @Getter private final LauncherTowerConfig config;
-    // @Getter private LauncherTowerSim sim;
     /**
      * Creates a new LauncherTower instance.
      *
@@ -116,9 +116,9 @@ public class LauncherTower extends Mechanism {
         super(config);
         this.config = config;
 
-        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
@@ -134,26 +134,4 @@ public class LauncherTower extends Mechanism {
         Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
         Telemetry.log("LauncherTower/CommandedRPM", commandedRPM, "RPM");
     }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    // public void simulationInit() {
-    //     if (isAttached()) {
-    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-    // diameter
-    //         sim = new LauncherTowerSim(RobotSim.topView, motor.getSimState());
-    //     }
-    // }
-
-    // class LauncherTowerSim extends RollerSim {
-    //     public LauncherTowerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-    //         super(
-    //                 new RollerConfig(config.getWheelDiameter())
-    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
-    //                 mech,
-    //                 rollerMotorSim,
-    //                 config.getName());
-    //     }
-    // }
 }

@@ -129,6 +129,7 @@ public class TalonFXFactory {
 
         return config;
     }
+
     /** Creates the talon. */
     private static TalonFX createTalon(CanDeviceId id) {
         TalonFX talon = new TalonFX(id.getDeviceNumber(), new CANBus(id.getBus()));

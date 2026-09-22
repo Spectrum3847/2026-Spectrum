@@ -20,6 +20,7 @@ public class CanDeviceIdTest {
         assertEquals(10, id2.getDeviceNumber());
         assertEquals("rio", id2.getBus());
     }
+
     /** Verifies equals and hash code. */
     @Test
     @DisplayName("Test CanDeviceId equality and hashCode")

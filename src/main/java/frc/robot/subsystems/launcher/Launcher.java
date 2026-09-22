@@ -3,7 +3,6 @@ package frc.robot.subsystems.launcher;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
@@ -21,12 +20,6 @@ public class Launcher extends Mechanism {
 
         // tune
         @Getter private final double idlingRPM = 700;
-        @Getter private final double slowLaunchSpeed = 400;
-        @Getter private final double autoTrenchLaunch = 1800;
-
-        @Getter
-        private final DoubleSubscriber onTheFlySpeed =
-                Telemetry.tunable("Launcher/OnTheFlySpeed", 0.0);
 
         /* Launcher config values */
         /**
@@ -38,7 +31,6 @@ public class Launcher extends Mechanism {
         @Getter private final double supplyCurrentLimit = 75;
 
         @Getter private final double statorCurrentLimit = 80;
-        @Getter private final double forwardStatorCurrentLimit = statorCurrentLimit;
         @Getter private final double reverseStatorCurrentLimit = -10;
         @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double timeUntilLowerCurrent = 1;
@@ -68,7 +60,7 @@ public class Launcher extends Mechanism {
             configLowerSupplyCurrentTime(timeUntilLowerCurrent);
             configSupplyCurrentLimit(supplyCurrentLimit, true);
             configStatorCurrentLimit(statorCurrentLimit, true);
-            configForwardTorqueCurrentLimit(forwardStatorCurrentLimit);
+            configForwardTorqueCurrentLimit(statorCurrentLimit);
             configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
@@ -118,6 +110,7 @@ public class Launcher extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
@@ -128,6 +121,7 @@ public class Launcher extends Mechanism {
             case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
+
     /** Flywheel speed commanded this loop (RPM); 0 when stopped. */
     @Getter private double commandedRPM = 0;
 
@@ -140,7 +134,7 @@ public class Launcher extends Mechanism {
                 stop();
                 return;
             case IDLE_PREP:
-                wantedRPM = 700;
+                wantedRPM = config.getIdlingRPM();
                 break;
             case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
@@ -199,6 +193,7 @@ public class Launcher extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {

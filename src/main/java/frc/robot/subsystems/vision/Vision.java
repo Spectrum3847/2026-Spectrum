@@ -908,12 +908,23 @@ public class Vision implements Subsystem {
         }
         Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
 
-        // Null-safe; returns Pose2d.kZero when no data
-        Robot.getField2d().getObject(backLeftLL.getCameraName()).setPose(getBackLeftMegaTag1Pose());
+        // getMegaTag1_Pose3d() is Pose3d.kZero when there is no data
+        Robot.getField2d()
+                .getObject(backLeftLL.getCameraName())
+                .setPose(backLeftLL.getMegaTag1_Pose3d().toPose2d());
         Robot.getField2d()
                 .getObject(backRightLL.getCameraName())
-                .setPose(getBackRightMegaTag1Pose());
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(getTurretRobotPose());
+                .setPose(backRightLL.getMegaTag1_Pose3d().toPose2d());
+        // The turret camera's robot pose is composed on the roboRIO from the turret angle at the
+        // frame time (solveTurretCamera()); zero when there is no usable solve this loop.
+        Pose2d turretPose = Pose2d.kZero;
+        if (turretLL.isAttached() && turretLL.targetInView()) {
+            solveTurretCamera();
+            if (turretSolveValid) {
+                turretPose = turretSolvedRobotPose;
+            }
+        }
+        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(turretPose);
 
         if (turretLL.isAttached()) {
             Telemetry.log(
@@ -2526,9 +2537,6 @@ public class Vision implements Subsystem {
 
         RawFiducial[] tags = ll.getRawFiducial();
         double highestAmbiguity = -1;
-        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
         // Distance from current odometry pose to the MT1 estimate
         double mt1PoseDifference =
@@ -2554,16 +2562,7 @@ public class Vision implements Subsystem {
             return null;
         }
 
-        // Reject if the camera pose shows significant roll or pitch (> 5°)
-        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > Math.toRadians(5)
-                || Math.abs(megaTag1Pose3d.getRotation().getY()) > Math.toRadians(5)) {
-            ll.sendInvalidStatus("Roll/Pitch Rejection");
-            return null;
-        }
-
-        // Reject if the solve puts the robot off the floor: a bad solve or a bad mount transform.
-        if (Math.abs(megaTag1Pose3d.getZ()) > config.getMaxZErrorMeters()) {
-            ll.sendInvalidStatus("Height Rejection");
+        if (tiltOrHeightRejected(ll, megaTag1Pose3d)) {
             return null;
         }
 
@@ -2575,29 +2574,10 @@ public class Vision implements Subsystem {
         // frame) put that jitter straight into the turret setpoint, since turret angle is the
         // field bearing minus the robot heading. Heading is corrected only by the disabled
         // pre-seeding below and by the operator's manual pose reset.
-        double xyStds;
         double degStds = config.getKLargeVariance();
-
-        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
-            ll.sendValidStatus("Stationary close integration");
-            xyStds = 0.1;
-        } else if (multiTags && targetSize > 2) {
-            ll.sendValidStatus("Strong Multi integration");
-            xyStds = 0.1;
-        } else if (multiTags && targetSize > 0.2) {
-            ll.sendValidStatus("Multi integration");
-            xyStds = 0.25;
-        } else if (targetSize > 2 && mt1PoseDifference < 0.5) {
-            ll.sendValidStatus("Close integration");
-            xyStds = 0.5;
-        } else if (targetSize > 1 && mt1PoseDifference < 0.25) {
-            ll.sendValidStatus("Proximity integration");
-            xyStds = 1.0;
-        } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
-            ll.sendValidStatus("Stable integration");
-            xyStds = 1.5;
-        } else {
-            ll.sendInvalidStatus("Integration Criteria not Met");
+        double xyStds =
+                tierXyStds(ll, targetSize, multiTags, mt1PoseDifference, false, highestAmbiguity);
+        if (Double.isNaN(xyStds)) {
             return null;
         }
 
@@ -2608,17 +2588,77 @@ public class Vision implements Subsystem {
             degStds = 0.01;
         }
 
-        Pose2d integratedPose =
-                new Pose2d(megaTag1Pose2d.getTranslation(), megaTag1Pose2d.getRotation());
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag1PoseTimestamp());
         if (isStale(ll, timestamp)) {
             return null;
         }
         // The pose estimator expects the heading std-dev in radians; degStds is in degrees.
         Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds));
-        int numTags = Math.max(1, tags.length);
 
-        return new VisionFieldPoseEstimate(integratedPose, timestamp, stdDevs, numTags);
+        return new VisionFieldPoseEstimate(megaTag1Pose2d, timestamp, stdDevs);
+    }
+
+    /**
+     * The tilt and height sanity gates, on a camera's MegaTag1 3-D solve. Rejects a roll or pitch
+     * over 5 deg (camera physically disturbed) and a solved height further than {@link
+     * VisionConfig#getMaxZErrorMeters()} from the floor (a bad solve or a bad mount transform).
+     *
+     * @return {@code true} if the solve is rejected; the camera's status says why
+     */
+    private boolean tiltOrHeightRejected(Limelight ll, Pose3d megaTag1Pose3d) {
+        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > Math.toRadians(5)
+                || Math.abs(megaTag1Pose3d.getRotation().getY()) > Math.toRadians(5)) {
+            ll.sendInvalidStatus("Roll/Pitch Rejection");
+            return true;
+        }
+        if (Math.abs(megaTag1Pose3d.getZ()) > config.getMaxZErrorMeters()) {
+            ll.sendInvalidStatus("Height Rejection");
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Picks the translation std-dev for a solve's confidence tier and sets the camera's status to
+     * the tier (or to the rejection).
+     *
+     * @param poseDifference distance from the current odometry pose to the solve, metres
+     * @param ignorePoseDifference lets the close and proximity tiers accept a solve however far it
+     *     is from odometry (MT2 while disabled, when odometry is what is being seeded)
+     * @param highestAmbiguity worst tag ambiguity in the solve; the last tier needs it under 0.25
+     * @return the std-dev, or NaN if the solve meets no tier
+     */
+    private double tierXyStds(
+            Limelight ll,
+            double targetSize,
+            boolean multiTags,
+            double poseDifference,
+            boolean ignorePoseDifference,
+            double highestAmbiguity) {
+        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        double robotLinearSpeed =
+                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
+        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
+            ll.sendValidStatus("Stationary close integration");
+            return 0.1;
+        } else if (multiTags && targetSize > 2) {
+            ll.sendValidStatus("Strong Multi integration");
+            return 0.1;
+        } else if (multiTags && targetSize > 0.2) {
+            ll.sendValidStatus("Multi integration");
+            return 0.25;
+        } else if (targetSize > 2 && (poseDifference < 0.5 || ignorePoseDifference)) {
+            ll.sendValidStatus("Close integration");
+            return 0.5;
+        } else if (targetSize > 1 && (poseDifference < 0.25 || ignorePoseDifference)) {
+            ll.sendValidStatus("Proximity integration");
+            return 1.0;
+        } else if (highestAmbiguity < 0.25 && targetSize >= 0.03) {
+            ll.sendValidStatus("Stable integration");
+            return 1.5;
+        }
+        ll.sendInvalidStatus("Integration Criteria not Met");
+        return Double.NaN;
     }
 
     /**
@@ -2664,9 +2704,6 @@ public class Vision implements Subsystem {
         boolean multiTags = ll.multipleTagsInView();
         double targetSize = ll.getTargetSize();
         Pose2d megaTag2Pose2d = ll.getMegaTag2_Pose2d();
-        ChassisSpeeds robotSpeed = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        double robotLinearSpeed =
-                Math.hypot(robotSpeed.vxMetersPerSecond, robotSpeed.vyMetersPerSecond);
 
         double mt2PoseDifference =
                 Robot.getSwerve()
@@ -2678,55 +2715,33 @@ public class Vision implements Subsystem {
             return null;
         }
 
-        Pose3d megaTag1Pose3d = ll.getMegaTag1_Pose3d();
-        if (Math.abs(megaTag1Pose3d.getRotation().getX()) > Math.toRadians(5)
-                || Math.abs(megaTag1Pose3d.getRotation().getY()) > Math.toRadians(5)) {
-            ll.sendInvalidStatus("Roll/Pitch Rejection");
-            return null;
-        }
-        if (Math.abs(megaTag1Pose3d.getZ()) > config.getMaxZErrorMeters()) {
-            ll.sendInvalidStatus("Height Rejection");
+        if (tiltOrHeightRejected(ll, ll.getMegaTag1_Pose3d())) {
             return null;
         }
 
-        double xyStds;
-
-        if (robotLinearSpeed <= 0.2 && targetSize > 4) {
-            ll.sendValidStatus("Stationary close integration");
-            xyStds = 0.1;
-        } else if (multiTags && targetSize > 2) {
-            ll.sendValidStatus("Strong Multi integration");
-            xyStds = 0.1;
-        } else if (multiTags && targetSize > 0.2) {
-            ll.sendValidStatus("Multi integration");
-            xyStds = 0.25;
-        } else if (targetSize > 2 && (mt2PoseDifference < 0.5 || DriverStation.isDisabled())) {
-            ll.sendValidStatus("Close integration");
-            xyStds = 0.5;
-        } else if (targetSize > 1 && (mt2PoseDifference < 0.25 || DriverStation.isDisabled())) {
-            ll.sendValidStatus("Proximity integration");
-            xyStds = 1.0;
-        } else if (targetSize >= 0.03) {
-            ll.sendValidStatus("Stable integration");
-            xyStds = 1.5;
-        } else {
-            ll.sendInvalidStatus("Integration Criteria not Met");
+        // MT2 has no per-tag ambiguity, so 0 leaves the last tier to target size alone.
+        double xyStds =
+                tierXyStds(
+                        ll,
+                        targetSize,
+                        multiTags,
+                        mt2PoseDifference,
+                        DriverStation.isDisabled(),
+                        0);
+        if (Double.isNaN(xyStds)) {
             return null;
         }
 
         double degStds = config.getKLargeVariance();
-        Pose2d integratedPose =
-                new Pose2d(megaTag2Pose2d.getTranslation(), megaTag2Pose2d.getRotation());
         double timestamp = Utils.fpgaToCurrentTime(ll.getMegaTag2PoseTimestamp());
         if (isStale(ll, timestamp)) {
             return null;
         }
 
         return new VisionFieldPoseEstimate(
-                integratedPose,
+                megaTag2Pose2d,
                 timestamp,
-                VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)),
-                (int) ll.getTagCountInView());
+                VecBuilder.fill(xyStds, xyStds, Units.degreesToRadians(degStds)));
     }
 
     /**
@@ -2782,9 +2797,9 @@ public class Vision implements Subsystem {
         if (estimate != null) {
             Robot.getSwerve()
                     .addVisionMeasurement(
-                            estimate.getVisionRobotPoseMeters(),
-                            estimate.getTimestampSeconds(),
-                            estimate.getVisionMeasurementStdDevs());
+                            estimate.visionRobotPoseMeters(),
+                            estimate.timestampSeconds(),
+                            estimate.visionMeasurementStdDevs());
             lastAcceptedEstimateFpgaSeconds = Timer.getFPGATimestamp();
             ll.setIntegratedThisLoop(true);
         }
@@ -2924,39 +2939,6 @@ public class Vision implements Subsystem {
     // Pose Access & Queries
     // =========================================================================
 
-    /** MegaTag1 robot pose from the back-left Limelight, or {@link Pose2d#kZero} if unavailable. */
-    public Pose2d getBackLeftMegaTag1Pose() {
-        Pose2d pose = backLeftLL.getMegaTag1_Pose3d().toPose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
-
-    /** MegaTag1 robot pose from the back-right Limelight, or {@link Pose2d#kZero} if none. */
-    public Pose2d getBackRightMegaTag1Pose() {
-        Pose2d pose = backRightLL.getMegaTag1_Pose3d().toPose2d();
-        return pose != null ? pose : Pose2d.kZero;
-    }
-
-    /**
-     * Returns the robot pose the turret Limelight's MegaTag1 solve implies, composed on the roboRIO
-     * from the turret angle at the frame time ({@link #solveTurretCamera()}), or {@link
-     * Pose2d#kZero} when there is no usable solve this loop.
-     */
-    public Pose2d getTurretMegaTag1Pose() {
-        solveTurretCamera();
-        return turretSolveValid ? turretSolvedRobotPose : Pose2d.kZero;
-    }
-
-    /**
-     * Returns the turret Limelight's MegaTag1 robot pose, or {@link Pose2d#kZero} if the camera has
-     * no estimate.
-     */
-    public Pose2d getTurretRobotPose() {
-        if (!turretLL.isAttached() || !turretLL.targetInView()) {
-            return Pose2d.kZero;
-        }
-        return getTurretMegaTag1Pose();
-    }
-
     /**
      * Triggers a rewind-capture snapshot on all Limelights (captures 165 seconds of history for
      * post-match review).
@@ -3058,39 +3040,14 @@ public class Vision implements Subsystem {
      * covariance matrix, ready for use with {@code
      * SwerveDrivePoseEstimator.addVisionMeasurement()}.
      */
-    @Getter
-    public class VisionFieldPoseEstimate {
-
-        /** The estimated field-relative robot pose (metres, radians). */
-        private final Pose2d visionRobotPoseMeters;
-
-        /** The FPGA-converted timestamp of this measurement (seconds). */
-        private final double timestampSeconds;
-
-        /**
-         * The 3×1 standard-deviation vector {@code [x, y, theta]} passed to the pose estimator.
-         * Larger values indicate less trust in that dimension.
-         */
-        private final Matrix<N3, N1> visionMeasurementStdDevs;
-
-        /** Number of AprilTags that contributed to this estimate. */
-        private final int numTags;
-
-        /**
-         * @param visionRobotPoseMeters field-relative robot pose
-         * @param timestampSeconds FPGA-converted capture timestamp
-         * @param visionMeasurementStdDevs 3×1 std-dev vector [x, y, theta]
-         * @param numTags number of tags used in the solve
-         */
-        public VisionFieldPoseEstimate(
-                Pose2d visionRobotPoseMeters,
-                double timestampSeconds,
-                Matrix<N3, N1> visionMeasurementStdDevs,
-                int numTags) {
-            this.visionRobotPoseMeters = visionRobotPoseMeters;
-            this.timestampSeconds = timestampSeconds;
-            this.visionMeasurementStdDevs = visionMeasurementStdDevs;
-            this.numTags = numTags;
-        }
-    }
+    /**
+     * @param visionRobotPoseMeters field-relative robot pose (metres, radians)
+     * @param timestampSeconds FPGA-converted capture timestamp (seconds)
+     * @param visionMeasurementStdDevs 3×1 std-dev vector {@code [x, y, theta]} passed to the pose
+     *     estimator; larger values mean less trust in that dimension
+     */
+    private record VisionFieldPoseEstimate(
+            Pose2d visionRobotPoseMeters,
+            double timestampSeconds,
+            Matrix<N3, N1> visionMeasurementStdDevs) {}
 }

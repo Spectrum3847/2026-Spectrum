@@ -20,8 +20,6 @@ import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.ClosedLoopOutputType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants.SteerFeedbackType;
 import com.ctre.phoenix6.swerve.SwerveModuleConstantsFactory;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -30,20 +28,16 @@ import edu.wpi.first.units.measure.LinearVelocity;
 import edu.wpi.first.units.measure.Voltage;
 import frc.spectrumLib.hardware.Rio;
 import lombok.Getter;
-import lombok.Setter;
 
 public class SwerveConfig {
 
     @Getter private final double simLoopPeriod = 0.005; // 5 ms
 
-    @Getter private final double deadband = 0.05; // 5% input deadband for the joysticks
-    @Getter private final double aimDeadband = 0.01; // 1% input deadband for aiming modes
-
-    @Getter @Setter private double driveGearRatio = 7.03;
-    @Getter @Setter private double steerGearRatio = 26.09;
+    @Getter private double driveGearRatio = 7.03;
+    @Getter private double steerGearRatio = 26.09;
 
     // Estimated at first, then fudge-factored to make odom match record
-    @Getter @Setter private Distance wheelRadius = Inches.of(1.978);
+    @Getter private Distance wheelRadius = Inches.of(1.978);
 
     // Theoretical translational free speed (ft/s) at 12v applied output;
     @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(4.5);
@@ -54,15 +48,6 @@ public class SwerveConfig {
     // -----------------------------------------------------------------------
     // PID Controller Constants
     // -----------------------------------------------------------------------
-    @Getter private final double kPRotationController = 5.0;
-    @Getter private final double kIRotationController = 0.0;
-    @Getter private final double kDRotationController = 0.0;
-
-    /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
-    @Getter private final Rotation2d blueAlliancePerspectiveRotation = Rotation2d.kZero;
-    /* Red alliance sees forward as 180 degrees (toward blue alliance wall) */
-    @Getter private final Rotation2d redAlliancePerspectiveRotation = Rotation2d.k180deg;
-
     // Both sets of gains need to be tuned to your individual robot.
     @Getter
     private Slot0Configs steerGains =
@@ -158,17 +143,6 @@ public class SwerveConfig {
                     TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             constantCreator;
 
-    private final double wheelBaseInches = 21.75;
-    private final double trackWidthInches = 21.75;
-
-    // Distance from robot center to each module (drivebase "radius") in inches
-    @Getter
-    private final double drivebaseRadiusInches =
-            Math.hypot(wheelBaseInches / 2.0, trackWidthInches / 2.0);
-
-    @Getter
-    private final double drivebaseRadiusMeters = Units.inchesToMeters(drivebaseRadiusInches);
-
     // Front Left
     @Getter private final int frontLeftDriveMotorId = 1;
     @Getter private final int frontLeftSteerMotorId = 2;
@@ -209,8 +183,6 @@ public class SwerveConfig {
     @Getter private final Distance backRightXPos = Inches.of(-7.368);
     @Getter private final Distance backRightYPos = Inches.of(-13.25);
 
-    @Getter private final double targetHeading = 0;
-
     @Getter
     private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             frontLeft;
@@ -245,10 +217,12 @@ public class SwerveConfig {
         }
         return modules;
     }
+
     /** Creates a new SwerveConfig instance. */
     public SwerveConfig() {
         updateConfig();
     }
+
     /** Updates the config. */
     public SwerveConfig updateConfig() {
         drivetrainConstants =
@@ -329,6 +303,7 @@ public class SwerveConfig {
 
         return this;
     }
+
     /** Config encoder offsets. */
     public SwerveConfig configEncoderOffsets(
             double frontLeft, double frontRight, double backLeft, double backRight) {

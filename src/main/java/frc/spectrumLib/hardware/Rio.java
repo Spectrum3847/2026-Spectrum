@@ -69,6 +69,7 @@ public enum Rio {
         this.serialNumber = serialNumber;
         this.isRio2 = isRio2;
     }
+
     /** Checks the id. */
     private static Rio checkID() {
         rioIdAlert.set(false);

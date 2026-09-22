@@ -321,6 +321,7 @@ public abstract class Gamepad implements Subsystem {
 
         CommandScheduler.getInstance().registerSubsystem(this);
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
@@ -596,6 +597,7 @@ public abstract class Gamepad implements Subsystem {
         return new Trigger(
                 () -> Math.abs(getLeftX()) >= threshold || Math.abs(getLeftY()) >= threshold);
     }
+
     /** Axis trigger. */
     private Trigger axisTrigger(Threshold t, double threshold, DoubleSupplier v) {
         return new Trigger(

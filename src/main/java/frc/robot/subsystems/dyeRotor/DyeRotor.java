@@ -84,16 +84,13 @@ public class DyeRotor implements Subsystem {
             simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
+
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("Rotor/CurrentCommand", getCurrentCommandName());
-            logDiagnostics("Rotor");
-            if (Telemetry.slowLogThisLoop()) {
-                Telemetry.logDash("Rotor/RPM", getVelocityRPM(), "RPM");
-            }
+            logStandard("Rotor", true);
         }
+
         /**
          * Sets the rotor velocity.
          *
@@ -102,10 +99,7 @@ public class DyeRotor implements Subsystem {
         public void setRotorVelocity(double rpm) {
             setVelocityTCFOCrpm(() -> rpm);
         }
-        /** Rotor stop. */
-        public void rotorStop() {
-            stop();
-        }
+
         /** Simulation init. */
         public void simulationInit() {
             if (isAttached()) {
@@ -189,16 +183,13 @@ public class DyeRotor implements Subsystem {
             this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
         }
+
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("Feeder/CurrentCommand", getCurrentCommandName());
-            logDiagnostics("Feeder");
-            if (Telemetry.slowLogThisLoop()) {
-                Telemetry.logDash("Feeder/RPM", getVelocityRPM(), "RPM");
-            }
+            logStandard("Feeder", true);
         }
+
         /**
          * Sets the feeder rpm.
          *
@@ -207,27 +198,6 @@ public class DyeRotor implements Subsystem {
         public void setFeederVelocity(double rpm) {
             // setVelocityTCFOCrpm
             setVelocityRPM(() -> rpm);
-        }
-        /** Feeder stop. */
-        public void feederStop() {
-            stop();
-        }
-    }
-
-    public static class DyeRotorConfig {
-        @Getter private final RotorConfig rotorConfig;
-
-        @Getter private final FeederConfig feederConfig;
-
-        /**
-         * Creates a new DyeRotorConfig instance.
-         *
-         * @param rotorConfig the rotorConfig
-         * @param feederConfig the feederConfig
-         */
-        public DyeRotorConfig(RotorConfig rotorConfig, FeederConfig feederConfig) {
-            this.rotorConfig = rotorConfig;
-            this.feederConfig = feederConfig;
         }
     }
 
@@ -428,6 +398,7 @@ public class DyeRotor implements Subsystem {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /**
      * Handles the state transition. {@code INDEX_MAX} may briefly resolve to {@code UNJAM} through
      * {@link #indexMaxWithAutoUnjam}; leaving {@code INDEX_MAX} for any reason clears that.
@@ -452,8 +423,8 @@ public class DyeRotor implements Subsystem {
         double wantedRPMIndex = 0;
         switch (systemState) {
             case OFF:
-                rotor.rotorStop();
-                feeder.feederStop();
+                rotor.stop();
+                feeder.stop();
                 return;
             case INDEX_MAX:
                 wantedRPMSpin = 100;
@@ -477,17 +448,16 @@ public class DyeRotor implements Subsystem {
 
     @Getter private final Rotor rotor;
     @Getter private final Feeder feeder;
-    @Getter private final DyeRotorConfig config;
 
     /**
      * Creates and registers the dye rotor subsystem with the specified configuration.
      *
-     * @param config configuration for the rotor and feeder mechanisms
+     * @param rotorConfig the rotor config
+     * @param feederConfig the feeder config
      */
-    public DyeRotor(DyeRotorConfig config) {
-        this.config = config;
-        this.rotor = new Rotor(config.getRotorConfig());
-        this.feeder = new Feeder(config.getFeederConfig());
+    public DyeRotor(RotorConfig rotorConfig, FeederConfig feederConfig) {
+        this.rotor = new Rotor(rotorConfig);
+        this.feeder = new Feeder(feederConfig);
 
         this.register();
         Telemetry.print("Dye Rotor Subsystem Initialized");

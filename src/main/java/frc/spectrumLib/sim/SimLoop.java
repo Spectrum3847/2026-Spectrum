@@ -42,6 +42,7 @@ public final class SimLoop {
             notifier = started;
         }
     }
+
     /** Tick. */
     private static void tick() {
         double now = Utils.getCurrentTimeSeconds();

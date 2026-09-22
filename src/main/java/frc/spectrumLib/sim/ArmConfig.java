@@ -109,6 +109,7 @@ public class ArmConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
+
     /**
      * Sets the color.
      *
@@ -119,6 +120,7 @@ public class ArmConfig {
         this.color = color;
         return this;
     }
+
     /**
      * Sets whether simulated gravity is applied.
      *

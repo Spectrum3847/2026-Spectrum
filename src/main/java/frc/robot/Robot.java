@@ -40,19 +40,15 @@ import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
-import frc.robot.subsystems.dyeRotor.DyeRotor.DyeRotorConfig;
 import frc.robot.subsystems.dyeRotor.DyeRotor.Feeder.FeederConfig;
 import frc.robot.subsystems.dyeRotor.DyeRotor.Rotor.RotorConfig;
 import frc.robot.subsystems.fuelIntake.FuelIntake;
-import frc.robot.subsystems.fuelIntake.FuelIntake.FuelIntakeConfig;
 import frc.robot.subsystems.fuelIntake.FuelIntake.IntakeKicker.IntakeKickerConfig;
 import frc.robot.subsystems.fuelIntake.FuelIntake.IntakeRoller.IntakeRollerConfig;
 import frc.robot.subsystems.hood.Hood;
 import frc.robot.subsystems.hood.Hood.HoodConfig;
 import frc.robot.subsystems.intakeExtension.IntakeExtension;
-import frc.robot.subsystems.intakeExtension.IntakeExtension.IntakeExtensionConfig;
-import frc.robot.subsystems.intakeExtension.IntakeExtension.Left.LeftConfig;
-import frc.robot.subsystems.intakeExtension.IntakeExtension.Right.RightConfig;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.Axis.AxisConfig;
 import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.Launcher.LauncherConfig;
 import frc.robot.subsystems.launcher.LauncherTower;
@@ -102,14 +98,10 @@ public class Robot extends SpectrumRobot {
         public final OperatorConfig operator = new OperatorConfig();
         public final IntakeRollerConfig intakeRoller = new IntakeRollerConfig();
         public final IntakeKickerConfig intakeKicker = new IntakeKickerConfig();
-        public final FuelIntakeConfig fuelIntake = new FuelIntakeConfig(intakeRoller, intakeKicker);
-        public final LeftConfig intakeExtensionLeft = new LeftConfig();
-        public final RightConfig intakeExtensionRight = new RightConfig(intakeExtensionLeft);
-        public final IntakeExtensionConfig intakeExtension =
-                new IntakeExtensionConfig(intakeExtensionLeft, intakeExtensionRight);
+        public final AxisConfig intakeExtensionLeft = AxisConfig.left();
+        public final AxisConfig intakeExtensionRight = AxisConfig.right();
         public final RotorConfig rotor = new RotorConfig();
         public final FeederConfig feeder = new FeederConfig();
-        public final DyeRotorConfig dyeRotor = new DyeRotorConfig(rotor, feeder);
         public final LauncherConfig launcher = new LauncherConfig();
         public final VisionConfig vision = new VisionConfig();
         public final TurretConfig turret = new TurretConfig();
@@ -128,7 +120,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static LauncherTower launcherTower;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
-    // @Getter private static Leds leds;
     @Getter private static Auton auton;
 
     @Getter private static SuperStructure superStructure;
@@ -159,8 +150,11 @@ public class Robot extends SpectrumRobot {
          */
         SignalLogger.enableAutoLogging(false);
 
-        // Mirror-to-NetworkTables off; see Telemetry.start() for what the dashboard gets instead.
-        Telemetry.start(false, true, false, true, false, true, PrintPriority.NORMAL);
+        // Mirror-to-NetworkTables off on the robot (see Telemetry.start() for what the dashboard
+        // gets instead), on in simulation: there is no roboRIO CPU to save, and without it the
+        // Telemetry.log keys (Robot/Sim/*, poses, states) never show up live in AdvantageScope.
+        Telemetry.start(
+                RobotBase.isSimulation(), true, false, true, false, true, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
@@ -182,10 +176,11 @@ public class Robot extends SpectrumRobot {
             swerve = new Swerve(config.swerve);
             Timer.delay(canInitDelay);
 
-            intakeExtension = new IntakeExtension(config.intakeExtension);
+            intakeExtension =
+                    new IntakeExtension(config.intakeExtensionLeft, config.intakeExtensionRight);
             Timer.delay(canInitDelay);
 
-            fuelIntake = new FuelIntake(config.fuelIntake);
+            fuelIntake = new FuelIntake(config.intakeRoller, config.intakeKicker);
             Timer.delay(canInitDelay);
 
             turret = new Turret(config.turret);
@@ -200,7 +195,7 @@ public class Robot extends SpectrumRobot {
             launcherTower = new LauncherTower(config.launcherTower);
             Timer.delay(canInitDelay);
 
-            dyeRotor = new DyeRotor(config.dyeRotor);
+            dyeRotor = new DyeRotor(config.rotor, config.feeder);
             Timer.delay(canInitDelay);
 
             superStructure =
@@ -217,15 +212,19 @@ public class Robot extends SpectrumRobot {
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
-            // leds = new Leds();
 
             if (RobotBase.isSimulation()) {
                 robotSim = new RobotSim(superStructure);
             }
 
             // Before any binding can move a trim, and late enough that NetworkTables is up
-            // for Preferences. Prints at HIGH priority when a stored trim is non-zero.
-            ShotCalculator.loadPersistedTrims();
+            // for Preferences. Prints at HIGH priority when a stored trim is non-zero. In
+            // simulation every trim is zero instead, the model hood offsets included.
+            if (RobotBase.isSimulation()) {
+                ShotCalculator.zeroTrimsForSimulation();
+            } else {
+                ShotCalculator.loadPersistedTrims();
+            }
 
             configureBindings();
 
@@ -260,6 +259,7 @@ public class Robot extends SpectrumRobot {
                     default -> "Unknown";
                 });
     }
+
     /** Configures the bindings. */
     public void configureBindings() {
         // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
@@ -422,6 +422,7 @@ public class Robot extends SpectrumRobot {
                         superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE)));
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
+
     /** Configures the sim bindings. */
     public void configureSimBindings() {
         Trigger simLaunching = new Trigger(superStructure::currentStateIsLaunching);
@@ -444,6 +445,7 @@ public class Robot extends SpectrumRobot {
     public void setupSmartDashboardData() {
         SmartDashboard.putData("Field2d", field2d);
     }
+
     /** Robot init. */
     @Override
     public void robotInit() {
@@ -979,6 +981,7 @@ public class Robot extends SpectrumRobot {
             startPoseAlert.set(true);
         }
     }
+
     /** Disabled exit. */
     @Override
     public void disabledExit() {
@@ -1025,6 +1028,7 @@ public class Robot extends SpectrumRobot {
         superStructure.setWantedSuperState(WantedSuperState.IDLE);
         Telemetry.print("@@@ Auton Exit @@@ ");
     }
+
     /** Teleop init. */
     @Override
     public void teleopInit() {
@@ -1042,6 +1046,7 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
+
     /** Teleop periodic. */
     @Override
     public void teleopPeriodic() {}
@@ -1083,6 +1088,7 @@ public class Robot extends SpectrumRobot {
             throw t;
         }
     }
+
     /** Test periodic. */
     @Override
     public void testPeriodic() {}
