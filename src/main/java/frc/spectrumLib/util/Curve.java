@@ -1,5 +1,7 @@
 package frc.spectrumLib.util;
 
+import edu.wpi.first.math.MathUtil;
+
 // Spectrum 3847
 // Based on Code from FRC# 2363
 
@@ -42,14 +44,8 @@ public abstract class Curve {
      * @return mapped value
      */
     protected double calculateDeadzone(double input) {
-        double deadRadius = deadzone / 2.0;
-        double val = 0.0;
-        if (input > deadRadius) {
-            val = (1.0 / (1.0 - deadRadius)) * (input - deadRadius);
-        } else if (input < -deadRadius) {
-            val = (1.0 / (1.0 - deadRadius)) * (input + deadRadius);
-        }
-        return val;
+        // The deadzone is a full width; half of it either side of zero.
+        return MathUtil.applyDeadband(input, deadzone / 2.0);
     }
 
     /**

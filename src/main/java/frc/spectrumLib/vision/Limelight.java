@@ -53,11 +53,6 @@ public class Limelight {
         /** Whether this camera is physically connected to the robot. */
         @Getter @Setter private boolean attached = true;
 
-        /**
-         * Whether pose measurements from this camera are currently being fused into the estimator.
-         */
-        @Getter @Setter private boolean isIntegrating;
-
         /** Physical Config */
         /**
          * Forward offset of the camera from the robot center in meters (positive = toward front).
@@ -116,9 +111,6 @@ public class Limelight {
 
     /** Whether pose measurements from this camera are currently being integrated. */
     @Getter @Setter private boolean isIntegrating = false;
-
-    /** Network-table name of this camera (mirrors {@link LimelightConfig#getName()}). */
-    @Getter private String cameraName = "default";
 
     /** Human-readable string describing the current integration status, logged for diagnostics. */
     @Getter @Setter private String logStatus = "";
@@ -220,7 +212,6 @@ public class Limelight {
      */
     public Limelight(LimelightConfig config) {
         this.config = config;
-        cameraName = config.getName();
     }
 
     /**
@@ -229,7 +220,6 @@ public class Limelight {
      * @param name the network-table name of the camera
      */
     public Limelight(String name) {
-        cameraName = name;
         config = new LimelightConfig(name);
     }
 
@@ -240,7 +230,6 @@ public class Limelight {
      * @param attached {@code true} if the camera is physically present on the robot
      */
     public Limelight(String name, boolean attached) {
-        cameraName = name;
         config = new LimelightConfig(name).setAttached(attached);
     }
 
@@ -253,7 +242,6 @@ public class Limelight {
      */
     public Limelight(String name, int pipeline) {
         this(name);
-        cameraName = name;
         setLimelightPipeline(pipeline);
     }
 
@@ -267,7 +255,6 @@ public class Limelight {
      */
     public Limelight(String name, int pipeline, LimelightConfig config) {
         this(name);
-        cameraName = name;
         this.config = config;
         setLimelightPipeline(pipeline);
     }
@@ -278,6 +265,15 @@ public class Limelight {
      * @return the camera name as configured in the LL dashboard
      */
     public String getName() {
+        return config.getName();
+    }
+
+    /**
+     * Returns the network-table name of this camera; the same as {@link #getName()}.
+     *
+     * @return the camera name as configured in the LL dashboard
+     */
+    public String getCameraName() {
         return config.getName();
     }
 
@@ -505,20 +501,6 @@ public class Limelight {
         return mt2Estimate().timestampSeconds;
     }
 
-    /**
-     * Returns the latency of the pose estimation from the Limelight camera.
-     *
-     * @return The latency of the pose estimation in seconds.
-     */
-    @Deprecated(forRemoval = true)
-    public double getPoseLatency() {
-        if (!isAttached()) {
-            return 0;
-        }
-        return Units.millisecondsToSeconds(
-                LimelightHelpers.getBotPose_wpiBlue(config.getName())[6]);
-    }
-
     /*
      * Custom Helpers
      */
@@ -543,8 +525,7 @@ public class Limelight {
      * @param message a human-readable description of why integration is valid
      */
     public void sendValidStatus(String message) {
-        config.isIntegrating = true;
-        this.isIntegrating = config.isIntegrating;
+        isIntegrating = true;
         logStatus = message;
     }
 
@@ -554,8 +535,7 @@ public class Limelight {
      * @param message a human-readable description of why integration is invalid
      */
     public void sendInvalidStatus(String message) {
-        config.isIntegrating = false;
-        this.isIntegrating = config.isIntegrating;
+        isIntegrating = false;
         logStatus = message;
     }
 
@@ -685,7 +665,7 @@ public class Limelight {
             return -99999;
         }
 
-        double tx = LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getX();
+        double tx = LimelightHelpers.getTargetPose3d_RobotSpace(config.getName()).getX();
 
         return tx;
     }
@@ -722,7 +702,7 @@ public class Limelight {
         }
 
         double rotationRadians =
-                LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getRotation().getZ();
+                LimelightHelpers.getTargetPose3d_RobotSpace(config.getName()).getRotation().getZ();
 
         return Math.toDegrees(rotationRadians);
     }

@@ -23,6 +23,8 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Alert;
@@ -445,8 +447,7 @@ public abstract class Mechanism implements Subsystem {
         }
 
         double now = Timer.getFPGATimestamp();
-        double dt =
-                Math.min(Math.max(now - followerCheckLastSeconds, 0), FOLLOWER_MAX_LOOP_SECONDS);
+        double dt = MathUtil.clamp(now - followerCheckLastSeconds, 0, FOLLOWER_MAX_LOOP_SECONDS);
         if (index == followerMotors.length - 1) {
             followerCheckLastSeconds = now;
         }
@@ -937,7 +938,7 @@ public abstract class Mechanism implements Subsystem {
      * @return the equivalent position in rotations
      */
     public double degreesToRotations(DoubleSupplier degrees) {
-        return (degrees.getAsDouble() / 360);
+        return Units.degreesToRotations(degrees.getAsDouble());
     }
 
     /**
@@ -947,7 +948,7 @@ public abstract class Mechanism implements Subsystem {
      * @return the equivalent angle in degrees
      */
     public double rotationsToDegrees(DoubleSupplier rotations) {
-        return 360 * rotations.getAsDouble();
+        return Units.rotationsToDegrees(rotations.getAsDouble());
     }
 
     // ── Position & Velocity ────────────────────────────────────────────────────
@@ -1002,18 +1003,6 @@ public abstract class Mechanism implements Subsystem {
      */
     public double getPositionDegrees() {
         return rotationsToDegrees(this::getPositionRotations);
-    }
-
-    /**
-     * Same as {@link #getPositionDegrees()}. The per-loop signal refresh is keyed on the robot loop
-     * counter rather than the scheduler, so a caller that runs before {@code
-     * CommandScheduler.run()} (Vision, in {@code Robot.robotPeriodic()}) already gets this loop's
-     * sample. Kept so existing callers need not change.
-     *
-     * @return motor position in degrees, or {@code 0} if not attached
-     */
-    public double getPositionDegreesUncached() {
-        return getPositionDegrees();
     }
 
     /**
@@ -1964,10 +1953,7 @@ public abstract class Mechanism implements Subsystem {
          * @param enabled {@code true} to enable the limit
          */
         public void configSupplyCurrentLimit(double supplyLimit, boolean enabled) {
-            if (supplyLimit < 0) {
-                supplyLimit = -supplyLimit;
-            }
-            talonConfig.CurrentLimits.SupplyCurrentLimit = supplyLimit;
+            talonConfig.CurrentLimits.SupplyCurrentLimit = Math.abs(supplyLimit);
             talonConfig.CurrentLimits.SupplyCurrentLimitEnable = enabled;
         }
 
@@ -1979,10 +1965,7 @@ public abstract class Mechanism implements Subsystem {
          * @param enabled {@code true} to enable the limit
          */
         public void configStatorCurrentLimit(double statorLimit, boolean enabled) {
-            if (statorLimit < 0) {
-                statorLimit = -statorLimit;
-            }
-            talonConfig.CurrentLimits.StatorCurrentLimit = statorLimit;
+            talonConfig.CurrentLimits.StatorCurrentLimit = Math.abs(statorLimit);
             talonConfig.CurrentLimits.StatorCurrentLimitEnable = enabled;
         }
 
@@ -1993,10 +1976,7 @@ public abstract class Mechanism implements Subsystem {
          * @param currentLimit peak forward torque current in amps
          */
         public void configForwardTorqueCurrentLimit(double currentLimit) {
-            if (currentLimit < 0) {
-                currentLimit = -currentLimit;
-            }
-            talonConfig.TorqueCurrent.PeakForwardTorqueCurrent = currentLimit;
+            talonConfig.TorqueCurrent.PeakForwardTorqueCurrent = Math.abs(currentLimit);
         }
 
         /**
@@ -2028,10 +2008,7 @@ public abstract class Mechanism implements Subsystem {
          * @param currentLimit peak reverse torque current in amps (sign is corrected if positive)
          */
         public void configReverseTorqueCurrentLimit(double currentLimit) {
-            if (currentLimit > 0) {
-                currentLimit = -currentLimit;
-            }
-            talonConfig.TorqueCurrent.PeakReverseTorqueCurrent = currentLimit;
+            talonConfig.TorqueCurrent.PeakReverseTorqueCurrent = -Math.abs(currentLimit);
         }
 
         /**

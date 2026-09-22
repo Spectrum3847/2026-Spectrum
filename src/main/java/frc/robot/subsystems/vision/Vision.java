@@ -702,12 +702,12 @@ public class Vision implements Subsystem {
     private final VisionLogger[] allLoggers;
 
     /**
-     * Live turret angle in degrees, positive counter-clockwise, zero pointing robot-forward. Reads
-     * the motor directly rather than the turret's per-loop cache: Vision runs before {@code
-     * CommandScheduler.run()}, so the cache still holds last loop's value at that point.
+     * Live turret angle in degrees, positive counter-clockwise, zero pointing robot-forward. Vision
+     * runs before {@code CommandScheduler.run()}, but the signal refresh is keyed on the robot loop
+     * counter, so this already reads this loop's sample.
      */
     private final DoubleSupplier turretRotationSupplier =
-            () -> Robot.getTurret().getPositionDegreesUncached();
+            () -> Robot.getTurret().getPositionDegrees();
 
     private final VisionConfig config;
 

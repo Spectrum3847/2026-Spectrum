@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.function.DoubleFunction;
 
 /**
  * Watches the things that made the robot fall behind on 2026-09-05 and says so on the dashboard.
@@ -91,12 +92,16 @@ public class SystemLoadMonitor {
     private static final Path PROC_STAT = Paths.get("/proc/stat");
     private static final Path PROC_MEMINFO = Paths.get("/proc/meminfo");
 
-    private final Alert cpuAlert = new Alert("roboRIO CPU high", AlertType.kWarning);
-    private final Alert loopAlert = new Alert("Robot loop overrunning", AlertType.kWarning);
+    private final SustainedAlert cpuAlert =
+            new SustainedAlert("roboRIO CPU high", AlertType.kWarning, CPU_HOLD_SECONDS);
+    private final SustainedAlert loopAlert =
+            new SustainedAlert(
+                    "Robot loop overrunning", AlertType.kWarning, LOOP_OVERRUN_HOLD_SECONDS);
     private final Alert stallAlert =
             new Alert("Robot loop stalled while enabled", AlertType.kError);
     private final Alert gcAlert = new Alert("GC pause while enabled", AlertType.kWarning);
-    private final Alert memoryAlert = new Alert("roboRIO memory low", AlertType.kWarning);
+    private final SustainedAlert memoryAlert =
+            new SustainedAlert("roboRIO memory low", AlertType.kWarning, MEMORY_HOLD_SECONDS);
 
     private final List<GarbageCollectorMXBean> gcBeans =
             ManagementFactory.getGarbageCollectorMXBeans();
@@ -111,9 +116,6 @@ public class SystemLoadMonitor {
     private long sampleCount = 0;
 
     // ── Alert state ───────────────────────────────────────────────────────────
-    private double loopHighSinceSeconds = Double.NaN;
-    private double cpuHighSinceSeconds = Double.NaN;
-    private double memoryLowSinceSeconds = Double.NaN;
     private double stallLatchUntilSeconds = Double.NEGATIVE_INFINITY;
     private double gcLatchUntilSeconds = Double.NEGATIVE_INFINITY;
 
@@ -176,23 +178,16 @@ public class SystemLoadMonitor {
         Telemetry.logDashAlways("System/Loop/MaxPeriodMs", bucketMaxMs, "ms");
         Telemetry.logDashAlways("System/Loop/OverrunPercent", overrunPercent, "%");
 
-        if (overrunPercent >= LOOP_OVERRUN_ALERT_PERCENT) {
-            if (Double.isNaN(loopHighSinceSeconds)) {
-                loopHighSinceSeconds = now;
-            }
-            double held = now - loopHighSinceSeconds;
-            if (held >= LOOP_OVERRUN_HOLD_SECONDS && (!loopAlert.get() || refreshText)) {
-                loopAlert.setText(
+        loopAlert.update(
+                now,
+                overrunPercent >= LOOP_OVERRUN_ALERT_PERCENT,
+                overrunPercent < LOOP_OVERRUN_CLEAR_PERCENT,
+                refreshText,
+                held ->
                         String.format(
                                 "Robot loop overrunning: %.0f%% of loops over %.0f ms for %.0f s"
                                         + " (mean %.1f ms)",
                                 overrunPercent, LOOP_OVERRUN_MS, held, meanMs));
-                loopAlert.set(true);
-            }
-        } else if (overrunPercent < LOOP_OVERRUN_CLEAR_PERCENT) {
-            loopHighSinceSeconds = Double.NaN;
-            loopAlert.set(false);
-        }
 
         bucketLoops = 0;
         bucketOverruns = 0;
@@ -203,44 +198,30 @@ public class SystemLoadMonitor {
         double cpuPercent = readCpuPercent();
         if (!Double.isNaN(cpuPercent)) {
             Telemetry.logDashAlways("System/CpuPercent", cpuPercent, "%");
-            if (cpuPercent >= CPU_ALERT_PERCENT) {
-                if (Double.isNaN(cpuHighSinceSeconds)) {
-                    cpuHighSinceSeconds = now;
-                }
-                double held = now - cpuHighSinceSeconds;
-                if (held >= CPU_HOLD_SECONDS && (!cpuAlert.get() || refreshText)) {
-                    cpuAlert.setText(
+            cpuAlert.update(
+                    now,
+                    cpuPercent >= CPU_ALERT_PERCENT,
+                    cpuPercent < CPU_CLEAR_PERCENT,
+                    refreshText,
+                    held ->
                             String.format(
                                     "roboRIO CPU at %.0f%% for %.0f s - loop budget at risk",
                                     cpuPercent, held));
-                    cpuAlert.set(true);
-                }
-            } else if (cpuPercent < CPU_CLEAR_PERCENT) {
-                cpuHighSinceSeconds = Double.NaN;
-                cpuAlert.set(false);
-            }
         }
 
         // ── Memory ────────────────────────────────────────────────────────────
         double availableMb = readMemAvailableMb();
         if (!Double.isNaN(availableMb)) {
             Telemetry.logDashAlways("System/MemAvailableMB", availableMb, "MB");
-            if (availableMb < MEMORY_ALERT_MB) {
-                if (Double.isNaN(memoryLowSinceSeconds)) {
-                    memoryLowSinceSeconds = now;
-                }
-                double held = now - memoryLowSinceSeconds;
-                if (held >= MEMORY_HOLD_SECONDS && (!memoryAlert.get() || refreshText)) {
-                    memoryAlert.setText(
+            memoryAlert.update(
+                    now,
+                    availableMb < MEMORY_ALERT_MB,
+                    true,
+                    refreshText,
+                    held ->
                             String.format(
                                     "roboRIO memory low: %.0f MB available for %.0f s",
                                     availableMb, held));
-                    memoryAlert.set(true);
-                }
-            } else {
-                memoryLowSinceSeconds = Double.NaN;
-                memoryAlert.set(false);
-            }
         }
 
         // ── GC and heap ───────────────────────────────────────────────────────
@@ -351,6 +332,52 @@ public class SystemLoadMonitor {
         } catch (IOException | RuntimeException e) {
             procAvailable = false;
             return Double.NaN;
+        }
+    }
+
+    /**
+     * An alert raised once a condition has held for a while, with its text refreshed while it stays
+     * up, and cleared once the condition has recovered.
+     */
+    private static final class SustainedAlert {
+        private final Alert alert;
+        private final double holdSeconds;
+        private double sinceSeconds = Double.NaN;
+
+        SustainedAlert(String text, AlertType type, double holdSeconds) {
+            alert = new Alert(text, type);
+            this.holdSeconds = holdSeconds;
+        }
+
+        /**
+         * Updates the alert from this sample.
+         *
+         * @param now the sample time, seconds
+         * @param bad whether the condition is in its alert band
+         * @param recovered whether it has recovered enough to clear; with hysteresis this is a
+         *     stricter test than {@code !bad}, and an in-between sample changes nothing
+         * @param refreshText whether a raised alert's text should be rewritten this sample
+         * @param text builds the alert text from how long the condition has held, seconds
+         */
+        void update(
+                double now,
+                boolean bad,
+                boolean recovered,
+                boolean refreshText,
+                DoubleFunction<String> text) {
+            if (bad) {
+                if (Double.isNaN(sinceSeconds)) {
+                    sinceSeconds = now;
+                }
+                double held = now - sinceSeconds;
+                if (held >= holdSeconds && (!alert.get() || refreshText)) {
+                    alert.setText(text.apply(held));
+                    alert.set(true);
+                }
+            } else if (recovered) {
+                sinceSeconds = Double.NaN;
+                alert.set(false);
+            }
         }
     }
 }
