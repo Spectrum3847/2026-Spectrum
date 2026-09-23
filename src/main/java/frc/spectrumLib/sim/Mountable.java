@@ -39,24 +39,15 @@ public interface Mountable {
             double displacementX,
             double displacementY,
             double mountAngle) {
-        switch (mountType) {
-            case LINEAR:
-                return getXWithAngle(
-                        getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
-                        initMountX + displacementX);
-            case ARM:
-                return getXWithAngle(
-                        getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
-                        mountX);
-            default:
-                return initialX;
-        }
+        double radius = getDistance(initialX, initialY, initMountX, initMountY);
+        double angle =
+                mountAngle
+                        + getAngleOffset(
+                                initialX, initialY, initMountX, initMountY, initMountAngle);
+        // A linear mount carries the component by its displacement; an arm pivots it about the
+        // mount's current position.
+        double base = mountType == MountType.LINEAR ? initMountX + displacementX : mountX;
+        return getXWithAngle(radius, angle, base);
     }
 
     /**
@@ -89,33 +80,46 @@ public interface Mountable {
             double displacementX,
             double displacementY,
             double mountAngle) {
-        switch (mountType) {
-            case LINEAR:
-                return getYWithAngle(
-                        getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
-                        initMountY + displacementY);
-            case ARM:
-                return getYWithAngle(
-                        getDistance(initialX, initialY, initMountX, initMountY),
-                        mountAngle
-                                + getAngleOffset(
-                                        initialX, initialY, initMountX, initMountY, initMountAngle),
-                        mountY);
-            default:
-                return initialY;
-        }
+        double radius = getDistance(initialX, initialY, initMountX, initMountY);
+        double angle =
+                mountAngle
+                        + getAngleOffset(
+                                initialX, initialY, initMountX, initMountY, initMountAngle);
+        double base = mountType == MountType.LINEAR ? initMountY + displacementY : mountY;
+        return getYWithAngle(radius, angle, base);
     }
 
     /**
-     * Convenience overload that derives all geometry parameters from a {@link RollerConfig}.
+     * The mount and starting geometry a mounted sim config carries. {@link RollerConfig}, {@link
+     * ArmConfig} and {@link LinearConfig} all provide these getters.
+     */
+    interface MountedConfig {
+        /** The parent mount. */
+        Mount getMount();
+
+        /** Component's initial X position on the canvas (metres). */
+        double getInitialX();
+
+        /** Component's initial Y position on the canvas (metres). */
+        double getInitialY();
+
+        /** Mount's X position at simulation start (metres). */
+        double getInitMountX();
+
+        /** Mount's Y position at simulation start (metres). */
+        double getInitMountY();
+
+        /** Mount's angle at simulation start (radians). */
+        double getInitMountAngle();
+    }
+
+    /**
+     * Convenience overload that derives all geometry parameters from a mounted sim config.
      *
-     * @param config the roller configuration carrying mount and initial-position data
+     * @param config the config carrying mount and initial-position data
      * @return updated X position on the canvas (metres)
      */
-    default double getUpdatedX(RollerConfig config) {
+    default double getUpdatedX(MountedConfig config) {
         Mount mount = config.getMount();
         return getUpdatedX(
                 mount.getMountType(),
@@ -132,100 +136,12 @@ public interface Mountable {
     }
 
     /**
-     * Convenience overload that derives all geometry parameters from an {@link ArmConfig}.
+     * Convenience overload that derives all geometry parameters from a mounted sim config.
      *
-     * @param config the arm configuration carrying mount and initial-position data
-     * @return updated X position on the canvas (metres)
-     */
-    default double getUpdatedX(ArmConfig config) {
-        Mount mount = config.getMount();
-        return getUpdatedX(
-                mount.getMountType(),
-                config.getInitialX(),
-                config.getInitialY(),
-                config.getInitMountX(),
-                config.getInitMountY(),
-                config.getInitMountAngle(),
-                mount.getMountX(),
-                mount.getMountY(),
-                mount.getDisplacementX(),
-                mount.getDisplacementY(),
-                mount.getAngle());
-    }
-
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link LinearConfig}.
-     *
-     * @param config the linear stage configuration carrying mount and initial-position data
-     * @return updated X position on the canvas (metres)
-     */
-    default double getUpdatedX(LinearConfig config) {
-        Mount mount = config.getMount();
-        return getUpdatedX(
-                mount.getMountType(),
-                config.getInitialX(),
-                config.getInitialY(),
-                config.getInitMountX(),
-                config.getInitMountY(),
-                config.getInitMountAngle(),
-                mount.getMountX(),
-                mount.getMountY(),
-                mount.getDisplacementX(),
-                mount.getDisplacementY(),
-                mount.getAngle());
-    }
-
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link RollerConfig}.
-     *
-     * @param config the roller configuration carrying mount and initial-position data
+     * @param config the config carrying mount and initial-position data
      * @return updated Y position on the canvas (metres)
      */
-    default double getUpdatedY(RollerConfig config) {
-        Mount mount = config.getMount();
-        return getUpdatedY(
-                mount.getMountType(),
-                config.getInitialX(),
-                config.getInitialY(),
-                config.getInitMountX(),
-                config.getInitMountY(),
-                config.getInitMountAngle(),
-                mount.getMountX(),
-                mount.getMountY(),
-                mount.getDisplacementX(),
-                mount.getDisplacementY(),
-                mount.getAngle());
-    }
-
-    /**
-     * Convenience overload that derives all geometry parameters from an {@link ArmConfig}.
-     *
-     * @param config the arm configuration carrying mount and initial-position data
-     * @return updated Y position on the canvas (metres)
-     */
-    default double getUpdatedY(ArmConfig config) {
-        Mount mount = config.getMount();
-        return getUpdatedY(
-                mount.getMountType(),
-                config.getInitialX(),
-                config.getInitialY(),
-                config.getInitMountX(),
-                config.getInitMountY(),
-                config.getInitMountAngle(),
-                mount.getMountX(),
-                mount.getMountY(),
-                mount.getDisplacementX(),
-                mount.getDisplacementY(),
-                mount.getAngle());
-    }
-
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link LinearConfig}.
-     *
-     * @param config the linear stage configuration carrying mount and initial-position data
-     * @return updated Y position on the canvas (metres)
-     */
-    default double getUpdatedY(LinearConfig config) {
+    default double getUpdatedY(MountedConfig config) {
         Mount mount = config.getMount();
         return getUpdatedY(
                 mount.getMountType(),
