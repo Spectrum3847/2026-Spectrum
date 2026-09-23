@@ -108,7 +108,6 @@ public class SpectrumCANcoder {
         talonConfigMod.Feedback.RotorToSensorRatio = config.getRotorToSensorRatio();
         talonConfigMod.Feedback.SensorToMechanismRatio = config.getSensorToMechanismRatio();
         configurator.apply(talonConfigMod);
-        mechConfig.setTalonConfig(talonConfigMod);
         return this;
     }
 

@@ -76,8 +76,6 @@ public enum Rio {
 
     /** Checks the id. */
     private static Rio checkID() {
-        rioIdAlert.set(false);
-        rioIdUnknown.set(false);
         String serialNumber = "";
         if (RobotBase.isReal()) {
             // Calling getSerialNumber in a vscode unit test
@@ -85,8 +83,6 @@ public enum Rio {
             // thing with JNIs, so don't do that.
             serialNumber = RobotController.getSerialNumber();
             Telemetry.print("RIO SERIAL: " + serialNumber);
-        } else {
-            serialNumber = "";
         }
 
         if (IDs.containsKey(serialNumber)) {

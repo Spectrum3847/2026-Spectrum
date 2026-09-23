@@ -115,13 +115,9 @@ public abstract class Mechanism implements Subsystem {
     private double velocityTarget = 0;
 
     // Status signals read by the getters, refreshed together once per loop (see signalValue)
-    private BaseStatusSignal positionSignal;
-
-    /** Typed views of the position and velocity signals, for latency compensation. */
     private StatusSignal<Angle> positionStatusSignal;
 
     private StatusSignal<AngularVelocity> velocityStatusSignal;
-    private BaseStatusSignal velocitySignal;
     private BaseStatusSignal voltageSignal;
     private BaseStatusSignal statorCurrentSignal;
     private BaseStatusSignal supplyCurrentSignal;
@@ -239,15 +235,13 @@ public abstract class Mechanism implements Subsystem {
             // refresh all of them in one Phoenix call per loop.
             positionStatusSignal = motor.getPosition(false);
             velocityStatusSignal = motor.getVelocity(false);
-            positionSignal = positionStatusSignal;
-            velocitySignal = velocityStatusSignal;
             voltageSignal = motor.getMotorVoltage(false);
             statorCurrentSignal = motor.getStatorCurrent(false);
             supplyCurrentSignal = motor.getSupplyCurrent(false);
             tempSignal = motor.getDeviceTemp(false);
             loopSignals = new BaseStatusSignal[6 + followerSupplySignals.length];
-            loopSignals[0] = positionSignal;
-            loopSignals[1] = velocitySignal;
+            loopSignals[0] = positionStatusSignal;
+            loopSignals[1] = velocityStatusSignal;
             loopSignals[2] = voltageSignal;
             loopSignals[3] = statorCurrentSignal;
             loopSignals[4] = supplyCurrentSignal;
@@ -547,10 +541,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is within tolerance of target
      */
     public Trigger atRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionRotations() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getPositionRotations, target, tolerance);
     }
 
     /**
@@ -574,8 +565,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is below the threshold
      */
     public Trigger belowRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionRotations() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getPositionRotations, target, tolerance);
     }
 
     /**
@@ -587,8 +577,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is above the threshold
      */
     public Trigger aboveRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionRotations() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getPositionRotations, target, tolerance);
     }
 
     /**
@@ -600,10 +589,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is within tolerance of target
      */
     public Trigger atPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionPercentage() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getPositionPercentage, target, tolerance);
     }
 
     /**
@@ -615,8 +601,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is below the threshold
      */
     public Trigger belowPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionPercentage() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getPositionPercentage, target, tolerance);
     }
 
     /**
@@ -628,8 +613,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is above the threshold
      */
     public Trigger abovePercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionPercentage() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getPositionPercentage, target, tolerance);
     }
 
     /**
@@ -641,10 +625,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is within tolerance of target
      */
     public Trigger atDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionDegrees() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getPositionDegrees, target, tolerance);
     }
 
     /**
@@ -656,8 +637,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is below the threshold
      */
     public Trigger belowDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionDegrees() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getPositionDegrees, target, tolerance);
     }
 
     /**
@@ -669,8 +649,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is above the threshold
      */
     public Trigger aboveDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionDegrees() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getPositionDegrees, target, tolerance);
     }
 
     /**
@@ -682,8 +661,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when velocity is within tolerance of target
      */
     public Trigger atVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> Math.abs(getVelocityRPM() - target.getAsDouble()) < tolerance.getAsDouble());
+        return near(this::getVelocityRPM, target, tolerance);
     }
 
     /**
@@ -695,8 +673,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when velocity is below the threshold
      */
     public Trigger belowVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getVelocityRPM() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getVelocityRPM, target, tolerance);
     }
 
     /**
@@ -708,8 +685,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when velocity is above the threshold
      */
     public Trigger aboveVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getVelocityRPM() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getVelocityRPM, target, tolerance);
     }
 
     /**
@@ -721,10 +697,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when stator current is within tolerance of target
      */
     public Trigger atCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getStatorCurrent() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getStatorCurrent, target, tolerance);
     }
 
     /**
@@ -736,8 +709,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when stator current is below the threshold
      */
     public Trigger belowCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getStatorCurrent() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getStatorCurrent, target, tolerance);
     }
 
     /**
@@ -749,8 +721,30 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when stator current is above the threshold
      */
     public Trigger aboveCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
+        return above(this::getStatorCurrent, target, tolerance);
+    }
+
+    /** Active while {@code value} is within {@code tolerance} of {@code target}. */
+    private static Trigger near(
+            DoubleSupplier value, DoubleSupplier target, DoubleSupplier tolerance) {
         return new Trigger(
-                () -> getStatorCurrent() > (target.getAsDouble() - tolerance.getAsDouble()));
+                () ->
+                        Math.abs(value.getAsDouble() - target.getAsDouble())
+                                < tolerance.getAsDouble());
+    }
+
+    /** Active while {@code value} is below {@code target + tolerance}. */
+    private static Trigger below(
+            DoubleSupplier value, DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> value.getAsDouble() < target.getAsDouble() + tolerance.getAsDouble());
+    }
+
+    /** Active while {@code value} is above {@code target - tolerance}. */
+    private static Trigger above(
+            DoubleSupplier value, DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> value.getAsDouble() > target.getAsDouble() - tolerance.getAsDouble());
     }
 
     // ── Sensor Readings ────────────────────────────────────────────────────────
@@ -959,7 +953,7 @@ public abstract class Mechanism implements Subsystem {
      * @return motor position in rotations
      */
     public double getPositionRotations() {
-        return signalValue(positionSignal);
+        return signalValue(positionStatusSignal);
     }
 
     /**
@@ -1011,7 +1005,7 @@ public abstract class Mechanism implements Subsystem {
      * @return motor velocity in revolutions per minute
      */
     public double getVelocityRPM() {
-        return Conversions.RPStoRPM(signalValue(velocitySignal));
+        return Conversions.RPStoRPM(signalValue(velocityStatusSignal));
     }
 
     // ── Command Factories ──────────────────────────────────────────────────────
@@ -1258,12 +1252,7 @@ public abstract class Mechanism implements Subsystem {
      * @param velocityRPM the target velocity in revolutions per minute
      */
     protected void setVelocityTCFOCrpm(DoubleSupplier velocityRPM) {
-        if (isAttached()) {
-            velocityTarget = Conversions.RPMtoRPS(velocityRPM.getAsDouble());
-            VelocityTorqueCurrentFOC output =
-                    config.velocityTorqueCurrentFOC.withVelocity(velocityTarget);
-            motor.setControl(output);
-        }
+        setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM.getAsDouble()));
     }
 
     /**
@@ -1295,11 +1284,7 @@ public abstract class Mechanism implements Subsystem {
      * @param rotations the target position in rotations
      */
     protected void setPosition(DoubleSupplier rotations) {
-        if (isAttached()) {
-            target = rotations.getAsDouble();
-            PositionVoltage output = config.positionControl.withPosition(target).withVelocity(0);
-            motor.setControl(output);
-        }
+        setPositionWithVelocity(rotations, () -> 0);
     }
 
     /**
@@ -1440,13 +1425,7 @@ public abstract class Mechanism implements Subsystem {
      * @param percent fractional output between -1 and +1
      */
     protected void setPercentOutput(DoubleSupplier percent) {
-        if (isAttached()) {
-            VoltageOut output =
-                    config.voltageControl
-                            .withOutput(config.voltageCompSaturation * percent.getAsDouble())
-                            .withIgnoreSoftwareLimits(false);
-            motor.setControl(output);
-        }
+        setVoltageOutput(() -> config.voltageCompSaturation * percent.getAsDouble());
     }
 
     /**
@@ -1456,13 +1435,7 @@ public abstract class Mechanism implements Subsystem {
      * @param voltage the desired voltage in volts
      */
     protected void setVoltageOutput(DoubleSupplier voltage) {
-        if (isAttached()) {
-            VoltageOut output =
-                    config.voltageControl
-                            .withOutput(voltage.getAsDouble())
-                            .withIgnoreSoftwareLimits(false);
-            motor.setControl(output);
-        }
+        voltageOut(voltage, false);
     }
 
     /**
@@ -1472,11 +1445,19 @@ public abstract class Mechanism implements Subsystem {
      * @param voltage the desired voltage in volts
      */
     protected void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
+        voltageOut(voltage, true);
+    }
+
+    /**
+     * Sends the shared voltage request. The soft-limit flag is set on every call because the
+     * request object is reused.
+     */
+    private void voltageOut(DoubleSupplier voltage, boolean ignoreSoftLimits) {
         if (isAttached()) {
             VoltageOut output =
                     config.voltageControl
                             .withOutput(voltage.getAsDouble())
-                            .withIgnoreSoftwareLimits(true);
+                            .withIgnoreSoftwareLimits(ignoreSoftLimits);
             motor.setControl(output);
         }
     }
@@ -1535,12 +1516,11 @@ public abstract class Mechanism implements Subsystem {
                 config.configForwardTorqueCurrentLimit(enabledLimit.getAsDouble());
                 config.configReverseTorqueCurrentLimit(-1 * enabledLimit.getAsDouble());
                 config.configStatorCurrentLimit(enabledLimit.getAsDouble(), true);
-                config.applyTalonConfig(motor);
             } else {
                 config.configForwardTorqueCurrentLimit(300);
                 config.configReverseTorqueCurrentLimit(-300);
-                config.applyTalonConfig(motor);
             }
+            config.applyTalonConfig(motor);
         }
     }
 
@@ -1552,13 +1532,8 @@ public abstract class Mechanism implements Subsystem {
      */
     public void toggleSupplyCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
         if (isAttached()) {
-            if (enabled) {
-                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), true);
-                config.applyTalonConfig(motor);
-            } else {
-                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), false);
-                config.applyTalonConfig(motor);
-            }
+            config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), enabled);
+            config.applyTalonConfig(motor);
         }
     }
 
@@ -1653,36 +1628,7 @@ public abstract class Mechanism implements Subsystem {
      * @return a diagnostic command that checks peak current
      */
     public Command checkMaxCurrent(DoubleSupplier expectedCurrent) {
-        return new Command() {
-            double maxCurrent = 0;
-            String alertText = config.name + " MaxCurrent Error";
-
-            @Override
-            public void initialize() {
-                maxCurrent = 0;
-            }
-
-            @Override
-            public void execute() {
-                double current = getStatorCurrent();
-                if (current > maxCurrent) {
-                    maxCurrent = current;
-                }
-            }
-
-            @Override
-            public void end(boolean interrupted) {
-                if (maxCurrent > expectedCurrent.getAsDouble()) {
-                    currentAlert.setText(
-                            alertText
-                                    + " Expected: "
-                                    + expectedCurrent.getAsDouble()
-                                    + " Actual: "
-                                    + maxCurrent);
-                    currentAlert.set(true);
-                }
-            }
-        };
+        return checkPeakCurrent(expectedCurrent, true, " MaxCurrent Error Expected: ");
     }
 
     /**
@@ -1694,9 +1640,17 @@ public abstract class Mechanism implements Subsystem {
      * @return a diagnostic command that checks whether a minimum current threshold was reached
      */
     public Command checkMinThresholdCurrent(DoubleSupplier expectedCurrent) {
+        return checkPeakCurrent(expectedCurrent, false, " Current Error Expected at least: ");
+    }
+
+    /**
+     * Tracks the peak stator current while running and raises {@link #currentAlert} at the end if
+     * the peak is above ({@code failAbove}) or below the expected current.
+     */
+    private Command checkPeakCurrent(
+            DoubleSupplier expectedCurrent, boolean failAbove, String message) {
         return new Command() {
             double maxCurrent = 0;
-            String alertText = config.name + " Current Error";
 
             @Override
             public void initialize() {
@@ -1705,21 +1659,15 @@ public abstract class Mechanism implements Subsystem {
 
             @Override
             public void execute() {
-                double current = getStatorCurrent();
-                if (current > maxCurrent) {
-                    maxCurrent = current;
-                }
+                maxCurrent = Math.max(maxCurrent, getStatorCurrent());
             }
 
             @Override
             public void end(boolean interrupted) {
-                if (maxCurrent < expectedCurrent.getAsDouble()) {
+                double expected = expectedCurrent.getAsDouble();
+                if (failAbove ? maxCurrent > expected : maxCurrent < expected) {
                     currentAlert.setText(
-                            alertText
-                                    + " Expected at least: "
-                                    + expectedCurrent.getAsDouble()
-                                    + " Actual: "
-                                    + maxCurrent);
+                            config.name + message + expected + " Actual: " + maxCurrent);
                     currentAlert.set(true);
                 }
             }
@@ -2200,7 +2148,12 @@ public abstract class Mechanism implements Subsystem {
          * @param kD derivative gain
          */
         public void configPIDGains(int slot, double kP, double kI, double kD) {
-            talonConfigFeedbackPID(slot, kP, kI, kD);
+            switch (slot) {
+                case 0 -> talonConfig.Slot0.withKP(kP).withKI(kI).withKD(kD);
+                case 1 -> talonConfig.Slot1.withKP(kP).withKI(kI).withKD(kD);
+                case 2 -> talonConfig.Slot2.withKP(kP).withKI(kI).withKD(kD);
+                default -> DriverStation.reportWarning("MechConfig: Invalid Feedback slot", false);
+            }
         }
 
         /**
@@ -2225,7 +2178,13 @@ public abstract class Mechanism implements Subsystem {
          * @param kG gravity/load compensation gain
          */
         public void configFeedForwardGains(int slot, double kS, double kV, double kA, double kG) {
-            talonConfigFeedForward(slot, kV, kA, kS, kG);
+            switch (slot) {
+                case 0 -> talonConfig.Slot0.withKS(kS).withKV(kV).withKA(kA).withKG(kG);
+                case 1 -> talonConfig.Slot1.withKS(kS).withKV(kV).withKA(kA).withKG(kG);
+                case 2 -> talonConfig.Slot2.withKS(kS).withKV(kV).withKA(kA).withKG(kG);
+                default -> DriverStation.reportWarning(
+                        "MechConfig: Invalid FeedForward slot", false);
+            }
         }
 
         /**
@@ -2268,14 +2227,11 @@ public abstract class Mechanism implements Subsystem {
         public void configGravityType(int slot, boolean isArm) {
             GravityTypeValue gravityType =
                     isArm ? GravityTypeValue.Arm_Cosine : GravityTypeValue.Elevator_Static;
-            if (slot == 0) {
-                talonConfig.Slot0.GravityType = gravityType;
-            } else if (slot == 1) {
-                talonConfig.Slot1.GravityType = gravityType;
-            } else if (slot == 2) {
-                talonConfig.Slot2.GravityType = gravityType;
-            } else {
-                DriverStation.reportWarning("MechConfig: Invalid slot", false);
+            switch (slot) {
+                case 0 -> talonConfig.Slot0.GravityType = gravityType;
+                case 1 -> talonConfig.Slot1.GravityType = gravityType;
+                case 2 -> talonConfig.Slot2.GravityType = gravityType;
+                default -> DriverStation.reportWarning("MechConfig: Invalid slot", false);
             }
         }
 
@@ -2289,64 +2245,6 @@ public abstract class Mechanism implements Subsystem {
         protected void configMinMaxRotations(double minRotation, double maxRotation) {
             this.minRotations = minRotation;
             this.maxRotations = maxRotation;
-        }
-
-        // ── Private Helpers ───────────────────────────────────────────────────
-
-        /**
-         * Applies feed-forward gains (kV, kA, kS, kG) to the specified TalonFX slot.
-         *
-         * @param slot the gain slot (0, 1, or 2)
-         * @param kV velocity feed-forward
-         * @param kA acceleration feed-forward
-         * @param kS static friction compensation
-         * @param kG gravity compensation
-         */
-        private void talonConfigFeedForward(int slot, double kV, double kA, double kS, double kG) {
-            if (slot == 0) {
-                talonConfig.Slot0.kV = kV;
-                talonConfig.Slot0.kA = kA;
-                talonConfig.Slot0.kS = kS;
-                talonConfig.Slot0.kG = kG;
-            } else if (slot == 1) {
-                talonConfig.Slot1.kV = kV;
-                talonConfig.Slot1.kA = kA;
-                talonConfig.Slot1.kS = kS;
-                talonConfig.Slot1.kG = kG;
-            } else if (slot == 2) {
-                talonConfig.Slot2.kV = kV;
-                talonConfig.Slot2.kA = kA;
-                talonConfig.Slot2.kS = kS;
-                talonConfig.Slot2.kG = kG;
-            } else {
-                DriverStation.reportWarning("MechConfig: Invalid FeedForward slot", false);
-            }
-        }
-
-        /**
-         * Applies PID gains (kP, kI, kD) to the specified TalonFX slot.
-         *
-         * @param slot the gain slot (0, 1, or 2)
-         * @param kP proportional gain
-         * @param kI integral gain
-         * @param kD derivative gain
-         */
-        private void talonConfigFeedbackPID(int slot, double kP, double kI, double kD) {
-            if (slot == 0) {
-                talonConfig.Slot0.kP = kP;
-                talonConfig.Slot0.kI = kI;
-                talonConfig.Slot0.kD = kD;
-            } else if (slot == 1) {
-                talonConfig.Slot1.kP = kP;
-                talonConfig.Slot1.kI = kI;
-                talonConfig.Slot1.kD = kD;
-            } else if (slot == 2) {
-                talonConfig.Slot2.kP = kP;
-                talonConfig.Slot2.kI = kI;
-                talonConfig.Slot2.kD = kD;
-            } else {
-                DriverStation.reportWarning("MechConfig: Invalid Feedback slot", false);
-            }
         }
     }
 }

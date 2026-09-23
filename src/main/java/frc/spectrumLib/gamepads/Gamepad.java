@@ -402,16 +402,7 @@ public abstract class Gamepad implements Subsystem {
      * @return the snapped angle in radians
      */
     public double getLeftStickCardinals() {
-        double stickAngle = getLeftStickDirection().getRadians();
-        if (stickAngle > -Math.PI / 4 && stickAngle <= Math.PI / 4) {
-            return 0;
-        } else if (stickAngle > Math.PI / 4 && stickAngle <= 3 * Math.PI / 4) {
-            return Math.PI / 2;
-        } else if (stickAngle > 3 * Math.PI / 4 || stickAngle <= -3 * Math.PI / 4) {
-            return Math.PI;
-        } else {
-            return -Math.PI / 2;
-        }
+        return snapToCardinal(getLeftStickDirection().getRadians());
     }
 
     /**
@@ -420,7 +411,11 @@ public abstract class Gamepad implements Subsystem {
      * @return the snapped angle in radians
      */
     public double getRightStickCardinals() {
-        double stickAngle = getRightStickDirection().getRadians();
+        return snapToCardinal(getRightStickDirection().getRadians());
+    }
+
+    /** Snaps an angle in radians to the nearest of 0, ±π/2 and π. */
+    private static double snapToCardinal(double stickAngle) {
         if (stickAngle > -Math.PI / 4 && stickAngle <= Math.PI / 4) {
             return 0;
         } else if (stickAngle > Math.PI / 4 && stickAngle <= 3 * Math.PI / 4) {
@@ -503,27 +498,8 @@ public abstract class Gamepad implements Subsystem {
      * @return
      */
     public double getRedAllianceStickCardinals() {
-        double stickAngle = getRightStickDirection().getRadians();
-
-        if (stickAngle > -Math.PI / 8 && stickAngle <= Math.PI / 8) {
-            return Math.PI;
-        } else if (stickAngle > Math.PI / 8 && stickAngle <= 3 * Math.PI / 8) {
-            return -3 * Math.PI / 4;
-        } else if (stickAngle > 3 * Math.PI / 8 && stickAngle <= 5 * Math.PI / 8) {
-            return -Math.PI / 2;
-        } else if (stickAngle > 5 * Math.PI / 8 && stickAngle <= 7 * Math.PI / 8) {
-            return -Math.PI / 4;
-        } // other half of circle
-        else if (stickAngle < -Math.PI / 8 && stickAngle >= -3 * Math.PI / 8) {
-            return 3 * Math.PI / 4;
-        } else if (stickAngle < -3 * Math.PI / 8 && stickAngle >= -5 * Math.PI / 8) {
-            return Math.PI / 2;
-        } else if (stickAngle < -5 * Math.PI / 8 && stickAngle >= -7 * Math.PI / 8) {
-            return Math.PI / 4;
-        } else {
-            return 0; // greater than 7 * Math.PI / 8 or less than -7 * Math.PI / 8 (bottom of
-            // circle)
-        }
+        double blue = getBlueAllianceStickCardinals();
+        return blue > 0 ? blue - Math.PI : blue + Math.PI;
     }
 
     /**
@@ -683,11 +659,7 @@ public abstract class Gamepad implements Subsystem {
      * @return {@code true} if the controller is attached and reports as connected
      */
     public boolean isConnected() {
-        if (config.attached) {
-            return this.getHID().isConnected();
-        } else {
-            return false;
-        }
+        return config.attached && getHID().isConnected();
     }
 
     /**
@@ -696,10 +668,7 @@ public abstract class Gamepad implements Subsystem {
      * @return right-trigger axis value
      */
     protected double getRightTriggerAxis() {
-        if (!isConnected()) {
-            return 0.0;
-        }
-        return xboxController.getRightTriggerAxis();
+        return axis(xboxController::getRightTriggerAxis);
     }
 
     /**
@@ -708,10 +677,7 @@ public abstract class Gamepad implements Subsystem {
      * @return left-trigger axis value
      */
     protected double getLeftTriggerAxis() {
-        if (!isConnected()) {
-            return 0.0;
-        }
-        return xboxController.getLeftTriggerAxis();
+        return axis(xboxController::getLeftTriggerAxis);
     }
 
     /**
@@ -721,10 +687,7 @@ public abstract class Gamepad implements Subsystem {
      * @return twist value in the range [-1, 1]
      */
     protected double getTwist() {
-        double right = getRightTriggerAxis();
-        double left = getLeftTriggerAxis();
-        double value = right - left;
-        return value;
+        return getRightTriggerAxis() - getLeftTriggerAxis();
     }
 
     /**
@@ -733,10 +696,7 @@ public abstract class Gamepad implements Subsystem {
      * @return left X axis value in the range [-1, 1]
      */
     protected double getLeftX() {
-        if (!isConnected()) {
-            return 0.0;
-        }
-        return xboxController.getLeftX();
+        return axis(xboxController::getLeftX);
     }
 
     /**
@@ -745,10 +705,7 @@ public abstract class Gamepad implements Subsystem {
      * @return left Y axis value in the range [-1, 1] (negative = up on most gamepads)
      */
     protected double getLeftY() {
-        if (!isConnected()) {
-            return 0.0;
-        }
-        return xboxController.getLeftY();
+        return axis(xboxController::getLeftY);
     }
 
     /**
@@ -757,10 +714,7 @@ public abstract class Gamepad implements Subsystem {
      * @return right X axis value in the range [-1, 1]
      */
     protected double getRightX() {
-        if (!isConnected()) {
-            return 0.0;
-        }
-        return xboxController.getRightX();
+        return axis(xboxController::getRightX);
     }
 
     /**
@@ -769,10 +723,12 @@ public abstract class Gamepad implements Subsystem {
      * @return right Y axis value in the range [-1, 1] (negative = up on most gamepads)
      */
     protected double getRightY() {
-        if (!isConnected()) {
-            return 0.0;
-        }
-        return xboxController.getRightY();
+        return axis(xboxController::getRightY);
+    }
+
+    /** Reads an axis, or returns {@code 0.0} when the controller is not connected. */
+    private double axis(DoubleSupplier raw) {
+        return isConnected() ? raw.getAsDouble() : 0.0;
     }
 
     /**

@@ -6,6 +6,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANdleConfiguration;
 import com.ctre.phoenix6.configs.LEDConfigs;
 import com.ctre.phoenix6.controls.ColorFlowAnimation;
+import com.ctre.phoenix6.controls.ControlRequest;
 import com.ctre.phoenix6.controls.EmptyAnimation;
 import com.ctre.phoenix6.controls.FireAnimation;
 import com.ctre.phoenix6.controls.LarsonAnimation;
@@ -27,6 +28,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.spectrumLib.hardware.CanConfigBudget;
 import java.util.function.DoubleSupplier;
+import java.util.function.IntFunction;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -87,27 +89,60 @@ public class SpectrumLEDs implements Subsystem {
      * #setPattern(CANdlePattern, int)} can detect when a transition from animation to software
      * pattern occurs and clear the animation slots.
      */
-    private static final class HardwareAnimPattern implements CANdlePattern {
-        private final CANdlePattern impl;
-        /**
-         * Creates a new HardwareAnimPattern instance.
-         *
-         * @param impl the impl
-         */
-        HardwareAnimPattern(CANdlePattern impl) {
-            this.impl = impl;
-        }
-
-        /** Apply to. */
+    private record HardwareAnimPattern(CANdlePattern impl) implements CANdlePattern {
         @Override
         public void applyTo(CANdle candle, int startIdx, int numLeds) {
             impl.applyTo(candle, startIdx, numLeds);
         }
     }
 
-    /** Wraps a pattern lambda in a {@link HardwareAnimPattern} marker. */
-    private static CANdlePattern hardwareAnim(CANdlePattern p) {
-        return new HardwareAnimPattern(p);
+    /** Builds a control request for a segment, given its first LED index and LED count. */
+    @FunctionalInterface
+    private interface SegmentRequest {
+        ControlRequest build(int startIdx, int numLeds);
+    }
+
+    /**
+     * A pattern that sends one request, built on the first call from the runtime segment and resent
+     * every call after that.
+     */
+    private static CANdlePattern lazy(SegmentRequest request) {
+        ControlRequest[] holder = new ControlRequest[1];
+        return (candle, startIdx, numLeds) -> {
+            if (holder[0] == null) {
+                holder[0] = request.build(startIdx, numLeds);
+            }
+            candle.setControl(holder[0]);
+        };
+    }
+
+    /** {@link #lazy} marked as a hardware animation. */
+    private static CANdlePattern lazyAnim(SegmentRequest request) {
+        return new HardwareAnimPattern(lazy(request));
+    }
+
+    /** Gives each LED's color for one loop; built fresh every loop from the segment length. */
+    @FunctionalInterface
+    private interface LedFrame {
+        IntFunction<RGBWColor> colors(int numLeds);
+    }
+
+    /** A software pattern that writes every LED individually each loop. */
+    private static CANdlePattern perLed(LedFrame frame) {
+        SolidColor[][] holder = new SolidColor[1][];
+        return (candle, startIdx, numLeds) -> {
+            if (holder[0] == null) {
+                holder[0] = new SolidColor[numLeds];
+                for (int i = 0; i < numLeds; i++) {
+                    holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
+                }
+            }
+            IntFunction<RGBWColor> colorAt = frame.colors(numLeds);
+            for (int i = 0; i < numLeds; i++) {
+                holder[0][i].Color = colorAt.apply(i);
+                candle.setControl(holder[0][i]);
+            }
+        };
     }
 
     // -------------------------------------------------------------------------
@@ -322,10 +357,9 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Returns the currently running command that is applying a pattern to this subsystem, or {@code
-     * null} if no command is currently running.
+     * Returns the name of the command currently applying a pattern to this subsystem.
      *
-     * @return the currently running command, or {@code null} if none
+     * @return the current command's name, or {@code "None"} if none is running
      */
     public String getCurrentCommandName() {
         Command cmd = getCurrentCommand();
@@ -396,6 +430,17 @@ public class SpectrumLEDs implements Subsystem {
                 (int) (color.red * 255), (int) (color.green * 255), (int) (color.blue * 255), 0);
     }
 
+    /** Blends {@code a} toward {@code b} by {@code ratio} (0 = a, 1 = b). */
+    private static RGBWColor lerp(Color a, Color b, double ratio) {
+        return new RGBWColor(
+                (int) (a.red * 255 * (1 - ratio) + b.red * 255 * ratio),
+                (int) (a.green * 255 * (1 - ratio) + b.green * 255 * ratio),
+                (int) (a.blue * 255 * (1 - ratio) + b.blue * 255 * ratio),
+                0);
+    }
+
+    private static final RGBWColor OFF = new RGBWColor(0, 0, 0, 0);
+
     // -------------------------------------------------------------------------
     // Hardware animation pattern factories
     // -------------------------------------------------------------------------
@@ -412,19 +457,12 @@ public class SpectrumLEDs implements Subsystem {
      */
     public CANdlePattern blink(Color color, double onTimeSecs) {
         RGBWColor rgbw = toRGBW(color);
-        // Lazy: animation created on first applyTo call using the runtime startIdx/numLeds.
-        StrobeAnimation[] holder = new StrobeAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new StrobeAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withColor(rgbw)
-                                        .withFrameRate(Hertz.of(1.0 / onTimeSecs));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new StrobeAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withColor(rgbw)
+                                .withFrameRate(Hertz.of(1.0 / onTimeSecs)));
     }
 
     /**
@@ -439,18 +477,12 @@ public class SpectrumLEDs implements Subsystem {
      */
     public CANdlePattern breathe(Color color, double periodSecs) {
         RGBWColor rgbw = toRGBW(color);
-        SingleFadeAnimation[] holder = new SingleFadeAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new SingleFadeAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withColor(rgbw)
-                                        .withFrameRate(Hertz.of(200.0 / periodSecs));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new SingleFadeAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withColor(rgbw)
+                                .withFrameRate(Hertz.of(200.0 / periodSecs)));
     }
 
     /**
@@ -469,18 +501,12 @@ public class SpectrumLEDs implements Subsystem {
      * @return a hardware animation {@link CANdlePattern}
      */
     public CANdlePattern rainbow(double brightness) {
-        RainbowAnimation[] holder = new RainbowAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new RainbowAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withBrightness(brightness)
-                                        .withFrameRate(Hertz.of(3));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new RainbowAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withBrightness(brightness)
+                                .withFrameRate(Hertz.of(3)));
     }
 
     /**
@@ -489,18 +515,12 @@ public class SpectrumLEDs implements Subsystem {
      * @return a hardware animation {@link CANdlePattern}
      */
     public CANdlePattern scrollingRainbow() {
-        RainbowAnimation[] holder = new RainbowAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new RainbowAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withBrightness(1.0)
-                                        .withFrameRate(Hertz.of(60));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new RainbowAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withBrightness(1.0)
+                                .withFrameRate(Hertz.of(60)));
     }
 
     /**
@@ -516,18 +536,12 @@ public class SpectrumLEDs implements Subsystem {
      */
     public CANdlePattern chase(Color color, double speed) {
         RGBWColor rgbw = toRGBW(color);
-        ColorFlowAnimation[] holder = new ColorFlowAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new ColorFlowAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withColor(rgbw)
-                                        .withFrameRate(Hertz.of(numLeds * speed));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new ColorFlowAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withColor(rgbw)
+                                .withFrameRate(Hertz.of(numLeds * speed)));
     }
 
     /**
@@ -542,22 +556,16 @@ public class SpectrumLEDs implements Subsystem {
      */
     public CANdlePattern bounce(Color color, double durationSecs) {
         RGBWColor rgbw = toRGBW(color);
-        LarsonAnimation[] holder = new LarsonAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        // One full cycle = 2 * (numLeds - 1) LED-position advances.
-                        double frameRate = 2.0 * Math.max(numLeds - 1, 1) / durationSecs;
-                        holder[0] =
-                                new LarsonAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withColor(rgbw)
-                                        .withSize(3)
-                                        .withBounceMode(LarsonBounceValue.Back)
-                                        .withFrameRate(Hertz.of(frameRate));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new LarsonAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withColor(rgbw)
+                                .withSize(3)
+                                .withBounceMode(LarsonBounceValue.Back)
+                                // One full cycle = 2 * (numLeds - 1) LED-position advances.
+                                .withFrameRate(
+                                        Hertz.of(2.0 * Math.max(numLeds - 1, 1) / durationSecs)));
     }
 
     /**
@@ -566,17 +574,11 @@ public class SpectrumLEDs implements Subsystem {
      * @return a hardware animation {@link CANdlePattern}
      */
     public CANdlePattern fire() {
-        FireAnimation[] holder = new FireAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new FireAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withFrameRate(Hertz.of(60));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new FireAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withFrameRate(Hertz.of(60)));
     }
 
     /**
@@ -585,17 +587,11 @@ public class SpectrumLEDs implements Subsystem {
      * @return a hardware animation {@link CANdlePattern}
      */
     public CANdlePattern rgbCycle() {
-        RgbFadeAnimation[] holder = new RgbFadeAnimation[1];
-        return hardwareAnim(
-                (candle, startIdx, numLeds) -> {
-                    if (holder[0] == null) {
-                        holder[0] =
-                                new RgbFadeAnimation(startIdx, startIdx + numLeds - 1)
-                                        .withSlot(config.getAnimationSlot())
-                                        .withFrameRate(Hertz.of(30));
-                    }
-                    candle.setControl(holder[0]);
-                });
+        return lazyAnim(
+                (startIdx, numLeds) ->
+                        new RgbFadeAnimation(startIdx, startIdx + numLeds - 1)
+                                .withSlot(config.getAnimationSlot())
+                                .withFrameRate(Hertz.of(30)));
     }
 
     // -------------------------------------------------------------------------
@@ -612,13 +608,9 @@ public class SpectrumLEDs implements Subsystem {
      */
     public CANdlePattern solid(Color color) {
         RGBWColor rgbw = toRGBW(color);
-        SolidColor[] holder = new SolidColor[1];
-        return (candle, startIdx, numLeds) -> {
-            if (holder[0] == null) {
-                holder[0] = new SolidColor(startIdx, startIdx + numLeds - 1).withColor(rgbw);
-            }
-            candle.setControl(holder[0]);
-        };
+        return lazy(
+                (startIdx, numLeds) ->
+                        new SolidColor(startIdx, startIdx + numLeds - 1).withColor(rgbw));
     }
 
     /**
@@ -674,12 +666,9 @@ public class SpectrumLEDs implements Subsystem {
                 holder[0] = new SolidColor[numLeds];
                 for (int i = 0; i < numLeds; i++) {
                     double ratio = (numLeds <= 1) ? 0.0 : (double) i / (numLeds - 1);
-                    int r = (int) (color1.red * 255 * (1 - ratio) + color2.red * 255 * ratio);
-                    int g = (int) (color1.green * 255 * (1 - ratio) + color2.green * 255 * ratio);
-                    int b = (int) (color1.blue * 255 * (1 - ratio) + color2.blue * 255 * ratio);
                     holder[0][i] =
                             new SolidColor(startIdx + i, startIdx + i)
-                                    .withColor(new RGBWColor(r, g, b, 0));
+                                    .withColor(lerp(color1, color2, ratio));
                 }
             }
             for (SolidColor req : holder[0]) {
@@ -717,9 +706,7 @@ public class SpectrumLEDs implements Subsystem {
                             new SolidColor(startIdx + numLeds - clampedLen, startIdx + numLeds - 1)
                                     .withColor(rgbw);
                     if (holder[0].length == 3) {
-                        holder[0][2] =
-                                new SolidColor(centerStart, centerEnd)
-                                        .withColor(new RGBWColor(0, 0, 0, 0));
+                        holder[0][2] = new SolidColor(centerStart, centerEnd).withColor(OFF);
                     }
                 }
             }
@@ -741,25 +728,16 @@ public class SpectrumLEDs implements Subsystem {
      * @return a software {@link CANdlePattern} showing the animated ombre
      */
     public CANdlePattern ombre(Color startColor, Color endColor) {
-        SolidColor[][] holder = new SolidColor[1][];
-        return (candle, startIdx, numLeds) -> {
-            if (holder[0] == null) {
-                holder[0] = new SolidColor[numLeds];
-                for (int i = 0; i < numLeds; i++) {
-                    holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
-                }
-            }
-            // Speed: 0.58 strip-lengths per second
-            double phaseShift = (System.currentTimeMillis() / 1000.0) * 0.58 % 1.0;
-            for (int i = 0; i < numLeds; i++) {
-                double ratio = ((i + numLeds * phaseShift) / numLeds) % 1.0;
-                int r = (int) (startColor.red * 255 * (1 - ratio) + endColor.red * 255 * ratio);
-                int g = (int) (startColor.green * 255 * (1 - ratio) + endColor.green * 255 * ratio);
-                int b = (int) (startColor.blue * 255 * (1 - ratio) + endColor.blue * 255 * ratio);
-                holder[0][i].Color = new RGBWColor(r, g, b, 0);
-                candle.setControl(holder[0][i]);
-            }
-        };
+        return perLed(
+                numLeds -> {
+                    // Speed: 0.58 strip-lengths per second
+                    double phaseShift = (System.currentTimeMillis() / 1000.0) * 0.58 % 1.0;
+                    return i ->
+                            lerp(
+                                    startColor,
+                                    endColor,
+                                    ((i + numLeds * phaseShift) / numLeds) % 1.0);
+                });
     }
 
     /**
@@ -774,33 +752,22 @@ public class SpectrumLEDs implements Subsystem {
      * @return a software {@link CANdlePattern} showing the wave
      */
     public CANdlePattern wave(Color c1, Color c2, double cycleLength, double durationSecs) {
-        SolidColor[][] holder = new SolidColor[1][];
-        return (candle, startIdx, numLeds) -> {
-            if (holder[0] == null) {
-                holder[0] = new SolidColor[numLeds];
-                for (int i = 0; i < numLeds; i++) {
-                    holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
-                }
-            }
-            double currentTime = Timer.getFPGATimestamp();
-            double phase = (currentTime % durationSecs) / durationSecs;
-            double x = (1 - phase) * 2.0 * Math.PI;
-            double xDiffPerLed = (2.0 * Math.PI) / cycleLength;
-            double waveExponent = 0.4;
-            for (int i = 0; i < numLeds; i++) {
-                x += xDiffPerLed;
-                double ratio = (Math.pow(Math.sin(x), waveExponent) + 1.0) / 2.0;
-                if (Double.isNaN(ratio)) {
-                    ratio = (-Math.pow(Math.sin(x + Math.PI), waveExponent) + 1.0) / 2.0;
-                }
-                if (Double.isNaN(ratio)) ratio = 0.5;
-                int r = (int) (c1.red * 255 * (1 - ratio) + c2.red * 255 * ratio);
-                int g = (int) (c1.green * 255 * (1 - ratio) + c2.green * 255 * ratio);
-                int b = (int) (c1.blue * 255 * (1 - ratio) + c2.blue * 255 * ratio);
-                holder[0][i].Color = new RGBWColor(r, g, b, 0);
-                candle.setControl(holder[0][i]);
-            }
-        };
+        double xDiffPerLed = (2.0 * Math.PI) / cycleLength;
+        double waveExponent = 0.4;
+        return perLed(
+                numLeds -> {
+                    double phase = (Timer.getFPGATimestamp() % durationSecs) / durationSecs;
+                    double x0 = (1 - phase) * 2.0 * Math.PI;
+                    return i -> {
+                        double x = x0 + (i + 1) * xDiffPerLed;
+                        double ratio = (Math.pow(Math.sin(x), waveExponent) + 1.0) / 2.0;
+                        if (Double.isNaN(ratio)) {
+                            ratio = (-Math.pow(Math.sin(x + Math.PI), waveExponent) + 1.0) / 2.0;
+                        }
+                        if (Double.isNaN(ratio)) ratio = 0.5;
+                        return lerp(c1, c2, ratio);
+                    };
+                });
     }
 
     /**
@@ -814,28 +781,16 @@ public class SpectrumLEDs implements Subsystem {
      * @return a software {@link CANdlePattern} showing the countdown
      */
     public CANdlePattern countdown(DoubleSupplier countStartTimeSec, double durationInSeconds) {
-        SolidColor[][] holder = new SolidColor[1][];
-        return (candle, startIdx, numLeds) -> {
-            if (holder[0] == null) {
-                holder[0] = new SolidColor[numLeds];
-                for (int i = 0; i < numLeds; i++) {
-                    holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
-                }
-            }
-            // Read the supplier each loop (not at factory time) so patterns built at binding
-            // time still measure from the correct start when the command eventually runs.
-            double elapsed = Timer.getFPGATimestamp() - countStartTimeSec.getAsDouble();
-            double progress = Math.min(elapsed / durationInSeconds, 1.0);
-            int ledsOff = (int) (numLeds * progress);
-            int green = (int) (255 * (1 - progress));
-            for (int i = numLeds - 1; i >= 0; i--) {
-                holder[0][i].Color =
-                        (numLeds - i <= ledsOff)
-                                ? new RGBWColor(0, 0, 0, 0)
-                                : new RGBWColor(255, green, 0, 0);
-                candle.setControl(holder[0][i]);
-            }
-        };
+        return perLed(
+                numLeds -> {
+                    // Read the supplier each loop (not at factory time) so patterns built at
+                    // binding time still measure from the correct start when the command runs.
+                    double elapsed = Timer.getFPGATimestamp() - countStartTimeSec.getAsDouble();
+                    double progress = Math.min(elapsed / durationInSeconds, 1.0);
+                    int ledsOff = (int) (numLeds * progress);
+                    RGBWColor on = new RGBWColor(255, (int) (255 * (1 - progress)), 0, 0);
+                    return i -> (numLeds - i <= ledsOff) ? OFF : on;
+                });
     }
 
     /**
@@ -859,46 +814,34 @@ public class SpectrumLEDs implements Subsystem {
      * @return a software {@link CANdlePattern} reflecting the current switch-countdown state
      */
     public CANdlePattern switchCountdown(Color startingColor) {
-        SolidColor[][] holder = new SolidColor[1][];
-        return (candle, startIdx, numLeds) -> {
-            if (holder[0] == null) {
-                holder[0] = new SolidColor[numLeds];
-                for (int i = 0; i < numLeds; i++) {
-                    holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
-                }
-            }
+        int[] times = {10, 25, 25, 25, 25, 30};
+        return perLed(
+                numLeds -> {
+                    double elapsed = 140 - Timer.getMatchTime();
 
-            int[] times = {10, 25, 25, 25, 25, 30};
-            double elapsed = 140 - Timer.getMatchTime();
+                    int shiftTime = 0;
+                    int cumulativeTime = 0;
+                    Color color = Color.kBlack;
 
-            int shiftTime = 0;
-            int cumulativeTime = 0;
-            Color color = Color.kBlack;
-
-            for (int i = 0; i < times.length; i++) {
-                cumulativeTime += times[i];
-                if (cumulativeTime > elapsed) {
-                    shiftTime = times[i];
-                    switch (i) {
-                        case 0, 5 -> color = Color.kPurple;
-                        case 1, 3 -> color = startingColor;
-                        case 2, 4 -> color =
-                                Color.kRed.equals(startingColor) ? Color.kBlue : Color.kRed;
-                        default -> color = Color.kBlack;
+                    for (int i = 0; i < times.length; i++) {
+                        cumulativeTime += times[i];
+                        if (cumulativeTime > elapsed) {
+                            shiftTime = times[i];
+                            switch (i) {
+                                case 0, 5 -> color = Color.kPurple;
+                                case 1, 3 -> color = startingColor;
+                                case 2, 4 -> color =
+                                        Color.kRed.equals(startingColor) ? Color.kBlue : Color.kRed;
+                                default -> color = Color.kBlack;
+                            }
+                            break;
+                        }
                     }
-                    break;
-                }
-            }
 
-            double progress = 1.0 - (cumulativeTime - elapsed) / Math.max(shiftTime, 1);
-            int ledsOff = (int) (numLeds * Math.min(progress, 1.0));
-            RGBWColor segColor = toRGBW(color);
-
-            for (int i = numLeds - 1; i >= 0; i--) {
-                holder[0][i].Color =
-                        (numLeds - i <= ledsOff) ? new RGBWColor(0, 0, 0, 0) : segColor;
-                candle.setControl(holder[0][i]);
-            }
-        };
+                    double progress = 1.0 - (cumulativeTime - elapsed) / Math.max(shiftTime, 1);
+                    int ledsOff = (int) (numLeds * Math.min(progress, 1.0));
+                    RGBWColor segColor = toRGBW(color);
+                    return i -> (numLeds - i <= ledsOff) ? OFF : segColor;
+                });
     }
 }

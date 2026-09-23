@@ -51,8 +51,7 @@ public class ExpCurve extends Curve {
      */
     @Override
     public double calculate(double input) {
-        double val = calculateOffset(calculateScalar(calculateExpVal(calculateDeadzone(input))));
-        return val;
+        return calculateOffset(calculateScalar(calculateExpVal(calculateDeadzone(input))));
     }
 
     /**
@@ -62,11 +61,10 @@ public class ExpCurve extends Curve {
      * @return mapped value
      */
     private double calculateExpVal(double input) {
-        double val = input;
-        if (expVal != 1.0) {
-            val = (Math.pow(expVal, Math.abs(input)) - 1.0) / (expVal - 1.0) * Math.signum(input);
+        if (expVal == 1.0) {
+            return input;
         }
-        return val;
+        return (Math.pow(expVal, Math.abs(input)) - 1.0) / (expVal - 1.0) * Math.signum(input);
     }
 
     /**

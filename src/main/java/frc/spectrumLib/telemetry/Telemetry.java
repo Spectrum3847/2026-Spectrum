@@ -168,7 +168,7 @@ public class Telemetry extends DogLog implements Subsystem {
             boolean logExtras,
             boolean tunableOnFMS,
             PrintPriority priority) {
-        setPriority(priority);
+        Telemetry.priority = priority;
 
         ntMirrorEnabled = ntMirrorDefault;
         ntMirrorSwitch =
@@ -198,15 +198,6 @@ public class Telemetry extends DogLog implements Subsystem {
      */
     private static boolean mirrorLogsToNt() {
         return ntMirrorEnabled && !DriverStation.isFMSAttached();
-    }
-
-    /**
-     * Sets the priority.
-     *
-     * @param priority the priority
-     */
-    private static void setPriority(PrintPriority priority) {
-        Telemetry.priority = priority;
     }
 
     // ── Dashboard tier ───────────────────────────────────────────────────────

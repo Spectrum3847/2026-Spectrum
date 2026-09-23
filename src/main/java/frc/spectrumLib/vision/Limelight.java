@@ -254,8 +254,7 @@ public class Limelight {
      * @param config the fully populated {@link LimelightConfig} to use
      */
     public Limelight(String name, int pipeline, LimelightConfig config) {
-        this(name);
-        this.config = config;
+        this(config);
         setLimelightPipeline(pipeline);
     }
 
@@ -335,9 +334,6 @@ public class Limelight {
      * @return whether the LL sees multiple tags or not
      */
     public boolean multipleTagsInView() {
-        if (!isAttached()) {
-            return false;
-        }
         return getTagCountInView() > 1;
     }
 
@@ -442,9 +438,6 @@ public class Limelight {
      * @return {@code true} if the pose estimate meets the accuracy criteria
      */
     public boolean hasAccuratePose() {
-        if (!isAttached()) {
-            return false;
-        }
         return multipleTagsInView() && getTargetSize() > 0.1;
     }
 
@@ -571,10 +564,7 @@ public class Limelight {
      * per-loop writes (see {@code Vision.periodic()}).
      */
     public void setRobotOrientation(double degrees) {
-        if (!isAttached()) {
-            return;
-        }
-        LimelightHelpers.SetRobotOrientation_NoFlush(config.name, degrees, 0, 0, 0, 0, 0);
+        setRobotOrientation(degrees, 0);
     }
 
     public void updateCameraPose(Pose3d pose) {
@@ -657,17 +647,10 @@ public class Limelight {
      *     view
      */
     public double getTagTx() {
-        if (!isAttached()) {
-            return -99999;
-        }
-
         if (!targetInView()) {
             return -99999;
         }
-
-        double tx = LimelightHelpers.getTargetPose3d_RobotSpace(config.getName()).getX();
-
-        return tx;
+        return LimelightHelpers.getTargetPose3d_RobotSpace(config.getName()).getX();
     }
 
     /**
@@ -676,13 +659,9 @@ public class Limelight {
      * @return target area (0–100 %), or {@code -99999} if not attached or no target in view
      */
     public double getTagTA() {
-        if (!isAttached()) {
-            return -99999;
-        }
         if (!targetInView()) {
             return -99999;
         }
-
         return getTargetSize();
     }
 
@@ -694,9 +673,6 @@ public class Limelight {
      *     view
      */
     public double getTagRotationDegrees() {
-        if (!isAttached()) {
-            return -99999;
-        }
         if (!targetInView()) {
             return -99999;
         }

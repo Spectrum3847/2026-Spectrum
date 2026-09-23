@@ -138,11 +138,7 @@ public class Util {
      * @return {@code true} if all elements are within {@code epsilon} of {@code value}
      */
     public static boolean allCloseTo(final List<Double> list, double value, double epsilon) {
-        boolean result = true;
-        for (Double value_in : list) {
-            result &= epsilonEquals(value_in, value, epsilon);
-        }
-        return result;
+        return list.stream().allMatch(v -> epsilonEquals(v, value, epsilon));
     }
 
     /** Trigger that is true when the robot is enabled in teleop mode. */

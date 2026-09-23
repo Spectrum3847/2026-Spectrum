@@ -1418,7 +1418,7 @@ public class Turret extends Mechanism {
      * Returns the current turret tracking error in degrees, for logging and for setting the gate
      * tolerances from a log.
      *
-     * @return commanded minus measured turret angle, in degrees
+     * @return measured minus commanded turret angle, in degrees
      */
     public double getTrackingErrorDegrees() {
         return getPositionDegrees() - commandedDegrees;

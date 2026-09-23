@@ -178,12 +178,7 @@ public class SpectrumState extends Trigger {
      * @return the command
      */
     public Command toggle() {
-        return Commands.runOnce(
-                        () -> {
-                            value = !value;
-                            alert.set(value);
-                            setCondition(name, value);
-                        })
+        return Commands.runOnce(() -> setState(!value))
                 .ignoringDisable(true)
                 .withName(name + " state: Toggle");
     }
@@ -195,10 +190,7 @@ public class SpectrumState extends Trigger {
      * @return A boolean supplier to poll the event's condition
      */
     private static BooleanSupplier pollCondition(String name) {
-        // Ensure there is a condition in the map for this name
-        if (!stateConditions.containsKey(name)) {
-            stateConditions.put(name, false);
-        }
+        stateConditions.putIfAbsent(name, false);
 
         return () -> stateConditions.get(name);
     }

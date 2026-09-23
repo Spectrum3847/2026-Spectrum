@@ -36,11 +36,7 @@ public class TalonFXFactory {
      * @return the configured TalonFX
      */
     public static TalonFX createDefaultTalon(CanDeviceId id) {
-        var talon = createTalon(id);
-        CanConfigBudget.run(
-                "Talon " + id.getDeviceNumber(),
-                timeout -> talon.getConfigurator().apply(getDefaultConfig(), timeout));
-        return talon;
+        return createConfigTalon(id, getDefaultConfig());
     }
 
     /**
