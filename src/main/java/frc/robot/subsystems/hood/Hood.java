@@ -54,7 +54,6 @@ public class Hood extends Mechanism {
         @Getter private final double hoodX = Units.inchesToMeters(45);
 
         @Getter private final double hoodY = Units.inchesToMeters(52.5);
-        @Getter private final double simRatio = gearRatio;
         @Getter private final double length = Units.inchesToMeters(7.735);
 
         /** Creates a new HoodConfig instance. */
@@ -67,12 +66,11 @@ public class Hood extends Mechanism {
             configForwardVoltageLimit(peakVoltage);
             configReverseVoltageLimit(-peakVoltage);
             configGearRatio(gearRatio);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    lowerSupplyCurrentTime);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
@@ -139,10 +137,8 @@ public class Hood extends Mechanism {
                 break;
         }
         commandedDegrees = wantedDegrees;
-        final double finalWantedDegrees = wantedDegrees;
-        final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
-        // setMMPositionFOC
-        setPosition(() -> finalWantedPosition);
+        double wantedPosition = degreesToRotations(() -> commandedDegrees);
+        setPosition(() -> wantedPosition);
     }
 
     /**
@@ -217,7 +213,7 @@ public class Hood extends Mechanism {
                     new ArmConfig(
                                     config.hoodX,
                                     config.hoodY,
-                                    config.simRatio,
+                                    config.gearRatio,
                                     config.length,
                                     180 - config.getMaxRotations() * 360,
                                     180 - config.getMinRotations() * 360,

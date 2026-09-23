@@ -37,7 +37,6 @@ import frc.spectrumLib.vision.LimelightHelpers.RawFiducial;
 import frc.spectrumLib.vision.VisionLogger;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
-import java.util.function.DoubleSupplier;
 import lombok.Getter;
 
 /**
@@ -82,8 +81,6 @@ public class Vision implements Subsystem {
     // =========================================================================
 
     public static class VisionConfig {
-
-        @Getter final String name = "Vision";
 
         // -- Back-Left Limelight ----------------------------------------------
 
@@ -693,21 +690,8 @@ public class Vision implements Subsystem {
     /** All Limelights in one array for bulk operations. */
     public final Limelight[] allLimelights;
 
-    /* Vision loggers — one per Limelight */
-    private final VisionLogger backLeftLogger;
-    private final VisionLogger backRightLogger;
-    private final VisionLogger turretLogger;
-
-    /** All loggers in one array for bulk telemetry loops. */
+    /** One logger per Limelight, for the bulk telemetry loops. */
     private final VisionLogger[] allLoggers;
-
-    /**
-     * Live turret angle in degrees, positive counter-clockwise, zero pointing robot-forward. Vision
-     * runs before {@code CommandScheduler.run()}, but the signal refresh is keyed on the robot loop
-     * counter, so this already reads this loop's sample.
-     */
-    private final DoubleSupplier turretRotationSupplier =
-            () -> Robot.getTurret().getPositionDegrees();
 
     private final VisionConfig config;
 
@@ -797,10 +781,12 @@ public class Vision implements Subsystem {
             LimelightHelpers.SetFiducialIDFiltersOverride(limelight.getName(), validIds);
         }
 
-        backLeftLogger = new VisionLogger("BackLeftLL", backLeftLL);
-        backRightLogger = new VisionLogger("BackRightLL", backRightLL);
-        turretLogger = new VisionLogger("TurretLL", turretLL);
-        allLoggers = new VisionLogger[] {backLeftLogger, backRightLogger, turretLogger};
+        allLoggers =
+                new VisionLogger[] {
+                    new VisionLogger("BackLeftLL", backLeftLL),
+                    new VisionLogger("BackRightLL", backRightLL),
+                    new VisionLogger("TurretLL", turretLL)
+                };
 
         for (Limelight limelight : allLimelights) {
             limelight.setLEDMode(false);
@@ -809,14 +795,6 @@ public class Vision implements Subsystem {
         SmartDashboard.putBoolean(config.getChassisMt2DashboardKey(), config.isChassisMt2Default());
 
         Telemetry.print(getName() + " Subsystem Initialized");
-    }
-
-    /**
-     * @return the subsystem name defined in {@link VisionConfig}.
-     */
-    @Override
-    public String getName() {
-        return config.getName();
     }
 
     // =========================================================================
@@ -902,34 +880,21 @@ public class Vision implements Subsystem {
             logger.getTargetSize();
             logger.getEstimateAge();
             logger.logMountCheck();
-        }
-        for (VisionLogger logger : allLoggers) {
             logger.getMegaPose();
         }
         Telemetry.log("Vision/TurretLL/HeadingErrorDeg", turretCameraHeadingErrorDeg(), "deg");
 
         // getMegaTag1_Pose3d() is Pose3d.kZero when there is no data
-        Robot.getField2d()
-                .getObject(backLeftLL.getCameraName())
-                .setPose(backLeftLL.getMegaTag1_Pose3d().toPose2d());
-        Robot.getField2d()
-                .getObject(backRightLL.getCameraName())
-                .setPose(backRightLL.getMegaTag1_Pose3d().toPose2d());
-        // The turret camera's robot pose is composed on the roboRIO from the turret angle at the
-        // frame time (solveTurretCamera()); zero when there is no usable solve this loop.
-        Pose2d turretPose = Pose2d.kZero;
-        if (turretLL.isAttached() && turretLL.targetInView()) {
-            solveTurretCamera();
-            if (turretSolveValid) {
-                turretPose = turretSolvedRobotPose;
-            }
+        for (Limelight ll : swerveLimelights) {
+            Robot.getField2d().getObject(ll.getName()).setPose(ll.getMegaTag1_Pose3d().toPose2d());
         }
-        Robot.getField2d().getObject(turretLL.getCameraName()).setPose(turretPose);
+        // The turret camera's robot pose, composed on the roboRIO from the turret angle at the
+        // frame time; solveTurretCamera() (already run above) leaves it at zero without a solve.
+        Robot.getField2d().getObject(turretLL.getName()).setPose(turretSolvedRobotPose);
 
         if (turretLL.isAttached()) {
             Telemetry.log(
-                    "Vision/TurretLL/TurretAngle", turretRotationSupplier.getAsDouble(), "deg");
-            solveTurretCamera();
+                    "Vision/TurretLL/TurretAngle", Robot.getTurret().getPositionDegrees(), "deg");
             // The robot pose this camera implies. In the default mode MT1Pose above is the
             // camera's own floor pose, so this is the one to compare with the chassis cameras.
             Telemetry.log("Vision/TurretLL/RobotPose", turretSolvedRobotPose);
@@ -975,7 +940,7 @@ public class Vision implements Subsystem {
      * default mode exists to remove.
      */
     private void updateTurretCameraPose() {
-        Rotation2d turretAngle = Rotation2d.fromDegrees(turretRotationSupplier.getAsDouble());
+        Rotation2d turretAngle = Rotation2d.fromDegrees(Robot.getTurret().getPositionDegrees());
         Translation2d robotToCamera = turretGeometry.cameraInRobot(turretAngle);
         LimelightConfig cam = config.getTurretConfig();
 
@@ -1155,7 +1120,7 @@ public class Vision implements Subsystem {
                 seededFromTurretOnly = false;
                 trackSeedConfirmation(best);
             } else {
-                seedConfirmStreak = 0;
+                seedConfirmRun.reset();
                 seedFromTurretCamera();
             }
         }
@@ -1167,7 +1132,7 @@ public class Vision implements Subsystem {
         notConfirmedAlert.set(poseHeadingSeeded && !poseSeedConfirmed && disabled);
         Telemetry.logDash("Vision/PoseHeadingSeeded", poseHeadingSeeded);
         Telemetry.logDash("Vision/PoseSeedConfirmed", poseSeedConfirmed);
-        Telemetry.log("Vision/SeedConfirmProgress", seedConfirmStreak);
+        Telemetry.log("Vision/SeedConfirmProgress", seedConfirmRun.count);
         Telemetry.log("Vision/EnabledSeedCount", enabledSeedCount);
         Telemetry.logDash("Vision/PoseTrustedForAiming", isPoseTrustedForAiming());
         Telemetry.logDash("Vision/SeededFromTurretOnly", seededFromTurretOnly);
@@ -1175,7 +1140,8 @@ public class Vision implements Subsystem {
                 "Vision/Placement/HeadingAssumed", headingFromPlacement && !poseHeadingSeeded);
         Telemetry.log("Vision/Placement/ChassisAgreeFrames", chassisPlacementVote.agree);
         Telemetry.log("Vision/Placement/TurretAgreeFrames", turretPlacementVote.agree);
-        Telemetry.log("Vision/Placement/ChassisDisagreeFrames", chassisPlacementVote.disagree);
+        Telemetry.log(
+                "Vision/Placement/ChassisDisagreeFrames", chassisPlacementVote.disagree.count);
         Telemetry.log("Vision/Placement/ConfirmCount", placementConfirmCount);
         Telemetry.log("Vision/Placement/RefuteCount", placementRefuteCount);
     }
@@ -1291,10 +1257,48 @@ public class Vision implements Subsystem {
         return turretLL.getHorizontalOffset();
     }
 
-    private int seedConfirmStreak = 0;
-    private Rotation2d seedConfirmHeadingRef = Rotation2d.kZero;
-    private double seedConfirmSpreadLow = 0;
-    private double seedConfirmSpreadHigh = 0;
+    private final SpreadRun seedConfirmRun = new SpreadRun();
+
+    /**
+     * A run of angle samples that all fall within a spread limit of one another. Angles are taken
+     * relative to the run's first sample so the wrap at 180 deg cannot split a run, and a sample
+     * that would widen the spread past the limit starts a new run from itself.
+     */
+    private static final class SpreadRun {
+        int count = 0;
+        private double refDeg = 0;
+        private double low = 0;
+        private double high = 0;
+
+        /** Adds a sample in degrees and returns the run's length including it. */
+        int add(double deg, double maxSpreadDeg) {
+            if (count == 0) {
+                refDeg = deg;
+                low = 0;
+                high = 0;
+            }
+            double d = MathUtil.inputModulus(deg - refDeg, -180.0, 180.0);
+            double newLow = Math.min(low, d);
+            double newHigh = Math.max(high, d);
+            if (newHigh - newLow > maxSpreadDeg) {
+                refDeg = deg;
+                count = 0;
+                newLow = 0;
+                newHigh = 0;
+            }
+            low = newLow;
+            high = newHigh;
+            return ++count;
+        }
+
+        double spread() {
+            return high - low;
+        }
+
+        void reset() {
+            count = 0;
+        }
+    }
 
     /**
      * Advances or resets the seed-confirmation run with this loop's seeded frame. Same shape as the
@@ -1307,29 +1311,13 @@ public class Vision implements Subsystem {
      */
     private void trackSeedConfirmation(Limelight best) {
         if (poseSeedConfirmed || !best.multipleTagsInView()) {
-            seedConfirmStreak = 0;
+            seedConfirmRun.reset();
             return;
         }
-        Rotation2d heading = best.getMegaTag1_Pose3d().toPose2d().getRotation();
-        if (seedConfirmStreak == 0) {
-            seedConfirmHeadingRef = heading;
-            seedConfirmSpreadLow = 0;
-            seedConfirmSpreadHigh = 0;
-        }
-        double d = heading.minus(seedConfirmHeadingRef).getDegrees();
-        double low = Math.min(seedConfirmSpreadLow, d);
-        double high = Math.max(seedConfirmSpreadHigh, d);
-        if (high - low > config.getSeedConfirmSpreadDeg()) {
-            seedConfirmHeadingRef = heading;
-            seedConfirmStreak = 0;
-            low = 0;
-            high = 0;
-        }
-        seedConfirmSpreadLow = low;
-        seedConfirmSpreadHigh = high;
-        seedConfirmStreak++;
+        double headingDeg = best.getMegaTag1_Pose3d().toPose2d().getRotation().getDegrees();
+        int streak = seedConfirmRun.add(headingDeg, config.getSeedConfirmSpreadDeg());
 
-        if (seedConfirmStreak >= config.getSeedConfirmLoops()) {
+        if (streak >= config.getSeedConfirmLoops()) {
             poseSeedConfirmed = true;
             Telemetry.print(
                     String.format(
@@ -1338,8 +1326,8 @@ public class Vision implements Subsystem {
                                     + " enabled.",
                             best.getName(),
                             (int) best.getTagCountInView(),
-                            high - low,
-                            seedConfirmStreak));
+                            seedConfirmRun.spread(),
+                            streak));
         }
     }
 
@@ -1403,7 +1391,7 @@ public class Vision implements Subsystem {
                     && Math.abs(chassisHeadingErrorDeg) <= config.getSeedConfirmSpreadDeg()) {
                 trackSeedConfirmation(best);
             } else if (!poseSeedConfirmed) {
-                seedConfirmStreak = 0;
+                seedConfirmRun.reset();
             }
         }
     }
@@ -1429,16 +1417,11 @@ public class Vision implements Subsystem {
     private static final class PlacementVote {
         double lastFrameFpga = Double.NaN;
         int agree = 0;
-        int disagree = 0;
-        double disagreeRefDeg = 0;
-        double disagreeLow = 0;
-        double disagreeHigh = 0;
+        final SpreadRun disagree = new SpreadRun();
 
         void reset() {
             agree = 0;
-            disagree = 0;
-            disagreeLow = 0;
-            disagreeHigh = 0;
+            disagree.reset();
         }
     }
 
@@ -1520,7 +1503,7 @@ public class Vision implements Subsystem {
 
         if (Math.abs(errorDeg) <= config.getPlacementAgreeDeg()) {
             vote.agree++;
-            vote.disagree = 0;
+            vote.disagree.reset();
             if (vote.agree >= config.getPlacementDecideFrames()) {
                 poseHeadingSeeded = true;
                 seededFromTurretOnly = turretCamera;
@@ -1542,27 +1525,11 @@ public class Vision implements Subsystem {
         // Disagreeing. Count only while the disagreement is steady: a real heading reads the
         // same every frame, a two-tag guess does not.
         vote.agree = 0;
-        if (vote.disagree == 0) {
-            vote.disagreeRefDeg = errorDeg;
-            vote.disagreeLow = 0;
-            vote.disagreeHigh = 0;
-        }
-        double d = MathUtil.inputModulus(errorDeg - vote.disagreeRefDeg, -180.0, 180.0);
-        double low = Math.min(vote.disagreeLow, d);
-        double high = Math.max(vote.disagreeHigh, d);
-        if (high - low > config.getSeedConfirmSpreadDeg()) {
-            vote.disagreeRefDeg = errorDeg;
-            vote.disagree = 0;
-            low = 0;
-            high = 0;
-        }
-        vote.disagreeLow = low;
-        vote.disagreeHigh = high;
-        vote.disagree++;
-        if (vote.disagree < config.getPlacementDecideFrames()) {
+        if (vote.disagree.add(errorDeg, config.getSeedConfirmSpreadDeg())
+                < config.getPlacementDecideFrames()) {
             return;
         }
-        vote.disagree = 0;
+        vote.disagree.reset();
 
         double now = Timer.getFPGATimestamp();
         if (turretCamera) {
@@ -1624,12 +1591,7 @@ public class Vision implements Subsystem {
         if (isPoseTrustedForAiming()) {
             return;
         }
-        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        boolean slow =
-                Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
-                                <= config.getGrossHeadingMaxLinearSpeed()
-                        && Math.abs(speeds.omegaRadiansPerSecond)
-                                <= config.getGrossHeadingMaxOmega();
+        boolean slow = chassisStill();
         if (!slow) {
             return;
         }
@@ -1680,12 +1642,7 @@ public class Vision implements Subsystem {
     private void checkGrossHeadingError(Limelight best) {
         double now = Timer.getFPGATimestamp();
         Pose2d robotPose = Robot.getSwerve().getRobotPose();
-        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        boolean stationary =
-                Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
-                                <= config.getGrossHeadingMaxLinearSpeed()
-                        && Math.abs(speeds.omegaRadiansPerSecond)
-                                <= config.getGrossHeadingMaxOmega();
+        boolean stationary = chassisStill();
 
         double age = best.getLastEstimateAgeSeconds();
         boolean freshMultiTag =
@@ -1772,8 +1729,7 @@ public class Vision implements Subsystem {
             double chassisErrorDeg,
             boolean stationary) {
         double turretErrorDeg = turretCameraHeadingErrorDeg();
-        boolean turretStill =
-                Robot.getTurret().getSlewOmegaRotPerSec() <= config.getTurretZeroMaxTurretOmega();
+        boolean turretStill = turretStill();
 
         boolean agreeing =
                 !Double.isNaN(chassisErrorDeg)
@@ -1877,13 +1833,17 @@ public class Vision implements Subsystem {
         this.turretZeroCorrectionEnable = enable;
     }
 
-    /**
-     * Whether vision is allowed to move the turret zero this loop.
-     *
-     * @return true while the operator holds the enable
-     */
-    public boolean isTurretZeroCorrectionEnabled() {
-        return turretZeroCorrectionEnable.getAsBoolean();
+    /** Whether the chassis is inside the stationary gates used by the heading corrections. */
+    private boolean chassisStill() {
+        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
+        return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+                        <= config.getGrossHeadingMaxLinearSpeed()
+                && Math.abs(speeds.omegaRadiansPerSecond) <= config.getGrossHeadingMaxOmega();
+    }
+
+    /** Whether the turret is slewing slowly enough for a camera heading to be trusted. */
+    private boolean turretStill() {
+        return Robot.getTurret().getSlewOmegaRotPerSec() <= config.getTurretZeroMaxTurretOmega();
     }
 
     /** FPGA time the measurement became unmeasurable; NaN while it is measurable. */
@@ -2087,21 +2047,10 @@ public class Vision implements Subsystem {
 
         Robot.getTurret().applyZeroCorrectionDegrees(step);
         turretZeroRehomeTotalDeg += step;
-        turretZeroRehomeCount = 0;
         turretZeroLastRehomeSeconds = now;
 
         // Forget the old zero's history rather than carry it across the discontinuity.
-        turretZeroFilteredErrorDeg = Double.NaN;
-        turretZeroMeasurableStreak = 0;
-        turretZeroUnmeasurableSinceSeconds = Double.NaN;
-        turretOnlyFilteredErrorDeg = Double.NaN;
-        turretZeroLastApplySeconds = now;
-        turretZeroRateWindowDeg = 0;
-        turretZeroRateWindowAbsDeg = 0;
-        turretZeroRateWindowStartSeconds = Double.NaN;
-        turretZeroDivergenceStartSeconds = Double.NaN;
-        turretZeroDiverged = false;
-        turretZeroDivergedAlert.set(false);
+        resetTurretZeroServoState(now);
 
         turretRehomedAlert.set(true);
         Telemetry.print(
@@ -2193,14 +2142,8 @@ public class Vision implements Subsystem {
 
         double errorDeg = turretCameraHeadingErrorDeg();
 
-        ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
-        boolean stationary =
-                Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
-                                <= config.getGrossHeadingMaxLinearSpeed()
-                        && Math.abs(speeds.omegaRadiansPerSecond)
-                                <= config.getGrossHeadingMaxOmega();
-        boolean turretStill =
-                Robot.getTurret().getSlewOmegaRotPerSec() <= config.getTurretZeroMaxTurretOmega();
+        boolean stationary = chassisStill();
+        boolean turretStill = turretStill();
 
         // Gross errors first: the trim below cannot reach them, and while one stands the turret is
         // aimed somewhere else entirely.
@@ -2270,7 +2213,7 @@ public class Vision implements Subsystem {
         if (applicable) {
             double elapsed = Math.min(now - turretZeroLastApplySeconds, 1.0);
             double limit = config.getTurretZeroMaxTrimDegPerSec() * elapsed;
-            double step = Math.max(-limit, Math.min(limit, turretZeroFilteredErrorDeg));
+            double step = MathUtil.clamp(turretZeroFilteredErrorDeg, -limit, limit);
 
             Robot.getTurret().applyZeroCorrectionDegrees(step);
             turretZeroLastApplySeconds = now;
@@ -2342,6 +2285,11 @@ public class Vision implements Subsystem {
      * @param errorDeg this loop's turret camera minus pose heading, or NaN
      * @param measurable whether the trim considers errorDeg usable this loop
      */
+    /** One step of a first-order low-pass filter that takes its first sample as-is (NaN before). */
+    private static double lowPass(double previous, double sample, double alpha) {
+        return Double.isNaN(previous) ? sample : previous + alpha * (sample - previous);
+    }
+
     private void updateTurretReferenceErrors(double now, double errorDeg, boolean measurable) {
         boolean chassisFresh =
                 !Double.isNaN(chassisHeadingErrorDeg)
@@ -2352,19 +2300,10 @@ public class Vision implements Subsystem {
         if (chassisFresh) {
             chassisReferenceStaleSinceSeconds = Double.NaN;
             poseHeadingFilteredErrorDeg =
-                    Double.isNaN(poseHeadingFilteredErrorDeg)
-                            ? chassisHeadingErrorDeg
-                            : poseHeadingFilteredErrorDeg
-                                    + alpha
-                                            * (chassisHeadingErrorDeg
-                                                    - poseHeadingFilteredErrorDeg);
+                    lowPass(poseHeadingFilteredErrorDeg, chassisHeadingErrorDeg, alpha);
             if (measurable) {
                 double turretOnly = errorDeg - chassisHeadingErrorDeg;
-                turretOnlyFilteredErrorDeg =
-                        Double.isNaN(turretOnlyFilteredErrorDeg)
-                                ? turretOnly
-                                : turretOnlyFilteredErrorDeg
-                                        + alpha * (turretOnly - turretOnlyFilteredErrorDeg);
+                turretOnlyFilteredErrorDeg = lowPass(turretOnlyFilteredErrorDeg, turretOnly, alpha);
             }
         } else {
             if (Double.isNaN(chassisReferenceStaleSinceSeconds)) {
@@ -2467,7 +2406,7 @@ public class Vision implements Subsystem {
      */
     private double turretCameraHeadingErrorDeg() {
         solveTurretCamera();
-        return turretSolveValid ? turretSolvedHeadingErrorDeg : Double.NaN;
+        return turretSolvedHeadingErrorDeg;
     }
 
     /**

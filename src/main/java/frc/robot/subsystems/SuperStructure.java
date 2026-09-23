@@ -14,7 +14,6 @@ import frc.robot.subsystems.launcher.Launcher;
 import frc.robot.subsystems.launcher.LauncherTower;
 import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.turret.Turret;
-import frc.robot.subsystems.vision.Vision;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.Util;
 import java.util.function.BooleanSupplier;
@@ -156,7 +155,7 @@ public class SuperStructure {
      */
     private IntakeExtension.WantedState agitateInScoreZoneElse(
             IntakeExtension.WantedState otherwise) {
-        return isRobotInScoreZone() ? IntakeExtension.WantedState.CONDITIONAL_AGITATE : otherwise;
+        return isRobotInFeedZone() ? otherwise : IntakeExtension.WantedState.CONDITIONAL_AGITATE;
     }
 
     /**
@@ -193,21 +192,13 @@ public class SuperStructure {
                 || state == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
 
-    /**
-     * Returns {@code true} if the squeeze state condition is met.
-     *
-     * @return {@code true} if the squeeze state condition is met
-     */
-    private static boolean isSqueezeState(CurrentSuperState state) {
-        return state == CurrentSuperState.LAUNCH_WITH_SQUEEZE;
-    }
-
     /** Runs the periodic update. Called once per loop from {@code Robot.robotPeriodic()}. */
     public void periodic() {
         currentSuperState = handleStateTransitions();
 
         // Restart the squeeze timer exactly once when first entering a squeeze state
-        if (isSqueezeState(currentSuperState) && !isSqueezeState(previousSuperState)) {
+        if (currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE
+                && previousSuperState != CurrentSuperState.LAUNCH_WITH_SQUEEZE) {
             intakeSqueezeTimer.restart();
         }
 
@@ -332,11 +323,7 @@ public class SuperStructure {
     }
 
     private void updateFeedGate() {
-        Vision vision = Robot.getVision();
-        double secondsSinceVision =
-                vision == null
-                        ? Double.POSITIVE_INFINITY
-                        : vision.secondsSinceLastAcceptedEstimate();
+        double secondsSinceVision = Robot.getVision().secondsSinceLastAcceptedEstimate();
         // Infinity until vision accepts its first estimate, so this is false on a shop bench.
         boolean poseTrusted = secondsSinceVision <= POSE_TRUST_TIMEOUT_SECONDS;
 
@@ -481,7 +468,7 @@ public class SuperStructure {
                 autonLaunchWithoutSqueeze();
                 break;
             case AUTON_LAUNCH_WITH_SQUEEZE:
-                autonLaunchWithSqueeze();
+                launchAgitating();
                 break;
             case AUTON_TRACK_TARGET:
                 autonTrackTarget();
@@ -566,41 +553,21 @@ public class SuperStructure {
     /** Intake fuel. */
     private void intakeFuel() {
         teleopDrive(false);
-        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        // Slow sweep about the aim so incoming fuel cannot pack against the turret.
-        turret.setWantedState(Turret.WantedState.AIM_SWEEP);
-        hood.setWantedState(Hood.WantedState.HOME);
+        autonIntakeFuel();
     }
 
     /** Track target. */
     private void trackTarget() {
         teleopDrive(false);
-        fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
-        dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
-        intakeExtension.setWantedState(
-                agitateInScoreZoneElse(IntakeExtension.WantedState.CONDITIONAL_EXTEND));
-        launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
-        launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
-        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
+        autonTrackTarget();
     }
 
     /** Launches with squeeze. */
     private void launchWithSqueeze() {
         teleopDrive(true);
-        // Intake rollers run through the squeeze; see launchAgitating().
-        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
-        launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
-        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
-        applyGatedFeed();
-
+        launchAgitating();
+        // Hold the extension out until the squeeze delay has passed, then let it agitate.
         if (intakeSqueezeTimer.hasElapsed(secondsToSqueeze.get())) {
-            intakeExtension.setWantedState(IntakeExtension.WantedState.AGITATE);
             intakeSqueezeTimer.stop();
         } else {
             intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
@@ -616,12 +583,7 @@ public class SuperStructure {
     /** Launches without squeeze. */
     private void launchWithoutSqueeze() {
         teleopDrive(true);
-        fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
-        intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
-        launcher.setWantedState(Launcher.WantedState.LAUNCH);
-        turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
-        hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
-        applyGatedFeed();
+        autonLaunchWithoutSqueeze();
     }
 
     /** Launches with brake. */
@@ -649,6 +611,7 @@ public class SuperStructure {
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
         launcher.setWantedState(Launcher.WantedState.IDLE_PREP);
         launcherTower.setWantedState(LauncherTower.WantedState.SLOW_INDEX);
+        // Slow sweep about the aim so incoming fuel cannot pack against the turret.
         turret.setWantedState(Turret.WantedState.AIM_SWEEP);
         hood.setWantedState(Hood.WantedState.HOME);
     }
@@ -673,11 +636,6 @@ public class SuperStructure {
         turret.setWantedState(Turret.WantedState.AIM_AT_TARGET);
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
         applyGatedFeed();
-    }
-
-    /** Auton launch with squeeze. */
-    private void autonLaunchWithSqueeze() {
-        launchAgitating();
     }
 
     /**
@@ -774,39 +732,12 @@ public class SuperStructure {
 
     // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
     /**
-     * Returns {@code true} if the robot in neutral zone condition is met.
-     *
-     * @return {@code true} if the robot in neutral zone condition is met
-     */
-    public boolean isRobotInNeutralZone() {
-        return swerve.isInNeutralZone();
-    }
-
-    /**
-     * Returns {@code true} if the robot in enemy zone condition is met.
-     *
-     * @return {@code true} if the robot in enemy zone condition is met
-     */
-    public boolean isRobotInEnemyZone() {
-        return swerve.isInEnemyAllianceZone();
-    }
-
-    /**
      * Returns {@code true} if the robot is in the feed zone.
      *
      * @return {@code true} when the robot is in the enemy or neutral zone (the feed zone)
      */
     public boolean isRobotInFeedZone() {
-        return isRobotInEnemyZone() || isRobotInNeutralZone();
-    }
-
-    /**
-     * Returns {@code true} if the robot is in the score zone.
-     *
-     * @return {@code true} when the robot is not in the feed zone
-     */
-    public boolean isRobotInScoreZone() {
-        return !isRobotInFeedZone();
+        return swerve.isInEnemyAllianceZone() || swerve.isInNeutralZone();
     }
 
     /**

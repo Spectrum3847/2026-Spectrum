@@ -1950,6 +1950,29 @@ public abstract class Mechanism implements Subsystem {
         }
 
         /**
+         * Sets the usual set of current limits in one call: the supply limit with its lower limit
+         * and lower-limit time, the stator limit, and the forward and reverse torque-current limits
+         * at the stator value.
+         *
+         * @param supplyLimit supply current limit in amps
+         * @param statorLimit stator current limit in amps, also used for both torque limits
+         * @param lowerSupplyLimit supply limit to drop to after {@code lowerSupplyTime}, in amps
+         * @param lowerSupplyTime seconds at the supply limit before dropping to the lower limit
+         */
+        public void configCurrentLimits(
+                double supplyLimit,
+                double statorLimit,
+                double lowerSupplyLimit,
+                double lowerSupplyTime) {
+            configSupplyCurrentLimit(supplyLimit, true);
+            configStatorCurrentLimit(statorLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyLimit);
+            configLowerSupplyCurrentTime(lowerSupplyTime);
+            configForwardTorqueCurrentLimit(statorLimit);
+            configReverseTorqueCurrentLimit(statorLimit);
+        }
+
+        /**
          * Configures the supply current limit. The absolute value of {@code supplyLimit} is used,
          * so negative values are automatically corrected.
          *

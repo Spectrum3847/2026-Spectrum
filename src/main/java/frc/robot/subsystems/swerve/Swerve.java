@@ -9,7 +9,6 @@ import static edu.wpi.first.units.Units.Seconds;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
-import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
@@ -32,7 +31,6 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -73,8 +71,6 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private SystemState systemState = SystemState.IDLE;
 
     private static final double SKEW_COMPENSATION_SCALAR = -0.03;
-
-    @Getter public final Pigeon2 pigeon = getPigeon2();
 
     @Getter @Setter private double teleopVelocityCoefficient = 1.0;
     @Getter @Setter private double teleopRotationVelocityCoefficient = 1.0;
@@ -360,14 +356,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             case TELEOP_DRIVE -> SystemState.TELEOP_DRIVE;
             case X_BRAKE -> SystemState.X_BRAKE;
             case IDLE -> SystemState.IDLE;
-            default -> SystemState.IDLE;
         };
     }
 
     /** Applies the states. */
     private void applyStates() {
         switch (systemState) {
-            default:
             case IDLE:
                 setControl(IDLE_REQUEST);
                 break;
@@ -390,18 +384,10 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         double yMagnitude = Robot.getPilot().getDriveLeftPositive();
         double angularMagnitude = Robot.getPilot().getDriveCCWPositive();
 
-        double xVelocity =
-                (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-                                        == DriverStation.Alliance.Blue
-                                ? xMagnitude
-                                : -xMagnitude)
-                        * teleopVelocityCoefficient;
-        double yVelocity =
-                (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-                                        == DriverStation.Alliance.Blue
-                                ? yMagnitude
-                                : -yMagnitude)
-                        * teleopVelocityCoefficient;
+        // Field-relative stick directions are mirrored for the red alliance.
+        double allianceSign = Field.isBlue() ? 1 : -1;
+        double xVelocity = allianceSign * xMagnitude * teleopVelocityCoefficient;
+        double yVelocity = allianceSign * yMagnitude * teleopVelocityCoefficient;
         double angularVelocity = angularMagnitude * teleopRotationVelocityCoefficient;
 
         Rotation2d skewCompensationFactor =
@@ -439,11 +425,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
      * in Elastic
      */
     private void checkPigeonConnection() {
-        if (getPigeon() == null || !getPigeon().isConnected()) {
-            pigeonAlert.set(true);
-        } else {
-            pigeonAlert.set(false);
-        }
+        pigeonAlert.set(!getPigeon2().isConnected());
     }
 
     /**
@@ -503,25 +485,20 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     // --------------------------------------------------------------------------------
     // Zone Triggers
     // --------------------------------------------------------------------------------
-    private static final double FIELD_LENGTH_METERS = Field.fieldLength;
-    private static final double FIELD_WIDTH_METERS = Field.fieldWidth;
     private static final double NEUTRAL_DEPTH_METERS = Units.inchesToMeters(283.0);
-    private static final double NEUTRAL_LENGTH_METERS = Field.fieldWidth;
     private static final double ENEMY_ALLIANCE_DEPTH_METERS = Units.inchesToMeters(180.0);
 
     private static final Rectangle2d NEUTRAL_ZONE =
             new Rectangle2d(
+                    new Translation2d(Field.fieldLength / 2.0 - NEUTRAL_DEPTH_METERS / 2.0, 0),
                     new Translation2d(
-                            FIELD_LENGTH_METERS / 2.0 - NEUTRAL_DEPTH_METERS / 2.0,
-                            FIELD_WIDTH_METERS / 2.0 - NEUTRAL_LENGTH_METERS / 2.0),
-                    new Translation2d(
-                            FIELD_LENGTH_METERS / 2.0 + NEUTRAL_DEPTH_METERS / 2.0,
-                            FIELD_WIDTH_METERS / 2.0 + NEUTRAL_LENGTH_METERS / 2.0));
+                            Field.fieldLength / 2.0 + NEUTRAL_DEPTH_METERS / 2.0,
+                            Field.fieldWidth));
 
     private static final Rectangle2d ENEMY_ALLIANCE_ZONE =
             new Rectangle2d(
-                    new Translation2d(FIELD_LENGTH_METERS - ENEMY_ALLIANCE_DEPTH_METERS, 0),
-                    new Translation2d(FIELD_LENGTH_METERS, FIELD_WIDTH_METERS));
+                    new Translation2d(Field.fieldLength - ENEMY_ALLIANCE_DEPTH_METERS, 0),
+                    new Translation2d(Field.fieldLength, Field.fieldWidth));
 
     /** Returns {@code true} when the robot is inside the neutral zone. Allocation-free. */
     public boolean isInNeutralZone() {
@@ -661,7 +638,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case
-                    () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+                    Field::isRed,
                     this // Subsystem for requirements
                     );
         } catch (Exception ex) {

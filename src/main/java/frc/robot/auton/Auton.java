@@ -16,8 +16,8 @@ import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class Auton {
 
@@ -82,24 +82,25 @@ public class Auton {
     /** Init. */
     public void init() {
         CommandScheduler.getInstance().schedule(getAutonomousCommand());
-        startAutonTimer();
+        autonStart = Timer.getFPGATimestamp();
+        autoMessagePrinted = false;
     }
 
-    /** Exit. */
+    /** Exit. Prints how long the auto ran, once, based on 6328's code. */
     public void exit() {
-        printAutoDuration();
+        if (!getAutonomousCommand().isScheduled() && !autoMessagePrinted) {
+            Telemetry.print(
+                    String.format(
+                            "*** Auton %s in %.2f secs ***",
+                            DriverStation.isAutonomousEnabled() ? "finished" : "CANCELLED",
+                            Timer.getFPGATimestamp() - autonStart));
+            autoMessagePrinted = true;
+        }
     }
 
     /** Do nothing. */
     public Command doNothing() {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
-    }
-
-    // Allows Robot to continue shooting even after path has been completed--at a stand still
-    public Command launchWithAgitate() {
-        // Was an InstantCommand that built the state command inside its lambda and dropped it, so
-        // it never set the state. Return the command itself and the sequence schedules it.
-        return robotSuperStructure.setStateCommand(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE);
     }
 
     /**
@@ -149,7 +150,8 @@ public class Auton {
                 "OSCENT FULL",
                 mirrored,
                 SpectrumAuton("OSCENT FULL", mirrored),
-                launchWithAgitate());
+                // Keeps launching after the path ends, at a standstill.
+                state(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE));
     }
 
     // ---- Building blocks ----
@@ -208,7 +210,7 @@ public class Auton {
     }
 
     /** Auto names the chooser was built with that have no {@code .auto} file on this rio. */
-    private static final List<String> missingAutoFiles = new ArrayList<>();
+    private static final Set<String> missingAutoFiles = new LinkedHashSet<>();
 
     private static final Alert missingAutoFileAlert = new Alert("", AlertType.kError);
 
@@ -228,9 +230,7 @@ public class Auton {
         if (AutoBuilder.getAllAutoNames().contains(autoName)) {
             return;
         }
-        if (!missingAutoFiles.contains(autoName)) {
-            missingAutoFiles.add(autoName);
-        }
+        missingAutoFiles.add(autoName);
         missingAutoFileAlert.setText(
                 "No .auto file on the rio for: "
                         + String.join(", ", missingAutoFiles)
@@ -251,29 +251,5 @@ public class Auton {
      */
     public Command getAutonomousCommand() {
         return pathChooser.getSelected();
-    }
-
-    /** This method is called in AutonInit */
-    public void startAutonTimer() {
-        autonStart = Timer.getFPGATimestamp();
-        autoMessagePrinted = false;
-    }
-
-    /** Called at AutonExit and displays the duration of the auton command Based on 6328 code */
-    public void printAutoDuration() {
-        if (!getAutonomousCommand().isScheduled() && !autoMessagePrinted) {
-            if (DriverStation.isAutonomousEnabled()) {
-                Telemetry.print(
-                        String.format(
-                                "*** Auton finished in %.2f secs ***",
-                                Timer.getFPGATimestamp() - autonStart));
-            } else {
-                Telemetry.print(
-                        String.format(
-                                "*** Auton CANCELLED in %.2f secs ***",
-                                Timer.getFPGATimestamp() - autonStart));
-            }
-            autoMessagePrinted = true;
-        }
     }
 }

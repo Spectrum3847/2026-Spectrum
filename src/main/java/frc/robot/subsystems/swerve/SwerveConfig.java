@@ -39,10 +39,10 @@ public class SwerveConfig {
     // Estimated at first, then fudge-factored to make odom match record
     @Getter private Distance wheelRadius = Inches.of(1.978);
 
-    // Theoretical translational free speed (ft/s) at 12v applied output;
+    // Theoretical translational free speed at 12v applied output;
     @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(4.5);
 
-    // Theoretical rotational free speed (ft/s) at 12v applied output;
+    // Theoretical rotational free speed at 12v applied output;
     @Getter private final AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
 
     // -----------------------------------------------------------------------
@@ -138,11 +138,6 @@ public class SwerveConfig {
 
     @Getter private SwerveDrivetrainConstants drivetrainConstants;
 
-    @Getter
-    private SwerveModuleConstantsFactory<
-                    TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-            constantCreator;
-
     // Front Left
     @Getter private final int frontLeftDriveMotorId = 1;
     @Getter private final int frontLeftSteerMotorId = 2;
@@ -199,9 +194,6 @@ public class SwerveConfig {
     private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             backRight;
 
-    private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
-                    []
-            modules;
     /**
      * Returns the modules.
      *
@@ -210,12 +202,7 @@ public class SwerveConfig {
     @SuppressWarnings("unchecked")
     public SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             [] getModules() {
-        if (frontLeft != null && frontRight != null && backLeft != null && backRight != null) {
-            modules = new SwerveModuleConstants[] {frontLeft, frontRight, backLeft, backRight};
-        } else {
-            throw new IllegalStateException("One or more SwerveModuleConstants are null");
-        }
-        return modules;
+        return new SwerveModuleConstants[] {frontLeft, frontRight, backLeft, backRight};
     }
 
     /** Creates a new SwerveConfig instance. */
@@ -231,7 +218,7 @@ public class SwerveConfig {
                         .withPigeon2Id(pigeonId)
                         .withPigeon2Configs(pigeonConfigs);
 
-        constantCreator =
+        var constantCreator =
                 new SwerveModuleConstantsFactory<
                                 TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>()
                         .withDriveMotorGearRatio(driveGearRatio)

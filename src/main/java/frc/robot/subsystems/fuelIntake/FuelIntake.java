@@ -35,7 +35,6 @@ public class FuelIntake implements Subsystem {
 
         public static class IntakeRollerConfig extends Config {
 
-            // Likely keep current limits
             @Getter private final double supplyCurrentLimit = 80;
             @Getter private final double statorCurrentLimit = 80;
             @Getter private final double lowerSupplyCurrentLimit = 40;
@@ -60,12 +59,11 @@ public class FuelIntake implements Subsystem {
                 configPIDGains(0, velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        lowerSupplyCurrentLimit,
+                        lowerSupplyCurrentTime);
                 configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
                 setFollowerConfigs(
@@ -171,12 +169,11 @@ public class FuelIntake implements Subsystem {
                 configPIDGains(0, velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        lowerSupplyCurrentLimit,
+                        lowerSupplyCurrentTime);
                 configNeutralBrakeMode(false);
                 configClockwise_Positive();
             }
@@ -299,8 +296,6 @@ public class FuelIntake implements Subsystem {
         double wantedKickerVoltage = 0;
         switch (systemState) {
             case NEUTRAL:
-                wantedRollerVoltage = 0;
-                wantedKickerVoltage = 0;
                 break;
             case INTAKE:
                 wantedRollerVoltage = 12;
@@ -323,10 +318,8 @@ public class FuelIntake implements Subsystem {
                 kicker.stop();
                 return;
         }
-        final double finalRollerVoltage = wantedRollerVoltage;
-        final double finalKickerVoltage = wantedKickerVoltage;
-        roller.setRollerVoltage(finalRollerVoltage);
-        kicker.setKickerVoltage(finalKickerVoltage);
+        roller.setRollerVoltage(wantedRollerVoltage);
+        kicker.setKickerVoltage(wantedKickerVoltage);
     }
 
     @Getter private final IntakeRoller roller;

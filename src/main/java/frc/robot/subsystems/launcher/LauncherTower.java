@@ -26,12 +26,11 @@ public class LauncherTower extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    lowerSupplyCurrentTime);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
             // The tower's feedforward is fit from logs, which needs voltage on every sample.
@@ -79,7 +78,6 @@ public class LauncherTower extends Mechanism {
         };
     }
 
-    // TODO: test
     /** Applies the states. */
     private void applyStates() {
         double wantedRPM = 0;
@@ -99,8 +97,7 @@ public class LauncherTower extends Mechanism {
                 break;
         }
         commandedRPM = wantedRPM;
-        final double finalWantedRPM = wantedRPM;
-        setVelocityRPM(() -> finalWantedRPM);
+        setVelocityRPM(() -> commandedRPM);
     }
 
     /** Tower speed commanded this loop (RPM); 0 when stopped. */

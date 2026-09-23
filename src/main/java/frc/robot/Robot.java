@@ -10,7 +10,6 @@ import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.commands.PathfindingCommand;
 import com.pathplanner.lib.path.PathPlannerPath;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.net.WebServer;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.Alert;
@@ -79,8 +78,7 @@ import org.json.simple.parser.ParseException;
 
 /**
  * The main robot class. This class is the entry point for the robot code and manages all subsystems
- * and their configurations. The main robot class. This class is the entry point for the robot code
- * and manages all subsystems and their configurations.
+ * and their configurations.
  */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
@@ -297,8 +295,8 @@ public class Robot extends SpectrumRobot {
 
         pilot.RT
                 .and(pilot.LB)
-                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_BRAKE));
-        pilot.RT.and(pilot.LB).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
+                .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_BRAKE))
+                .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         // RT released while LT still held → resume intaking
         pilot.RT.onFalse(
@@ -434,8 +432,7 @@ public class Robot extends SpectrumRobot {
         // noLB: plain Y is the keyboard launch, plain B the keyboard intake; LB + either is a set
         // shot. Without this they would both fire in a sim and fight over the super state.
         pilot.YButton.and(pilot.noLB)
-                .whileTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE));
-        pilot.YButton.and(pilot.noLB)
+                .whileTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE))
                 .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
         pilot.kickerUnjam_B.whileTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL));
         pilot.kickerUnjam_B.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
@@ -443,15 +440,10 @@ public class Robot extends SpectrumRobot {
         pilot.RB.onTrue(FeedTargetFactory.feedRight());
     }
 
-    /** Sets up the SmartDashboard data for visualization. */
-    public void setupSmartDashboardData() {
-        SmartDashboard.putData("Field2d", field2d);
-    }
-
     /** Robot init. */
     @Override
     public void robotInit() {
-        setupSmartDashboardData();
+        SmartDashboard.putData("Field2d", field2d);
         WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
     }
 
@@ -784,15 +776,7 @@ public class Robot extends SpectrumRobot {
                 // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
                 for (PathPlannerPath path : pathPlannerPaths) {
-                    poses.addAll(
-                            path.getAllPathPoints().stream()
-                                    .map(
-                                            point ->
-                                                    new Pose2d(
-                                                            point.position.getX(),
-                                                            point.position.getY(),
-                                                            Rotation2d.kZero))
-                                    .collect(Collectors.toList()));
+                    poses.addAll(path.getPathPoses());
                 }
                 field2d.getObject("Auto Routine").setPoses(poses);
             } else {

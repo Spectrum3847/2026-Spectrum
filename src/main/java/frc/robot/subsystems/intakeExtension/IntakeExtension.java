@@ -157,7 +157,6 @@ public class IntakeExtension implements Subsystem {
 
             @Getter private final double intakeX = Units.inchesToMeters(70);
             @Getter private final double intakeY = Units.inchesToMeters(23);
-            @Getter private final double extensionMass = 10.0;
             @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.5010597711);
             @Getter private final double angle = 180;
             @Getter private final double staticLength = 10;
@@ -188,13 +187,12 @@ public class IntakeExtension implements Subsystem {
                 configGravityType(false);
                 configOpenLoopRamps(rampPeriod);
                 configClosedLoopRamps(rampPeriod);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        lowerSupplyCurrentLimit,
+                        lowerSupplyCurrentTime);
                 configGearRatio(gearRatio);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
                 configForwardSoftLimit(maxRotations, true);
                 configReverseSoftLimit(minRotations, true);
                 // Always coast: a collision must be able to push the intake in.
@@ -209,7 +207,7 @@ public class IntakeExtension implements Subsystem {
 
         @Getter private final AxisConfig config;
         @Getter private IntakeExtensionSim sim;
-        private String positionKey;
+        private final String positionKey;
 
         /**
          * Creates one intake extension axis.
@@ -219,6 +217,7 @@ public class IntakeExtension implements Subsystem {
         public Axis(AxisConfig config) {
             super(config);
             this.config = config;
+            positionKey = getName() + "/Position";
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
@@ -226,9 +225,6 @@ public class IntakeExtension implements Subsystem {
         @Override
         public void periodic() {
             logStandard(getName(), false, RpmLog.SLOW);
-            if (positionKey == null) {
-                positionKey = getName() + "/Position";
-            }
             Telemetry.log(positionKey, getPositionRotations(), "rotations");
         }
 
@@ -238,17 +234,16 @@ public class IntakeExtension implements Subsystem {
         }
 
         /**
-         * Moves the axis to a rotation target using a dynamic motion profile.
+         * Moves the axis to a rotation target on the slow Motion Magic profile.
          *
          * @param rotations the target position in rotations
-         * @param cruiseVelocity the motion profile's cruise velocity
-         * @param acceleration the motion profile's acceleration
-         * @param jerk the motion profile's jerk
          */
-        public void goToRotationsSlow(
-                double rotations, double cruiseVelocity, double acceleration, double jerk) {
+        public void goToRotationsSlow(double rotations) {
             setDynMMPositionVoltage(
-                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
+                    () -> rotations,
+                    config::getSlowMmCruiseVelocity,
+                    config::getSlowMmAcceleration,
+                    config::getSlowMmJerk);
         }
 
         /** Re-zeroes this axis at the fully-extended hard stop. */
@@ -387,22 +382,19 @@ public class IntakeExtension implements Subsystem {
         // learned skew baseline; in the 2026-09-06 23:47 log the baseline swung to -0.96 rot and
         // the right side was told to sit 3 in further out than the left, so it never came in and
         // the two fought through the roller link. The baseline is only used to judge skew now.
-        final double rightRotations = rotations;
         if (slow) {
-            left.goToRotationsSlow(
-                    rotations,
-                    config.getSlowMmCruiseVelocity(),
-                    config.getSlowMmAcceleration(),
-                    config.getSlowMmJerk());
-            right.goToRotationsSlow(
-                    rightRotations,
-                    config.getSlowMmCruiseVelocity(),
-                    config.getSlowMmAcceleration(),
-                    config.getSlowMmJerk());
+            left.goToRotationsSlow(rotations);
+            right.goToRotationsSlow(rotations);
         } else {
             left.goToRotations(rotations);
-            right.goToRotations(rightRotations);
+            right.goToRotations(rotations);
         }
+    }
+
+    /** Whether both axes are turning slower than {@code maxRpm}. */
+    private boolean bothStill(double maxRpm) {
+        return Math.abs(left.getVelocityRPM()) < maxRpm
+                && Math.abs(right.getVelocityRPM()) < maxRpm;
     }
 
     // ---- Deployed retract floor ----
@@ -421,12 +413,11 @@ public class IntakeExtension implements Subsystem {
 
     /** Updates the deployed latch from the measured position. Runs once per loop. */
     private void updateDeployedLatch() {
-        AxisConfig cfg = config;
-        double floor = cfg.deployedRetractFloorRotations();
+        double floor = config.deployedRetractFloorRotations();
         double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
         if (position >= floor) {
             deployed = true;
-        } else if (position <= cfg.getMinRotations() + cfg.inchesToRotations(0.5)) {
+        } else if (position <= config.getMinRotations() + config.inchesToRotations(0.5)) {
             deployed = false;
         }
     }
@@ -497,11 +488,10 @@ public class IntakeExtension implements Subsystem {
      * #holdForSkew}.
      */
     private void applyAgitate() {
-        AxisConfig cfg = config;
         final double minRot = retractLimitRotations();
-        final double maxRot = cfg.getMaxRotations();
-        final double stroke = cfg.inchesToRotations(cfg.getAgitateStrokeInches());
-        final double tolerance = cfg.inchesToRotations(cfg.getAgitateSettleToleranceInches());
+        final double maxRot = config.getMaxRotations();
+        final double stroke = config.inchesToRotations(config.getAgitateStrokeInches());
+        final double tolerance = config.inchesToRotations(config.getAgitateSettleToleranceInches());
         final double leftPos = left.getPositionRotations();
         final double rightPos = right.getPositionRotations();
         final double position = (leftPos + rightPos) / 2.0;
@@ -514,7 +504,7 @@ public class IntakeExtension implements Subsystem {
             agitateStartTime = now;
             agitateStalledPulls = 0;
             agitateIdleParked = false;
-            startAgitatePull(now, position);
+            startAgitatePull(position);
         }
 
         // Outside a launch the agitate is only prep. Once a few pulls in a row have stalled the
@@ -543,14 +533,14 @@ public class IntakeExtension implements Subsystem {
 
         if (agitateOut) {
             // Push-out phase: sit at the outer position for half a period, then pull again.
-            if (agitateTimer.hasElapsed(cfg.getAgitateHalfPeriodSecs())) {
+            if (agitateTimer.hasElapsed(config.getAgitateHalfPeriodSecs())) {
                 if (wantedState == WantedState.CONDITIONAL_AGITATE
-                        && agitateStalledPulls >= cfg.getAgitateIdleGiveUpPulls()) {
+                        && agitateStalledPulls >= config.getAgitateIdleGiveUpPulls()) {
                     agitateIdleParked = true;
                     commandBothRotations(agitateOuterRotations, true);
                     return;
                 }
-                startAgitatePull(now, position);
+                startAgitatePull(position);
             } else {
                 commandBothRotations(agitateOuterRotations, true);
                 return;
@@ -583,13 +573,13 @@ public class IntakeExtension implements Subsystem {
                 agitateRetractedRotations = position;
                 sentOutByIntakeState = false;
             }
-        } else if (agitateTimer.hasElapsed(cfg.getAgitateHalfPeriodSecs())) {
+        } else if (agitateTimer.hasElapsed(config.getAgitateHalfPeriodSecs())) {
             // Judge the pull by how far it moved, not by whether it closed on the target. The
             // position loop settles a quarter to a third of an inch short under load (2026-09-06
             // 23:29 log: 80 unloaded pulls travelled a median 1.71 in of the 2 in stroke), and
             // requiring the last quarter inch threw every one of them back out.
             double travelled = agitatePullStartRotations - position;
-            if (travelled >= stroke * cfg.getAgitatePullSuccessFraction()) {
+            if (travelled >= stroke * config.getAgitatePullSuccessFraction()) {
                 // Most of an unloaded pull: the fuel has drawn down, so keep going all the way in.
                 agitateFullRetract = true;
                 agitateStalledPulls = 0;
@@ -627,17 +617,17 @@ public class IntakeExtension implements Subsystem {
      * @return true if the hold is active and the caller should not command anything else
      */
     private boolean holdForSkew(double leftPos, double rightPos, double midpoint, double now) {
-        AxisConfig cfg = config;
         // Physical skew is the encoder difference minus the zero offset learned at the hard stop.
         double skew = Math.abs(leftPos - rightPos - skewBaselineRotations);
 
         if (agitateSkewHold) {
-            boolean converged = skew <= cfg.inchesToRotations(cfg.getAgitateResumeSkewInches());
-            boolean timedOut = now - skewHoldStart >= cfg.getAgitateSkewHoldTimeoutSecs();
+            boolean converged =
+                    skew <= config.inchesToRotations(config.getAgitateResumeSkewInches());
+            boolean timedOut = now - skewHoldStart >= config.getAgitateSkewHoldTimeoutSecs();
             if (converged || timedOut) {
                 agitateSkewHold = false;
                 if (timedOut) {
-                    skewHoldCooldownUntil = now + cfg.getAgitateSkewHoldCooldownSecs();
+                    skewHoldCooldownUntil = now + config.getAgitateSkewHoldCooldownSecs();
                     skewHoldTimeouts++;
                 }
                 // Start the phase over so the hold time is not charged to it.
@@ -645,7 +635,7 @@ public class IntakeExtension implements Subsystem {
                 agitateLoadedDebouncer.calculate(false);
                 return false;
             }
-        } else if (skew > cfg.inchesToRotations(cfg.getAgitateMaxSkewInches())
+        } else if (skew > config.inchesToRotations(config.getAgitateMaxSkewInches())
                 && now >= skewHoldCooldownUntil) {
             agitateSkewHold = true;
             skewHoldStart = now;
@@ -653,7 +643,7 @@ public class IntakeExtension implements Subsystem {
             return false;
         }
 
-        double target = MathUtil.clamp(midpoint, retractLimitRotations(), cfg.getMaxRotations());
+        double target = MathUtil.clamp(midpoint, retractLimitRotations(), config.getMaxRotations());
         commandBothRotations(target, true);
         return true;
     }
@@ -691,13 +681,11 @@ public class IntakeExtension implements Subsystem {
      * the steady time, or a new extend request, drives it out again.
      */
     private void applyFullExtend() {
-        AxisConfig cfg = config;
         final double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
-        final double target = left.percentToRotations(cfg::getFullExtendPercent);
-        final double tolerance = cfg.inchesToRotations(cfg.getExtendAtTargetToleranceInches());
-        final boolean still =
-                Math.abs(left.getVelocityRPM()) < cfg.getExtendSteadyMaxRPM()
-                        && Math.abs(right.getVelocityRPM()) < cfg.getExtendSteadyMaxRPM();
+        final double target = left.percentToRotations(config::getFullExtendPercent);
+        final double tolerance =
+                config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+        final boolean still = bothStill(config.getExtendSteadyMaxRPM());
 
         if (previousSystemState != SystemState.FULL_EXTEND || extendRequested) {
             extendPhase = ExtendPhase.DRIVING;
@@ -712,7 +700,7 @@ public class IntakeExtension implements Subsystem {
                 extendSteadyTimer.restart();
                 steadySkewStart = left.getPositionRotations() - right.getPositionRotations();
             }
-            steady = extendSteadyTimer.hasElapsed(cfg.getExtendSteadySecs());
+            steady = extendSteadyTimer.hasElapsed(config.getExtendSteadySecs());
         } else {
             extendSteadyTiming = false;
         }
@@ -736,20 +724,21 @@ public class IntakeExtension implements Subsystem {
                     }
                     // Either got there or is stalled short of it. Let go.
                     extendPhase = ExtendPhase.COASTING;
-                    coastStartRotations = cfg.getMaxRotations();
+                    coastStartRotations = config.getMaxRotations();
                     extendSteadyTiming = false;
                     left.stop();
                     right.stop();
                 } else {
-                    commandBoth(cfg.getFullExtendPercent(), false);
+                    commandBoth(config.getFullExtendPercent(), false);
                 }
             }
             case COASTING -> {
                 double pushedIn = coastStartRotations - position;
-                if (pushedIn >= cfg.inchesToRotations(cfg.getExtendReextendInches()) && steady) {
+                if (pushedIn >= config.inchesToRotations(config.getExtendReextendInches())
+                        && steady) {
                     extendPhase = ExtendPhase.DRIVING;
                     extendSteadyTiming = false;
-                    commandBoth(cfg.getFullExtendPercent(), false);
+                    commandBoth(config.getFullExtendPercent(), false);
                 } else {
                     left.stop();
                     right.stop();
@@ -774,9 +763,8 @@ public class IntakeExtension implements Subsystem {
         if (!steady) {
             return;
         }
-        AxisConfig cfg = config;
-        double max = cfg.getMaxRotations();
-        double tol = cfg.inchesToRotations(cfg.getExtendAtTargetToleranceInches());
+        double max = config.getMaxRotations();
+        double tol = config.inchesToRotations(config.getExtendAtTargetToleranceInches());
         boolean leftOff = Math.abs(left.getPositionRotations() - max) > tol;
         boolean rightOff = Math.abs(right.getPositionRotations() - max) > tol;
         // Only when the sides read the same place: then both are on the stop and a reading off
@@ -799,10 +787,9 @@ public class IntakeExtension implements Subsystem {
      * does not turn into a stream of position writes.
      */
     private void clampPastMax() {
-        AxisConfig cfg = config;
         double limit =
-                cfg.getMaxRotations()
-                        + cfg.inchesToRotations(cfg.getExtendAtTargetToleranceInches());
+                config.getMaxRotations()
+                        + config.inchesToRotations(config.getExtendAtTargetToleranceInches());
         double now = Timer.getFPGATimestamp();
         if (left.getPositionRotations() > limit && now - lastLeftClamp >= PAST_MAX_CLAMP_PERIOD) {
             left.zeroAtMax();
@@ -832,11 +819,11 @@ public class IntakeExtension implements Subsystem {
      * is one side creeping, and zeroing would write the creep into its frame.
      */
     private boolean sidesAgree() {
-        AxisConfig cfg = config;
         double skew = left.getPositionRotations() - right.getPositionRotations();
-        boolean small = Math.abs(skew) <= cfg.inchesToRotations(cfg.getSkewBaselineMaxInches());
+        boolean small =
+                Math.abs(skew) <= config.inchesToRotations(config.getSkewBaselineMaxInches());
         boolean stable =
-                Math.abs(skew - steadySkewStart) <= cfg.inchesToRotations(SKEW_STABLE_INCHES);
+                Math.abs(skew - steadySkewStart) <= config.inchesToRotations(SKEW_STABLE_INCHES);
         return small && stable;
     }
 
@@ -858,12 +845,10 @@ public class IntakeExtension implements Subsystem {
      * re-learns the frame at the real stop.
      */
     private void applyFullRetract() {
-        AxisConfig cfg = config;
         final double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
-        final double tolerance = cfg.inchesToRotations(cfg.getExtendAtTargetToleranceInches());
-        final boolean still =
-                Math.abs(left.getVelocityRPM()) < cfg.getExtendSteadyMaxRPM()
-                        && Math.abs(right.getVelocityRPM()) < cfg.getExtendSteadyMaxRPM();
+        final double tolerance =
+                config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+        final boolean still = bothStill(config.getExtendSteadyMaxRPM());
 
         if (previousSystemState != SystemState.FULL_RETRACT) {
             retractHolding = false;
@@ -900,10 +885,7 @@ public class IntakeExtension implements Subsystem {
      * skew hold measures against. A resync zeroes both at that stop, so it resets the baseline.
      */
     private void updateSkewBaseline() {
-        AxisConfig cfg = config;
-        boolean still =
-                Math.abs(left.getVelocityRPM()) < cfg.getSkewBaselineMaxRPM()
-                        && Math.abs(right.getVelocityRPM()) < cfg.getSkewBaselineMaxRPM();
+        boolean still = bothStill(config.getSkewBaselineMaxRPM());
         if (!still) {
             skewBaselineSettling = false;
             return;
@@ -913,12 +895,12 @@ public class IntakeExtension implements Subsystem {
             skewBaselineTimer.restart();
             return;
         }
-        if (skewBaselineTimer.hasElapsed(cfg.getSkewBaselineSettleSecs())) {
+        if (skewBaselineTimer.hasElapsed(config.getSkewBaselineSettleSecs())) {
             double leftPos = left.getPositionRotations();
             double rightPos = right.getPositionRotations();
-            double tol = cfg.inchesToRotations(cfg.getExtendAtTargetToleranceInches());
-            double target = left.percentToRotations(cfg::getFullExtendPercent);
-            double maxOffset = cfg.inchesToRotations(cfg.getSkewBaselineMaxInches());
+            double tol = config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+            double target = left.percentToRotations(config::getFullExtendPercent);
+            double maxOffset = config.inchesToRotations(config.getSkewBaselineMaxInches());
             double offset = leftPos - rightPos;
             // Only a reading with both sides at the stop and a small difference is a zero offset.
             // Anything else is a side that has been pushed or has slipped, and must not become the
@@ -933,7 +915,7 @@ public class IntakeExtension implements Subsystem {
     }
 
     /** Begins a pull-in phase: resets the loaded detector and the half-period timer. */
-    private void startAgitatePull(double now, double position) {
+    private void startAgitatePull(double position) {
         agitatePullStartRotations = position;
         agitateOut = false;
         agitateFullRetract = false;

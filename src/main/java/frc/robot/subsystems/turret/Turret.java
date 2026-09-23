@@ -36,7 +36,6 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.DoubleSupplier;
 import lombok.*;
 
 public class Turret extends Mechanism {
@@ -98,33 +97,28 @@ public class Turret extends Mechanism {
         @Getter private final double mmJerk = 0;
         @Getter private final double peakVoltage = 6;
 
-        @Getter private final double reverseLimitDegrees = -0.5 * 360;
-        @Getter private final double forwardLimitDegrees = 0.45 * 360;
-
         @Getter private final double sensorToMechanismRatio = 39.78;
 
         /* Sim Configs */
         @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
 
         @Getter private final double turretY = Units.inchesToMeters(75); // Horizontal Center
-        @Getter private final double simRatio = sensorToMechanismRatio;
         @Getter private final double length = 1;
 
         /** Creates a new TurretConfig instance. */
         public TurretConfig() {
-            super("Turret", 14, Rio.CANIVORE); // Rio.CANIVORE);
+            super("Turret", 14, Rio.CANIVORE);
             configPIDGains(0, positionKp, positionKi, 0);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configForwardVoltageLimit(peakVoltage);
             configReverseVoltageLimit(-peakVoltage);
             configGearRatio(sensorToMechanismRatio);
-            configSupplyCurrentLimit(currentLimit, true);
-            configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
-            configLowerSupplyCurrentTime(supplyCurrentLowerTime);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configCurrentLimits(
+                    currentLimit,
+                    torqueCurrentLimit,
+                    supplyCurrentLowerLimit,
+                    supplyCurrentLowerTime);
             configMinMaxRotations(-0.6, 0.5);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
@@ -260,12 +254,8 @@ public class Turret extends Mechanism {
             shakeTimer.restart();
         }
 
-        unwrapping = false;
-        mechOmegaRotPerSec = 0;
-        commandedDegrees =
-                shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG);
-        final double target = commandedDegrees;
-        commandPosition(() -> degreesToRotations(() -> target));
+        holdDegrees(
+                shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG));
     }
 
     // ---- Test-mode pit checks ----
@@ -278,9 +268,9 @@ public class Turret extends Mechanism {
     //
     // None of them touches the robot pose or ShotCalculator, so they are usable on a cart.
     //
-    // Both moving checks drive the motor through commandPosition -- PositionVoltage, gain slot 0,
+    // Both moving checks drive the motor through holdDegrees -- PositionVoltage, gain slot 0,
     // the same request AIM_AT_TARGET uses (with a zero velocity feedforward, there being no target
-    // velocity to feed). NOT Motion Magic. Both were written with commandMMPosition first and the
+    // velocity to feed). NOT Motion Magic. Both were written with setMMPosition first and the
     // difference is not subtle: on FRC_20260919_180624, 163.2 to 177.0 s, the follow check pinned
     // at 89.7 deg/s -- exactly the 0.25 rot/s mmCruiseVelocity -- and never asked for more than
     // 2.51 V of its 6 V ceiling, while AIM_AT_TARGET in the P8 match log runs p90 135 deg/s, p99
@@ -333,9 +323,6 @@ public class Turret extends Mechanism {
      * walking a tag out of frame parks it where it was instead of sending it across its travel.
      */
     private void applyTestFollowTag() {
-        unwrapping = false;
-        mechOmegaRotPerSec = 0;
-
         // Entering the state, take over from wherever the turret already is.
         if (previousSystemState != SystemState.TEST_FOLLOW_TAG) {
             commandedDegrees =
@@ -358,8 +345,7 @@ public class Turret extends Mechanism {
         }
         Telemetry.log("Turret/Test/FollowTagInView", tagInView);
 
-        final double target = commandedDegrees;
-        commandPosition(() -> degreesToRotations(() -> target));
+        holdDegrees(commandedDegrees);
     }
 
     /**
@@ -429,13 +415,8 @@ public class Turret extends Mechanism {
             target = sweepingTowardMax ? maxDeg : minDeg;
         }
 
-        unwrapping = false;
-        mechOmegaRotPerSec = 0;
-        commandedDegrees = target;
         Telemetry.log("Turret/Test/SweepTowardMax", sweepingTowardMax);
-
-        final double commanded = target;
-        commandPosition(() -> degreesToRotations(() -> commanded));
+        holdDegrees(target);
     }
 
     // Whether the turret is unwrapping to avoid wire wrap.
@@ -538,22 +519,15 @@ public class Turret extends Mechanism {
                 // should exercise the exact output path the robot uses to sit at zero in a match,
                 // not a second one that could behave differently.
             case TEST_ZERO:
-                unwrapping = false;
-                commandedDegrees = 0;
-                mechOmegaRotPerSec = 0;
-                commandPosition(() -> degreesToRotations(() -> 0.0));
+                holdDegrees(0);
                 return;
             case FIXED_ANGLE:
                 // Same output path as IDLE, at the set shot's angle instead of zero. A half turn
                 // from wherever the turret was aiming runs under PositionVoltage like IDLE's own
                 // up-to-216 deg return to zero; the soft limits, current limit and stall cut-out
                 // are the guard, as they are there.
-                unwrapping = false;
-                mechOmegaRotPerSec = 0;
-                commandedDegrees =
-                        MathUtil.clamp(fixedAngleDegrees, minLimitDegrees(), maxLimitDegrees());
-                final double fixedTarget = commandedDegrees;
-                commandPosition(() -> degreesToRotations(() -> fixedTarget));
+                holdDegrees(
+                        MathUtil.clamp(fixedAngleDegrees, minLimitDegrees(), maxLimitDegrees()));
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget(0.0);
@@ -1297,44 +1271,20 @@ public class Turret extends Mechanism {
     }
 
     /**
-     * Commands a position unless the stall latch is holding the turret out.
+     * Holds the turret at an angle with a plain position request: no unwrap, no velocity
+     * feedforward. Stops instead while the stall latch is holding the turret out.
      *
-     * @param rotations the mechanism position to hold, in rotations
+     * @param degrees the mechanism angle to hold
      */
-    private void commandPosition(DoubleSupplier rotations) {
+    private void holdDegrees(double degrees) {
+        unwrapping = false;
+        mechOmegaRotPerSec = 0;
+        commandedDegrees = degrees;
         if (!outputAllowed()) {
             stop();
             return;
         }
-        setPosition(rotations);
-    }
-
-    /**
-     * Commands a Motion Magic position unless the stall latch is holding the turret out.
-     *
-     * @param rotations the mechanism position to slew to, in rotations
-     */
-    private void commandMMPosition(DoubleSupplier rotations) {
-        if (!outputAllowed()) {
-            stop();
-            return;
-        }
-        setMMPosition(rotations);
-    }
-
-    /**
-     * Commands a position with a velocity feedforward unless the stall latch is holding the turret
-     * out.
-     *
-     * @param rotations the mechanism position to hold, in rotations
-     * @param velocityRPS the feedforward velocity, in rotations per second
-     */
-    private void commandPositionWithVelocity(DoubleSupplier rotations, DoubleSupplier velocityRPS) {
-        if (!outputAllowed()) {
-            stop();
-            return;
-        }
-        setPositionWithVelocity(rotations, velocityRPS);
+        setPosition(() -> degreesToRotations(() -> degrees));
     }
 
     /** Applies the aim at target. */
@@ -1357,11 +1307,16 @@ public class Turret extends Mechanism {
         double robotOmegaRotPerSec = robotSpeeds.omegaRadiansPerSecond / (2.0 * Math.PI);
         mechOmegaRotPerSec = params.turretAngularVelocity() - robotOmegaRotPerSec;
 
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+
         if (unwrapping) {
             // Motion magic for smooth full-turn slew to the opposite winding, so the cable never
             // binds
             final double unwrapRot = degreesToRotations(() -> commandedDegrees);
-            commandMMPosition(() -> unwrapRot);
+            setMMPosition(() -> unwrapRot);
             return;
         }
 
@@ -1377,7 +1332,7 @@ public class Turret extends Mechanism {
 
         final double posRot = degreesToRotations(() -> predictedDegrees);
         final double ffRps = mechOmegaRotPerSec;
-        commandPositionWithVelocity(() -> posRot, () -> ffRps);
+        setPositionWithVelocity(() -> posRot, () -> ffRps);
     }
 
     /**
@@ -1503,7 +1458,7 @@ public class Turret extends Mechanism {
                     new ArmConfig(
                                     config.turretX,
                                     config.turretY,
-                                    config.simRatio,
+                                    config.sensorToMechanismRatio,
                                     config.length,
                                     -360,
                                     360,

@@ -18,7 +18,6 @@ public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        // tune
         @Getter private final double idlingRPM = 700;
 
         /* Launcher config values */
@@ -56,11 +55,11 @@ public class Launcher extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(gearRatio);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(timeUntilLowerCurrent);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    timeUntilLowerCurrent);
             configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
             configForwardVoltageLimit(nominalVoltage);
@@ -148,8 +147,7 @@ public class Launcher extends Mechanism {
                 break;
         }
         commandedRPM = wantedRPM;
-        final double finalWantedRPM = wantedRPM;
-        setVelocityRPM(() -> finalWantedRPM);
+        setVelocityRPM(() -> commandedRPM);
     }
 
     /**
@@ -209,7 +207,7 @@ public class Launcher extends Mechanism {
 
     // --------------------------------------------------------------------------------
     // Simulation
-    // // --------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------
     /** Simulation init. */
     public void simulationInit() {
         if (isAttached()) {
