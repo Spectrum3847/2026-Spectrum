@@ -120,6 +120,7 @@ public class Robot extends SpectrumRobot {
     @Getter private static LauncherTower launcherTower;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
+    // @Getter private static Leds leds;
     @Getter private static Auton auton;
 
     @Getter private static SuperStructure superStructure;
@@ -212,6 +213,7 @@ public class Robot extends SpectrumRobot {
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
+            // leds = new Leds();
 
             if (RobotBase.isSimulation()) {
                 robotSim = new RobotSim(superStructure);
