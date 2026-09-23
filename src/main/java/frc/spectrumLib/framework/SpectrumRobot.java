@@ -2,16 +2,16 @@ package frc.spectrumLib.framework;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.IterativeRobotBase;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Watchdog;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.lang.reflect.Field;
+import org.littletonrobotics.junction.LoggedRobot;
 
 /**
- * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and configures joystick
- * connection warning silencing and extends the loop overrun watchdog timeout to 200 ms.
+ * The base robot class for Spectrum robots. Extends AdvantageKit's LoggedRobot and configures
+ * joystick connection warning silencing and extends the loop overrun watchdog timeout to 200 ms.
  */
-public class SpectrumRobot extends TimedRobot {
+public class SpectrumRobot extends LoggedRobot {
 
     /**
      * Constructs a SpectrumRobot, silencing joystick connection warnings and extending the loop
