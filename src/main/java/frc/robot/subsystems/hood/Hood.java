@@ -217,8 +217,10 @@ public class Hood extends Mechanism {
                                     config.length,
                                     180 - config.getMaxRotations() * 360,
                                     180 - config.getMinRotations() * 360,
-                                    180 - 9)
-                            .setSimulatedGravity(false),
+                                    180 - config.getMinRotations() * 360)
+                            .setSimulatedGravity(false)
+                            // The drawn angle falls as the hood raises.
+                            .setReversedLinkage(true),
                     mech,
                     motor,
                     config.getName());

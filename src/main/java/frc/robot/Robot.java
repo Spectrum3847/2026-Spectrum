@@ -991,6 +991,8 @@ public class Robot extends SpectrumRobot {
         if (Utils.isSimulation()) {
             robotSim.getBallSim().clearBalls();
             robotSim.getBallSim().placeFieldBalls();
+            // Empties the sim hopper; also zeroes the launched/scored totals and hub scores.
+            robotSim.getBallSim().resetCounters();
         }
 
         try {

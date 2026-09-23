@@ -116,7 +116,8 @@ public class DyeRotor implements Subsystem {
                 super(
                         new RollerConfig(config.getRotorDiameter())
                                 .setPosition(config.getRotorX(), config.getRotorY())
-                                .setGearRatio(config.getGearRatio()),
+                                .setGearRatio(config.getGearRatio())
+                                .setReversedLinkage(true),
                         mech,
                         motor,
                         config.getName());
