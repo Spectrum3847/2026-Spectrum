@@ -41,7 +41,11 @@ public enum Rio {
 
     static {
         for (Rio i : Rio.values()) {
-            IDs.put(i.serialNumber, i);
+            // A blank serial is a placeholder for a rio not recorded yet (FM_2026, OM_2026). Only
+            // SIM owns "": otherwise whichever blank entry came last would claim the simulator.
+            if (i.serialNumber != null && (i == SIM || !i.serialNumber.isEmpty())) {
+                IDs.put(i.serialNumber, i);
+            }
         }
     }
 

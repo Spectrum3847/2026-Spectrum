@@ -717,8 +717,7 @@ public class SuperStructure {
      *     reversed with the kicker kept forward for the kicker unjam
      */
     private void unjam(FuelIntake.WantedState intakeState) {
-        swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
-        swerve.setTeleopVelocityCoefficient(REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+        teleopDrive(false);
         fuelIntake.setWantedState(intakeState);
         dyeRotor.setWantedState(DyeRotor.WantedState.UNJAM);
         intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);

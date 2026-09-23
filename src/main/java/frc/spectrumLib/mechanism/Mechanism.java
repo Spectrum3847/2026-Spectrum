@@ -1442,8 +1442,9 @@ public abstract class Mechanism implements Subsystem {
     protected void setPercentOutput(DoubleSupplier percent) {
         if (isAttached()) {
             VoltageOut output =
-                    config.voltageControl.withOutput(
-                            config.voltageCompSaturation * percent.getAsDouble());
+                    config.voltageControl
+                            .withOutput(config.voltageCompSaturation * percent.getAsDouble())
+                            .withIgnoreSoftwareLimits(false);
             motor.setControl(output);
         }
     }
@@ -1456,7 +1457,10 @@ public abstract class Mechanism implements Subsystem {
      */
     protected void setVoltageOutput(DoubleSupplier voltage) {
         if (isAttached()) {
-            VoltageOut output = config.voltageControl.withOutput(voltage.getAsDouble());
+            VoltageOut output =
+                    config.voltageControl
+                            .withOutput(voltage.getAsDouble())
+                            .withIgnoreSoftwareLimits(false);
             motor.setControl(output);
         }
     }
@@ -2104,6 +2108,7 @@ public abstract class Mechanism implements Subsystem {
         public void configMotionMagicPosition(double feedforward) {
             mmPositionFOC = mmPositionFOC.withFeedForward(feedforward);
             mmPositionVoltage = mmPositionVoltage.withFeedForward(feedforward);
+            mmPositionVoltageSlot = mmPositionVoltageSlot.withFeedForward(feedforward);
         }
 
         /**

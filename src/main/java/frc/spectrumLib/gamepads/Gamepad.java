@@ -119,10 +119,10 @@ public abstract class Gamepad implements Subsystem {
     public Trigger noBumpers = kFalse;
 
     /** Active when only the left bumper is pressed. */
-    public Trigger leftBumperOnly;
+    public Trigger leftBumperOnly = kFalse;
 
     /** Active when only the right bumper is pressed. */
-    public Trigger rightBumperOnly;
+    public Trigger rightBumperOnly = kFalse;
 
     /** Active when both bumpers are pressed simultaneously. */
     public Trigger bothBumpers = kFalse;
@@ -131,10 +131,10 @@ public abstract class Gamepad implements Subsystem {
     public Trigger noTriggers = kFalse;
 
     /** Active when only the left trigger is pressed. */
-    public Trigger leftTriggerOnly;
+    public Trigger leftTriggerOnly = kFalse;
 
     /** Active when only the right trigger is pressed. */
-    public Trigger rightTriggerOnly;
+    public Trigger rightTriggerOnly = kFalse;
 
     /** Active when both analog triggers are pressed simultaneously. */
     public Trigger bothTriggers = kFalse;
