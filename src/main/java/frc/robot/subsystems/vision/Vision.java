@@ -1791,7 +1791,7 @@ public class Vision implements Subsystem {
                                 >= config.getConsensusHeadingCooldownSeconds();
 
         consensusHeadingArming = agreeing;
-        if (!agreeing) {
+        if (!agreeing || mt1Pose == null) {
             consensusHeadingStartSeconds = Double.NaN;
             return false;
         }

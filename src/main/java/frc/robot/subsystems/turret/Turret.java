@@ -343,10 +343,9 @@ public class Turret extends Mechanism {
         }
 
         Vision vision = Robot.getVision();
-        boolean tagInView = vision != null && vision.isTurretTagInView();
-        Telemetry.log("Turret/Test/FollowTagInView", tagInView);
-
-        if (tagInView) {
+        boolean tagInView = false;
+        if (vision != null && vision.isTurretTagInView()) {
+            tagInView = true;
             // Limelight tx is positive with the tag right of the crosshair; the turret is
             // counter-clockwise-positive, so closing that bearing means going negative.
             double txDegrees = vision.getTurretTagBearingDegrees();
@@ -357,6 +356,7 @@ public class Turret extends Mechanism {
                             minLimitDegrees(),
                             maxLimitDegrees());
         }
+        Telemetry.log("Turret/Test/FollowTagInView", tagInView);
 
         final double target = commandedDegrees;
         commandPosition(() -> degreesToRotations(() -> target));
