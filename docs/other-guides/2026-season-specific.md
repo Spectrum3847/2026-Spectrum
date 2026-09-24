@@ -82,6 +82,50 @@ limits are in the wrong frame, and every shot leaves by the same error. Re-zero 
 Both guards came out of the 2026-09-19 pit log, where the reported angle stepped 289 deg in one loop
 and the turret then held 80 A stator against a hard stop for 6.8 s.
 
+### Turret long moves: unwrap and set shots
+
+The turret has 381 deg of travel, so for a 21 deg band of target angles two windings are reachable.
+`resolveTurretAngle` picks the nearest one, and when the nearest is within 10 deg of a soft limit it
+commits to the other winding (`unwrapping = true`) and slews a full turn under Motion Magic. Tracking
+itself (`AIM_AT_TARGET`, `AIM_SWEEP`) is unprofiled `PositionVoltage`, so the Motion Magic numbers
+(`mmCruiseVelocity` 1 rot/s, `mmAcceleration` 2 rot/s2) only ever apply to these long moves; the
+knobs for how hard the turret accelerates while aiming are the 80 A stator limit and the 6 V ceiling.
+
+Two things changed on 2026-09-19 after Chezy Q36, where the belt is believed to have slipped:
+
+* **The unwrap latch only clears on arrival** (within `unwrapExitMargin`, 45 deg). It used to also
+  clear the moment only one winding was reachable, which a moving target does within a few loops of
+  the unwrap starting, and the rest of the turn then ran unprofiled: 21 of the 26 full-turn flips in
+  Q36 went 650 to 700 deg/s into the far stop at 70 to 98 A stator (460 to 500 deg/s at 6 V in Q24).
+* **Set shots resolve their winding and profile the long way.** `FIXED_ANGLE` used to command the
+  raw -180 under `PositionVoltage`, which from +138 deg is 318 deg the long way instead of 42. It now
+  goes through `resolveTurretAngle`, and a move over `longMoveDegrees` (90) is latched as an unwrap:
+  Motion Magic, `Turret/ReadyToShoot` false until it arrives. Short moves keep `PositionVoltage`.
+
+The peak voltage went 6 to 8 V for Q36 only and is back at 6. Full-turn flips are visible in a log
+as a `Turret/CommandedDegrees` step of about 340 deg; `Turret/Unwrapping` should now stay true for
+the whole of one.
+
+### Shot map: the near-shot RPM drop
+
+Practice-field shooting on the evening of 2026-09-19, at the fitted 365 RPM per m/s, had every hub
+shot from about tower radius (3.2 m) inward landing long and the far shots landing. Taking 1.5 deg
+of hood out fixed the near shots and dropped the far ones short: the model's hood is worth about
+0.2 m per degree at 2 m and 0.4 m per degree at 3.5 m, so a flat hood trim can never fix one end
+of the range without breaking the other. The team's choice is to leave the hood alone and take the
+range out of the near shots with exit speed, which also keeps the near shot lower.
+
+`ShotCalculator.nearShotRpmDrop` takes RPM off the hub-shot flywheel command by distance: a fixed
+shape (`NEAR_SHOT_DROP_SHAPE`, 1.0 at 3.0 m and inside, zero from 3.75 m out, rising to 1.7 at
+1.5 m because speed is a weak knob at an 84 deg launch) times one size, `ShotCalc/NearShotRpmDrop`
+on the dashboard, 150 RPM at boot and clamped 0 to 400. It applies to tracked hub shots (at the
+converged lookahead distance) and to set shots (at their fixed range), not to feed shots. The size
+is a best guess converted from that 1.5 deg of hood and is expected to move by 50 to 100 RPM; zero
+disables it. `ShotCalc/NearShotRpmDropApplied` logs the RPM actually removed on every launch loop.
+
+The 390 RPM per m/s coupling drafted after Chezy Q45 was dropped without being deployed: it adds
+range at every distance, most far out, which was the wrong shape for this problem.
+
 ### Dye rotor: feed auto-unjam
 
 [`DyeRotor.java`](../../src/main/java/frc/robot/subsystems/dyeRotor/DyeRotor.java) reverses itself
@@ -173,6 +217,13 @@ The pilot drives and runs the fuel cycle; the operator handles offset trims and 
 * `LT + LB`: `EJECT`; release → `IDLE`.
 * `Select`: `FORCE_HOME`; release → `IDLE`.
 * `LB + Dpad` (up/left/down/right), reorient the robot heading forward/left/back/right.
+* `LB + A` / `LB + Y` / `LB + X` / `LB + B` (hold), `SET_SHOT` from the tower / hub face / left
+  trench / right trench. Fixed shots for when the pose is gone: no pose is read, the turret goes to
+  the spot's angle, and the hood and flywheel come off the live shot map (hub model, near-shot RPM
+  drop, hood trim) at the spot's range, so they move with the map instead of being retyped. Park
+  with the **intake away from the hub** for the tower and both trenches (turret at zero, no half
+  turn to wait for) and **intake against the hub** for the hub face (turret at -180). Ranges and
+  the reference hood/RPM at each spot are in `ShotCalculator.SetShot`. Release → `IDLE`.
 * While disabled: `A` → coast the intake extension and turret. (`brakeB` is declared in `Pilot.java` but bound to nothing, so `B` does nothing here.)
 
 ### Pilot, test mode (turret pit checks)
@@ -187,7 +238,7 @@ Release any of them and the robot goes to `TEST_TURRET_STOP` — the turret stop
 
 Test mode is not a reduced mode: `robotPeriodic()` runs in every mode, so Vision, `SuperStructure`, the `CommandScheduler` and every subsystem `periodic()` — and with them all the DogLog keys — behave exactly as in teleop. Current limits, soft limits and the stall cut-out come from the motor config applied at construction and are never changed per mode. The one thing that would break that is WPILib enabling LiveWindow in test, which disables the `CommandScheduler`; it defaults off and nothing calls `enableLiveWindowInTest(true)`. Leave it that way.
 
-Both moving checks drive the motor the same way `AIM_AT_TARGET` does — `commandPosition`, i.e. `PositionVoltage` in gain slot 0 at the ±6 V ceiling — not Motion Magic. That is deliberate and it was measured: both were written on Motion Magic first, and on `FRC_20260919_180624` (163.2–177.0 s) the follow check sat pinned at 89.7 °/s, exactly the 0.25 rot/s `mmCruiseVelocity`, drawing no more than 2.51 V of its 6 V, while `AIM_AT_TARGET` in the P8 match log runs p90 135 °/s, p99 385 °/s and uses the full 6.11 V. The profile was discarding more than half the authority the mechanism had. The one cost is that the sweep now crosses the travel at teleop speed and reaches its turnaround quickly; teleop's own full-travel move (the cable unwrap) is profiled precisely because that move is not a tracking move.
+Both moving checks drive the motor the same way `AIM_AT_TARGET` does — `commandPosition`, i.e. `PositionVoltage` in gain slot 0 at the ±6 V ceiling — not Motion Magic. That is deliberate and it was measured: both were written on Motion Magic first, and on `FRC_20260919_180624` (163.2–177.0 s) the follow check sat pinned at 89.7 °/s, exactly the then 0.25 rot/s `mmCruiseVelocity` (1 rot/s since 2026-09-19), drawing no more than 2.51 V of its 6 V, while `AIM_AT_TARGET` in the P8 match log runs p90 135 °/s, p99 385 °/s and uses the full 6.11 V. The profile was discarding more than half the authority the mechanism had. The one cost is that the sweep now crosses the travel at teleop speed and reaches its turnaround quickly; teleop's own full-travel move (the cable unwrap) is profiled precisely because that move is not a tracking move.
 
 Note that the bare `A`, `B`, `X`, `Select` and trigger bindings have no mode gate, so they are also live in test mode. The test checks are on the D-pad precisely because nothing else claims it.
 
@@ -197,7 +248,8 @@ New log keys: `Turret/Test/FollowTagInView`, `Turret/Test/FollowTagTxDeg`, `Turr
 
 * `Dpad Down/Up`: range trim (via `ShotCalculator`): each press moves the hood 0.25° and the
   flywheel 2 % of model RPM together; up adds range (the shot fell short), down takes it away
-  (the shot went long). Hood and flywheel trims persist on the rio across power cycles.
+  (the shot went long). The hood trim persists on the rio across power cycles. The flywheel trim
+  is gone (Chezy Q11 only); a near-long, far-fine bias is the near-shot RPM drop's job, above.
 * `Dpad Right/Left`: turret-angle offset trim (+/−1°, via `ShotCalculator`). Session-only since
   2026-09-19: it starts at zero every boot and is never stored.
 * `Start + Select`: zero all three trims, including the stored copies.

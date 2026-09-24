@@ -424,7 +424,7 @@ public class DyeRotor implements Subsystem {
                 feeder.stop();
                 return;
             case INDEX_MAX:
-                wantedRPMSpin = 100;
+                wantedRPMSpin = 120; // Set to 120 for higher feed rate, 100 was previous
                 wantedRPMIndex = indexMaxFeederRPM.get();
                 break;
             case IDLE_SLOW_INDEX:

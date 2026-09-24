@@ -47,13 +47,20 @@ public class Turret extends Mechanism {
 
         @Getter private final double unwrapTolerance = 10;
         @Getter private final double unwrapExitMargin = 45;
+
+        /**
+         * A set-shot move longer than this, in degrees, is latched as an unwrap and runs under
+         * Motion Magic instead of PositionVoltage. See {@link #applyFixedAngle()}.
+         */
+        @Getter private final double longMoveDegrees = 160;
+
         @Getter private final double shootOnMoveLatencySec = 0.03;
 
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
         /* Turret config settings */
         @Getter private final double currentLimit = 80;
-        @Getter private final double supplyCurrentLowerLimit = 40;
+        @Getter private final double supplyCurrentLowerLimit = 80;
         @Getter private final double supplyCurrentLowerTime = 1.0;
         /**
          * Stator and torque-current ceiling, in amps.
@@ -92,9 +99,41 @@ public class Turret extends Mechanism {
         @Getter private final double positionKs = 0.6;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
-        @Getter private final double mmCruiseVelocity = 0.25;
-        @Getter private final double mmAcceleration = 0.5;
+        /**
+         * Motion Magic profile, in mechanism rot/s and rot/s2. Only the long moves use it: the
+         * cable unwrap, and a set shot more than {@link #longMoveDegrees} away. Tracking runs
+         * unprofiled PositionVoltage and never sees these numbers, so they are not the knob for how
+         * hard the turret accelerates while aiming; that is {@link #torqueCurrentLimit} and {@link
+         * #peakVoltage}.
+         *
+         * <p>Raised from 0.25 / 0.5 on 2026-09-19 after Chezy Q36. At 0.25 rot/s a full-turn unwrap
+         * took 3.8 s, and the latch that kept it profiled was being dropped within a few loops (see
+         * resolveTurretAngle), so the rest of the move ran unprofiled at 650 deg/s. At 1 rot/s with
+         * 2 rot/s2 the same turn takes about 1.5 s, and the deceleration into the far end is 720
+         * deg/s2 against the 15000 deg/s2 p99 the belt saw in Q36. Kv is 10 V per rot/s, so the
+         * feedforward alone saturates the 6 V ceiling at cruise; the mechanism needs about 5 V for
+         * 1 rot/s and Kp pulls the rest back, so the profile should hold, but the first unwrap
+         * after this change is worth a look at {@code Turret/Voltage} and {@code
+         * Turret/VelocityRotPerSec}.
+         */
+        @Getter private final double mmCruiseVelocity = 1.0;
+
+        @Getter private final double mmAcceleration = 2.0;
         @Getter private final double mmJerk = 0;
+        /**
+         * Voltage ceiling, applied as +/- through {@code configForwardVoltageLimit} and {@code
+         * configReverseVoltageLimit}.
+         *
+         * <p>Ran at 8 V for Chezy Q36 (2026-09-19) at the drive team's request and went back to 6
+         * the same night. The ceiling sets how fast an unprofiled PositionVoltage move sprints: the
+         * full-turn winding flips (see resolveTurretAngle) ran 460 to 500 deg/s at 6 V in Q24 and
+         * 650 to 700 deg/s at 8 V in Q36, so each turnaround against the 80 A limit dumped about
+         * twice the energy into the belt, and the belt is believed to have slipped. Acceleration
+         * itself is set by {@link #torqueCurrentLimit}, not by this, and was the same in both
+         * matches (p99 about 41 to 45 rot/s2). Q31 is the other side of the same trade: the turret
+         * stalled at 108.3 deg against the 80 A ceiling and was cut after 1.0 s, and more voltage
+         * would only have pushed harder into it.
+         */
         @Getter private final double peakVoltage = 6;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
@@ -363,10 +402,10 @@ public class Turret extends Mechanism {
     /**
      * How long one leg may take before the sweep turns around anyway.
      *
-     * <p>The full 396 deg of travel is about 4.4 s at the 0.25 rot/s Motion Magic cruise, so this
-     * is several times the honest worst case. It exists so a turret that meets an obstacle
-     * mid-sweep backs off instead of leaning on it: the check is meant to be run with people near
-     * the robot.
+     * <p>The full 381 deg of travel is about 1.5 s at the 1 rot/s Motion Magic cruise, and the
+     * sweep runs unprofiled and is faster still, so this is many times the honest worst case. It
+     * exists so a turret that meets an obstacle mid-sweep backs off instead of leaning on it: the
+     * check is meant to be run with people near the robot.
      */
     private static final double TEST_SWEEP_LEG_TIMEOUT_SECS = 20.0;
 
@@ -522,12 +561,7 @@ public class Turret extends Mechanism {
                 holdDegrees(0);
                 return;
             case FIXED_ANGLE:
-                // Same output path as IDLE, at the set shot's angle instead of zero. A half turn
-                // from wherever the turret was aiming runs under PositionVoltage like IDLE's own
-                // up-to-216 deg return to zero; the soft limits, current limit and stall cut-out
-                // are the guard, as they are there.
-                holdDegrees(
-                        MathUtil.clamp(fixedAngleDegrees, minLimitDegrees(), maxLimitDegrees()));
+                applyFixedAngle();
                 return;
             case AIM_AT_TARGET:
                 applyAimAtTarget(0.0);
@@ -578,21 +612,29 @@ public class Turret extends Mechanism {
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
-    /**
-     * Reported mechanism angle, in degrees, when the turret is parked at its true zero.
+    /*
+     * ZERO_REFERENCE_DEGREES is gone (2026-09-19). It held the reported mechanism angle with the
+     * turret parked at its true zero, so seedFromZeroReference() could undo Phoenix 6 initialising
+     * the position register from the rotor's absolute angle, and the correction was wrapped into
+     * one 9.05 deg rotor turn.
      *
-     * <p>Measured on PM_2026 on 2026-09-19: with the turret squared to its zero, the rotor's
-     * absolute position was 0.667480 rotations, which the device reports as 0.0166015625 mechanism
-     * rotations. This constant is what makes {@link #seedFromZeroReference()} able to recover the
-     * zero without anyone pointing the turret by hand.
+     * <p>Two things killed it. It went stale: pinned boots read 0.703 twice in the morning, then
+     * 0.176, then 4.658 on the Chezy Q31 boot (the match with a 110.9 A turret stall), then 2.461
+     * and 2.373 in the evening. A constant that assumes a fixed rotor-to-turret relationship is
+     * meaningless once that relationship steps. And the wrap made a near-miss dangerous: a seed
+     * landing within a degree of the 4.52 deg half-turn was a coin flip between right and 9.05 deg
+     * wrong, silently.
      *
-     * <p>It is a property of where the motor sits on the belt, so it survives power cycles and code
-     * deploys but <b>not</b> a skipped belt tooth, a re-tensioned belt, or a motor swap. If shots
-     * start leaving by a constant angle after any of those, this number is the first thing to
-     * re-measure: park the turret at zero, read {@code Position} off the Talon in Tuner X, and put
-     * that here.
+     * <p>The turret is pinned at zero for every power cycle, so the honest statement of that is
+     * setPosition(0): no constant to go stale, no rotor-turn ambiguity. The cost is that the
+     * assumption is now unbounded -- an unpinned power cycle declares wherever it sits to be zero,
+     * where the old code was at least wrong by no more than half a rotor turn. pinnedAssumptionAlert
+     * puts that in front of the pit crew on every seeded boot.
+     *
+     * <p>Backlash sets the floor either way: rocking the pinned turret by hand on 2026-09-19 swept
+     * 1.41 deg (1.32 to 2.72) with the motor unpowered, so the zero is never better than +/-0.7 deg
+     * however it is established.
      */
-    private static final double ZERO_REFERENCE_DEGREES = 5.9765625;
 
     /** How long to wait at boot for the first position frame off the CAN bus. */
     private static final double BOOT_SIGNAL_TIMEOUT_SECONDS = 0.25;
@@ -610,12 +652,15 @@ public class Turret extends Mechanism {
      * wherever the rotor magnet happened to stop, and never at 0. That is the whole reason shots
      * used to leave by a constant angle that changed between runs.
      *
-     * <p>The rotor's absolute position is repeatable for a given turret angle, so {@link
-     * #ZERO_REFERENCE_DEGREES} is all that is needed to undo it: subtract it, and what the turret
-     * reads at its parked zero becomes 0. The correction is only unique within one rotor turn, so
-     * the difference is wrapped into +/- 4.5 deg -- park the turret within half a rotor turn of
-     * zero before a power cycle and it lands right, park it further out and it snaps to the wrong
-     * turn.
+     * <p>The turret is pinned at its zero for every power cycle, so the answer is simply to write
+     * 0: whatever the rotor absolute happened to be, the turret is at zero, and that is the frame
+     * everything downstream wants. This replaced a measured reference constant that was subtracted
+     * and wrapped into one rotor turn -- see the note above the boot-zero section for why that went
+     * stale and why the wrap was dangerous.
+     *
+     * <p>The assumption is load-bearing and unbounded: if the turret was <b>not</b> pinned, this
+     * declares wherever it sat to be zero, and every aim and both soft limits inherit that error.
+     * {@link #pinnedAssumptionAlert} says so on every seeded boot.
      *
      * <p>It must therefore run only after a real power cycle. A code restart or a roboRIO reboot
      * leaves the Talon's count intact and correct, and re-seeding then would throw a good zero away
@@ -651,36 +696,25 @@ public class Turret extends Mechanism {
             return;
         }
 
-        double corrected = bootPositionDegrees - ZERO_REFERENCE_DEGREES;
-        corrected -= rotorTurnDegrees * Math.round(corrected / rotorTurnDegrees);
-        final double seeded = corrected;
-
-        motor.setPosition(degreesToRotations(() -> seeded));
+        motor.setPosition(degreesToRotations(() -> 0.0));
         // The file now describes a frame that no longer exists; rewrite it on the first loop.
         lastPersistedRawDegrees = Double.NaN;
         Telemetry.print(
                 String.format(
-                        "Turret zero seeded (%s): came up reading %.3f deg, zero reference is %.3f"
-                                + " deg, so it is now %.3f deg. Re-zero with operator B if the"
-                                + " turret was not parked within %.1f deg of zero.",
-                        bootDecision,
-                        bootPositionDegrees,
-                        ZERO_REFERENCE_DEGREES,
-                        seeded,
-                        rotorTurnDegrees / 2),
+                        "Turret zeroed at boot (%s): came up reading %.3f deg, now 0.000 deg. This"
+                                + " assumes the turret was pinned at its zero. If it was not, every"
+                                + " aim and both soft limits are wrong by however far it sat:"
+                                + " re-zero with operator B.",
+                        bootDecision, bootPositionDegrees),
                 PrintPriority.HIGH);
 
-        double edgeDistance = rotorTurnDegrees / 2 - Math.abs(seeded);
-        if (edgeDistance <= WRAP_EDGE_MARGIN_DEG) {
-            wrapEdgeAlert.setText(
-                    String.format(
-                            "Turret booted %.1f deg from zero, only %.1f deg from the rotor-turn"
-                                    + " wrap. If it was really parked on the other side it is now"
-                                    + " %.1f deg wrong: check the zero mark and re-zero with"
-                                    + " operator B if needed.",
-                            seeded, edgeDistance, rotorTurnDegrees));
-            wrapEdgeAlert.set(true);
-        }
+        pinnedAssumptionAlert.setText(
+                String.format(
+                        "Turret zeroed at boot from a reading of %.2f deg. The zero is only right"
+                                + " if the turret was pinned: check the pin was in before this"
+                                + " power cycle, and re-zero with operator B if it was not.",
+                        bootPositionDegrees));
+        pinnedAssumptionAlert.set(true);
     }
 
     // -- Boot zero: power cycle or code restart? -----------------------------------------------
@@ -703,9 +737,6 @@ public class Turret extends Mechanism {
      */
     private static final double POSITION_FILE_MATCH_DEG = 0.25;
 
-    /** How close to the wrap edge a seeded reading may land before it is called a coin flip. */
-    private static final double WRAP_EDGE_MARGIN_DEG = 1.0;
-
     private double lastPersistedRawDegrees = Double.NaN;
     private boolean persistWasEnabled = false;
 
@@ -714,7 +745,7 @@ public class Turret extends Mechanism {
     /** What {@link #seedFromZeroReference} decided and why, for the log. */
     @Getter private String bootDecision = "not attached";
 
-    private final Alert wrapEdgeAlert = new Alert("", AlertType.kWarning);
+    private final Alert pinnedAssumptionAlert = new Alert("", AlertType.kWarning);
 
     private final ExecutorService positionWriter =
             Executors.newSingleThreadExecutor(
@@ -873,7 +904,7 @@ public class Turret extends Mechanism {
                                 // so a code restart does not mistake the new zero for a power
                                 // cycle.
                                 lastPersistedRawDegrees = Double.NaN;
-                                wrapEdgeAlert.set(false);
+                                pinnedAssumptionAlert.set(false);
                             }
                         })
                 .ignoringDisable(true)
@@ -1288,6 +1319,44 @@ public class Turret extends Mechanism {
     }
 
     /** Applies the aim at target. */
+    /**
+     * Holds the set shot's angle, taking the short way round and profiling the long way.
+     *
+     * <p>Until 2026-09-19 this clamped {@code fixedAngleDegrees} and commanded it raw under
+     * PositionVoltage. The set shots ask for -180, and from +138 deg that is 318 deg the long way
+     * instead of 42 the short way: Chezy Q36 (FRC_20260919_232619) has eight such sprints, 640 to
+     * 660 deg/s at 8 V and up to 97 A, and at 438.2 s the button toggled twice in 0.2 s and
+     * reversed the turret mid-sprint. Q24 has the same at 6 V (321.1 s, 95 A).
+     *
+     * <p>Now the angle goes through {@link #resolveTurretAngle} like an aim does, so it lands on
+     * the nearest equivalent winding the travel allows, and a move longer than {@code
+     * longMoveDegrees} is latched as an unwrap: Motion Magic, with {@link #isReadyToShoot()} held
+     * false until the turret is within {@code unwrapExitMargin}, so no fuel feeds mid-slew. A short
+     * move keeps the PositionVoltage path, which is what a set shot wants once it is close. The
+     * latch is not cleared on entry any more, so it also survives a bounce back to AIM_AT_TARGET
+     * and the return leg is profiled too.
+     */
+    private void applyFixedAngle() {
+        mechOmegaRotPerSec = 0;
+        double resolved = resolveTurretAngle(fixedAngleDegrees);
+        if (!unwrapping
+                && Math.abs(getPositionDegrees() - resolved) > config.getLongMoveDegrees()) {
+            unwrapping = true;
+            unwrapTargetN = (int) Math.round((resolved - fixedAngleDegrees) / 360.0);
+        }
+        commandedDegrees = MathUtil.clamp(resolved, minLimitDegrees(), maxLimitDegrees());
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+        double rotations = degreesToRotations(() -> commandedDegrees);
+        if (unwrapping) {
+            setMMPosition(() -> rotations);
+        } else {
+            setPosition(() -> rotations);
+        }
+    }
+
     private void applyAimAtTarget(double offsetDeg) {
         var params = ShotCalculator.getInstance().getParameters();
 
@@ -1360,10 +1429,22 @@ public class Turret extends Mechanism {
 
         // While unwrapping, hold the committed winding until we physically arrive, so the direction
         // can't flip mid-slew as the current position crosses the halfway point.
+        //
+        // Arrival is the ONLY exit. Until 2026-09-19 this also cleared when nMin == nMax, on the
+        // reasoning that a target with one reachable winding needs no commitment. But the flag is
+        // also what selects Motion Magic over PositionVoltage in applyAimAtTarget, and with 381 deg
+        // of travel the two-winding band is only 21 deg wide, so a moving target leaves it within
+        // a few loops of the unwrap starting. On Chezy Q36 (FRC_20260919_232619, 374.46 s) the
+        // unwrap triggered at +168 deg, held for four loops, cleared at +180 with the target at
+        // -178, and the remaining 358 deg ran unprofiled at 8 V: 660 deg/s into the far stop at
+        // 73 A. That was the story at 21 of the 26 full-turn flips in the match, and it is the
+        // leading suspect for the belt slip. With nMin == nMax the clamp below already forces the
+        // only winding there is; what the latch adds is that the move stays profiled until it is
+        // within unwrapExitMargin.
         if (unwrapping) {
             int nTarget = Math.max(nMin, Math.min(unwrapTargetN, nMax));
             chosen = desiredMechDegrees + nTarget * 360.0;
-            if (nMin == nMax || Math.abs(currentDeg - chosen) <= config.getUnwrapExitMargin()) {
+            if (Math.abs(currentDeg - chosen) <= config.getUnwrapExitMargin()) {
                 unwrapping = false;
             }
             return chosen;
