@@ -668,7 +668,7 @@ public abstract class Gamepad implements Subsystem {
      * @return right-trigger axis value
      */
     protected double getRightTriggerAxis() {
-        return axis(xboxController::getRightTriggerAxis);
+        return axis(() -> xboxController.getRightTriggerAxis());
     }
 
     /**
@@ -677,7 +677,7 @@ public abstract class Gamepad implements Subsystem {
      * @return left-trigger axis value
      */
     protected double getLeftTriggerAxis() {
-        return axis(xboxController::getLeftTriggerAxis);
+        return axis(() -> xboxController.getLeftTriggerAxis());
     }
 
     /**
@@ -696,7 +696,7 @@ public abstract class Gamepad implements Subsystem {
      * @return left X axis value in the range [-1, 1]
      */
     protected double getLeftX() {
-        return axis(xboxController::getLeftX);
+        return axis(() -> xboxController.getLeftX());
     }
 
     /**
@@ -705,7 +705,7 @@ public abstract class Gamepad implements Subsystem {
      * @return left Y axis value in the range [-1, 1] (negative = up on most gamepads)
      */
     protected double getLeftY() {
-        return axis(xboxController::getLeftY);
+        return axis(() -> xboxController.getLeftY());
     }
 
     /**
@@ -714,7 +714,7 @@ public abstract class Gamepad implements Subsystem {
      * @return right X axis value in the range [-1, 1]
      */
     protected double getRightX() {
-        return axis(xboxController::getRightX);
+        return axis(() -> xboxController.getRightX());
     }
 
     /**
@@ -723,10 +723,13 @@ public abstract class Gamepad implements Subsystem {
      * @return right Y axis value in the range [-1, 1] (negative = up on most gamepads)
      */
     protected double getRightY() {
-        return axis(xboxController::getRightY);
+        return axis(() -> xboxController.getRightY());
     }
 
-    /** Reads an axis, or returns {@code 0.0} when the controller is not connected. */
+    /**
+     * Reads an axis, or returns {@code 0.0} when the controller is not connected. Callers pass a
+     * lambda, not a method reference: {@code xboxController} is null when unattached.
+     */
     private double axis(DoubleSupplier raw) {
         return isConnected() ? raw.getAsDouble() : 0.0;
     }
