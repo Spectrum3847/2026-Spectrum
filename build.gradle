@@ -117,8 +117,6 @@ dependencies {
 
     implementation 'com.google.guava:guava:33.7.1-jre'
 
-    //errorprone "com.google.errorprone:error_prone_core:2.37.0"
-
     def akitJson = new groovy.json.JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
     annotationProcessor "org.littletonrobotics.akit:akit-autolog:$akitJson.version"
 }
@@ -188,7 +186,6 @@ javadoc {
         "https://pathplanner.dev/api/java",
         "https://javadoc.doglog.dev",
         "https://shenzhen-robotics-alliance.github.io/maple-sim/javadocs",
-        "https://javadocs.photonvision.org/release",
         "https://docs.oracle.com/en/java/javase/17/docs/api",
         "https://docs.advantagekit.org/javadoc/"
     ])

@@ -33,7 +33,7 @@ Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and clim
 
 ## Skills Policy
 
-`./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07.)
+`./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6, and AdvantageKit (`LoggedRobot` plus `Logger`, alongside DogLog; see `docs/dependencies/advantagekit.md`). So: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07; AdvantageKit added 2026-09-23.)
 - New skills must describe our real classes/topics, never generic donor code. Verify names against `src/main/java` and `docs/`.
 - To keep a skill from loading across all agents (opencode, Claude Code, etc.), rename its `SKILL.md` → `SKILL.md.disabled` instead of editing frontmatter. Leave the directory's other files in place.
 - **Log problems between matches**: run `.agents/skills/fast-log-triage/scripts/triage_wpilog.py <log>` first (pure Python, seconds, ranked suspects), then go deeper with `wpilog-decode` only on the top finding. (Added 2026-09-19; reader cross-checked against WPILib `DataLogReader`.)
