@@ -129,7 +129,7 @@ public class Auton {
 
     /** A routine step that launches between path segments, then idles. */
     public Command launch() {
-        return holdState(WantedSuperState.LAUNCH_WITH_SQUEEZE, LAUNCH_SECONDS)
+        return holdState(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE, LAUNCH_SECONDS)
                 .withName("Auton.launch");
     }
 
@@ -243,13 +243,18 @@ public class Auton {
                 PrintPriority.HIGH);
     }
 
+    /** Runs when the chooser has no match, e.g. a stale dashboard selection after a rename. */
+    private final Command noSelection = Commands.print("*** AUTON COMMAND IS NULL ***");
+
     /**
-     * Retrieves the autonomous command selected on the shuffleboard. Never null: the chooser has a
-     * default option.
+     * Retrieves the autonomous command selected on the shuffleboard. Never null: getSelected()
+     * returns null when the dashboard sends a name the chooser doesn't have, so that falls back to
+     * a print.
      *
      * @return the selected autonomous command
      */
     public Command getAutonomousCommand() {
-        return pathChooser.getSelected();
+        Command auton = pathChooser.getSelected();
+        return auton != null ? auton : noSelection;
     }
 }

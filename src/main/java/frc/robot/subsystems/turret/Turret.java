@@ -1210,8 +1210,8 @@ public class Turret extends Mechanism {
     /** Below this the turret is not turning. Tracking a target never reads this low for long. */
     private static final double STALL_VELOCITY_ROT_PER_SEC = 0.02;
 
-    /** How long pinned-and-stopped must hold before the output is cut. */
-    private static final double STALL_SECONDS = 1.0;
+    /** How long pinned-and-stopped must hold before the output is cut. 1.0 s until 2026-09-25. */
+    private static final double STALL_SECONDS = 2.0;
 
     /** How far the other way the turret must be asked to go before the latch releases. */
     private static final double STALL_RECOVERY_MARGIN_DEGREES = 2.0;
