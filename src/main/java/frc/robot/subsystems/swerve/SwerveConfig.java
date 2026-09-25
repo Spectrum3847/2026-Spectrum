@@ -128,9 +128,10 @@ public class SwerveConfig {
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
     @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();
 
-    // Every 1 rotation of the azimuth results in kCoupleRatio drive motor turns;
-    // This may need to be tuned to your individual robot
-    @Getter private final double coupleRatio = 3.375;
+    // Every 1 rotation of the azimuth results in coupleRatio drive motor turns.
+    // MK5n: first drive stage only, 54T / drive pinion. R1 = 12T pinion -> 4.5
+    // (was 3.375, the R3 16T value).
+    @Getter private final double coupleRatio = 54.0 / 12.0;
 
     @Getter private final boolean steerMotorReversed = false;
     // Drive-motor inversion per side. Flipped on 2026-09-04 from the CTRE template defaults
