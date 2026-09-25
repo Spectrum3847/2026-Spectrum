@@ -80,6 +80,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.json.simple.parser.ParseException;
+import org.littletonrobotics.junction.LogFileUtil;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 /**
  * The main robot class. This class is the entry point for the robot code and manages all subsystems
@@ -148,9 +153,27 @@ public class Robot extends SpectrumRobot {
      */
     @Getter private static CANBus rioCANBus;
 
+    /** AdvantageKit runtime mode. */
+    public enum Mode {
+        /** Running on a real robot. */
+        REAL,
+        /** Running the physics simulator. */
+        SIM,
+        /** Replaying a log file, see docs/dependencies/advantagekit.md. */
+        REPLAY
+    }
+
+    /** The mode a simulator run starts in. Set to REPLAY to replay a log instead of simulating. */
+    public static final Mode SIM_MODE = Mode.SIM;
+
+    /** Always REAL on the roboRIO; {@link #SIM_MODE} everywhere else. */
+    public static final Mode MODE = RobotBase.isReal() ? Mode.REAL : SIM_MODE;
+
     /** Creates a new Robot instance. */
     public Robot() {
         super();
+        startLogger();
+
         /*
          * Phoenix otherwise starts writing .hoot signal logs for every CAN device a second after
          * the first enable. Nobody replays them in Tuner X, and on 2026-09-05 they were a large
@@ -260,6 +283,49 @@ public class Robot extends SpectrumRobot {
                     default -> "Unknown";
                 });
     }
+    /**
+     * Starts the AdvantageKit logger. Runs before anything else in the constructor so every input
+     * AdvantageKit records is captured from the first loop.
+     */
+    private void startLogger() {
+        Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME);
+        Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE);
+        Logger.recordMetadata("GitSHA", BuildConstants.GIT_SHA);
+        Logger.recordMetadata("GitDate", BuildConstants.GIT_DATE);
+        Logger.recordMetadata("GitBranch", BuildConstants.GIT_BRANCH);
+        Logger.recordMetadata(
+                "GitDirty",
+                switch (BuildConstants.DIRTY) {
+                    case 0 -> "All changes committed";
+                    case 1 -> "Uncommitted changes";
+                    default -> "Unknown";
+                });
+
+        switch (MODE) {
+            case REAL:
+                /*
+                 * Same folder DogLog writes to and archiveLogs collects from. AdvantageKit's
+                 * default of /U/logs only exists with a USB stick in the rio. No
+                 * NT4Publisher here: NetworkTables traffic is kept to the dashboard keys to spare
+                 * the rio's CPU, see docs/tools/logging.md.
+                 */
+                Logger.addDataReceiver(new WPILOGWriter("/home/lvuser/logs"));
+                break;
+            case SIM:
+                Logger.addDataReceiver(new NT4Publisher());
+                break;
+            case REPLAY:
+                setUseTiming(false); // Run as fast as possible
+                String logPath = LogFileUtil.findReplayLog();
+                Logger.setReplaySource(new WPILOGReader(logPath));
+                Logger.addDataReceiver(
+                        new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+                break;
+        }
+
+        Logger.start();
+    }
+
     /** Configures the bindings. */
     public void configureBindings() {
         // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
