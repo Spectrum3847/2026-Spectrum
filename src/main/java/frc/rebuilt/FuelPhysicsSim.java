@@ -1029,11 +1029,13 @@ public class FuelPhysicsSim {
      * @param omega 3D angular velocity (rad/s)
      */
     public void launchBall(Translation3d pos, Translation3d vel, Translation3d omega) {
+        // The ball leaves the hopper even when the field is full and it isn't simulated, so a
+        // caller waiting on getTotalIntaked() > 0 doesn't retry forever.
+        totalIntaked = Math.max(0, totalIntaked - 1);
         if (balls.size() >= MAX_BALLS) return;
         SimBall ball = new SimBall(pos, vel, omega);
         balls.add(ball);
         totalLaunched++;
-        totalIntaked = Math.max(0, totalIntaked - 1);
         lastLaunchSpeed = vel.getNorm();
 
         // Predict the trajectory arc for Field3d visualization (up to 10 s, sampled every 50 ms)

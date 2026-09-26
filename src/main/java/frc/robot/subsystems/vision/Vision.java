@@ -2271,6 +2271,11 @@ public class Vision implements Subsystem {
         }
     }
 
+    /** One step of a first-order low-pass filter that takes its first sample as-is (NaN before). */
+    private static double lowPass(double previous, double sample, double alpha) {
+        return Double.isNaN(previous) ? sample : previous + alpha * (sample - previous);
+    }
+
     /**
      * Splits the servo's measurement into the part the pose heading accounts for and the part the
      * turret alone does, and warns when the servo is spending its correction on the former.
@@ -2285,11 +2290,6 @@ public class Vision implements Subsystem {
      * @param errorDeg this loop's turret camera minus pose heading, or NaN
      * @param measurable whether the trim considers errorDeg usable this loop
      */
-    /** One step of a first-order low-pass filter that takes its first sample as-is (NaN before). */
-    private static double lowPass(double previous, double sample, double alpha) {
-        return Double.isNaN(previous) ? sample : previous + alpha * (sample - previous);
-    }
-
     private void updateTurretReferenceErrors(double now, double errorDeg, boolean measurable) {
         boolean chassisFresh =
                 !Double.isNaN(chassisHeadingErrorDeg)
