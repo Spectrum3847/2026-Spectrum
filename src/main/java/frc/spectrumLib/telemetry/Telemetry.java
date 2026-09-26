@@ -168,7 +168,7 @@ public class Telemetry extends DogLog implements Subsystem {
             boolean logExtras,
             boolean tunableOnFMS,
             PrintPriority priority) {
-        setPriority(priority);
+        Telemetry.priority = priority;
 
         ntMirrorEnabled = ntMirrorDefault;
         ntMirrorSwitch =
@@ -198,15 +198,6 @@ public class Telemetry extends DogLog implements Subsystem {
      */
     private static boolean mirrorLogsToNt() {
         return ntMirrorEnabled && !DriverStation.isFMSAttached();
-    }
-
-    /**
-     * Sets the priority.
-     *
-     * @param priority the priority
-     */
-    private static void setPriority(PrintPriority priority) {
-        Telemetry.priority = priority;
     }
 
     // ── Dashboard tier ───────────────────────────────────────────────────────
@@ -338,6 +329,43 @@ public class Telemetry extends DogLog implements Subsystem {
      */
     public static void logDashAlways(String key, long value) {
         forceNt.log(key, value);
+    }
+
+    // ── State machines ───────────────────────────────────────────────────────
+    //
+    // A state is logged on the loop it changes and not while it holds. The wpilog ends up the same
+    // as logging every loop, because DogLog drops a value equal to the last one, but every-loop
+    // calls still cost a queue entry each for the log thread to throw away.
+
+    /**
+     * Last state logged per key, so {@link #logState} can skip unchanged ones. Main thread only.
+     */
+    private static final Map<String, Enum<?>> lastLoggedStates = new HashMap<>();
+
+    /**
+     * Logs a state machine's state when it changes: the exact loop of every transition, nothing
+     * while it holds.
+     *
+     * @param key the log key
+     * @param state the current value of the state
+     */
+    public static void logState(String key, Enum<?> state) {
+        if (lastLoggedStates.put(key, state) != state) {
+            log(key, state.name());
+        }
+    }
+
+    /**
+     * {@link #logState}, also published to the dashboard on every change (a change can land between
+     * slow-tier ticks, so {@link #logDash} could miss it).
+     *
+     * @param key the log key
+     * @param state the current value of the state
+     */
+    public static void logStateDash(String key, Enum<?> state) {
+        if (lastLoggedStates.put(key, state) != state) {
+            logDashAlways(key, state.name());
+        }
     }
 
     // ── Loop timers ──────────────────────────────────────────────────────────

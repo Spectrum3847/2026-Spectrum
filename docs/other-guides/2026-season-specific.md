@@ -70,7 +70,7 @@ does damage. Two guards sit between the encoder and the motor, both in
   the encoder really has been re-framed -- and says so on the console and in an alert. Logged as
   `Turret/PositionSuspect`, `Turret/PositionStepBudgetDegrees`, `Turret/PositionStepsRejected`,
   `Turret/PositionStepsAccepted`.
-* **Stall latch.** Pinned at 95% of the stator ceiling and not turning for 1 s cuts the turret's
+* **Stall latch.** Pinned at 95% of the stator ceiling and not turning for 2 s cuts the turret's
   output and raises an alert. It is not stuck there: a command pointing to the other side of where
   it sits releases the latch and drives immediately, as do `OFF` and an operator-B re-zero. Logged
   as `Turret/StallLatched`, `Turret/StallLatchCount`.
@@ -186,9 +186,9 @@ These are the entries in `SuperStructure.WantedSuperState`, applied by `setWante
 | `TEST_TURRET_ZERO`                  | Test-mode pit check: turret returns to its zero.                     |
 | `TEST_TURRET_STOP`                  | Test mode at rest: everything off, turret held where it stands.      |
 
-`CurrentSuperState` mirrors these; `handleStateTransition()` maps the wanted state to the current one each loop.
+`CurrentSuperState` mirrors these; `handleStateTransitions()` maps the wanted state to the current one each loop.
 
-A few field-location triggers live on `SuperStructure` itself rather than in the enum: `robotInNeutralZone()`, `robotInEnemyZone()`, `robotInFeedZone()`, `robotInScoreZone()` (which delegate to the swerve pose).
+Field location comes from `Swerve.isInNeutralZone()` and `Swerve.isInEnemyAllianceZone()`; `SuperStructure.isRobotInFeedZone()` is either of the two.
 
 ## Vision Hardware
 
@@ -264,7 +264,7 @@ REBUILT alternates each alliance's hub between active and inactive during teleop
 
 ## Where Robot State Lives
 
-* [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java): the `WantedSuperState`/`CurrentSuperState` enums and the `handleStateTransition()`/`applyStates()` logic that fans a super-state out across every mechanism. This is where a coordinated multi-mechanism move belongs.
+* [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java): the `WantedSuperState`/`CurrentSuperState` enums and the `handleStateTransitions()`/`applyStates()` logic that fans a super-state out across every mechanism. This is where a coordinated multi-mechanism move belongs.
 * [`Robot.java`](../../src/main/java/frc/robot/Robot.java): `configureBindings()` wires gamepad triggers and `Auton` event triggers to `superStructure.setStateCommand(...)`. A single trigger that fires one existing state goes here.
 
 If you're adding a behavior that's a coordinated multi-mechanism move, add a `WantedSuperState` and handle it in `SuperStructure`. If you're adding a single trigger that fires an existing state, just bind it in `Robot.configureBindings()`.

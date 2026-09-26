@@ -9,7 +9,7 @@ import lombok.Setter;
  * Configuration data for an arm simulation. Stores physical properties, display settings, and
  * optional mount attachment used by {@link ArmSim}.
  */
-public class ArmConfig {
+public class ArmConfig implements Mountable.MountedConfig {
 
     /** Number of Kraken X60 motors driving the arm. */
     @Getter @Setter private int numMotors = 1;
@@ -41,9 +41,14 @@ public class ArmConfig {
     /** Whether the physics simulation should apply gravitational force to the arm. */
     @Getter @Setter private boolean simulateGravity = true;
     /** Whether this arm is attached to a parent {@link Mount}. */
-    @Getter private boolean mounted = false;
     /** The parent mount this arm is attached to, or {@code null} if not mounted. */
     @Getter private Mount mount;
+
+    /** Whether this config is attached to a parent mount. */
+    public boolean isMounted() {
+        return mount != null;
+    }
+
     /** X position of the mount at simulation start (metres). */
     @Getter private double initMountX;
     /** Y position of the mount at simulation start (metres). */
@@ -89,12 +94,6 @@ public class ArmConfig {
         this.pivotY = initialY;
     }
 
-    /**
-     * Sets the arm's display color in the Mechanism2d canvas.
-     *
-     * @param color the color to use
-     * @return this config for chaining
-     */
     /** True when the sim geometry travels opposite the motor's positive direction. */
     @Getter private boolean reversedLinkage = false;
 
@@ -109,6 +108,7 @@ public class ArmConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
+
     /**
      * Sets the color.
      *
@@ -119,6 +119,7 @@ public class ArmConfig {
         this.color = color;
         return this;
     }
+
     /**
      * Sets whether simulated gravity is applied.
      *
@@ -141,7 +142,6 @@ public class ArmConfig {
      */
     public ArmConfig setMount(LinearSim sim, boolean fixedAngle) {
         if (sim != null) {
-            mounted = true;
             mount = sim;
             initMountX = sim.getConfig().getInitialX();
             initMountY = sim.getConfig().getInitialY();
@@ -162,7 +162,6 @@ public class ArmConfig {
      */
     public ArmConfig setMount(ArmSim sim, boolean absAngle) {
         if (sim != null) {
-            mounted = true;
             mount = sim;
             initMountX = sim.getConfig().getInitialX();
             initMountY = sim.getConfig().getInitialY();

@@ -127,6 +127,7 @@ public class Pilot extends Gamepad {
 
         Telemetry.print("Pilot Subsystem Initialized: ");
     }
+
     /**
      * Sets the max velocity.
      *
@@ -135,6 +136,7 @@ public class Pilot extends Gamepad {
     public void setMaxVelocity(double maxVelocity) {
         leftStickCurve.setScalar(maxVelocity);
     }
+
     /**
      * Sets the max rotational velocity.
      *
@@ -176,6 +178,7 @@ public class Pilot extends Gamepad {
         double ccwPositive = rightStickCurve.calculate(getRightX());
         return -1 * ccwPositive; // invert the value
     }
+
     /**
      * Returns the pilot stick direction angle in radians.
      *

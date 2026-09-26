@@ -15,8 +15,6 @@ import lombok.Setter;
  */
 public class Circle {
 
-    private MechanismRoot2d rollerAxle;
-
     @SuppressWarnings("unused")
     private MechanismLigament2d rollerViz;
 
@@ -72,7 +70,6 @@ public class Circle {
         this.name = name;
         this.root = root;
         this.circleBackground = new MechanismLigament2d[this.backgroundLines];
-        this.rollerAxle = mech.getRoot(name + " Axle", 0.0, 0.0);
         this.color = color;
         drawCircle();
     }
@@ -95,12 +92,12 @@ public class Circle {
     }
 
     /**
-     * Appends a short white indicator line to the roller axle so rotation direction is visible in
+     * Appends a short white indicator line to the circle's root so rotation direction is visible in
      * the Mechanism2d canvas.
      */
     public void drawViz() {
         rollerViz =
-                rollerAxle.append(
+                root.append(
                         new MechanismLigament2d(
                                 name + " Roller",
                                 Units.inchesToMeters(diameterInches) / 2.0,

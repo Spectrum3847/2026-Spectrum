@@ -19,6 +19,7 @@ public class CachedDoubleTest {
             cachedDouble = null;
         }
     }
+
     /** Verifies caching and invalidation. */
     @Test
     @DisplayName("Test CachedDouble caches value within same iteration and invalidates on periodic")

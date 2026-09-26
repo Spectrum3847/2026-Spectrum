@@ -90,7 +90,7 @@ Add to this enum when you find yourself logging the same fault from multiple fil
 
 ## Things That Have Bitten Us
 
-The mirror is off by default (`Telemetry.start(false, …)`). On 2026-09-05 every logged value going to NetworkTables, plus a flush every loop, was a full-time job for one of the roboRIO's two cores. Dashboard values are published individually with `Telemetry.logDash`; the `Telemetry/MirrorLogsToNT` switch on SmartDashboard turns the full mirror back on for an AdvantageScope session in the shop and is ignored whenever the FMS is attached. See [Logging](../tools/logging.md#what-reaches-the-dashboard).
+The mirror is off by default on the robot and on by default in simulation (`Telemetry.start(RobotBase.isSimulation(), …)`), so every logged key, `Robot/Sim/*` included, is live in AdvantageScope when simming. On 2026-09-05 every logged value going to NetworkTables, plus a flush every loop, was a full-time job for one of the roboRIO's two cores. Dashboard values are published individually with `Telemetry.logDash`; the `Telemetry/MirrorLogsToNT` switch on SmartDashboard turns the full mirror back on for an AdvantageScope session in the shop and is ignored whenever the FMS is attached. See [Logging](../tools/logging.md#what-reaches-the-dashboard).
 
 `withNtTunables(true)` controls DogLog's own tunable entries; it does not affect `TuneValue`/`SmartDashboard` writes. If you want to prevent match-day tuning, remove or guard `TuneValue` call sites separately.
 

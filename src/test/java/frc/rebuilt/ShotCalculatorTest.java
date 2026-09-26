@@ -36,6 +36,7 @@ public class ShotCalculatorTest {
         Preferences.setDouble(ShotCalculator.HOOD_TRIM_PREF_KEY, ShotCalculator.HOOD_ANGLE_OFFSET);
         Preferences.remove(ShotCalculator.TURRET_TRIM_PREF_KEY);
     }
+
     /** Verifies shooting parameters record. */
     @Test
     @DisplayName("Test ShootingParameters record properties")
@@ -64,6 +65,7 @@ public class ShotCalculatorTest {
         assertEquals(4.8, params.distanceNoLookahead(), 1e-6);
         assertEquals(1.2, params.timeOfFlight(), 1e-6);
     }
+
     /** Verifies hood angle offset commands. */
     @Test
     @DisplayName("Test Hood angle offset increment and decrement commands")
@@ -80,6 +82,7 @@ public class ShotCalculatorTest {
         ShotCalculator.decreaseHoodAngleOffset().initialize();
         assertEquals(initialOffset, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-6);
     }
+
     /** Verifies turret angle offset commands. */
     @Test
     @DisplayName("Test Turret angle offset increment and decrement commands")
@@ -93,6 +96,7 @@ public class ShotCalculatorTest {
         ShotCalculator.decreaseTurretAngleOffset().initialize();
         assertEquals(initialOffset, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-6);
     }
+
     /** Verifies singleton. */
     @Test
     @DisplayName("Test ShotCalculator singleton instance")

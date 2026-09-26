@@ -15,7 +15,6 @@ import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
-import lombok.Setter;
 
 /**
  * The dye rotor: a spinning rotor that agitates fuel plus a feeder that indexes it toward the
@@ -31,16 +30,16 @@ public class DyeRotor implements Subsystem {
 
         public static class RotorConfig extends Config {
 
-            @Getter @Setter private double supplyCurrentLimit = 80;
-            @Getter @Setter private double supplyCurrentLowerLimit = 40;
-            @Getter @Setter private double supplyCurrentLowerTime = 1.0;
-            @Getter @Setter private double statorCurrentLimit = 80;
+            @Getter private final double supplyCurrentLimit = 80;
+            @Getter private final double supplyCurrentLowerLimit = 40;
+            @Getter private final double supplyCurrentLowerTime = 1.0;
+            @Getter private final double statorCurrentLimit = 80;
 
             @Getter private final double gearRatio = 37.5;
 
-            @Getter @Setter private double velocityKp = 270; // 5
-            @Getter @Setter private double velocityKv = 0.800000011920929; // 4.38
-            @Getter @Setter private double velocityKs = 2.650390625; // 0
+            @Getter private final double velocityKp = 270;
+            @Getter private final double velocityKv = 0.800000011920929;
+            @Getter private final double velocityKs = 2.650390625;
 
             /* Sim Configs */
             @Getter
@@ -57,12 +56,11 @@ public class DyeRotor implements Subsystem {
                 configPIDGains(velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
-                configLowerSupplyCurrentTime(supplyCurrentLowerTime);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        supplyCurrentLowerLimit,
+                        supplyCurrentLowerTime);
                 configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
             }
@@ -84,16 +82,13 @@ public class DyeRotor implements Subsystem {
             simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
+
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("Rotor/CurrentCommand", getCurrentCommandName());
-            logDiagnostics("Rotor");
-            if (Telemetry.slowLogThisLoop()) {
-                Telemetry.logDash("Rotor/RPM", getVelocityRPM(), "RPM");
-            }
+            logStandard("Rotor", false, RpmLog.SLOW_DASH);
         }
+
         /**
          * Sets the rotor velocity.
          *
@@ -102,10 +97,7 @@ public class DyeRotor implements Subsystem {
         public void setRotorVelocity(double rpm) {
             setVelocityTCFOCrpm(() -> rpm);
         }
-        /** Rotor stop. */
-        public void rotorStop() {
-            stop();
-        }
+
         /** Simulation init. */
         public void simulationInit() {
             if (isAttached()) {
@@ -124,7 +116,8 @@ public class DyeRotor implements Subsystem {
                 super(
                         new RollerConfig(config.getRotorDiameter())
                                 .setPosition(config.getRotorX(), config.getRotorY())
-                                .setGearRatio(config.getGearRatio()),
+                                .setGearRatio(config.getGearRatio())
+                                .setReversedLinkage(true),
                         mech,
                         motor,
                         config.getName());
@@ -141,7 +134,7 @@ public class DyeRotor implements Subsystem {
              * 2026-09-06 21:49 log, 77 A supply. Trimmed a little; feed rate between balls depends
              * on this.
              */
-            @Getter @Setter private double supplyCurrentLimit = 75;
+            @Getter private final double supplyCurrentLimit = 75;
 
             /**
              * No lower limit. It was 0 with a 1 s lower time, which never engaged because the
@@ -149,14 +142,14 @@ public class DyeRotor implements Subsystem {
              * during long bursts and starved the feed. A lower time of zero disables the lower
              * limit.
              */
-            @Getter @Setter private double supplyCurrentLowerLimit = 40;
+            @Getter private final double supplyCurrentLowerLimit = 40;
 
-            @Getter @Setter private double supplyCurrentLowerTime = 0.0;
-            @Getter @Setter private double statorCurrentLimit = 120;
+            @Getter private final double supplyCurrentLowerTime = 0.0;
+            @Getter private final double statorCurrentLimit = 120;
 
-            @Getter @Setter private double velocityKp = 0.5; // 0.5
-            @Getter @Setter private double velocityKv = 0.434; // 0.434
-            @Getter @Setter private double velocityKs = 0; // 0
+            @Getter private final double velocityKp = 0.5;
+            @Getter private final double velocityKv = 0.434;
+            @Getter private final double velocityKs = 0;
 
             private final double gearRatio = 3.67;
 
@@ -166,12 +159,11 @@ public class DyeRotor implements Subsystem {
                 configPIDGains(velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
-                configLowerSupplyCurrentTime(supplyCurrentLowerTime);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        supplyCurrentLowerLimit,
+                        supplyCurrentLowerTime);
                 configNeutralBrakeMode(false);
                 configClockwise_Positive();
             }
@@ -189,45 +181,20 @@ public class DyeRotor implements Subsystem {
             this.config = config;
             Telemetry.print(getName() + " Subsystem Initialized");
         }
+
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("Feeder/CurrentCommand", getCurrentCommandName());
-            logDiagnostics("Feeder");
-            if (Telemetry.slowLogThisLoop()) {
-                Telemetry.logDash("Feeder/RPM", getVelocityRPM(), "RPM");
-            }
+            logStandard("Feeder", false, RpmLog.SLOW_DASH);
         }
+
         /**
          * Sets the feeder rpm.
          *
          * @param rpm the feeder rpm
          */
         public void setFeederVelocity(double rpm) {
-            // setVelocityTCFOCrpm
             setVelocityRPM(() -> rpm);
-        }
-        /** Feeder stop. */
-        public void feederStop() {
-            stop();
-        }
-    }
-
-    public static class DyeRotorConfig {
-        @Getter private final RotorConfig rotorConfig;
-
-        @Getter private final FeederConfig feederConfig;
-
-        /**
-         * Creates a new DyeRotorConfig instance.
-         *
-         * @param rotorConfig the rotorConfig
-         * @param feederConfig the feederConfig
-         */
-        public DyeRotorConfig(RotorConfig rotorConfig, FeederConfig feederConfig) {
-            this.rotorConfig = rotorConfig;
-            this.feederConfig = feederConfig;
         }
     }
 
@@ -428,6 +395,7 @@ public class DyeRotor implements Subsystem {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /**
      * Handles the state transition. {@code INDEX_MAX} may briefly resolve to {@code UNJAM} through
      * {@link #indexMaxWithAutoUnjam}; leaving {@code INDEX_MAX} for any reason clears that.
@@ -452,8 +420,8 @@ public class DyeRotor implements Subsystem {
         double wantedRPMIndex = 0;
         switch (systemState) {
             case OFF:
-                rotor.rotorStop();
-                feeder.feederStop();
+                rotor.stop();
+                feeder.stop();
                 return;
             case INDEX_MAX:
                 wantedRPMSpin = 120; // Set to 120 for higher feed rate, 100 was previous
@@ -461,7 +429,6 @@ public class DyeRotor implements Subsystem {
                 break;
             case IDLE_SLOW_INDEX:
                 wantedRPMSpin = idleRotorRpmWithStallCheck(IDLE_ROTOR_RPM);
-                wantedRPMIndex = 0;
                 break;
             case UNJAM:
                 // Both backwards: the rotor unpacks the bed while the feeder pushes fuel back out.
@@ -469,25 +436,22 @@ public class DyeRotor implements Subsystem {
                 wantedRPMIndex = -1000;
                 break;
         }
-        final double finalWantedRPMSpin = wantedRPMSpin;
-        final double finalWantedRPMIndex = wantedRPMIndex;
-        rotor.setRotorVelocity(finalWantedRPMSpin);
-        feeder.setFeederVelocity(finalWantedRPMIndex);
+        rotor.setRotorVelocity(wantedRPMSpin);
+        feeder.setFeederVelocity(wantedRPMIndex);
     }
 
     @Getter private final Rotor rotor;
     @Getter private final Feeder feeder;
-    @Getter private final DyeRotorConfig config;
 
     /**
      * Creates and registers the dye rotor subsystem with the specified configuration.
      *
-     * @param config configuration for the rotor and feeder mechanisms
+     * @param rotorConfig the rotor config
+     * @param feederConfig the feeder config
      */
-    public DyeRotor(DyeRotorConfig config) {
-        this.config = config;
-        this.rotor = new Rotor(config.getRotorConfig());
-        this.feeder = new Feeder(config.getFeederConfig());
+    public DyeRotor(RotorConfig rotorConfig, FeederConfig feederConfig) {
+        this.rotor = new Rotor(rotorConfig);
+        this.feeder = new Feeder(feederConfig);
 
         this.register();
         Telemetry.print("Dye Rotor Subsystem Initialized");
@@ -502,8 +466,8 @@ public class DyeRotor implements Subsystem {
         systemState = handleStateTransition();
         applyStates();
 
-        Telemetry.log("DyeRotor/WantedState", wantedState.toString());
-        Telemetry.log("DyeRotor/SystemState", systemState.toString());
+        Telemetry.logState("DyeRotor/WantedState", wantedState);
+        Telemetry.logState("DyeRotor/SystemState", systemState);
         Telemetry.log("DyeRotor/RotorStallBackoff", stallBackoff);
         Telemetry.log("DyeRotor/RotorStallCount", stallCount);
         Telemetry.log("DyeRotor/AutoUnjamActive", reversing);

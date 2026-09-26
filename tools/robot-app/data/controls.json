@@ -50,7 +50,7 @@
               "detail": "Only when RT is not already held. Enters INTAKE_FUEL.",
               "state": "INTAKE_FUEL",
               "trigger": "pilot.LT",
-              "line": 265,
+              "line": 266,
               "conditional": true
             },
             {
@@ -60,7 +60,7 @@
               "detail": "Only when LT is not already held. Enters LAUNCH_WITH_SQUEEZE.",
               "state": "LAUNCH_WITH_SQUEEZE",
               "trigger": "pilot.RT",
-              "line": 269,
+              "line": 270,
               "conditional": true
             },
             {
@@ -69,7 +69,7 @@
               "action": "Reset feed target, then idle",
               "detail": "Releasing RT restores the default feed target. If LT is still held it falls back to INTAKE_FUEL instead of idling.",
               "trigger": "pilot.RT",
-              "line": 269
+              "line": 270
             },
             {
               "control": "LT",
@@ -78,44 +78,44 @@
               "detail": "Only when RT is held: releasing LT enters LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY, skipping the squeeze wait.",
               "state": "LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY",
               "trigger": "pilot.LT",
-              "line": 265,
+              "line": 266,
               "conditional": true
             },
             {
               "control": "X",
               "edge": "whileTrue",
               "action": "Track target",
-              "detail": "Turret and hood aim at the hub without feeding. On release it idles unless already launching.",
+              "detail": "LB not held. Turret and hood aim at the hub without feeding. On release it idles unless already launching.",
               "state": "TRACK_TARGET",
-              "trigger": "pilot.XButton",
-              "line": 310
+              "trigger": "pilot.trackTarget_X",
+              "line": 311
             },
             {
               "control": "A",
               "edge": "whileTrue",
               "action": "Unjam",
-              "detail": "Runs everything backwards to clear a stuck ball. Idles on release.",
+              "detail": "LB not held. Runs everything backwards to clear a stuck ball. Idles on release.",
               "state": "UNJAM",
-              "trigger": "pilot.AButton",
-              "line": 317
+              "trigger": "pilot.unjam_A",
+              "line": 319
             },
             {
               "control": "B",
               "edge": "whileTrue",
               "action": "Kicker unjam",
-              "detail": "Everything backwards except the intake kicker, which keeps running forward. Idles on release.",
+              "detail": "LB not held. Everything backwards except the intake kicker, which keeps running forward. Idles on release.",
               "state": "KICKER_UNJAM",
-              "trigger": "pilot.BButton",
-              "line": 321
+              "trigger": "pilot.kickerUnjam_B",
+              "line": 323
             },
             {
               "control": "select",
               "edge": "onTrue",
               "action": "Force home",
-              "detail": "Re-homes the intake extension. Requires LB NOT held, since LB+Select is the vision reset.",
+              "detail": "Retracts the intake extension and homes the hood, everything else off; idles on release. Requires LB NOT held, since LB+Select is the vision reset.",
               "state": "FORCE_HOME",
               "trigger": "pilot.home_select",
-              "line": 324
+              "line": 327
             }
           ]
         },
@@ -131,7 +131,7 @@
               "detail": "LT + RT together launch while leaving the intake extended.",
               "state": "LAUNCH_WITHOUT_SQUEEZE",
               "trigger": "pilot.RT.and(pilot.LT)",
-              "line": 269
+              "line": 270
             },
             {
               "control": "RT",
@@ -140,7 +140,7 @@
               "detail": "Releasing RT with LT still held returns to INTAKE_FUEL.",
               "state": "INTAKE_FUEL",
               "trigger": "pilot.RT",
-              "line": 269,
+              "line": 270,
               "conditional": true
             }
           ]
@@ -157,7 +157,7 @@
               "detail": "Holds the drivetrain still through the shot. Idles when released.",
               "state": "LAUNCH_WITH_BRAKE",
               "trigger": "pilot.RT.and(pilot.LB)",
-              "line": 272
+              "line": 270
             },
             {
               "control": "dpadUp",
@@ -165,7 +165,7 @@
               "action": "Reorient forward",
               "detail": "Teleop only. Sets heading so the INTAKE points away from the driver. Rumbles to confirm.",
               "trigger": "pilot.upReorient",
-              "line": 348
+              "line": 386
             },
             {
               "control": "dpadLeft",
@@ -173,7 +173,7 @@
               "action": "Reorient left",
               "detail": "Teleop only. D-pad direction is where the INTAKE points from the driver's view.",
               "trigger": "pilot.leftReorient",
-              "line": 349
+              "line": 387
             },
             {
               "control": "dpadDown",
@@ -181,7 +181,7 @@
               "action": "Reorient back",
               "detail": "Teleop only.",
               "trigger": "pilot.downReorient",
-              "line": 350
+              "line": 388
             },
             {
               "control": "dpadRight",
@@ -189,7 +189,7 @@
               "action": "Reorient right",
               "detail": "Teleop only.",
               "trigger": "pilot.rightReorient",
-              "line": 351
+              "line": 389
             },
             {
               "control": "select",
@@ -197,16 +197,51 @@
               "action": "Reset pose from vision",
               "detail": "Works in ALL modes, not just disabled. Re-seeds the pose estimator from the turret camera. Prefer this over the D-pad reorient whenever tags are visible.",
               "trigger": "pilot.visionPoseReset_LB_Select",
-              "line": 361
+              "line": 399
+            },
+            {
+              "control": "LB + A",
+              "edge": "whileTrue",
+              "action": "Set shot from the tower",
+              "detail": "Intake against the tower's field-facing wall, 3.15 m, turret at zero. The fallback for when vision never seeded the pose. Teleop only. No pose is read and no aim is checked: turret, hood and flywheel go to the spot's fixed numbers and it feeds once all three are there. Idles once every set-shot chord is released (pilot.anySetShot). See ShotCalculator.SetShot.",
+              "state": "SET_SHOT",
+              "trigger": "pilot.setShotTower_LB_A",
+              "line": 337
             },
             {
               "control": "LB + Y",
               "edge": "whileTrue",
-              "action": "Set shot from the tower",
-              "detail": "Fallback for when vision never seeded the pose. Park with the intake against the tower's field-facing wall, cheat the heading about 5 deg toward the hub, then hold: the turret goes to its zero (parking is the aiming) and the hood and flywheel go to fixed numbers for 3.15 m. Dead square to the wall is 5.3 deg off the hub — about 29 cm wide at this range, which the goal still swallows, but cheat it if you can. Holdable while driving — left thumb stays on the stick. No pose is read and the aim is never checked, so only flywheel speed and hood angle gate the feed and the shot is only as good as the parking. Idles on release.",
+              "action": "Set shot from the hub face",
+              "detail": "Bumper against the hub's near face, intake to the hub, 0.98 m, turret at -180 deg. Teleop only. No pose is read and no aim is checked: turret, hood and flywheel go to the spot's fixed numbers and it feeds once all three are there. Idles once every set-shot chord is released (pilot.anySetShot). See ShotCalculator.SetShot.",
               "state": "SET_SHOT",
-              "trigger": "pilot.setShot_LB_Y",
-              "line": 329
+              "trigger": "pilot.setShotHubFace_LB_Y",
+              "line": 336
+            },
+            {
+              "control": "LB + X",
+              "edge": "whileTrue",
+              "action": "Set shot from the left trench",
+              "detail": "Just clear of the left trench, intake pointed away from the hub, 3.53 m, turret at zero. Teleop only. No pose is read and no aim is checked: turret, hood and flywheel go to the spot's fixed numbers and it feeds once all three are there. Idles once every set-shot chord is released (pilot.anySetShot). See ShotCalculator.SetShot.",
+              "state": "SET_SHOT",
+              "trigger": "pilot.setShotLeftTrench_LB_X",
+              "line": 333
+            },
+            {
+              "control": "LB + B",
+              "edge": "whileTrue",
+              "action": "Set shot from the right trench",
+              "detail": "Mirror of the left trench shot, 3.53 m, turret at zero. Teleop only. No pose is read and no aim is checked: turret, hood and flywheel go to the spot's fixed numbers and it feeds once all three are there. Idles once every set-shot chord is released (pilot.anySetShot). See ShotCalculator.SetShot.",
+              "state": "SET_SHOT",
+              "trigger": "pilot.setShotRightTrench_LB_B",
+              "line": 334
+            },
+            {
+              "control": "LB + A/B/X/Y",
+              "edge": "onFalse",
+              "action": "Idle",
+              "detail": "Releasing the last set-shot chord idles.",
+              "trigger": "pilot.anySetShot",
+              "line": 338
             }
           ]
         },
@@ -222,7 +257,42 @@
               "action": "Coast intake + turret",
               "detail": "Lets you move the intake extension and turret by hand.",
               "trigger": "pilot.coastA",
-              "line": 359
+              "line": 397
+            }
+          ]
+        },
+        {
+          "id": "test",
+          "name": "Test mode (pit)",
+          "when": "Robot in test mode, LB not held",
+          "pit": true,
+          "bindings": [
+            {
+              "control": "dpadUp",
+              "edge": "whileTrue",
+              "action": "Turret follows a tag",
+              "detail": "Held. Releasing any of the three stops the turret where it stands (TEST_TURRET_STOP) instead of idling.",
+              "state": "TEST_TURRET_FOLLOW_TAG",
+              "trigger": "pilot.testTurretFollowTag_dPadUp",
+              "line": 354
+            },
+            {
+              "control": "dpadLeft",
+              "edge": "whileTrue",
+              "action": "Turret sweep",
+              "detail": "Held. Runs to one soft limit, then the other, and keeps going. A leg that stalls or runs over 20 s turns around.",
+              "state": "TEST_TURRET_SWEEP",
+              "trigger": "pilot.testTurretSweep_dPadLeft",
+              "line": 356
+            },
+            {
+              "control": "dpadDown",
+              "edge": "whileTrue",
+              "action": "Turret to zero",
+              "detail": "Held. Turret returns to its zero.",
+              "state": "TEST_TURRET_ZERO",
+              "trigger": "pilot.testTurretZero_dPadDown",
+              "line": 358
             }
           ]
         },
@@ -239,30 +309,30 @@
               "detail": "Keyboard-friendly stand-in for RT.",
               "state": "LAUNCH_WITH_SQUEEZE",
               "trigger": "pilot.YButton.and(pilot.noLB)",
-              "line": 395
+              "line": 434
             },
             {
               "control": "B",
               "edge": "whileTrue",
               "action": "Intake fuel",
-              "detail": "Keyboard-friendly stand-in for LT. Note this collides with the real robot's disabled-mode brake binding.",
+              "detail": "Keyboard-friendly stand-in for LT (LB not held). Overrides the real kicker-unjam binding in sim.",
               "state": "INTAKE_FUEL",
-              "trigger": "pilot.BButton",
-              "line": 399
+              "trigger": "pilot.kickerUnjam_B",
+              "line": 437
             },
             {
               "control": "LB",
               "edge": "onTrue",
               "action": "Feed left",
               "trigger": "pilot.LB",
-              "line": 401
+              "line": 439
             },
             {
               "control": "RB",
               "edge": "onTrue",
               "action": "Feed right",
               "trigger": "pilot.RB",
-              "line": 402
+              "line": 440
             }
           ]
         }
@@ -295,42 +365,42 @@
             {
               "control": "dpadUp",
               "edge": "onTrue",
-              "action": "Hood angle +0.25\u00b0 (that one was short)",
+              "action": "Hood angle +0.25° (that one was short)",
               "detail": "Nudges ShotCalculator's HOOD_ANGLE_OFFSET up, which is also how the operator says the last burst fell short: the press is logged as ShotCalc/Trim/* with Verdict=Short and paired with the most recent shot record. Saved to the rio with WPILib Preferences on every press, so it survives a redeploy AND a power cycle. A non-zero trim is printed at boot; Start+Select zeroes both. Capped at +/-10 deg. Works while disabled.",
               "trigger": "operator.dPadUp",
-              "line": 336
+              "line": 370
             },
             {
               "control": "dpadDown",
               "edge": "onTrue",
-              "action": "Hood angle \u22120.25\u00b0 (that one was long)",
+              "action": "Hood angle −0.25° (that one was long)",
               "detail": "Shots going long? Come down. Logged as ShotCalc/Trim/* with Verdict=Long and paired with the most recent shot record, which is what makes a practice session a dataset. Saved to the rio with WPILib Preferences on every press, so it survives a redeploy AND a power cycle. A non-zero trim is printed at boot; Start+Select zeroes both. Capped at +/-10 deg. Works while disabled.",
               "trigger": "operator.dPadDown",
-              "line": 335
+              "line": 369
             },
             {
               "control": "dpadRight",
               "edge": "onTrue",
-              "action": "Turret angle +1\u00b0",
+              "action": "Turret angle +1°",
               "detail": "Nudges TURRET_ANGLE_OFFSET counter-clockwise; logged with Verdict=MissedCW, meaning the ball landed clockwise of the target. Saved to the rio with WPILib Preferences on every press, so it survives a redeploy AND a power cycle. A non-zero trim is printed at boot; Start+Select zeroes both. Capped at +/-10 deg. Works while disabled.",
               "trigger": "operator.dPadRight",
-              "line": 337
+              "line": 371
             },
             {
               "control": "dpadLeft",
               "edge": "onTrue",
-              "action": "Turret angle \u22121\u00b0",
+              "action": "Turret angle −1°",
               "detail": "Nudges TURRET_ANGLE_OFFSET clockwise; logged with Verdict=MissedCCW. Saved to the rio with WPILib Preferences on every press, so it survives a redeploy AND a power cycle. A non-zero trim is printed at boot; Start+Select zeroes both. Capped at +/-10 deg. Works while disabled.",
               "trigger": "operator.dPadLeft",
-              "line": 338
+              "line": 372
             },
             {
               "control": "Y",
               "edge": "held",
               "action": "Feed override",
-              "detail": "HELD, not pressed. Bypasses every shot-readiness gate and feeds anyway. This is not an onTrue binding \u2014 the trigger is handed to SuperStructure.setFeedOverride() as a live condition.",
+              "detail": "HELD, not pressed. Bypasses every shot-readiness gate and feeds anyway. This is not an onTrue binding — the trigger is handed to SuperStructure.setFeedOverride() as a live condition.",
               "trigger": "operator.YButton",
-              "line": 342,
+              "line": 376,
               "special": "supplier"
             },
             {
@@ -338,14 +408,14 @@
               "edge": "onTrue",
               "action": "Feed target: left",
               "trigger": "operator.LB",
-              "line": 344
+              "line": 382
             },
             {
               "control": "RB",
               "edge": "onTrue",
               "action": "Feed target: right",
               "trigger": "operator.RB",
-              "line": 345
+              "line": 383
             },
             {
               "control": "LB",
@@ -353,7 +423,16 @@
               "action": "Feed target: default",
               "detail": "Releasing either bumper restores the default feed target.",
               "trigger": "operator.LB.or(operator.RB)",
-              "line": 344
+              "line": 382
+            },
+            {
+              "control": "X",
+              "edge": "held",
+              "action": "Let vision correct the turret zero",
+              "detail": "HELD, not pressed. Lets vision trim and re-home the turret zero; released, the zero is whatever was hand-zeroed (B, disabled) and vision only reports what it would have changed. Off by default since Chezy Q24 (2026-09-19), when a 2-tag solve re-homed the zero 52.4 deg mid-match. Handed to Vision.setTurretZeroCorrectionEnable() as a live condition.",
+              "trigger": "operator.visionTurretFixX",
+              "special": "supplier",
+              "line": 380
             }
           ]
         },
@@ -368,7 +447,7 @@
               "action": "Reset both shot trims to zero",
               "detail": "Clears the hood and turret trims and the values stored on the rio. Needed because the trims now persist across a power cycle: without this, a trim dialled in against a shop ceiling last week would silently apply at the next event and the only way out would be a redeploy. Works in all modes; a chord of the two buttons nothing else uses.",
               "trigger": "operator.resetShotTrims_StartSelect",
-              "line": 339,
+              "line": 373,
               "important": true
             }
           ]
@@ -385,7 +464,7 @@
               "action": "Coast intake + turret",
               "detail": "Same as pilot A.",
               "trigger": "operator.coastA",
-              "line": 363
+              "line": 401
             },
             {
               "control": "B",
@@ -393,7 +472,7 @@
               "action": "Zero the turret HERE",
               "detail": "Point the turret away from the intake BY HAND first, then press. The turret no longer zeroes itself on code start, so this is how the zero gets set. Check Turret/PositionDegrees reads near 0 afterwards.",
               "trigger": "operator.zeroTurretB",
-              "line": 366,
+              "line": 404,
               "important": true
             }
           ]
@@ -402,7 +481,6 @@
       "unbound": [
         "LT",
         "RT",
-        "X",
         "lsClick",
         "rsClick"
       ]

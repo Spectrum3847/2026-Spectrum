@@ -17,8 +17,8 @@ import edu.wpi.first.math.geometry.Translation2d;
  *
  * <p>Conventions: robot frame is x forward, y left, angles counter-clockwise positive. Turret angle
  * zero points the turret robot-forward. The camera's yaw in the robot frame is the turret angle
- * plus {@link #getCameraYawAtTurretZero()}, and its planar position is the turret pivot plus the
- * pivot arm rotated by that yaw.
+ * plus the constructor's {@code cameraYawAtTurretZero}, and its planar position is the turret pivot
+ * plus the pivot arm rotated by that yaw.
  */
 public final class TurretCameraGeometry {
 
@@ -40,10 +40,6 @@ public final class TurretCameraGeometry {
         this.robotToTurretCenter = robotToTurretCenter;
         this.turretCenterToCamera = turretCenterToCamera;
         this.cameraYawAtTurretZero = cameraYawAtTurretZero;
-    }
-
-    public Rotation2d getCameraYawAtTurretZero() {
-        return cameraYawAtTurretZero;
     }
 
     /** The camera's yaw in the robot frame at this turret angle. */
