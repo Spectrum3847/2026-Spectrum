@@ -4,12 +4,14 @@
 
 The goal: someone joining the team next month should be able to read this codebase top-to-bottom and form an accurate mental model without you on a call to translate. Comments and JavaDoc are the most useful when the code's *what* is clear from the names but the *why* isn't.
 
+The source code is where the answer to "what does this do" lives, and a comment that restates it is a second copy that goes stale and then lies. So the code is the record, and comments carry only the reasoning: the constraint, the workaround, the decision, and the reason behind it.
+
 ## When to Comment
 
 Default to writing no comment. Add one when the *why* is non-obvious:
 
 * A hidden constraint (`// PathPlanner expects angles in radians, not degrees`)
-* A workaround for a specific bug (`// Phoenix 6 < 26.3.0 returns NaN for unconfigured slots, see CTRE issue #471`)
+* A workaround for a specific bug, with the versions that make it necessary (`// Phoenix 6 under 26.3.0 returns NaN for a gain slot that was never configured, see CTRE issue #471`). The bound is the part that matters. Without it a reader cannot tell whether the workaround is still needed.
 * A subtle invariant (`// must be called before configurePID(), order matters`)
 * Behavior that would surprise a reader (`// LED priority of -1 is the lowest; it only runs when no higher-priority pattern is active`)
 
@@ -21,11 +23,12 @@ Public methods on subsystems (and `SuperStructure`) and the fields on `*Config` 
 
 ```java
 /**
- * Sets the launcher target speed.
+ * Sets the wheel's target speed.
  *
- * @param rpm flywheel revolutions per minute, 0-6000
+ * @param targetRPM target wheel speed, in revolutions per minute
+ * @return a command that holds that speed until it is interrupted
  */
-public Command setSpeed(double rpm) { ... }
+public Command setSpeed(DoubleSupplier targetRPM) { ... }
 ```
 
 Two specific habits that pay off:

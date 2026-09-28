@@ -7,22 +7,15 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 
 public class FieldHelpers {
-    // -----------------------------------------------------------------------
-    // Field Helper Methods
-    // -----------------------------------------------------------------------
 
-    /* Methods to flip robot pose */
-    /** Flip angle. */
     public static double flipAngle(double angle) {
         return (angle + 180) % 360;
     }
 
-    /** Flip angle. */
     public static Rotation2d flipAngle(Rotation2d angle) {
         return angle.rotateBy(Rotation2d.fromDegrees(180));
     }
 
-    /** Flip angle if red. */
     public static double flipAngleIfRed(double blue) {
         if (Field.isRed()) {
             return (blue + 180) % 360;
@@ -30,7 +23,6 @@ public class FieldHelpers {
         return blue;
     }
 
-    /** Flip angle if red. */
     public static Rotation2d flipAngleIfRed(Rotation2d blue) {
         if (Field.isRed()) {
             return blue.rotateBy(Rotation2d.fromDegrees(180));
@@ -38,33 +30,26 @@ public class FieldHelpers {
         return blue;
     }
 
-    /** Flip if red. */
     public static Translation2d flipIfRed(Translation2d blue) {
         return new Translation2d(flipXifRed(blue.getX()), flipYifRed(blue.getY()));
     }
 
-    /** Flip if red. */
     public static Translation3d flipIfRed(Translation3d blue) {
         return new Translation3d(flipXifRed(blue.getX()), flipYifRed(blue.getY()), blue.getZ());
     }
 
-    /** Flip if red. */
     public static Pose2d flipIfRed(Pose2d red) {
         return new Pose2d(flipIfRed(red.getTranslation()), flipAngleIfRed(red.getRotation()));
     }
 
-    /** Flip x. */
     public static double flipX(double xCoordinate) {
         return Field.fieldLength - xCoordinate;
     }
 
-    /** Flip y. */
     public static double flipY(double yCoordinate) {
         return Field.fieldWidth - yCoordinate;
     }
 
-    // If we are red flip the x pose to the other side of the field
-    /** Flip xif red. */
     public static double flipXifRed(double xCoordinate) {
         if (Field.isRed()) {
             return Field.fieldLength - xCoordinate;
@@ -72,8 +57,6 @@ public class FieldHelpers {
         return xCoordinate;
     }
 
-    // If we are red flip the y pose to the other side of the field
-    /** Flip yif red. */
     public static double flipYifRed(double yCoordinate) {
         if (Field.isRed()) {
             return Field.fieldWidth - yCoordinate;
@@ -84,8 +67,7 @@ public class FieldHelpers {
     /**
      * Normalizes an angle to the range [-π, π).
      *
-     * @param angle The angle in radians.
-     * @return The normalized angle.
+     * @param angle the angle in radians
      */
     public static double normalizeAngle(double angle) {
         angle = angle % (2 * Math.PI);
@@ -94,14 +76,12 @@ public class FieldHelpers {
         return angle;
     }
 
-    /** Pose out of field. */
     public static boolean poseOutOfField(Pose2d pose2D) {
         double x = pose2D.getX();
         double y = pose2D.getY();
         return (x <= 0 || x >= Field.fieldLength) || (y <= 0 || y >= Field.fieldWidth);
     }
 
-    /** Pose out of field. */
     public static boolean poseOutOfField(Pose3d pose3D) {
         return poseOutOfField(pose3D.toPose2d());
     }

@@ -16,12 +16,12 @@ import java.util.List;
 import java.util.function.DoubleFunction;
 
 /**
- * Watches the things that made the robot fall behind on 2026-09-05 and says so on the dashboard.
+ * Publishes once a second the load numbers that make a robot fall behind, and raises an {@link
+ * Alert} when one has been bad for long enough to matter.
  *
- * <p>That day the roboRIO CPU sat at 92 to 95 percent and the loop ran at 30 ms, and nothing on the
+ * <p>The roboRIO CPU sat at 92 to 95 percent on 2026-09-05 with a 30 ms loop and nothing on the
  * Driver Station said so: the overrun watchdog is set to 200 ms and the CPU figure is buried in the
- * DS log viewer. This publishes the numbers once a second and raises an {@link Alert} when one of
- * them has been bad for long enough to matter:
+ * DS log viewer. What gets watched:
  *
  * <ul>
  *   <li><b>CPU</b> from {@code /proc/stat}, alert after {@value #CPU_HOLD_SECONDS} s at or above
@@ -106,7 +106,6 @@ public class SystemLoadMonitor {
     private final List<GarbageCollectorMXBean> gcBeans =
             ManagementFactory.getGarbageCollectorMXBeans();
 
-    // ── Per-loop bookkeeping ───────────────────────────────────────────────────
     private double lastLoopSeconds = Double.NaN;
     private double bucketStartSeconds = Double.NaN;
     private int bucketLoops = 0;
@@ -115,11 +114,9 @@ public class SystemLoadMonitor {
     private double bucketMaxMs = 0;
     private long sampleCount = 0;
 
-    // ── Alert state ───────────────────────────────────────────────────────────
     private double stallLatchUntilSeconds = Double.NEGATIVE_INFINITY;
     private double gcLatchUntilSeconds = Double.NEGATIVE_INFINITY;
 
-    // ── /proc and JVM counters ────────────────────────────────────────────────
     private boolean procAvailable = true;
     private long lastCpuTotalJiffies = -1;
     private long lastCpuIdleJiffies = -1;
@@ -171,7 +168,6 @@ public class SystemLoadMonitor {
         boolean refreshText = sampleCount % TEXT_REFRESH_SAMPLES == 0;
         boolean enabled = DriverStation.isEnabled();
 
-        // ── Loop ──────────────────────────────────────────────────────────────
         double overrunPercent = bucketLoops > 0 ? 100.0 * bucketOverruns / bucketLoops : 0;
         double meanMs = bucketLoops > 0 ? bucketSumMs / bucketLoops : 0;
         Telemetry.logDashAlways("System/Loop/MeanPeriodMs", meanMs, "ms");
@@ -194,7 +190,6 @@ public class SystemLoadMonitor {
         bucketSumMs = 0;
         bucketMaxMs = 0;
 
-        // ── CPU ───────────────────────────────────────────────────────────────
         double cpuPercent = readCpuPercent();
         if (!Double.isNaN(cpuPercent)) {
             Telemetry.logDashAlways("System/CpuPercent", cpuPercent, "%");
@@ -209,7 +204,6 @@ public class SystemLoadMonitor {
                                     cpuPercent, held));
         }
 
-        // ── Memory ────────────────────────────────────────────────────────────
         double availableMb = readMemAvailableMb();
         if (!Double.isNaN(availableMb)) {
             Telemetry.logDashAlways("System/MemAvailableMB", availableMb, "MB");
@@ -224,7 +218,6 @@ public class SystemLoadMonitor {
                                     availableMb, held));
         }
 
-        // ── GC and heap ───────────────────────────────────────────────────────
         long gcTimeMs = 0;
         long gcCount = 0;
         for (GarbageCollectorMXBean bean : gcBeans) {
@@ -258,7 +251,6 @@ public class SystemLoadMonitor {
         Telemetry.logDashAlways(
                 "System/HeapUsedMB", (runtime.totalMemory() - runtime.freeMemory()) / 1e6, "MB");
 
-        // ── Latched one-shots ─────────────────────────────────────────────────
         if (now > stallLatchUntilSeconds) {
             stallAlert.set(false);
         }
@@ -350,13 +342,8 @@ public class SystemLoadMonitor {
         }
 
         /**
-         * Updates the alert from this sample.
-         *
-         * @param now the sample time, seconds
-         * @param bad whether the condition is in its alert band
          * @param recovered whether it has recovered enough to clear; with hysteresis this is a
          *     stricter test than {@code !bad}, and an in-between sample changes nothing
-         * @param refreshText whether a raised alert's text should be rewritten this sample
          * @param text builds the alert text from how long the condition has held, seconds
          */
         void update(

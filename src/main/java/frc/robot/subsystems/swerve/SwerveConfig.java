@@ -36,19 +36,15 @@ public class SwerveConfig {
     @Getter private double driveGearRatio = 7.03;
     @Getter private double steerGearRatio = 26.09;
 
-    // Estimated at first, then fudge-factored to make odom match record
+    // Estimated first, then fitted by hand until odometry matched the measured record.
     @Getter private Distance wheelRadius = Inches.of(1.978);
 
-    // Theoretical translational free speed at 12v applied output;
+    /** Theoretical translational free speed at 12 V applied output. */
     @Getter private final LinearVelocity linearSpeedAt12Volts = MetersPerSecond.of(4.5);
 
-    // Theoretical rotational free speed at 12v applied output;
+    /** Theoretical rotational free speed at 12 V applied output. */
     @Getter private final AngularVelocity angularSpeedAt12Volts = DegreesPerSecond.of(540.00);
 
-    // -----------------------------------------------------------------------
-    // PID Controller Constants
-    // -----------------------------------------------------------------------
-    // Both sets of gains need to be tuned to your individual robot.
     @Getter
     private Slot0Configs steerGains =
             new Slot0Configs()
@@ -64,22 +60,17 @@ public class SwerveConfig {
     private Slot0Configs driveGains =
             new Slot0Configs().withKP(10.0).withKI(0.0).withKD(0.0).withKS(4).withKV(0.0);
 
-    // The closed-loop output type to use for the steer motors;
-    // This affects the PID/FF gains for the steer motors
     @Getter
     private ClosedLoopOutputType steerClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
 
-    // The closed-loop output type to use for the drive motors;
-    // This affects the PID/FF gains for the drive motors
     @Getter
     private ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.TorqueCurrentFOC;
 
-    // The stator current at which the wheels start to slip;
-    // This needs to be tuned to your individual robot
+    /** The stator current at which the wheels start to slip. */
     @Getter private final Current slipCurrent = Amps.of(80);
 
-    // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
-    // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
+    // Initial configs for the drive and steer motors and the CANcoder. These cannot be null, and
+    // some are overwritten; check the with*InitialConfigs() API documentation.
     @Getter
     private TalonFXConfiguration driveInitialConfigs =
             new TalonFXConfiguration()
@@ -92,9 +83,8 @@ public class SwerveConfig {
                                     .withSupplyCurrentLowerLimit(Amps.of(40.0))
                                     .withSupplyCurrentLowerTime(Seconds.of(1.0)));
 
-    // Swerve azimuth does not require much torque output, so we can set a
-    // relatively low stator current limit to help avoid
-    // brownouts without impacting performance.
+    // Swerve azimuth does not need much torque, so a relatively low stator limit avoids brownouts
+    // without hurting performance.
     @Getter
     private TalonFXConfiguration steerInitialConfigs =
             new TalonFXConfiguration()
@@ -113,28 +103,29 @@ public class SwerveConfig {
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
     @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();
 
-    // Every 1 rotation of the azimuth results in coupleRatio drive motor turns.
-    // MK5n: first drive stage only, 54T / drive pinion. R1 = 12T pinion -> 4.5
-    // (was 3.375, the R3 16T value).
+    // Every rotation of the azimuth results in coupleRatio drive motor turns. MK5n first drive
+    // stage
+    // only, 54T over a 12T pinion.
     @Getter private final double coupleRatio = 54.0 / 12.0;
 
     @Getter private final boolean steerMotorReversed = false;
-    // Drive-motor inversion per side. Flipped on 2026-09-04 from the CTRE template defaults
-    // (left false, right true) after bench logs showed the robot moving opposite to every
-    // command and to its own odometry: wheel-derived rotation disagreed in sign with the gyro
-    // and wheel-derived translation disagreed in sign with camera-observed motion. The bevel
-    // gears on this drivetrain face the opposite side from what the template assumes.
+    // Drive motor inversion per side, the opposite of the CTRE template defaults: the bevel gears
+    // on this drivetrain face the other way. Bench logs showed the robot moving opposite to every
+    // command and to its own odometry, with wheel-derived rotation disagreeing in sign with the
+    // gyro
+    // and wheel-derived translation disagreeing in sign with camera-observed motion.
     @Getter private final boolean invertLeftSide = true;
     @Getter private final boolean invertRightSide = false;
 
     @Getter private final CANBus canBus = new CANBus(Rio.CANIVORE, "./logs/spectrum.hoot");
     @Getter private final int pigeonId = 0;
 
-    // These are only used for simulation
+    // Only used for simulation.
     @Getter private final double steerInertia = 0.01;
     @Getter private final double driveInertia = 0.01;
-    // Simulated voltage necessary to overcome friction
+    /** Simulated voltage needed to overcome friction. */
     @Getter private final Voltage steerFrictionVoltage = Volts.of(0.25);
+
     @Getter private final Voltage driveFrictionVoltage = Volts.of(0.25);
 
     @Getter private SwerveDrivetrainConstants drivetrainConstants;
@@ -195,23 +186,16 @@ public class SwerveConfig {
     private SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             backRight;
 
-    /**
-     * Returns the modules.
-     *
-     * @return the modules
-     */
     @SuppressWarnings("unchecked")
     public SwerveModuleConstants<TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
             [] getModules() {
         return new SwerveModuleConstants[] {frontLeft, frontRight, backLeft, backRight};
     }
 
-    /** Creates a new SwerveConfig instance. */
     public SwerveConfig() {
         updateConfig();
     }
 
-    /** Updates the config. */
     public SwerveConfig updateConfig() {
         drivetrainConstants =
                 new SwerveDrivetrainConstants()
@@ -292,7 +276,9 @@ public class SwerveConfig {
         return this;
     }
 
-    /** Config encoder offsets. */
+    /**
+     * Sets the four CANcoder offsets, in rotations: front left, front right, back left, back right.
+     */
     public SwerveConfig configEncoderOffsets(
             double frontLeft, double frontRight, double backLeft, double backRight) {
         frontLeftEncoderOffset = Rotations.of(frontLeft);

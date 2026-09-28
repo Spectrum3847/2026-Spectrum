@@ -8,7 +8,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class CanDeviceIdTest {
-    /** Verifies constructor and getters. */
     @Test
     @DisplayName("Test CanDeviceId constructor and getters")
     void testConstructorAndGetters() {
@@ -21,7 +20,6 @@ public class CanDeviceIdTest {
         assertEquals("rio", id2.getBus());
     }
 
-    /** Verifies equals and hash code. */
     @Test
     @DisplayName("Test CanDeviceId equality and hashCode")
     void testEqualsAndHashCode() {

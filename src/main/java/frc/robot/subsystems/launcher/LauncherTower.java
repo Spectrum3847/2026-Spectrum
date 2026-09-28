@@ -6,11 +6,10 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Launcher Tower subsystem. Lifts fuel from the bed up to the launcher. */
+/** Lifts fuel from the bed up to the launcher. */
 public class LauncherTower extends Mechanism {
 
     public static class LauncherTowerConfig extends Config {
-        /* Launcher Tower config values */
         @Getter private final double supplyCurrentLimit = 80;
 
         @Getter private final double statorCurrentLimit = 80;
@@ -20,7 +19,6 @@ public class LauncherTower extends Mechanism {
         @Getter private final double velocityKv = 0.0978;
         @Getter private final double velocityKs = 0;
 
-        /** Creates a new LauncherTowerConfig instance. */
         public LauncherTowerConfig() {
             super("LauncherTower Front", 17, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
@@ -41,8 +39,6 @@ public class LauncherTower extends Mechanism {
         }
     }
 
-    // ---- State Machine ----
-
     public enum WantedState {
         OFF,
         INDEX_MAX,
@@ -59,16 +55,11 @@ public class LauncherTower extends Mechanism {
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
-    /**
-     * Sets the wanted state.
-     *
-     * @param state the wanted state
-     */
+
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
 
-    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
@@ -78,7 +69,6 @@ public class LauncherTower extends Mechanism {
         };
     }
 
-    /** Applies the states. */
     private void applyStates() {
         double wantedRPM = 0;
         switch (systemState) {
@@ -104,11 +94,7 @@ public class LauncherTower extends Mechanism {
     @Getter private double commandedRPM = 0;
 
     @Getter private final LauncherTowerConfig config;
-    /**
-     * Creates a new LauncherTower instance.
-     *
-     * @param config the config
-     */
+
     public LauncherTower(LauncherTowerConfig config) {
         super(config);
         this.config = config;
@@ -116,7 +102,6 @@ public class LauncherTower extends Mechanism {
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
-    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();

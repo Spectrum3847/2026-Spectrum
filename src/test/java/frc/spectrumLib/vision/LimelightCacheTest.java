@@ -51,8 +51,6 @@ public class LimelightCacheTest {
         publishers.clear();
     }
 
-    // ---- fixtures -------------------------------------------------------------------------------
-
     /**
      * Builds a botpose array: [x, y, z, roll, pitch, yaw, latencyMs, tagCount, tagSpan, avgDist,
      * avgArea, then 7 values per fiducial].
@@ -88,8 +86,6 @@ public class LimelightCacheTest {
         return publisher;
     }
 
-    // ---- tests ----------------------------------------------------------------------------------
-
     @Test
     @DisplayName("MT1 getters hold one sample until invalidate()")
     void mt1CacheHoldsUntilInvalidate() {
@@ -110,7 +106,6 @@ public class LimelightCacheTest {
         assertEquals(3.5, limelight.getTargetSize(), EPS);
         assertTrue(limelight.isCameraConnected());
 
-        // Publish a different frame: nothing should change until the snapshot is cleared.
         pose.set(botpose(5.0, 6.0, 90.0, 10.0, fiducial(3, 0.2), fiducial(4, 0.3)), 2_000_000L);
         tv.set(0.0);
         ta.set(0.5);
@@ -169,7 +164,6 @@ public class LimelightCacheTest {
         limelight.invalidate();
         assertEquals(9.0, limelight.getMegaTag2_Pose2d().getX(), EPS);
         assertEquals(3.0 - 0.005, limelight.getMegaTag2PoseTimestamp(), EPS);
-        // MT1 was untouched by the MT2 republish.
         assertEquals(1.0, limelight.getMegaTag1_Pose3d().getX(), EPS);
     }
 
@@ -218,7 +212,8 @@ public class LimelightCacheTest {
         assertEquals(
                 new PoseEstimate(), LimelightHelpers.parsePoseEstimate(new double[0], 0, false));
 
-        // Tag count says 2 but no fiducial values follow: fiducials are dropped, count kept.
+        // The count claims two tags with no fiducial data behind it, so the count is kept and the
+        // tags are dropped.
         double[] mismatched = botpose(1.0, 2.0, 30.0, 20.0);
         mismatched[7] = 2;
         PoseEstimate parsed = LimelightHelpers.parsePoseEstimate(mismatched, 4_000_000L, true);

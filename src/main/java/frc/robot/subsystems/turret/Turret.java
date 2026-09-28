@@ -65,21 +65,16 @@ public class Turret extends Mechanism {
         /**
          * Stator and torque-current ceiling, in amps.
          *
-         * <p>Was 80. The 24t-to-30t belt that skipped on 2026-09-05 sits one 4.75:1 reduction below
-         * the motor and 6.7:1 above the turret, so it carries motor torque times 4.75 -- about 7.4
-         * N-m at 80 A, and the 18:38 log showed 86 to 96 A sustained with a 105 A peak, which is
-         * 8.3 to 9.7 N-m. On a 24t HTD-5 pulley that is 435 to 507 N of belt tension.
+         * <p>The 24t-to-30t belt that skipped on 2026-09-05 sits one 4.75:1 reduction below the
+         * motor and 6.7:1 above the turret, so it carries motor torque times 4.75, about 7.4 N-m at
+         * 80 A. On a 24t HTD-5 pulley that is 435 to 507 N of belt tension. Unwrapping against a
+         * stop is a high-torque job even though tracking a target is not: on the 2026-09-07 03:25
+         * log the turret sat pinned at the limit, stator p50 50.0 A and peak 55.8, through a
+         * thirteen-second unwrap from -49 to +72 deg with two launch presses inside that sweep.
          *
-         * <p>50 A puts it near 290 N. That was the right trade while the belt was skipping and it
-         * is the wrong one now: at 50 the turret jams more often than it did at 80, and it costs
-         * shots. On the 2026-09-07 03:25 log the turret sat pinned at the limit -- stator p50 50.0
-         * A, peak 55.8 -- for a thirteen-second unwrap from -49 to +72 deg, and two launch presses
-         * landed inside that sweep with everything else ready. Tracking a target is not a
-         * high-torque job, but unwrapping against a stop is, and the limit was set for the first.
-         *
-         * <p>Back to 80. If the belt starts skipping again, this is the first number to look at --
-         * but read {@code Vision/TurretZero/SlipDegPerKiloDegTravel} before touching it, because
-         * that is the measurement that says whether the belt is actually the problem.
+         * <p>If the belt starts skipping again this is the first number to look at, but read {@code
+         * Vision/TurretZero/SlipDegPerKiloDegTravel} first. That is the measurement that says
+         * whether the belt is the problem.
          */
         @Getter private final double torqueCurrentLimit = 80;
 
@@ -91,8 +86,7 @@ public class Turret extends Mechanism {
          * request, so the turret leads a moving target instead of lagging it. The turret is driven
          * with {@code MotionMagicVoltage}, so this is volts per rotation per second of turret, not
          * amps. A Kraken through 39.78:1 works out to about 5 V per rot/s; the 10 here overdrives
-         * while tracking and is on the list to fit from a log (see the tuning handoff). Never tuned
-         * on this robot.
+         * while tracking and has never been tuned on this robot.
          */
         @Getter private final double positionKv = 10;
 
@@ -106,15 +100,12 @@ public class Turret extends Mechanism {
          * hard the turret accelerates while aiming; that is {@link #torqueCurrentLimit} and {@link
          * #peakVoltage}.
          *
-         * <p>Raised from 0.25 / 0.5 on 2026-09-19 after Chezy Q36. At 0.25 rot/s a full-turn unwrap
-         * took 3.8 s, and the latch that kept it profiled was being dropped within a few loops (see
-         * resolveTurretAngle), so the rest of the move ran unprofiled at 650 deg/s. At 1 rot/s with
-         * 2 rot/s2 the same turn takes about 1.5 s, and the deceleration into the far end is 720
-         * deg/s2 against the 15000 deg/s2 p99 the belt saw in Q36. Kv is 10 V per rot/s, so the
-         * feedforward alone saturates the 6 V ceiling at cruise; the mechanism needs about 5 V for
-         * 1 rot/s and Kp pulls the rest back, so the profile should hold, but the first unwrap
-         * after this change is worth a look at {@code Turret/Voltage} and {@code
-         * Turret/VelocityRotPerSec}.
+         * <p>At 0.25 rot/s a full-turn unwrap took 3.8 s. At 1 rot/s with 2 rot/s2 the same turn
+         * takes about 1.5 s, and the deceleration into the far end is 720 deg/s2 against the 15000
+         * deg/s2 p99 the belt saw in Chezy Q36. Kv is 10 V per rot/s, so the feedforward alone
+         * saturates the 6 V ceiling at cruise; the mechanism needs about 5 V for 1 rot/s and Kp
+         * pulls the rest back, so the profile should hold. Watch {@code Turret/Voltage} and {@code
+         * Turret/VelocityRotPerSec} on the first unwrap after this change.
          */
         @Getter private final double mmCruiseVelocity = 1.0;
 
@@ -124,27 +115,23 @@ public class Turret extends Mechanism {
          * Voltage ceiling, applied as +/- through {@code configForwardVoltageLimit} and {@code
          * configReverseVoltageLimit}.
          *
-         * <p>Ran at 8 V for Chezy Q36 (2026-09-19) at the drive team's request and went back to 6
-         * the same night. The ceiling sets how fast an unprofiled PositionVoltage move sprints: the
-         * full-turn winding flips (see resolveTurretAngle) ran 460 to 500 deg/s at 6 V in Q24 and
-         * 650 to 700 deg/s at 8 V in Q36, so each turnaround against the 80 A limit dumped about
-         * twice the energy into the belt, and the belt is believed to have slipped. Acceleration
+         * <p>The ceiling sets how fast an unprofiled PositionVoltage move sprints. The full-turn
+         * winding flips (see resolveTurretAngle) ran 460 to 500 deg/s at 6 V in Q24 and 650 to 700
+         * deg/s at 8 V in Q36, so each turnaround against the 80 A limit dumped about twice the
+         * energy into the belt, and the belt is believed to have slipped. The ceiling cannot be
+         * raised much either: in Q31 the turret stalled at 108.3 deg against the 80 A limit and was
+         * cut after 1.0 s, and more voltage would only have pushed harder into it. Acceleration
          * itself is set by {@link #torqueCurrentLimit}, not by this, and was the same in both
-         * matches (p99 about 41 to 45 rot/s2). Q31 is the other side of the same trade: the turret
-         * stalled at 108.3 deg against the 80 A ceiling and was cut after 1.0 s, and more voltage
-         * would only have pushed harder into it.
+         * matches (p99 about 41 to 45 rot/s2).
          */
         @Getter private final double peakVoltage = 6;
 
         @Getter private final double sensorToMechanismRatio = 39.78;
 
-        /* Sim Configs */
-        @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
-
-        @Getter private final double turretY = Units.inchesToMeters(75); // Horizontal Center
+        @Getter private final double turretX = Units.inchesToMeters(105);
+        @Getter private final double turretY = Units.inchesToMeters(75);
         @Getter private final double length = 1;
 
-        /** Creates a new TurretConfig instance. */
         public TurretConfig() {
             super("Turret", 14, Rio.CANIVORE);
             configPIDGains(0, positionKp, positionKi, 0);
@@ -206,8 +193,6 @@ public class Turret extends Mechanism {
         FIXED_ANGLE,
     }
 
-    // ---- Intake sweep ----
-
     /**
      * While intaking the turret drifts slowly back and forth about its aim, this far each side, one
      * full cycle per period. Slow on purpose: the point is to keep fuel from packing against the
@@ -227,11 +212,7 @@ public class Turret extends Mechanism {
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
-    /**
-     * Sets the wanted state.
-     *
-     * @param state the wanted state
-     */
+
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
@@ -239,8 +220,8 @@ public class Turret extends Mechanism {
     /**
      * Handles the state transition.
      *
-     * <p>No pose gate on the aiming states (removed 2026-09-19): the turret aims from whatever pose
-     * the estimator has, seeded or not, rather than holding at zero until vision trusts it.
+     * <p>No pose gate on the aiming states: the turret aims from whatever pose the estimator has,
+     * seeded or not, rather than holding at zero until vision trusts it.
      */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
@@ -257,8 +238,6 @@ public class Turret extends Mechanism {
     }
 
     private SystemState previousSystemState = SystemState.OFF;
-
-    // ---- Unjam shake ----
 
     /** Half the shake's swing: the turret goes this far each side of where it started. */
     private static final double SHAKE_AMPLITUDE_DEG = 10;
@@ -297,32 +276,29 @@ public class Turret extends Mechanism {
                 shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG));
     }
 
-    // ---- Test-mode pit checks ----
-    //
-    // Three held-to-run checks bound to the pilot D-pad in test mode (see Robot.configureBindings).
-    // They are ordinary turret states, so they run under the same motor config, the same soft
-    // limits, the same stall cut-out and the same Turret/* logging as a match: test mode runs
-    // robotPeriodic() and the CommandScheduler exactly like teleop, because WPILib only disables
-    // the scheduler in test when LiveWindow is enabled there and this robot never enables it.
-    //
-    // None of them touches the robot pose or ShotCalculator, so they are usable on a cart.
-    //
-    // Both moving checks drive the motor through holdDegrees -- PositionVoltage, gain slot 0,
-    // the same request AIM_AT_TARGET uses (with a zero velocity feedforward, there being no target
-    // velocity to feed). NOT Motion Magic. Both were written with setMMPosition first and the
-    // difference is not subtle: on FRC_20260919_180624, 163.2 to 177.0 s, the follow check pinned
-    // at 89.7 deg/s -- exactly the 0.25 rot/s mmCruiseVelocity -- and never asked for more than
-    // 2.51 V of its 6 V ceiling, while AIM_AT_TARGET in the P8 match log runs p90 135 deg/s, p99
-    // 385, and uses the full 6.11 V. The profile was throwing away more than half the authority
-    // the mechanism had. Mechanism.setPositionWithVelocity's own javadoc says as much: profiling
-    // introduces steady-state lag on a moving setpoint, which is what these checks track.
-    //
-    // The consequence for the sweep is real and deliberate: it now crosses the travel at teleop
-    // speed rather than at a profiled 90 deg/s, so it reaches the turnaround fast. That is the
-    // point -- it is meant to be the same mechanism behaviour a match sees -- but it is also the
-    // one place here where "same as teleop" costs something, because teleop's own full-travel
-    // move, the cable unwrap in applyAimAtTarget, is profiled for exactly that reason. If the
-    // turnarounds look violent, this is the line to change, not the gains.
+    /*
+     * Three held-to-run checks bound to the pilot D-pad in test mode (see Robot.configureBindings).
+     * They are ordinary turret states, so they run under the same motor config, the same soft
+     * limits, the same stall cut-out and the same Turret/* logging as a match. Test mode runs
+     * robotPeriodic() and the CommandScheduler exactly like teleop, because WPILib only disables
+     * the scheduler in test when LiveWindow is enabled there and this robot never enables it. None
+     * of the three touches the robot pose or ShotCalculator, so they are usable on a cart.
+     *
+     * Both moving checks drive the motor through holdDegrees: PositionVoltage, gain slot 0, the
+     * same request AIM_AT_TARGET uses with a zero velocity feedforward, not Motion Magic. The
+     * difference is not subtle. On FRC_20260919_180624, 163.2 to 177.0 s, the follow check pinned
+     * at 89.7 deg/s, exactly the 0.25 rot/s mmCruiseVelocity, and never asked for more than 2.51 V
+     * of its 6 V ceiling, while AIM_AT_TARGET in the P8 match log runs p90 135 deg/s, p99 385, and
+     * uses the full 6.11 V. Mechanism.setPositionWithVelocity's own javadoc says as much: profiling
+     * introduces steady-state lag on a moving setpoint, which is what these checks track.
+     *
+     * The consequence for the sweep is deliberate. It crosses the travel at teleop speed, not at
+     * a profiled 90 deg/s, so it reaches the turnaround fast. That is the point, to be the same
+     * mechanism behaviour a match sees, but it is also the one place here where "same as teleop"
+     * costs something, because teleop's own full-travel move, the cable unwrap in applyAimAtTarget,
+     * is profiled for exactly that reason. If the turnarounds look violent, change the line in
+     * applyTestSweepLimits, not the gains.
+     */
 
     /** Lowest soft limit of the travel, in degrees. */
     private double minLimitDegrees() {
@@ -342,10 +318,8 @@ public class Turret extends Mechanism {
      * whatever the exact degrees-per-tx scale is. That matters here: the turret camera is pitched
      * about 29 deg up, so a degree of {@code tx} is not quite a degree of turret azimuth. Writing
      * the law this way means the scale only has to be roughly right, not known: convergence needs
-     * {@code 0 < TEST_FOLLOW_KP * scale < 2}, and the scale is somewhere near 1.
-     *
-     * <p>Was 0.5, which halved the commanded step every loop for no reason -- the inner position
-     * loop is what should be doing the work. 1.0 means "point where the tag is".
+     * {@code 0 < TEST_FOLLOW_KP * scale < 2}, and the scale is somewhere near 1. 1.0 means point
+     * where the tag is.
      */
     private static final double TEST_FOLLOW_KP = 1.0;
 
@@ -355,7 +329,7 @@ public class Turret extends Mechanism {
      * <p>Deliberately built on the camera's own bearing to the tag ({@code tx}) rather than on a
      * field-relative aim: no pose, no alliance, no tag map, no {@link ShotCalculator}. Put a tag in
      * front of the robot on a cart and the turret should follow it. What it checks is the half of
-     * the aiming chain the shot depends on and the pose cannot vouch for -- that the camera, the
+     * the aiming chain the shot depends on and the pose cannot vouch for: that the camera, the
      * turret's zero and the gearbox agree on which way is which, and by how much.
      *
      * <p>With no tag in view the turret holds its last command rather than falling back to zero, so
@@ -402,10 +376,10 @@ public class Turret extends Mechanism {
     /**
      * How long one leg may take before the sweep turns around anyway.
      *
-     * <p>The full 381 deg of travel is about 1.5 s at the 1 rot/s Motion Magic cruise, and the
-     * sweep runs unprofiled and is faster still, so this is many times the honest worst case. It
-     * exists so a turret that meets an obstacle mid-sweep backs off instead of leaning on it: the
-     * check is meant to be run with people near the robot.
+     * <p>The full travel is under two seconds at the 1 rot/s Motion Magic cruise, and the sweep
+     * runs unprofiled and is faster still, so this is many times the honest worst case. It exists
+     * so a turret that meets an obstacle mid-sweep backs off instead of leaning on it: the check is
+     * meant to be run with people near the robot.
      */
     private static final double TEST_SWEEP_LEG_TIMEOUT_SECS = 20.0;
 
@@ -417,8 +391,8 @@ public class Turret extends Mechanism {
      * held.
      *
      * <p>This is the travel check: it shows the whole envelope is reachable, that nothing in the
-     * cable path binds at either end, and -- read against {@code Turret/TravelTotalDeg} and the
-     * reported angle at each end -- whether the belt is giving up teeth. The first leg goes to
+     * cable path binds at either end, and, read against {@code Turret/TravelTotalDeg} and the
+     * reported angle at each end, whether the belt is giving up teeth. The first leg goes to
      * whichever limit is further away, so the long run happens while somebody is still watching.
      *
      * <p>A leg that stalls or times out turns around rather than pushing. Reversing is also exactly
@@ -458,14 +432,12 @@ public class Turret extends Mechanism {
         holdDegrees(target);
     }
 
-    // Whether the turret is unwrapping to avoid wire wrap.
+    /** True while the turret is unwrapping to avoid wire wrap. */
     @Getter private boolean unwrapping = false;
 
     @Getter private int unwrapTargetN = 0;
     @Getter private double commandedDegrees = 0;
     @Getter private double mechOmegaRotPerSec = 0;
-
-    // -- Turret angle history ---------------------------------------------------------------------
 
     /** How far back a turret angle can be looked up. Vision frames are at most a few tenths old. */
     private static final double ANGLE_HISTORY_SECONDS = 2.0;
@@ -545,7 +517,6 @@ public class Turret extends Mechanism {
         return Math.max(Math.abs(mechOmegaRotPerSec), Math.abs(getVelocityRPM() / 60.0));
     }
 
-    /** Applies the states. */
     private void applyStates() {
         switch (systemState) {
             case OFF:
@@ -598,11 +569,6 @@ public class Turret extends Mechanism {
         fixedAngleDegrees = degrees;
     }
 
-    /**
-     * Creates a new Turret instance.
-     *
-     * @param config the config
-     */
     public Turret(TurretConfig config) {
         super(config);
         this.config = config;
@@ -611,30 +577,6 @@ public class Turret extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
-
-    /*
-     * ZERO_REFERENCE_DEGREES is gone (2026-09-19). It held the reported mechanism angle with the
-     * turret parked at its true zero, so seedFromZeroReference() could undo Phoenix 6 initialising
-     * the position register from the rotor's absolute angle, and the correction was wrapped into
-     * one 9.05 deg rotor turn.
-     *
-     * <p>Two things killed it. It went stale: pinned boots read 0.703 twice in the morning, then
-     * 0.176, then 4.658 on the Chezy Q31 boot (the match with a 110.9 A turret stall), then 2.461
-     * and 2.373 in the evening. A constant that assumes a fixed rotor-to-turret relationship is
-     * meaningless once that relationship steps. And the wrap made a near-miss dangerous: a seed
-     * landing within a degree of the 4.52 deg half-turn was a coin flip between right and 9.05 deg
-     * wrong, silently.
-     *
-     * <p>The turret is pinned at zero for every power cycle, so the honest statement of that is
-     * setPosition(0): no constant to go stale, no rotor-turn ambiguity. The cost is that the
-     * assumption is now unbounded -- an unpinned power cycle declares wherever it sits to be zero,
-     * where the old code was at least wrong by no more than half a rotor turn. pinnedAssumptionAlert
-     * puts that in front of the pit crew on every seeded boot.
-     *
-     * <p>Backlash sets the floor either way: rocking the pinned turret by hand on 2026-09-19 swept
-     * 1.41 deg (1.32 to 2.72) with the motor unpowered, so the zero is never better than +/-0.7 deg
-     * however it is established.
-     */
 
     /** How long to wait at boot for the first position frame off the CAN bus. */
     private static final double BOOT_SIGNAL_TIMEOUT_SECONDS = 0.25;
@@ -646,28 +588,27 @@ public class Turret extends Mechanism {
      * Puts the turret's zero back where it belongs at code start.
      *
      * <p>Phoenix 6 seeds the position register from the rotor's absolute position at power-on, not
-     * from zero -- "The Talon FX and CANcoder sensors are always initialized to their absolute
+     * from zero: "The Talon FX and CANcoder sensors are always initialized to their absolute
      * position in Phoenix 6" (CTRE's Phoenix 5 to 6 migration guide). One rotor turn is 360 / 39.78
      * = 9.05 deg of turret, so the turret comes up reading somewhere in that 9 deg band, set by
-     * wherever the rotor magnet happened to stop, and never at 0. That is the whole reason shots
-     * used to leave by a constant angle that changed between runs.
+     * wherever the rotor magnet happened to stop, and never at 0.
      *
      * <p>The turret is pinned at its zero for every power cycle, so the answer is simply to write
      * 0: whatever the rotor absolute happened to be, the turret is at zero, and that is the frame
-     * everything downstream wants. This replaced a measured reference constant that was subtracted
-     * and wrapped into one rotor turn -- see the note above the boot-zero section for why that went
-     * stale and why the wrap was dangerous.
+     * everything downstream wants.
      *
-     * <p>The assumption is load-bearing and unbounded: if the turret was <b>not</b> pinned, this
+     * <p>The assumption is load-bearing and unbounded. If the turret was <b>not</b> pinned, this
      * declares wherever it sat to be zero, and every aim and both soft limits inherit that error.
-     * {@link #pinnedAssumptionAlert} says so on every seeded boot.
+     * {@link #pinnedAssumptionAlert} says so on every seeded boot. Backlash sets the floor either
+     * way: rocking the pinned turret by hand on 2026-09-19 swept 1.41 deg (1.32 to 2.72) with the
+     * motor unpowered, so the zero is never better than +/-0.7 deg however it is established.
      *
      * <p>It must therefore run only after a real power cycle. A code restart or a roboRIO reboot
      * leaves the Talon's count intact and correct, and re-seeding then would throw a good zero away
-     * (2026-09-19: the seed ran on every code start, and a deploy with the turret at 150 deg would
-     * have told it it was at zero). Two signals separate the cases, see {@link #decideBootZero}: a
-     * raw reading outside the band a power-on can produce, and a raw reading that matches the
-     * position persisted by {@link #persistRawPosition} to the quarter degree.
+     * (a deploy with the turret at 150 deg would otherwise tell it it was at zero). Two signals
+     * separate the cases, see {@link #decideBootZero}: a raw reading outside the band a power-on
+     * can produce, and a raw reading that matches the position persisted by {@link
+     * #persistRawPosition} to the quarter degree.
      */
     private void seedFromZeroReference() {
         if (!isAttached()) {
@@ -716,8 +657,6 @@ public class Turret extends Mechanism {
                         bootPositionDegrees));
         pinnedAssumptionAlert.set(true);
     }
-
-    // -- Boot zero: power cycle or code restart? -----------------------------------------------
 
     /**
      * Where the last known raw Talon position is kept between code starts. On the rio this is
@@ -849,7 +788,6 @@ public class Turret extends Mechanism {
                 });
     }
 
-    /** Runs the periodic update. */
     @Override
     public void periodic() {
         recordAngleSample();
@@ -981,28 +919,16 @@ public class Turret extends Mechanism {
         lastTravelPositionDegrees = position;
     }
 
-    // -- Reading guard ---------------------------------------------------------------------------
-
     /**
      * Largest believable change in the reported angle between two guarded samples with the turret
      * standing still, in degrees.
      *
      * <p>This is the fixed part of the step budget; {@link #positionStepBudgetDegrees} adds what
-     * the velocity signal says the turret actually moved in the time since the last sample. Until
-     * 2026-09-19 (Chezy Q50) the 15 deg stood alone and was compared loop to loop as if every loop
-     * were 20 ms. It is not: Q50 ran 282 of its 7979 enabled loops over 30 ms, 34 over 45 ms and
-     * one at 80 ms mid-auto, and the turret was slewing at 0.8 to 1.27 rot/s (290 to 460 deg/s), so
-     * a single slow loop carried 15 to 23 deg of real motion. The guard rejected it, and from then
-     * on every fresh reading was even further from the held angle, so it stayed rejected until the
-     * 10-loop acceptance "re-framed" the turret by 50 to 108 deg five times in the match (220.6,
-     * 220.9, 301.9, 314.1 and 346.9 s), each one a false alarm that also blanked {@code
-     * TurretOnTarget} for 12 s of launch time. Q36 had the same three times at 8 V.
-     *
-     * <p>Fifteen still clears any residual sample jitter with margin and is more than a decade
-     * below what this exists to catch: on the 2026-09-19 pit log (FRC_20260919_150646, 162.68 s)
-     * the reported angle went from -0.09 to 289.42 deg between two consecutive loops with the
-     * turret barely moving, and the controller drove 235 deg of real motion into a hard stop on the
-     * strength of that one sample.
+     * the velocity signal says the turret actually moved in the time since the last sample. The
+     * figure has to be a step the mechanism cannot take, and what it exists to catch is not subtle:
+     * on the 2026-09-19 pit log (FRC_20260919_150646, 162.68 s) the reported angle went from -0.09
+     * to 289.42 deg between two consecutive loops with the turret barely moving, and the controller
+     * drove 235 deg of real motion into a hard stop on the strength of that one sample.
      */
     private static final double MAX_POSITION_STEP_DEGREES = 15.0;
 
@@ -1073,8 +999,8 @@ public class Turret extends Mechanism {
      * Validates this loop's reported angle, once per loop.
      *
      * <p>Keyed on the loop counter rather than the scheduler, the same way {@link
-     * #recordAngleSample()} is, so Vision -- which runs before {@code CommandScheduler.run()} --
-     * gets this loop's decision rather than the previous one's.
+     * #recordAngleSample()} is, so Vision, which runs before {@code CommandScheduler.run()}, gets
+     * this loop's decision rather than the previous one's.
      */
     private void updatePositionGuard() {
         long loop = RobotLoop.count();
@@ -1094,9 +1020,9 @@ public class Turret extends Mechanism {
 
         // What the turret could honestly have moved since the last sample: the fixed allowance
         // plus the velocity signal's travel over the time that actually elapsed, so a slow loop
-        // during a fast slew widens the budget instead of tripping it (Q50, see
-        // MAX_POSITION_STEP_DEGREES). Velocity is in the same status frame as position, so a
-        // re-framed position register does not bring a matching velocity with it.
+        // during a fast slew widens the budget instead of tripping it. Velocity is in the same
+        // status frame as position, so a re-framed position register does not bring a matching
+        // velocity with it.
         if (Double.isNaN(dt)) {
             dt = POSITION_STEP_MIN_DT_SECONDS;
         }
@@ -1117,7 +1043,7 @@ public class Turret extends Mechanism {
         // Too big to be motion. Count it only while the reading keeps insisting on the same new
         // value; a reading that wanders is noise starting over, not a re-framed encoder. The same
         // budget applies, so a turret that keeps slewing while held does not reset the count every
-        // slow loop (the 349 ms hold at Q50 346.5 s).
+        // slow loop.
         if (positionStepLoops > 0 && Math.abs(raw - positionStepCandidateDegrees) <= budget) {
             positionStepLoops++;
         } else {
@@ -1153,8 +1079,8 @@ public class Turret extends Mechanism {
     /**
      * This loop's turret angle, with impossible one-loop steps held out.
      *
-     * <p>Overrides the mechanism's raw reading so everything downstream -- the aim, the soft limit
-     * arithmetic in {@link #resolveTurretAngle}, the shot gate, travel, and Vision's zero chaser --
+     * <p>Overrides the mechanism's raw reading so everything downstream, the aim, the soft limit
+     * arithmetic in {@link #resolveTurretAngle}, the shot gate, travel and Vision's zero chaser,
      * sees one consistent angle rather than each making its own decision about whether to trust it.
      *
      * @return the guarded turret angle in degrees
@@ -1196,8 +1122,6 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/AngleOutsideEnvelope", outside);
     }
 
-    // -- Stall protection ------------------------------------------------------------------------
-
     /**
      * Fraction of {@code torqueCurrentLimit} that counts as pinned against the ceiling.
      *
@@ -1210,7 +1134,7 @@ public class Turret extends Mechanism {
     /** Below this the turret is not turning. Tracking a target never reads this low for long. */
     private static final double STALL_VELOCITY_ROT_PER_SEC = 0.02;
 
-    /** How long pinned-and-stopped must hold before the output is cut. 1.0 s until 2026-09-25. */
+    /** How long pinned-and-stopped must hold before the output is cut. */
     private static final double STALL_SECONDS = 2.0;
 
     /** How far the other way the turret must be asked to go before the latch releases. */
@@ -1231,8 +1155,8 @@ public class Turret extends Mechanism {
      * Cuts the turret's output once it has been pinned at its current ceiling and not turning for
      * {@link #STALL_SECONDS}.
      *
-     * <p>On 2026-09-19 the turret sat at 80 A stator with zero velocity for 6.8 s -- about -2.1 V
-     * applied, 14.3 A off the battery -- against a hard stop, and nothing in the code stopped it.
+     * <p>On 2026-09-19 the turret sat at 80 A stator with zero velocity for 6.8 s, about -2.1 V
+     * applied and 14.3 A off the battery, against a hard stop, and nothing in the code stopped it.
      * That is heat into the belt and the gearbox for as long as the state machine keeps asking, and
      * this belt has skipped teeth at this current before.
      */
@@ -1293,7 +1217,6 @@ public class Turret extends Mechanism {
         return false;
     }
 
-    /** Releases the stall latch and its alert. */
     private void clearStallLatch() {
         stallLatched = false;
         stallDebouncer.calculate(false);
@@ -1318,23 +1241,22 @@ public class Turret extends Mechanism {
         setPosition(() -> degreesToRotations(() -> degrees));
     }
 
-    /** Applies the aim at target. */
     /**
      * Holds the set shot's angle, taking the short way round and profiling the long way.
      *
-     * <p>Until 2026-09-19 this clamped {@code fixedAngleDegrees} and commanded it raw under
-     * PositionVoltage. The set shots ask for -180, and from +138 deg that is 318 deg the long way
-     * instead of 42 the short way: Chezy Q36 (FRC_20260919_232619) has eight such sprints, 640 to
-     * 660 deg/s at 8 V and up to 97 A, and at 438.2 s the button toggled twice in 0.2 s and
-     * reversed the turret mid-sprint. Q24 has the same at 6 V (321.1 s, 95 A).
+     * <p>The set shots ask for -180, and from +138 deg that is 318 deg the long way instead of 42
+     * the short way. Commanding it raw under PositionVoltage sprints the whole way: Chezy Q36
+     * (FRC_20260919_232619) has eight such sprints at 640 to 660 deg/s and 8 V with up to 97 A, and
+     * at 438.2 s the button toggled twice in 0.2 s and reversed the turret mid-sprint. Q24 has the
+     * same at 6 V (321.1 s, 95 A).
      *
-     * <p>Now the angle goes through {@link #resolveTurretAngle} like an aim does, so it lands on
-     * the nearest equivalent winding the travel allows, and a move longer than {@code
-     * longMoveDegrees} is latched as an unwrap: Motion Magic, with {@link #isReadyToShoot()} held
-     * false until the turret is within {@code unwrapExitMargin}, so no fuel feeds mid-slew. A short
-     * move keeps the PositionVoltage path, which is what a set shot wants once it is close. The
-     * latch is not cleared on entry any more, so it also survives a bounce back to AIM_AT_TARGET
-     * and the return leg is profiled too.
+     * <p>The angle goes through {@link #resolveTurretAngle} like an aim does, so it lands on the
+     * nearest equivalent winding the travel allows, and a move longer than {@code longMoveDegrees}
+     * is latched as an unwrap: Motion Magic, with {@link #isReadyToShoot()} held false until the
+     * turret is within {@code unwrapExitMargin}, so no fuel feeds mid-slew. A short move keeps the
+     * PositionVoltage path, which is what a set shot wants once it is close. The latch is not
+     * cleared on entry, so it also survives a bounce back to AIM_AT_TARGET and the return leg is
+     * profiled too.
      */
     private void applyFixedAngle() {
         mechOmegaRotPerSec = 0;
@@ -1430,17 +1352,11 @@ public class Turret extends Mechanism {
         // While unwrapping, hold the committed winding until we physically arrive, so the direction
         // can't flip mid-slew as the current position crosses the halfway point.
         //
-        // Arrival is the ONLY exit. Until 2026-09-19 this also cleared when nMin == nMax, on the
-        // reasoning that a target with one reachable winding needs no commitment. But the flag is
-        // also what selects Motion Magic over PositionVoltage in applyAimAtTarget, and with 381 deg
-        // of travel the two-winding band is only 21 deg wide, so a moving target leaves it within
-        // a few loops of the unwrap starting. On Chezy Q36 (FRC_20260919_232619, 374.46 s) the
-        // unwrap triggered at +168 deg, held for four loops, cleared at +180 with the target at
-        // -178, and the remaining 358 deg ran unprofiled at 8 V: 660 deg/s into the far stop at
-        // 73 A. That was the story at 21 of the 26 full-turn flips in the match, and it is the
-        // leading suspect for the belt slip. With nMin == nMax the clamp below already forces the
-        // only winding there is; what the latch adds is that the move stays profiled until it is
-        // within unwrapExitMargin.
+        // Arrival is the only exit. The latch is also what selects Motion Magic over
+        // PositionVoltage in applyAimAtTarget, and the two-winding band in a travel this size is
+        // narrow, so a moving target leaves it within a few loops of the unwrap starting. With
+        // nMin == nMax the clamp below already forces the only winding there is; what the latch
+        // adds is that the move stays profiled until it is within unwrapExitMargin.
         if (unwrapping) {
             int nTarget = Math.max(nMin, Math.min(unwrapTargetN, nMax));
             chosen = desiredMechDegrees + nTarget * 360.0;
@@ -1517,10 +1433,6 @@ public class Turret extends Mechanism {
                 .withName("Turret.coastMode");
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    /** Simulation init. */
     private void simulationInit() {
         if (isAttached()) {
             sim = new TurretSim(RobotSim.topView, motor);
@@ -1528,12 +1440,6 @@ public class Turret extends Mechanism {
     }
 
     class TurretSim extends ArmSim {
-        /**
-         * Creates a new TurretSim instance.
-         *
-         * @param mech the mech
-         * @param motor the motor
-         */
         public TurretSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new ArmConfig(

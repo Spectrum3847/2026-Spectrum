@@ -1,92 +1,137 @@
-# Arrays
+# Arrays and enums
 
-*Audience: New programmers. Assumes you've read [Logic-Based Operators & Strings](logic-operators.md).*
+*Audience: New programmers. Assumes you've read [Logic operators and strings](logic-operators.md).*
 
-An array holds a fixed number of values of the same type, indexed starting at zero. You declare the type, then the name, with `[]` after the type to signal it's an array.
+The examples on this page are invented, not taken from this robot's code.
+
+## Arrays
+
+An array holds a fixed number of values, all of the same type. Counting starts at zero, so the
+first value is at index 0.
 
 ```java
-int[] x = {3, 8, 4, 7};
-// x[0] is 3, x[1] is 8, x[2] is 4, x[3] is 7
+double[] prices = {3.50, 8.00, 4.25, 7.00};
+// prices[0] is 3.50, prices[1] is 8.00, prices[2] is 4.25, prices[3] is 7.00
 ```
 
-The size is fixed at creation. Once you create an `int[4]`, it holds exactly four ints for its lifetime. If you need a resizable list, Java has `ArrayList`, but for most robot code, fixed arrays are fine.
+The size is decided when you create the array and never changes. A four element array holds exactly
+four values for the rest of its life. If you need a number of values you do not know yet, use an
+`ArrayList` instead.
 
-## Declaring and Initializing
-
-You can declare an array and fill it in one line (as above), or declare it first and initialize separately:
+You can also create the array empty and fill it in afterward. Every value starts at `0.0` for a
+`double` array, and at `null` for an array of objects.
 
 ```java
-double[] positions = new double[4];   // four doubles, all initialized to 0.0
-positions[0] = 1.5;
-positions[1] = 2.3;
-// etc.
+double[] prices = new double[4];   // four doubles, all 0.0
+
+prices[0] = 3.50;
+prices[1] = 8.00;
 ```
 
-In `Vision.java`, the April tag IDs for each alliance are stored as int arrays:
+The `[]` goes after the type, not after the name. `double prices[]` is the old style and you will
+not see it in this codebase.
+
+### Fixed array or ArrayList
+
+An `ArrayList` grows and shrinks as you add and remove. An array cannot, so adding one more value
+means building a new, larger array and copying everything across.
 
 ```java
-int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
-int[] redTags  = {2, 3, 4, 5, 8, 9, 10, 11, 12};
+import java.util.ArrayList;
+
+ArrayList<String> names = new ArrayList<>();
+names.add("Ada");
+names.add("Alan");
+names.add("Grace");
+
+names.size();   // 3
 ```
 
-Arrays of objects work the same way. `Vision.java` groups its three Limelights:
+Use an array when the count is known and unlikely to change, such as a fixed set of sensor readings
+or a lookup table. Use an `ArrayList` when items come and go.
+
+### Reading every value
+
+The enhanced `for` loop visits each value in turn without you tracking an index. This is the
+clearest way to total up an array.
 
 ```java
-allLimelights = new Limelight[] {backLL, leftLL, rightLL};
+double[] prices = {3.50, 8.00, 4.25, 7.00};
+
+double total = 0;
+for (double price : prices) {
+    total += price;
+}
+// total is 22.75
 ```
 
-Once that array exists, a single enhanced `for` loop can update all three:
+Use the enhanced form when you do not need the index. When you do need it, write the plain form,
+where `i` counts from 0 to one less than the length.
 
 ```java
-for (Limelight limelight : allLimelights) {
-    limelight.setRobotOrientation(yaw);
+double[] prices = {3.50, 8.00, 4.25, 7.00};
+
+for (int i = 0; i < prices.length; i++) {
+    System.out.println(i + " costs " + prices[i]);
 }
 ```
 
-`Swerve` uses a `double[4]` to collect per-module positions for wheel-radius characterization:
-
-```java
-double[] positions = new double[4];
-for (int i = 0; i < 4; i++) {
-    positions[i] = swerve.getModule(i).getCachedPosition().distanceMeters / wheelRadiusGuess;
-}
-```
-
-See [Loops](loops.md) for more on the `for` patterns used with arrays.
+Arrays of objects work the same way. Put the type name where the primitive type would go. See
+[Classes, methods, and objects](classes-methods-objects.md) for what those objects are.
 
 ## Enums
 
-Enums define a fixed set of named constants, and they're far more common in this codebase than raw arrays. Every mechanism's operating modes are expressed as enum values. `State.java` defines the top-level robot states:
+An enum is a named list of the only values something is allowed to have. It replaces a bare number
+or a magic string that only means something if you already know the code.
 
 ```java
-public enum State {
-    IDLE,
-    INTAKE_FUEL,
-    TRACK_TARGET,
-    LAUNCH_WITH_SQUEEZE,
-    LAUNCH_WITHOUT_SQUEEZE,
-    UNJAM,
-    // ...
+enum Size {
+    SMALL,
+    MEDIUM,
+    LARGE
 }
+
+Size size = Size.MEDIUM;
 ```
 
-Enums are useful wherever you'd otherwise use a magic string or integer to represent a category. A `switch` on an enum is cleaner than a chain of `if/else` comparisons, and the compiler catches typos because only declared values exist:
+Because only the declared values exist, a `switch` on an enum can be checked by the compiler. A
+typo is a build error rather than a bug you find during a match.
 
 ```java
-switch (state) {
-    case TRACK_TARGET -> true;
-    default -> false;
-}
+boolean isBig = switch (size) {
+    case SMALL -> false;
+    case MEDIUM -> false;
+    case LARGE -> true;
+};
+// isBig is false
 ```
 
-For how this pattern fits into subsystem design, see [Class Generation](../coding-conventions/class-generation.md).
+An enum is a good fit anywhere you would otherwise be passing around a number or a string and
+hoping everyone agrees what it means. See [Classes, methods, and objects](classes-methods-objects.md)
+for how one usually sits inside a class.
 
-## Array Errors
+## Two errors you will hit
 
-`ArrayIndexOutOfBoundsException`: you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
+**`ArrayIndexOutOfBoundsException`.** You asked for an index that does not exist. In a four element
+array the valid indexes are 0 through 3, so index 4, or any negative index, throws this. It only
+throws at runtime, so the compiler will not catch it for you.
 
-`NullPointerException`: you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
+```java
+double[] prices = {3.50, 8.00};
+
+System.out.println(prices[0]);   // 3.50
+System.out.println(prices[2]);   // throws ArrayIndexOutOfBoundsException
+```
+
+**`NullPointerException`.** You asked a `null` to do something. A slot in a new array of objects
+holds `null` until you put something in it, and calling a method on `null` throws straight away.
+
+```java
+String[] names = new String[3];
+
+System.out.println(names[0].length());   // throws NullPointerException
+```
 
 ---
 
-*Previous: [Logic-Based Operators & Strings](logic-operators.md). Next: [Loops](loops.md)*
+*Previous: [Logic operators and strings](logic-operators.md). Next: [Loops](loops.md)*

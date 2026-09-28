@@ -22,11 +22,11 @@ import lombok.Getter;
 /**
  * Maps one wanted robot state onto every mechanism's wanted state each loop.
  *
- * <p>Deliberately not a {@code Subsystem}: {@link frc.robot.Robot#robotPeriodic()} calls {@link
+ * <p>Deliberately not a {@code Subsystem}. {@link frc.robot.Robot#robotPeriodic()} calls {@link
  * #periodic()} exactly once per loop, before {@code CommandScheduler.run()}, so a state decision
  * reaches the mechanism periodics in the same loop instead of one loop later. It must never be
- * registered with the scheduler, because the edge detection on {@code previousSuperState} and the
- * squeeze timer assume {@code periodic()} runs exactly once per loop.
+ * registered with the scheduler: the edge detection on {@code previousSuperState} and the squeeze
+ * timer both assume {@code periodic()} runs exactly once per loop.
  */
 public class SuperStructure {
 
@@ -101,18 +101,7 @@ public class SuperStructure {
     @Getter private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
     @Getter private CurrentSuperState currentSuperState = CurrentSuperState.IDLE;
     private CurrentSuperState previousSuperState = CurrentSuperState.IDLE;
-    /**
-     * Creates a new SuperStructure instance.
-     *
-     * @param swerve the swerve
-     * @param fuelIntake the fuelIntake
-     * @param intakeExtension the intakeExtension
-     * @param dyeRotor the dyeRotor
-     * @param launcher the launcher
-     * @param launcherTower the launcherTower
-     * @param turret the turret
-     * @param hood the hood
-     */
+
     public SuperStructure(
             Swerve swerve,
             FuelIntake fuelIntake,
@@ -137,33 +126,25 @@ public class SuperStructure {
     /**
      * How long a launch runs fully extended before the extensions start agitating.
      *
-     * <p>Defaults to zero: agitate now backs off on stator current, so it pulls a short stroke and
+     * <p>Defaults to zero, so the agitate starts with the launch: it pulls a short stroke and
      * pushes back out as soon as it meets fuel instead of squeezing the bed at the 80 A stator
-     * limit, and it can start with the launch the way 4414 runs it. The old 40% to 70% squeeze
-     * needed a 2 s delay so a full hopper could draw down first; in the 2026-09-05 17:10 log both
-     * extensions sat at their limit for whole launches with that squeeze.
-     *
-     * <p>Tunable from NetworkTables so a delay can be put back during a session without a redeploy.
+     * limit, so it does not need a delay to let a full hopper draw down first. Tunable from
+     * NetworkTables so a delay can be put back during a session without a redeploy.
      */
     private static final DoubleSubscriber secondsToSqueeze =
             Telemetry.tunable("SuperStructure/SecondsToSqueeze", 0.0);
 
     /**
-     * Picks the extension state for the not-intaking states. In our alliance zone, where we can
-     * launch, agitate the extension (if intaking sent it out) so the fuel is loose and ready to
-     * feed, and pull it in once it comes free. Elsewhere fall back to the given state.
+     * Picks the extension state for the not-intaking states. In our own alliance zone, where we can
+     * launch, agitate the extension if intaking sent it out, so the fuel is loose and ready to
+     * feed, and pull it in once it comes free. Anywhere else, fall back to the given state.
      */
     private IntakeExtension.WantedState agitateInScoreZoneElse(
             IntakeExtension.WantedState otherwise) {
         return isRobotInFeedZone() ? otherwise : IntakeExtension.WantedState.CONDITIONAL_AGITATE;
     }
 
-    /**
-     * Returns {@code true} if the current super state is one of the launch states.
-     *
-     * @return {@code true} when the current super state is a launch-with-squeeze,
-     *     launch-without-squeeze, or launch-with-brake state
-     */
+    /** True when the current super state is one that feeds the flywheel. */
     public boolean currentStateIsLaunching() {
         return currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY
@@ -175,11 +156,9 @@ public class SuperStructure {
     }
 
     /**
-     * Returns {@code true} if the current super state is an intake state or a launch-without-
-     * squeeze state (the launch-without-squeeze states are included intentionally).
-     *
-     * @return {@code true} when the current super state is an intake or launch-without-squeeze
-     *     state
+     * True when the current super state is an intake state, or a launch-without-squeeze state. The
+     * launch-without-squeeze states are included on purpose: those keep the roller and the
+     * extension out.
      */
     public boolean currentStateIsIntaking() {
         return isIntakingState(currentSuperState);
@@ -192,7 +171,6 @@ public class SuperStructure {
                 || state == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE;
     }
 
-    /** Runs the periodic update. Called once per loop from {@code Robot.robotPeriodic()}. */
     public void periodic() {
         currentSuperState = handleStateTransitions();
 
@@ -220,30 +198,26 @@ public class SuperStructure {
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
     }
 
-    // ── Feeder gating ──────────────────────────────────────────────────────────
-    //
-    // Fuel only reaches the flywheel while the gate is open, so a shot is never fed while the
-    // turret is mid-unwrap, the hood has not reached its angle, or the flywheel has not spun up.
-    // In the 2026-09-04 shooting log the turret slewed a full 360 deg mid-burst at 101 s while
-    // fuel kept feeding; those balls went anywhere.
-    //
-    // The gate is hysteretic. Starting a feed uses each mechanism's own strict tolerance, after a
-    // short debounce; continuing a feed uses wider tolerances, because every ball loads the
-    // flywheel and a gate that had to re-satisfy the strict window between balls would chop the
-    // feed on and off several times a second. Only the unwrap clause is never relaxed.
-    //
-    // Range is deliberately not part of the keep-feeding condition. ShotCalculator's validity flag
-    // is derived from the pose estimate, which is noisy enough that a single bad frame mid-burst
-    // would chop the feed -- exactly what the wider tolerances exist to prevent.
-    //
-    // Range is also skipped entirely while the pose cannot be trusted. Without an accepted vision
-    // estimate the distance ShotCalculator reports is whatever odometry was seeded with, so the
-    // range check is not measuring anything. In the 2026-09-05 16:52 system check that number sat
-    // at 13.006 m for the whole session with SecondsSinceVision at infinity; it fell outside the
-    // feed model's fitted range, so the gate held the feed for all 275 launching loops and the dye
-    // rotor never indexed a single ball. The mechanism tolerances still gate the shot in that
-    // case; only the meaningless term drops out.
-
+    /*
+     * Feeder gating. Fuel only reaches the flywheel while the gate is open, so a shot is never fed
+     * while the turret is mid-unwrap, the hood has not reached its angle, or the flywheel has not
+     * spun up. A turret that slewed a full 360 deg mid-burst while fuel kept feeding sent those
+     * balls anywhere.
+     *
+     * The gate is hysteretic. Starting a feed uses each mechanism's own strict tolerance, after a
+     * short debounce; continuing a feed uses wider tolerances, because every ball loads the
+     * flywheel and a gate that had to re-satisfy the strict window between balls would chop the
+     * feed on and off several times a second. Only the unwrap clause is never relaxed.
+     *
+     * Range is deliberately not part of the keep-feeding condition. ShotCalculator's validity flag
+     * comes from the pose estimate, which is noisy enough that a single bad frame mid-burst would
+     * chop the feed, which is exactly what the wider tolerances exist to prevent.
+     *
+     * Range is also skipped entirely while the pose cannot be trusted. Without an accepted vision
+     * estimate the distance ShotCalculator reports is whatever odometry was seeded with, so the
+     * range check is not measuring anything. The mechanism tolerances still gate the shot in that
+     * case; only the meaningless term drops out.
+     */
     /** Consecutive loops all strict predicates must hold before feeding starts. */
     private static final int SHOT_READY_DEBOUNCE_LOOPS = 3;
 
@@ -275,15 +249,15 @@ public class SuperStructure {
     /**
      * Feeder states used while the gate is closed.
      *
-     * <p>The dye rotor holds at {@code IDLE_SLOW_INDEX}, whose feeder RPM is 0 — it agitates the
-     * bed without indexing, so it is a true hold.
+     * <p>The dye rotor holds at {@code IDLE_SLOW_INDEX}, whose feeder RPM is 0, so it agitates the
+     * bed without indexing and is a true hold.
      *
      * <p>The launcher tower holds at {@code OFF}, not {@code SLOW_INDEX}. {@code SLOW_INDEX} is
      * 1000 RPM <em>forward</em>, a quarter of {@code INDEX_MAX}; with the tower already full of
      * fuel mid-burst that keeps pushing fuel into the flywheel, which is exactly what the gate
      * exists to prevent. The tower is in brake neutral mode, so {@code OFF} holds fuel in place. If
-     * a bench check shows staged fuel does not reach the flywheel at 1000 RPM, switching this to
-     * {@code SLOW_INDEX} would shorten the delay when the gate opens.
+     * a bench check shows staged fuel does reach the flywheel at 1000 RPM, switching this to {@code
+     * SLOW_INDEX} would shorten the delay when the gate opens.
      */
     private static final LauncherTower.WantedState TOWER_HOLD_STATE = LauncherTower.WantedState.OFF;
 
@@ -306,18 +280,11 @@ public class SuperStructure {
     /**
      * Sets the operator control that bypasses feeder gating while held. Bound once at startup; the
      * supplier is polled every loop.
-     *
-     * @param override true while the operator wants the gates ignored
      */
     public void setFeedOverride(BooleanSupplier override) {
         this.feedOverride = override;
     }
 
-    /**
-     * Returns {@code true} when fuel is allowed into the flywheel this loop.
-     *
-     * @return true when the gate is open or the operator is overriding it
-     */
     public boolean isFeedAllowed() {
         return feedGateOpen || feedOverride.getAsBoolean();
     }
@@ -335,7 +302,7 @@ public class SuperStructure {
         boolean rangeOk = !poseTrusted || shotInRange;
         // The set shot is the deliberate exception to the range check. Range is computed from the
         // pose, and the set shot exists precisely for when there is no pose to compute it from, so
-        // it gets no vote -- the driver has taken responsibility for parking the robot. Speed, hood
+        // it gets no vote; the driver has taken responsibility for parking the robot. Speed, hood
         // angle and the turret still do: the turret has a fixed angle to reach (a half turn for the
         // over-the-intake shots), and fuel fed mid-slew goes anywhere.
         boolean setShot = currentSuperState == CurrentSuperState.SET_SHOT;
@@ -406,7 +373,6 @@ public class SuperStructure {
         }
     }
 
-    /** Handles the state transitions. */
     private CurrentSuperState handleStateTransitions() {
         return switch (wantedSuperState) {
             case IDLE -> Util.autoMode.getAsBoolean() || Util.disabled.getAsBoolean()
@@ -434,7 +400,6 @@ public class SuperStructure {
         };
     }
 
-    /** Applies the states. */
     private void applyStates() {
         switch (currentSuperState) {
             case IDLE:
@@ -500,7 +465,6 @@ public class SuperStructure {
         }
     }
 
-    // ── State methods ──────────────────────────────────────────────────────────
     /**
      * Fixed shot from a known parking spot, for when the pose is gone.
      *
@@ -511,19 +475,16 @@ public class SuperStructure {
      * to the pair of numbers the spot's range works out to. Which spot is {@link
      * ShotCalculator#getSelectedSetShot()}, picked by the pilot binding that requested the state.
      *
-     * <p>The driver does the aiming, by parking the robot against the field element and pointing
-     * the intake where the spot says. For the tower shot (turret at zero) that is intake to the
-     * tower's field-facing wall, then cheating the heading about 5 deg toward the hub: squared up
-     * dead flat is 5.3 deg off, because the tower's centreline follows tag 31 and the hub sits on
-     * the field centreline. That is roughly 29 cm of lateral miss at this range, against a goal
-     * 41.7 in wide on the inside, so it still scores. For the over-the-intake shots (turret at
-     * -180) it is the intake pointed at the hub.
+     * <p>The driver does the aiming, by parking against the field element and pointing the intake
+     * where the spot says. For the tower shot that means the intake pointed at the tower's
+     * field-facing wall, then the heading cheated about 5 deg toward the hub, since squared up dead
+     * flat is 5.3 deg off: the tower's centreline follows tag 31 and the hub sits on the field
+     * centreline. That is about 29 cm of lateral miss at this range against a goal 41.7 in wide on
+     * the inside, so it still scores. The over-the-intake shots are the intake pointed at the hub.
      *
-     * <p>Nothing here checks any of it -- it cannot, that is the whole point -- so the shot is only
-     * as good as the parking.
-     *
-     * <p>Deliberately not a drive-to-pose: a pose good enough to drive to is a pose good enough to
-     * aim with, and the case this exists for is not having one.
+     * <p>Nothing here checks any of that, since it cannot, so the shot is only as good as the
+     * parking. Deliberately not a drive-to-pose: a pose good enough to drive to is a pose good
+     * enough to aim with, and the case this exists for is not having one.
      */
     private void setShot() {
         teleopDrive(true);
@@ -538,7 +499,6 @@ public class SuperStructure {
         applyGatedFeed();
     }
 
-    /** Applies the idle. */
     private void applyIdle() {
         teleopDrive(false);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
@@ -550,19 +510,16 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
-    /** Intake fuel. */
     private void intakeFuel() {
         teleopDrive(false);
         autonIntakeFuel();
     }
 
-    /** Track target. */
     private void trackTarget() {
         teleopDrive(false);
         autonTrackTarget();
     }
 
-    /** Launches with squeeze. */
     private void launchWithSqueeze() {
         teleopDrive(true);
         launchAgitating();
@@ -574,25 +531,21 @@ public class SuperStructure {
         }
     }
 
-    /** Launches with squeeze with no delay. */
     private void launchWithSqueezeWithNoDelay() {
         teleopDrive(true);
         launchAgitating();
     }
 
-    /** Launches without squeeze. */
     private void launchWithoutSqueeze() {
         teleopDrive(true);
         autonLaunchWithoutSqueeze();
     }
 
-    /** Launches with brake. */
     private void launchWithBrake() {
         swerve.setWantedState(Swerve.WantedState.X_BRAKE);
         launchAgitating();
     }
 
-    /** Applies the auton idle. */
     private void applyAutonIdle() {
         swerve.setWantedState(Swerve.WantedState.IDLE);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
@@ -604,7 +557,6 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
-    /** Auton intake fuel. */
     private void autonIntakeFuel() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
@@ -616,7 +568,6 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
-    /** Auton track target. */
     private void autonTrackTarget() {
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
         dyeRotor.setWantedState(DyeRotor.WantedState.IDLE_SLOW_INDEX);
@@ -628,7 +579,6 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.AIM_AT_TARGET);
     }
 
-    /** Auton launch without squeeze. */
     private void autonLaunchWithoutSqueeze() {
         fuelIntake.setWantedState(FuelIntake.WantedState.INTAKE);
         intakeExtension.setWantedState(IntakeExtension.WantedState.CONDITIONAL_EXTEND);
@@ -640,9 +590,8 @@ public class SuperStructure {
 
     /**
      * Launch with the extension agitating. The intake rollers run through the whole launch, squeeze
-     * included: stopping them to save the roughly 23 A they cost was wrong, because with the
-     * rollers idle the squeeze packs fuel against the bumper instead of moving it toward the
-     * feeder. The current has to come from somewhere else.
+     * included: they cost roughly 23 A, but with them idle the squeeze packs fuel against the
+     * bumper instead of moving it toward the feeder. The current has to come from somewhere else.
      */
     private void launchAgitating() {
         fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
@@ -685,7 +634,6 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
-    /** Force home. */
     private void forceHome() {
         teleopDrive(false);
         fuelIntake.setWantedState(FuelIntake.WantedState.NEUTRAL);
@@ -700,22 +648,18 @@ public class SuperStructure {
     /**
      * Runs one of the turret's pit checks with the rest of the robot quiet.
      *
-     * <p>Bound to the pilot D-pad in test mode only (see {@link frc.robot.Robot}), held to run. The
-     * flywheel, feeder, rotor and intake are all off rather than at their idle states: these checks
-     * are run with people standing at the robot, and the only thing that should move is the turret.
-     * The hood goes home for the same reason -- parked, not held wherever it was left.
-     *
-     * <p>The drive is left in ordinary teleop drive, because the follow-a-tag check is worth
-     * driving around with.
+     * <p>Bound to the pilot D-pad in test mode only, held to run. The flywheel, feeder, rotor and
+     * intake are off rather than at their idle states, because these checks are run with people
+     * standing at the robot and the only thing that should move is the turret. The hood goes home
+     * for the same reason, parked rather than left where it was. The drive stays in ordinary teleop
+     * drive, since the follow-a-tag check is worth driving around with.
      *
      * <p>{@link Turret.WantedState#OFF} is the resting member of this family: releasing a check
      * button lands here, so letting go stops the turret where it stands instead of handing it back
      * to {@link #applyIdle()}, which aims at the target. That distinction is the whole reason this
-     * state exists -- these checks are the ones you run when the pose is not to be trusted, and
+     * state exists, since these are the checks you run when the pose is not to be trusted, and
      * releasing a button a metre from the robot is not the moment to slew across the travel toward
      * a hub the robot is only guessing the direction of.
-     *
-     * @param turretState the turret check to run
      */
     private void testTurret(Turret.WantedState turretState) {
         teleopDrive(false);
@@ -728,42 +672,21 @@ public class SuperStructure {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
-    // ── Public API ─────────────────────────────────────────────────────────────
-
-    // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
-    /**
-     * Returns {@code true} if the robot is in the feed zone.
-     *
-     * @return {@code true} when the robot is in the enemy or neutral zone (the feed zone)
-     */
+    // Allocation-free boolean checks, for per-loop callers such as ShotCalculator.
+    /** True when the robot is in the enemy or neutral zone, the feed zone. */
     public boolean isRobotInFeedZone() {
         return swerve.isInEnemyAllianceZone() || swerve.isInNeutralZone();
     }
 
-    /**
-     * Sets the wanted super state.
-     *
-     * @param state the wanted super state
-     */
     public void setWantedSuperState(WantedSuperState state) {
         this.wantedSuperState = state;
     }
 
-    /**
-     * Sets the state command.
-     *
-     * @param state the state command
-     */
     public Command setStateCommand(WantedSuperState state) {
         return new InstantCommand(() -> setWantedSuperState(state));
     }
 
-    /**
-     * Picks a fixed shot and requests {@link WantedSuperState#SET_SHOT} in one command.
-     *
-     * @param shot the parking spot
-     * @return the command
-     */
+    /** Picks a fixed shot and requests {@link WantedSuperState#SET_SHOT} in one command. */
     public Command setShotCommand(ShotCalculator.SetShot shot) {
         return new InstantCommand(
                         () -> {
