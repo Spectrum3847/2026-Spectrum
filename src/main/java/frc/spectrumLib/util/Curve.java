@@ -6,74 +6,40 @@ import edu.wpi.first.math.MathUtil;
 // Based on Code from FRC# 2363
 
 /**
- * This class and its subclasses remap controller stick inputs according to specifics provided of
- * multiple classes of curves.
- *
- * <p>This is the superclass of several types of curves. It contains most of the code that is used
- * for all types of curves (Linear, Exponential, Spline, and Step).
- *
- * <p>To create a Curve, do not create a <code>Curve</code> object directly, use a subclass of
- * <code>Curve</code> such as <code>ExpCurve</code> instead.
+ * Maps controller stick inputs through a curve. Subclass this rather than instantiating Curve
+ * directly, for example {@link ExpCurve}.
  *
  * @author Justin Babilino
  * @version 0.0.3
  */
 public abstract class Curve {
-    /** The value added to the curve. */
     private double offset;
-    /** The value multiplied to the curve. */
     private double scalar;
 
-    /** The width of the deadband on the curve. */
     private double deadzone;
 
-    /**
-     * Calculates and returns a mapped value based on the curve.
-     *
-     * @param input value to be mapped
-     * @return mapped value
-     */
+    /** Maps a stick input, expected in [-1, 1], to the curve's output. */
     public abstract double calculate(double input);
 
-    /**
-     * Returns the value of <code>input</code> mapped to create a deadband of width <code>deadzone
-     * </code> in the center of the curve and squishes the rest of the curve to the outside
-     * proportionally.
-     *
-     * @param input the input value to be mapped
-     * @return mapped value
-     */
+    /** Blanks the middle of the curve, then rescales what is left to fill [-1, 1] again. */
     protected double calculateDeadzone(double input) {
-        // The deadzone is a full width; half of it either side of zero.
+        // applyDeadband takes a half width, so halve the full width we were given.
         return MathUtil.applyDeadband(input, deadzone / 2.0);
     }
 
-    /**
-     * Returns the value of <code>input</code> multiplied by the value of <code>scalar</code>.
-     *
-     * @param input the input value to be mapped
-     * @return mapped value
-     */
     protected double calculateScalar(double input) {
         return input * scalar;
     }
 
-    /**
-     * Returns the value of <code>input</code> summed with the value of <code>offset</code>.
-     *
-     * @param input the input value to be mapped
-     * @return mapped value
-     */
     protected double calculateOffset(double input) {
         return input + offset;
     }
 
     /**
-     * Returns a set of points of length <code>pointCount</code> on the curve. With <code>pointCount
-     * </code> of 1, the single point is the center of the input range.
+     * Samples the curve at pointCount evenly spaced inputs across [-1, 1]. With pointCount of 1,
+     * the single point is the center of the input range.
      *
-     * @param pointCount the amount of points on the curve
-     * @return a 2D double array of points on the curve
+     * @return [x, y] pairs, one per sample
      */
     public double[][] getCurvePoints(int pointCount) {
         double[][] points = new double[pointCount][2];
@@ -92,11 +58,7 @@ public abstract class Curve {
     }
 
     /**
-     * Prints the values of a 2D double array of points. The output of this method can be pasted
-     * into https://www.desmos.com/calculator to see a visual representation of the <code>Curve
-     * </code>.
-     *
-     * @param points the set of points to be printed
+     * Prints [x, y] pairs for pasting into <a href="https://www.desmos.com/calculator">Desmos</a>.
      */
     public void printPoints(double[][] points) {
         System.out.println();
@@ -105,70 +67,34 @@ public abstract class Curve {
         }
     }
 
-    /**
-     * Prints a set of points on the curve of length <code>pointCount</code>. The output of this
-     * method can be pasted into https://www.desmos.com/calculator to see a visual representation of
-     * the <code>Curve</code>.
-     *
-     * @param pointCount the set of points to be printed
-     */
+    /** Prints {@link #getCurvePoints(int)} for pasting into Desmos. */
     public void printPoints(int pointCount) {
         printPoints(getCurvePoints(pointCount));
     }
 
-    /**
-     * Sets the value of <code>offset</code>, the value added to the final curve.
-     *
-     * @param offset the new value of <code>offset</code>
-     */
     public void setOffset(double offset) {
         this.offset = offset;
     }
 
-    /**
-     * Sets the value of <code>scalar</code>, the value multiplied to the curve before it is offset.
-     *
-     * @param scalar the new value of <code>scalar</code>
-     */
     public void setScalar(double scalar) {
         this.scalar = scalar;
     }
 
     /**
-     * Sets the value of <code>deadzone</code>, the value for the width in the center of the curve
-     * where any input results in an output of <code>0.0</code>.
-     *
-     * @param deadzone the new value of <code>deadzone</code>
+     * Sets the deadband width centred on zero. A negative width is stored as its absolute value.
      */
     public void setDeadzone(double deadzone) {
         this.deadzone = Math.abs(deadzone);
     }
 
-    /**
-     * Returns the value of <code>offset</code>, the double value added to the final curve.
-     *
-     * @return the current value of <code>offset</code>
-     */
     public double getOffset() {
         return offset;
     }
 
-    /**
-     * Returns the value of <code>scalar</code>, the double value multiplied to the curve before it
-     * is offset.
-     *
-     * @return the current value of <code>scalar</code>
-     */
     public double getScalar() {
         return scalar;
     }
 
-    /**
-     * Returns the value of <code>deadzone</code>, the value for the width in the center of the
-     * curve where any input results in an output of <code>0.0</code>
-     *
-     * @return the current value of <code>deadzone</code>
-     */
     public double getDeadzone() {
         return deadzone;
     }

@@ -52,7 +52,6 @@ public class Pilot extends Gamepad {
     @SuppressWarnings("unused")
     private PilotConfig config;
 
-    /** Create a new Pilot with the default name and port. */
     public Pilot(PilotConfig config) {
         super(config);
         this.config = config;
@@ -75,22 +74,22 @@ public class Pilot extends Gamepad {
         rightStickCurve.setScalar(maxRotationalVelocity);
     }
 
-    // Positive is forward, up on the left stick is positive
+    // Positive is forward. Up on the left stick is positive, hence the negation.
     public double getDriveFwdPositive() {
         double fwdPositive = leftStickCurve.calculate(-1 * getLeftY());
         return fwdPositive;
     }
 
-    // Positive is left, left on the left stick is positive
+    // Positive is left. Left on the left stick is positive, hence the negation.
     public double getDriveLeftPositive() {
         double leftPositive = -1 * leftStickCurve.calculate(getLeftX());
         return leftPositive;
     }
 
-    // Positive is counter-clockwise, left Trigger is positive
+    // Positive is counter-clockwise
     public double getDriveCCWPositive() {
         double ccwPositive = rightStickCurve.calculate(getRightX());
-        return -1 * ccwPositive; // invert the value
+        return -1 * ccwPositive;
     }
 
     public double getPilotStickAngle() {

@@ -2,11 +2,11 @@
 
 *Audience: Reference. No prerequisites.*
 
-We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline. Spotless enforces formatting at every `./gradlew build`, so this page is mostly about the parts a formatter can't enforce, naming, structure, judgment calls.
+We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline. A formatter enforces the mechanical parts on every build, so this page is about the parts a formatter can't enforce: naming, structure, and judgment calls.
 
 ## Spotless Does the Mechanical Work
 
-[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.15.0").aosp()` and friends. There's no need to manually format anything; just run `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
+[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats the tree. There's no need to format anything by hand; run `./gradlew build` and Spotless tidies up. If a build fails on formatting, that is normal and the second build passes. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
 
 ## The Spirit, Borrowed from AOSP
 
@@ -16,42 +16,40 @@ If you're touching `Launcher.java`, look at how the rest of that file is organiz
 
 ## Naming
 
-* **Classes / Interfaces:** `UpperCamelCase`, `Launcher`, `LauncherConfig`, `SuperStructure`.
-* **Methods / variables:** `lowerCamelCase`, `getVelocityRPM()`, `kPSlot0`.
+* **Classes / interfaces:** `UpperCamelCase`, for example `Launcher`, `LauncherConfig`, `SuperStructure`.
+* **Methods and variables:** `lowerCamelCase`, for example `getVelocityRPM()`, `kPSlot0`.
 * **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, the `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything tunable, even something like `WHEEL_BASE_INCHES` that varies between robots, goes in a `*Config` class as a regular field, not a constant.
-* **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`. `State.LAUNCH_WITH_SQUEEZE`, `Telemetry.Fault.CAMERA_OFFLINE`.
+* **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`.
 
 Acronyms get treated as words. `PidConfig`, not `PIDConfig`. `Rpm` in compound names, not `RPM`. The one exception is when the acronym *is* the whole identifier (a constant `RPM`).
 
 ## No `m_` or `_` Prefixes
 
-If you see `m_someField`, it's from a library we imported and didn't rewrite. Don't add new ones, and feel free to rename them away when touching a file. Field-vs-local disambiguation belongs in `this.field = field` if needed, not in the name.
+If you see `m_someField`, it's from a library we imported and didn't rewrite. Don't add new ones, and feel free to rename them away when touching a file. Field-versus-local disambiguation belongs in `this.field = field` if needed, not in the name.
 
-## Indentation
+## Pasting Code From Elsewhere
 
-4 spaces, never tabs. Spotless reformats anything that drifts. If you're pasting code from WPILib examples or another team's repo, run `./gradlew spotlessApply` immediately, it will fix indentation and trailing whitespace in one pass.
-
-## Imports
-
-Spotless's `removeUnusedImports()` strips dead imports on every build. Don't worry about cleaning these by hand. Don't use star imports (`import com.ctre.phoenix6.*`), the formatter expands them.
+If you're pasting from WPILib examples or another team's repo, run `./gradlew spotlessApply` right away. It fixes indentation, trailing whitespace, and import order in one pass. Don't write star imports (`import com.ctre.phoenix6.*`); the formatter expands them, and a collapsed import list tells you nothing about where a symbol came from.
 
 ## File Organization
 
 For a subsystem file like `Launcher.java`, the conventional order is:
 
 1. Inner `Config` class (with `@Getter`/`@Setter` fields).
-2. Fields (motors, sensors, suppliers, triggers).
-3. Constructor.
-4. `setupStates()`, `setupDefaultCommand()`, `periodic()`.
-5. Public API used by `*States` (getters, setpoint setters, `At/Above/Below` trigger helpers).
-6. Private helpers.
+2. Inner `WantedState` and `SystemState` enums, then the fields holding the current one of each.
+3. `setWantedState(...)`, `handleStateTransition()`, `applyStates()`.
+4. Fields (motors, sensors, suppliers, triggers).
+5. Constructor.
+6. `periodic()`.
+7. Public API used from `SuperStructure` and `Auton` (getters, setpoint setters, and the `at*`, `above*`, `below*` trigger helpers on `Mechanism`).
+8. Private helpers.
 
-This isn't a hard rule, but every existing subsystem follows it, and a reader skimming the file knows where to look. See [Class Generation](class-generation.md) for the why behind this layout.
+This isn't a hard rule, but every existing subsystem follows it, and a reader skimming the file knows where to look. See [Class Generation](class-generation.md) for the reasoning behind this layout.
 
 ## Line Length
 
-`googleJavaFormat` wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured: pull out a local, split a chained `Commands.sequence(...)` across multiple lines with one command per line, etc. Don't fight the formatter; let it tell you where things are too dense.
+The formatter wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured: pull out a local, or split a chained `Commands.sequence(...)` across multiple lines with one command per line. Don't fight the formatter; let it tell you where things are too dense.
 
 ## When to Diverge
 
-Spotless honors `// spotless:off` / `// spotless:on` markers. Use them sparingly, typically for a hand-aligned constant table or a multi-line math expression where the alignment is the readability. Document *why* you're disabling Spotless in a one-line comment above the `off` marker. If a future reader can't tell why the section is special, they'll either re-enable it (and lose the alignment) or worse, copy the suppression elsewhere.
+Spotless honors `// spotless:off` and `// spotless:on` markers. Use them sparingly, typically for a hand-aligned constant table or a multi-line math expression where the alignment is the readability. Document *why* you're disabling Spotless in a one-line comment above the `off` marker. If a future reader can't tell why the section is special, they'll either re-enable it and lose the alignment, or worse, copy the suppression elsewhere.

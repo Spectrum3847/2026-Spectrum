@@ -9,7 +9,6 @@ public class AM2026 extends Config {
         super();
         swerve.configEncoderOffsets(0.289551, 0.394043, -0.203857, -0.039307);
 
-        // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
         fuelIntake.setAttached(false);

@@ -21,143 +21,106 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Abstract base class for robot gamepad (Xbox-compatible) controllers.
+ * Base class for the robot's Xbox-compatible gamepads. Wraps a WPILib {@link CommandXboxController}
+ * and exposes the buttons, bumper and trigger combinations, stick axis helpers, and rumble commands
+ * that bindings need.
  *
- * <p>Wraps a WPILib {@link CommandXboxController} and exposes:
+ * <p>Subclass once per operator role (pilot, copilot) and bind subsystem commands to the triggers
+ * that are set up here.
  *
- * <ul>
- *   <li>Pre-built {@link Trigger} fields for every button, bumper, trigger, stick-click, and D-pad
- *       direction.
- *   <li>Composite modifier triggers ({@link #noBumpers}, {@link #bothTriggers}, etc.) for
- *       chord-based bindings.
- *   <li>Exponential-curve axis helpers ({@link #leftStickCurve}, etc.) for driver-tuned response.
- *   <li>Stick-direction utilities ({@link #getLeftStickDirection()}, {@link
- *       #chooseCardinalDirections()}) for field-relative driving.
- *   <li>Rumble commands ({@link #rumbleCommand(double, double, double)}) for haptic feedback.
- * </ul>
- *
- * <p>Subclass this once per operator role (pilot, copilot) and override {@link #setupStates()} and
- * {@link #setupDefaultCommand()} to bind subsystem commands to triggers.
- *
- * <p>When {@link Config#isAttached()} returns {@code false}, all triggers remain permanently {@code
- * false} and axis reads return {@code 0.0}.
+ * <p>When {@link Config#isAttached()} returns {@code false}, every trigger stays {@code false} for
+ * the life of the object and axis reads return {@code 0.0}, because no controller is constructed.
  */
-// Gamepad class
 public abstract class Gamepad implements Subsystem {
-    /** WPILib alert displayed on the driver station when this gamepad is disconnected. */
     private Alert disconnectedAlert;
 
-    /** A trigger that is always {@code false}; used as a safe default before hardware is ready. */
+    /** A trigger that is always {@code false}; the default for every button before wiring. */
     public static final Trigger kFalse = new Trigger(() -> false);
 
-    /** The underlying WPILib Xbox controller used to read button and axis states. */
     private CommandXboxController xboxController;
 
-    /** Trigger for the A (cross) face button. */
+    /** Xbox A, the cross glyph. */
     protected Trigger A = kFalse;
 
-    /** Trigger for the B (circle) face button. */
+    /** Xbox B, the circle glyph. */
     protected Trigger B = kFalse;
 
-    /** Trigger for the X (square) face button. */
+    /** Xbox X, the square glyph. */
     protected Trigger X = kFalse;
 
-    /** Trigger for the Y (triangle) face button. */
+    /** Xbox Y, the triangle glyph. */
     protected Trigger Y = kFalse;
 
-    /** Trigger for the left bumper (LB). */
     protected Trigger leftBumper = kFalse;
 
-    /** Trigger for the right bumper (RB). */
     protected Trigger rightBumper = kFalse;
 
-    /** Trigger active when the left analog trigger exceeds the configured deadzone threshold. */
+    /** Fires once the left analog trigger passes the configured trigger deadzone. */
     protected Trigger leftTrigger = kFalse;
 
-    /** Trigger active when the right analog trigger exceeds the configured deadzone threshold. */
+    /** Fires once the right analog trigger passes the configured trigger deadzone. */
     protected Trigger rightTrigger = kFalse;
 
-    /** Trigger for pressing the left analog stick (L3). */
     protected Trigger leftStickClick = kFalse;
 
-    /** Trigger for pressing the right analog stick (R3). */
     protected Trigger rightStickClick = kFalse;
 
-    /** Trigger for the Start / Menu button. */
+    /** Xbox Menu, exposed by WPILib as the start button. */
     protected Trigger start = kFalse;
 
-    /** Trigger for the Select / Back / View button. */
+    /** Xbox View, exposed by WPILib as the back button. */
     protected Trigger select = kFalse;
 
-    /** Trigger for D-pad up. */
     protected Trigger upDpad = kFalse;
 
-    /** Trigger for D-pad down. */
     protected Trigger downDpad = kFalse;
 
-    /** Trigger for D-pad left (including up-left and down-left diagonals). */
+    /** Fires for left, up-left, or down-left on the D-pad. */
     protected Trigger leftDpad = kFalse;
 
-    /** Trigger for D-pad right (including up-right and down-right diagonals). */
+    /** Fires for right, up-right, or down-right on the D-pad. */
     protected Trigger rightDpad = kFalse;
 
-    /** Trigger active when the left stick Y-axis exceeds the configured deadzone. */
+    /** Fires when the left stick's Y axis leaves the configured deadzone in either direction. */
     protected Trigger leftStickY = kFalse;
 
-    /** Trigger active when the left stick X-axis exceeds the configured deadzone. */
+    /** Fires when the left stick's X axis leaves the configured deadzone in either direction. */
     protected Trigger leftStickX = kFalse;
 
-    /** Trigger active when the right stick Y-axis exceeds the configured deadzone. */
+    /** Fires when the right stick's Y axis leaves the configured deadzone in either direction. */
     protected Trigger rightStickY = kFalse;
 
-    /** Trigger active when the right stick X-axis exceeds the configured deadzone. */
+    /** Fires when the right stick's X axis leaves the configured deadzone in either direction. */
     protected Trigger rightStickX = kFalse;
 
-    // Function bumper and trigger buttons
-
-    /** Active when neither bumper is pressed. */
     public Trigger noBumpers = kFalse;
 
-    /** Active when only the left bumper is pressed. */
     public Trigger leftBumperOnly = kFalse;
 
-    /** Active when only the right bumper is pressed. */
     public Trigger rightBumperOnly = kFalse;
 
-    /** Active when both bumpers are pressed simultaneously. */
     public Trigger bothBumpers = kFalse;
 
-    /** Active when neither analog trigger is pressed. */
     public Trigger noTriggers = kFalse;
 
-    /** Active when only the left trigger is pressed. */
     public Trigger leftTriggerOnly = kFalse;
 
-    /** Active when only the right trigger is pressed. */
     public Trigger rightTriggerOnly = kFalse;
 
-    /** Active when both analog triggers are pressed simultaneously. */
     public Trigger bothTriggers = kFalse;
 
-    /** Active when no bumpers and no triggers are pressed (no modifier held). */
     public Trigger noModifiers = kFalse;
 
-    /** Most recently computed left-stick direction; retained when the stick returns to center. */
+    /** Last non-zero left-stick direction, kept so the value survives the stick recentring. */
     private Rotation2d storedLeftStickDirection = new Rotation2d();
 
-    /** Most recently computed right-stick direction; retained when the stick returns to center. */
+    /** Last non-zero right-stick direction, kept so the value survives the stick recentring. */
     private Rotation2d storedRightStickDirection = new Rotation2d();
 
-    /**
-     * {@code true} once the gamepad has been detected as connected and its triggers have been
-     * configured.
-     */
-    private boolean configured =
-            false; // Used to determine if we detected the gamepad is plugged and we have configured
-    // it
+    /** Set the first time the gamepad is seen connected. */
+    private boolean configured = false;
 
-    /** {@code true} after the "gamepad not connected" warning has been printed once. */
-    private boolean printed = false; // Used to only print Gamepad Not Detected once
+    private boolean printed = false;
 
     /** Exponential response curve applied to both left-stick axes. */
     @Getter protected final ExpCurve leftStickCurve;
@@ -165,33 +128,26 @@ public abstract class Gamepad implements Subsystem {
     /** Exponential response curve applied to both right-stick axes. */
     @Getter protected final ExpCurve rightStickCurve;
 
-    /** Exponential response curve applied to both analog trigger axes. */
     @Getter protected final ExpCurve triggersCurve;
 
-    /** Trigger active during the teleoperated period. */
     protected Trigger teleop = Util.teleop;
 
-    /** Trigger active during the autonomous period. */
     protected Trigger autoMode = Util.autoMode;
 
-    /** Trigger active during the test mode period. */
     protected Trigger testMode = Util.testMode;
 
-    /** Trigger active while the robot is disabled. */
     protected Trigger disabled = Util.disabled;
 
     /**
-     * Configuration for a {@link Gamepad} instance, defining the DriverStation USB port, axis curve
-     * parameters, and whether the controller should be used on this robot.
+     * DriverStation USB port, axis curve parameters, and whether this robot uses the controller.
      */
     public static class Config {
         /** Human-readable controller name used in alerts and telemetry. */
         @Getter private String name;
 
         /** USB port number as shown in the DriverStation application (0-indexed). */
-        @Getter private int port; // USB port on the DriverStation app
+        @Getter private int port;
 
-        // A configured value to say if we should use this controller on this robot
         /**
          * Whether this controller should be used on the current robot; {@code false} disables it.
          */
@@ -224,12 +180,6 @@ public abstract class Gamepad implements Subsystem {
         /** Output scalar applied after the analog-trigger exponential curve. */
         @Getter @Setter double triggersScalar = 1.0;
 
-        /**
-         * Creates a gamepad configuration for the given port.
-         *
-         * @param name human-readable controller name (used in alerts)
-         * @param port DriverStation USB port number (0-indexed)
-         */
         public Config(String name, int port) {
             this.name = name;
             this.port = port;
@@ -238,21 +188,11 @@ public abstract class Gamepad implements Subsystem {
 
     private Config config;
 
-    /**
-     * Constructs a Gamepad object with the specified configuration.
-     *
-     * @param config the configuration object containing settings for the gamepad
-     *     <p>The constructor initializes the following: - Superclass with port and attachment
-     *     status from the configuration. - Curve objects for left stick, right stick, and triggers
-     *     using exponential curves. - If the gamepad is attached, initializes the Xbox controller
-     *     and its buttons, triggers, sticks, and D-pad.
-     */
     protected Gamepad(Config config) {
         this.config = config;
         disconnectedAlert =
                 new Alert(config.name + " Gamepad Disconnected", Alert.AlertType.kError);
 
-        // Curve objects that we use to configure the controller axis objects
         leftStickCurve =
                 new ExpCurve(
                         config.getLeftStickExp(),
@@ -280,12 +220,8 @@ public abstract class Gamepad implements Subsystem {
             Y = xboxController.y();
             leftBumper = xboxController.leftBumper();
             rightBumper = xboxController.rightBumper();
-            leftTrigger =
-                    xboxController.leftTrigger(
-                            config.triggersDeadzone); // Assuming a default threshold of 0.5
-            rightTrigger =
-                    xboxController.rightTrigger(
-                            config.triggersDeadzone); // Assuming a default threshold of 0.5
+            leftTrigger = xboxController.leftTrigger(config.triggersDeadzone);
+            rightTrigger = xboxController.rightTrigger(config.triggersDeadzone);
             leftStickClick = xboxController.leftStick();
             rightStickClick = xboxController.rightStick();
             start = xboxController.start();
@@ -307,7 +243,6 @@ public abstract class Gamepad implements Subsystem {
             rightStickY = rightYTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);
             rightStickX = rightXTrigger(Threshold.ABS_GREATER, config.rightStickDeadzone);
 
-            // Setup function bumper and trigger buttons
             noBumpers = rightBumper.negate().and(leftBumper.negate());
             leftBumperOnly = leftBumper.and(rightBumper.negate());
             rightBumperOnly = rightBumper.and(leftBumper.negate());
@@ -322,22 +257,20 @@ public abstract class Gamepad implements Subsystem {
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 
-    /** Runs the periodic update. */
+    /** Calls {@link #configure()} once per robot loop. */
     @Override
     public void periodic() {
         configure();
     }
 
     /**
-     * Detects whether the gamepad has been connected since power-on and prints a one-time
-     * confirmation message. Also raises a {@link Alert} whenever the controller is disconnected.
-     * Called automatically by {@link #periodic()}.
+     * Raises the disconnect alert, and the first time the gamepad is seen connected, prints a
+     * confirmation. Called from {@link #periodic()}.
      */
     public void configure() {
         if (config.isAttached()) {
-            disconnectedAlert.set(!isConnected()); // Display if the controller is disconnected
+            disconnectedAlert.set(!isConnected());
 
-            // Detect whether the Xbox controller has been plugged in after start-up
             if (!configured) {
                 if (!isConnected()) {
                     if (!printed) {
@@ -354,9 +287,8 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Resets the controller configuration state so that the next {@link #configure()} call will
-     * re-detect connection and re-apply button bindings. Should be paired with {@code
-     * CommandScheduler.getInstance().clearButtons()}.
+     * Clears the connection state so {@link #configure()} runs its detection again. Pair it with
+     * {@code CommandScheduler.getInstance().clearButtons()}.
      */
     public void resetConfig() {
         configured = false;
@@ -364,11 +296,8 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Returns the current direction of the left stick as a {@link Rotation2d}. Zero points up
-     * (toward positive Y), and 90° points to the left (toward negative X). The last non-zero
-     * direction is retained when the stick is released.
-     *
-     * @return left-stick direction; zero-up / 90-left convention
+     * Direction of the left stick, zero pointing up toward positive Y and 90 degrees pointing left.
+     * The last non-zero direction is kept when the stick is released.
      */
     public Rotation2d getLeftStickDirection() {
         double x = -1 * getLeftX();
@@ -381,10 +310,8 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Returns the current direction of the right stick as a {@link Rotation2d}. The last non-zero
-     * direction is retained when the stick is released.
-     *
-     * @return right-stick direction
+     * Direction of the right stick, keeping the last non-zero value when the stick is released.
+     * Unlike {@link #getLeftStickDirection()}, the axis values are not negated.
      */
     public Rotation2d getRightStickDirection() {
         double x = getRightX();
@@ -396,20 +323,12 @@ public abstract class Gamepad implements Subsystem {
         return storedRightStickDirection;
     }
 
-    /**
-     * Snaps the left-stick direction to the nearest cardinal angle (0, ±π/2, π radians).
-     *
-     * @return the snapped angle in radians
-     */
+    /** Snaps the left-stick direction to the nearest of 0, ±π/2 and π radians. */
     public double getLeftStickCardinals() {
         return snapToCardinal(getLeftStickDirection().getRadians());
     }
 
-    /**
-     * Snaps the right-stick direction to the nearest cardinal angle (0, ±π/2, π radians).
-     *
-     * @return the snapped angle in radians
-     */
+    /** Snaps the right-stick direction to the nearest of 0, ±π/2 and π radians. */
     public double getRightStickCardinals() {
         return snapToCardinal(getRightStickDirection().getRadians());
     }
@@ -428,10 +347,8 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Returns the Euclidean magnitude of the left stick deflection (0–√2 before curve, 0–1 after
-     * typical scalar).
-     *
-     * @return left-stick vector magnitude
+     * Euclidean magnitude of the left stick deflection: up to √2 before the curve and scalar, 1.0
+     * after.
      */
     public double getLeftStickMagnitude() {
         double x = -1 * getLeftX();
@@ -439,36 +356,21 @@ public abstract class Gamepad implements Subsystem {
         return Math.sqrt(x * x + y * y);
     }
 
-    /**
-     * Returns the Euclidean magnitude of the right stick deflection.
-     *
-     * @return right-stick vector magnitude
-     */
     public double getRightStickMagnitude() {
         double x = getRightX();
         double y = getRightY();
         return Math.sqrt(x * x + y * y);
     }
 
-    /**
-     * Get proper stick angles for each alliance
-     *
-     * @return
-     */
+    /** Cardinal stick angles rotated to match the current alliance's driver viewpoint. */
     public double chooseCardinalDirections() {
-        // hotfix
         if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue) {
             return getRedAllianceStickCardinals();
         }
         return getBlueAllianceStickCardinals();
     }
 
-    /**
-     * Snaps the right stick to the nearest 45° increment using the Blue-alliance field orientation
-     * (forward = 0 rad).
-     *
-     * @return the snapped heading in radians for the Blue alliance perspective
-     */
+    /** Snaps the right stick to the nearest 45 degree increment, with forward as 0 rad. */
     public double getBlueAllianceStickCardinals() {
         double stickAngle = getRightStickDirection().getRadians();
         if (stickAngle > -Math.PI / 8 && stickAngle <= Math.PI / 8) {
@@ -479,102 +381,51 @@ public abstract class Gamepad implements Subsystem {
             return Math.PI / 2;
         } else if (stickAngle > 5 * Math.PI / 8 && stickAngle <= 7 * Math.PI / 8) {
             return 3 * Math.PI / 4;
-        } // other half of circle
-        else if (stickAngle < -Math.PI / 8 && stickAngle >= -3 * Math.PI / 8) {
+        } else if (stickAngle < -Math.PI / 8 && stickAngle >= -3 * Math.PI / 8) {
             return -Math.PI / 4;
         } else if (stickAngle < -3 * Math.PI / 8 && stickAngle >= -5 * Math.PI / 8) {
             return -Math.PI / 2;
         } else if (stickAngle < -5 * Math.PI / 8 && stickAngle >= -7 * Math.PI / 8) {
             return -3 * Math.PI / 4;
         } else {
-            return Math.PI; // greater than 7 * Math.PI / 8 or less than -7 * Math.PI / 8 (bottom of
-            // circle)
+            return Math.PI;
         }
     }
 
-    /**
-     * Flips the stick direction for the red alliance.
-     *
-     * @return
-     */
+    /** Returns the blue-alliance cardinals rotated by pi, for red-alliance driving. */
     public double getRedAllianceStickCardinals() {
         double blue = getBlueAllianceStickCardinals();
         return blue > 0 ? blue - Math.PI : blue + Math.PI;
     }
 
-    /**
-     * Returns a {@link Trigger} that fires based on the left-stick Y axis and the given threshold
-     * comparison.
-     *
-     * @param t the {@link Threshold} comparison type
-     * @param threshold the value to compare against
-     * @return trigger based on the left Y axis
-     */
     public Trigger leftYTrigger(Threshold t, double threshold) {
         return axisTrigger(t, threshold, this::getLeftY);
     }
 
-    /**
-     * Returns a {@link Trigger} that fires based on the left-stick X axis and the given threshold
-     * comparison.
-     *
-     * @param t the {@link Threshold} comparison type
-     * @param threshold the value to compare against
-     * @return trigger based on the left X axis
-     */
     public Trigger leftXTrigger(Threshold t, double threshold) {
         return axisTrigger(t, threshold, this::getLeftX);
     }
 
-    /**
-     * Returns a {@link Trigger} that fires based on the right-stick Y axis and the given threshold
-     * comparison.
-     *
-     * @param t the {@link Threshold} comparison type
-     * @param threshold the value to compare against
-     * @return trigger based on the right Y axis
-     */
     public Trigger rightYTrigger(Threshold t, double threshold) {
         return axisTrigger(t, threshold, this::getRightY);
     }
 
-    /**
-     * Returns a {@link Trigger} that fires based on the right-stick X axis and the given threshold
-     * comparison.
-     *
-     * @param t the {@link Threshold} comparison type
-     * @param threshold the value to compare against
-     * @return trigger based on the right X axis
-     */
     public Trigger rightXTrigger(Threshold t, double threshold) {
         return axisTrigger(t, threshold, this::getRightX);
     }
 
-    /**
-     * Returns a {@link Trigger} that fires when either right-stick axis exceeds the given absolute
-     * threshold.
-     *
-     * @param threshold minimum absolute axis value to activate the trigger
-     * @return trigger active when the right stick is deflected beyond the threshold
-     */
+    /** Fires when either right-stick axis is at or beyond {@code threshold} in absolute value. */
     public Trigger rightStick(double threshold) {
         return new Trigger(
                 () -> Math.abs(getRightX()) >= threshold || Math.abs(getRightY()) >= threshold);
     }
 
-    /**
-     * Returns a {@link Trigger} that fires when either left-stick axis exceeds the given absolute
-     * threshold.
-     *
-     * @param threshold minimum absolute axis value to activate the trigger
-     * @return trigger active when the left stick is deflected beyond the threshold
-     */
+    /** Fires when either left-stick axis is at or beyond {@code threshold} in absolute value. */
     public Trigger leftStick(double threshold) {
         return new Trigger(
                 () -> Math.abs(getLeftX()) >= threshold || Math.abs(getLeftY()) >= threshold);
     }
 
-    /** Axis trigger. */
     private Trigger axisTrigger(Threshold t, double threshold, DoubleSupplier v) {
         return new Trigger(
                 () -> {
@@ -592,10 +443,6 @@ public abstract class Gamepad implements Subsystem {
                 });
     }
 
-    /**
-     * Comparison type used by axis-based {@link Trigger} factories such as {@link
-     * #leftYTrigger(Threshold, double)}.
-     */
     public enum Threshold {
         /** Fires when the axis value is strictly greater than the threshold. */
         GREATER,
@@ -606,15 +453,12 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Command that can be used to rumble the pilot controller. The intensity should be a value
-     * between 0 and 1, where 0 is no rumble and 1 is full rumble. The duration of the rumble is
-     * specified in seconds.
+     * Rumble command that holds the given intensities for a fixed time and then stops. It keeps
+     * running while the robot is disabled.
      *
-     * @param leftIntensity the intensity of the left rumble motor (0 to 1)
-     * @param rightIntensity the intensity of the right rumble motor (0 to 1)
-     * @param durationSeconds the duration of the rumble in seconds
-     * @return a Command object that can be used to rumble the controller with the specified
-     *     intensities and duration
+     * @param leftIntensity left rumble motor intensity, 0.0 to 1.0
+     * @param rightIntensity right rumble motor intensity, 0.0 to 1.0
+     * @param durationSeconds how long to rumble, in seconds
      */
     public Command rumbleCommand(
             double leftIntensity, double rightIntensity, double durationSeconds) {
@@ -628,100 +472,59 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Overloaded method for rumbleCommand that allows for the same intensity on both rumble motors.
-     * The duration of the rumble is specified in seconds. The intensity should be a value between 0
-     * and 1, where 0 is no rumble and 1 is full rumble.
+     * Rumble command with the same intensity on both motors.
      *
-     * @param intensity the intensity of the rumble (0 to 1)
-     * @param durationSeconds the duration of the rumble in seconds
-     * @return a Command object that can be used to rumble the controller with the specified
-     *     intensity and duration
+     * @param intensity rumble motor intensity, 0.0 to 1.0
+     * @param durationSeconds how long to rumble, in seconds
      */
     public Command rumbleCommand(double intensity, double durationSeconds) {
         return rumbleCommand(intensity, intensity, durationSeconds);
     }
 
     /**
-     * Returns a new Command object that combines the given command with a rumble command. The
-     * rumble command has a rumble strength of 1 and a duration of 0.5 seconds. The name of the
-     * returned command is set to the name of the given command.
+     * Runs {@code command} alongside a fixed 0.5 s full-strength rumble, under the same name.
      *
-     * @param command the command to be combined with the rumble command
-     * @return a new Command object with rumble command
+     * @param command command to run alongside the rumble
      */
     public Command rumbleCommand(Command command) {
         return command.alongWith(rumbleCommand(1, 0.5)).withName(command.getName());
     }
 
-    /**
-     * Returns whether the physical gamepad is currently connected to the DriverStation.
-     *
-     * @return {@code true} if the controller is attached and reports as connected
-     */
     public boolean isConnected() {
         return config.attached && getHID().isConnected();
     }
 
-    /**
-     * Returns the raw right-trigger axis value (0–1), or {@code 0.0} if not connected.
-     *
-     * @return right-trigger axis value
-     */
+    /** Raw right-trigger axis, 0.0 to 1.0, or 0.0 when the gamepad is not connected. */
     protected double getRightTriggerAxis() {
         return axis(() -> xboxController.getRightTriggerAxis());
     }
 
-    /**
-     * Returns the raw left-trigger axis value (0–1), or {@code 0.0} if not connected.
-     *
-     * @return left-trigger axis value
-     */
+    /** Raw left-trigger axis, 0.0 to 1.0, or 0.0 when the gamepad is not connected. */
     protected double getLeftTriggerAxis() {
         return axis(() -> xboxController.getLeftTriggerAxis());
     }
 
-    /**
-     * Returns the differential trigger value ({@code rightTrigger - leftTrigger}), useful as a
-     * single "twist" axis for field-relative rotation commands.
-     *
-     * @return twist value in the range [-1, 1]
-     */
+    /** rightTrigger minus leftTrigger, usable as a single twist axis in [-1, 1]. */
     protected double getTwist() {
         return getRightTriggerAxis() - getLeftTriggerAxis();
     }
 
-    /**
-     * Returns the left-stick X axis value, or {@code 0.0} if not connected.
-     *
-     * @return left X axis value in the range [-1, 1]
-     */
+    /** Raw left-stick X axis, -1.0 to 1.0, or 0.0 when not connected. */
     protected double getLeftX() {
         return axis(() -> xboxController.getLeftX());
     }
 
-    /**
-     * Returns the left-stick Y axis value, or {@code 0.0} if not connected.
-     *
-     * @return left Y axis value in the range [-1, 1] (negative = up on most gamepads)
-     */
+    /** Raw left-stick Y axis, -1.0 to 1.0, or 0.0 when not connected. Negative is up. */
     protected double getLeftY() {
         return axis(() -> xboxController.getLeftY());
     }
 
-    /**
-     * Returns the right-stick X axis value, or {@code 0.0} if not connected.
-     *
-     * @return right X axis value in the range [-1, 1]
-     */
+    /** Raw right-stick X axis, -1.0 to 1.0, or 0.0 when not connected. */
     protected double getRightX() {
         return axis(() -> xboxController.getRightX());
     }
 
-    /**
-     * Returns the right-stick Y axis value, or {@code 0.0} if not connected.
-     *
-     * @return right Y axis value in the range [-1, 1] (negative = up on most gamepads)
-     */
+    /** Raw right-stick Y axis, -1.0 to 1.0, or 0.0 when not connected. Negative is up. */
     protected double getRightY() {
         return axis(() -> xboxController.getRightY());
     }
@@ -734,12 +537,7 @@ public abstract class Gamepad implements Subsystem {
         return isConnected() ? raw.getAsDouble() : 0.0;
     }
 
-    /**
-     * Returns the underlying {@link GenericHID} for low-level access, or {@code null} if not
-     * attached.
-     *
-     * @return the raw HID device, or {@code null}
-     */
+    /** The raw HID device for low-level access, or null when this gamepad is not attached. */
     protected GenericHID getHID() {
         if (!config.attached) {
             return null;
@@ -747,12 +545,7 @@ public abstract class Gamepad implements Subsystem {
         return xboxController.getHID();
     }
 
-    /**
-     * Returns the underlying {@link GenericHID} for rumble output, or {@code null} if not
-     * connected.
-     *
-     * @return the raw HID device (only when connected), or {@code null}
-     */
+    /** The raw HID device for rumble output, or null unless the gamepad is attached and up. */
     protected GenericHID getRumbleHID() {
         if (!isConnected()) {
             return null;
@@ -761,11 +554,11 @@ public abstract class Gamepad implements Subsystem {
     }
 
     /**
-     * Immediately sets the left and right rumble motor intensities. Use {@link
-     * #rumbleCommand(double, double, double)} for timed rumble sequences.
+     * Sets both rumble motors immediately. Use {@link #rumbleCommand(double, double, double)} for a
+     * timed burst.
      *
-     * @param leftIntensity left rumble motor intensity (0–1)
-     * @param rightIntensity right rumble motor intensity (0–1)
+     * @param leftIntensity left rumble motor intensity, 0.0 to 1.0
+     * @param rightIntensity right rumble motor intensity, 0.0 to 1.0
      */
     public void rumbleController(double leftIntensity, double rightIntensity) {
         if (!isConnected()) {

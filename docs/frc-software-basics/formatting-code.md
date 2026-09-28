@@ -1,66 +1,64 @@
-# Formatting Code
+# Formatting code and comments
 
-*Audience: New programmers. Assumes you've read [Classes, Methods, & Objects](classes-methods-objects.md).*
+*Audience: New programmers. Assumes you've read [Classes, methods, and objects](classes-methods-objects.md).*
 
-## Java Basics
+You do not have to think about indentation or line length. A formatter runs as part of every build and rewrites your files to match the team style, so save your file, run the build, and read the result. [Code Style](../coding-conventions/code-style.md) has the naming rules, the file layout, and how to tell the formatter to leave a block alone.
 
-Java files end in `.java` and the filename must match the public class name inside. Execution in a standard Java program starts from `main()`, but in a WPILib robot project `Robot.java` is the entry point; WPILib calls `robotInit()`, `teleopPeriodic()`, and so on rather than a `main()` you write yourself.
+What the formatter cannot do is write the comment that explains why the code is the way it is. That part is yours.
 
-Java uses braces `{}` to group code into blocks. Indentation is cosmetic; the compiler ignores whitespace and relies on braces to know what belongs where. A method body is everything between its opening and closing brace; an `if` block is everything between its pair of braces.
+## Line comments
 
-```java
-void moveRobot() {
-    moveForward();   // inside moveRobot
-}                    // end of moveRobot
-
-int a = 5;
-int b = 1;
-if (a > b) {
-    System.out.println("a greater than b");
-} else {
-    System.out.println("a not greater than b");
-}
-```
-
-Every statement ends with a semicolon. Missing one is a compile error; Java won't try to guess where statements end the way Python does.
-
-## Spotless Formatting
-
-You don't have to think much about code style manually. Spotless reformats every `.java` file automatically when you build. The full rules are in [Gradle](../tools/gradle.md), but the short version: run `./gradlew spotlessApply` if CI complains about formatting, and the tool fixes it for you.
-
-If you have a block of code that needs to stay hand-aligned (a matrix of numbers, for example), wrap it:
+Everything after two slashes on a line is ignored by the compiler. That makes it the right tool for a short note to the next reader.
 
 ```java
-// spotless:off
-double[][] matrix = {
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0},
-};
-// spotless:on
+double taxRate = 0.0825;  // a published rate, change it in one place only
 ```
 
-## Comments
-
-Single-line comments start with `//`. Anything after those two slashes on the same line is ignored by the compiler.
+Use it to explain a choice, not to narrate the code. `double taxRate = 0.0825;  // set the tax rate` tells a reader nothing they cannot see. The comment earns its place when the answer is not in the code: why this number, why here, why not the obvious approach.
 
 ```java
-double idlingRPM = 700;  // rotations per minute
+// Subtract a small bias so the reading settles at zero instead of jittering around it.
+double corrected = raw - 0.05;
 ```
 
-JavaDoc comments use `/** ... */` and attach documentation to classes and methods. Any `public` method, especially on a `*States` class, should have at least a one-line JavaDoc so tooling and teammates can read what it does without opening the implementation:
+Avoid comments about history. A note that says what used to be here goes stale the next time someone changes it, and then it is worse than nothing because someone trusts it.
+
+## JavaDoc comments
+
+A JavaDoc comment is a block comment that starts with `/**` and ends with `*/`. It attaches to the class, method, or field below it, and it is what your editor shows when you hover.
 
 ```java
 /**
- * Schedules the launcher velocity command only if it isn't already running.
+ * Moves the object toward a target position.
  *
- * @param command the command to schedule
+ * @param target the position to move toward
+ * @return the distance still left to travel
  */
-public static void scheduleIfNotRunning(Command command) { ... }
+public double moveToward(double target) {
+    double remaining = target - position;
+    double step = Math.signum(remaining) * Math.min(1, Math.abs(remaining));
+    position += step;
+    return Math.abs(remaining) - Math.abs(step);
+}
 ```
 
-Block comments (`/* ... */`) exist but are less common than `//` in this codebase. Use `//` for inline notes and JavaDoc `/** */` for public API documentation.
+The opening `/**` must be immediately above the thing it documents, and every line in the body starts with an asterisk. The tags carry the details: `@param` for each input, `@return` for the result, and `@throws` for what can go wrong. Put the units in the description, so a reader never has to guess whether that number is metres or feet. What goes in the body is the part a reader cannot get from the signature, not an announcement of what the method is about to do. In the example above, `Math.min(1, ...)` is what stops the last step from carrying the position past the target when the target is less than one unit away, and the returned value is measured after the move, so it is the distance actually left.
+
+Put JavaDoc on anything `public` that other code calls, and on any field where the units or the valid range are not obvious from the name. [Documentation and Comments](../coding-conventions/documentation-and-comments.md) has the rest of our rules on when a comment helps and when it is just noise.
+
+## Block comments
+
+A plain `/* ... */` comment spans several lines and is not attached to anything in particular. JavaDoc grew out of this and replaced it for anything that documents code.
+
+```java
+/*
+ * The layout below mirrors the order of the fields above it.
+ * Keep them together or the reader loses track.
+ */
+```
+
+Use `//` for notes and `/** */` for documentation. That is nearly always the right split.
 
 ---
 
-*Previous: [Classes, Methods, & Objects](classes-methods-objects.md). Next: [Applied to FRC](applied-to-frc.md)*
+*Previous: [Classes, methods, and objects](classes-methods-objects.md). Next: [Applied to FRC](applied-to-frc.md)*

@@ -1,38 +1,20 @@
-# Dependencies Overview
+# Dependencies overview
 
 *Audience: Reference. No prerequisites.*
 
-This section walks through how each third-party library actually shows up in the codebase: which files use it, what conventions we've settled on, and the gotchas we've already hit. The point isn't to replace the official docs; it's to skip past the "hello world" examples and get straight to "how do we do it here."
+Each page here covers one third party library from our side of it: the conventions we settled on, the recipes, and the traps we have already hit. It is not a summary of what the library does. For that, read the library's own docs, linked at the bottom of each page.
 
-## What's Actually on the Classpath
+## Where the versions live
 
-Vendor JSONs live in [`vendordeps/`](../../vendordeps/) and pin the exact versions:
+`vendordeps/` is the only place a version number is written down. Each JSON there pins one dependency, and GradleRIO reads them directly, so there is no WPILib-core JSON to go looking for: WPILib itself arrives from `build.gradle`.
 
-|              Library              |  Version   |             Page              |
-|-----------------------------------|------------|-------------------------------|
-| WPILib (allwpilib + New Commands) | 2026       | [WPILib](wpilib.md)           |
-| CTRE Phoenix 6                    | 26.3.0     | [Phoenix 6](phoenix6.md)      |
-| PathPlannerLib                    | 2026.1.2   | [PathPlanner](pathplanner.md) |
-| DogLog                            | 2026.5.0   | [DogLog](doglog.md)           |
-| MapleSim (IronMaple)              | 0.4.0-beta | [MapleSim](maple-sim.md)      |
+To change a version, swap the JSON through WPILib VSCode's `Manage Vendor Libraries`, then run `./gradlew build`.
 
-To bump a version, swap the JSON via WPILib VSCode's `Manage Vendor Libraries`, then `./gradlew build`.
-
-## What's Not Actually on the Classpath
-
-`build.gradle` also registers a few JavaDoc-only link bases. These aren't vendor jars we depend on; they just let our generated JavaDoc cross-link to external APIs:
-
-* REV Robotics. No REV motor controllers in `2026-Spectrum`, but the link is there in case someone pulls in REV code.
-* Phoenix v5. Same story. Phoenix 6 is a clean break, and we're all-in on it.
-* Java 17 stdlib. Not a dep, just a cross-reference target.
-
-If you do find yourself adding REV or Phoenix v5 code, drop the matching JSON into `vendordeps/` so it actually compiles.
-
-## Adding a New Library
+## Adding a new library
 
 1. Use `Manage Vendor Libraries → Install new library (online)` in WPILib VSCode and paste the vendor's URL. The JSON lands in `vendordeps/`.
-2. Run `./gradlew build` so GradleRIO fetches the jar and native bits.
-3. Add the JavaDoc link base to `build.gradle`'s `javadoc.options.setLinks(...)` block so cross-references resolve.
-4. Write a page in this directory that documents how *we're* using it, and link it from the table above and from [`index.md`](../index.md).
+2. Run `./gradlew build` so GradleRIO fetches the jar and the native bits.
+3. Add the JavaDoc link base to `javadoc.options.setLinks([...])` in `build.gradle`. This is the step people forget, and without it every `{@link}` to that library comes out as plain text in our generated docs. Check for an existing base first, because `build.gradle` carries entries for libraries we do not depend on, including REV Robotics and Phoenix v5. If you add a REV or Phoenix v5 import, you also need the matching vendordep JSON or the code will not compile.
+4. Write a page in this directory covering how we use it, and link it from [`index.md`](../index.md).
 
-If you want the bigger picture on the surrounding subsystems before diving into a specific library, [2026 Season Specific](../other-guides/2026-season-specific.md) is the place to start.
+For the surrounding subsystems before any one library, start with [2026 season specific](../other-guides/2026-season-specific.md).

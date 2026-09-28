@@ -19,18 +19,14 @@ import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
 /**
- * The Intake Extension subsystem. Extends and retracts the fuel intake.
+ * Rack-and-pinion fuel intake deploy, driven by two independent axes: the left, which is this
+ * class, and the right ({@link IntakeExtensionRight}). Each side runs its own closed-loop position
+ * control rather than one following the other, so a side that skips a tooth can be driven on its
+ * own to resync.
  *
- * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class, CAN
- * id 4, Clockwise_Positive) and a right axis ({@link IntakeExtensionRight}, CAN id 5,
- * CounterClockwise_Positive). Each side runs its own closed-loop position control rather than one
- * following the other, so a side that skips teeth on the rack can be driven on its own to resync.
- *
- * <p>Normal deploy/retract states command both axes to the same setpoint. The {@code RESYNC} state
- * re-establishes truth by driving each side independently into the fully-extended hard stop (using
- * a soft-limit-bypassing voltage), detecting the stall, and re-zeroing that side's encoder at
- * {@code maxRotations}. This recovers from a tooth skip, which otherwise leaves the motor encoder
- * reading a position the rack is no longer at.
+ * <p>Resyncing drives each side into the fully extended hard stop and re-zeroes that side's encoder
+ * at maxRotations. A skipped tooth otherwise leaves the motor encoder reading a position the rack
+ * is no longer at.
  */
 public class IntakeExtension extends Mechanism {
 
@@ -39,7 +35,6 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double initPosition = 0;
         @Getter private final double triggerTolerance = 5;
 
-        /* Intake Extension config settings */
         @Getter private final double zeroSpeed = -0.1;
         @Getter private final double holdMaxSpeedRPM = 18;
 
@@ -73,14 +68,13 @@ public class IntakeExtension extends Mechanism {
         @Getter private final double CANcoderOffset = 0;
         @Getter private final boolean CANcoderAttached = false;
 
-        /* Resync / stall-homing settings (toward the fully-extended hard stop) */
+        // Resync settings, all driving toward the fully extended hard stop
         @Getter private final double homingVoltage = 6;
         @Getter private final double homingStallRPM = 50.0;
         @Getter private final double homingMinTimeSecs = 0.3;
         @Getter private final double homingStallDebounceSecs = 0.15;
         @Getter private final double homingTimeoutSecs = 3.0;
 
-        /* Sim Configs */
         @Getter private final double intakeX = Units.inchesToMeters(70);
         @Getter private final double intakeY = Units.inchesToMeters(23);
         @Getter private final double extensionMass = 10.0;
@@ -121,16 +115,11 @@ public class IntakeExtension extends Mechanism {
         }
     }
 
-    // ================================================================================
-    // Right Axis — independent, closed-loop, mirror-mounted
-    // ================================================================================
-
     /**
-     * The right deploy axis. A standalone {@link Mechanism} (not a follower) so it can be driven
-     * independently of the left during a resync. Gains, limits, and geometry mirror the left
-     * config; only the CAN id, name, and motor inversion differ (the right gearbox is mirrored, so
-     * it is {@code CounterClockwise_Positive} where the left is {@code Clockwise_Positive}, giving
-     * both axes the same "positive = extend" convention).
+     * Right deploy axis, a standalone {@link Mechanism} rather than a follower so it can be driven
+     * on its own during a resync. Gains, limits, and geometry come from the left config; only the
+     * CAN id, name, and inversion differ, since the right gearbox is mounted mirrored. That keeps
+     * both axes on "positive extends".
      */
     public static class IntakeExtensionRight extends Mechanism {
 
@@ -174,31 +163,28 @@ public class IntakeExtension extends Mechanism {
             setMMPosition(() -> rotations);
         }
 
-        /** Slow (dynamic Motion Magic voltage) move to a rotation target. */
+        /** Dynamic Motion Magic voltage move to a rotation target, using the slow profile. */
         public void goToRotationsSlow(
                 double rotations, double cruiseVelocity, double acceleration, double jerk) {
             setDynMMPositionVoltage(
                     () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
         }
 
-        /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
+        /** Open-loop voltage that ignores soft limits, so homing can reach the hard stop. */
         public void driveHomingVoltage(double volts) {
             setVoltageOutputNoSoftLimit(() -> volts);
         }
 
-        /** Seeds this axis's encoder to a known starting position (rotations). */
         public void setInitialPosition(double rotations) {
             if (isAttached()) {
                 motor.setPosition(rotations);
             }
         }
 
-        /** Re-zeroes this axis at the fully-extended hard stop. */
         public void zeroAtMax() {
             setMotorPosition(() -> rightConfig.getMaxRotations());
         }
 
-        /** Holds the axis (neutral output). */
         public void stopAxis() {
             stop();
         }
@@ -215,8 +201,6 @@ public class IntakeExtension extends Mechanism {
             Telemetry.log("IntakeExtensionRight/Temp", getTemp(), "deg_C");
         }
     }
-
-    // ---- Subsystem plumbing ----
 
     @Getter private final IntakeExtensionConfig config;
     @Getter private IntakeExtensionSim sim;
@@ -262,8 +246,6 @@ public class IntakeExtension extends Mechanism {
         super.setBrakeMode(isInBrake);
         if (right.isAttached()) right.setBrakeMode(isInBrake);
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         STOPPED,
@@ -332,10 +314,10 @@ public class IntakeExtension extends Mechanism {
     }
 
     /**
-     * Commands both axes to the same position.
+     * Commands both axes to the same position, given as a percentage of maxRotations.
      *
-     * @param percent target as a percentage of max rotations (0–100)
-     * @param slow whether to use the slow (dynamic Motion Magic voltage) profile
+     * @param percent 0 to 100
+     * @param slow use the slow dynamic Motion Magic voltage profile
      */
     private void commandBoth(double percent, boolean slow) {
         final double rotations = percentToRotations(() -> percent);
@@ -358,21 +340,18 @@ public class IntakeExtension extends Mechanism {
         }
     }
 
-    // ---- Resync / stall homing ----
-
     private final Timer homingTimer = new Timer();
     private boolean leftHomed = false;
     private boolean rightHomed = false;
-    // Timestamp (homingTimer seconds) each side was last seen moving above the stall speed.
+    // homingTimer seconds when each side was last seen above the stall speed
     private double leftLastMoving = 0;
     private double rightLastMoving = 0;
 
     /**
-     * Drives each side independently into the fully-extended hard stop, re-zeroing that side's
-     * encoder at {@code maxRotations} once it stalls. A tooth skip corrupts the motor encoder, so
-     * the hard stop is the only reliable position truth; homing uses a soft-limit-bypassing voltage
-     * so it can reach the physical stop even when the (stale) encoder thinks the soft limit is
-     * already reached.
+     * Drives each side into the fully extended hard stop and re-zeroes that side's encoder at
+     * maxRotations once it stalls. After a tooth skip the hard stop is the only position that can
+     * be trusted, so homing uses a voltage that bypasses the soft limits and reaches the physical
+     * stop even when the stale encoder thinks the soft limit is already reached.
      */
     private void applyHoming() {
         // Re-arm on entry to the HOMING state.
@@ -386,7 +365,6 @@ public class IntakeExtension extends Mechanism {
 
         boolean timedOut = homingTimer.get() >= config.getHomingTimeoutSecs();
 
-        // ── Left side (this mechanism) ──
         if (!leftHomed) {
             if (detectLeftStall()) {
                 setMotorPosition(() -> config.getMaxRotations());
@@ -403,7 +381,6 @@ public class IntakeExtension extends Mechanism {
             stop();
         }
 
-        // ── Right side (independent axis) ──
         if (right.isAttached()) {
             if (!rightHomed) {
                 if (detectRightStall()) {
@@ -421,7 +398,7 @@ public class IntakeExtension extends Mechanism {
                 right.stopAxis();
             }
         } else {
-            rightHomed = true; // no right axis attached → nothing to resync
+            rightHomed = true; // no right axis to resync
         }
     }
 
@@ -443,8 +420,8 @@ public class IntakeExtension extends Mechanism {
 
     /**
      * A side is stalled once it has gone the debounce window without moving above the stall speed,
-     * but only after the minimum drive time has elapsed (so the initial pre-motion zero velocity is
-     * not mistaken for a stall).
+     * but never before the minimum drive time elapses, so the zero velocity before motion starts
+     * does not read as a stall.
      */
     private boolean isStalled(double now, double lastMoving) {
         if (now < config.getHomingMinTimeSecs()) {
@@ -459,10 +436,11 @@ public class IntakeExtension extends Mechanism {
     }
 
     /**
-     * Runs a full resync: drives both sides into the extended hard stop, re-zeros each, then
-     * returns the subsystem to {@code STOPPED}.
+     * Drives both sides into the extended hard stop and re-zeroes each one as it stalls, then
+     * returns the subsystem to STOPPED. A homing timeout can end the command with a side that never
+     * stalled, and that side is then left where it stopped rather than re-zeroed.
      *
-     * @return a command that completes once both sides are re-zeroed
+     * @return a command that ends once both sides are re-zeroed, or once the homing timeout hits
      */
     public Command resyncCommand() {
         return startEnd(
@@ -492,9 +470,6 @@ public class IntakeExtension extends Mechanism {
         previousSystemState = systemState;
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
             sim = new IntakeExtensionSim(RobotSim.leftView, motor);

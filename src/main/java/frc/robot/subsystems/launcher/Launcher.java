@@ -14,12 +14,11 @@ import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Launcher subsystem. Four-motor flywheel that launches fuel at the hub. */
+/** Four-motor flywheel that launches fuel at the hub. */
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        /* Launcher config values */
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 180;
         @Getter private final double lowerSupplyCurrentLimit = 80;
@@ -33,7 +32,6 @@ public class Launcher extends Mechanism {
 
         @Getter private final double onTargetToleranceRPM = 100;
 
-        /* Sim Configs */
         @Getter private final double launcherX = Units.inchesToMeters(62.5);
         @Getter private final double launcherY = Units.inchesToMeters(60);
         @Getter private final double wheelDiameter = 4;
@@ -65,8 +63,6 @@ public class Launcher extends Mechanism {
                             MotorAlignmentValue.Opposed));
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         OFF,
@@ -145,9 +141,6 @@ public class Launcher extends Mechanism {
         Telemetry.logDash("Launcher/Temp", getTemp(), "deg_C");
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
             sim = new LauncherSim(RobotSim.leftView, motor);

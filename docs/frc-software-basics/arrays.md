@@ -1,92 +1,86 @@
-# Arrays
+# Arrays and enums
 
-*Audience: New programmers. Assumes you've read [Logic-Based Operators & Strings](logic-operators.md).*
+*Audience: New programmers. Assumes you've read [Logic operators and strings](logic-operators.md).*
 
-An array holds a fixed number of values of the same type, indexed starting at zero. You declare the type, then the name, with `[]` after the type to signal it's an array.
-
-```java
-int[] x = {3, 8, 4, 7};
-// x[0] is 3, x[1] is 8, x[2] is 4, x[3] is 7
-```
-
-The size is fixed at creation. Once you create an `int[4]`, it holds exactly four ints for its lifetime. If you need a resizable list, Java has `ArrayList`, but for most robot code, fixed arrays are fine.
-
-## Declaring and Initializing
-
-You can declare an array and fill it in one line (as above), or declare it first and initialize separately:
+An array holds a fixed number of values, all of the same type, and you reach them by position. Counting starts at zero, so the first element is at index 0.
 
 ```java
-double[] positions = new double[4];   // four doubles, all initialized to 0.0
-positions[0] = 1.5;
-positions[1] = 2.3;
-// etc.
+int[] scores = {88, 92, 79};
+
+scores[0]  // 88
+scores[2]  // 79
+scores.length  // 3
 ```
 
-In `Vision.java`, the April tag IDs for each alliance are stored as int arrays:
+The size never changes. Once you build an array of three, it holds exactly three values for as long as it exists. That is the trade: arrays are fast and simple, but you must know the count up front. When you do not, use an `ArrayList`, which grows and shrinks as you add and remove.
+
+## Two ways to build one
+
+The version above puts the values in with the declaration. The other way is to create an empty array of a given size and fill it in afterwards. Every element starts at zero, so an empty array of `double` holds four `0.0` values until you write to them.
 
 ```java
-int[] blueTags = {18, 19, 20, 21, 24, 25, 26, 27};
-int[] redTags  = {2, 3, 4, 5, 8, 9, 10, 11, 12};
+double[] readings = new double[4];  // 0.0, 0.0, 0.0, 0.0
+
+readings[0] = 1.5;
+readings[1] = 2.3;
 ```
 
-Arrays of objects work the same way. `Vision.java` groups its three Limelights:
+An array can hold objects too, not just numbers. The variable is declared as an array, and the elements are objects. Here `Point` is a made-up class with an `x` and a `y` field, so each element is one location.
 
 ```java
-allLimelights = new Limelight[] {backLL, leftLL, rightLL};
+Point[] corners = {new Point(0, 0), new Point(10, 0), new Point(10, 10)};
 ```
 
-Once that array exists, a single enhanced `for` loop can update all three:
-
-```java
-for (Limelight limelight : allLimelights) {
-    limelight.setRobotOrientation(yaw);
-}
-```
-
-`Swerve` uses a `double[4]` to collect per-module positions for wheel-radius characterization:
-
-```java
-double[] positions = new double[4];
-for (int i = 0; i < 4; i++) {
-    positions[i] = swerve.getModule(i).getCachedPosition().distanceMeters / wheelRadiusGuess;
-}
-```
-
-See [Loops](loops.md) for more on the `for` patterns used with arrays.
+Because the elements are objects, you can loop over the array and call methods on each one. See [Loops](loops.md) for the two loop forms.
 
 ## Enums
 
-Enums define a fixed set of named constants, and they're far more common in this codebase than raw arrays. Every mechanism's operating modes are expressed as enum values. `State.java` defines the top-level robot states:
+An enum is a type made of a fixed set of named values. Use one whenever a thing has a small, known list of modes, instead of a magic number or a magic string.
 
 ```java
-public enum State {
-    IDLE,
-    INTAKE_FUEL,
-    TRACK_TARGET,
-    LAUNCH_WITH_SQUEEZE,
-    LAUNCH_WITHOUT_SQUEEZE,
-    UNJAM,
-    // ...
+public enum Shape {
+    CIRCLE,
+    SQUARE,
+    TRIANGLE
 }
 ```
 
-Enums are useful wherever you'd otherwise use a magic string or integer to represent a category. A `switch` on an enum is cleaner than a chain of `if/else` comparisons, and the compiler catches typos because only declared values exist:
+A variable of that type holds exactly one of the three values, and nothing else compiles.
 
 ```java
-switch (state) {
-    case TRACK_TARGET -> true;
-    default -> false;
-}
+Shape current = Shape.CIRCLE;
 ```
 
-For how this pattern fits into subsystem design, see [Class Generation](../coding-conventions/class-generation.md).
+The payoff is that the compiler catches your typos, and a `switch` can require that you handle every case. With a `switch` expression like this, leaving out a case is a compile error, so a new mode cannot be added and quietly ignored.
 
-## Array Errors
+```java
+int sides = switch (current) {
+    case CIRCLE -> 0;
+    case SQUARE -> 4;
+    case TRIANGLE -> 3;
+};
+```
 
-`ArrayIndexOutOfBoundsException`: you accessed an index outside the valid range. If the array has four elements, valid indices are 0 through 3. Accessing index 4 (or any negative index) throws this at runtime.
+## Two errors you will hit
 
-`NullPointerException`: you declared an array of objects but never initialized the individual elements. An uninitialized slot holds `null`, and calling a method on `null` throws immediately.
+**ArrayIndexOutOfBoundsException.** You asked for an index that does not exist. An array of three is valid at 0, 1, and 2 only. Index 3 or index -1 throws, and it throws while the program is running, not while it compiles.
+
+```java
+int[] scores = {88, 92, 79};
+scores[3] = 100;  // throws, there is no fourth element
+```
+
+**NullPointerException.** You have a variable that points at nothing, and you used it anyway. This most often comes from an array of objects where you never filled in every slot. An empty slot holds `null`, and calling a method on `null` throws immediately.
+
+```java
+Point[] corners = new Point[3];  // all three are null
+corners[0] = new Point(1, 1);
+corners[0].x;      // fine
+corners[1].x;      // throws, that slot was never filled in
+```
+
+The habit that prevents it: either fill every slot at creation, or check for `null` before you use it.
 
 ---
 
-*Previous: [Logic-Based Operators & Strings](logic-operators.md). Next: [Loops](loops.md)*
+*Previous: [Logic operators and strings](logic-operators.md). Next: [Loops](loops.md)*

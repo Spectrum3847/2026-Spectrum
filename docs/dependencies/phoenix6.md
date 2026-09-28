@@ -1,67 +1,53 @@
 # CTRE Phoenix 6
 
-*Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
+*Audience: Reference. Assumes you've read [Dependencies overview](overview.md).*
 
-Phoenix 6 is CTRE's API for the Kraken X60 / Falcon 500 (TalonFX), CANcoder, Pigeon 2, and CANdle. It's a clean rewrite of the older Phoenix v5: same vendor, totally different classes. We're all-in on Phoenix 6; nothing in this repo still uses v5.
+Phoenix 6 is CTRE's API for TalonFX, CANcoder, Pigeon 2, and CANdle. It is a clean break from v5: same vendor, different classes. Nothing in this repo uses v5.
 
-Pinned to 26.3.0 in [`vendordeps/Phoenix6-26.3.0.json`](../../vendordeps/Phoenix6-26.3.0.json).
+`vendordeps/` holds the pinned JSON. We do not keep a version number anywhere else.
 
-## Where It Shows Up
+The swerve drive is built on CTRE's own `SwerveDrivetrain` and `SwerveModule` classes with `SwerveRequest` control requests, and the Pigeon 2 IMU is configured through `Pigeon2Configuration`. Both live in [`SwerveConfig.java`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java).
 
-Every powered mechanism in `frc.robot` runs on a TalonFX through Phoenix 6. The swerve drive is built on CTRE's swerve generator output (`SwerveDrivetrain`, `SwerveModule`, `SwerveRequest`); see [`Swerve.java`](../../src/main/java/frc/robot/subsystems/swerve/Swerve.java), which has a comment at the top pointing to the CTRE example it was forked from. The Pigeon 2 IMU is configured through `Pigeon2Configuration`, and CANcoders go through our `SpectrumCANcoder` wrapper.
+## Every mechanism goes through Mechanism
 
-The low-level signal reader behind every cached value in `Mechanism` is `BaseStatusSignal`. You'll occasionally see it imported directly; that's almost always a hot path that wanted to refresh several signals at once.
+Never `new TalonFX(...)` in subsystem code. Extend [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java) and hand it a `Config`; [`TalonFXFactory`](../../src/main/java/frc/spectrumLib/hardware/TalonFXFactory.java) builds the Talon and any followers from that config. What the base class gives you:
 
-## TalonFX → `Mechanism`
+* The leader and follower Talons, created and configured from your `Config`.
+* Cached reads. `getPositionRotations()`, `getVelocityRPM()`, `getVoltage()`, and `getStatorCurrent()` each compute at most once per scheduler loop, so repeating a read inside one loop does not re hit the bus.
+* Command factories for every control mode we use, plus `Trigger`s such as `atRotations`, `aboveVelocityRPM`, and `atCurrent`, so you can bind to a mechanism's state instead of polling it.
 
-Never `new TalonFX(...)` in subsystem code. Subclass [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java) and let `TalonFXFactory` build the motor from your `Config`:
+Read `Mechanism.java` before adding anything to it. If you are about to write the same boilerplate in a second subsystem, it belongs in the base class.
 
-```java
-public class Launcher extends Mechanism {
-    public Launcher(LauncherConfig config) {
-        super(config);
-        // motors, followers, and signals are wired up by the parent
-    }
-}
-```
+## Control requests
 
-The parent class handles a lot for you. It configures the leader (and any followers) from your `Config`, current limits, neutral mode, gear ratio, inversion. It caches `positionRotations`, `velocityRPS`, `voltage`, and `statorCurrent` so reads in the same loop don't re-hit the bus. It exposes command factories for every control mode we use (`moveToRotations`, `moveToDegrees`, `moveToPercentage`, `runVelocityTcFocRPM`, `runVoltage`, `runPercentage`, …). And it gives you triggers like `atPosition`, `abovePosition`, and `atVelocity` so you can bind to a mechanism's state instead of polling it.
+Torque current FOC is the default for anything that benefits, and most things do. Profiled position moves and closed loop speed moves are the two cases worth knowing by heart; `VoltageOut` and `DutyCycleOut` are escape hatches for when you specifically do not want FOC. Which request a given factory sends is decided inside `Mechanism`, not at the call site, so read it there rather than guessing from a subsystem.
 
-If you find yourself writing the same boilerplate twice, it probably belongs in `Mechanism`, not in your subsystem.
+PID gains live in slot configs. `Mechanism.config.configPIDGains(kP, kI, kD)` writes slot 0 and `configPIDGains(slot, kP, kI, kD)` writes slot 1 or 2. The slots are independent, so gains you set on slot 0 do nothing when the active request is on slot 1. See [PID tuning](../tools/pid-tuning.md) for the live tuning workflow with `TuneValue`.
 
-## Control Modes
+## Encoders and the CAN bus
 
-Torque-current FOC is the default for anything that benefits, and most things do. The control requests `Mechanism` exposes are:
+The swerve uses Phoenix `CANcoder` and `CANcoderConfiguration` directly. `frc.spectrumLib.hardware.SpectrumCANcoder` exists in the library, but no subsystem uses it, so do not go hunting for a wrapper call when you wire an encoder.
 
-* `MotionMagicTorqueCurrentFOC` for profiled position moves (hood, indexers).
-* `VelocityTorqueCurrentFOC` for closed-loop velocity (launcher wheels, fuel intake rollers).
-* `VoltageOut` / `DutyCycleOut` as escape hatches when you specifically don't want FOC.
-* `Follower`, which gets wired up automatically when your `Config` declares follower IDs.
+Encoder offsets are per physical robot, not per season. Each `*2026.java` config in [`src/main/java/frc/robot/configs/`](../../src/main/java/frc/robot/configs/) calls `swerve.configEncoderOffsets(...)`, and `Rio` picks which config class to build from the roboRIO serial. The workflow for finding a new offset is in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).
 
-PID gains live in `Slot0Configs` (with `Slot1` and `Slot2` available if you need multiple sets). `Mechanism.config.configPIDGains(kP, kI, kD)` configures Slot 0; use `Mechanism.config.configPIDGains(slot, kP, kI, kD)` to configure Slot 1/2. See [PID Tuning](../tools/pid-tuning.md) for the live-tuning workflow with `TuneValue`.
+`Rio.CANIVORE` is the string `"*"`, which asks Phoenix for the first CANivore bus it finds, and `Rio.RIO_CANBUS` is the roboRIO's built in bus. Pass devices as `CanDeviceId` from `frc.spectrumLib.util` rather than hand rolling an id and bus pair inside a subsystem. That class is ported from 254's 2023 code.
 
-## CANcoders and the CAN Bus
+## Status signals
 
-CANcoders go through [`SpectrumCANcoder`](../../src/main/java/frc/spectrumLib/hardware/SpectrumCANcoder.java), configured by `SpectrumCANcoderConfig`. Absolute offsets belong in the relevant `*2026.java` config file, not in the mechanism; that way each physical robot can carry its own zero point. The "find the right offset" workflow lives in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).
+Reading a `StatusSignal` does not hit the bus. Phoenix refreshes signals in the background and `getValue()` returns the last sample. `Mechanism` refreshes all of its signals with one `BaseStatusSignal.refreshAll` per loop, gated on `RobotLoop.count()`, so repeated getter calls inside a loop are free. Its constructor sets each signal's update rate and then calls `optimizeBusUtilization()`: position and velocity at 100 Hz, output signals at 50 Hz on a leader with followers and 20 Hz otherwise (100 Hz with `fastOutputLogging`), currents at 20 Hz, temperature at 4 Hz, and every follower signal at 20 Hz. For a one off read outside the loop, such as during init, `signal.refresh().getValue()` is fine.
 
-For routing: `Rio.CANIVORE` is the magic string `"*"` (use the first CANivore bus found), and `Rio.RIO_CANBUS` is the roboRIO's built-in bus. Specify devices with `CanDeviceId(id, bus)` from `frc.spectrumLib.util`; don't hand-roll CAN IDs in subsystem code. And keep in mind Phoenix licensing is per device, per season; if a Talon stubbornly refuses to FOC, check Phoenix Tuner X first.
-
-## Status Signals
-
-Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus; the bus is updated in the background, and `.getValue()` just returns the latest cached sample. `Mechanism` refreshes all of its signals with one `BaseStatusSignal.refreshAll` per loop (gated on `RobotLoop.count()`), so getters like `getPositionRotations()` and `getVelocityRPM()` cost nothing after the first call in a loop. The constructor sets update rates per signal and then calls `optimizeBusUtilization()`: position and velocity at 100 Hz, output signals at 50 Hz on a leader with followers and 20 Hz otherwise, currents at 20 Hz, temperature at 4 Hz, and every follower signal at 20 Hz. A mechanism whose config sets `fastOutputLogging` keeps its output signals at 100 Hz. Config calls go through `CanConfigBudget`: once failed config calls have used 3 seconds in total, later calls get one attempt each and an alert is raised, so a dead CAN bus cannot stretch boot past a minute.
-
-For one-off reads outside the periodic loop (say, during init), `signal.refresh().getValue()` is fine.
+Config calls go through `CanConfigBudget`. Once failed config calls have used 3 seconds in total, later calls get one attempt each and an alert is raised, so a dead CAN bus cannot stretch boot past a minute.
 
 ## Gotchas
 
-`StatusCode` is *advisory*. Configuring a device returns one, but Phoenix doesn't throw if it's an error; you have to check `isError()` yourself. Log failed config attempts with `Telemetry.print` and an alert so they don't slip past.
+`StatusCode` is advisory. A config call returns one and Phoenix does not throw when it is an error, so you have to check `isError()` yourself. A device that silently refused its config looks exactly like a device that took it, right up until the gains are wrong at an event. Log failed config attempts with `Telemetry.print` and raise an `Alert`.
 
-`optimizeBusUtilization()` matters. Phoenix defaults to publishing every signal at a reasonable rate; on a busy CAN bus, the unused ones still add up. `Mechanism` calls it for you; keep that.
+Phoenix licensing does not carry over between seasons. A Talon that refuses to FOC, or reports a licensing fault on boot, is often just unlicensed. Check Phoenix Tuner X before you start chasing gains.
 
-LEDs run on a Phoenix 6 CANdle (device ID 1 on the CANivore) through the [`Leds`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) subsystem, which drives it via the `frc.spectrumLib.leds.SpectrumLEDs` wrapper (`CANBus`, `StripTypeValue`, `LossOfSignalBehaviorValue`); see [LEDs](../tools/leds.md). Reach for the Phoenix 6 CANdle classes, not the Phoenix v5 class with the same name.
+`optimizeBusUtilization()` is not optional. Without it Phoenix publishes every signal at its default rate, and a signal nobody reads still costs bus time on a busy robot. `Mechanism` calls it; keep it that way.
 
-PID gain slots are independent. `configPIDGains(kP, kI, kD)` configures Slot 0 only; configure Slot 1/2 explicitly if you use them.
+The Phoenix 5 and Phoenix 6 CANdle classes share a name, so the import is the tell for which is which. The LED strip runs on a Phoenix 6 CANdle through [`Leds.java`](../../src/main/java/frc/robot/subsystems/leds/Leds.java); see [LEDs](../tools/leds.md).
 
-## Further Reading
+## Further reading
 
-The [Phoenix 6 JavaDoc](https://api.ctr-electronics.com/phoenix6/latest/java/) is linked into our own generated docs. CTRE's [Phoenix 6 online docs](https://v6.docs.ctr-electronics.com/) cover FOC, control requests, and signal rates at a concept level. If you're tracing through `Swerve.java` and wondering where a piece of code came from, the [Phoenix-Examples](https://github.com/CrossTheRoadElec/Phoenix6-Examples) repo is the upstream we forked.
+The [Phoenix 6 JavaDoc](https://api.ctr-electronics.com/phoenix6/latest/java/) is linked into our generated docs, and [Phoenix 6 online docs](https://v6.docs.ctr-electronics.com/) cover FOC, control requests, and signal rates at a concept level.

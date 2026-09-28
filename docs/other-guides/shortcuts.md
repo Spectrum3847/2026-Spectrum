@@ -1,4 +1,4 @@
-# Development Shortcuts
+# Development shortcuts
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
@@ -61,18 +61,12 @@ For anything not in the WPILib menu, see [Gradle](../tools/gradle.md) for the fu
 ./gradlew spotlessApply  # Reformat all source files (run before committing if CI fails on format)
 ```
 
-## Phoenix Tuner X
-
-Phoenix Tuner X has a few actions that aren't in menus most people look at:
-
-- **Self-Test Snapshot**: Run from the device page to dump firmware, config, faults, and temps in one shot. Save the snapshot before asking for help with a motor issue.
-- **Plot tab**: Live-plot any signal pair. For PID tuning, add `Closed Loop Reference` and the matching `Position` or `Velocity` and hit Record. See [PID Tuning](../tools/pid-tuning.md) for how to interpret what you see.
-- **Log Extractor**: Pull `.hoot` files off the CANivore after a match.
-
-See [Phoenix Tuner X](../tools/phoenix-tuner-x.md) for the full workflow.
-
 ## Git in VS Code
 
 The Source Control panel (`Ctrl+Shift+G`) handles staging, committing, pushing, and pulling. For branch management and pull requests, the GitHub Pull Requests and Issues extension integrates directly; you can review PRs, leave comments, and merge without leaving the editor.
 
 If you prefer the terminal, see [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for the conventions this project uses.
+
+## Phoenix Tuner X
+
+Phoenix Tuner X is a desktop app rather than a VS Code extension, so there are no keyboard shortcuts for it. Its self-test snapshot, plotter, and hoot-log export are documented in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).

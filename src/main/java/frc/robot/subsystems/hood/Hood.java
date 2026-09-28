@@ -12,7 +12,7 @@ import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Hood subsystem. Positions the hood that sets the fuel launch angle. */
+/** Sets the hood angle that aims the fuel shot. */
 public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
@@ -22,7 +22,6 @@ public class Hood extends Mechanism {
         @Getter private final double maxRotations = 0.137;
         @Getter private final double minRotations = 0.024;
 
-        /* Hood config values */
         @Getter private final double supplyCurrentLimit = 40;
         @Getter private final double statorCurrentLimit = 60;
         @Getter private final double lowerSupplyCurrentLimit = 40;
@@ -41,7 +40,6 @@ public class Hood extends Mechanism {
         @Getter private final double mmJerk = 1000;
         @Getter private final double holdMaxSpeedRPM = 18;
 
-        /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(62.5);
         @Getter private final double hoodY = Units.inchesToMeters(50);
         @Getter private final double simRatio = 51.667;
@@ -66,8 +64,6 @@ public class Hood extends Mechanism {
             configClockwise_Positive();
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         HOME,
@@ -150,9 +146,6 @@ public class Hood extends Mechanism {
         Telemetry.logDash("Hood/Temp", getTemp(), "deg_C");
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
             sim = new HoodSim(RobotSim.leftView, motor);
