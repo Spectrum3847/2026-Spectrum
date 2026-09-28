@@ -15,39 +15,25 @@ import com.ctre.phoenix6.signals.ReverseLimitTypeValue;
 import frc.spectrumLib.util.CanDeviceId;
 
 /**
- * Creates CANTalon objects and configures all the parameters we care about to factory defaults.
- * Closed-loop and sensor parameters are not set, as these are expected to be set by the
- * application.
+ * Builds TalonFX objects and applies the Spectrum defaults. Closed-loop and sensor parameters are
+ * left for the application to set.
  */
 public class TalonFXFactory {
 
     private static NeutralModeValue neutralMode = NeutralModeValue.Brake;
     private static InvertedValue invertValue = InvertedValue.CounterClockwise_Positive;
-    private static double neutralDeadband = 0.04;
-    private static double supplyCurrentLimit = 40;
+    private static double neutralDeadband = 0.04; // fraction of full output
+    private static double supplyCurrentLimit = 40; // amps
 
-    /** Utility class — not instantiable. */
+    /** Utility class, not instantiable. */
     private TalonFXFactory() {}
 
-    /**
-     * Creates a TalonFX configured with Spectrum's default parameter set.
-     *
-     * @param id CAN device identifier (device number + bus name)
-     * @return the configured TalonFX
-     */
     public static TalonFX createDefaultTalon(CanDeviceId id) {
         var talon = createTalon(id);
         talon.getConfigurator().apply(getDefaultConfig());
         return talon;
     }
 
-    /**
-     * Creates a TalonFX and applies the supplied configuration.
-     *
-     * @param id CAN device identifier
-     * @param config The {@link TalonFXConfiguration} to apply
-     * @return the configured TalonFX
-     */
     public static TalonFX createConfigTalon(CanDeviceId id, TalonFXConfiguration config) {
         var talon = createTalon(id);
         talon.getConfigurator().apply(config);
@@ -55,14 +41,10 @@ public class TalonFXFactory {
     }
 
     /**
-     * Follow the motor output of another Talon.
+     * Builds a motor that mirrors the leader's output.
      *
-     * @param followerId Device ID of the follower.
-     * @param leaderTalonFX The leader TalonFX to follow.
-     * @param motorAlignment Set to Aligned for motor invert to match the leader's configured Invert
-     *     - which is typical when leader and follower are mechanically linked and spin in the same
-     *     direction. Set to Opposed for motor invert to oppose the leader's configured Invert -
-     *     this is typical where the leader and follower mechanically spin in opposite directions.
+     * @param motorAlignment {@link MotorAlignmentValue#Aligned} for a follower mounted the same way
+     *     round as the leader, {@link MotorAlignmentValue#Opposed} for one mounted backwards
      */
     public static TalonFX createPermanentFollowerTalon(
             CanDeviceId followerId, TalonFX leaderTalonFX, MotorAlignmentValue motorAlignment) {
@@ -81,13 +63,6 @@ public class TalonFXFactory {
         return talon;
     }
 
-    /**
-     * Builds a {@link TalonFXConfiguration} populated with Spectrum's standard defaults: brake
-     * neutral mode, counter-clockwise positive invert, 4 % duty-cycle deadband, 40 A supply current
-     * limit, software and hardware limits disabled, rotor sensor feedback, and audio cues enabled.
-     *
-     * @return a new configuration object with default values applied
-     */
     public static TalonFXConfiguration getDefaultConfig() {
         TalonFXConfiguration config = new TalonFXConfiguration();
 

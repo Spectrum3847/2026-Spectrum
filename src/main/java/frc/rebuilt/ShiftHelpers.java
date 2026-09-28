@@ -53,7 +53,6 @@ public class ShiftHelpers {
     public static Alliance getFirstActiveAlliance() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
-        // Return override value
         var winOverride = getAllianceWinOverride();
         if (!winOverride.isEmpty()) {
             return winOverride.get()
@@ -61,7 +60,8 @@ public class ShiftHelpers {
                     : (alliance == Alliance.Blue ? Alliance.Blue : Alliance.Red);
         }
 
-        // Return FMS value
+        // The FMS game message names the alliance whose HUB is inactive in shift 1, so the
+        // other one, the alliance active in shifts 2 and 4, is the first active alliance
         String message = DriverStation.getGameSpecificMessage();
         if (message.length() > 0) {
             char character = message.charAt(0);
@@ -72,7 +72,7 @@ public class ShiftHelpers {
             }
         }
 
-        // Return default value
+        // Nothing from the FMS, so assume the opponent is active first
         return alliance == Alliance.Blue ? Alliance.Red : Alliance.Blue;
     }
 
@@ -108,7 +108,7 @@ public class ShiftHelpers {
             active = true;
             currentShift = ShiftEnum.AUTO;
         } else if (DriverStation.isEnabled()) {
-            // Adjust the current offset if the time difference above the threshold
+            // Resync the offset when the local timer drifts from the FMS match clock
             if (Math.abs(fieldTeleopTime - currentTime) >= timeResetThreshold
                     && fieldTeleopTime <= 135
                     && DriverStation.isFMSAttached()) {
@@ -123,22 +123,20 @@ public class ShiftHelpers {
                 }
             }
             if (currentShiftIndex < 0) {
-                // After last shift, so assume endgame
+                // Past the last shift, treat as endgame
                 currentShiftIndex = shiftStartTimes.length - 1;
             }
 
-            // Calculate elapsed and remaining time in the current shift, ignoring combined shifts
             stateTimeElapsed = currentTime - shiftStartTimes[currentShiftIndex];
             stateTimeRemaining = shiftEndTimes[currentShiftIndex] - currentTime;
 
-            // If the state is the same as the last shift, combine the elapsed time
+            // Two adjacent shifts with the same active state read as one continuous phase
             if (currentShiftIndex > 0) {
                 if (currentSchedule[currentShiftIndex] == currentSchedule[currentShiftIndex - 1]) {
                     stateTimeElapsed = currentTime - shiftStartTimes[currentShiftIndex - 1];
                 }
             }
 
-            // If the state is the same as the next shift, combine the remaining time
             if (currentShiftIndex < shiftEndTimes.length - 1) {
                 if (currentSchedule[currentShiftIndex] == currentSchedule[currentShiftIndex + 1]) {
                     stateTimeRemaining = shiftEndTimes[currentShiftIndex + 1] - currentTime;
@@ -159,7 +157,6 @@ public class ShiftHelpers {
 
     public static ShiftInfo getShiftedShiftInfo() {
         boolean[] shiftSchedule = getSchedule();
-        // Starting active
         if (shiftSchedule[1] == true) {
             double[] shiftedShiftStartTimes = {
                 0.0,

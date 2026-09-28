@@ -2,35 +2,37 @@
 
 Two ways to use this site. Pick the one that matches where you are.
 
+The source code under `src/main/java` is the source of truth for what the robot does. These docs deliberately do not restate it, because a restatement goes stale and then lies to you. If you need to know what the code does, whether you are a student or an agent, open the code.
+
 ---
 
 ## I'm new to programming
 
-A sequential curriculum that takes you from "I've never written code" to "I can read and modify this robot's codebase." Each lesson assumes the previous one. Examples are pulled from this team's actual robot code, so you're learning Java *and* the codebase at the same time.
+A sequential curriculum that takes you from "I've never written code" to "I can read and modify this robot's codebase." Each lesson assumes the previous one. The examples are invented and self-contained, so nothing in them can drift out of date and none of them assumes you already know the robot.
 
 **Read in order.** Skipping ahead and getting stuck is the most common way to bounce off.
 
-1. [Setup Guide](setup.md): install Java, WPILib, and VSCode. You can't run anything without this.
-2. [Variables & Arithmetic](frc-software-basics/variables-arithmetic.md): types, math, and `final`.
-3. [Logic-Based Operators & Strings](frc-software-basics/logic-operators.md): `if`, `&&`, `==` vs `.equals()`.
-4. [Arrays & Enums](frc-software-basics/arrays.md): collections and named constants.
+1. [Setup guide](setup.md): install Java, WPILib, and VSCode. You can't run anything without this.
+2. [Variables and arithmetic](frc-software-basics/variables-arithmetic.md): types, math, and `final`.
+3. [Logic operators and strings](frc-software-basics/logic-operators.md): `if`, `&&`, `==` vs `.equals()`.
+4. [Arrays and enums](frc-software-basics/arrays.md): collections and named constants.
 5. [Loops](frc-software-basics/loops.md): `for`, `while`, and when not to use them on a robot.
-6. [Classes, Methods, & Objects](frc-software-basics/classes-methods-objects.md): the Java building blocks our subsystems are made of.
-7. [Formatting Code & Comments](frc-software-basics/formatting-code.md): how we write code so other people can read it.
+6. [Classes, methods, and objects](frc-software-basics/classes-methods-objects.md): the Java building blocks the rest of the codebase is made of.
+7. [Formatting code and comments](frc-software-basics/formatting-code.md): how we write code so other people can read it.
 8. [Applied to FRC](frc-software-basics/applied-to-frc.md): the bridge. After this you can read the reference docs below.
 
-By the end of step 8 you'll know enough Java and enough about command-based FRC to follow how a subsystem like `Launcher` actually works. Then graduate to the reference.
+By the end of step 8 you'll know enough Java and enough about command-based FRC to open a subsystem and follow it. Then graduate to the reference.
 
 ---
 
 ## I already know how to program: show me the reference
 
-Self-contained pages, browse as the work demands. Each one assumes you can read Java and have a basic mental model of WPILib command-based robots.
+Self-contained pages, browse as the work demands. Each one assumes you can read Java and have a basic mental model of WPILib command-based robots. What they hold is the stuff a reader cannot reconstruct from the code: conventions and the reasoning behind them, workflows, gotchas with their symptoms, and decisions the code cannot state on its own.
 
 ### Start here
 
-* [Setup Guide](setup.md): environment, JDK, WPILib, clone the repo.
-* [2026 Season Specific](other-guides/2026-season-specific.md): what's actually in this codebase: subsystems, state machine, per-robot configs.
+* [Setup guide](setup.md): environment, JDK, WPILib, clone the repo.
+* [2026 season specific](other-guides/2026-season-specific.md): orientation to where things live, and the rule for deciding where a new behavior goes.
 * [Programming Tips and Best Practices](other-guides/tips.md): the small habits that keep this codebase maintainable.
 * [Photon Guide to Programming](other-guides/photon-guide-to-programming.md): how we think about FRC software design.
 
@@ -59,7 +61,7 @@ Self-contained pages, browse as the work demands. Each one assumes you can read 
 
 ### Coding Conventions
 
-* [Code Style](coding-conventions/code-style.md): naming, formatting, AOSP.
+* [Code Style](coding-conventions/code-style.md): naming, structure, judgment calls.
 * [Class Generation and Method Building](coding-conventions/class-generation.md): subsystem layout, constructors, methods.
 * [Documentation and Comments](coding-conventions/documentation-and-comments.md): when to comment, when not to.
 * [Exception Handling](coding-conventions/exception-handling.md): what to catch, what to let crash.

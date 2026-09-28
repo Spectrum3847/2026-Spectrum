@@ -20,23 +20,15 @@ import frc.spectrumLib.telemetry.Telemetry;
 @SuppressWarnings("unused")
 public class ShotCalculator {
 
-    // =========================================================================
-    // Singleton
-    // =========================================================================
-
     private static ShotCalculator instance;
 
-    /** Robot-centre to launcher offset. Zero = launcher is at robot centre. */
+    /** Launcher offset in the robot frame. Zero puts the launcher at the robot centre. */
     private static final Transform2d robotToLauncher = Transform2d.kZero;
 
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
         return instance;
     }
-
-    // =========================================================================
-    // Shot Parameters Record
-    // =========================================================================
 
     /**
      * Immutable snapshot of all quantities needed to command the drive, hood, and flywheel
@@ -66,10 +58,6 @@ public class ShotCalculator {
 
     private ShootingParameters latestParameters = null;
 
-    // =========================================================================
-    // Runtime-Adjustable Offsets
-    // =========================================================================
-
     public static final double STARTING_HOOD_ANGLE_OFFSET = -2; // degrees
     public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
@@ -92,17 +80,9 @@ public class ShotCalculator {
         return Commands.runOnce(() -> DRIVE_ANGLE_OFFSET -= 1).ignoringDisable(true);
     }
 
-    // =========================================================================
-    // Polynomial Model
-    // =========================================================================
-    // 2D degree-3 polynomial surface:
-    //   f(distance_m, radialVel_ms) → { exitSpeed_ms, launchAngle_deg }
-    // Monomial basis: 1, d, v, d², d·v, v², d³, d²·v, d·v², v³
-
     /**
-     * Global exit-speed scale factor. Adjust post-characterization to correct for ball compression,
-     * wear, or temperature without re-fitting the polynomial. 1.0 = no scaling. Applied to both the
-     * hub and feed models.
+     * Global exit-speed scale factor for both the hub and feed models. 1.0 leaves the fitted
+     * polynomial unscaled; raise it to correct for ball compression, wear, or temperature.
      */
     private static final double MPS_FACTOR = 0.8;
 
@@ -111,22 +91,23 @@ public class ShotCalculator {
 
     /**
      * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are
-     * mapped to zero-mean unit-variance before evaluation, so the coefficients live in normalised
-     * space and must not be applied to raw (metres / m/s) inputs directly.
+     * mapped to zero-mean unit-variance before evaluation, so the coefficients are only valid for
+     * normalised inputs.
      *
-     * @param name descriptive name for telemetry
-     * @param distMin fitted distance lower bound (metres); inputs clamped, shots outside flagged
-     *     invalid
+     * <p>Coefficient order is the monomial basis 1, d, v, d², d·v, v², d³, d²·v, d·v², v³, which
+     * has to match the expansion in {@link #evalPolyRaw}.
+     *
+     * @param name label shown on the dashboard
+     * @param distMin fitted distance lower bound (metres); evalPolyRaw clamps to it
      * @param distMax fitted distance upper bound (metres)
      * @param rvMin fitted radial-velocity lower bound (m/s)
      * @param rvMax fitted radial-velocity upper bound (m/s)
-     * @param dMean distance normalisation mean
-     * @param dStd distance normalisation standard deviation
-     * @param vMean radial-velocity normalisation mean
-     * @param vStd radial-velocity normalisation standard deviation
-     * @param speedCoeffs exit-speed coefficients in the monomial basis 1, d, v, d², d·v, v², d³,
-     *     d²·v, d·v², v³
-     * @param angleCoeffs launch-angle coefficients in the same basis
+     * @param dMean distance normalisation mean (metres)
+     * @param dStd distance normalisation standard deviation (metres)
+     * @param vMean radial-velocity normalisation mean (m/s)
+     * @param vStd radial-velocity normalisation standard deviation (m/s)
+     * @param speedCoeffs exit-speed coefficients, one per term in evalPolyRaw
+     * @param angleCoeffs launch-angle coefficients in the same order
      */
     private record PolyModel(
             String name,
@@ -141,7 +122,6 @@ public class ShotCalculator {
             double[] speedCoeffs,
             double[] angleCoeffs) {}
 
-    /** Hub-shot model — used when the robot is in a scoring zone. */
     private static final PolyModel NO_CEILING_HUB_MODEL =
             new PolyModel(
                     "No Ceiling Hub Model",
@@ -149,10 +129,10 @@ public class ShotCalculator {
                     8.0, // distMax (m)
                     -3.0, // rvMin (m/s)
                     3.0, // rvMax (m/s)
-                    4.7946224256, // dMean
-                    1.9514199579, // dStd
-                    -0.0434782609, // vMean
-                    1.9813242725, // vStd
+                    4.7946224256, // dMean (m)
+                    1.9514199579, // dStd (m)
+                    -0.0434782609, // vMean (m/s)
+                    1.9813242725, // vStd (m/s)
                     new double[] {
                         /* 1    */ 1.1143628795e+1,
                         /* d    */ 1.0138658152e+0,
@@ -178,7 +158,6 @@ public class ShotCalculator {
                         /* v³   */ -1.4532157984e+0
                     });
 
-    /** 3 meter ceiling hub model - used when the robot is testing at home */
     private static final PolyModel CEILING_3M_HUB_MODEL =
             new PolyModel(
                     "3 Meter Ceiling Hub Model",
@@ -186,10 +165,10 @@ public class ShotCalculator {
                     8.0, // distMax (m)
                     -3.0, // rvMin (m/s)
                     3.0, // rvMax (m/s)
-                    4.7330253114, // dMean
-                    1.8890844725, // dStd
-                    0.0229007634, // vMean
-                    1.9319161427, // vStd
+                    4.7330253114, // dMean (m)
+                    1.8890844725, // dStd (m)
+                    0.0229007634, // vMean (m/s)
+                    1.9319161427, // vStd (m/s)
                     new double[] {
                         /* 1    */ 9.1291597222e+0,
                         /* d    */ 1.4704411927e+0,
@@ -215,7 +194,6 @@ public class ShotCalculator {
                         /* v³   */ -5.4437632941e-1
                     });
 
-    /** Feed-shot model — used when the robot is in a feed zone. */
     private static final PolyModel FEED_MODEL =
             new PolyModel(
                     "Feed Model",
@@ -223,10 +201,10 @@ public class ShotCalculator {
                     10.0, // distMax (m)
                     -3.0, // rvMin (m/s)
                     3.0, // rvMax (m/s)
-                    7.5, // dMean
-                    1.5430334996, // dStd
-                    0.0, // vMean
-                    2.0, // vStd
+                    7.5, // dMean (m)
+                    1.5430334996, // dStd (m)
+                    0.0, // vMean (m/s)
+                    2.0, // vStd (m/s)
                     new double[] {
                         /* 1    */ 1.2074547373e+1,
                         /* d    */ 1.1124598419e+0,
@@ -253,9 +231,8 @@ public class ShotCalculator {
                     });
 
     /**
-     * Dashboard selector for which hub surface to shoot with, so the ceiling-limited model can be
-     * picked when testing indoors without a redeploy. Feed shots always use {@link #FEED_MODEL} and
-     * are unaffected.
+     * Dashboard selector for the hub model, so the ceiling-limited surface can be picked when
+     * testing indoors without a redeploy. Feed shots always use {@link #FEED_MODEL}.
      */
     private final SendableChooser<PolyModel> hubModelChooser = new SendableChooser<>();
 
@@ -265,24 +242,17 @@ public class ShotCalculator {
         SmartDashboard.putData("Hub Model Chooser", hubModelChooser);
     }
 
-    /**
-     * The hub model selected on the dashboard, falling back to the no-ceiling model if nothing has
-     * been selected yet.
-     */
+    /** Falls back to {@link #NO_CEILING_HUB_MODEL} when nothing has been selected yet. */
     private PolyModel selectedHubModel() {
         PolyModel selected = hubModelChooser.getSelected();
         return selected != null ? selected : NO_CEILING_HUB_MODEL;
     }
 
-    // =========================================================================
-    // State — Velocity Derivative Filters
-    // =========================================================================
-
     private static final double LOOP_PERIOD_SECS = 0.02;
 
     /**
-     * Phase delay applied to the estimated robot pose before computing shot parameters,
-     * compensating for sensor and network latency (seconds).
+     * Phase delay applied to the estimated robot pose before computing shot parameters, to cover
+     * sensor and network latency (seconds).
      */
     private static final double PHASE_DELAY_SECS = 0.03;
 
@@ -295,43 +265,29 @@ public class ShotCalculator {
     private double lastHoodAngle = Double.NaN;
     private Rotation2d lastDriveAngle = null;
 
-    // =========================================================================
-    // Main API
-    // =========================================================================
-
     /**
-     * Returns the current shooting parameters, computing them from the robot's live pose and
-     * velocity if not already cached this loop.
-     *
-     * <p>Approach:
+     * Shot parameters for the current pose and velocity, cached until {@link
+     * #clearShootingParameters()} is called.
      *
      * <ol>
-     *   <li>Apply a phase delay to the odometry pose to account for sensor latency.
-     *   <li>Compute the launcher's field-relative velocity, including the tangential component from
-     *       robot rotation about its centre.
-     *   <li>Decompose that velocity into radial (toward target) and tangential (perpendicular)
-     *       components.
-     *   <li>Run the 1690 Orbit iterative virtual-target solver to determine the optimal exit speed,
-     *       launch angle, and yaw correction for shoot-on-the-move.
-     *   <li>Derive the drive angle, hood angle, and flywheel RPM from the result.
+     *   <li>Delay the odometry pose by {@link #PHASE_DELAY_SECS} to cover sensor latency.
+     *   <li>Split the launcher's field-relative velocity into radial and tangential parts.
+     *   <li>Run the 1690 Orbit virtual-target solver, which corrects the aim for robot motion
+     *       during flight.
+     *   <li>Turn that into a drive angle, a hood angle, and a flywheel speed.
      * </ol>
-     *
-     * <p>Call {@link #clearShootingParameters()} at the start of each loop to allow re-computation
-     * on the next call.
      *
      * @return the latest {@link ShootingParameters}
      */
     public ShootingParameters getParameters() {
         if (latestParameters != null) return latestParameters;
 
-        // ── Target selection ─────────────────────────────────────────────────
         boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
         // Feed and hub shots use separately-fitted polynomial surfaces.
         PolyModel model = feed ? FEED_MODEL : selectedHubModel();
 
-        // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
         ChassisSpeeds robotRelativeVelocity = Robot.getSwerve().getCurrentRobotChassisSpeeds();
         estimatedPose =
@@ -341,12 +297,11 @@ public class ShotCalculator {
                                 robotRelativeVelocity.vyMetersPerSecond * PHASE_DELAY_SECS,
                                 robotRelativeVelocity.omegaRadiansPerSecond * PHASE_DELAY_SECS));
 
-        // ── Launcher pose + static distance ──────────────────────────────────
         Pose2d launcherPose = estimatedPose.transformBy(robotToLauncher);
         Translation2d launcherToTarget = target.minus(launcherPose.getTranslation());
         double distanceNoLookahead = launcherToTarget.getNorm();
 
-        // ── Field-relative launcher velocity (includes rotation arm) ─────────
+        // Launcher velocity picks up an omega x r term from rotating about the robot centre
         ChassisSpeeds fieldVelocity =
                 ChassisSpeeds.fromRobotRelativeSpeeds(
                         robotRelativeVelocity, estimatedPose.getRotation());
@@ -362,17 +317,13 @@ public class ShotCalculator {
                                 * (robotToLauncher.getX() * Math.cos(robotAngle)
                                         - robotToLauncher.getY() * Math.sin(robotAngle));
 
-        // ── Decompose velocity into radial and tangential components ──────────
-        // Unit vector from launcher toward target
         double ux = launcherToTarget.getX() / distanceNoLookahead;
         double uy = launcherToTarget.getY() / distanceNoLookahead;
         // Positive radialVelocity = closing on target
         double radialVelocity = launcherVelocityX * ux + launcherVelocityY * uy;
-        // Tangential: perpendicular to the radial axis
+        // Tangential: the radial axis rotated a quarter turn
         double tangentialVelocity = -launcherVelocityX * uy + launcherVelocityY * ux;
 
-        // ── Polynomial + 1690 virtual-target solver ───────────────────────────
-        // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
         double[] poly =
                 solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
         double exitSpeedMs = poly[0];
@@ -381,7 +332,6 @@ public class ShotCalculator {
         double lookaheadDist = poly[3];
         double tofFinal = poly[4];
 
-        // ── Drive angle: static bearing + shoot-on-move yaw + user offset ────
         Rotation2d driveAngle =
                 launcherToTarget
                         .getAngle()
@@ -389,7 +339,6 @@ public class ShotCalculator {
                         .plus(Rotation2d.fromDegrees(DRIVE_ANGLE_OFFSET))
                         .plus(Rotation2d.k180deg);
 
-        // ── Lookahead pose: estimated launcher position when the ball arrives ────
         // Useful for Field2d visualization and validating shoot-on-move compensation.
         Pose2d lookaheadPose =
                 new Pose2d(
@@ -408,19 +357,16 @@ public class ShotCalculator {
         double driveAngularVelocity = driveAngleFilter.calculate(deltaRot / LOOP_PERIOD_SECS);
         lastDriveAngle = driveAngle;
 
-        // ── Hood angle + velocity ─────────────────────────────────────────────
-        // Compute velocity on the raw (un-offset) angle so HOOD_ANGLE_OFFSET (a
-        // near-constant) does not bleed into the derivative.
+        // Differentiate the raw angle so the near-constant HOOD_ANGLE_OFFSET does not
+        // bleed into the derivative
         if (Double.isNaN(lastHoodAngle)) lastHoodAngle = rawHoodAngle;
         double hoodVelocity =
                 hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
         lastHoodAngle = rawHoodAngle;
         double hoodAngle = Math.max(rawHoodAngle + HOOD_ANGLE_OFFSET, 9);
 
-        // ── Flywheel speed: exit speed (m/s) → RPM ───────────────────────────
         double flywheelSpeed = exitSpeedMs * RPM_PER_MPS;
 
-        // ── Validity ──────────────────────────────────────────────────────────
         boolean isValid =
                 distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
 
@@ -457,60 +403,40 @@ public class ShotCalculator {
         return latestParameters;
     }
 
-    /**
-     * Clears the cached parameters so they are recomputed on the next call to {@link
-     * #getParameters()}.
-     */
     public void clearShootingParameters() {
         latestParameters = null;
     }
 
-    // =========================================================================
-    // Private — Polynomial Solver
-    // =========================================================================
-
     /**
-     * 1690 Orbit iterative virtual-target solver.
+     * 1690 Orbit virtual-target solver. Each pass evaluates the polynomial at the aim point,
+     * estimates time of flight, then shifts the aim point by how far the launcher moves during that
+     * flight. Converges in two or three of the five allowed iterations.
      *
-     * <p>Each pass evaluates the polynomial at the current virtual aim point, estimates
-     * time-of-flight from horizontal kinematics, shifts the aim point by how far the launcher moves
-     * during that flight, and repeats until TOF converges. Terminates in ≤ 5 iterations (typically
-     * 2–3).
-     *
-     * @param model the polynomial model (hub or feed) to evaluate against
-     * @param distance horizontal distance to goal centre (metres)
-     * @param radialVelocity launcher velocity toward/away from goal (m/s); positive = closing on
-     *     goal
-     * @param tangentialVelocity launcher velocity perpendicular to goal line (m/s)
-     * @return {@code double[]} with indices:
-     *     <ul>
-     *       <li>0 — exit speed (m/s), scaled by {@link #MPS_FACTOR}
-     *       <li>1 — launch angle (degrees), raw polynomial value
-     *       <li>2 — yaw offset (degrees); add to static bearing before firing
-     *       <li>3 — converged virtual aim distance (metres)
-     *       <li>4 — converged time of flight (seconds)
-     *     </ul>
+     * @param model the hub or feed surface to evaluate against
+     * @param distance horizontal distance to the goal centre (metres)
+     * @param radialVelocity launcher velocity toward the goal (m/s); positive is closing
+     * @param tangentialVelocity launcher velocity across the goal line (m/s)
+     * @return exit speed (m/s), launch angle (degrees), yaw offset (degrees), converged lookahead
+     *     distance (metres), time of flight (seconds), in that order
      */
     private static double[] solveVirtualTarget(
             PolyModel model, double distance, double radialVelocity, double tangentialVelocity) {
-        double vdx = distance; // virtual aim point — radial component (m)
-        double vdz = 0.0; // virtual aim point — lateral component (m)
+        double vdx = distance; // virtual aim point, radial (m)
+        double vdz = 0.0; // virtual aim point, lateral (m)
         double tof = 0.0;
 
         for (int iter = 0; iter < 5; iter++) {
             double vDist = Math.sqrt(vdx * vdx + vdz * vdz);
             if (vDist < 0.1) break;
 
-            // Evaluate polynomial at virtual point with rv = 0 (robot motion is
-            // already encoded in the shifted aim point)
+            // Evaluate at rv = 0; the shifted aim point already carries the robot's motion
             double[] raw = evalPolyRaw(model, vDist, 0.0);
             double speed = raw[0] * MPS_FACTOR;
             double cosA = Math.cos(raw[1] * Math.PI / 180.0);
             double prevTof = tof;
             tof = vDist / Math.max(speed * cosA, 0.5); // guard against div-by-zero
 
-            // Shift aim point: where the target will be relative to the launcher
-            // when the ball arrives
+            // Aim at where the target will be when the ball arrives
             vdx = distance - radialVelocity * tof;
             vdz = -tangentialVelocity * tof;
 
@@ -524,24 +450,21 @@ public class ShotCalculator {
 
         double[] result = evalPolyRaw(model, virtualDist, 0.0);
         return new double[] {
-            result[0] * MPS_FACTOR, // exitSpeed_ms
-            result[1], // launchAngle_deg
-            yawOffsetDeg, // yaw correction (degrees)
-            virtualDist, // converged lookahead distance (m)
-            tof // converged time of flight (s)
+            result[0] * MPS_FACTOR, // m/s
+            result[1], // degrees
+            yawOffsetDeg, // degrees
+            virtualDist, // m
+            tof // s
         };
     }
 
     /**
-     * Evaluates the given polynomial surface at (distance, radialVel). Inputs are clamped to the
-     * model's fitted data range. Returns raw polynomial output — callers are responsible for
-     * applying {@link #MPS_FACTOR} to the exit speed and {@code HOOD_ANGLE_OFFSET} to the launch
-     * angle.
+     * Evaluates the surface at (distance, radialVel), clamping both to the model's fitted range.
+     * Output is raw, so callers apply {@link #MPS_FACTOR} to the exit speed.
      *
-     * @param model the polynomial model (hub or feed) to evaluate
      * @param distance horizontal distance to the aim point (metres)
      * @param radialVel radial velocity (m/s)
-     * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg }
+     * @return exit speed (m/s) then launch angle (degrees)
      */
     private static double[] evalPolyRaw(PolyModel model, double distance, double radialVel) {
         double d_raw = Math.max(model.distMin(), Math.min(model.distMax(), distance));

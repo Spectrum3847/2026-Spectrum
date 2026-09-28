@@ -8,29 +8,17 @@ import frc.spectrumLib.leds.SpectrumLEDs;
 import frc.spectrumLib.telemetry.Telemetry;
 
 /**
- * Robot LED subsystem for the 2026 REBUILT season.
- *
- * <p>Extends {@link SpectrumLEDs} to inherit the full pattern library (solid, stripe, blink,
- * breathe, rainbow, chase, bounce, gradient, ombre, wave, countdown, etc.) and the CANdle hardware
- * abstraction. Robot-specific convenience command methods are defined below; bind them via triggers
- * in {@code Robot.java} or {@code SuperStructure}.
- *
- * <p>Hardware: CANdle device ID 1 on the CANivore bus, 20-LED RGB external strip at brightness 0.5.
- * LEDs are disabled on signal loss.
+ * LED strip for the robot. Extends {@link SpectrumLEDs} for the pattern library and the CANdle
+ * hardware. Bind the pattern methods from {@code Robot.java} or {@code SuperStructure}.
  */
 public class Leds extends SpectrumLEDs {
 
-    // -------------------------------------------------------------------------
-    // Hardware configuration
-    // -------------------------------------------------------------------------
-
-    /** Number of external LEDs attached to the CANdle output (indices 8–27 on the device). */
+    /** Length of the external LED strip, which the CANdle addresses from index 8. */
     public static final int NUM_LEDS = 20;
 
     /**
-     * Static hardware config. Set {@code startIdx = 8} to address only the external strip (skipping
-     * the 8 onboard CANdle LEDs); keep at {@code 0} to address all 20 LEDs starting from the first
-     * onboard LED.
+     * Static hardware config, already set to address the external strip only. Set startIdx to 0 to
+     * span the onboard LEDs as well.
      */
     public static final Config ledsConfig;
 
@@ -40,10 +28,6 @@ public class Leds extends SpectrumLEDs {
         ledsConfig.setBrightness(0.5);
         ledsConfig.setLossOfSignalBehavior(LossOfSignalBehaviorValue.DisableLEDs);
     }
-
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
 
     public Leds() {
         super(ledsConfig);

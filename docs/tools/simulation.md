@@ -2,74 +2,59 @@
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-Running the robot code without a robot. Worth doing every time you push: it catches state-machine bugs, wiring mistakes between subsystems, and PathPlanner trajectories that look fine on paper but collide with field elements.
+Running the robot code with no robot. Worth doing on every change: it catches state machine bugs, wiring mistakes between subsystems, and trajectories that look fine in the editor and cannot actually be driven.
 
-## Launching the Sim
+## Launching
 
-The fast path is in VSCode: `Ctrl+Shift+P → WPILib: Simulate Robot Code`. Gradle builds, then prompts for `GUI Sim` or `Use Driver Station`. Pick `GUI Sim` for typical iteration, it launches `Glass`, which gives you joysticks, Field2d, and NetworkTables in one window.
+In VSCode, `Ctrl+Shift+P` then **WPILib: Simulate Robot Code**. It asks for `GUI Sim` or `Use Driver Station`; take `GUI Sim` while iterating. From a terminal, `./gradlew simulateJava` does the same thing.
 
-From the terminal: `./gradlew simulateJava` does the same thing.
+`build.gradle` turns Glass and a simulated Driver Station on by default, so you get joysticks, an FMS panel, and a field view without configuring anything.
 
-Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriverstation()` from [`build.gradle`](../../build.gradle) wired up; Glass and the simulated DS come up by default. Elastic will also connect to `localhost` if you point it there.
+The saved Glass layout is [`simgui-window.json`](../../simgui-window.json) in the repo root, and it already docks the FMS panel, the joysticks, `Field2d`, the running-commands widget, the alerts list, the auto chooser, and both robot views. Two problems with it:
 
-## RobotSim, Our Side-View Drawing
+* The window is saved at 2256 by 1415. On a smaller laptop the panels overlap and you cannot read any of them. Drag them once and save, and the layout is yours.
+* It has a docked window for `/SmartDashboard/Sim/TopView`. Nothing publishes that topic, so the panel is permanently blank. `RobotSim` only puts `Sim/LeftView` on the dashboard. Close it or ignore it.
 
-[`frc.robot.RobotSim`](../../src/main/java/frc/robot/RobotSim.java) builds a `Mechanism2d` published to `SmartDashboard/Sim/LeftView`. Drag that into Glass and you get a 2D side-view of the robot rendered from `MechanismLigament2d` segments. Right now it draws an outline; adding subsystem-specific ligaments (hood angle, intake extension position) is how you make it actually useful.
+## Fuel physics
 
-The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim` / `LinearSim` / `RollerSim` in the subsystem's constructor, route it to update its angle/position/velocity from the motor's `getSimState()`, and append it onto `RobotSim.leftView`. The sim classes do the math to map motor rotations into the visualization.
+Game pieces are simulated by [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by [`RobotSim`](../../src/main/java/frc/robot/RobotSim.java) and published under `Sim/Fuel`. The drivetrain is MapleSim, wired in through [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), which is adapted from the [MapleSim CTRE swerve template](https://github.com/Shenzhen-Robotics-Alliance/maple-sim/blob/main/templates/CTRE%20Swerve%20with%20maple-sim/src/main/java/frc/robot/utils/simulation/MapleSimSwerveDrivetrain.java). Game pieces are not MapleSim's job, they are `FuelPhysicsSim`'s, and it carries its own drag, gravity, and Magnus integrator rather than leaning on MapleSim.
 
-|   Helper    |                                              What it draws                                              |
-|-------------|---------------------------------------------------------------------------------------------------------|
-| `ArmSim`    | A pivoting ligament, hood, shooter pivot, arm.                                                          |
-| `LinearSim` | A telescoping/sliding ligament, elevator, intake extension.                                             |
-| `RollerSim` | A spinning indicator with direction + relative speed, intake roller, indexer wheels, launcher flywheel. |
+`RobotSim` builds the ball sim in its constructor and registers the robot footprint and the intake zone in `configBallSimRobot()`. The intake zone is a box in metres around the intake, and it only catches fuel while the super state is the intake state. Fuel is only on the field because `placeFieldBalls()` ran, and `Robot.autonomousInit` clears and replaces the balls when a sim auto starts.
 
-These came from Team 604's sample project and were adapted; the principle of "always move the root/origin to change display position" (commented at the top of `RobotSim.java`) is the most useful thing to remember.
+Launching is the part worth believing. `ballSimLaunchFuel()` takes its position and exit speed from `ShotCalculator`, the same calculation match day uses, so a shot that lands in sim lands on the field if the calibration is right. `Robot.configureSimBindings()` wires the launch to the super state reaching a launch state, so a real launch during a sim auto throws real fuel.
 
-## Fuel Physics
+Two things to check when fuel misbehaves:
 
-Game-piece physics, spawning, intake pickup, and projectile flight run through [`frc.rebuilt.FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), owned by `RobotSim` as its `ballSim` field and publishing to NetworkTables under `Sim/Fuel`. (MapleSim still simulates the swerve *drivetrain* via [`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java), but no longer the game pieces.)
+* The intake zone is in metres. A units mistake gives you a box that catches nothing, or everything.
+* MapleSim builds the drivetrain simulation once, at construction, from the same `SwerveConfig` the robot uses. Change a module position and the running sim is still yesterday's robot until you restart it.
 
-`RobotSim` sets it up in its constructor:
+## The robot drawing
 
-```java
-ballSim = new FuelPhysicsSim("Sim/Fuel");
-ballSim.enable();
-ballSim.placeFieldBalls();   // spawns all the game pieces
-configBallSimRobot();        // registers the robot's intake zone
-```
+`RobotSim` publishes a `Mechanism2d` as `Sim/LeftView` and currently draws a rectangle outline. To make it useful, append ligaments to the `MechanismRoot2d` in `drawSideRobot()` and move `RobotSim.origin` to reposition the whole layout, since that is what frames the camera.
 
-`configBallSimRobot()` calls `ballSim.addIntakeZone(...)`, so a fuel piece that enters the robot's intake box while the intake is active is picked up (tracked by `ballSim.getTotalIntaked()`). `ballSimLaunchFuel()` fires held fuel: it reads the intaked count and calls `ballSim.launchBall(launcherPose, launchVelocity, spin)`, where the pose and velocity come from the actual [`ShotCalculator`](../../src/main/java/frc/rebuilt/ShotCalculator.java) outputs, the same code path as match-day, so a shot that lands in sim should also land on the real field if the calibration is right.
+`frc.spectrumLib.sim` has three mechanism simulators worth knowing: `ArmSim` for a joint, `LinearSim` for a sliding stage, and `RollerSim` for a spinning roller. Each takes a motor's `getSimState()` and drives both the WPILib physics sim and its own ligament, so a subsystem that constructs one gets a moving drawing without writing drawing code. They are `Mount` and `Mountable`, so one can attach to the tip of another.
 
-`FuelPhysicsSim` carries its own drag/gravity/Magnus integrator, so it does not depend on MapleSim for projectile flight. Drag `Sim/Fuel` into Glass's `Field2d`/`Field3d` overlay to see the balls in flight.
-
-## What Simulation Catches (and Doesn't)
+## What simulation does and does not catch
 
 It catches:
 
-* State-machine bugs, a `SuperStructure` super-state that forgets to set a mechanism back, command interruptions, race conditions between subsystem state machines.
-* PathPlanner trajectories that look fine in the editor but the chassis can't actually drive (over-aggressive velocities, infeasible turn angles).
-* Auto chooser plumbing, Elastic's chooser, auton command names, mirror flag.
-* Fuel intake/launch logic, `FuelPhysicsSim` reacts to the same intake and shooter commands the real robot runs.
+* Super state bugs, a state that forgets to return a mechanism to rest, command interruptions, races between subsystem state machines.
+* Trajectories the editor accepted and the chassis cannot drive.
+* The auto chooser, the command names, and the mirror flag. The `Field2d` preview while disabled draws the routine the chooser will actually run.
+* Fuel intake and launch, since the ball sim reacts to the same commands the robot runs.
 
-It doesn't catch:
+It does not catch:
 
-* Mechanical fit, your hood can't actually swing through the intake.
-* PID feel, gains that move a sim mechanism smoothly may fight a real one with friction.
-* CAN bus saturation, brownouts, anything power-related.
+* Mechanical fit. Your hood can swing through the intake in sim.
+* Gains. A mechanism that moves smoothly in sim fights a real one with friction.
+* Anything on the CAN bus: saturation, brownouts, power.
 
-The sim is for *logic* validation. Mechanical and tuning validation happens on the real robot.
+## When the sim lies
 
-## When the Sim Lies
+`Utils.isSimulation()` from Phoenix and `RobotBase.isSimulation()` from WPILib are different functions and this codebase uses both. `Robot` and `RobotSim` reach for the Phoenix one because it is what gates calls into TalonFX sim state. Using the wrong one means either sim state never updates in sim, or a real robot blocks waiting on a sim device that is not there, and both present as "the mechanism does not move."
 
-A few things to check first when a sim result doesn't match reality:
+## See also
 
-* `Robot.isSimulation()` and `Utils.isSimulation()` are not interchangeable everywhere; the `RobotBase`/Phoenix versions differ. Our code reaches for Phoenix's `Utils.isSimulation()` in `RobotSim` because we need it to gate Phoenix sim-state calls.
-* `mapleSimDrive` is built from the per-robot swerve config. If you tweaked module positions in code but didn't redeploy/rebuild before running sim, MapleSim is still simulating yesterday's drivetrain.
-* The `FuelPhysicsSim` intake zone in `configBallSimRobot()` is in meters. A units mixup silently produces an intake box that catches nothing (or everything).
-
-## See Also
-
-* [MapleSim dependency page](../dependencies/maple-sim.md) for the version we run.
-* [PathPlanner](../dependencies/pathplanner.md) for trajectory generation, which feeds into the sim swerve.
+* [MapleSim](../dependencies/maple-sim.md) for the drivetrain side and the version we run.
+* [PathPlanner](../dependencies/pathplanner.md) for trajectory generation, which feeds the sim swerve.
 * WPILib's [simulation docs](https://docs.wpilib.org/en/stable/docs/software/wpilib-tools/robot-simulation/index.html) for `Mechanism2d` and `Field2d` basics.

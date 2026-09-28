@@ -5,71 +5,51 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Configuration data for an arm simulation. Stores physical properties, display settings, and
- * optional mount attachment used by {@link ArmSim}.
- */
+/** Physical, display, and mount settings for an {@link ArmSim}. */
 public class ArmConfig {
 
-    /** Number of Kraken X60 motors driving the arm. */
     @Getter @Setter private int numMotors = 1;
-    /** Initial X position of the arm pivot in the Mechanism2d canvas (metres). */
+    /** Initial pivot X in metres. */
     @Getter @Setter private double initialX;
-    /** Initial Y position of the arm pivot in the Mechanism2d canvas (metres). */
+    /** Initial pivot Y in metres. */
     @Getter @Setter private double initialY;
-    /** Current X position of the arm pivot used during simulation updates (metres). */
+    /** Current pivot X in metres. */
     @Getter @Setter private double pivotX;
-    /** Current Y position of the arm pivot used during simulation updates (metres). */
+    /** Current pivot Y in metres. */
     @Getter @Setter private double pivotY;
-    /** Motor rotations required for one full revolution of the arm mechanism. */
+    /** Motor rotations per arm revolution. */
     @Getter @Setter private double ratio;
-    /** Visual length of the arm ligament in the Mechanism2d canvas (metres). */
+    /** Visual length of the arm ligament, in metres. */
     @Getter @Setter private double length;
-    /** Moment of inertia used by the physics simulation (kg·m²). */
+    /** Moment of inertia for the physics sim, in kg·m². */
     @Getter @Setter private double simMOI = 1.2;
-    /**
-     * Distance from the pivot to the arm's centre of gravity used by the physics simulation
-     * (metres).
-     */
+    /** Pivot to center of gravity, in metres. */
     @Getter @Setter private double simCGLength = 0.2;
-    /** Minimum allowable arm angle (radians). */
+    /** Minimum arm angle, in radians. */
     @Getter @Setter private double minAngle;
-    /** Maximum allowable arm angle (radians). */
+    /** Maximum arm angle, in radians. */
     @Getter @Setter private double maxAngle;
-    /** Arm angle at the start of the simulation (radians). */
+    /** Arm angle at the start of the run, in radians. */
     @Getter @Setter private double startingAngle;
-    /** Whether the physics simulation should apply gravitational force to the arm. */
+
     @Getter @Setter private boolean simulateGravity = true;
-    /** Whether this arm is attached to a parent {@link Mount}. */
     @Getter private boolean mounted = false;
-    /** The parent mount this arm is attached to, or {@code null} if not mounted. */
     @Getter private Mount mount;
-    /** X position of the mount at simulation start (metres). */
+    /** Mount X at the start of the run, in metres. */
     @Getter private double initMountX;
-    /** Y position of the mount at simulation start (metres). */
+    /** Mount Y at the start of the run, in metres. */
     @Getter private double initMountY;
-    /** Angle of the mount at simulation start (radians). */
+    /** Mount angle at the start of the run, in radians. */
     @Getter private double initMountAngle;
     /**
-     * When {@code true} the arm's visual angle is expressed in absolute robot-frame degrees; when
-     * {@code false} it is relative to the parent mount's current angle.
+     * When true the visual angle is absolute; when false it is measured from the parent mount's
+     * current angle.
      */
     @Getter private boolean absAngle;
-    /** Color used to draw the arm ligament in the Mechanism2d canvas. */
+
     @Getter private Color8Bit color = new Color8Bit(Color.kBlue);
 
-    /**
-     * Creates an ArmConfig with the required physical and display parameters. Angle arguments are
-     * specified in degrees and stored internally as radians.
-     *
-     * @param initialX initial X position of the pivot in the Mechanism2d canvas (metres)
-     * @param initialY initial Y position of the pivot in the Mechanism2d canvas (metres)
-     * @param ratio motor rotations per one full arm revolution
-     * @param length visual arm length in the Mechanism2d canvas (metres)
-     * @param minAngleDegrees minimum allowable arm angle in degrees
-     * @param maxAngleDegrees maximum allowable arm angle in degrees
-     * @param startingAngleDegrees initial arm angle in degrees
-     */
+    /** Angle arguments are in degrees and are stored in radians. */
     public ArmConfig(
             double initialX,
             double initialY,
@@ -89,12 +69,6 @@ public class ArmConfig {
         this.pivotY = initialY;
     }
 
-    /**
-     * Sets the arm's display color in the Mechanism2d canvas.
-     *
-     * @param color the color to use
-     * @return this config for chaining
-     */
     public ArmConfig setColor(Color8Bit color) {
         this.color = color;
         return this;
@@ -106,13 +80,11 @@ public class ArmConfig {
     }
 
     /**
-     * Attaches this arm to a {@link LinearSim} mount so its pivot tracks the linear stage's
-     * position.
+     * Mounts the arm on a linear stage so its pivot follows the carriage.
      *
-     * @param sim the linear stage to mount onto, or {@code null} to leave unmounted
-     * @param fixedAngle when {@code true} the arm angle is treated as absolute; when {@code false}
-     *     it is relative to the mount's current angle
-     * @return this config for chaining
+     * @param sim the stage to mount onto, or {@code null} to leave this arm unmounted
+     * @param fixedAngle when true the visual angle is absolute, otherwise it is measured from the
+     *     stage's current angle
      */
     public ArmConfig setMount(LinearSim sim, boolean fixedAngle) {
         if (sim != null) {
@@ -127,13 +99,11 @@ public class ArmConfig {
     }
 
     /**
-     * Attaches this arm to a parent {@link ArmSim} mount so its pivot tracks the parent arm's tip
-     * position.
+     * Mounts the arm on a parent arm so its pivot follows that arm's tip.
      *
-     * @param sim the parent arm to mount onto, or {@code null} to leave unmounted
-     * @param absAngle when {@code true} the arm angle is expressed in the absolute robot frame;
-     *     when {@code false} it is relative to the parent arm's current angle
-     * @return this config for chaining
+     * @param sim the parent arm to mount onto, or {@code null} to leave this arm unmounted
+     * @param absAngle when true the visual angle is absolute, otherwise it is measured from the
+     *     parent arm's current angle
      */
     public ArmConfig setMount(ArmSim sim, boolean absAngle) {
         if (sim != null) {

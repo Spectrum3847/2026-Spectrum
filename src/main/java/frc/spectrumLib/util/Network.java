@@ -3,13 +3,15 @@ package frc.spectrumLib.util;
 import edu.wpi.first.wpilibj.DriverStation;
 import java.net.*;
 
-/** Common Network Utilities */
+/**
+ * Reads the robot's own addresses and resolves hostnames to IP addresses. Each lookup retries ten
+ * times, reporting a warning on every failure, before giving up.
+ */
 public class Network {
     static final String unknown = "UNKNOWN";
     /**
-     * Gets the MAC address of the robot
-     *
-     * @return the MAC address of the robot
+     * Returns the robot's MAC address as uppercase colon-separated hex, or {@code UNKNOWN} if it
+     * cannot be read.
      */
     public static String getMACaddress() {
         InetAddress localHost;
@@ -40,11 +42,7 @@ public class Network {
         return unknown;
     }
 
-    /**
-     * Gets the IP address of the robot
-     *
-     * @return the IP address of the robot
-     */
+    /** Returns the robot's own IP address, or {@code UNKNOWN} if it cannot be resolved. */
     public static String getIPaddress() {
         InetAddress localHost;
         String ip = "";
@@ -63,11 +61,8 @@ public class Network {
     }
 
     /**
-     * Resolves and returns the IP address of a device identified by its mDNS or hostname address
-     * (e.g. {@code "limelight.local"}).
-     *
-     * @param deviceNameAddress the hostname or mDNS name to resolve
-     * @return the resolved IP address string, or {@code "UNKNOWN"} if resolution fails
+     * Resolves a hostname or mDNS name such as {@code limelight.local}. Returns {@code UNKNOWN} if
+     * the name never resolves.
      */
     public static String getIPaddress(String deviceNameAddress) {
         InetAddress localHost;

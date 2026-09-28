@@ -15,51 +15,50 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Tracks and logs current draw, power, cumulative energy consumption, peak current/power, and
- * sustained current windows useful for breaker thermal analysis.
+ * Tracks current, power, energy, peaks, and rolling current windows per subsystem, for spotting
+ * circuits that will trip a breaker.
  */
 public class BatteryLogger {
-    /** Duration of one robot loop in seconds, used to convert power (W) to energy (J). */
+    /**
+     * One robot loop in seconds, used to turn watts into joules. Must match the scheduler period.
+     */
     private static final double LOOP_PERIOD_SECS = 0.02;
 
-    // Rolling-window sample counts.
     private static final int WINDOW_20S_SAMPLES = (int) (20.0 / LOOP_PERIOD_SECS);
     private static final int WINDOW_45S_SAMPLES = (int) (45.0 / LOOP_PERIOD_SECS);
     private static final int WINDOW_60S_SAMPLES = (int) (60.0 / LOOP_PERIOD_SECS);
 
-    /** When {@code false} all methods are no-ops, allowing the logger to be disabled at runtime. */
+    /** Set false to make every method a no-op. */
     @Setter private boolean enabled = false;
 
-    /**
-     * Running total of current draw accumulated since the last {@link #logPower()} call, in amps.
-     */
+    /** Amps accumulated since the last {@link #logPower()}. */
     @Getter private double totalCurrent = 0.0;
 
-    /** Running total of power accumulated since the last {@link #logPower()} call, in watts. */
+    /** Watts accumulated since the last {@link #logPower()}. */
     @Getter private double totalPower = 0.0;
 
-    /** Cumulative energy consumed over the entire enabled session, in joules. */
+    /** Joules accumulated since the logger was enabled. */
     @Getter private double totalEnergy = 0.0;
 
-    /** Peak instantaneous current observed since reset, in amps. */
+    /** Peak current, amps, since the last {@link #resetMaximums()}. */
     @Getter private double maxCurrent = 0.0;
 
-    /** Peak instantaneous power observed since reset, in watts. */
+    /** Peak power, watts, since the last {@link #resetMaximums()}. */
     @Getter private double maxPower = 0.0;
 
-    /** Highest rolling-average current over a 20-second window, in amps. */
+    /** Highest 20 s rolling average current, amps. */
     @Getter private double max20sCurrentA = 0.0;
 
-    /** Highest rolling-average current over a 45-second window, in amps. */
+    /** Highest 45 s rolling average current, amps. */
     @Getter private double max45sCurrentA = 0.0;
 
-    /** Highest rolling-average current over a 60-second window, in amps. */
+    /** Highest 60 s rolling average current, amps. */
     @Getter private double max60sCurrentA = 0.0;
 
-    /** Battery terminal voltage used to convert current to power, in volts. */
+    /** Battery terminal voltage, volts, used to turn amps into watts. */
     @Setter private double batteryVoltage = 12.6;
 
-    /** Estimated current drawn by the RoboRIO itself, in amps. */
+    /** Estimated RoboRIO current draw, amps. */
     @Setter private double rioCurrent = 0.0;
 
     private final Map<String, Double> subsystemCurrents = new HashMap<>();
@@ -67,25 +66,23 @@ public class BatteryLogger {
     private final Map<String, Double> subsystemEnergies = new HashMap<>();
     private final Map<String, Double> maxSubsystemCurrents = new HashMap<>();
 
-    /** Rolling-current history buffers. */
     private final Deque<Double> currentHistory20s = new ArrayDeque<>();
 
     private final Deque<Double> currentHistory45s = new ArrayDeque<>();
     private final Deque<Double> currentHistory60s = new ArrayDeque<>();
 
-    /** Running sums for efficient rolling-average calculations. */
+    /** Running sums, so a rolling average costs no traversal. */
     private double rollingCurrent20s = 0.0;
 
     private double rollingCurrent45s = 0.0;
     private double rollingCurrent60s = 0.0;
 
     /**
-     * Records the current draw for a named subsystem channel and accumulates it into the running
-     * totals. The {@code key} may use "/" or "-" as separators; parent keys are automatically
-     * aggregated.
+     * Records a subsystem's current draw and accumulates it into the running totals. A key split on
+     * {@code "/"} or {@code "-"} also aggregates the reading under each parent key.
      *
-     * @param key Hierarchical name for the current consumer (e.g. {@code "Drive/FrontLeft"})
-     * @param amps One or more current readings in amps; absolute values are summed
+     * @param key hierarchical name for the consumer, such as Drive/FrontLeft
+     * @param amps readings in amps, summed by absolute value
      */
     public void reportCurrentUsage(String key, double... amps) {
         if (!enabled) {
@@ -130,62 +127,50 @@ public class BatteryLogger {
         }
     }
 
-    /**
-     * Appends control-overhead current consumers (roboRIO, CANcoders, Pigeon, CANivore, radio),
-     * updates rolling-current windows, logs all telemetry, and resets per-loop accumulators.
-     */
+    /** Logs one loop's totals, then clears them, so call it once per loop. */
     public void logPower() {
         if (!enabled) {
             return;
         }
 
-        // Controls overhead is added here so it is included in total current.
+        // Overhead current estimates in amps, added here so they count toward the total.
         reportCurrentUsage("Controls/roboRIO", rioCurrent);
         reportCurrentUsage("Controls/CANcoders", 0.05 * 4);
         reportCurrentUsage("Controls/Pigeon", 0.04);
         reportCurrentUsage("Controls/CANivore", 0.03);
         reportCurrentUsage("Controls/Radio", 0.5);
 
-        // Track instantaneous peaks.
         maxCurrent = Math.max(maxCurrent, totalCurrent);
         maxPower = Math.max(maxPower, totalPower);
 
-        // Update rolling windows and sustained-current peaks.
         updateRollingWindows(totalCurrent);
 
-        // Total metrics.
         Telemetry.log("BatteryLogger/Current", totalCurrent, "amps");
         Telemetry.log("BatteryLogger/Power", totalPower, "watts");
         Telemetry.log("BatteryLogger/Energy", joulesToWattHours(totalEnergy), "wh");
         Telemetry.log("BatteryLogger/BatteryVoltage", batteryVoltage, "volts");
 
-        // Peak metrics.
         Telemetry.log("BatteryLogger/MaxCurrent", maxCurrent, "amps");
         Telemetry.log("BatteryLogger/MaxPower", maxPower, "watts");
 
-        // Sustained-current metrics.
         Telemetry.log("BatteryLogger/Max20sCurrent", max20sCurrentA, "amps");
         Telemetry.log("BatteryLogger/Max45sCurrent", max45sCurrentA, "amps");
         Telemetry.log("BatteryLogger/Max60sCurrent", max60sCurrentA, "amps");
 
-        // Per-subsystem current.
         for (var entry : subsystemCurrents.entrySet()) {
             Telemetry.log("BatteryLogger/Current/" + entry.getKey(), entry.getValue(), "amps");
             subsystemCurrents.put(entry.getKey(), 0.0);
         }
 
-        // Per-subsystem max current.
         for (var entry : maxSubsystemCurrents.entrySet()) {
             Telemetry.log("BatteryLogger/MaxCurrent/" + entry.getKey(), entry.getValue(), "amps");
         }
 
-        // Per-subsystem power.
         for (var entry : subsystemPowers.entrySet()) {
             Telemetry.log("BatteryLogger/Power/" + entry.getKey(), entry.getValue(), "watts");
             subsystemPowers.put(entry.getKey(), 0.0);
         }
 
-        // Per-subsystem cumulative energy.
         for (var entry : subsystemEnergies.entrySet()) {
             Telemetry.log(
                     "BatteryLogger/Energy/" + entry.getKey(),
@@ -193,7 +178,6 @@ public class BatteryLogger {
                     "wh");
         }
 
-        // Reset per-loop totals.
         totalCurrent = 0.0;
         totalPower = 0.0;
     }
@@ -233,7 +217,7 @@ public class BatteryLogger {
         return runningSum;
     }
 
-    /** Resets all peak and rolling-window metrics. */
+    /** Clears the peaks, the rolling window histories, and the per subsystem peaks. */
     public void resetMaximums() {
         maxCurrent = 0.0;
         maxPower = 0.0;
