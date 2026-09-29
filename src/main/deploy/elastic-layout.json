@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 1.0,
   "grid_size": 128,
   "tabs": [
     {
@@ -9,10 +9,10 @@
         "containers": [
           {
             "title": "FMSInfo",
-            "x": 0,
-            "y": 0,
-            "width": 512,
-            "height": 128,
+            "x": 0.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "FMSInfo",
             "properties": {
               "topic": "/FMSInfo",
@@ -21,10 +21,10 @@
           },
           {
             "title": "Battery",
-            "x": 512,
-            "y": 0,
-            "width": 384,
-            "height": 128,
+            "x": 512.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Voltage View",
             "properties": {
               "topic": "/Robot/BatteryLogger/BatteryVoltage",
@@ -39,10 +39,10 @@
           },
           {
             "title": "Field2d",
-            "x": 0,
-            "y": 128,
-            "width": 896,
-            "height": 512,
+            "x": 0.0,
+            "y": 128.0,
+            "width": 896.0,
+            "height": 512.0,
             "type": "Field",
             "properties": {
               "topic": "/SmartDashboard/Field2d",
@@ -60,10 +60,10 @@
           },
           {
             "title": "Auto Chooser",
-            "x": 0,
-            "y": 640,
-            "width": 896,
-            "height": 128,
+            "x": 0.0,
+            "y": 640.0,
+            "width": 896.0,
+            "height": 128.0,
             "type": "Split Button Chooser",
             "properties": {
               "topic": "/SmartDashboard/Auto Chooser",
@@ -73,10 +73,10 @@
           },
           {
             "title": "Turret Camera",
-            "x": 896,
-            "y": 0,
-            "width": 384,
-            "height": 256,
+            "x": 896.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 256.0,
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight-turret",
@@ -86,10 +86,10 @@
           },
           {
             "title": "Alerts",
-            "x": 1280,
-            "y": 0,
-            "width": 512,
-            "height": 256,
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
@@ -98,10 +98,10 @@
           },
           {
             "title": "Shot Model",
-            "x": 1280,
-            "y": 256,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Large Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HubPolyModel",
@@ -111,10 +111,10 @@
           },
           {
             "title": "Hood Model (deg)",
-            "x": 1280,
-            "y": 384,
-            "width": 256,
-            "height": 128,
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HoodModelOffsetDegrees",
@@ -125,10 +125,10 @@
           },
           {
             "title": "Hood Trim (deg)",
-            "x": 1536,
-            "y": 384,
-            "width": 256,
-            "height": 128,
+            "x": 1536.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HoodAngleOffsetDegrees",
@@ -139,10 +139,10 @@
           },
           {
             "title": "Turret Motor",
-            "x": 1280,
-            "y": 512,
-            "width": 256,
-            "height": 128,
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Turret/MotorConnected",
@@ -156,10 +156,10 @@
           },
           {
             "title": "Launcher Motor",
-            "x": 1536,
-            "y": 512,
-            "width": 256,
-            "height": 128,
+            "x": 1536.0,
+            "y": 512.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Launcher/MotorConnected",
@@ -173,10 +173,10 @@
           },
           {
             "title": "Hood Motor",
-            "x": 1280,
-            "y": 640,
-            "width": 256,
-            "height": 128,
+            "x": 1280.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Hood/MotorConnected",
@@ -190,10 +190,10 @@
           },
           {
             "title": "Pose Seed Confirmed",
-            "x": 1536,
-            "y": 640,
-            "width": 256,
-            "height": 128,
+            "x": 1536.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/PoseSeedConfirmed",
@@ -207,10 +207,10 @@
           },
           {
             "title": "Turret Cam",
-            "x": 896,
-            "y": 256,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/TurretLL/ConnectionStatus",
@@ -224,10 +224,10 @@
           },
           {
             "title": "Left Cam",
-            "x": 896,
-            "y": 384,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/BackLeftLL/ConnectionStatus",
@@ -241,10 +241,10 @@
           },
           {
             "title": "Right Cam",
-            "x": 896,
-            "y": 512,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/BackRightLL/ConnectionStatus",
@@ -258,10 +258,10 @@
           },
           {
             "title": "Vision Age (s)",
-            "x": 896,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
@@ -285,10 +285,10 @@
           },
           {
             "title": "Start Pose Err (m)",
-            "x": 1280,
-            "y": 768,
-            "width": 256,
-            "height": 128,
+            "x": 1280.0,
+            "y": 768.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Auton/StartPoseErrorMeters",
@@ -299,10 +299,10 @@
           },
           {
             "title": "Start Heading Err (deg)",
-            "x": 1536,
-            "y": 768,
-            "width": 256,
-            "height": 128,
+            "x": 1536.0,
+            "y": 768.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Auton/StartHeadingErrorDeg",
@@ -321,10 +321,10 @@
         "containers": [
           {
             "title": "Field2d",
-            "x": 0,
-            "y": 0,
-            "width": 1024,
-            "height": 512,
+            "x": 0.0,
+            "y": 0.0,
+            "width": 1024.0,
+            "height": 512.0,
             "type": "Field",
             "properties": {
               "topic": "/SmartDashboard/Field2d",
@@ -342,10 +342,10 @@
           },
           {
             "title": "Shift Time",
-            "x": 0,
-            "y": 512,
-            "width": 512,
-            "height": 128,
+            "x": 0.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Match Time",
             "properties": {
               "topic": "/Robot/Match Data/TimeLeftInShift",
@@ -358,10 +358,10 @@
           },
           {
             "title": "Battery",
-            "x": 512,
-            "y": 512,
-            "width": 512,
-            "height": 128,
+            "x": 512.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Voltage View",
             "properties": {
               "topic": "/Robot/BatteryLogger/BatteryVoltage",
@@ -376,10 +376,10 @@
           },
           {
             "title": "Super State",
-            "x": 0,
-            "y": 640,
-            "width": 768,
-            "height": 128,
+            "x": 0.0,
+            "y": 640.0,
+            "width": 768.0,
+            "height": 128.0,
             "type": "Large Text Display",
             "properties": {
               "topic": "/Robot/SuperStructure/CurrentSuperState",
@@ -389,10 +389,10 @@
           },
           {
             "title": "SHOT READY",
-            "x": 1024,
-            "y": 0,
-            "width": 768,
-            "height": 256,
+            "x": 1024.0,
+            "y": 0.0,
+            "width": 768.0,
+            "height": 256.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/Composite",
@@ -406,10 +406,10 @@
           },
           {
             "title": "Launcher At Speed",
-            "x": 1024,
-            "y": 256,
-            "width": 256,
-            "height": 128,
+            "x": 1024.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/LauncherAtSpeed",
@@ -423,10 +423,10 @@
           },
           {
             "title": "Turret On Target",
-            "x": 1280,
-            "y": 256,
-            "width": 256,
-            "height": 128,
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/TurretOnTarget",
@@ -440,10 +440,10 @@
           },
           {
             "title": "Vision Age (s)",
-            "x": 1536,
-            "y": 256,
-            "width": 256,
-            "height": 128,
+            "x": 1536.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/SecondsSinceVision",
@@ -454,10 +454,10 @@
           },
           {
             "title": "Distance (m)",
-            "x": 1024,
-            "y": 384,
-            "width": 256,
-            "height": 128,
+            "x": 1024.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/DistanceMeters",
@@ -468,10 +468,10 @@
           },
           {
             "title": "Launcher RPM",
-            "x": 1280,
-            "y": 384,
-            "width": 256,
-            "height": 128,
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Launcher/RPM",
@@ -482,10 +482,10 @@
           },
           {
             "title": "Hood (deg)",
-            "x": 1536,
-            "y": 384,
-            "width": 256,
-            "height": 128,
+            "x": 1536.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Hood/PositionDegrees",
@@ -496,10 +496,10 @@
           },
           {
             "title": "Alerts",
-            "x": 1024,
-            "y": 512,
-            "width": 768,
-            "height": 256,
+            "x": 1024.0,
+            "y": 512.0,
+            "width": 768.0,
+            "height": 256.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
@@ -508,10 +508,10 @@
           },
           {
             "title": "Intake Ext %",
-            "x": 768,
-            "y": 640,
-            "width": 256,
-            "height": 128,
+            "x": 768.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/IntakeExtension/Percent",
@@ -563,10 +563,10 @@
         "containers": [
           {
             "title": "Tracking Error (deg)",
-            "x": 0,
-            "y": 0,
-            "width": 896,
-            "height": 384,
+            "x": 0.0,
+            "y": 0.0,
+            "width": 896.0,
+            "height": 384.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Turret/TrackingErrorDegrees",
@@ -581,10 +581,10 @@
           },
           {
             "title": "Position (deg)",
-            "x": 0,
-            "y": 384,
-            "width": 896,
-            "height": 256,
+            "x": 0.0,
+            "y": 384.0,
+            "width": 896.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Turret/PositionDegrees",
@@ -599,10 +599,10 @@
           },
           {
             "title": "Vision Age (s)",
-            "x": 0,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 0.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
@@ -613,10 +613,10 @@
           },
           {
             "title": "Turret Cam Age (s)",
-            "x": 384,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 384.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/TurretLL/EstimateAgeSeconds",
@@ -627,10 +627,10 @@
           },
           {
             "title": "Turret Camera",
-            "x": 896,
-            "y": 0,
-            "width": 384,
-            "height": 384,
+            "x": 896.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 384.0,
             "type": "Camera Stream",
             "properties": {
               "topic": "/CameraPublisher/limelight-turret",
@@ -640,10 +640,10 @@
           },
           {
             "title": "Ready To Shoot",
-            "x": 896,
-            "y": 384,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Turret/ReadyToShoot",
@@ -657,10 +657,10 @@
           },
           {
             "title": "Commanded (deg)",
-            "x": 896,
-            "y": 512,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Turret/CommandedDegrees",
@@ -671,10 +671,10 @@
           },
           {
             "title": "Position Error (deg)",
-            "x": 896,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Turret/PositionError",
@@ -685,10 +685,10 @@
           },
           {
             "title": "Slip Corrected (deg)",
-            "x": 1280,
-            "y": 0,
-            "width": 512,
-            "height": 256,
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
             "type": "Large Text Display",
             "properties": {
               "topic": "/Robot/Turret/ZeroCorrectionTotalDeg",
@@ -698,10 +698,10 @@
           },
           {
             "title": "Slip (deg/min)",
-            "x": 1280,
-            "y": 256,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/Vision/TurretZero/SlipDegPerMinute",
@@ -716,10 +716,10 @@
           },
           {
             "title": "Slip (deg per 1000 deg)",
-            "x": 1280,
-            "y": 384,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/Vision/TurretZero/SlipDegPerKiloDegTravel",
@@ -734,10 +734,10 @@
           },
           {
             "title": "Trim Efficiency (1.0 = real slip)",
-            "x": 1280,
-            "y": 512,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/TurretZero/TrimEfficiency",
@@ -748,10 +748,10 @@
           },
           {
             "title": "Stator Current (A)",
-            "x": 1280,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/Turret/StatorCurrent",
@@ -774,10 +774,10 @@
         "containers": [
           {
             "title": "Launcher RPM",
-            "x": 0,
-            "y": 0,
-            "width": 896,
-            "height": 384,
+            "x": 0.0,
+            "y": 0.0,
+            "width": 896.0,
+            "height": 384.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Launcher/RPM",
@@ -792,10 +792,10 @@
           },
           {
             "title": "Hood Position (deg)",
-            "x": 0,
-            "y": 384,
-            "width": 896,
-            "height": 256,
+            "x": 0.0,
+            "y": 384.0,
+            "width": 896.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Hood/PositionDegrees",
@@ -810,10 +810,10 @@
           },
           {
             "title": "Feeder RPM",
-            "x": 0,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 0.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Feeder/RPM",
@@ -824,10 +824,10 @@
           },
           {
             "title": "Rotor RPM",
-            "x": 384,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 384.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Rotor/RPM",
@@ -838,10 +838,10 @@
           },
           {
             "title": "Distance (m)",
-            "x": 896,
-            "y": 0,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/DistanceMeters",
@@ -852,10 +852,10 @@
           },
           {
             "title": "Wanted Flywheel RPM",
-            "x": 896,
-            "y": 128,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/FlywheelSpeedRPM",
@@ -866,10 +866,10 @@
           },
           {
             "title": "Wanted Hood (deg)",
-            "x": 896,
-            "y": 256,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HoodAngleDeg",
@@ -880,10 +880,10 @@
           },
           {
             "title": "Wanted Turret (deg)",
-            "x": 896,
-            "y": 384,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/TurretAngleDeg",
@@ -894,10 +894,10 @@
           },
           {
             "title": "Time Of Flight (s)",
-            "x": 896,
-            "y": 512,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/TimeOfFlight",
@@ -908,10 +908,10 @@
           },
           {
             "title": "Hood Trim (deg)",
-            "x": 896,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HoodAngleOffsetDegrees",
@@ -922,10 +922,10 @@
           },
           {
             "title": "SHOT READY",
-            "x": 1280,
-            "y": 0,
-            "width": 512,
-            "height": 256,
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/Composite",
@@ -939,10 +939,10 @@
           },
           {
             "title": "Launcher At Speed",
-            "x": 1280,
-            "y": 256,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Launcher/AtSpeed",
@@ -956,10 +956,10 @@
           },
           {
             "title": "Turret On Target",
-            "x": 1280,
-            "y": 384,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/SuperStructure/ShotReady/TurretOnTarget",
@@ -973,10 +973,10 @@
           },
           {
             "title": "Shot Model",
-            "x": 1280,
-            "y": 512,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Large Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HubPolyModel",
@@ -986,10 +986,10 @@
           },
           {
             "title": "Hood Model (deg)",
-            "x": 1280,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/HoodModelOffsetDegrees",
@@ -1000,10 +1000,10 @@
           },
           {
             "title": "Turret Trim (deg)",
-            "x": 1792,
-            "y": 0,
-            "width": 384,
-            "height": 128,
+            "x": 1792.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/TurretAngleOffsetDegrees",
@@ -1014,10 +1014,10 @@
           },
           {
             "title": "Shots Logged",
-            "x": 1792,
-            "y": 128,
-            "width": 384,
-            "height": 128,
+            "x": 1792.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/ShotCalc/Shot/Index",
@@ -1036,10 +1036,10 @@
         "containers": [
           {
             "title": "Battery Voltage",
-            "x": 0,
-            "y": 0,
-            "width": 896,
-            "height": 384,
+            "x": 0.0,
+            "y": 0.0,
+            "width": 896.0,
+            "height": 384.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/BatteryLogger/BatteryVoltage",
@@ -1054,10 +1054,10 @@
           },
           {
             "title": "Total Supply Current (A)",
-            "x": 0,
-            "y": 384,
-            "width": 896,
-            "height": 256,
+            "x": 0.0,
+            "y": 384.0,
+            "width": 896.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current",
@@ -1072,10 +1072,10 @@
           },
           {
             "title": "CANivore Bus (%)",
-            "x": 0,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 0.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/CANivore/BusUtilization",
@@ -1090,10 +1090,10 @@
           },
           {
             "title": "Energy Used (Wh)",
-            "x": 384,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 384.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/BatteryLogger/Energy",
@@ -1104,10 +1104,10 @@
           },
           {
             "title": "Launcher (A)",
-            "x": 896,
-            "y": 0,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/Launcher Front Left",
@@ -1122,10 +1122,10 @@
           },
           {
             "title": "Tower (A)",
-            "x": 896,
-            "y": 128,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/LauncherTower Front",
@@ -1140,10 +1140,10 @@
           },
           {
             "title": "Rotor (A)",
-            "x": 896,
-            "y": 256,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/Rotor",
@@ -1158,10 +1158,10 @@
           },
           {
             "title": "Feeder (A)",
-            "x": 896,
-            "y": 384,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/Feeder",
@@ -1176,10 +1176,10 @@
           },
           {
             "title": "Turret (A)",
-            "x": 896,
-            "y": 512,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/Turret",
@@ -1194,10 +1194,10 @@
           },
           {
             "title": "Swerve Drive (A)",
-            "x": 896,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/SwerveDrive",
@@ -1212,10 +1212,10 @@
           },
           {
             "title": "Launcher Follower (A)",
-            "x": 1280,
-            "y": 0,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/Followers/Launcher Front Right/SupplyCurrent",
@@ -1230,10 +1230,10 @@
           },
           {
             "title": "Tower Follower (A)",
-            "x": 1280,
-            "y": 128,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 128.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/Followers/LauncherTower Back/SupplyCurrent",
@@ -1248,10 +1248,10 @@
           },
           {
             "title": "Roller Follower (A)",
-            "x": 1280,
-            "y": 256,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/Followers/Intake Roller Right/SupplyCurrent",
@@ -1266,10 +1266,10 @@
           },
           {
             "title": "Intake Kicker (A)",
-            "x": 1280,
-            "y": 384,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/Intake Kicker",
@@ -1284,10 +1284,10 @@
           },
           {
             "title": "Intake Roller (A)",
-            "x": 1280,
-            "y": 512,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/Intake Roller Left",
@@ -1302,10 +1302,10 @@
           },
           {
             "title": "Swerve Steer (A)",
-            "x": 1280,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/BatteryLogger/Current/Mechanisms/SwerveSteer",
@@ -1328,10 +1328,10 @@
         "containers": [
           {
             "title": "Loop Time (s, budget 0.020)",
-            "x": 0,
-            "y": 0,
-            "width": 896,
-            "height": 256,
+            "x": 0.0,
+            "y": 0.0,
+            "width": 896.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/Scheduler/robotPeriodic",
@@ -1346,10 +1346,10 @@
           },
           {
             "title": "CommandScheduler (s)",
-            "x": 0,
-            "y": 640,
-            "width": 256,
-            "height": 128,
+            "x": 0.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Scheduler/CommandScheduler",
@@ -1360,10 +1360,10 @@
           },
           {
             "title": "Vision Periodic (s)",
-            "x": 256,
-            "y": 640,
-            "width": 256,
-            "height": 128,
+            "x": 256.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Scheduler/Vision",
@@ -1374,10 +1374,10 @@
           },
           {
             "title": "Alerts",
-            "x": 896,
-            "y": 0,
-            "width": 384,
-            "height": 384,
+            "x": 896.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 384.0,
             "type": "Alerts",
             "properties": {
               "topic": "/SmartDashboard/Alerts",
@@ -1386,10 +1386,10 @@
           },
           {
             "title": "Turret Cam",
-            "x": 896,
-            "y": 384,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 384.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/TurretLL/ConnectionStatus",
@@ -1403,10 +1403,10 @@
           },
           {
             "title": "Left Cam",
-            "x": 896,
-            "y": 512,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 512.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/BackLeftLL/ConnectionStatus",
@@ -1420,10 +1420,10 @@
           },
           {
             "title": "Right Cam",
-            "x": 896,
-            "y": 640,
-            "width": 384,
-            "height": 128,
+            "x": 896.0,
+            "y": 640.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Boolean Box",
             "properties": {
               "topic": "/Robot/Vision/BackRightLL/ConnectionStatus",
@@ -1437,10 +1437,10 @@
           },
           {
             "title": "Scheduler",
-            "x": 1280,
-            "y": 0,
-            "width": 512,
-            "height": 256,
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
             "type": "Scheduler",
             "properties": {
               "topic": "/SmartDashboard/Scheduler",
@@ -1449,10 +1449,10 @@
           },
           {
             "title": "CANivore Bus (%)",
-            "x": 1280,
-            "y": 256,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/CANivore/BusUtilization",
@@ -1467,10 +1467,10 @@
           },
           {
             "title": "Vision Age (s)",
-            "x": 1280,
-            "y": 384,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 384.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/SecondsSinceAcceptedEstimate",
@@ -1481,10 +1481,10 @@
           },
           {
             "title": "Turret Cam Age (s)",
-            "x": 1280,
-            "y": 512,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/TurretLL/EstimateAgeSeconds",
@@ -1495,10 +1495,10 @@
           },
           {
             "title": "Heading Correction (deg)",
-            "x": 1280,
-            "y": 640,
-            "width": 512,
-            "height": 128,
+            "x": 1280.0,
+            "y": 640.0,
+            "width": 512.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/Vision/HeadingCorrection/ErrorDeg",
@@ -1509,10 +1509,10 @@
           },
           {
             "title": "Loop Mean (ms)",
-            "x": 0,
-            "y": 256,
-            "width": 256,
-            "height": 128,
+            "x": 0.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/System/Loop/MeanPeriodMs",
@@ -1523,10 +1523,10 @@
           },
           {
             "title": "Loops over 25 ms (%)",
-            "x": 256,
-            "y": 256,
-            "width": 384,
-            "height": 128,
+            "x": 256.0,
+            "y": 256.0,
+            "width": 384.0,
+            "height": 128.0,
             "type": "Number Bar",
             "properties": {
               "topic": "/Robot/System/Loop/OverrunPercent",
@@ -1541,10 +1541,10 @@
           },
           {
             "title": "GC (ms per s)",
-            "x": 640,
-            "y": 256,
-            "width": 256,
-            "height": 128,
+            "x": 640.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/System/Gc/MsPerSecond",
@@ -1555,10 +1555,10 @@
           },
           {
             "title": "RIO CPU (%)",
-            "x": 0,
-            "y": 384,
-            "width": 896,
-            "height": 256,
+            "x": 0.0,
+            "y": 384.0,
+            "width": 896.0,
+            "height": 256.0,
             "type": "Graph",
             "properties": {
               "topic": "/Robot/System/CpuPercent",
@@ -1573,10 +1573,10 @@
           },
           {
             "title": "Mem Avail (MB)",
-            "x": 512,
-            "y": 640,
-            "width": 256,
-            "height": 128,
+            "x": 512.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/System/MemAvailableMB",
@@ -1587,10 +1587,10 @@
           },
           {
             "title": "Heap (MB)",
-            "x": 768,
-            "y": 640,
-            "width": 128,
-            "height": 128,
+            "x": 768.0,
+            "y": 640.0,
+            "width": 128.0,
+            "height": 128.0,
             "type": "Text Display",
             "properties": {
               "topic": "/Robot/System/HeapUsedMB",
