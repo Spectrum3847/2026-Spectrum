@@ -28,9 +28,7 @@ import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
 import lombok.Getter;
 
-// General Sim principles
-// Always move the root/origin to change it's display position
-// Looking at the robot from the left view (right side of the robot)
+/** Draws the robot in the sim, top down and from the left. */
 public class RobotSim {
     @Getter public static final double topViewHeight = 150;
     @Getter public static final double topViewWidth = 150;
@@ -83,7 +81,7 @@ public class RobotSim {
 
         ballSim = new FuelPhysicsSim("Sim/Fuel");
         ballSim.enable();
-        ballSim.placeFieldBalls(); // spawns all the game pieces
+        ballSim.placeFieldBalls();
         configBallSimRobot();
     }
 

@@ -4,6 +4,8 @@
 
 The goal: someone joining the team next month should be able to read this codebase top-to-bottom and form an accurate mental model without you on a call to translate. Comments and JavaDoc are the most useful when the code's *what* is clear from the names but the *why* isn't.
 
+The code is the record of what the robot does. A comment never replaces it, and a comment that claims something the code no longer does is worse than no comment at all. So a comment earns its place by adding something the code cannot say: the reasoning, the constraint, the reason for the choice.
+
 ## When to Comment
 
 Default to writing no comment. Add one when the *why* is non-obvious:
@@ -17,15 +19,15 @@ Don't write comments that just restate the code. `// loop over modules` above `f
 
 ## JavaDoc
 
-Public methods on subsystems (and `SuperStructure`) and the fields on `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious:
+Public methods on subsystems (and `SuperStructure`) and the fields on `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious. A shape to aim for:
 
 ```java
 /**
- * Sets the launcher target speed.
+ * Sets the flywheel target.
  *
- * @param rpm flywheel revolutions per minute, 0-6000
+ * @param rpm target speed in revolutions per minute, 0-6000
  */
-public Command setSpeed(double rpm) { ... }
+public void setTargetRPM(double rpm) { ... }
 ```
 
 Two specific habits that pay off:

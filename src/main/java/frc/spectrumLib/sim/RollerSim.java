@@ -15,10 +15,11 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 
 /**
- * WPILib-backed simulation of a roller (flywheel) mechanism driven by a single Kraken X60 motor.
- * Updates the TalonFX sim state each robot period and animates the roller — including spin-color
- * feedback — in a {@link Mechanism2d} canvas. Implements {@link Mountable} so the roller axle can
- * follow a parent {@link Mount}.
+ * WPILib flywheel simulation of a roller on a single Kraken X60 motor. Call {@link
+ * #simulationPeriodic()} once a period to step the physics, push the result into the TalonFX sim
+ * state, and color the canvas by spin direction.
+ *
+ * <p>The roller is a {@link Mountable}, so its axle can follow a parent {@link Mount}.
  */
 public class RollerSim implements Mountable {
 
@@ -30,14 +31,6 @@ public class RollerSim implements Mountable {
     private RollerConfig config;
     private Circle roller;
 
-    /**
-     * Creates and registers a roller simulation.
-     *
-     * @param config physical and display configuration for the roller
-     * @param mech the Mechanism2d canvas to draw the roller on
-     * @param rollerMotorSim the TalonFX sim state of the motor driving the roller
-     * @param name unique name prefix used for Mechanism2d element labels
-     */
     public RollerSim(
             RollerConfig config, Mechanism2d mech, TalonFXSimState rollerMotorSim, String name) {
         this.config = config;
@@ -68,39 +61,29 @@ public class RollerSim implements Mountable {
                         mech);
     }
 
-    /**
-     * Advances the flywheel physics simulation by one robot period, updates the TalonFX rotor
-     * velocity and position, moves the axle to its current mount position, and updates the
-     * Mechanism2d color to reflect the roller's spin direction.
-     */
-    public void simulationPeriodic() { // double x, double y) {
-        // ------ Update sim based on motor output
+    public void simulationPeriodic() {
         rollerSim.setInput(rollerMotorSim.getMotorVoltage());
         rollerSim.update(TimedRobot.kDefaultPeriod);
 
-        // ------ Update motor based on sim
-        // Make sure to convert radians at the mechanism to rotations at the motor
-        // Subtracting out the starting angle is necessary so the simulation can't "cheat" and use
-        // the
-        // sim as an absolute encoder.
-        // FlywheelSim reports mechanism-side velocity; the rotor spins gearRatio times faster.
+        // The sim reports mechanism-side radians, so the rotor count needs the gear ratio. The
+        // starting angle comes off so the sim cannot be used as an absolute encoder.
         double rotorRotationsPerSecond =
                 rollerSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI) * config.getGearRatio();
         rollerMotorSim.setRotorVelocity(rotorRotationsPerSecond);
         rollerMotorSim.addRotorPosition(rotorRotationsPerSecond * TimedRobot.kDefaultPeriod);
 
-        // Update the axle as the robot moves
         if (config.isMounted()) {
             rollerAxle.setPosition(getUpdatedX(config), getUpdatedY(config));
         } else {
             rollerAxle.setPosition(config.getInitialX(), config.getInitialY());
         }
 
-        // Scale down the angular velocity so we can actually see what is happening
+        // Scaled down so the marker spins visibly instead of blurring.
         double rpm = rollerSim.getAngularVelocityRPM() / 2;
         rollerViz.setAngle(
                 rollerViz.getAngle() + Math.toDegrees(rpm) * TimedRobot.kDefaultPeriod * 0.1);
 
+        // Anything inside 1 rad/s counts as stopped.
         if (rollerSim.getAngularVelocityRadPerSec() < -1) {
             roller.setHalfBackground(config.getRevColor(), config.getOffColor());
         } else if (rollerSim.getAngularVelocityRadPerSec() > 1) {

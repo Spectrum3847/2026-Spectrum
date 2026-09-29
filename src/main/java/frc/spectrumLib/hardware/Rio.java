@@ -9,33 +9,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Identifies the specific RoboRIO that is running, keyed by its serial number. Used to select
- * robot-specific configurations at startup.
+ * The RoboRIO this code is running on, keyed by serial number. Startup reads the serial to pick a
+ * robot-specific config.
  *
- * <p>Serial numbers are printed on the label on the back of the RoboRIO — prefix with a leading
- * zero if needed. Keep entries in lexical order. Note that the serial number may change after
- * reflashing the RoboRIO.
+ * <p>Serials are printed on the label on the back of the RoboRIO. Add a leading zero if one is
+ * missing. Reflashing can change the serial, so an entry that no longer matches lands on {@link
+ * #UNKNOWN}. Keep entries in lexical order.
  *
  * <p>Based on:
  * https://github.com/Team100/all24/blob/2a109b28467cfddcafb93c7fc85ef60b56a628a2/lib/src/main/java/org/team100/lib/config/Identity.java
  */
 public enum Rio {
 
-    // 2026 Robots
+    // 2026
     PHOTON2026("032B4BB3", true),
     PM_2026("0329AD07", true),
-    // FM_2026("", true),
-
-    // 2025 Robots
+    // 2025
     FM_2025("0329F2D1", true),
-
-    // 2024 Robots
+    // 2024
     FM_2024("032B1F69", true),
-
-    SIM("", true), // e.g. test default or simulation
+    // The empty serial is what any run that is not on a real roboRIO reports.
+    SIM("", true),
     UNKNOWN(null, true);
 
-    /** Map from serial-number string to the corresponding {@link Rio} enum constant. */
     private static final Map<String, Rio> IDs = new HashMap<>();
 
     static {
@@ -48,12 +44,12 @@ public enum Rio {
     private static final Alert rioIdUnknown = new Alert("UNKNOWN RIO: ", AlertType.kError);
     private static final Alert rio1alert = new Alert("RIO 1.0", AlertType.kWarning);
 
-    /** The {@link Rio} constant that matches the hardware running this code. */
+    /** Resolved once at class load, so a serial that matches no entry stays on {@link #UNKNOWN}. */
     public static final Rio id = checkID();
 
-    /** CANivore bus selector that chooses the first CANivore found on the system. */
+    /** Wildcard that picks the first CANivore the system reports. */
     public static final String CANIVORE = "*";
-    /** CAN bus name for the native RoboRIO CAN interface. */
+    /** Bus name for the RoboRIO's own CAN port. */
     public static final String RIO_CANBUS = "rio";
 
     private final String serialNumber;

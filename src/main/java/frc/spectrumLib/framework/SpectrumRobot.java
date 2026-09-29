@@ -8,20 +8,16 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import java.lang.reflect.Field;
 
 /**
- * The base robot class for Spectrum robots. Extends WPILib's TimedRobot and configures joystick
- * connection warning silencing and extends the loop overrun watchdog timeout to 200 ms.
+ * Base robot class. Silences joystick connection warnings and raises the loop overrun watchdog to
+ * 200 ms, so long periodic loops do not trip it.
  */
 public class SpectrumRobot extends TimedRobot {
 
-    /**
-     * Constructs a SpectrumRobot, silencing joystick connection warnings and extending the loop
-     * overrun watchdog timeout to 200 ms to accommodate longer periodic loops.
-     */
     public SpectrumRobot() {
         super();
         DriverStation.silenceJoystickConnectionWarning(true);
 
-        // Adjust loop overrun warning timeout
+        // The watchdog timeout is a private field with no setter.
         try {
             Field watchdogField = IterativeRobotBase.class.getDeclaredField("m_watchdog");
             watchdogField.setAccessible(true);

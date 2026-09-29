@@ -13,12 +13,11 @@ import frc.spectrumLib.sim.RollerSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Fuel Intake subsystem. Responsible for intake and handling of fuel elements. */
+/** Pulls fuel into the robot. */
 public class FuelIntake extends Mechanism {
 
     public static class FuelIntakeConfig extends Config {
 
-        /* Intake config values */
         @Getter private final double supplyCurrentLimit = 45;
         @Getter private final double statorCurrentLimit = 90;
         @Getter private final double lowerSupplyCurrentLimit = 45;
@@ -28,7 +27,6 @@ public class FuelIntake extends Mechanism {
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 4;
 
-        /* Sim Configs */
         @Getter private final double intakeX = Units.inchesToMeters(15);
         @Getter private final double intakeY = Units.inchesToMeters(23);
         @Getter private final double wheelDiameter = 6;
@@ -53,8 +51,6 @@ public class FuelIntake extends Mechanism {
                             "Intake Right", 6, Rio.RIO_CANBUS, MotorAlignmentValue.Opposed));
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         NEUTRAL,
@@ -138,18 +134,13 @@ public class FuelIntake extends Mechanism {
         Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
             sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
         }
     }
 
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
+    // Must be called each loop to advance the sim
     @Override
     public void simulationPeriodic() {
         if (isAttached()) {

@@ -1,86 +1,60 @@
-# Build Tools and Other Development Utilities
+# Build tools and other development utilities
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-A walkthrough of the non-Gradle tooling that ships in this repo. Gradle itself gets its own page; see [Gradle](gradle.md). Everything else lives here: the formatter, the static analyzer, the annotation processor, and the VSCode extensions worth installing on day one.
+Everything the build does is configured in one file, `build.gradle`. This page covers the tools that file configures and the editor setup you need to work with them. [Gradle](gradle.md) covers the commands.
 
 ## Spotless
 
-[Spotless](https://github.com/diffplug/spotless) keeps the codebase formatted to a single style so nobody's PR is half-diff because of whitespace. The configuration sits at the bottom of [`build.gradle`](../../build.gradle):
+[Spotless](https://github.com/diffplug/spotless) formats Java to a single style so no PR is half whitespace. The style is Google Java Format's AOSP variant, 4 space indent, which is what WPILib's own examples use.
 
-* **Java** → `googleJavaFormat("1.15.0").aosp()` plus `removeUnusedImports`, `trimTrailingWhitespace`, `endWithNewline`. The AOSP variant uses 4-space indents, which matches what WPILib examples use.
-* **Gradle**, **XML**, and **Markdown** all get their own formatters too; that's why a `./gradlew build` will sometimes rewrite this very file.
+Two things a human needs to know:
 
-`compileJava` depends on `spotlessApply`, so every local build reformats your code. CI runs `spotlessCheck` instead, which is read-only; if it fires, run `./gradlew spotlessApply` locally, commit, and push again.
+- The formatter runs as part of every `./gradlew build` and rewrites your files. Java and Markdown both. A build that fails on formatting is fixed by `./gradlew spotlessApply` and committing the result.
+- `// spotless:off` and `// spotless:on` exempt a region, for a hand-aligned matrix or a generated table.
 
-To opt a region out (a hand-aligned matrix, a generated table), wrap it in `// spotless:off` / `// spotless:on`. `toggleOffOn()` is enabled, so those markers are honored.
+Because Markdown is formatted too, never hand-align a table in `docs/`. The next build reflows it and the reflow lands in your diff.
 
 ## SpotBugs
 
-[SpotBugs](https://spotbugs.github.io/) is the static analyzer. It runs as part of `./gradlew build` (via `spotbugsMain`) and writes an HTML report to `build/reports/spotbugs.html`. The repo is configured with `Effort.DEFAULT` and the highest confidence threshold, so only findings SpotBugs is fairly sure about make it into the report.
+[SpotBugs](https://spotbugs.github.io/) is the static analyzer, and a finding fails the build. Read findings in `build/reports/spotbugs.html`, which renders as a filterable list grouped by class.
 
-The exclude list lives in [`excludeFilter-spotbugs.xml`](../../excludeFilter-spotbugs.xml). Notable carve-outs:
-
-* The entire `PERFORMANCE` category is suppressed; micro-perf is rarely the right thing to chase on robot code.
-* `EI_EXPOSE_REP` / `EI_EXPOSE_REP2` (returning mutable internal arrays) are suppressed; WPILib APIs leak mutable buffers everywhere, and the warnings drown out signal.
-* `LimelightHelpers` is excluded wholesale because it's third-party glue code we don't own.
-
-If you legitimately want to silence a finding, prefer fixing it. If a fix is impractical, add a narrowly-scoped `<Match>` block to the exclude file with a comment explaining why, rather than disabling the rule everywhere.
-
-With `ignoreFailures = false`, a SpotBugs finding fails the build. That's intentional. If CI breaks on a SpotBugs report you can't explain, open `build/reports/spotbugs.html` locally; the "fancy-hist" stylesheet makes it readable.
+Prefer fixing a finding. When a fix is impractical, add a narrow `<Match>` to [`excludeFilter-spotbugs.xml`](../../excludeFilter-spotbugs.xml) with a comment saying why, rather than disabling the rule everywhere. That file already holds the existing suppressions, including the ones covering the vendored Limelight glue code we do not own.
 
 ## Lombok
 
-[Project Lombok](https://projectlombok.org) is wired in through `io.freefair.lombok` (a Gradle plugin) so there's no extra annotation-processor setup. We use a small handful of annotations across the codebase:
+[Project Lombok](https://projectlombok.org) comes in through a Gradle plugin, so there is no annotation processor path to configure. The getters and setters it generates exist at compile time only and never appear in the source.
 
-* `@Getter` / `@Setter` on `*Config` inner classes so the chainable per-robot overrides don't need hand-written boilerplate.
-* `@Accessors(chain = true)` to make setters return `this`, so configs read like builders.
-* `@RequiredArgsConstructor` here and there for value-object constructors.
+The one that bites: if your editor cannot see a `@Getter` or `@Setter` that compiles fine, the editor is missing the Lombok plugin. The code is not broken.
 
-There's a dedicated page on conventions and gotchas: [Project Lombok](../coding-conventions/project-lombok.md). Read it before adding new annotations; a few combinations (`@Builder` + inheritance, `@Data` + JPA-style equals) cause subtle bugs.
+Conventions and which annotations to reach for are on the [Project Lombok](../coding-conventions/project-lombok.md) page. Read it before adding new ones.
 
-The big thing to remember: generated methods only exist at compile time. If your IDE doesn't see them, it doesn't have the Lombok plugin installed. For VSCode that's `Project Lombok Extension Pack` (`pleiades.java-extension-pack-jdk`-style bundles also include it).
+## BuildConstants
 
-## gversion / `BuildConstants`
-
-The `com.peterabeles.gversion` plugin regenerates [`src/main/java/frc/robot/BuildConstants.java`](../../src/main/java/frc/robot/BuildConstants.java) on every `compileJava`. It bakes in:
-
-* Build timestamp (Eastern Time).
-* Git branch, commit, and dirty flag.
-* Maven/Gradle project version.
-
-[`Robot.java`](../../src/main/java/frc/robot/Robot.java) reads `BuildConstants` directly in its constructor and publishes git/build info to NetworkTables; that's what the **Git Status** tab in [Elastic](elastic.md) renders. Don't hand-edit `BuildConstants.java`; it gets overwritten next build.
+`src/main/java/frc/robot/BuildConstants.java` is generated by gversion on every `compileJava` and stamped with the build time and the Git state at that moment. Never edit it. `Robot.java` reads it in its constructor and publishes the fields to the dashboard at startup, which is how you tell which build is on the robot and which build produced a log.
 
 ## JavaDoc
 
-`./gradlew javadoc` writes HTML to `build/docs/javadoc/`. The interesting bit is the cross-link configuration in `build.gradle`'s `javadoc.options.setLinks(...)`:
+`./gradlew javadoc` writes HTML to `build/docs/javadoc/`. The set of vendor JavaDoc sites it cross-links to lives in the `javadoc` block of `build.gradle`; if you add a vendor library and want its JavaDoc to cross-link from ours, that block is the place to add it.
 
-```
-WPILib, REV, Phoenix v5, Phoenix 6, PathPlanner, DogLog, MapleSim, Java 17
-```
+## Editor extensions
 
-When our JavaDoc references a class from any of those, the generated HTML links straight to the vendor's hosted docs. If you add a new vendor library, add its JavaDoc base URL here so cross-links keep working.
+Worth installing before you write any code:
 
-`Xdoclint:none` is set, so missing JavaDocs don't fail the build. That's a deliberate trade-off, we prefer encouragement over enforcement.
+* **Language Support for Java by Red Hat** (`redhat.java`), the language server behind IntelliSense and navigation. When Java in the editor turns weirdly broken, run **Java: Clean Java Language Server Workspace** before you assume your code is at fault. A stale workspace cache after a branch switch looks exactly like a compile error that is not there.
+* **Lombok Annotations Support**. Without it `@Getter` and `@Setter` look missing.
+* **Error Lens** (`usernamehw.errorlens`), errors and warnings inline instead of in a panel you have to open.
+* **GitLens** (`eamodio.gitlens`), `git blame` on every line. This is how you find out who last touched a subsystem and, more usefully, in which commit the behavior changed.
+* **GitHub Pull Requests and Issues** (`github.vscode-pull-request-github`), review and comment without leaving the editor.
 
-## VSCode Extensions
+Optional:
 
-The bare minimum for productive Java work in this repo:
-
-* **Language Support for Java™ by Red Hat** (`redhat.java`), language server, IntelliSense, navigation. If Java gets weirdly broken, the `Java: Clean Java Language Server Workspace` command is the first thing to try.
-* **Lombok Annotations Support**, without this the IDE doesn't see `@Getter`/`@Setter` and your code looks broken even though it builds.
-* **Error Lens** (`usernamehw.errorlens`), surfaces compile errors and warnings inline.
-* **GitLens** (`eamodio.gitlens`), `git blame` annotations on every line. Worth it for archaeology.
-* **GitHub Pull Requests and Issues** (`github.vscode-pull-request-github`), review and comment on PRs without leaving the editor.
-
-Optional but useful:
-
-* **Git Config User Profiles**, for shared laptops or pair programming, lets you swap committer identity without `git config` gymnastics.
-* **Live Share**, real-time pair programming. We don't reach for it often, but when a mentor is helping debug remotely it's the fastest path.
+* **Git Config User Profiles**, for swapping committer identity on a shared laptop without touching `git config` by hand.
+* **Live Share**, real-time pair programming. We do not reach for it often, but it is the fastest path when a mentor is helping debug remotely.
 * **Open in Browser**, one-click for the SpotBugs HTML report.
 
-Skip GitHub Copilot for code completion if you're trying to learn the patterns in this codebase; it'll happily autocomplete the wrong subsystem-wiring convention. Use it for tests or boilerplate where the patterns are obvious.
+Skip an AI code completion extension if you are trying to learn the patterns in this codebase. It will confidently autocomplete a subsystem-wiring convention that does not exist here, and you will not notice until much later. Use it for tests and boilerplate where the pattern is obvious.
 
-## See Also
+## See also
 
 [Setup](../setup.md) for one-time environment work, [Gradle](gradle.md) for the build commands themselves, and [Project Lombok](../coding-conventions/project-lombok.md) for annotation conventions.

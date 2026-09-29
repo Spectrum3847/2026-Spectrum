@@ -1,83 +1,52 @@
-# PID Tuning
+# PID tuning
 
-*Audience: Reference. Assumes basic motor-control concepts and that you've read [Phoenix Tuner X](phoenix-tuner-x.md).*
+*Audience: Reference. Assumes basic motor control and that you've read [Phoenix Tuner X](phoenix-tuner-x.md).*
 
-## The Short Version
+CTRE's [Phoenix 6 closed loop guide](https://v6.docs.ctr-electronics.com/en/stable/) is the reference for what the gains mean and how slots work. This page is the workflow we use and the traps that are specific to this codebase.
 
-PID drives a measured value toward a target. The three terms:
+## The trap: units follow the control type
 
-* **kP** responds to the current error. Bigger kP pulls harder; too big and the system oscillates.
-* **kI** accumulates past error. It kills off steady-state error (a flywheel that always lags 1% behind target, say). Keep it small; too much causes windup.
-* **kD** responds to how fast the error is changing. It damps overshoot and ringing.
+A [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java) drives its TalonFX through one of two families of control request, and the same gain number means different things in each. Under a voltage request the gains are in volts, so `kV` is volts per radian per second. Under the `TorqueCurrentFOC` requests, which is what `setMMPositionFoc` and `setVelocityTorqueCurrentFOC` use, the gains are in amps. `configFeedForwardGains` says as much in its own documentation.
 
-PID is one piece of the controller. On a Phoenix 6 TalonFX, the slot also takes feedforward terms:
-
-* **kS**, output needed to *just* start moving (static friction).
-* **kV**, output per unit of target velocity.
-* **kA**, output per unit of target acceleration.
-* **kG**, constant output to hold against gravity (arms, elevators).
-
-The *units* of these gains depend on the control request. Under voltage requests they're volts (kV in V/rps, etc.); under the TorqueCurrentFOC requests this code uses for FOC position/velocity loops (`setMMPositionFoc`, `setVelocityTorqueCurrentFOC`) they're amps (kV in A/rps). Same numbers mean very different things across the two, so re-tune; don't copy gains when a mechanism switches request type. `Mechanism.java`'s own javadoc flags kS as "static friction compensation (volts or amps)" for this reason.
+The consequence: move a mechanism from a voltage request to an FOC request without re-tuning and you get gains that look plausible on paper and behave nothing like the old ones. Check which request a mechanism is configured for before you trust its gains or copy them somewhere else.
 
 For controllable mechanisms, tune feedforward first. PID then only has to correct what feedforward got wrong.
 
-## The Loop, Slightly More Carefully
+## The trap: slots
 
-The pieces in motion:
+Gains live on the motor controller in three independent slots, and the slot a request uses is carried on the request object, not on the config. Setting slot 0 while the running request sits on slot 1 does nothing at all, with no error. `config.configPIDGains(kP, kI, kD)` writes slot 0 and `config.configPIDGains(slot, kP, kI, kD)` writes the one you name; the same pair exists for feedforward as `configFeedForwardGains`. A slot outside 0, 1, or 2 reports a warning and changes nothing.
 
-* **Setpoint**, what you want (a position, velocity, or angle).
-* **Process variable**, what the sensor actually reads.
-* **Error**, setpoint minus process variable.
-* **Output**, voltage (or torque current) the controller produces from current, past, and predicted error.
+One concrete case to know: `Config.mmPositionVoltageSlot` is constructed on slot 1 while the no-argument `configPIDGains` writes slot 0. When a position loop misbehaves in a way that looks like the gains were never applied, check which slot the request is actually on before you re-tune.
 
-## Where PID Lives in the Code
+## Where the gains live
 
-We run PID *on the motor controller*, not on the roboRIO. Phoenix 6 TalonFX motors do this natively, with up to three gain slots (`Slot0`, `Slot1`, `Slot2`). The [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java) wrapper exposes helpers for setting gains per slot (defaults to Slot 0):
+Defaults are in each subsystem's inner `*Config` class. A per-robot override goes in the matching class under `src/main/java/frc/robot/configs/`, which runs before the subsystem is constructed. Do not edit a default in a `*Config` class to fix one robot, that breaks the other three.
 
-        mechanism.config.configPIDGains(kP, kI, kD);          // slot 0
-        mechanism.config.configPIDGains(slot, kP, kI, kD);    // pick a slot (0/1/2)
+## Live tuning with `TuneValue`
 
-Defaults for each mechanism live in its inner `*Config` class (`LauncherConfig`, `HoodConfig`, etc.). To override per-robot, mutate them inside the matching `*2026.java` config before the subsystem is constructed.
+[`TuneValue`](../../src/main/java/frc/spectrumLib/telemetry/TuneValue.java) publishes a double to SmartDashboard so it can be edited from [Elastic](elastic.md) without a redeploy. Nothing reads it back on its own: call `update()` in `periodic()` to pull the current value, or pass `getSupplier()` into a command factory and let it be read when the command runs. Passing a bare `double` freezes the value at scheduling time instead, which is the usual reason a "live" tunable is not live.
 
-WPILib-side PID, `ProfiledPIDController` for chassis rotation, for example, is constructed directly in the subsystem and can be re-tuned in `periodic()` if a `TuneValue` is hooked up.
+Nothing in the codebase uses a `TuneValue` yet. The class is there and works; the gains are currently set in the `*Config` classes and re-deployed.
 
-## Live Tuning with `TuneValue`
+Two rules when you start using it. Settle the gains and then delete the `TuneValue`, because it stays editable with an FMS attached and a value moving under you mid-match is worse than a value that is merely wrong. And keep one tunable per mechanism in one place so you can find them all later.
 
-[`TuneValue`](../../src/main/java/frc/spectrumLib/telemetry/TuneValue.java) wraps SmartDashboard's `putNumber`/`getNumber` so a value can be edited live from [Elastic](elastic.md) without redeploying:
+## The order that converges fastest
 
-```java
-private final TuneValue kP = new TuneValue("Launcher/kP", 0.25);
+1. Zero out `kI` and `kD`. Set feedforward (`kS`, `kV`, `kG`) if the mechanism has the physics for it.
+2. Raise `kP` until the response is fast and it starts to oscillate.
+3. Add `kD` until the oscillation is gone, backing off when it turns into high frequency chatter instead.
+4. Add `kI` only if there is steady state error left. Most velocity loops never need any.
+5. Re-check under load. Gains that look good unloaded usually need a nudge once the mechanism is doing real work.
 
-@Override
-public void periodic() {
-    config.configPIDGains(kP.update(), 0.0, 0.0);
-}
-```
+As a rough split: velocity loops want a small `kP`, a real `kV`, and no `kI`. Position loops want `kP`, `kD`, and `kG` when gravity is in the way, and they should be chasing a MotionMagic profile rather than a step input.
 
-`getSupplier()` returns a `DoubleSupplier`, so you can pass the tunable straight into a command factory. Don't take `TuneValue`s to competition unless you mean to; pull them or hide them behind a debug flag once gains are settled.
+## Proving a change helped
 
-## A Workflow That Works
+The [Phoenix Tuner X](phoenix-tuner-x.md) plotter is the fastest way to see it: plot `Closed Loop Reference` against the matching `Position` or `Velocity`, hit record, and run the mechanism. Ten seconds of watching the two lines against each other beats ten minutes of guessing.
 
-You're looking for gains that hit the target quickly, don't overshoot, don't oscillate, and don't sit short of the setpoint. The order that tends to converge fastest:
+[`frc.spectrumLib.swerve.SysID`](../../src/main/java/frc/spectrumLib/swerve/SysID.java) is a working SysId routine for the swerve. Use it as the template if you ever need to characterize another mechanism, and read WPILib's [SysId documentation](https://docs.wpilib.org/en/stable/docs/software/advanced-controls/system-identification/index.html) for what the output constants mean.
 
-1. Set kI and kD to zero. Set feedforward (kS, kV, kG) if applicable.
-2. Crank kP until the response is fast but the system starts oscillating.
-3. Add kD to damp the oscillation. Keep increasing until oscillation is gone or kD itself starts causing high-frequency chatter, then back off a touch.
-4. Only add kI if there's persistent steady-state error. Most velocity loops never need any.
-5. Validate under load. Gains that look great unloaded often need a nudge once the mechanism is actually doing work.
+## See also
 
-A few rules of thumb by loop type:
-
-Velocity loops (flywheels, drive wheels) usually need a small kP and a substantial kV feedforward. kI is almost always zero.
-
-Position loops (arms, hoods) usually need kP, kD, and kG. Drive them through MotionMagic profiles so the controller is chasing a smooth trajectory, not a step input.
-
-## What Helps
-
-CTRE's Phoenix 6 closed-loop guide for slot configuration, units, and gain conventions on TalonFX.
-
-WPILib's docs for the WPILib-side controllers (`ProfiledPIDController`, etc.) and for SysId, which produces feedforward constants from a system characterization run.
-
-The Phoenix Tuner X plotter ([Phoenix Tuner X](phoenix-tuner-x.md)) is by far the fastest way to know whether a tweak helped or made things worse: live-plotting setpoint against process variable.
-
-A SysId routine for the swerve drive already lives in [`frc.spectrumLib.swerve.SysID`](../../src/main/java/frc/spectrumLib/swerve/SysID.java). It's a useful template if you ever need to characterize another mechanism the same way.
+* [Phoenix Tuner X](phoenix-tuner-x.md), which is where the plotter and the device configuration live.
+* [Phoenix 6](../dependencies/phoenix6.md) for the control requests and the request types.

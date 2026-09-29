@@ -13,70 +13,38 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
- * Provides a high-level interface to a single Limelight camera for AprilTag-based pose estimation
- * and basic targeting.
+ * Wraps one Limelight camera and returns its AprilTag pose estimates and target offsets.
  *
- * <p>All methods are safe to call when the camera is not attached ({@link #isAttached()} returns
- * {@code false}); they return zero / false / empty values in that case.
- *
- * <p>Two pose estimation flavors are supported:
- *
- * <ul>
- *   <li><b>MegaTag1</b> — full 3-D pose estimation using one or more AprilTags.
- *   <li><b>MegaTag2</b> — fused estimate that incorporates the robot heading supplied via {@link
- *       #setRobotOrientation(double)}.
- * </ul>
+ * <p>Getters return zero, false, or an empty value instead of throwing when the camera is not
+ * attached, so callers do not need to check {@link #isAttached()} first. The exception is {@link
+ * #getTagTx()}, {@link #getTagTA()} and {@link #getTagRotationDegrees()}, which return -99999 when
+ * the camera is unattached or no target is in view, so a missing target must never be read as a
+ * measurement.
  */
 public class Limelight {
 
-    /* Limelight Configuration */
-
     /**
-     * Configuration for a single Limelight camera, including its network-table name and physical
-     * mounting position on the robot.
-     *
-     * <p>The Lombok {@code @Accessors(chain = true)} annotation allows fluent setter calls: {@code
-     * config.setName("limelight").setAttached(true)}.
+     * Network-table name and robot-frame mount pose for one camera. Translation is in metres and
+     * rotation in degrees. {@code @Accessors} makes the setters chainable.
      */
     @Accessors(chain = true)
     public static class LimelightConfig {
-        /** Must match to the name given in LL dashboard */
+        /** Must match the name given in the LL dashboard */
         @Getter @Setter private String name;
 
-        /** Whether this camera is physically connected to the robot. */
         @Getter @Setter private boolean attached = true;
 
-        /**
-         * Whether pose measurements from this camera are currently being fused into the estimator.
-         */
         @Getter @Setter private boolean isIntegrating;
 
-        /** Physical Config */
-        /**
-         * Forward offset of the camera from the robot center in meters (positive = toward front).
-         */
+        /** Positive is toward the front of the robot. */
         @Getter private double forward, right, up; // meters
 
-        /** Orientation of the camera in degrees (roll/pitch/yaw relative to robot frame). */
         @Getter private double roll, pitch, yaw; // degrees
 
-        /**
-         * Creates a configuration for the named Limelight camera.
-         *
-         * @param name the network-table name assigned to the camera in the LL dashboard
-         */
         public LimelightConfig(String name) {
             this.name = name;
         }
 
-        /**
-         * Sets the position of the robot in meters
-         *
-         * @param forward (meters) forward from center of robot
-         * @param right (meters) right from center of robot
-         * @param up (meters) up from center of robot
-         * @return the LimelightConfig object
-         */
         public LimelightConfig withTranslation(double forward, double right, double up) {
             this.forward = forward;
             this.right = right;
@@ -85,12 +53,8 @@ public class Limelight {
         }
 
         /**
-         * Sets the rotation of the limelight in degrees
-         *
-         * @param roll (degrees) roll of limelight || positive is rotated right
-         * @param pitch (degrees) pitch of limelight || positive is camera tilted up
-         * @param yaw (yaw) yaw of limelight || positive is rotated left
-         * @return the LimelightConfig object
+         * Positive roll rotates the camera to the right, positive pitch tilts it up, positive yaw
+         * rotates it to the left.
          */
         public LimelightConfig withRotation(double roll, double pitch, double yaw) {
             this.roll = roll;
@@ -100,77 +64,39 @@ public class Limelight {
         }
     }
 
-    /* Debug */
-    /** Formatter used for printing pose coordinates to SmartDashboard. */
     private final DecimalFormat df = new DecimalFormat();
 
-    /** Active configuration for this Limelight instance. */
     private LimelightConfig config;
 
-    /** Whether pose measurements from this camera are currently being integrated. */
     @Getter @Setter private boolean isIntegrating = false;
 
-    /** Network-table name of this camera (mirrors {@link LimelightConfig#getName()}). */
     @Getter private String cameraName = "default";
 
-    /** Human-readable string describing the current integration status, logged for diagnostics. */
     @Getter @Setter private String logStatus = "";
 
-    /** Human-readable string describing the currently visible tag(s), logged for diagnostics. */
     @Getter @Setter private String tagStatus = "";
 
-    /**
-     * Constructs a Limelight wrapper from a fully populated {@link LimelightConfig}.
-     *
-     * @param config the camera configuration
-     */
     public Limelight(LimelightConfig config) {
         this.config = config;
         cameraName = config.getName();
     }
 
-    /**
-     * Constructs a Limelight wrapper with a default configuration for the given camera name.
-     *
-     * @param name the network-table name of the camera
-     */
     public Limelight(String name) {
         cameraName = name;
         config = new LimelightConfig(name);
     }
 
-    /**
-     * Constructs a Limelight wrapper, explicitly setting whether the camera is attached.
-     *
-     * @param name the network-table name of the camera
-     * @param attached {@code true} if the camera is physically present on the robot
-     */
     public Limelight(String name, boolean attached) {
         cameraName = name;
         config = new LimelightConfig(name).setAttached(attached);
     }
 
-    /**
-     * Constructs a Limelight wrapper and immediately sets its active pipeline.
-     *
-     * @param name the network-table name of the camera
-     * @param pipeline the pipeline index to activate (refer to robot vision configuration for
-     *     pipeline indexes)
-     */
     public Limelight(String name, int pipeline) {
         this(name);
         cameraName = name;
         setLimelightPipeline(pipeline);
     }
 
-    /**
-     * Constructs a Limelight wrapper with an explicit configuration and immediately sets its active
-     * pipeline.
-     *
-     * @param name the network-table name of the camera
-     * @param pipeline the pipeline index to activate
-     * @param config the fully populated {@link LimelightConfig} to use
-     */
     public Limelight(String name, int pipeline, LimelightConfig config) {
         this(name);
         cameraName = name;
@@ -178,30 +104,17 @@ public class Limelight {
         setLimelightPipeline(pipeline);
     }
 
-    /**
-     * Returns the network-table name of this camera.
-     *
-     * @return the camera name as configured in the LL dashboard
-     */
     public String getName() {
         return config.getName();
     }
 
-    /**
-     * Returns whether this camera is physically connected to the robot.
-     *
-     * @return {@code true} if attached
-     */
     public boolean isAttached() {
         return config.isAttached();
     }
 
-    /* ::: Basic Information Retrieval ::: */
     /**
-     * Get the horizontal offset from crosshair to target
-     *
-     * @return Horizontal Offset From Crosshair To Target (LL1: -27 degrees to 27 degrees / LL2:
-     *     -29.8 to 29.8 degrees)
+     * Horizontal offset from the crosshair to the target, in degrees. LL1 spans -27 to 27, LL2
+     * -29.8 to 29.8.
      */
     public double getHorizontalOffset() {
         if (!isAttached()) {
@@ -211,10 +124,8 @@ public class Limelight {
     }
 
     /**
-     * Get the vertical offset from crosshair to target
-     *
-     * @return Vertical Offset From Crosshair To Target in degrees (LL1: -20.5 degrees to 20.5
-     *     degrees / LL2: -24.85 to 24.85 degrees)
+     * Vertical offset from the crosshair to the target, in degrees. LL1 spans -20.5 to 20.5, LL2
+     * -24.85 to 24.85.
      */
     public double getVerticalOffset() {
         if (!isAttached()) {
@@ -223,11 +134,6 @@ public class Limelight {
         return LimelightHelpers.getTY(config.getName());
     }
 
-    /**
-     * Returns whether the LL has any valid targets (April tags or other vision targets)
-     *
-     * @return Whether the LL has any valid targets (April tags or other vision targets)
-     */
     public boolean targetInView() {
         if (!isAttached()) {
             return false;
@@ -235,11 +141,6 @@ public class Limelight {
         return LimelightHelpers.getTV(config.getName());
     }
 
-    /**
-     * Checks if the LL sees multiple tags
-     *
-     * @return whether the LL sees multiple tags or not
-     */
     public boolean multipleTagsInView() {
         if (!isAttached()) {
             return false;
@@ -247,12 +148,7 @@ public class Limelight {
         return getTagCountInView() > 1;
     }
 
-    /**
-     * Returns the number of AprilTags included in the current MegaTag1 pose estimate.
-     *
-     * @return number of tags contributing to the current pose estimate, or {@code 0} if not
-     *     attached or no estimate is available
-     */
+    /** Tag count in the current MegaTag1 estimate. */
     public double getTagCountInView() {
         if (!isAttached()) {
             return 0;
@@ -262,18 +158,9 @@ public class Limelight {
             return 0;
         }
         return est.tagCount;
-
-        // if (retrieveJSON() == null) return 0;
-
-        // return retrieveJSON().targetingResults.targets_Fiducials.length;
     }
 
-    /**
-     * Gets the ID of the apriltag most centered in the LL's view (or based on different
-     *
-     * @return the tag ID of the apriltag most centered in the LL's view (or based on different
-     *     criteria set in LL dasbhoard)
-     */
+    /** ID of the most centered AprilTag, following the primary target rule in the LL dashboard. */
     public double getClosestTagID() {
         if (!isAttached()) {
             return 0;
@@ -281,11 +168,7 @@ public class Limelight {
         return LimelightHelpers.getFiducialID(config.getName());
     }
 
-    /**
-     * Returns the area of the primary target as a percentage of the camera image (0–100).
-     *
-     * @return target area percentage, or {@code 0} if not attached
-     */
+    /** Primary target area as a percentage of the image, 0 to 100. */
     public double getTargetSize() {
         if (!isAttached()) {
             return 0;
@@ -293,12 +176,9 @@ public class Limelight {
         return LimelightHelpers.getTA(config.getName());
     }
 
-    /* ::: Pose Retrieval ::: */
-
     /**
-     * Get the corresponding LL Pose3d (MEGATAG1) for the alliance in DriverStation.java
-     *
-     * @return the corresponding LL Pose3d (MEGATAG1) for the alliance in DriverStation.java
+     * Robot pose in the WPILib Blue origin frame, which the Limelight picks from the DriverStation
+     * alliance. Returns {@link Pose3d#kZero} when no estimate is available.
      */
     public Pose3d getMegaTag1_Pose3d() {
         if (!isAttached()) {
@@ -312,9 +192,8 @@ public class Limelight {
     }
 
     /**
-     * Get the corresponding LL Pose2d (MEGATAG1) for the alliance in DriverStation.java
-     *
-     * @return the corresponding LL Pose3d (MEGATAG2) for the alliance in DriverStation.java
+     * Robot pose in the WPILib Blue origin frame. Returns {@link Pose2d#kZero} when no estimate is
+     * available.
      */
     public Pose2d getMegaTag2_Pose2d() {
         if (!isAttached()) {
@@ -328,12 +207,7 @@ public class Limelight {
         return poseEstimate.pose;
     }
 
-    /**
-     * Returns the full MegaTag1 {@link PoseEstimate}, including timestamp, tag count, and raw
-     * fiducials. Returns an empty estimate when not attached or when no estimate is available.
-     *
-     * @return the MegaTag1 pose estimate in the WPILib Blue origin frame
-     */
+    /** MegaTag1 estimate in the WPILib Blue origin frame; empty when no data is available. */
     public PoseEstimate getMegaTag1_PoseEstimate() {
         if (!isAttached()) {
             return new PoseEstimate();
@@ -347,10 +221,8 @@ public class Limelight {
     }
 
     /**
-     * Returns the full MegaTag2 {@link PoseEstimate} (heading-fused), including timestamp and tag
-     * count. Returns an empty estimate when not attached or when no estimate is available.
-     *
-     * @return the MegaTag2 pose estimate in the WPILib Blue origin frame
+     * Heading-fused MegaTag2 estimate in the WPILib Blue origin frame; empty when no data is
+     * available.
      */
     public PoseEstimate getMegaTag2_PoseEstimate() {
         if (!isAttached()) {
@@ -365,12 +237,6 @@ public class Limelight {
         return poseEstimate;
     }
 
-    /**
-     * Returns {@code true} when the pose estimate is considered accurate — i.e., multiple tags are
-     * visible and the combined target area exceeds a minimum threshold.
-     *
-     * @return {@code true} if the pose estimate meets the accuracy criteria
-     */
     public boolean hasAccuratePose() {
         if (!isAttached()) {
             return false;
@@ -378,11 +244,7 @@ public class Limelight {
         return multipleTagsInView() && getTargetSize() > 0.1;
     }
 
-    /**
-     * Get the distance of the 2d vector from the camera to closest apriltag
-     *
-     * @return the distance of the 2d vector from the camera to closest apriltag
-     */
+    /** Horizontal distance from the camera to the closest AprilTag, in metres. */
     public double getDistanceToTagFromCamera() {
         if (!isAttached()) {
             return 0;
@@ -392,12 +254,7 @@ public class Limelight {
         return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
     }
 
-    /**
-     * Returns the raw fiducial data for all currently detected AprilTags.
-     *
-     * @return array of {@link RawFiducial} entries from the MegaTag1 estimate; empty array if not
-     *     attached or no estimate is available
-     */
+    /** Raw AprilTag detections from the MegaTag1 estimate; empty when no data is available. */
     public RawFiducial[] getRawFiducial() {
         if (!isAttached()) {
             return new RawFiducial[0];
@@ -409,11 +266,7 @@ public class Limelight {
         return est.rawFiducials;
     }
 
-    /**
-     * Returns the timestamp of the MEGATAG1 pose estimation from the Limelight camera.
-     *
-     * @return The timestamp of the pose estimation in seconds.
-     */
+    /** Capture time of the current MegaTag1 estimate, in seconds. */
     public double getMegaTag1PoseTimestamp() {
         if (!isAttached()) {
             return 0;
@@ -425,11 +278,7 @@ public class Limelight {
         return est.timestampSeconds;
     }
 
-    /**
-     * Returns the timestamp of the MEGATAG2 pose estimation from the Limelight camera.
-     *
-     * @return The timestamp of the pose estimation in seconds.
-     */
+    /** Capture time of the current MegaTag2 estimate, in seconds. */
     public double getMegaTag2PoseTimestamp() {
         if (!isAttached()) {
             return 0;
@@ -441,11 +290,7 @@ public class Limelight {
         return est.timestampSeconds;
     }
 
-    /**
-     * Returns the latency of the pose estimation from the Limelight camera.
-     *
-     * @return The latency of the pose estimation in seconds.
-     */
+    /** Latency of the pose estimate, in seconds. */
     @Deprecated(forRemoval = true)
     public double getPoseLatency() {
         if (!isAttached()) {
@@ -455,15 +300,11 @@ public class Limelight {
                 LimelightHelpers.getBotPose_wpiBlue(config.getName())[6]);
     }
 
-    /*
-     * Custom Helpers
-     */
-
     /**
-     * get distance in meters to a target
+     * Horizontal distance to a target of known height, from the camera's own height and tilt.
      *
-     * @param targetHeight meters
-     * @return distance in meters to a target
+     * @param targetHeight height of the target center above the floor, in metres
+     * @return distance to the target in metres
      */
     public double getDistanceToTarget(double targetHeight) {
         if (!isAttached()) {
@@ -473,46 +314,26 @@ public class Limelight {
                 / Math.tan(Units.degreesToRadians(config.pitch + getVerticalOffset()));
     }
 
-    /**
-     * Marks this camera as actively integrating and updates the log status message.
-     *
-     * @param message a human-readable description of why integration is valid
-     */
+    /** Marks the camera as integrating and stores {@code message} as its log status. */
     public void sendValidStatus(String message) {
         config.isIntegrating = true;
         this.isIntegrating = config.isIntegrating;
         logStatus = message;
     }
 
-    /**
-     * Marks this camera as not integrating and updates the log status message.
-     *
-     * @param message a human-readable description of why integration is invalid
-     */
+    /** Marks the camera as not integrating and stores {@code message} as its log status. */
     public void sendInvalidStatus(String message) {
         config.isIntegrating = false;
         this.isIntegrating = config.isIntegrating;
         logStatus = message;
     }
 
-    /*
-     * Utility Wrappers
-     */
-
-    /**
-     * @return The latest LL results as a LimelightResults object.
-     */
+    /** Despite the name, this returns parsed results rather than raw JSON. */
     @SuppressWarnings("unused")
     private LimelightResults retrieveJSON() {
         return LimelightHelpers.getLatestResults(config.name);
     }
 
-    /**
-     * Sets the LL pipeline to the given index.
-     *
-     * @param pipelineIndex the pipeline index (refer to robot vision configuration for pipeline
-     *     indexes)
-     */
     public void setLimelightPipeline(int pipelineIndex) {
         if (!isAttached()) {
             return;
@@ -520,7 +341,7 @@ public class Limelight {
         LimelightHelpers.setPipelineIndex(config.name, pipelineIndex);
     }
 
-    /** Sets the robot orientation in degrees for the Limelight's internal IMU. */
+    /** Heading in degrees, used by MegaTag2 heading fusion. */
     public void setRobotOrientation(double degrees) {
         if (!isAttached()) {
             return;
@@ -529,9 +350,9 @@ public class Limelight {
     }
 
     /**
-     * Sets the robot orientation and yaw rate for the Limelight's internal IMU fusion (MegaTag2).
+     * Feeds the heading and yaw rate that the camera fuses against its own IMU.
      *
-     * @param degrees robot heading in degrees (positive counter-clockwise)
+     * @param degrees robot heading in degrees, positive counter-clockwise
      * @param angularRate current yaw rate in degrees per second
      */
     public void setRobotOrientation(double degrees, double angularRate) {
@@ -542,9 +363,9 @@ public class Limelight {
     }
 
     /**
-     * Sets the IMU mode on the Limelight.
+     * Picks which IMU the camera fuses against.
      *
-     * @param mode the IMU mode index (refer to the LL documentation for valid values)
+     * @param mode mode index from the Limelight documentation
      */
     public void setIMUmode(int mode) {
         if (!isAttached()) {
@@ -554,11 +375,8 @@ public class Limelight {
     }
 
     /**
-     * Returns the X offset of the primary target in robot space (meters along the robot's
-     * left/right axis).
-     *
-     * @return target X translation in meters, or {@code -99999} if not attached or no target in
-     *     view
+     * Target offset along the robot's left/right axis, in metres. Returns -99999 when no target is
+     * in view.
      */
     public double getTagTx() {
         if (!isAttached()) {
@@ -575,9 +393,7 @@ public class Limelight {
     }
 
     /**
-     * Returns the area of the primary target as a percentage of the camera image.
-     *
-     * @return target area (0–100 %), or {@code -99999} if not attached or no target in view
+     * Primary target area as a percentage of the image. Returns -99999 when no target is in view.
      */
     public double getTagTA() {
         if (!isAttached()) {
@@ -592,13 +408,7 @@ public class Limelight {
         return ta;
     }
 
-    /**
-     * Returns the Z-axis rotation of the primary target in robot space (yaw in radians, converted
-     * to degrees).
-     *
-     * @return target yaw rotation in degrees, or {@code -99999} if not attached or no target in
-     *     view
-     */
+    /** Target yaw in the robot frame, in degrees. Returns -99999 when no target is in view. */
     public double getTagRotationDegrees() {
         if (!isAttached()) {
             return -99999;
@@ -613,11 +423,6 @@ public class Limelight {
         return Math.toDegrees(rotationRadians);
     }
 
-    /**
-     * Sets the LED mode of the LL.
-     *
-     * @param enabled true to enable the LED mode, false to disable it
-     */
     public void setLEDMode(boolean enabled) {
         if (!isAttached()) {
             return;
@@ -629,7 +434,6 @@ public class Limelight {
         }
     }
 
-    /** Set LL LED's to blink */
     public void blinkLEDs() {
         if (!isAttached()) {
             return;
@@ -637,7 +441,7 @@ public class Limelight {
         LimelightHelpers.setLEDMode_ForceBlink(config.getName());
     }
 
-    /** Checks if the camera is connected by looking for an empty botpose array from camera. */
+    /** Treats a missing or truncated botpose entry from the camera as disconnected. */
     public boolean isCameraConnected() {
         if (!isAttached()) {
             return false;
@@ -656,7 +460,6 @@ public class Limelight {
         }
     }
 
-    /** Prints the vision, estimated, and odometry pose to SmartDashboard */
     public void printDebug() {
         if (!isAttached()) {
             return;

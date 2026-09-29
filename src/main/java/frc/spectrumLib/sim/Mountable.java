@@ -3,29 +3,27 @@ package frc.spectrumLib.sim;
 import frc.spectrumLib.sim.Mount.MountType;
 
 /**
- * Mixin interface for simulation components that can be attached to a {@link Mount}. Provides
- * default geometry helpers that compute the component's updated canvas position each simulation
- * period, taking the parent mount's type, current position, and current angle into account.
+ * Canvas geometry for a simulated component that hangs off a {@link Mount}. The default helpers
+ * return the component's position on the canvas, in metres, for the current mount state.
  */
 public interface Mountable {
 
     /**
-     * Computes the updated X position of a mounted component given full explicit geometry
-     * parameters.
+     * Component X on the canvas, swung off the mount by the distance and angle the two started
+     * apart. A linear stage is referenced from its start X plus travel, an arm from its live X.
      *
-     * @param mountType type of the parent mount (ARM or LINEAR)
-     * @param initialX component's initial X position on the canvas (metres)
-     * @param initialY component's initial Y position on the canvas (metres)
-     * @param initMountX mount's X position at simulation start (metres)
-     * @param initMountY mount's Y position at simulation start (metres)
-     * @param initMountAngle mount's angle at simulation start (radians)
-     * @param mountX mount's current X position (metres)
-     * @param mountY mount's current Y position (metres)
-     * @param displacementX mount's current horizontal displacement from its initial position
-     *     (metres)
-     * @param displacementY mount's current vertical displacement from its initial position (metres)
-     * @param mountAngle mount's current angle (radians)
-     * @return updated X position of the component on the canvas (metres)
+     * @param mountType the parent mount's type
+     * @param initialX component X at the start of the run (m)
+     * @param initialY component Y at the start of the run (m)
+     * @param initMountX mount X at the start of the run (m)
+     * @param initMountY mount Y at the start of the run (m)
+     * @param initMountAngle mount angle at the start of the run (rad)
+     * @param mountX mount X now (m)
+     * @param mountY mount Y now (m)
+     * @param displacementX mount's horizontal displacement since the run started (m)
+     * @param displacementY mount's vertical displacement since the run started (m)
+     * @param mountAngle mount angle now (rad)
+     * @return the component's canvas X, in metres
      */
     default double getUpdatedX(
             MountType mountType,
@@ -60,22 +58,21 @@ public interface Mountable {
     }
 
     /**
-     * Computes the updated Y position of a mounted component given full explicit geometry
-     * parameters.
+     * Component Y on the canvas, swung off the mount by the distance and angle the two started
+     * apart. A linear stage is referenced from its start Y plus travel, an arm from its live Y.
      *
-     * @param mountType type of the parent mount (ARM or LINEAR)
-     * @param initialX component's initial X position on the canvas (metres)
-     * @param initialY component's initial Y position on the canvas (metres)
-     * @param initMountX mount's X position at simulation start (metres)
-     * @param initMountY mount's Y position at simulation start (metres)
-     * @param initMountAngle mount's angle at simulation start (radians)
-     * @param mountX mount's current X position (metres)
-     * @param mountY mount's current Y position (metres)
-     * @param displacementX mount's current horizontal displacement from its initial position
-     *     (metres)
-     * @param displacementY mount's current vertical displacement from its initial position (metres)
-     * @param mountAngle mount's current angle (radians)
-     * @return updated Y position of the component on the canvas (metres)
+     * @param mountType the parent mount's type
+     * @param initialX component X at the start of the run (m)
+     * @param initialY component Y at the start of the run (m)
+     * @param initMountX mount X at the start of the run (m)
+     * @param initMountY mount Y at the start of the run (m)
+     * @param initMountAngle mount angle at the start of the run (rad)
+     * @param mountX mount X now (m)
+     * @param mountY mount Y now (m)
+     * @param displacementX mount's horizontal displacement since the run started (m)
+     * @param displacementY mount's vertical displacement since the run started (m)
+     * @param mountAngle mount angle now (rad)
+     * @return the component's canvas Y, in metres
      */
     default double getUpdatedY(
             MountType mountType,
@@ -109,12 +106,6 @@ public interface Mountable {
         }
     }
 
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link RollerConfig}.
-     *
-     * @param config the roller configuration carrying mount and initial-position data
-     * @return updated X position on the canvas (metres)
-     */
     default double getUpdatedX(RollerConfig config) {
         Mount mount = config.getMount();
         return getUpdatedX(
@@ -131,12 +122,6 @@ public interface Mountable {
                 mount.getAngle());
     }
 
-    /**
-     * Convenience overload that derives all geometry parameters from an {@link ArmConfig}.
-     *
-     * @param config the arm configuration carrying mount and initial-position data
-     * @return updated X position on the canvas (metres)
-     */
     default double getUpdatedX(ArmConfig config) {
         Mount mount = config.getMount();
         return getUpdatedX(
@@ -153,12 +138,6 @@ public interface Mountable {
                 mount.getAngle());
     }
 
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link LinearConfig}.
-     *
-     * @param config the linear stage configuration carrying mount and initial-position data
-     * @return updated X position on the canvas (metres)
-     */
     default double getUpdatedX(LinearConfig config) {
         Mount mount = config.getMount();
         return getUpdatedX(
@@ -175,12 +154,6 @@ public interface Mountable {
                 mount.getAngle());
     }
 
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link RollerConfig}.
-     *
-     * @param config the roller configuration carrying mount and initial-position data
-     * @return updated Y position on the canvas (metres)
-     */
     default double getUpdatedY(RollerConfig config) {
         Mount mount = config.getMount();
         return getUpdatedY(
@@ -197,12 +170,6 @@ public interface Mountable {
                 mount.getAngle());
     }
 
-    /**
-     * Convenience overload that derives all geometry parameters from an {@link ArmConfig}.
-     *
-     * @param config the arm configuration carrying mount and initial-position data
-     * @return updated Y position on the canvas (metres)
-     */
     default double getUpdatedY(ArmConfig config) {
         Mount mount = config.getMount();
         return getUpdatedY(
@@ -219,12 +186,6 @@ public interface Mountable {
                 mount.getAngle());
     }
 
-    /**
-     * Convenience overload that derives all geometry parameters from a {@link LinearConfig}.
-     *
-     * @param config the linear stage configuration carrying mount and initial-position data
-     * @return updated Y position on the canvas (metres)
-     */
     default double getUpdatedY(LinearConfig config) {
         Mount mount = config.getMount();
         return getUpdatedY(
@@ -241,10 +202,7 @@ public interface Mountable {
                 mount.getAngle());
     }
 
-    /**
-     * Returns the radians a mounted object should be away from a mount based on their initial
-     * positions
-     */
+    /** Angle from the mount to the component, in radians, given where the two started. */
     static double getAngleOffset(
             double initialX, double initialY, double mountX, double mountY, double startingAngle) {
         double hypotenuse = getDistance(initialX, initialY, mountX, mountY);
@@ -257,41 +215,17 @@ public interface Mountable {
         }
     }
 
-    /**
-     * Computes the straight-line distance between two points on the canvas.
-     *
-     * @param x1 X coordinate of the first point (metres)
-     * @param y1 Y coordinate of the first point (metres)
-     * @param x2 X coordinate of the second point (metres)
-     * @param y2 Y coordinate of the second point (metres)
-     * @return Euclidean distance in metres
-     */
+    /** Straight-line distance between two canvas points, in metres. */
     static double getDistance(double x1, double y1, double x2, double y2) {
         return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     }
 
-    /**
-     * Computes the X coordinate of a point at {@code radius} distance from {@code displacementX} in
-     * the direction of {@code angle}.
-     *
-     * @param radius distance from the reference point (metres)
-     * @param angle direction angle in radians
-     * @param displacementX reference X coordinate (metres)
-     * @return resulting X coordinate (metres)
-     */
+    /** X of a point {@code radius} metres from a reference at {@code angle} radians. */
     static double getXWithAngle(double radius, double angle, double displacementX) {
         return radius * Math.cos(angle) + displacementX;
     }
 
-    /**
-     * Computes the Y coordinate of a point at {@code radius} distance from {@code displacementY} in
-     * the direction of {@code angle}.
-     *
-     * @param radius distance from the reference point (metres)
-     * @param angle direction angle in radians
-     * @param displacementY reference Y coordinate (metres)
-     * @return resulting Y coordinate (metres)
-     */
+    /** Y of a point {@code radius} metres from a reference at {@code angle} radians. */
     static double getYWithAngle(double radius, double angle, double displacementY) {
         return radius * Math.sin(angle) + displacementY;
     }

@@ -1,131 +1,117 @@
-# Variables & Arithmetic
+# Variables and arithmetic
 
 *Audience: New programmers. Assumes you've completed [Setup](../setup.md).*
 
-Java is a statically typed language, which means every variable has a fixed type declared up front, and you end each statement with a semicolon. If you come from Python, both of those things feel unusual at first.
+A variable is a named box for a value. Java is statically typed, which means you say what type goes in the box before you put anything in it, and every statement ends with a semicolon. If you are coming from Python, both of those feel odd at first.
 
 ```java
-int a = 5;   // declare type, name, and initial value
-a = 3;       // reassign, fine
+int count = 5;       // type, name, initial value
+count = 3;           // reassign, fine
+count = count + 1;  // read the value, use it, write a new one back
 ```
 
-These will not compile:
+The type is locked in when you declare. These four lines do not compile:
 
 ```java
-a = "Java";      // type mismatch: a is an int, not a String
-a = 3            // missing semicolon
-String a = "Java"; // 'a' is already declared in this scope
-int a = 3;         // same problem
+count = "five";      // a String cannot go in an int box
+count = 3            // missing semicolon
+int count = 1;       // count already exists in this scope
+int count;           // same problem, a second name for one box
 ```
 
-## Primitive Types
+The last two lines are the same mistake. A name can only be declared once in a given scope, which is the rule beginners coming from Python miss first.
 
-The types you'll encounter most often in this codebase:
+## The types you will actually use
 
-|   Type    |                     What it holds                     |            Example            |
-|-----------|-------------------------------------------------------|-------------------------------|
-| `int`     | whole numbers                                         | `int canID = 8;`              |
-| `double`  | decimal numbers                                       | `double idlingRPM = 700;`     |
-| `boolean` | `true` or `false`                                     | `boolean isAttached = true;`  |
-| `String`  | text (not technically primitive, but used everywhere) | `String name = "IndexerBed";` |
-| `byte`    | small signed integer, −128 to 127                     | rare in robot code            |
-
-You'll also see `final` (the value can't be reassigned) and `static` (belongs to the class rather than a specific instance) used as modifiers. Both are covered in [Classes, Methods, and Objects](classes-methods-objects.md).
-
-In the `Launcher.LauncherConfig` class, for instance, the config fields look like this:
+Most code you write needs four types.
 
 ```java
-@Getter @Setter private double idlingRPM = 700;
-@Getter @Setter private double slowLaunchSpeed = 400;
-@Getter @Setter private double autoTrenchLaunch = 1800;
+int total = 12;               // whole numbers
+double price = 4.99;          // decimal numbers
+boolean isEmpty = true;       // true or false
+String label = "north gate";  // text
 ```
 
-All `double`s because RPM values have decimal precision. Changing them to `int` would silently truncate fractions.
+`String` is not technically a primitive, but you will use it as much as the other three, so it belongs on the list.
 
-## Arithmetic Operators
+The rule of thumb for picking: use `int` for counts and indexes, and use `double` for anything you measured. Measurements have decimals in them, and `int` throws the decimal part away.
 
-These require two operands, one on each side.
+`final` means the value can never be reassigned after it is set. Use it for values that are true for the whole program.
 
-| Operator |       Meaning       | Example |
-|----------|---------------------|---------|
-| `+`      | addition            | `a + b` |
-| `-`      | subtraction         | `a - b` |
-| `*`      | multiplication      | `a * b` |
-| `/`      | division            | `a / b` |
-| `%`      | modulus (remainder) | `a % b` |
+```java
+final int MAX_ITEMS = 10;
+MAX_ITEMS = 11;  // does not compile
+```
 
-A quick demonstration with concrete values:
+`static` is the other modifier you will meet early. It means the field or method belongs to the class rather than to one object. [Classes, methods, and objects](classes-methods-objects.md) covers it properly.
+
+## Arithmetic
+
+Arithmetic works the way it does on paper. `+`, `-`, and `*` need no explanation. `/` divides, and `%` gives you the remainder.
 
 ```java
 int a = 5;
 int b = 2;
 
-int result = a + b; // 7
-result = a - b;     // 3
-result = a * b;     // 10
-result = a / b;     // 2, integer division, decimal is truncated
-result = a % b;     // 1, remainder of 5 ÷ 2
+int result = a + b;  // 7
+result = a - b;      // 3
+result = a * b;      // 10
+result = a / b;      // 2
+result = a % b;      // 1, because 5 divided by 2 leaves a remainder of 1
 ```
 
-Integer division truncates, it doesn't round. `3 / 2` gives `1`, not `1.5`. If you need the decimal, at least one side has to be a `double`:
+Here is the first gotcha, and you will hit it on your first real bug. When both sides of a division are `int`, the answer is an `int` too, and the decimal part is dropped. It truncates, it does not round.
 
 ```java
-double result = 3.0 / 2;   // 1.5
+int wrong = 3 / 2;      // 1, not 1.5
+double right = 3.0 / 2;  // 1.5
 ```
 
-In real robot code you see this with RPM error checks:
+If either side is a `double`, the whole expression is done in `double`. A common way to write this is to put the decimal on one side.
 
-```java
-double targetRPM = params.flywheelSpeed();
-double currentRPM = getVelocityRPM();
-double errorRPM = currentRPM - targetRPM;
+There is no `**` operator for powers. Use `Math.pow(4, 2)`, which gives `16.0`. `Math.abs(-5)` gives `5`. `Math` is a built-in class full of helpers like these, and you call them with `Math.` in front.
 
-return Math.abs(errorRPM) < config.getOnTargetToleranceRPM();
-```
+Precedence follows the usual order: parentheses first, then `*` and `/`, then `+` and `-`. When in doubt, add parentheses. They cost nothing and they tell the next reader what you meant.
 
-Operator precedence follows PEMDAS. Parentheses first, then multiplication and division (left to right), then addition and subtraction. Java has no exponent operator; use `Math.pow(base, exponent)` instead.
+## Unary operators
 
-## Unary Operators
-
-These work on a single value.
-
-- `++` increments by 1 (`a++` or `++a`)
-- `--` decrements by 1
-- `!` negates a boolean, `!true` is `false`
-- `-` flips the sign, `-a` where `a` is `5` gives `-5`
-
-The distinction between `a++` and `++a` matters when the expression is used in an assignment (`int x = a++` vs `int x = ++a`), but in a standalone statement like a `for` loop counter they're equivalent.
-
-## Compound Assignment Operators
-
-Shortcuts that modify a variable in place:
+These take one value instead of two.
 
 ```java
 int a = 5;
-a += 2;  // a is now 7
-a -= 2;  // a is now 5
-a *= 2;  // a is now 10
-a /= 2;  // a is now 5
-a %= 2;  // a is now 1
+a++;      // a is 6
+a--;      // a is 5
+a = -a;   // a is -5
+boolean b = !true;  // b is false
 ```
 
-## The Math Class
+`!` only works on booleans. It flips `true` to `false` and back.
 
-`Math` is a built-in static class for operations that don't have a symbol:
+There is a difference between `a++` and `++a`, but only when you use the result in the same statement.
 
 ```java
-Math.sqrt(4)     // 2.0, square root
-Math.pow(4, 2)   // 16.0, exponentiation
-Math.abs(-4)     // 4, absolute value
-Math.PI          // 3.141592653589793
+int a = 5;
+int x = a++;  // x is 5, then a becomes 6
+int y = ++a;  // a becomes 7 first, y is 7
 ```
 
-`BatteryLogger` uses `Math.abs` to sum up current draw across subsystems regardless of direction:
+As a whole statement on its own line, `a++` and `++a` do the same thing. Loop counters are that case, so either is fine there.
+
+## Compound assignment
+
+These shorten "add to the variable I already have."
 
 ```java
-for (double amp : amps) totalAmps += Math.abs(amp);
+int a = 5;
+a += 2;  // a is 7
+a -= 2;  // a is 5
+a *= 2;  // a is 10
+a /= 2;  // a is 5
+a %= 2;  // a is 1
 ```
+
+The left side is a variable you already declared, never a literal. `5 += 2` does not compile.
 
 ---
 
-*Previous: [Setup](../setup.md). Next: [Logic-Based Operators & Strings](logic-operators.md)*
+*Previous: [Setup](../setup.md). Next: [Logic operators and strings](logic-operators.md)*

@@ -34,49 +34,32 @@ This is the working code base for our robots in the 2026 REBUILT FRC Competition
 
 ## Project Structure
 
-* Robot = In season robot code, we have configuration files to be able to run our code base on multiple robots at once. Heavily uses WPILib commands and triggers.
-* [`SpectrumLib`](src/main/java/frc/spectrumLib) = Code that we try to reuse year to year.
+* `frc/robot` is in-season robot code. Configuration files let one codebase run on several robots. It leans on WPILib commands and triggers.
+* [`SpectrumLib`](src/main/java/frc/spectrumLib) is code we aim to reuse year to year.
 * Each subsystem can be modified independently without needing to understand the rest of the robot code.
 
+The source tree is the authority on what exists and where. Below is the shape of the repo, one level
+below the split above, so you know which directory to open:
+
 ```text
-src
-└── main: main source code
-    ├── java: Java source files
-    │   └── frc: all FRC application code
-    │       ├── robot: main robot application and subsystems
-    │       │   ├── auton: autonomous routines and PathPlanner integration
-    │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
-    │       │   ├── subsystems: SuperStructure orchestrator plus each mechanism
-    │       │   │   ├── swerve: swerve drive subsystem and controllers
-    │       │   │   ├── vision: Limelight vision subsystem
-    │       │   │   ├── launcher: fuel launcher mechanism
-    │       │   │   ├── indexerTower: vertical fuel indexer mechanism
-    │       │   │   ├── indexerBed: horizontal fuel indexer mechanism
-    │       │   │   ├── fuelIntake: ground intake mechanism
-    │       │   │   ├── intakeExtension: intake arm extension mechanism
-    │       │   │   ├── hood: launcher hood pivot mechanism
-    │       │   │   └── leds: CANdle LED control and animation
-    │       │   ├── pilot: pilot gamepad bindings and commands
-    │       │   └── operator: operator gamepad bindings and commands
-    │       ├── spectrumLib: reusable Spectrum team utilities (year-to-year code)
-    │       │   ├── framework: SpectrumRobot base and SpectrumState
-    │       │   ├── gamepads: gamepad abstraction layer
-    │       │   ├── hardware: TalonFX factory, CANcoder, servo, and RIO identity
-    │       │   ├── leds: CANdle LED management utilities
-    │       │   ├── mechanism: motor and mechanism base classes
-    │       │   ├── sim: physics simulation helpers
-    │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
-    │       │   ├── telemetry: DogLog-based logging and tunable values
-    │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
-    │       │   │   └── exceptions: custom exception classes
-    │       │   └── vision: vision utilities (Limelight helpers)
-    │       └── rebuilt: 2026 game-specific field, sim, and targeting helpers
-    │           └── targetFactories: target factory implementations
-    └── deploy: files deployed to RoboRIO
-        └── pathplanner: PathPlanner autonomous paths and settings
-            ├── paths: individual path trajectory files
-            └── autos: autonomous routine configurations
-vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
+src/main/java/frc
+├── robot/          in-season code
+│   ├── auton/      autonomous routines and PathPlanner integration
+│   ├── configs/    per-robot hardware config, one class per robot
+│   ├── pilot/      pilot gamepad bindings
+│   ├── operator/   operator gamepad bindings
+│   └── subsystems/ the orchestrator plus one folder per mechanism
+├── spectrumLib/    reusable utilities
+└── rebuilt/        game-specific field, sim, and targeting helpers
+
+src/main/deploy/pathplanner/   paths and autos deployed to the RoboRIO
+vendordeps/                    vendor dependency JSON files
 ```
+
+### Documentation
+
+[`docs/`](docs/index.md) holds our conventions, workflows, and hard-won gotchas, and is written for
+people. It deliberately does not restate what the code does, because a copy of the code in prose goes
+stale and then misleads. If you want to know what a class or a state does, read the class.
 
 #### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).

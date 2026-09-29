@@ -30,61 +30,34 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * CANdle-based addressable LED subsystem that wraps a CTRE {@link CANdle} and exposes a rich
- * library of pattern factories (solid, stripe, blink, breathe, rainbow, chase, bounce, gradient,
- * ombre, wave, countdown, etc.).
+ * Addressable LED subsystem over a CTRE {@link CANdle}. Firmware patterns ({@link #blink}, {@link
+ * #rainbow}, {@link #chase}, and the rest) hand the CANdle an animation and let the board render
+ * it. Software patterns ({@link #solid}, {@link #gradient}, {@link #ombre}, and the rest) write
+ * colors from robot code, resending a control request every loop.
  *
- * <p>Patterns are split into two categories:
+ * <p>Switching from a firmware pattern to a software pattern clears this instance's animation slot
+ * so the board stops animating.
  *
- * <ul>
- *   <li><b>Hardware animation patterns</b> ({@link #blink}, {@link #breathe}, {@link #rainbow},
- *       {@link #scrollingRainbow}, {@link #chase}, {@link #bounce}, {@link #fire}, {@link
- *       #rgbCycle}) — these use {@code setControl()} with CANdle's built-in animation engine. They
- *       run autonomously in firmware and require no per-loop CPU work.
- *   <li><b>Software patterns</b> ({@link #solid}, {@link #stripe}, {@link #gradient}, {@link
- *       #ombre}, {@link #wave}, {@link #countdown}, {@link #switchCountdown}, {@link #edges}) —
- *       these use {@code setControl(SolidColor)} which is a one-shot command resent each loop. When
- *       switching from a hardware animation to a software pattern, all animations are automatically
- *       cleared.
- * </ul>
+ * <p>Several instances can share one physical {@link CANdle} by passing the same device to their
+ * {@link Config} along with non-overlapping LED ranges and distinct animation slots.
  *
- * <p>Multiple {@code SpectrumLEDs} instances can share a single physical {@link CANdle} device by
- * passing the same {@link CANdle} reference in their {@link Config} objects and selecting
- * non-overlapping {@code startIdx}/{@code numLeds} ranges.
- *
- * <p>Patterns are applied via {@link #setPattern(CANdlePattern, int)}, which returns a {@link
- * Command} that runs continuously and respects the priority system ({@link #checkPriority(int)}).
+ * <p>{@link #setPattern(CANdlePattern, int)} returns a {@link Command} that runs continuously,
+ * keeps running while the robot is disabled, and enforces {@link #checkPriority(int)}.
  */
 public class SpectrumLEDs implements Subsystem {
 
-    // -------------------------------------------------------------------------
-    // CANdlePattern functional interface
-    // -------------------------------------------------------------------------
-
     /**
-     * Functional interface for a LED pattern that drives a segment of a {@link CANdle} strip.
-     *
-     * <p>Implementations receive the live {@link CANdle} device, the first LED index in this
-     * instance's segment ({@code startIdx}), and the number of LEDs in the segment ({@code
-     * numLeds}). Hardware animation patterns call {@link CANdle#setControl}, software patterns call
-     * {@link CANdle#setControl(SolidColor)} (one-shot, resent each loop).
+     * Writes a pattern to a range of LEDs on a {@link CANdle}. {@link #setPattern} calls it once
+     * per robot loop with the device and this instance's LED range.
      */
     @FunctionalInterface
     public interface CANdlePattern {
-        /**
-         * Apply this pattern to the given LED segment.
-         *
-         * @param candle the {@link CANdle} device to write to
-         * @param startIdx the first LED index (inclusive); {@code 0} includes the 8 onboard LEDs
-         * @param numLeds the number of LEDs in this segment
-         */
         void applyTo(CANdle candle, int startIdx, int numLeds);
     }
 
     /**
-     * Internal marker wrapper — returned by animation factory methods so that {@link
-     * #setPattern(CANdlePattern, int)} can detect when a transition from animation to software
-     * pattern occurs and clear the animation slots.
+     * Marks a pattern as a firmware animation, so {@link #setPattern} can tell when a pattern
+     * changes from firmware to software and clear the animation slot.
      */
     private static final class HardwareAnimPattern implements CANdlePattern {
         private final CANdlePattern impl;
@@ -99,82 +72,52 @@ public class SpectrumLEDs implements Subsystem {
         }
     }
 
-    /** Wraps a pattern lambda in a {@link HardwareAnimPattern} marker. */
     private static CANdlePattern hardwareAnim(CANdlePattern p) {
         return new HardwareAnimPattern(p);
     }
 
-    // -------------------------------------------------------------------------
-    // Config
-    // -------------------------------------------------------------------------
-
     /**
-     * Configuration for a {@link SpectrumLEDs} subsystem instance.
-     *
-     * <p>Use {@link #Config(String, int, int, CANBus)} to create a standalone instance that owns
-     * and configures its {@link CANdle}, or {@link #Config(String, CANdle, int, int)} to share an
-     * already-configured device across multiple subsystems targeting different LED segments.
+     * Device and LED range settings. The CAN device constructor owns and configures a new CANdle.
+     * The shared device constructor applies no hardware config and targets a segment of a CANdle
+     * another instance owns.
      */
     public static class Config {
-        /** Human-readable name used in telemetry. */
         @Getter private String name;
 
-        /** Whether this LED strip is physically connected to the robot. */
         @Getter @Setter private boolean attached = true;
 
-        /**
-         * Pre-built {@link CANdle} to reuse. When non-null, {@link #deviceId} and {@link #canBus}
-         * are ignored and no hardware configuration is applied by this instance.
-         */
+        /** When set, this instance reuses that CANdle and ignores deviceId and canBus. */
         @Getter @Setter private CANdle sharedCandle = null;
 
-        /** CAN device ID used when no {@link #sharedCandle} is provided. */
         @Getter @Setter private int deviceId = 1;
 
-        /** CAN bus used when no {@link #sharedCandle} is provided. */
         @Getter @Setter private CANBus canBus;
 
-        /**
-         * First LED index (inclusive) in the strip. Use {@code 0} to include the 8 onboard status
-         * LEDs on the CANdle board itself; use {@code 8} to skip them.
-         */
+        /** 0 includes the CANdle's 8 onboard status LEDs, so an external strip starts at 8. */
         @Getter @Setter private int startIdx = 0;
 
-        /** Number of LEDs in the segment owned by this instance. */
         @Getter @Setter private int numLeds;
 
         /**
-         * CANdle hardware animation slot (0–7) used by this instance's animation patterns. Each
-         * {@link SpectrumLEDs} instance sharing a single {@link CANdle} must use a distinct slot,
-         * otherwise their animations overwrite each other.
+         * Firmware animation slot, 0 to 7. Instances that share a CANdle need distinct slots or
+         * their animations overwrite each other.
          */
         @Getter @Setter private int animationSlot = 0;
 
-        /** LED strip type (RGB, RGBW, GRB, etc.). Ignored when {@link #sharedCandle} is set. */
         @Getter @Setter private StripTypeValue stripType = StripTypeValue.RGB;
 
-        /**
-         * Overall brightness scalar applied in hardware (0.0–1.0). Ignored when {@link
-         * #sharedCandle} is set.
-         */
+        /** Hardware brightness scalar, 0.0 to 1.0. */
         @Getter @Setter private double brightness = 1.0;
 
-        /**
-         * Behavior of the strip when CAN signal is lost. Ignored when {@link #sharedCandle} is set.
-         */
         @Getter @Setter
         private LossOfSignalBehaviorValue lossOfSignalBehavior =
                 LossOfSignalBehaviorValue.DisableLEDs;
 
         /**
-         * Creates a configuration for a standalone LED instance that creates and owns its own
-         * {@link CANdle}. Hardware configuration (strip type, brightness, loss-of-signal) is
-         * applied automatically in the constructor.
+         * Configures a standalone strip that owns its own CANdle, applying the strip type,
+         * brightness, and loss-of-signal behavior here.
          *
-         * @param name human-readable name for telemetry
-         * @param deviceId CAN device ID of the CANdle
-         * @param numLeds number of LEDs on the external strip (not counting the 8 onboard LEDs)
-         * @param canBus CAN bus the CANdle is on
+         * @param numLeds LEDs on the external strip, not counting the CANdle's 8 onboard LEDs
          */
         public Config(String name, int deviceId, int numLeds, CANBus canBus) {
             this.name = name;
@@ -184,15 +127,7 @@ public class SpectrumLEDs implements Subsystem {
             this.startIdx = 8;
         }
 
-        /**
-         * Creates a configuration for a LED zone that shares an existing, already-configured {@link
-         * CANdle} device. No hardware configuration is applied.
-         *
-         * @param name human-readable name for telemetry
-         * @param sharedCandle the {@link CANdle} to reuse
-         * @param startIdx first LED index (inclusive) in the shared strip for this zone
-         * @param numLeds number of LEDs in this zone
-         */
+        /** Configures a segment of a CANdle another instance already configured. */
         public Config(String name, CANdle sharedCandle, int startIdx, int numLeds) {
             this.name = name;
             this.sharedCandle = sharedCandle;
@@ -201,64 +136,32 @@ public class SpectrumLEDs implements Subsystem {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Fields
-    // -------------------------------------------------------------------------
-
-    /** Active configuration for this instance. */
     @Getter private Config config;
 
-    /** The {@link CANdle} device (owned or shared). */
     @Getter protected final CANdle candle;
 
-    /** {@code true} if the most recently applied pattern was a hardware animation. */
     private boolean lastWasAnimation = false;
 
-    /**
-     * Default pattern shown when no other command requires this subsystem (orange blink).
-     *
-     * <p>Initialized in the constructor body (after {@link #config} is set) so that pattern
-     * factories can safely reference the config.
-     */
+    /** Orange blink, shown whenever no other command owns this subsystem. */
     protected final CANdlePattern defaultPattern;
 
     /**
-     * The default command built by this class (displays {@link #defaultPattern} at lowest
-     * priority). Installed via {@code setDefaultCommand} in the constructor; subclasses may install
-     * their own default command to replace it. Use {@code getDefaultCommand()} (from {@link
-     * Subsystem}) to query whichever default is currently installed.
+     * Installed with {@code setDefaultCommand} here, so a subclass has to install its own to
+     * replace it. Query whichever one is live through {@link #getDefaultCommand()}.
      */
     protected final Command defaultCommand;
 
-    /**
-     * Trigger that is active while the currently installed default command (whichever one that is)
-     * is the one running — i.e. no higher-priority pattern owns the subsystem.
-     */
+    /** Active while the installed default command runs, so no other pattern owns the subsystem. */
     public final Trigger defaultTrigger;
 
-    /**
-     * Priority level of the pattern command currently running. Higher values indicate higher
-     * priority; {@link #setPattern(CANdlePattern, int)} stores this while a command runs and resets
-     * it to {@code -1} when the command ends.
-     */
+    /** Priority of the running pattern command, or -1 when none is running. */
     @Getter @Setter private int commandPriority = -1;
 
-    /** Spectrum purple color constant ({@code RGB 130, 103, 185}). */
+    /** Spectrum purple, RGB 130, 103, 185. */
     public final Color purple = new Color(130, 103, 185);
 
-    /** Convenience alias for {@link Color#kWhite}. */
     public final Color white = Color.kWhite;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
-    /**
-     * Constructs the LED subsystem, configures the hardware (or reuses a shared device), and
-     * registers with the WPILib {@link CommandScheduler}.
-     *
-     * @param config the configuration describing the device, segment range, and strip type
-     */
     public SpectrumLEDs(Config config) {
         this.config = config;
 
@@ -277,9 +180,8 @@ public class SpectrumLEDs implements Subsystem {
             candle.getConfigurator().apply(candleConfig);
         }
 
-        // Pattern fields are initialized here (after config is set) so factory methods
-        // can safely read config values.
         defaultPattern = blink(Color.kOrange, 1.0);
+
         defaultCommand = setPattern(defaultPattern, -1).withName("LEDs.defaultCommand");
         setDefaultCommand(defaultCommand);
         defaultTrigger =
@@ -292,68 +194,38 @@ public class SpectrumLEDs implements Subsystem {
         CommandScheduler.getInstance().registerSubsystem(this);
     }
 
-    // -------------------------------------------------------------------------
-    // Subsystem API
-    // -------------------------------------------------------------------------
-
-    /**
-     * Returns whether this LED strip is physically connected to the robot.
-     *
-     * @return {@code true} if attached
-     */
     public boolean isAttached() {
         return config.isAttached();
     }
 
-    /**
-     * Returns {@code true} if the most recently applied pattern was a CANdle hardware animation
-     * running in firmware, {@code false} if it was a software {@link SolidColor} pattern.
-     */
     public boolean isAnimating() {
         return lastWasAnimation;
     }
 
-    /**
-     * Returns the currently running command that is applying a pattern to this subsystem, or {@code
-     * null} if no command is currently running.
-     *
-     * @return the currently running command, or {@code null} if none
-     */
+    /** Command name for telemetry, or "None" when nothing is running. */
     public String getCurrentCommandName() {
         Command cmd = getCurrentCommand();
         return cmd != null ? cmd.getName() : "None";
     }
 
     /**
-     * Returns a {@link Trigger} that is active when the currently running command's priority is at
-     * or below the given value. Use to gate lower-priority commands from overriding higher-priority
-     * ones.
-     *
-     * @param priority the maximum priority level that allows the trigger to be active
-     * @return trigger active when {@link #commandPriority} &le; priority
+     * Active while the running pattern's priority is at or below {@code priority}, so a caller can
+     * yield to a higher-priority pattern.
      */
     public Trigger checkPriority(int priority) {
         return new Trigger(() -> commandPriority <= priority);
     }
 
     /**
-     * Returns a command that continuously applies {@code pattern} to the LED segment and records
-     * the given {@code priority} while running. The command runs while the robot is disabled.
-     *
-     * <p>When switching from a hardware animation to a software ({@link SolidColor}) pattern, all
-     * active animation slots are cleared automatically before the first software write.
-     *
-     * @param pattern the {@link CANdlePattern} to apply each loop cycle
-     * @param priority priority level stored in {@link #commandPriority} while this command runs
-     * @return a command that applies the pattern continuously
+     * Applies {@code pattern} every loop and holds {@code priority} in {@link #commandPriority}
+     * until the command ends, then resets it to -1. The command runs even while the robot is
+     * disabled.
      */
     public Command setPattern(CANdlePattern pattern, int priority) {
         return run(() -> {
                     commandPriority = priority;
                     boolean isAnim = pattern instanceof HardwareAnimPattern;
-                    // Clear this instance's animation slot once when transitioning to a software
-                    // pattern. Only our own slot is cleared so other instances sharing the same
-                    // CANdle keep their animations running.
+                    // Only our own slot is cleared, so instances sharing the CANdle keep theirs.
                     if (lastWasAnimation && !isAnim) {
                         candle.setControl(new EmptyAnimation(config.getAnimationSlot()));
                     }
@@ -365,46 +237,20 @@ public class SpectrumLEDs implements Subsystem {
                 .withName("LEDs.setPattern");
     }
 
-    /**
-     * Returns a command that continuously applies {@code pattern} to the LED segment at priority 0.
-     *
-     * @param pattern the {@link CANdlePattern} to apply
-     * @return a command that applies the pattern continuously at the default priority
-     */
     public Command setPattern(CANdlePattern pattern) {
         return setPattern(pattern, 0);
     }
 
-    // -------------------------------------------------------------------------
-    // Internal helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Converts a WPILib {@link Color} (0.0–1.0 double components) to a {@link RGBWColor} with
-     * {@code W = 0}.
-     */
+    /** Scales a {@link Color}'s 0 to 1 components to 0 to 255 and leaves W at 0. */
     private static RGBWColor toRGBW(Color color) {
         return new RGBWColor(
                 (int) (color.red * 255), (int) (color.green * 255), (int) (color.blue * 255), 0);
     }
 
-    // -------------------------------------------------------------------------
-    // Hardware animation pattern factories
-    // -------------------------------------------------------------------------
-
-    /**
-     * Blinking (strobe) pattern — alternates between {@code color} and off. Each half-cycle (on and
-     * off) lasts {@code onTimeSecs} seconds.
-     *
-     * <p>Implemented using {@link StrobeAnimation}. Frame rate = {@code 1 / onTimeSecs} Hz.
-     *
-     * @param color the blink color
-     * @param onTimeSecs duration in seconds of each on (and off) half-cycle
-     * @return a hardware animation {@link CANdlePattern}
-     */
+    /** Strobes {@code color} and off, each half-cycle lasting {@code onTimeSecs}. */
     public CANdlePattern blink(Color color, double onTimeSecs) {
         RGBWColor rgbw = toRGBW(color);
-        // Lazy: animation created on first applyTo call using the runtime startIdx/numLeds.
+        // Built on first applyTo, once startIdx and numLeds are known.
         StrobeAnimation[] holder = new StrobeAnimation[1];
         return hardwareAnim(
                 (candle, startIdx, numLeds) -> {
@@ -419,16 +265,7 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    /**
-     * Breathing (sinusoidal fade-in/out) pattern — fades between the peak {@code color} and off.
-     *
-     * <p>Implemented using {@link SingleFadeAnimation}. Each animation frame changes brightness by
-     * 1%, so frame rate = {@code 200 / periodSecs} Hz for a complete 0→100→0% cycle.
-     *
-     * @param color the peak color at full brightness
-     * @param periodSecs duration in seconds of one full breathe cycle
-     * @return a hardware animation {@link CANdlePattern}
-     */
+    /** Fades between {@code color} and off once per {@code periodSecs}. */
     public CANdlePattern breathe(Color color, double periodSecs) {
         RGBWColor rgbw = toRGBW(color);
         SingleFadeAnimation[] holder = new SingleFadeAnimation[1];
@@ -445,20 +282,14 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    /**
-     * Static rainbow — hue distributed evenly across the strip, advancing very slowly.
-     *
-     * @return a hardware animation {@link CANdlePattern}
-     */
     public CANdlePattern rainbow() {
         return rainbow(1.0);
     }
 
     /**
-     * Static rainbow with configurable brightness.
+     * Rainbow, dimmed by a hardware brightness scalar.
      *
-     * @param brightness brightness scalar (0.0–1.0)
-     * @return a hardware animation {@link CANdlePattern}
+     * @param brightness 0.0 to 1.0
      */
     public CANdlePattern rainbow(double brightness) {
         RainbowAnimation[] holder = new RainbowAnimation[1];
@@ -475,11 +306,6 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    /**
-     * Scrolling rainbow that advances quickly across the strip.
-     *
-     * @return a hardware animation {@link CANdlePattern}
-     */
     public CANdlePattern scrollingRainbow() {
         RainbowAnimation[] holder = new RainbowAnimation[1];
         return hardwareAnim(
@@ -496,15 +322,9 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Chase / color-flow pattern — progressively lights LEDs one at a time across the strip and
-     * repeats.
+     * Lights one LED at a time along the segment and repeats.
      *
-     * <p>Implemented using {@link ColorFlowAnimation}. Frame rate = {@code numLeds × speed} Hz so
-     * that {@code speed} full cycles occur per second.
-     *
-     * @param color the chase color
-     * @param speed desired number of full strip cycles per second
-     * @return a hardware animation {@link CANdlePattern}
+     * @param speed full passes along the segment per second
      */
     public CANdlePattern chase(Color color, double speed) {
         RGBWColor rgbw = toRGBW(color);
@@ -522,16 +342,6 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    /**
-     * Bouncing dot pattern — a pocket of light travels back and forth across the strip.
-     *
-     * <p>Implemented using {@link LarsonAnimation} with {@link LarsonBounceValue#Back}. Frame rate
-     * is computed so one back-and-forth cycle takes {@code durationSecs} seconds.
-     *
-     * @param color the dot color
-     * @param durationSecs seconds per complete back-and-forth cycle
-     * @return a hardware animation {@link CANdlePattern}
-     */
     public CANdlePattern bounce(Color color, double durationSecs) {
         RGBWColor rgbw = toRGBW(color);
         LarsonAnimation[] holder = new LarsonAnimation[1];
@@ -552,11 +362,6 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    /**
-     * Fire animation using the CANdle's built-in hardware animation engine.
-     *
-     * @return a hardware animation {@link CANdlePattern}
-     */
     public CANdlePattern fire() {
         FireAnimation[] holder = new FireAnimation[1];
         return hardwareAnim(
@@ -571,11 +376,6 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    /**
-     * RGB color-cycle animation using the CANdle's built-in hardware animation engine.
-     *
-     * @return a hardware animation {@link CANdlePattern}
-     */
     public CANdlePattern rgbCycle() {
         RgbFadeAnimation[] holder = new RgbFadeAnimation[1];
         return hardwareAnim(
@@ -590,18 +390,6 @@ public class SpectrumLEDs implements Subsystem {
                 });
     }
 
-    // -------------------------------------------------------------------------
-    // Software pattern factories (SolidColor one-shot, resent each loop)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Solid color pattern.
-     *
-     * <p>Uses a single {@link SolidColor} control request (one-shot, resent each loop).
-     *
-     * @param color the color to display
-     * @return a software {@link CANdlePattern} showing a constant solid color
-     */
     public CANdlePattern solid(Color color) {
         RGBWColor rgbw = toRGBW(color);
         SolidColor[] holder = new SolidColor[1];
@@ -614,15 +402,10 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Two-color stripe: the first {@code percent} fraction of LEDs shows {@code color1}, the
-     * remainder shows {@code color2}.
+     * Splits the segment, showing {@code color1} on the leading LEDs and {@code color2} on the
+     * rest.
      *
-     * <p>Uses two {@link SolidColor} controls (one-shot each, resent each loop).
-     *
-     * @param percent fraction of the strip (0.0–1.0) assigned to {@code color1}
-     * @param color1 color for the leading segment
-     * @param color2 color for the trailing segment
-     * @return a software {@link CANdlePattern} showing the two-color stripe
+     * @param percent share of the segment for {@code color1}, 0.0 to 1.0
      */
     public CANdlePattern stripe(double percent, Color color1, Color color2) {
         RGBWColor rgbw1 = toRGBW(color1);
@@ -632,12 +415,10 @@ public class SpectrumLEDs implements Subsystem {
             if (holder[0] == null) {
                 int split = Math.max(0, Math.min((int) Math.round(numLeds * percent), numLeds));
                 holder[0] = new SolidColor[2];
-                // Segment 1 (may be empty if split == 0)
                 holder[0][0] =
                         (split > 0)
                                 ? new SolidColor(startIdx, startIdx + split - 1).withColor(rgbw1)
                                 : null;
-                // Segment 2 (may be empty if split == numLeds)
                 holder[0][1] =
                         (split < numLeds)
                                 ? new SolidColor(startIdx + split, startIdx + numLeds - 1)
@@ -650,15 +431,6 @@ public class SpectrumLEDs implements Subsystem {
         };
     }
 
-    /**
-     * Linear gradient between two colors across the strip. Colors are pre-computed at first use.
-     *
-     * <p>Uses N {@link SolidColor} controls (one per LED, one-shot, resent each loop).
-     *
-     * @param color1 color at the start (index 0) of the segment
-     * @param color2 color at the end of the segment
-     * @return a software {@link CANdlePattern} showing the two-color gradient
-     */
     public CANdlePattern gradient(Color color1, Color color2) {
         SolidColor[][] holder = new SolidColor[1][];
         return (candle, startIdx, numLeds) -> {
@@ -681,14 +453,8 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Edge-highlight pattern — lights the first and last {@code length} LEDs with {@code color} and
-     * turns off the center LEDs.
-     *
-     * <p>Uses two or three {@link SolidColor} controls (one-shot, resent each loop).
-     *
-     * @param color the color to apply to the edge LEDs
-     * @param length the number of LEDs to illuminate at each end of the strip
-     * @return a software {@link CANdlePattern} showing lit edges and a dark center
+     * Lights {@code length} LEDs at each end and blanks the middle, clamping {@code length} to half
+     * the segment.
      */
     public CANdlePattern edges(Color color, int length) {
         RGBWColor rgbw = toRGBW(color);
@@ -701,7 +467,6 @@ public class SpectrumLEDs implements Subsystem {
                 } else {
                     int centerStart = startIdx + clampedLen;
                     int centerEnd = startIdx + numLeds - clampedLen - 1;
-                    // left edge, right edge, (optional) center black
                     holder[0] = (centerStart <= centerEnd) ? new SolidColor[3] : new SolidColor[2];
                     holder[0][0] =
                             new SolidColor(startIdx, startIdx + clampedLen - 1).withColor(rgbw);
@@ -721,17 +486,6 @@ public class SpectrumLEDs implements Subsystem {
         };
     }
 
-    /**
-     * Animated ombre — transitions smoothly between two colors across the strip and scrolls the
-     * blend point over time.
-     *
-     * <p>Uses N {@link SolidColor} controls (one per LED, one-shot, resent each loop with updated
-     * colors). {@link RGBWColor} objects are created each loop since the type is immutable.
-     *
-     * @param startColor the leading color
-     * @param endColor the trailing color
-     * @return a software {@link CANdlePattern} showing the animated ombre
-     */
     public CANdlePattern ombre(Color startColor, Color endColor) {
         SolidColor[][] holder = new SolidColor[1][];
         return (candle, startIdx, numLeds) -> {
@@ -741,7 +495,7 @@ public class SpectrumLEDs implements Subsystem {
                     holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
                 }
             }
-            // Speed: 0.58 strip-lengths per second
+            // Blend scrolls 0.58 strip lengths per second.
             double phaseShift = (System.currentTimeMillis() / 1000.0) * 0.58 % 1.0;
             for (int i = 0; i < numLeds; i++) {
                 double ratio = ((i + numLeds * phaseShift) / numLeds) % 1.0;
@@ -755,15 +509,9 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Sinusoidal wave pattern blending between two colors.
+     * Sine wave between {@code c1} and {@code c2} along the segment.
      *
-     * <p>Uses N {@link SolidColor} controls (one per LED, one-shot, resent each loop).
-     *
-     * @param c1 first wave color
-     * @param c2 second wave color
-     * @param cycleLength number of LEDs per wave period
-     * @param durationSecs period of the time-based animation in seconds
-     * @return a software {@link CANdlePattern} showing the wave
+     * @param cycleLength LEDs per wave period
      */
     public CANdlePattern wave(Color c1, Color c2, double cycleLength, double durationSecs) {
         SolidColor[][] holder = new SolidColor[1][];
@@ -796,14 +544,10 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Countdown pattern — LEDs transition from yellow to red and progressively turn off from the
-     * end of the segment toward the beginning as time elapses.
+     * Blanks LEDs from the end of the segment toward the front as the time runs out.
      *
-     * <p>Uses N {@link SolidColor} controls (one per LED, one-shot, resent each loop).
-     *
-     * @param countStartTimeSec supplies the FPGA timestamp (seconds) when the countdown began
-     * @param durationInSeconds total countdown duration in seconds
-     * @return a software {@link CANdlePattern} showing the countdown
+     * @param countStartTimeSec FPGA timestamp, in seconds, when the countdown began
+     * @param durationInSeconds length of the countdown
      */
     public CANdlePattern countdown(DoubleSupplier countStartTimeSec, double durationInSeconds) {
         SolidColor[][] holder = new SolidColor[1][];
@@ -814,8 +558,8 @@ public class SpectrumLEDs implements Subsystem {
                     holder[0][i] = new SolidColor(startIdx + i, startIdx + i);
                 }
             }
-            // Read the supplier each loop (not at factory time) so patterns built at binding
-            // time still measure from the correct start when the command eventually runs.
+            // Read the supplier each loop, so a pattern built at binding time still measures from
+            // the start time in force when the command runs.
             double elapsed = Timer.getFPGATimestamp() - countStartTimeSec.getAsDouble();
             double progress = Math.min(elapsed / durationInSeconds, 1.0);
             int ledsOff = (int) (numLeds * progress);
@@ -831,24 +575,17 @@ public class SpectrumLEDs implements Subsystem {
     }
 
     /**
-     * Alliance switch countdown — cycles through alliance colors (and purple) on a hard-coded
-     * match-time schedule, progressively turning off LEDs within each segment as time elapses.
-     *
-     * <p>Segment schedule (seconds remaining → color):
+     * Switch countdown. Match time remaining picks the color and blanks the segment, on this
+     * schedule:
      *
      * <pre>
-     *  140–130  purple
-     *  130–105  startingColor
-     *  105–80   opponent color
-     *   80–55   startingColor
-     *   55–30   opponent color
-     *   30–0    purple
+     *  140 to 130  purple
+     *  130 to 105  startingColor
+     *  105 to 80   opponent color
+     *   80 to 55   startingColor
+     *   55 to 30   opponent color
+     *   30 to 0    purple
      * </pre>
-     *
-     * <p>Uses N {@link SolidColor} controls (one per LED, one-shot, resent each loop).
-     *
-     * @param startingColor the alliance color displayed during this robot's segments
-     * @return a software {@link CANdlePattern} reflecting the current switch-countdown state
      */
     public CANdlePattern switchCountdown(Color startingColor) {
         SolidColor[][] holder = new SolidColor[1][];
