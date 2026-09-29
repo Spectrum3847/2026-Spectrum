@@ -1,0 +1,36 @@
+name: Weekly release balls
+
+on:
+  schedule:
+    # Monday 14:30 UTC, which is 9:30am CDT and 8:30am CST.
+    - cron: '30 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: weekly-release-balls
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: maria-rcks/release-balls@v1
+        id: balls
+        with:
+          # Ranks every PR merged in the window, so it does not need releases.
+          # A quiet week can leave one or two humans on the grid; widen to 4w for
+          # a fuller race.
+          since: 7d
+          format: both
+
+      - name: Show rankings
+        run: cat "${{ steps.balls.outputs.markdown }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-balls-${{ github.run_number }}
+          path: ${{ steps.balls.outputs.directory }}
