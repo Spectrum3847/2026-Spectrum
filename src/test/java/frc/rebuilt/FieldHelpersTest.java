@@ -11,7 +11,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class FieldHelpersTest {
-    /** Verifies flip angle. */
     @Test
     @DisplayName("Test flipAngle with degrees and Rotation2d")
     void testFlipAngle() {
@@ -24,7 +23,6 @@ public class FieldHelpersTest {
         assertEquals(-135.0, flipped.getDegrees(), 1e-6);
     }
 
-    /** Verifies flipping the X and Y coordinates. */
     @Test
     @DisplayName("Test flipX and flipY")
     void testFlipXandY() {
@@ -35,7 +33,6 @@ public class FieldHelpersTest {
         assertEquals(expectedFlippedY, FieldHelpers.flipY(3.0), 1e-6);
     }
 
-    /** Verifies normalize angle. */
     @Test
     @DisplayName("Test normalizeAngle radians")
     void testNormalizeAngle() {
@@ -45,18 +42,15 @@ public class FieldHelpersTest {
         assertEquals(0.0, FieldHelpers.normalizeAngle(2 * Math.PI), 1e-6);
     }
 
-    /** Verifies pose out of field. */
     @Test
     @DisplayName("Test poseOutOfField for Pose2d and Pose3d")
     void testPoseOutOfField() {
-        // Valid poses inside field
         Pose2d insidePose = new Pose2d(5.0, 3.0, Rotation2d.kZero);
         assertFalse(FieldHelpers.poseOutOfField(insidePose));
 
         Pose3d insidePose3d = new Pose3d(insidePose);
         assertFalse(FieldHelpers.poseOutOfField(insidePose3d));
 
-        // Out of field poses
         Pose2d negativeX = new Pose2d(-0.1, 3.0, Rotation2d.kZero);
         assertTrue(FieldHelpers.poseOutOfField(negativeX));
 
@@ -69,7 +63,7 @@ public class FieldHelpersTest {
         Pose2d tooLargeY = new Pose2d(5.0, Field.fieldWidth + 0.1, Rotation2d.kZero);
         assertTrue(FieldHelpers.poseOutOfField(tooLargeY));
 
-        // Poses exactly on the field boundaries are also out of field
+        // A pose exactly on any boundary edge counts as out of field, not inside.
         Pose2d zeroX = new Pose2d(0.0, 3.0, Rotation2d.kZero);
         assertTrue(FieldHelpers.poseOutOfField(zeroX));
         assertTrue(FieldHelpers.poseOutOfField(new Pose3d(zeroX)));

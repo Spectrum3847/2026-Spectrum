@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 /** Power cycle or code restart: the decision behind {@code Turret.seedFromZeroReference}. */
 class TurretBootZeroTest {
 
-    /** One rotor turn of turret on PM_2026: 360 / 39.78. */
+    /** Turret degrees in one motor rotor turn on PM_2026: 360 / 39.78. */
     private static final double ROTOR_TURN = 9.0498;
 
     @Test
@@ -38,7 +38,7 @@ class TurretBootZeroTest {
         assertTrue(
                 Turret.decideBootZero(1.143, OptionalDouble.of(0.05), ROTOR_TURN)
                         .startsWith("seeded"));
-        // Q11 boot: 5.977 raw, turret last left at 120 deg.
+        // Chezy Q11 boot: 5.977 raw, turret last left at 120 deg.
         assertTrue(
                 Turret.decideBootZero(5.977, OptionalDouble.of(120.0), ROTOR_TURN)
                         .startsWith("seeded"));

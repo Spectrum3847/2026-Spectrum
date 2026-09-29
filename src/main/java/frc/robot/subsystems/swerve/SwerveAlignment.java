@@ -50,7 +50,7 @@ public class SwerveAlignment {
     /** One module's encoder signals plus the offsets we want to compare against. */
     private static class ModuleEncoder {
         private final int encoderId;
-        // Log keys, built once here rather than concatenated on every publish
+        // Log keys, built once here rather than concatenated on every publish.
         private final String absoluteRotationsKey;
         private final String rawRotationsKey;
         private final String appliedOffsetKey;
@@ -90,18 +90,16 @@ public class SwerveAlignment {
         /**
          * Reads the magnet offset that is actually programmed into the device.
          *
-         * <p>This is deliberately a readback rather than a copy of the compiled-in constant. If
-         * someone has written a magnet offset into the CANcoder with Tuner X, which {@code
-         * docs/tools/phoenix-tuner-x.md} tells us not to do, or if the robot is running an older
+         * <p>Deliberately a readback rather than a copy of the compiled-in constant. If someone has
+         * written a magnet offset into the CANcoder with Tuner X, which {@code
+         * docs/tools/phoenix-tuner-x.md} tells us not to do, or the robot is running an older
          * deploy than the source being edited, the readback and the constant disagree and the
          * alignment app can say so instead of baking the discrepancy into the new offsets.
-         *
-         * @param encoder the CANcoder to read from
          */
         private void readBackAppliedOffset(CANcoder encoder) {
             CANcoderConfiguration deviceConfig = new CANcoderConfiguration();
-            // Blocking, once per CANcoder at boot; charged to the CAN config budget so four
-            // absent encoders cost four timeouts, not four times the retry loop.
+            // Blocking, once per CANcoder at boot; charged to the CAN config budget so four absent
+            // encoders cost four timeouts, not four times the retry loop.
             StatusCode status =
                     CanConfigBudget.run(
                             "CANcoder " + encoderId,
@@ -127,13 +125,8 @@ public class SwerveAlignment {
     private int loopCount = 0;
 
     /**
-     * Creates the alignment publisher.
-     *
-     * <p>Construct this <em>after</em> {@code optimizeBusUtilization()} so the update frequencies
-     * it requests are not immediately thrown away.
-     *
-     * @param modules the drivetrain's modules, in {@link SwerveConfig#getModules()} order
-     * @param config the swerve config the modules were built from
+     * Construct this <em>after</em> {@code optimizeBusUtilization()} so the update frequencies it
+     * requests are not immediately thrown away.
      */
     public SwerveAlignment(SwerveModule<?, ?, CANcoder>[] modules, SwerveConfig config) {
         double[] configOffsets = {
@@ -158,9 +151,9 @@ public class SwerveAlignment {
      * Refreshes and publishes the alignment data. Safe to call every robot loop.
      *
      * <p>Only publishes while the robot is disabled. Alignment is a pit procedure done on blocks
-     * with the robot disabled, and these are 32 keys at 20 Hz -- about 77 records a second, in a
-     * log that already overran DogLog's queue and dropped data during the 2026-09-05 17:10 session.
-     * There is nothing to learn from them while the robot is driving.
+     * with the robot disabled, and these are 32 keys at 20 Hz, about 77 records a second, in a log
+     * that has already overrun DogLog's queue and dropped data. There is nothing to learn from them
+     * while the robot is driving.
      */
     public void log() {
         if (!Util.disabled.getAsBoolean()) {
@@ -175,7 +168,8 @@ public class SwerveAlignment {
 
         // The alignment web app reads these live over NetworkTables and the whole-log mirror is
         // off, so each key is published directly. This runs on its own 20 Hz cadence while
-        // disabled, which need not line up with the slow-tier loops, hence logDashAlways.
+        // disabled,
+        // which need not line up with the slow-tier loops, hence logDashAlways.
         for (ModuleEncoder module : moduleEncoders) {
             double absoluteRotations =
                     wrapRotations(module.absolutePosition.getValue().in(Rotations));
@@ -200,9 +194,6 @@ public class SwerveAlignment {
     /**
      * Wraps a rotation count into {@code [-0.5, 0.5)}, matching how CTRE reports CANcoder absolute
      * position.
-     *
-     * @param rotations the value to wrap
-     * @return the equivalent value in {@code [-0.5, 0.5)}
      */
     public static double wrapRotations(double rotations) {
         return rotations - Math.floor(rotations + 0.5);

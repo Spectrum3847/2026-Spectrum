@@ -2,11 +2,9 @@
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-[Gradle](https://gradle.org) is the build tool that runs everything: compiling Java, formatting, static analysis, deploys, and the simulator. WPILib's [GradleRIO](https://github.com/wpilibsuite/GradleRIO) plugin layers FRC-specific tasks on top.
+[Gradle](https://gradle.org) is the build tool that runs everything: compiling Java, formatting, static analysis, deploys, and the simulator. WPILib's [GradleRIO](https://github.com/wpilibsuite/GradleRIO) plugin layers FRC-specific tasks on top, and `build.gradle` is where this project's configuration lives. Read that file for what is configured; this page is about running the build and what to do when it misbehaves.
 
-The version is pinned in `gradle/wrapper/gradle-wrapper.properties`, and `./gradlew` (or `gradlew.bat` on Windows) is the wrapper script that downloads it. **Always use `./gradlew`**, not a globally installed `gradle`; the wrapper guarantees the whole team builds with the same version, which matters more than you'd think.
-
-## The Commands You'll Actually Run
+## The commands you'll actually run
 
 |          Command          |                                                      What it does                                                       |
 |---------------------------|-------------------------------------------------------------------------------------------------------------------------|
@@ -19,40 +17,36 @@ The version is pinned in `gradle/wrapper/gradle-wrapper.properties`, and `./grad
 | `./gradlew spotlessApply` | Apply the AOSP code style across every `.java`, `.gradle`, `.xml`, and `.md` file. Runs automatically on `compileJava`. |
 | `./gradlew spotlessCheck` | Verify formatting without rewriting: what CI runs.                                                                      |
 | `./gradlew spotbugsMain`  | Run SpotBugs static analysis. The HTML report lands at `build/reports/spotbugs.html`.                                   |
+| `./gradlew robotApp`      | Open the local robot app web UI on its home page.                                                                       |
+| `./gradlew alignSwerve`   | Open the robot app on the swerve alignment page. See [Swerve Alignment](swerve-alignment.md).                           |
 | `./gradlew tasks`         | List every task, including ones not documented here.                                                                    |
 
 You can chain them. `./gradlew clean build deploy` will clean, build, and deploy in one go.
 
-## Things `build.gradle` Sets Up
+## Use the wrapper, not a global gradle
 
-A few specifics that are easy to miss if you don't open `build.gradle`:
+`./gradlew` (or `gradlew.bat` on Windows) is a wrapper script that downloads the exact Gradle version pinned in `gradle/wrapper/gradle-wrapper.properties`. Always use it. A globally installed `gradle` on your PATH will happily run a different version and produce failures that only the person with that version sees. Check what the wrapper resolves with `./gradlew --version` before you go blaming the code.
 
-GradleRIO is at `2026.2.1` and targets the 2026 WPILib release. Bumping it means you also need to re-run `Manage Vendor Libraries → Check for Updates` in WPILib VSCode so the vendordeps line up.
+## Bumping a dependency
 
-Java 17 is enforced via `sourceCompatibility`/`targetCompatibility`. Anything else will fail at compile, with a not-always-obvious error message. See [Setup](../setup.md) for how to install Temurin 17.
+GradleRIO, the WPILib version, and the vendordeps are three separate pins and they have to move together. When you bump GradleRIO in `build.gradle`, you also need to re-run `Manage Vendor Libraries → Check for Updates` in WPILib VSCode so the vendordep line up. Mixing a new WPILib with old vendordeps produces compile errors that look nothing like a version problem.
 
-Spotless is wired to `compileJava`, so `./gradlew build` reformats your code in place using `googleJavaFormat("1.15.0").aosp()`. If you need to opt a region out (say, a hand-aligned matrix), wrap it in `// spotless:off` / `// spotless:on`.
-
-SpotBugs runs against the main source set with the exclude list in `excludeFilter-spotbugs.xml`. The HTML report (`build/reports/spotbugs.html`) is the easiest way to triage findings.
-
-`gversion` regenerates `frc/robot/BuildConstants.java` on every `compileJava`, baking in build time and Git state so the deployed code can log which build it is.
-
-Lombok annotation processing comes through `io.freefair.lombok`. Generated getters and setters exist at compile time only; don't try to commit them.
-
-The JavaDoc task is configured with external `setLinks(...)` for WPILib, Phoenix 6, PathPlanner, DogLog, MapleSim, and the Java 17 stdlib. That's why our generated docs cross-link cleanly. The list of dependencies on each per-library page in [Dependencies](../dependencies/overview.md) lines up with this.
-
-## When Things Go Wrong
+## When things go wrong
 
 The first instinct, more often than not, is `./gradlew clean build`. If that doesn't fix it:
 
-A Java-version error from `./gradlew` means your active JDK isn't 17. Run `java -version` to confirm, then switch via SDKMAN (`sdk list java | grep tem` then `sdk use java <latest-17.x.x-tem>`) or your IDE's Java runtime settings.
+* **"invalid source release" or any message that names a Java version.** Your active JDK is not 17. Run `java -version` to confirm, then switch with SDKMAN (`sdk list java | grep tem`, then `sdk use java <latest-17.x.x-tem>`) or your IDE's Java runtime settings. See [Setup](../setup.md).
 
-Spotless complaining about format violations: run `./gradlew spotlessApply` and commit the result. CI runs `spotlessCheck`, which doesn't write; `spotlessApply` does.
+* **Spotless complaining about format violations.** Run `./gradlew spotlessApply` and commit the result. CI runs `spotlessCheck`, which does not write. Note that a build reformatting your files in place is normal, not a failure; if the first build fails on formatting, run it again.
 
-A vendor jar failing to download usually means a transient network thing. `--refresh-dependencies` retries; if that doesn't work, blow away `~/.gradle/caches/modules-2/files-2.1/<vendor>` and try again.
+* **`BuildConstants.java` shows up in `git status` after a build.** It is generated. Do not edit it and do not commit it. See [Build Tools](build-tools.md).
 
-Deploy works for you but fails for a teammate: check that you're both on the same wrapper version with `./gradlew --version`. A globally installed Gradle will sometimes mask the wrapper.
+* **A vendor jar failing to download.** Usually a transient network thing. `--refresh-dependencies` retries. If that doesn't work, delete `~/.gradle/caches/modules-2/files-2.1/<vendor>` and try again.
 
-## See Also
+* **Deploy works for you but fails for a teammate.** Check that you are both on the same wrapper version with `./gradlew --version`. A globally installed Gradle will sometimes mask the wrapper.
 
-[Build Tools and Other Development Utilities](build-tools.md) for the broader Spotless/SpotBugs/Lombok overview. [Setup](../setup.md) for one-time environment work.
+* **The roboRIO is not found.** `./gradlew deploy` needs the roboRIO on the same network or plugged in by USB. The team number comes from `.wpilib/wpilib_preferences.json`; if the robot is on a rival's number the deploy goes to the wrong place or nowhere.
+
+## See also
+
+[Build Tools and Other Development Utilities](build-tools.md) for the formatter, static analyzer, and annotation processor. [Setup](../setup.md) for one-time environment work.

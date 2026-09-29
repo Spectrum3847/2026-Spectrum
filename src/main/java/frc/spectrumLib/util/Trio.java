@@ -4,56 +4,20 @@
 
 package frc.spectrumLib.util;
 
-/**
- * Represents a trio of three objects.
- *
- * @param <A> The first object's type.
- * @param <B> The second object's type.
- * @param <C> The third object's type.
- * @param first The first object.
- * @param second The second object.
- * @param third The third object.
- */
 public record Trio<A, B, C>(A first, B second, C third) {
 
-    /**
-     * Returns the first object.
-     *
-     * @return The first object.
-     */
     public A getFirst() {
         return first;
     }
 
-    /**
-     * Returns the second object.
-     *
-     * @return The second object.
-     */
     public B getSecond() {
         return second;
     }
 
-    /**
-     * Returns the third object.
-     *
-     * @return The third object.
-     */
     public C getThird() {
         return third;
     }
 
-    /**
-     * Returns a trio comprised of the three given objects.
-     *
-     * @param <A> The first object's type.
-     * @param <B> The second object's type.
-     * @param <C> The third object's type.
-     * @param a The first object.
-     * @param b The second object.
-     * @param c The third object.
-     * @return A trio comprised of the three given objects.
-     */
     public static <A, B, C> Trio<A, B, C> of(A a, B b, C c) {
         return new Trio<>(a, b, c);
     }

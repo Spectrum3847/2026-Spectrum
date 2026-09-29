@@ -9,7 +9,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class UtilTest {
-    /** Verifies limit. */
     @Test
     @DisplayName("Test limit with max magnitude and min/max bounds")
     void testLimit() {
@@ -22,7 +21,6 @@ public class UtilTest {
         assertEquals(7.0, Util.limit(7.0, 0.0, 10.0), 1e-6);
     }
 
-    /** Verifies in range. */
     @Test
     @DisplayName("Test inRange methods")
     void testInRange() {
@@ -38,7 +36,6 @@ public class UtilTest {
         assertFalse(Util.inRange(() -> 0.0, () -> 0.0, () -> 10.0));
     }
 
-    /** Verifies interpolate. */
     @Test
     @DisplayName("Test interpolate lerp method")
     void testInterpolate() {
@@ -46,12 +43,11 @@ public class UtilTest {
         assertEquals(15.0, Util.interpolate(10.0, 20.0, 0.5), 1e-6);
         assertEquals(20.0, Util.interpolate(10.0, 20.0, 1.0), 1e-6);
 
-        // Clamping factor x to [0, 1]
+        // A factor outside [0, 1] clamps rather than extrapolating.
         assertEquals(10.0, Util.interpolate(10.0, 20.0, -0.5), 1e-6);
         assertEquals(20.0, Util.interpolate(10.0, 20.0, 1.5), 1e-6);
     }
 
-    /** Verifies joining strings with a delimiter. */
     @Test
     @DisplayName("Test joinStrings method")
     void testJoinStrings() {
@@ -60,7 +56,6 @@ public class UtilTest {
         assertEquals("apple|banana|cherry", Util.joinStrings("|", items));
     }
 
-    /** Verifies epsilon equals. */
     @Test
     @DisplayName("Test epsilonEquals for double and integer")
     void testEpsilonEquals() {
@@ -74,7 +69,6 @@ public class UtilTest {
         assertFalse(Util.epsilonEquals(10, 13, 2));
     }
 
-    /** Verifies the allCloseTo list comparison. */
     @Test
     @DisplayName("Test allCloseTo list method")
     void testAllCloseTo() {

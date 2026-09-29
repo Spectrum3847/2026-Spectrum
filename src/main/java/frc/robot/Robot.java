@@ -76,10 +76,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import org.json.simple.parser.ParseException;
 
-/**
- * The main robot class. This class is the entry point for the robot code and manages all subsystems
- * and their configurations.
- */
+/** Entry point for the robot. Owns the static subsystem instances and their configs. */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
     @Getter private static Config config;
@@ -118,7 +115,6 @@ public class Robot extends SpectrumRobot {
     @Getter private static LauncherTower launcherTower;
     @Getter private static Hood hood;
     @Getter private static Vision vision;
-    // @Getter private static Leds leds;
     @Getter private static Auton auton;
 
     @Getter private static SuperStructure superStructure;
@@ -128,45 +124,40 @@ public class Robot extends SpectrumRobot {
     /**
      * The roboRIO's own CAN interface, logged alongside {@link #mainCANBus}.
      *
-     * <p>Its health used to come from DogLog's {@code logExtras}, which is off (see {@link
-     * frc.spectrumLib.telemetry.Telemetry#start}), so {@code /Robot/SystemStats/CANBus/*} stopped
-     * logging 5.5 s into every boot. In the 2026-09-19 Chezy practice match that left no rio-bus
-     * data at all for the CAN failure: the only reason the CANivore side could be diagnosed is that
-     * {@link #logCanBusStatus()} logs it explicitly. The rio bus carries the intake rollers, and
-     * proving they were still alive is what localised that failure to the CANivore bus -- so it is
-     * worth the second 1 Hz read.
+     * <p>The rio bus carries the intake rollers, so its health is worth the second 1 Hz read in
+     * {@link #logCanBusStatus()}. Nothing else logs it: {@code Telemetry.start} has {@code
+     * logExtras} off, so without that call a dead rio bus leaves no trace at all.
      */
     @Getter private static CANBus rioCANBus;
 
-    /** Creates a new Robot instance. */
     public Robot() {
         super();
         /*
-         * Phoenix otherwise starts writing .hoot signal logs for every CAN device a second after
-         * the first enable. Nobody replays them in Tuner X, and on 2026-09-05 they were a large
-         * share of the 2.2 GB on the rio's SD card, written alongside the wpilog on a machine whose
-         * CPU was already at 92-95%. SignalLogger.start() still works for a deliberate capture.
+         * Phoenix otherwise writes a .hoot signal log for every CAN device a second after the first
+         * enable. Nobody replays them in Tuner X, and on 2026-09-05 they were a large share of the
+         * 2.2 GB on the rio's SD card, written on a CPU already at 92 to 95 percent.
+         * SignalLogger.start() still works for a deliberate capture.
          */
         SignalLogger.enableAutoLogging(false);
 
-        // Mirror-to-NetworkTables off on the robot (see Telemetry.start() for what the dashboard
-        // gets instead), on in simulation: there is no roboRIO CPU to save, and without it the
-        // Telemetry.log keys (Robot/Sim/*, poses, states) never show up live in AdvantageScope.
+        // Mirror-to-NetworkTables is off on the robot (Telemetry.start() logs the dashboard keys
+        // instead) and on in simulation, so the Telemetry.log keys (Robot/Sim/*, poses, states)
+        // show
+        // up live in AdvantageScope.
         Telemetry.start(
                 RobotBase.isSimulation(), true, false, true, false, true, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            // Set up the config
             switch (Rio.id) {
                 default:
                     config = new OM2026();
                     break;
             }
 
-            double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
-            mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
+            double canInitDelay = 0.1; // seconds between mechanism configs
+            mainCANBus = new CANBus(Rio.CANIVORE);
             rioCANBus = new CANBus(Rio.RIO_CANBUS);
 
             pilot = new Pilot(config.pilot);
@@ -211,15 +202,14 @@ public class Robot extends SpectrumRobot {
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
-            // leds = new Leds();
 
             if (RobotBase.isSimulation()) {
                 robotSim = new RobotSim(superStructure);
             }
 
-            // Before any binding can move a trim, and late enough that NetworkTables is up
-            // for Preferences. Prints at HIGH priority when a stored trim is non-zero. In
-            // simulation every trim is zero instead, the model hood offsets included.
+            // Before any binding can move a trim, and late enough that NetworkTables is up for
+            // Preferences. Prints at HIGH priority when a stored trim is non-zero. In simulation
+            // every trim is zero instead, the model hood offsets included.
             if (RobotBase.isSimulation()) {
                 ShotCalculator.zeroTrimsForSimulation();
             } else {
@@ -233,19 +223,18 @@ public class Robot extends SpectrumRobot {
             Telemetry.print("--- Robot Init Complete ---");
 
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
 
-        // Was 4.6 V from 2026-03-06 to 2026-09-19. The roboRIO 2 default is 6.75 V. At Chezy on
-        // 2026-09-18 the battery sagged to 8.8 V under 250 to 290 A in auto; a worse sag would
-        // have taken the RIO below its own reset point before a 4.6 V brownout ever tripped, and
-        // a RIO reboot mid-match is far worse than a second of disabled outputs. 6.0 V keeps some
-        // margin under a hard launch while still protecting the controller.
+        // 6.0 V sits just under the roboRIO 2's 6.75 V default, keeping some margin under a hard
+        // launch while still protecting the controller. The battery sagged to 8.8 V under 250 to
+        // 290 A at Chezy on 2026-09-18, and a worse sag would take the RIO below its own reset
+        // point before a 6.0 V brownout ever trips. A RIO reboot mid-match is far worse than a
+        // second of disabled outputs.
         RobotController.setBrownoutVoltage(Units.Volts.of(6.0));
 
-        // Logged once; the robot app reads these over NetworkTables, so publish them directly.
+        // Logged once each; the robot app reads these over NetworkTables, so publish directly.
         Telemetry.logDashAlways("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
         Telemetry.logDashAlways("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
         Telemetry.logDashAlways("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
@@ -260,16 +249,15 @@ public class Robot extends SpectrumRobot {
                 });
     }
 
-    /** Configures the bindings. */
     public void configureBindings() {
-        // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
+        // LT alone takes fuel. The negate guards give RT+LT, handled below, the higher say.
         pilot.LT.onTrue(
                 Commands.either(
                         superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
                         Commands.none(),
                         pilot.RT.negate()));
 
-        // RT alone → launch; do nothing if LT is already held (RT+LT handled below)
+        // RT alone launches. On release the feed target goes back to default.
         pilot.RT
                 .onTrue(
                         Commands.either(
@@ -278,14 +266,13 @@ public class Robot extends SpectrumRobot {
                                 Commands.none(),
                                 pilot.LT.negate()))
                 .onFalse(FeedTargetFactory.feedDefault());
-        // RT + LT both held → launch (intake stays extended; resolves to LAUNCH_WITHOUT_SQUEEZE)
+        // RT and LT both held launches, intake extension out, as LAUNCH_WITHOUT_SQUEEZE.
         pilot.RT
                 .and(pilot.LT)
                 .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE))
                 .onFalse(FeedTargetFactory.feedDefault());
 
-        // LT released while RT still held → launch (no delay; resolves to
-        // LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)
+        // LT released while RT is still held launches with no squeeze delay.
         pilot.LT.onFalse(
                 Commands.either(
                         superStructure.setStateCommand(
@@ -298,18 +285,19 @@ public class Robot extends SpectrumRobot {
                 .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_BRAKE))
                 .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        // RT released while LT still held → resume intaking
+        // RT released while LT is still held resumes intaking.
         pilot.RT.onFalse(
                 Commands.either(
                         superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
                         Commands.none(),
                         pilot.LT));
 
-        // Both released → idle
+        // Both released.
         pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         pilot.trackTarget_X.whileTrue(
                 superStructure.setStateCommand(WantedSuperState.TRACK_TARGET));
+        // Releasing X does not drop out of a launch, since that would slew to IDLE's aim.
         pilot.trackTarget_X.onFalse(
                 Commands.either(
                         Commands.none(),
@@ -319,7 +307,7 @@ public class Robot extends SpectrumRobot {
         pilot.unjam_A.whileTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
         pilot.unjam_A.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
-        // Kicker unjam: same as unjam, but the intake kicker keeps running forward
+        // Kicker unjam: the same unjam, but the intake kicker keeps running forward.
         pilot.kickerUnjam_B.whileTrue(
                 superStructure.setStateCommand(WantedSuperState.KICKER_UNJAM));
         pilot.kickerUnjam_B.onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
@@ -339,17 +327,15 @@ public class Robot extends SpectrumRobot {
 
         /*
          * Turret pit checks, pilot D-pad, test mode only, each held for as long as you want it to
-         * run. Releasing stops the turret where it stands (TEST_TURRET_STOP) rather than falling
-         * back to IDLE, which aims at the target -- see SuperStructure.testTurret. The last button
-         * pressed owns the turret; the shared onFalse only fires once all three are released.
+         * run. Releasing lands on TEST_TURRET_STOP rather than IDLE, which would aim at the target:
+         * see SuperStructure.testTurret. The last button pressed owns the turret, and the shared
+         * onFalse only fires once all three are released.
          *
-         * Test mode is not a reduced mode here and nothing was needed to make it one. robotPeriodic
-         * runs in every mode, so Vision, SuperStructure, the CommandScheduler and every subsystem
-         * periodic run exactly as they do in teleop, and with them all the DogLog keys. Current
-         * limits, soft limits and the stall cut-out are in the motor config applied at construction
-         * and are never touched per mode. The one thing that would break this is WPILib enabling
-         * LiveWindow in test, which disables the CommandScheduler -- it defaults off and nothing
-         * here calls enableLiveWindowInTest(true). Leave it that way.
+         * Test mode is not a reduced mode: robotPeriodic runs in every mode, so Vision,
+         * SuperStructure, the CommandScheduler and every subsystem periodic run exactly as they do
+         * in teleop, along with all the DogLog keys. The one thing that would break this is WPILib
+         * enabling LiveWindow in test, which disables the CommandScheduler. It defaults off and
+         * nothing here turns it on. Leave it that way.
          */
         pilot.testTurretFollowTag_dPadUp.whileTrue(
                 superStructure.setStateCommand(WantedSuperState.TEST_TURRET_FOLLOW_TAG));
@@ -362,21 +348,22 @@ public class Robot extends SpectrumRobot {
                 .or(pilot.testTurretZero_dPadDown)
                 .onFalse(superStructure.setStateCommand(WantedSuperState.TEST_TURRET_STOP));
 
-        // Each press is also the shot-outcome signal: down says the last burst went long, up says
-        // it fell short. Hood only: the flywheel trim that rode along for one match (Chezy Q11,
-        // 2026-09-19) is gone and RPM comes straight from the model. Logged as ShotCalc/Trim/*
-        // and paired with the most recent ShotCalc/Shot/* row. See docs/tools/shot-log.md.
+        // Each press is also the shot outcome signal: down says the last burst went long, up says
+        // it
+        // fell short. Hood only; the turret trims do the same on left and right. Logged as
+        // ShotCalc/Trim/* and paired with the most recent ShotCalc/Shot/* row. See
+        // docs/tools/shot-log.md.
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());
         operator.dPadUp.onTrue(ShotCalculator.increaseHoodAngleOffset());
         operator.dPadRight.onTrue(ShotCalculator.increaseTurretAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.decreaseTurretAngleOffset());
         operator.resetShotTrims_StartSelect.onTrue(ShotCalculator.resetTrimsCommand());
 
-        // Held: feed regardless of the shot-readiness gates, for a bad sensor or a deliberate dump.
+        // Held: feed regardless of the shot readiness gates, for a bad sensor or a deliberate dump.
         superStructure.setFeedOverride(operator.YButton);
 
         // Held: let vision trim and re-home the turret zero. Released, the zero is whatever the
-        // operator hand-zeroed (B, disabled) and vision only reports what it would have changed.
+        // operator hand-zeroed with B while disabled, and vision only reports what it would change.
         vision.setTurretZeroCorrectionEnable(operator.visionTurretFixX);
 
         operator.LB.onTrue(FeedTargetFactory.feedLeft());
@@ -406,7 +393,6 @@ public class Robot extends SpectrumRobot {
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
 
-        // Auton Triggers
         Auton.autonIntake.onTrue(
                 superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
         Auton.autonShotPrep.onTrue(
@@ -423,14 +409,12 @@ public class Robot extends SpectrumRobot {
         Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
     }
 
-    /** Configures the sim bindings. */
     public void configureSimBindings() {
         Trigger simLaunching = new Trigger(superStructure::currentStateIsLaunching);
         simLaunching.whileTrue(robotSim.ballSimLaunchFuel());
 
-        // Sim bindings for when people with just keyboards at home are doing sim at home
-        // noLB: plain Y is the keyboard launch, plain B the keyboard intake; LB + either is a set
-        // shot. Without this they would both fire in a sim and fight over the super state.
+        // Keyboard sim: plain Y launches, plain B intakes, and LB with either is a set shot.
+        // Without the noLB gate both would fire and fight over the super state.
         pilot.YButton.and(pilot.noLB)
                 .whileTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE))
                 .onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
@@ -440,20 +424,12 @@ public class Robot extends SpectrumRobot {
         pilot.RB.onTrue(FeedTargetFactory.feedRight());
     }
 
-    /** Robot init. */
     @Override
     public void robotInit() {
         SmartDashboard.putData("Field2d", field2d);
         WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
     }
 
-    /* ROBOT PERIODIC  */
-    /**
-     * This method is called periodically the entire time the robot is running. Periodic methods are
-     * called every 20 ms (50 times per second) by default Since the robot software is always
-     * looping you shouldn't pause the execution of the robot code This ensures that new values are
-     * updated from the gamepads and sent to the motors
-     */
     @Override
     public void robotPeriodic() {
         RobotLoop.next();
@@ -465,9 +441,9 @@ public class Robot extends SpectrumRobot {
             hasBeenEnabled = true;
         }
         /*
-         * Deliberately NOT raised to real-time priority. Tried on 2026-09-05: with the loop body
-         * still 15-30 ms long, a SCHED_FIFO main thread owned one core for most of every period and
-         * Phoenix's CAN frame dispatch lost its turn. The 250 Hz swerve odometry thread, which
+         * Deliberately not raised to real-time priority. Tried on 2026-09-05: with the loop body
+         * still 15 to 30 ms long, a SCHED_FIFO main thread owned one core for most of every period
+         * and Phoenix's CAN frame dispatch lost its turn. The 250 Hz swerve odometry thread, which
          * tolerates about 8 ms of frame lag, reported stale Position/Velocity/Yaw signals and
          * WaitForAll -1003 errors within seconds of deploy, sitting disabled. Priority is not a
          * substitute for a loop body under budget; cut the work first.
@@ -475,12 +451,12 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.time("Scheduler/robotPeriodic");
 
-            // Start every loop with an empty shot-solution cache so the first mechanism to ask
+            // Start every loop with an empty shot solution cache so the first mechanism to ask
             // computes it from this loop's pose.
             ShotCalculator.getInstance().clearShootingParameters();
 
-            // Vision first: this loop's pose correction lands before any mechanism computes a
-            // shot. Vision is intentionally not registered with the scheduler.
+            // Vision first: this loop's pose correction lands before any mechanism computes a shot.
+            // Vision is intentionally not registered with the scheduler.
             Telemetry.time("Scheduler/Vision");
             vision.periodic();
             Telemetry.timeEnd("Scheduler/Vision");
@@ -491,12 +467,6 @@ public class Robot extends SpectrumRobot {
             superStructure.periodic();
             Telemetry.timeEnd("Scheduler/SuperStructure");
 
-            /*
-             * Runs the Scheduler. This is responsible for polling buttons, adding newly-scheduled
-             * commands, running already-scheduled commands, removing finished or interrupted
-             * commands, and running subsystem periodic() methods. This must be called from the
-             * robot's periodic block in order for anything in the Command-based framework to work.
-             */
             Telemetry.time("Scheduler/CommandScheduler");
             CommandScheduler.getInstance().run();
             Telemetry.timeEnd("Scheduler/CommandScheduler");
@@ -508,8 +478,7 @@ public class Robot extends SpectrumRobot {
 
             batteryLogger.setBatteryVoltage(RobotController.getBatteryVoltage());
             // Every loop, not on the 1 Hz tick: a brownout is a few hundred milliseconds. DogLog
-            // only writes it when it changes. This used to come from logExtras, which is off, so
-            // the key stopped logging 5.5 s into every boot.
+            // only writes it when it changes.
             Telemetry.logDash("SystemStats/BrownedOut", RobotController.isBrownedOut());
             batteryLogger.setRioCurrent(RobotController.getInputCurrent());
             batteryLogger.logPower();
@@ -520,22 +489,18 @@ public class Robot extends SpectrumRobot {
 
             Telemetry.timeEnd("Scheduler/robotPeriodic");
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
     }
 
-    /** FPGA time of the last CANivore status read. */
     private double lastCanStatusSeconds = Double.NEGATIVE_INFINITY;
 
     /**
      * Reads and logs CANivore bus health once a second.
      *
-     * <p>CTRE documents {@code CANBus.getStatus()} as blocking for up to 1 ms, and it ran every
-     * loop through 2026-09-05: up to 5% of the budget for counters that are cumulative and a
-     * utilization figure that moves over seconds. Nothing is lost at 1 Hz; a bus-off or a TX-full
-     * event still shows within a second.
+     * <p>{@code CANBus.getStatus()} blocks for up to 1 ms per CTRE, and every counter it returns is
+     * cumulative, so 1 Hz loses nothing: a bus-off or TX-full event still shows within a second.
      */
     private void logCanBusStatus() {
         double now = Timer.getFPGATimestamp();
@@ -547,16 +512,15 @@ public class Robot extends SpectrumRobot {
         logOneCanBus("CANivore", mainCANBus.getStatus());
         logOneCanBus("RioCANBus", rioCANBus.getStatus());
 
-        // Near-misses matter: a boot that spent 2 s of the 3 s budget is one bad connector
-        // away from the 64 s boot of 2026-09-19.
+        // A boot that spends 2 s of the 3 s budget is one bad connector away from the 64 s boot of
+        // 2026-09-19.
         Telemetry.log("CANConfig/BudgetSpentSeconds", CanConfigBudget.getSpentSeconds());
         Telemetry.log("CANConfig/FailedCalls", CanConfigBudget.getFailedCalls());
         Telemetry.logDashAlways("CANConfig/BudgetExhausted", CanConfigBudget.exhausted());
 
         // FMS match identity. WPILib only renames the .wpilog with event and match once the FMS
-        // attaches, and neither 2026 match log carried the match as a topic, so the log triage
-        // could not say which match it was reading or arm its disable-and-re-enable detector.
-        // Strings and ints that change a handful of times a day; DogLog writes them on change.
+        // attaches, so without these the log cannot say which match it holds. Strings and ints
+        // that change a handful of times a day; DogLog writes them on change.
         Telemetry.log("Match Data/EventName", DriverStation.getEventName());
         Telemetry.log("Match Data/MatchType", DriverStation.getMatchType().name());
         Telemetry.log("Match Data/MatchNumber", DriverStation.getMatchNumber());
@@ -571,12 +535,9 @@ public class Robot extends SpectrumRobot {
     /**
      * Logs one bus's health under {@code <prefix>/}.
      *
-     * <p>{@code Status} is logged too. Every counter below reads 0 on a bus whose status read
-     * itself failed, which looks exactly like a perfectly healthy idle bus; the status code is the
-     * only thing that separates them.
-     *
-     * @param prefix telemetry prefix for this bus
-     * @param canInfo the bus status just read
+     * <p>{@code Status} is logged because every counter below reads 0 on a bus whose own status
+     * read failed, which looks exactly like a healthy idle bus. The status code is the only thing
+     * that separates them.
      */
     private void logOneCanBus(String prefix, CANBusStatus canInfo) {
         Telemetry.logDashAlways(prefix + "/BusUtilization", canInfo.BusUtilization * 100, "%");
@@ -588,7 +549,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.log(prefix + "/StatusOK", canInfo.Status.isOK());
     }
 
-    /** Seconds between deliberate full collections while sitting disabled. */
     private static final double DISABLED_GC_PERIOD_SECONDS = 60.0;
 
     private double lastDisabledGcSeconds = Double.NEGATIVE_INFINITY;
@@ -596,28 +556,25 @@ public class Robot extends SpectrumRobot {
     /**
      * Runs a full garbage collection now, while the robot cannot move.
      *
-     * <p>Serial GC's one long pause is the full collection it runs when old gen fills; on a 100 MB
-     * heap on this CPU that is the half-second-and-up class of stall, and while it runs the loop
+     * <p>Serial GC's one long pause is the full collection it runs when old gen fills, and on a 100
+     * MB heap on this CPU that is the half-second-and-up class of stall. While it runs, the loop
      * stops feeding the watchdog and the robot drops out mid-match. Emptying old gen at every
-     * disable (which includes the auto-to-teleop gap) and once a minute while sitting disabled
-     * means every enabled period starts with as much headroom as the heap has. The pause still
-     * happens; it happens here, where it costs nothing.
+     * disable, which includes the auto to teleop gap, and once a minute while sitting disabled
+     * gives every enabled period the headroom the heap has. The pause still happens; it happens
+     * here.
      */
     private void collectGarbageWhileDisabled() {
         lastDisabledGcSeconds = Timer.getFPGATimestamp();
         System.gc();
     }
 
-    /** Disabled init. */
     @Override
     public void disabledInit() {
         Telemetry.print("### Disabled Init Starting ### ");
         collectGarbageWhileDisabled();
 
-        // Request placement on the selected auto's starting pose. Honoured only before the
-        // first enable -- see mayPlaceAtAutoStart(). This used to be unconditional, on the
-        // assumption that "on the field vision overwrites this within a loop or two", which is
-        // exactly what failed at Chezy on 2026-09-19 with both chassis cameras blind.
+        // Request placement on the selected auto's starting pose, honoured only before the first
+        // enable. See mayPlaceAtAutoStart().
         placeAtAutoStart = true;
 
         if (!autonWarmedUp) {
@@ -639,43 +596,30 @@ public class Robot extends SpectrumRobot {
 
     String autoName = "";
 
-    /** Paths of the currently selected auto, kept so the start pose can be re-applied. */
+    /** Paths of the currently selected auto, so the start pose can be re-applied. */
     private List<PathPlannerPath> selectedAutoPaths = new ArrayList<>();
 
     /**
      * Set whenever the robot should be put back on the selected auto's starting pose.
      *
-     * <p>The reset used to happen only when the chooser selection changed, which is fine once and
-     * wrong every time after. Nothing else places the robot: all three autos in the chooser carry
-     * {@code resetOdom: false}, and PathPlannerAuto only prepends AutoBuilder.resetOdom when that
-     * flag is set, so a run leaves the robot wherever the path ended. On the real field vision
-     * seeds the pose back; in simulation there is no vision, so the second run of an auto started
-     * from the end of the first.
+     * <p>{@code resetOdom} is a per-.auto-file flag, and it is off for most of the chooser's
+     * routines, so PathPlannerAuto does not prepend AutoBuilder.resetOdom and a run leaves the
+     * robot wherever the path ended. On the field vision seeds the pose back; in simulation there
+     * is no vision, so the second run of an auto would start from the end of the first.
      */
     private boolean placeAtAutoStart = true;
 
     /**
-     * True once the robot has been enabled at least once since boot.
+     * True once the robot has been enabled at least once since boot. Gates {@link
+     * #placeAtAutoStart}.
      *
-     * <p>Gates {@link #placeAtAutoStart}. The placement is only ever correct before the match: it
-     * writes the selected auto's starting pose, which is where the robot is about to be put, and
-     * the comment on {@link #disabledInit()} assumed vision would overwrite it "within a loop or
-     * two" on the field.
-     *
-     * <p>In the 2026-09-19 Chezy practice match it did not. Neither chassis camera saw a single tag
-     * in the 387 s before the match -- both reported "No Targets in View" the whole time -- so
-     * nothing ever overwrote the placement. Then the auto-to-teleop disable set the flag again and
-     * snapped the pose from where auto actually finished (12.77, 0.57, -180 deg) back to the auto's
-     * start (11.89, 0.59, +90 deg). Teleop began about 0.9 m and 270 deg wrong, and the heading was
-     * not recovered until the gross-heading net fired 5.6 s in.
-     *
-     * <p>So the placement is now refused once the robot has been enabled. After that the pose
-     * estimator's own output is always a better answer than the start of a path the robot has
-     * already driven.
+     * <p>After that the pose estimator's own output is always a better answer than the start of a
+     * path the robot has already driven. A robot seeded with nothing is the case this protects
+     * against, and the placement writes the pose the robot is about to be put at, so it only
+     * belongs before the match.
      */
     private boolean hasBeenEnabled = false;
 
-    /** Disabled periodic. */
     @Override
     public void disabledPeriodic() {
         if (Timer.getFPGATimestamp() - lastDisabledGcSeconds >= DISABLED_GC_PERIOD_SECONDS) {
@@ -687,13 +631,12 @@ public class Robot extends SpectrumRobot {
         List<PathPlannerPath> pathPlannerPaths = new ArrayList<>();
 
         /*
-         * The alliance belongs in the reload key, not just the auto name.
-         *
-         * The red flip is applied inside the reload branch below, so keying on the name alone meant
-         * picking an auto and then setting the alliance never re-flipped anything: the path became
-         * red-side while the pose stayed where it was placed under blue, and the robot set off
-         * across the field to reach its own start point. In simulation that is the normal order of
-         * operations -- the sim DS reports no alliance until you set one.
+         * The alliance belongs in the reload key, not just the auto name. The red flip is applied
+         * inside the reload branch below, so keying on the name alone meant picking an auto and
+         * then setting the alliance never re-flipped anything: the path became red side while the
+         * pose stayed where it was placed under blue, and the robot set off across the field to
+         * reach its own start point. In simulation that is the normal order of operations, since
+         * the sim DS reports no alliance until you set one.
          */
         String selectionKey =
                 fullAutoName + "|" + DriverStation.getAlliance().map(Enum::name).orElse("NONE");
@@ -709,14 +652,13 @@ public class Robot extends SpectrumRobot {
             return;
         }
 
-        // Strip " - Left" / " - Right" suffix to get the base path name
         String baseAutoName = fullAutoName;
         if (baseAutoName.endsWith(" - Left") || baseAutoName.endsWith(" - Right")) {
             baseAutoName = baseAutoName.substring(0, baseAutoName.lastIndexOf(" - "));
         }
 
-        // Reload on an auto switch, a side switch, or an alliance change — each one changes the
-        // trajectory that gets flown and therefore where the robot has to be sitting.
+        // Reload on an auto switch, a side switch or an alliance change. Each one changes the
+        // trajectory that gets flown, and therefore where the robot has to be sitting.
         if (!autoName.equals(selectionKey)) {
             autoName = selectionKey;
             Telemetry.log("Auton Warmed Up", false);
@@ -733,7 +675,6 @@ public class Robot extends SpectrumRobot {
                     Telemetry.print("Could not load path planner paths");
                 }
 
-                // Flip the paths if on red alliance
                 Optional<Alliance> alliance = DriverStation.getAlliance();
                 if (alliance.isPresent() && alliance.get() == Alliance.Red) {
                     pathPlannerPaths =
@@ -742,7 +683,6 @@ public class Robot extends SpectrumRobot {
                                     .collect(Collectors.toList());
                 }
 
-                // Mirror the paths if starting on the right
                 if (!leftStart) {
                     pathPlannerPaths =
                             pathPlannerPaths.stream()
@@ -755,7 +695,6 @@ public class Robot extends SpectrumRobot {
                     selectedAutoPaths = pathPlannerPaths;
                     placeAtAutoStart = true;
 
-                    // Warm up the starting path
                     Command warmUpPath =
                             Commands.sequence(
                                             AutoBuilder.followPath(pathPlannerPaths.get(0))
@@ -773,7 +712,6 @@ public class Robot extends SpectrumRobot {
                     Telemetry.print("Warning: No paths loaded for auto: " + baseAutoName);
                 }
 
-                // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
                 for (PathPlannerPath path : pathPlannerPaths) {
                     poses.addAll(path.getPathPoses());
@@ -785,16 +723,18 @@ public class Robot extends SpectrumRobot {
         }
 
         // Outside the selection-changed branch on purpose: this also has to run after a disable,
-        // when the name has not changed but the robot is sitting wherever the last run left it.
-        // Gated at the point of use, so both triggers (a chooser change and every disabledInit)
-        // are covered by the one check. The request is cleared either way: a placement refused
-        // after an enable must not sit armed and fire later.
+        // when
+        // the name has not changed but the robot is sitting wherever the last run left it. Gated at
+        // the point of use, so one check covers both triggers, a chooser change and every
+        // disabledInit. The request is cleared either way, since a placement refused after an
+        // enable
+        // must not sit armed and fire later.
         if (placeAtAutoStart && !selectedAutoPaths.isEmpty()) {
             if (mayPlaceAtAutoStart()) {
                 swerve.resetPose(
                         selectedAutoPaths.get(0).getStartingHolonomicPose().orElse(new Pose2d()));
-                // Until a camera seeds the pose, this heading is the working assumption and
-                // Vision looks for a multi-tag solve to confirm or refute it, moving or not.
+                // Until a camera seeds the pose, this heading is the working assumption and Vision
+                // looks for a multi-tag solve to confirm or refute it, moving or not.
                 vision.notePlacedAtAutoStart();
             }
             placeAtAutoStart = false;
@@ -807,30 +747,26 @@ public class Robot extends SpectrumRobot {
      * Whether the robot may still be placed on the selected auto's starting pose.
      *
      * <p>Only before the first enable on the real robot. Simulation is exempt: nothing there ever
-     * writes the pose except this placement -- there is no vision in the sim -- so without it the
-     * second run of an auto starts from wherever the first one ended, which is the whole reason the
-     * placement runs on every disable in the first place.
-     *
-     * @return true when the placement is still the best available pose
+     * writes the pose except this placement, so without it the second run of an auto starts from
+     * wherever the first one ended.
      */
     private boolean mayPlaceAtAutoStart() {
         return RobotBase.isSimulation() || !hasBeenEnabled;
     }
 
-    // -- Start pose check -------------------------------------------------------------------------
-    //
-    // While disabled the robot has two ideas of where it is: the selected auto's starting pose,
-    // which the placement above wrote, and whatever vision has seeded since. Vision wins, at 0.01 m
-    // standard deviation, and nothing compared the two. A robot set down on the wrong side, or with
-    // the wrong auto picked, or seeded from a bad solve, therefore enters auto with a confirmed
-    // pose that disagrees with its path by metres, and the first thing the path does is drive to
-    // its own start point. This compares them, puts the numbers on the Pre-Match tab, and raises
-    // an error once they have disagreed for a second.
-
-    /** Distance between the current pose and the auto start pose that raises the alert. */
+    /*
+     * While disabled the robot has two ideas of where it is: the selected auto's starting pose,
+     * which the placement above wrote, and whatever vision has seeded since. Vision wins, at 0.01
+     * m standard deviation, and nothing compared the two. A robot set down on the wrong side, or
+     * with the wrong auto picked, or seeded from a bad solve, therefore enters auto with a
+     * confirmed pose that disagrees with its path by metres, and the first thing the path does is
+     * drive to its own start point. This compares them, puts the numbers on the Pre-Match tab, and
+     * raises an error once they have disagreed for a second.
+     */
+    /** Pose distance that raises the alert, in meters. */
     private static final double START_POSE_ALERT_METERS = 0.5;
 
-    /** Heading disagreement that raises the alert; PathPlanner regenerates the trajectory at 30. */
+    /** Heading disagreement that raises the alert, in degrees. */
     private static final double START_HEADING_ALERT_DEG = 10.0;
 
     /** How long the disagreement must persist, so a seed that is still settling does not flash. */
@@ -843,22 +779,12 @@ public class Robot extends SpectrumRobot {
     /**
      * Raised while the chooser names an auto with no matching {@code .auto} file on the rio.
      *
-     * <p>Chezy 2026-09-19 QM4: the chooser said OSCENT, the code asked PathPlanner for "OSCENT
-     * Full", the file was "OSCENT FULL.auto", and the rio's filesystem is case-sensitive where the
-     * Windows sim is not. PathPlanner reported the missing file to the Driver Station once at boot
-     * and ran an empty command; nothing on the dashboard said so and the robot sat still for auto.
-     * The wpilog also had no record of which auto was selected, which is what {@link
-     * #logAutoSelection} fixes.
+     * <p>The rio's filesystem is case sensitive where the Windows sim is not, and PathPlanner
+     * reports a missing file to the Driver Station once at boot and then runs an empty command, so
+     * nothing else on the dashboard says the auto will not run.
      */
     private final Alert autoFileMissingAlert = new Alert("", AlertType.kError);
 
-    /**
-     * Logs an auto selection, and raises or clears {@link #autoFileMissingAlert}.
-     *
-     * @param fullAutoName the chooser command's name
-     * @param autoFileFound whether the base name has a file in deploy/pathplanner/autos
-     * @param baseAutoName the name PathPlanner will be asked for, for the message
-     */
     private void logAutoSelection(String fullAutoName, boolean autoFileFound, String baseAutoName) {
         Telemetry.log("Auton/SelectedAuto", fullAutoName);
         Telemetry.log("Auton/AutoFileFound", autoFileFound);
@@ -882,7 +808,7 @@ public class Robot extends SpectrumRobot {
     }
 
     /**
-     * Raised while the start-pose check cannot run because the pose has never been vision-seeded.
+     * Raised while the start-pose check cannot run because the pose has never been vision seeded.
      */
     private final Alert startPoseUnverifiedAlert =
             new Alert(
@@ -893,11 +819,10 @@ public class Robot extends SpectrumRobot {
 
     /**
      * Blanks the start-pose report: publishes NaN rather than a stale or vacuous number, and
-     * disarms both alerts. The UNVERIFIED alert in particular used to stay up for the rest of the
-     * power cycle once the robot had run unseeded, because nothing after an enable cleared it.
+     * disarms both alerts.
      *
-     * <p>NaN and not 0: a dashboard reading 0.00 m is indistinguishable from a perfect seed, which
-     * is the trap this whole check exists to close.
+     * <p>NaN and not 0, because a dashboard reading 0.00 m is indistinguishable from a perfect
+     * seed, which is the trap this whole check exists to close.
      */
     private void clearStartPoseReport() {
         startPoseErrorSinceSeconds = Double.NaN;
@@ -923,7 +848,8 @@ public class Robot extends SpectrumRobot {
         }
 
         // Once the robot has run, the comparison means nothing: the pose is wherever the robot
-        // drove to, and the start of an already-driven path is not an error to report.
+        // drove
+        // to, and the start of an already driven path is not an error to report.
         if (hasBeenEnabled) {
             clearStartPoseReport();
             return;
@@ -931,10 +857,8 @@ public class Robot extends SpectrumRobot {
 
         // The placement writes the auto's start pose, and vision seeding is the only other thing
         // that ever writes the pose while disabled. Unseeded, this compares the start pose against
-        // itself and reports a perfect 0.00 m -- which is exactly what it reported in the
-        // 2026-09-19 Chezy practice match, with both chassis cameras blind for the whole 387 s
-        // pre-match and the real heading error later measured at 7.4 deg. A check that reads
-        // "perfect" when it has nothing to check is worse than no check, so it refuses to answer.
+        // itself and reports a perfect 0.00 m. A check that reads perfect when it has nothing to
+        // check is worse than no check, so it refuses to answer.
         if (!vision.isPoseHeadingSeeded()) {
             clearStartPoseReport();
             startPoseUnverifiedAlert.set(true);
@@ -968,19 +892,11 @@ public class Robot extends SpectrumRobot {
         }
     }
 
-    /** Disabled exit. */
     @Override
     public void disabledExit() {
         Telemetry.print("### Disabled Exit### ");
     }
 
-    /* AUTONOMOUS MODE (AUTO) */
-    /**
-     * This mode is run when the DriverStation Software is set to autonomous and enabled. In this
-     * mode the robot is not able to read values from the gamepads
-     */
-
-    /** This method is called once when autonomous starts */
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
@@ -991,24 +907,21 @@ public class Robot extends SpectrumRobot {
         if (Utils.isSimulation()) {
             robotSim.getBallSim().clearBalls();
             robotSim.getBallSim().placeFieldBalls();
-            // Empties the sim hopper; also zeroes the launched/scored totals and hub scores.
+            // Empties the sim hopper, and zeroes the launched, scored and hub score totals.
             robotSim.getBallSim().resetCounters();
         }
 
         try {
             auton.init();
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
     }
 
-    /** Autonomous periodic. */
     @Override
     public void autonomousPeriodic() {}
 
-    /** Autonomous exit. */
     @Override
     public void autonomousExit() {
         auton.exit();
@@ -1017,7 +930,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("@@@ Auton Exit @@@ ");
     }
 
-    /** Teleop init. */
     @Override
     public void teleopInit() {
         try {
@@ -1029,16 +941,14 @@ public class Robot extends SpectrumRobot {
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
     }
 
-    /** Teleop periodic. */
     @Override
     public void teleopPeriodic() {}
-    /** Teleop exit. */
+
     @Override
     public void teleopExit() {
         if (DriverStation.isFMSAttached()) {
@@ -1047,15 +957,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 
-    /* TEST MODE */
-    /**
-     * This mode is run when the DriverStation Software is set to test and enabled. In this mode the
-     * is fully enabled and can move it's outputs and read values from the gamepads. This mode is
-     * never enabled by the competition field It can be used to test specific features or modes of
-     * the robot
-     */
-
-    /** This method is called once when test mode starts */
     @Override
     public void testInit() {
         try {
@@ -1064,26 +965,24 @@ public class Robot extends SpectrumRobot {
 
             // Enter test mode at rest, the same way teleop enters at IDLE. Without this the robot
             // carries in whatever super state it was left in, and IDLE in particular spins the
-            // flywheel to IDLE_PREP and puts the turret on the target -- neither of which anyone
+            // flywheel to IDLE_PREP and puts the turret on the target, neither of which anyone
             // standing at the robot to run a pit check is expecting.
             CommandScheduler.getInstance().cancelAll();
             superStructure.setWantedSuperState(WantedSuperState.TEST_TURRET_STOP);
 
             Telemetry.print("~~~ Test Init Complete ~~~ ");
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
     }
 
-    /** Test periodic. */
     @Override
     public void testPeriodic() {}
-    /** Test exit. */
+
     @Override
     public void testExit() {
-        // A TEST_* super state has no meaning outside test mode and nothing in auton would clear
+        // A TEST_* super state has no meaning outside test mode, and nothing in auton would clear
         // it: autonomousInit hands over to Auton, which only sets a state when a path command
         // fires. Leaving test straight into auto would otherwise start the match with every
         // mechanism off. teleopInit already resets on its own; this covers the rest.
@@ -1092,13 +991,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("~~~ Test Exit ~~~ ");
     }
 
-    /* SIMULATION MODE */
-    /**
-     * This mode is run when the software is running in simulation and not on an actual robot. This
-     * mode is never enabled by the competition field
-     */
-
-    /** This method is called once when a simulation starts */
     @Override
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
@@ -1106,7 +998,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
 
-    /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
         robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT

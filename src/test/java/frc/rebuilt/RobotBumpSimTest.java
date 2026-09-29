@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 
 public class RobotBumpSimTest {
 
-    /** Verifies initialization and flat-ground pose output of the bump sim. */
     @Test
     @DisplayName("Test RobotBumpSim initialization and flat ground update")
     void testFlatGroundUpdate() {
@@ -39,12 +38,11 @@ public class RobotBumpSimTest {
         assertNotNull(pose3d);
         assertEquals(1.0, pose3d.getX(), 1e-6);
         assertEquals(1.0, pose3d.getY(), 1e-6);
-        // On flat ground, center Z should be chassis height (0.0)
         assertEquals(0.0, pose3d.getZ(), 1e-6);
         assertFalse(bumpSim.isOnRamp());
     }
 
-    /** Verifies getSimWorldPose substitutes simXPos for X while keeping Y and rotation. */
+    /** The returned pose takes X from the slide sim, while Y and rotation stay with MapleSim. */
     @Test
     @DisplayName("Test RobotBumpSim getSimWorldPose")
     void testGetSimWorldPose() {
@@ -58,7 +56,7 @@ public class RobotBumpSimTest {
 
         RobotBumpSim bumpSim = new RobotBumpSim(moduleLocations);
 
-        // Drive into the bump so the frictionless slide sim owns the field-X position
+        // On the bump and driving into it, so the frictionless slide sim owns field X.
         Pose2d maplePose = new Pose2d(3.8, 3.0, Rotation2d.fromDegrees(90.0));
         ChassisSpeeds speeds = new ChassisSpeeds(1.0, 0.0, 0.0);
         Pose3d simulated = bumpSim.update(maplePose, speeds, 5);
@@ -67,7 +65,6 @@ public class RobotBumpSimTest {
 
         Pose2d worldPose = bumpSim.getSimWorldPose(maplePose);
 
-        // X comes from the frictionless simXPos advanced by update(), not the MapleSim pose X
         assertEquals(simulated.getX(), worldPose.getX(), 1e-6);
         assertTrue(worldPose.getX() > 0.0);
         assertEquals(3.0, worldPose.getY(), 1e-6);
