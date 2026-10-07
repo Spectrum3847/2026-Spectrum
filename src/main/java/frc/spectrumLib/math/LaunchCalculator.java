@@ -1,19 +1,20 @@
-package frc.quixlib.math;
+package frc.spectrumLib.math;
 
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
-import frc.robot.Constants;
-import frc.robot.Fiducials;
+import frc.spectrumLib.telemetry.Telemetry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import org.littletonrobotics.junction.Logger;
+
 
 public class LaunchCalculator {
   public static final boolean kLaserTestMode = false;
@@ -23,6 +24,12 @@ public class LaunchCalculator {
   public static final String kDISTANCE_COLUMN_LABEL = "distance_m";
   public static final String kVELOCITY_COLUMN_STRING = "optimal_v_mps";
   public static final String kANGLE_COLUMN_LABEL = "optimal_angle_deg";
+
+  public static final Pose3d turretTag = new Pose3d(
+                4.021836,
+                4.034536,
+                1.12395,
+                new Rotation3d(0.0, 0.0, Math.toRadians(180.0)));
 
   private final InterpolatingTreeMap<Double, LaunchParameter> m_launchTable =
       new InterpolatingTreeMap<Double, LaunchParameter>(
@@ -267,11 +274,11 @@ public class LaunchCalculator {
 
     // Calculate distance from turret to target
     final Translation2d turretToTarget =
-        (kLaserTestMode ? Fiducials.aprilTagFiducials[25].getPose().toPose2d() : targetPose)
+        (kLaserTestMode ? turretTag.toPose2d() : targetPose)
             .getTranslation()
             .minus(turretFieldPose.getTranslation());
     final double distanceToTarget = turretToTarget.getNorm();
-    Logger.recordOutput("LaunchCalculator/distanceToTarget", distanceToTarget);
+    Telemetry.log("LaunchCalculator/distanceToTarget", distanceToTarget, "meters");
 
     final double v0;
     final double phi0;

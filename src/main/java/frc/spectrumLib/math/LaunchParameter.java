@@ -1,4 +1,4 @@
-package frc.quixlib.math;
+package frc.spectrumLib.math;
 
 import edu.wpi.first.math.interpolation.Interpolatable;
 
