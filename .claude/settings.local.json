@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"launch_calculator\\\\|launchTable\\\\|distance_m\\\\|optimal_v_mps\\\\|optimal_angle_deg\")"
+    ]
+  }
+}

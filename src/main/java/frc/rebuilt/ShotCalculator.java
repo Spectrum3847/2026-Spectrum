@@ -880,8 +880,8 @@ public class ShotCalculator {
      * If that trim does not close the gap, {@link #CEILING_3M_HUB_MODEL} is the known-good fallback
      * — it scores, at the cost of a trajectory shaped to stay under a 3 m roof.
      */
-    private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
-
+    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
+    
     // =========================================================================
     // Set shot -- the fallback when the pose is gone
     // =========================================================================
