@@ -81,16 +81,8 @@ public class ArmSim implements Mount, Mountable {
         if (config.isMounted()) {
             config.setPivotX(getUpdatedX(config));
             config.setPivotY(getUpdatedY(config));
-            if (config.isAbsAngle()) {
-                armMech2d.setAngle(Math.toDegrees(armSim.getAngleRads()));
-            } else {
-                armMech2d.setAngle(
-                        Math.toDegrees(armSim.getAngleRads())
-                                + Math.toDegrees(config.getMount().getAngle()));
-            }
-        } else {
-            armMech2d.setAngle(Math.toDegrees(armSim.getAngleRads()));
         }
+        armMech2d.setAngle(Math.toDegrees(getAngle()));
 
         armPivot.setPosition(config.getPivotX(), config.getPivotY());
     }
@@ -129,14 +121,9 @@ public class ArmSim implements Mount, Mountable {
      * @return effective arm angle in radians
      */
     public double getAngle() {
-        if (config.isMounted()) {
-            if (config.isAbsAngle()) {
-                return getAngleRads();
-            } else {
-                return getAngleRads() + config.getMount().getAngle();
-            }
-        }
-        return getAngleRads();
+        return config.isMounted() && !config.isAbsAngle()
+                ? getAngleRads() + config.getMount().getAngle()
+                : getAngleRads();
     }
 
     /**

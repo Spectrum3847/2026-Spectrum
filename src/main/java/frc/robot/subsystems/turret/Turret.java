@@ -1,9 +1,9 @@
 package frc.robot.subsystems.turret;
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.interpolation.TimeInterpolatableBuffer;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -36,14 +36,11 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.DoubleSupplier;
 import lombok.*;
 
 public class Turret extends Mechanism {
 
     public static class TurretConfig extends Config {
-        @Getter @Setter private boolean reversed = false;
-
         @Getter private final double initPosition = 0;
         /** Position error (degrees) within which the turret counts as on target for a shot. */
         @Getter private final double triggerTolerance = 2;
@@ -62,9 +59,6 @@ public class Turret extends Mechanism {
         @Getter private Rotation2d zeroOffsetFromRobotFront = Rotation2d.fromDegrees(180);
 
         /* Turret config settings */
-        @Getter private final double zeroSpeed = -0.1;
-        @Getter private final double holdMaxSpeedRPM = 18;
-
         @Getter private final double currentLimit = 80;
         @Getter private final double supplyCurrentLowerLimit = 80;
         @Getter private final double supplyCurrentLowerTime = 1.0;
@@ -142,33 +136,28 @@ public class Turret extends Mechanism {
          */
         @Getter private final double peakVoltage = 6;
 
-        @Getter private final double reverseLimitDegrees = -0.58 * 360;
-        @Getter private final double forwardLimitDegrees = 0.478 * 360;
-
         @Getter private final double sensorToMechanismRatio = 39.78;
 
         /* Sim Configs */
         @Getter private final double turretX = Units.inchesToMeters(105); // Vertical Center
 
         @Getter private final double turretY = Units.inchesToMeters(75); // Horizontal Center
-        @Getter private final double simRatio = sensorToMechanismRatio;
         @Getter private final double length = 1;
 
         /** Creates a new TurretConfig instance. */
         public TurretConfig() {
-            super("Turret", 14, Rio.CANIVORE); // Rio.CANIVORE);
+            super("Turret", 14, Rio.CANIVORE);
             configPIDGains(0, positionKp, positionKi, 0);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
             configForwardVoltageLimit(peakVoltage);
             configReverseVoltageLimit(-peakVoltage);
             configGearRatio(sensorToMechanismRatio);
-            configSupplyCurrentLimit(currentLimit, true);
-            configLowerSupplyCurrentLimit(supplyCurrentLowerLimit);
-            configLowerSupplyCurrentTime(supplyCurrentLowerTime);
-            configStatorCurrentLimit(torqueCurrentLimit, true);
-            configForwardTorqueCurrentLimit(torqueCurrentLimit);
-            configReverseTorqueCurrentLimit(torqueCurrentLimit);
+            configCurrentLimits(
+                    currentLimit,
+                    torqueCurrentLimit,
+                    supplyCurrentLowerLimit,
+                    supplyCurrentLowerTime);
             configMinMaxRotations(-0.6, 0.5);
             configReverseSoftLimit(getMinRotations(), true);
             configForwardSoftLimit(getMaxRotations(), true);
@@ -178,15 +167,6 @@ public class Turret extends Mechanism {
             configCounterClockwise_Positive();
             // The turret's feedforward is fit from logs, which needs voltage on every sample.
             setFastOutputLogging(true);
-        }
-        /** Modify motor config. */
-        public TurretConfig modifyMotorConfig(TalonFX motor) {
-            TalonFXConfigurator configurator = motor.getConfigurator();
-            TalonFXConfiguration talonConfigMod = getTalonConfig();
-
-            configurator.apply(talonConfigMod);
-            talonConfig = talonConfigMod;
-            return this;
         }
     }
 
@@ -255,6 +235,7 @@ public class Turret extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /**
      * Handles the state transition.
      *
@@ -294,8 +275,8 @@ public class Turret extends Mechanism {
      * the soft limits.
      */
     private void applyUnjamShake() {
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
 
         if (previousSystemState != SystemState.UNJAM_SHAKE) {
             shakeCenterDegrees =
@@ -312,12 +293,8 @@ public class Turret extends Mechanism {
             shakeTimer.restart();
         }
 
-        unwrapping = false;
-        mechOmegaRotPerSec = 0;
-        commandedDegrees =
-                shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG);
-        final double target = commandedDegrees;
-        commandPosition(() -> degreesToRotations(() -> target));
+        holdDegrees(
+                shakeCenterDegrees + (shakePositive ? SHAKE_AMPLITUDE_DEG : -SHAKE_AMPLITUDE_DEG));
     }
 
     // ---- Test-mode pit checks ----
@@ -330,9 +307,9 @@ public class Turret extends Mechanism {
     //
     // None of them touches the robot pose or ShotCalculator, so they are usable on a cart.
     //
-    // Both moving checks drive the motor through commandPosition -- PositionVoltage, gain slot 0,
+    // Both moving checks drive the motor through holdDegrees -- PositionVoltage, gain slot 0,
     // the same request AIM_AT_TARGET uses (with a zero velocity feedforward, there being no target
-    // velocity to feed). NOT Motion Magic. Both were written with commandMMPosition first and the
+    // velocity to feed). NOT Motion Magic. Both were written with setMMPosition first and the
     // difference is not subtle: on FRC_20260919_180624, 163.2 to 177.0 s, the follow check pinned
     // at 89.7 deg/s -- exactly the 0.25 rot/s mmCruiseVelocity -- and never asked for more than
     // 2.51 V of its 6 V ceiling, while AIM_AT_TARGET in the P8 match log runs p90 135 deg/s, p99
@@ -385,9 +362,6 @@ public class Turret extends Mechanism {
      * walking a tag out of frame parks it where it was instead of sending it across its travel.
      */
     private void applyTestFollowTag() {
-        unwrapping = false;
-        mechOmegaRotPerSec = 0;
-
         // Entering the state, take over from wherever the turret already is.
         if (previousSystemState != SystemState.TEST_FOLLOW_TAG) {
             commandedDegrees =
@@ -395,10 +369,9 @@ public class Turret extends Mechanism {
         }
 
         Vision vision = Robot.getVision();
-        boolean tagInView = vision != null && vision.isTurretTagInView();
-        Telemetry.log("Turret/Test/FollowTagInView", tagInView);
-
-        if (tagInView) {
+        boolean tagInView = false;
+        if (vision != null && vision.isTurretTagInView()) {
+            tagInView = true;
             // Limelight tx is positive with the tag right of the crosshair; the turret is
             // counter-clockwise-positive, so closing that bearing means going negative.
             double txDegrees = vision.getTurretTagBearingDegrees();
@@ -409,9 +382,9 @@ public class Turret extends Mechanism {
                             minLimitDegrees(),
                             maxLimitDegrees());
         }
+        Telemetry.log("Turret/Test/FollowTagInView", tagInView);
 
-        final double target = commandedDegrees;
-        commandPosition(() -> degreesToRotations(() -> target));
+        holdDegrees(commandedDegrees);
     }
 
     /**
@@ -481,13 +454,8 @@ public class Turret extends Mechanism {
             target = sweepingTowardMax ? maxDeg : minDeg;
         }
 
-        unwrapping = false;
-        mechOmegaRotPerSec = 0;
-        commandedDegrees = target;
         Telemetry.log("Turret/Test/SweepTowardMax", sweepingTowardMax);
-
-        final double commanded = target;
-        commandPosition(() -> degreesToRotations(() -> commanded));
+        holdDegrees(target);
     }
 
     // Whether the turret is unwrapping to avoid wire wrap.
@@ -590,10 +558,7 @@ public class Turret extends Mechanism {
                 // should exercise the exact output path the robot uses to sit at zero in a match,
                 // not a second one that could behave differently.
             case TEST_ZERO:
-                unwrapping = false;
-                commandedDegrees = 0;
-                mechOmegaRotPerSec = 0;
-                commandPosition(() -> degreesToRotations(() -> 0.0));
+                holdDegrees(0);
                 return;
             case FIXED_ANGLE:
                 applyFixedAngle();
@@ -883,21 +848,21 @@ public class Turret extends Mechanism {
                     }
                 });
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
         recordAngleSample();
         systemState = handleStateTransition();
-        logBatteryUsage();
         updateStallDetection();
         applyStates();
         previousSystemState = systemState;
-        Telemetry.log("Turret/WantedState", wantedState.toString());
-        Telemetry.log("Turret/SystemState", systemState.toString());
-        Telemetry.log("Turret/CurrentCommand", getCurrentCommandName());
+        Telemetry.logState("Turret/WantedState", wantedState);
+        Telemetry.logState("Turret/SystemState", systemState);
         // The turret is the most-watched mechanism on the dashboard, so its loop-rate values are
-        // all logDash; the diagnostics are 10 Hz like every other mechanism.
-        logDiagnostics("Turret", true);
+        // all logDash; the diagnostics are 10 Hz like every other mechanism. No RPM: the velocity
+        // is logged below in rot/sec, next to the commanded rate it is fit against.
+        logStandard("Turret", true, RpmLog.NONE);
         Telemetry.logDash("Turret/CommandedDegrees", commandedDegrees, "deg");
         updateTravel();
         persistRawPosition();
@@ -920,6 +885,7 @@ public class Turret extends Mechanism {
         Telemetry.log("Turret/StallLatched", stallLatched);
         Telemetry.log("Turret/StallLatchCount", stallLatchCount);
     }
+
     /**
      * Declares the turret's current physical position to be its zero (facing away from the intake).
      * For use while disabled after a student has pointed the turret at its zero by hand, so a
@@ -944,6 +910,7 @@ public class Turret extends Mechanism {
                 .ignoringDisable(true)
                 .withName("Turret.zeroHere");
     }
+
     /**
      * Shifts the encoder so the turret's reported angle matches where it is actually pointing.
      *
@@ -1210,8 +1177,8 @@ public class Turret extends Mechanism {
 
     /** Raises the envelope alert while the reported angle sits outside the configured travel. */
     private void updateEnvelopeAlert() {
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
         double position = getPositionDegrees();
         boolean outside =
                 position < minDeg - ENVELOPE_MARGIN_DEGREES
@@ -1243,14 +1210,13 @@ public class Turret extends Mechanism {
     /** Below this the turret is not turning. Tracking a target never reads this low for long. */
     private static final double STALL_VELOCITY_ROT_PER_SEC = 0.02;
 
-    /** How long pinned-and-stopped must hold before the output is cut. */
-    private static final double STALL_SECONDS = 1.0;
+    /** How long pinned-and-stopped must hold before the output is cut. 1.0 s until 2026-09-25. */
+    private static final double STALL_SECONDS = 2.0;
 
     /** How far the other way the turret must be asked to go before the latch releases. */
     private static final double STALL_RECOVERY_MARGIN_DEGREES = 2.0;
 
-    private final Timer stallTimer = new Timer();
-    private boolean stallTiming = false;
+    private final Debouncer stallDebouncer = new Debouncer(STALL_SECONDS, DebounceType.kRising);
     private boolean stallLatched = false;
 
     /** Sign of {@code commanded - measured} when the latch closed: the way it was pushing. */
@@ -1278,20 +1244,11 @@ public class Turret extends Mechanism {
                 Math.abs(getStatorCurrent())
                                 >= STALL_STATOR_FRACTION * config.getTorqueCurrentLimit()
                         && Math.abs(getVelocityRPM() / 60.0) < STALL_VELOCITY_ROT_PER_SEC;
-        if (!stalledNow) {
-            stallTiming = false;
-            return;
-        }
-        if (!stallTiming) {
-            stallTiming = true;
-            stallTimer.restart();
-            return;
-        }
-        if (!stallTimer.hasElapsed(STALL_SECONDS)) {
+        if (!stallDebouncer.calculate(stalledNow)) {
             return;
         }
         stallLatched = true;
-        stallTiming = false;
+        stallDebouncer.calculate(false);
         stallLatchCount++;
         stallPushSign = Math.signum(commandedDegrees - getPositionDegrees());
         stallAlert.setText(
@@ -1339,50 +1296,26 @@ public class Turret extends Mechanism {
     /** Releases the stall latch and its alert. */
     private void clearStallLatch() {
         stallLatched = false;
-        stallTiming = false;
+        stallDebouncer.calculate(false);
         stallPushSign = 0;
         stallAlert.set(false);
     }
 
     /**
-     * Commands a position unless the stall latch is holding the turret out.
+     * Holds the turret at an angle with a plain position request: no unwrap, no velocity
+     * feedforward. Stops instead while the stall latch is holding the turret out.
      *
-     * @param rotations the mechanism position to hold, in rotations
+     * @param degrees the mechanism angle to hold
      */
-    private void commandPosition(DoubleSupplier rotations) {
+    private void holdDegrees(double degrees) {
+        unwrapping = false;
+        mechOmegaRotPerSec = 0;
+        commandedDegrees = degrees;
         if (!outputAllowed()) {
             stop();
             return;
         }
-        setPosition(rotations);
-    }
-
-    /**
-     * Commands a Motion Magic position unless the stall latch is holding the turret out.
-     *
-     * @param rotations the mechanism position to slew to, in rotations
-     */
-    private void commandMMPosition(DoubleSupplier rotations) {
-        if (!outputAllowed()) {
-            stop();
-            return;
-        }
-        setMMPosition(rotations);
-    }
-
-    /**
-     * Commands a position with a velocity feedforward unless the stall latch is holding the turret
-     * out.
-     *
-     * @param rotations the mechanism position to hold, in rotations
-     * @param velocityRPS the feedforward velocity, in rotations per second
-     */
-    private void commandPositionWithVelocity(DoubleSupplier rotations, DoubleSupplier velocityRPS) {
-        if (!outputAllowed()) {
-            stop();
-            return;
-        }
-        setPositionWithVelocity(rotations, velocityRPS);
+        setPosition(() -> degreesToRotations(() -> degrees));
     }
 
     /** Applies the aim at target. */
@@ -1405,20 +1338,22 @@ public class Turret extends Mechanism {
      */
     private void applyFixedAngle() {
         mechOmegaRotPerSec = 0;
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
         double resolved = resolveTurretAngle(fixedAngleDegrees);
         if (!unwrapping
                 && Math.abs(getPositionDegrees() - resolved) > config.getLongMoveDegrees()) {
             unwrapping = true;
             unwrapTargetN = (int) Math.round((resolved - fixedAngleDegrees) / 360.0);
         }
-        commandedDegrees = MathUtil.clamp(resolved, minDeg, maxDeg);
-        final double fixedTarget = commandedDegrees;
+        commandedDegrees = MathUtil.clamp(resolved, minLimitDegrees(), maxLimitDegrees());
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+        double rotations = degreesToRotations(() -> commandedDegrees);
         if (unwrapping) {
-            commandMMPosition(() -> degreesToRotations(() -> fixedTarget));
+            setMMPosition(() -> rotations);
         } else {
-            commandPosition(() -> degreesToRotations(() -> fixedTarget));
+            setPosition(() -> rotations);
         }
     }
 
@@ -1441,17 +1376,22 @@ public class Turret extends Mechanism {
         double robotOmegaRotPerSec = robotSpeeds.omegaRadiansPerSecond / (2.0 * Math.PI);
         mechOmegaRotPerSec = params.turretAngularVelocity() - robotOmegaRotPerSec;
 
+        if (!outputAllowed()) {
+            stop();
+            return;
+        }
+
         if (unwrapping) {
             // Motion magic for smooth full-turn slew to the opposite winding, so the cable never
             // binds
             final double unwrapRot = degreesToRotations(() -> commandedDegrees);
-            commandMMPosition(() -> unwrapRot);
+            setMMPosition(() -> unwrapRot);
             return;
         }
 
         // Lead the moving target by the actuation latency
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
         double predictedDegrees =
                 MathUtil.clamp(
                         commanded
@@ -1461,7 +1401,7 @@ public class Turret extends Mechanism {
 
         final double posRot = degreesToRotations(() -> predictedDegrees);
         final double ffRps = mechOmegaRotPerSec;
-        commandPositionWithVelocity(() -> posRot, () -> ffRps);
+        setPositionWithVelocity(() -> posRot, () -> ffRps);
     }
 
     /**
@@ -1469,8 +1409,8 @@ public class Turret extends Mechanism {
      * the limited travel range, and drives the proactive cable-unwrap hysteresis.
      */
     private double resolveTurretAngle(double desiredMechDegrees) {
-        double minDeg = config.getMinRotations() * 360.0;
-        double maxDeg = config.getMaxRotations() * 360.0;
+        double minDeg = minLimitDegrees();
+        double maxDeg = maxLimitDegrees();
         double currentDeg = getPositionDegrees();
 
         int nMin = (int) Math.ceil((minDeg - desiredMechDegrees) / 360.0);
@@ -1559,22 +1499,22 @@ public class Turret extends Mechanism {
      * Returns the current turret tracking error in degrees, for logging and for setting the gate
      * tolerances from a log.
      *
-     * @return commanded minus measured turret angle, in degrees
+     * @return measured minus commanded turret angle, in degrees
      */
     public double getTrackingErrorDegrees() {
         return getPositionDegrees() - commandedDegrees;
     }
 
     /**
-     * Creates a command that drops both extension axes into coast so the mechanism can be moved by
-     * hand. Runs while disabled, which is the only time it is useful.
+     * Creates a command that drops the turret into coast so it can be moved by hand. Runs while
+     * disabled, which is the only time it is useful.
      *
      * @return the coast-mode command
      */
     public Command coastModeCommand() {
         return new InstantCommand(() -> setBrakeMode(false))
                 .ignoringDisable(true)
-                .withName("IntakeExtension.coastMode");
+                .withName("Turret.coastMode");
     }
 
     // --------------------------------------------------------------------------------
@@ -1599,7 +1539,7 @@ public class Turret extends Mechanism {
                     new ArmConfig(
                                     config.turretX,
                                     config.turretY,
-                                    config.simRatio,
+                                    config.sensorToMechanismRatio,
                                     config.length,
                                     -360,
                                     360,

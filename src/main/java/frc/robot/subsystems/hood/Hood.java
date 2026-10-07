@@ -16,8 +16,6 @@ public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
 
-        @Getter private final double initPosition = 0.0;
-
         /* 34.5 deg of travel */
         @Getter private final double maxRotations = 0.095833;
         @Getter private final double minRotations = 0.0;
@@ -56,7 +54,6 @@ public class Hood extends Mechanism {
         @Getter private final double hoodX = Units.inchesToMeters(45);
 
         @Getter private final double hoodY = Units.inchesToMeters(52.5);
-        @Getter private final double simRatio = gearRatio;
         @Getter private final double length = Units.inchesToMeters(7.735);
 
         /** Creates a new HoodConfig instance. */
@@ -69,12 +66,11 @@ public class Hood extends Mechanism {
             configForwardVoltageLimit(peakVoltage);
             configReverseVoltageLimit(-peakVoltage);
             configGearRatio(gearRatio);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    lowerSupplyCurrentTime);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
@@ -84,7 +80,6 @@ public class Hood extends Mechanism {
 
     public enum WantedState {
         HOME,
-        STOPPED,
         AIM_AT_TARGET,
         /** Fixed angle for the pose-independent set shot. */
         SET_SHOT
@@ -92,7 +87,6 @@ public class Hood extends Mechanism {
 
     public enum SystemState {
         HOME,
-        STOPPED,
         AIM_AT_TARGET,
         SET_SHOT
     }
@@ -107,15 +101,16 @@ public class Hood extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case HOME -> SystemState.HOME;
-            case STOPPED -> SystemState.STOPPED;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
             case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
+
     /** Hood angle commanded this loop (degrees). */
     @Getter private double commandedDegrees = 0;
 
@@ -133,9 +128,6 @@ public class Hood extends Mechanism {
                     return;
                 }
                 break;
-            case STOPPED:
-                stop();
-                return;
             case AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedDegrees = params.hoodAngle();
@@ -145,10 +137,8 @@ public class Hood extends Mechanism {
                 break;
         }
         commandedDegrees = wantedDegrees;
-        final double finalWantedDegrees = wantedDegrees;
-        final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
-        // setMMPositionFOC
-        setPosition(() -> finalWantedPosition);
+        double wantedPosition = degreesToRotations(() -> commandedDegrees);
+        setPosition(() -> wantedPosition);
     }
 
     /**
@@ -187,17 +177,15 @@ public class Hood extends Mechanism {
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.log("Hood/WantedState", wantedState.toString());
-        Telemetry.log("Hood/SystemState", systemState.toString());
-        Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
-        logDiagnostics("Hood", true);
-        Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logState("Hood/WantedState", wantedState);
+        Telemetry.logState("Hood/SystemState", systemState);
+        logStandard("Hood", true, RpmLog.LOOP);
         Telemetry.logDash("Hood/PositionDegrees", getPositionDegrees(), "deg");
         Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
         Telemetry.log("Hood/AtAngle", isAtAngle());
@@ -225,12 +213,14 @@ public class Hood extends Mechanism {
                     new ArmConfig(
                                     config.hoodX,
                                     config.hoodY,
-                                    config.simRatio,
+                                    config.gearRatio,
                                     config.length,
                                     180 - config.getMaxRotations() * 360,
                                     180 - config.getMinRotations() * 360,
-                                    180 - 9)
-                            .setSimulatedGravity(false),
+                                    180 - config.getMinRotations() * 360)
+                            .setSimulatedGravity(false)
+                            // The drawn angle falls as the hood raises.
+                            .setReversedLinkage(true),
                     mech,
                     motor,
                     config.getName());

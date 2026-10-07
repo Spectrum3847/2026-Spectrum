@@ -23,6 +23,7 @@ public class FieldHelpersTest {
         Rotation2d flipped = FieldHelpers.flipAngle(rot);
         assertEquals(-135.0, flipped.getDegrees(), 1e-6);
     }
+
     /** Verifies flipping the X and Y coordinates. */
     @Test
     @DisplayName("Test flipX and flipY")
@@ -33,6 +34,7 @@ public class FieldHelpersTest {
         assertEquals(expectedFlippedX, FieldHelpers.flipX(5.0), 1e-6);
         assertEquals(expectedFlippedY, FieldHelpers.flipY(3.0), 1e-6);
     }
+
     /** Verifies normalize angle. */
     @Test
     @DisplayName("Test normalizeAngle radians")
@@ -42,6 +44,7 @@ public class FieldHelpersTest {
         assertEquals(-Math.PI / 2.0, FieldHelpers.normalizeAngle(3.0 * Math.PI / 2.0), 1e-6);
         assertEquals(0.0, FieldHelpers.normalizeAngle(2 * Math.PI), 1e-6);
     }
+
     /** Verifies pose out of field. */
     @Test
     @DisplayName("Test poseOutOfField for Pose2d and Pose3d")

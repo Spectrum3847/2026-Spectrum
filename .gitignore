@@ -176,6 +176,9 @@ out/
 # Simulation GUI and other tools window save file
 networktables.json
 networktables.json.bck
+simgui.json
+simgui-ds.json
+simgui-window.json
 
 # Simulation data log directory. Everything in it is scratch except logs/matches/, which holds
 # the real match logs committed for testing; see logs/matches/README.md and

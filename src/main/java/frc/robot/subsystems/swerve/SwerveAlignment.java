@@ -49,7 +49,6 @@ public class SwerveAlignment {
 
     /** One module's encoder signals plus the offsets we want to compare against. */
     private static class ModuleEncoder {
-        private final String name;
         private final int encoderId;
         // Log keys, built once here rather than concatenated on every publish
         private final String absoluteRotationsKey;
@@ -67,7 +66,6 @@ public class SwerveAlignment {
         private boolean appliedOffsetValid;
 
         private ModuleEncoder(String name, CANcoder encoder, double configOffsetRotations) {
-            this.name = name;
             this.encoderId = encoder.getDeviceID();
             String key = KEY_PREFIX + name + "/";
             this.absoluteRotationsKey = key + "AbsoluteRotations";

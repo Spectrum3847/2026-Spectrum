@@ -92,8 +92,9 @@ constructor:
 Live tuning exists but is not used for gains. `Telemetry extends DogLog`
 (`src/main/java/frc/spectrumLib/telemetry/Telemetry.java` 44), so
 `Telemetry.tunable(key, default)` returns an NT `DoubleSubscriber`, and DogLog 2026.5.0 also has
-`tunable(key, default, DoubleConsumer onChange)`. Six values use it today (`Launcher/OnTheFlySpeed`,
-`DyeRotor/IndexMaxFeederRPM`, three `IntakeExtension/Agitate*`, `SuperStructure/SecondsToSqueeze`).
+`tunable(key, default, DoubleConsumer onChange)`. Eight values use it as of 2026-09-25 (`DyeRotor/IndexMaxFeederRPM`, `DyeRotor/AutoUnjamAmps`,
+three `IntakeExtension/Agitate*`, `SuperStructure/SecondsToSqueeze`, `ShotCalc/RpmPerMps`,
+`ShotCalc/NearShotRpmDrop`; `Launcher/OnTheFlySpeed` was removed on 2026-09-22).
 None is a gain. The older `TuneValue` class that `docs/tools/pid-tuning.md` describes is not
 referenced anywhere in robot code.
 

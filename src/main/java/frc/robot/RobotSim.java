@@ -19,7 +19,6 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import frc.rebuilt.FuelPhysicsSim;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.subsystems.SuperStructure;
@@ -78,6 +77,7 @@ public class RobotSim {
         ballSim.placeFieldBalls(); // spawns all the game pieces
         configBallSimRobot();
     }
+
     /** Updates the articulated mechanisms. */
     public void updateArticulatedMechanisms() {
         double intakeExtensionMeters =
@@ -113,7 +113,8 @@ public class RobotSim {
                                 new Rotation3d(0, Math.toRadians(hoodAngleDegrees), 0))
                         .rotateBy(new Rotation3d(0, 0, Math.toRadians(turretAngleDegrees)));
 
-        double dyeRotorDegrees = robotSuperStructure.getDyeRotor().getRotor().getPositionDegrees();
+        // Negated: the model spins opposite to the rotor motor's positive direction.
+        double dyeRotorDegrees = -robotSuperStructure.getDyeRotor().getRotor().getPositionDegrees();
         var dyeRotorPose3d =
                 Pose3d.kZero.rotateAround(
                         TURRET_PIVOT_POINT, new Rotation3d(0, 0, Math.toRadians(dyeRotorDegrees)));
@@ -122,12 +123,14 @@ public class RobotSim {
 
         Telemetry.log("Sim/Components", mechanismPoses);
     }
+
     /** Draw robot. */
     public void drawRobot() {
         drawSideRobot();
         drawTopRobot();
         drawTurretCircle();
     }
+
     /** Draw turret circle. */
     @SuppressWarnings("unused")
     public void drawTurretCircle() {
@@ -138,6 +141,7 @@ public class RobotSim {
                         Units.inchesToMeters(topViewWidth / 2));
         Circle circle = new Circle(50, 30, "Turret Circle", circleRoot, topView);
     }
+
     /** Draw top robot. */
     public void drawTopRobot() {
         MechanismRoot2d robotRoot =
@@ -163,6 +167,7 @@ public class RobotSim {
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
     }
+
     /** Draw side robot. */
     public void drawSideRobot() {
         MechanismRoot2d robotRoot =
@@ -191,6 +196,7 @@ public class RobotSim {
         // MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
         // shooter.setColor(new Color8Bit(Color.kBlack));
     }
+
     /** Config ball sim robot. */
     private void configBallSimRobot() {
         double bumperHeight = Units.inchesToMeters(5);
@@ -214,6 +220,7 @@ public class RobotSim {
                 intakeYMax,
                 robotSuperStructure::currentStateIsIntaking);
     }
+
     /** Creates the sim ball launch. */
     private Command createSimBallLaunch() {
         return Commands.runOnce(
@@ -265,23 +272,27 @@ public class RobotSim {
                     ballSim.launchBall(launcherPose, launchVelocity, backspin);
                 });
     }
-    /** Ball sim launch fuel. */
+
+    /**
+     * Launches the sim hopper's fuel, one ball per {@code timeBetweenBallLaunches}, for as long as
+     * it runs (bound while the robot is launching). Fuel intaked mid-launch is launched too: this
+     * used to count the hopper once at the start and stop after that many, stranding anything
+     * picked up during the launch.
+     */
     public Command ballSimLaunchFuel() {
         if (!Utils.isSimulation()) {
             return Commands.none();
         }
         return Commands.defer(
-                () -> {
-                    int fuelCount = ballSim.getTotalIntaked();
-                    SequentialCommandGroup stream =
-                            new SequentialCommandGroup(Commands.waitSeconds(Math.random() * 0.3));
-                    for (int i = 0; i < fuelCount; i++) {
-                        stream.addCommands(
-                                createSimBallLaunch(),
-                                Commands.waitSeconds(timeBetweenBallLaunches));
-                    }
-                    return stream.withName("RobotSim.ballSimLaunchFuel");
-                },
+                () ->
+                        Commands.sequence(
+                                        Commands.waitSeconds(Math.random() * 0.3),
+                                        Commands.repeatingSequence(
+                                                Commands.waitUntil(
+                                                        () -> ballSim.getTotalIntaked() > 0),
+                                                createSimBallLaunch(),
+                                                Commands.waitSeconds(timeBetweenBallLaunches)))
+                                .withName("RobotSim.ballSimLaunchFuel"),
                 Set.of() // no subsystem requirements
                 );
     }

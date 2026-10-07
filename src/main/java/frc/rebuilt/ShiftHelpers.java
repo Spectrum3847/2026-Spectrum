@@ -25,6 +25,7 @@ public class ShiftHelpers {
         AUTO,
         DISABLED;
     }
+
     /** Shift info. */
     public record ShiftInfo(
             ShiftEnum currentShift, double elapsedTime, double remainingTime, boolean active) {}
@@ -64,6 +65,7 @@ public class ShiftHelpers {
     static Supplier<Optional<Boolean>> getAllianceWinOverrideSupplier() {
         return allianceWinOverride;
     }
+
     /**
      * Returns the first active alliance.
      *
@@ -100,6 +102,7 @@ public class ShiftHelpers {
         shiftTimerOffset = 0;
         shiftTimer.restart();
     }
+
     /**
      * Returns the schedule.
      *
@@ -114,6 +117,7 @@ public class ShiftHelpers {
                         : inactiveSchedule;
         return currentSchedule;
     }
+
     /**
      * Returns the shift info.
      *
@@ -179,6 +183,7 @@ public class ShiftHelpers {
                 new ShiftInfo(currentShift, stateTimeElapsed, stateTimeRemaining, active);
         return shiftInfo;
     }
+
     /**
      * Returns the official shift info.
      *
@@ -187,6 +192,7 @@ public class ShiftHelpers {
     public static ShiftInfo getOfficialShiftInfo() {
         return getShiftInfo(getSchedule(), shiftStartTimes, shiftEndTimes);
     }
+
     /**
      * Returns the shifted shift info.
      *

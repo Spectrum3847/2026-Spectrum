@@ -27,16 +27,13 @@ Catch the *specific* exception you're handling:
 
 ```java
 try {
-    path = PathPlannerPath.fromPathFile(pathName);
-    return AutoBuilder.followPath(path);
-} catch (FileVersionException | IOException | ParseException e) {
-    // Pattern from frc.robot.auton.Auton.followSinglePath
-    e.printStackTrace();
-    return new PrintCommand("ERROR LOADING PATH");
+    pathPlannerPaths = PathPlannerAuto.getPathGroupFromAutoFile(baseAutoName);
+} catch (IOException | ParseException e) {
+    Telemetry.print("Could not load path planner paths");
 }
 ```
 
-This is the actual pattern in [`Auton.followSinglePath`](../../src/main/java/frc/robot/auton/Auton.java): three specific exceptions, joined with `|`, fallback to a print command that names the failure mode.
+This is the actual pattern in [`Robot.java`](../../src/main/java/frc/robot/Robot.java)'s auto preview: two specific exceptions, joined with `|`, and a message that names the failure mode.
 
 ## Prefer Validating Inputs Over Catching `NullPointerException`
 
@@ -44,13 +41,10 @@ This is the actual pattern in [`Auton.followSinglePath`](../../src/main/java/frc
 
 ```java
 Command auton = pathChooser.getSelected();
-if (auton != null) {
-    return auton;
-}
-return new PrintCommand("*** AUTON COMMAND IS NULL ***");
+return auton != null ? auton : noSelection;
 ```
 
-That's how `Auton.getAutonomousCommand()` handles "what if nothing's selected": explicit check, explicit fallback, no `try { … } catch (NullPointerException)`.
+That's how `Auton.getAutonomousCommand()` handles a dashboard selection the chooser doesn't have (`noSelection` is a print command): explicit check, explicit fallback, no `try { … } catch (NullPointerException)`.
 
 Same logic for `ArrayIndexOutOfBoundsException`: bounds-check before indexing rather than trapping the throw.
 

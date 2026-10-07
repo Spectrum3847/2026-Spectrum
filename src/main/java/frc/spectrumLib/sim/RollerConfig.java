@@ -8,7 +8,7 @@ import lombok.Getter;
  * Configuration data for a roller mechanism simulation. Stores physical properties, display colors,
  * canvas position, and optional mount attachment used by {@link RollerSim}.
  */
-public class RollerConfig {
+public class RollerConfig implements Mountable.MountedConfig {
     /** Outer diameter of the roller in inches, used for physics and visual scaling. */
     @Getter private double rollerDiameterInches = 2;
     /** Number of radial lines used to draw the roller circle in the Mechanism2d canvas. */
@@ -28,9 +28,14 @@ public class RollerConfig {
     /** Initial Y position of the roller axle in the Mechanism2d canvas (metres). */
     @Getter private double initialY = 0;
     /** Whether this roller is attached to a parent {@link Mount}. */
-    @Getter private boolean mounted = false;
     /** The parent mount this roller is attached to, or {@code null} if not mounted. */
     @Getter private Mount mount;
+
+    /** Whether this config is attached to a parent mount. */
+    public boolean isMounted() {
+        return mount != null;
+    }
+
     /** X position of the mount at simulation start (metres). */
     @Getter private double initMountX;
     /** Y position of the mount at simulation start (metres). */
@@ -47,12 +52,6 @@ public class RollerConfig {
         rollerDiameterInches = diameterInches;
     }
 
-    /**
-     * Sets the gear ratio between the motor and the roller output shaft.
-     *
-     * @param ratio gear ratio (motor rotations per roller rotation)
-     * @return this config for chaining
-     */
     /** True when the sim geometry travels opposite the motor's positive direction. */
     @Getter private boolean reversedLinkage = false;
 
@@ -67,6 +66,7 @@ public class RollerConfig {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
+
     /**
      * Sets the gear ratio.
      *
@@ -111,7 +111,6 @@ public class RollerConfig {
      */
     public RollerConfig setMount(LinearSim sim) {
         if (sim != null) {
-            mounted = true;
             mount = sim;
             initMountX = sim.getConfig().getInitialX();
             initMountY = sim.getConfig().getInitialY();
@@ -129,7 +128,6 @@ public class RollerConfig {
      */
     public RollerConfig setMount(ArmSim sim) {
         if (sim != null) {
-            mounted = true;
             mount = sim;
             initMountX = sim.getConfig().getInitialX();
             initMountY = sim.getConfig().getInitialY();

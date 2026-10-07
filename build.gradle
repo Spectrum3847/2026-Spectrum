@@ -114,7 +114,6 @@ dependencies {
 
     testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
     implementation 'com.google.guava:guava:33.7.1-jre'
 
     def akitJson = new groovy.json.JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
@@ -159,7 +158,7 @@ spotbugs {
     showStackTraces = true
     showProgress = true
     effort = com.github.spotbugs.snom.Effort.DEFAULT
-    reportLevel =  com.github.spotbugs.snom.Confidence.values()[3]
+    reportLevel = com.github.spotbugs.snom.Confidence.values()[3]
     reportsDir = file("$buildDir/reports/spotbugs")
     //includeFilter = file('spotbugs-include.xml')
     excludeFilter = file('excludeFilter-spotbugs.xml')
@@ -194,12 +193,12 @@ javadoc {
 // Create version file
 project.compileJava.dependsOn(createVersionFile)
 gversion {
-    srcDir       = "src/main/java/"
+    srcDir = "src/main/java/"
     classPackage = "frc.robot"
-    className    = "BuildConstants"
-    dateFormat   = "yyyy-MM-dd HH:mm:ss z"
-    timeZone     = "America/New_York"
-    indent       = "  "
+    className = "BuildConstants"
+    dateFormat = "yyyy-MM-dd HH:mm:ss z"
+    timeZone = "America/New_York"
+    indent = "  "
 }
 
 // Configure Spotless to use google aosp standards
@@ -242,7 +241,7 @@ spotless {
         target fileTree('.') {
             include '**/*.md'
             exclude '**/build/**', '**/build-*/**'
-            exclude '.agents/skills/**/SKILL.md'
+            exclude '.agents/skills/**/SKILL.md', '.claude/skills/**/SKILL.md'
         }
         flexmark()
         trimTrailingWhitespace()

@@ -26,12 +26,11 @@ public class LauncherTower extends Mechanism {
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
             configGearRatio(1);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    lowerSupplyCurrentTime);
             configNeutralBrakeMode(true);
             configCounterClockwise_Positive();
             // The tower's feedforward is fit from logs, which needs voltage on every sample.
@@ -68,6 +67,7 @@ public class LauncherTower extends Mechanism {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
@@ -78,7 +78,6 @@ public class LauncherTower extends Mechanism {
         };
     }
 
-    // TODO: test
     /** Applies the states. */
     private void applyStates() {
         double wantedRPM = 0;
@@ -98,15 +97,13 @@ public class LauncherTower extends Mechanism {
                 break;
         }
         commandedRPM = wantedRPM;
-        final double finalWantedRPM = wantedRPM;
-        setVelocityRPM(() -> finalWantedRPM);
+        setVelocityRPM(() -> commandedRPM);
     }
 
     /** Tower speed commanded this loop (RPM); 0 when stopped. */
     @Getter private double commandedRPM = 0;
 
     @Getter private final LauncherTowerConfig config;
-    // @Getter private LauncherTowerSim sim;
     /**
      * Creates a new LauncherTower instance.
      *
@@ -116,44 +113,19 @@ public class LauncherTower extends Mechanism {
         super(config);
         this.config = config;
 
-        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.log("LauncherTower/WantedState", wantedState.toString());
-        Telemetry.log("LauncherTower/SystemState", systemState.toString());
-        Telemetry.log("LauncherTower/CurrentCommand", getCurrentCommandName());
-        logDiagnostics("LauncherTower");
-        // Loop rate, like the launcher's: the tower's feedforward is fit from these two against
-        // the voltage that fastOutputLogging keeps at the same rate.
-        Telemetry.log("LauncherTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logState("LauncherTower/WantedState", wantedState);
+        Telemetry.logState("LauncherTower/SystemState", systemState);
+        // RPM at loop rate, like the launcher's: the tower's feedforward is fit from RPM and
+        // CommandedRPM against the voltage that fastOutputLogging keeps at the same rate.
+        logStandard("LauncherTower", false, RpmLog.LOOP);
         Telemetry.log("LauncherTower/CommandedRPM", commandedRPM, "RPM");
     }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    // public void simulationInit() {
-    //     if (isAttached()) {
-    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-    // diameter
-    //         sim = new LauncherTowerSim(RobotSim.topView, motor.getSimState());
-    //     }
-    // }
-
-    // class LauncherTowerSim extends RollerSim {
-    //     public LauncherTowerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-    //         super(
-    //                 new RollerConfig(config.getWheelDiameter())
-    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
-    //                 mech,
-    //                 rollerMotorSim,
-    //                 config.getName());
-    //     }
-    // }
 }

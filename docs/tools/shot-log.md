@@ -140,6 +140,12 @@ trim commands and read once by `ShotCalculator.loadPersistedTrims()` during robo
 redeploy no longer zeroes it. The flywheel trim that briefly shared this mechanism
 (`ShotFlywheelTrimPct`, Chezy Q11 only) is gone; `loadPersistedTrims()` deletes a stored copy.
 
+In simulation every trim is zero instead (`ShotCalculator.zeroTrimsForSimulation()`): both operator
+trims start at zero, since the sim's `Preferences` file on the laptop would otherwise bring back
+whatever the last sim session nudged, and each model's `hoodOffsetDeg` calibration (the hub model's
+-5°) is switched off, since it corrects how the real robot's shots land and the simulated ball flies
+the fitted model. Nudges still work for the rest of the sim session.
+
 `TURRET_ANGLE_OFFSET` is **not** stored any more (2026-09-19). Chezy QM4 booted with +10° of turret
 trim in flash, the cap, left by an operator pressing D-pad right at a turret that was parked
 waiting for a pose. A turret trim corrects one match's pose error, so it starts at zero every boot;

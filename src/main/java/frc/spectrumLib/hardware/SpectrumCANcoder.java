@@ -26,11 +26,18 @@ public class SpectrumCANcoder {
     /** Selects how the TalonFX reads position data from the remote CANcoder. */
     public enum CANCoderFeedbackType {
         /** Position is read remotely; motor encoder is used for velocity. */
-        RemoteCANcoder,
+        RemoteCANcoder(FeedbackSensorSourceValue.RemoteCANcoder),
         /** CANcoder position is fused with the motor encoder for high-bandwidth feedback. */
-        FusedCANcoder,
+        FusedCANcoder(FeedbackSensorSourceValue.FusedCANcoder),
         /** Motor encoder is synchronized to the CANcoder position on enable. */
-        SyncCANcoder,
+        SyncCANcoder(FeedbackSensorSourceValue.SyncCANcoder);
+
+        /** The TalonFX feedback source this mode sets. */
+        public final FeedbackSensorSourceValue sensorSource;
+
+        CANCoderFeedbackType(FeedbackSensorSourceValue sensorSource) {
+            this.sensorSource = sensorSource;
+        }
     }
 
     private CANCoderFeedbackType feedbackSource = CANCoderFeedbackType.FusedCANcoder;
@@ -97,24 +104,10 @@ public class SpectrumCANcoder {
         TalonFXConfigurator configurator = motor.getConfigurator();
         TalonFXConfiguration talonConfigMod = mechConfig.getTalonConfig();
         talonConfigMod.Feedback.FeedbackRemoteSensorID = config.getCANcoderID();
-        switch (feedbackSource) {
-            case RemoteCANcoder:
-                talonConfigMod.Feedback.FeedbackSensorSource =
-                        FeedbackSensorSourceValue.RemoteCANcoder;
-                break;
-            case FusedCANcoder:
-                talonConfigMod.Feedback.FeedbackSensorSource =
-                        FeedbackSensorSourceValue.FusedCANcoder;
-                break;
-            case SyncCANcoder:
-                talonConfigMod.Feedback.FeedbackSensorSource =
-                        FeedbackSensorSourceValue.SyncCANcoder;
-                break;
-        }
+        talonConfigMod.Feedback.FeedbackSensorSource = feedbackSource.sensorSource;
         talonConfigMod.Feedback.RotorToSensorRatio = config.getRotorToSensorRatio();
         talonConfigMod.Feedback.SensorToMechanismRatio = config.getSensorToMechanismRatio();
         configurator.apply(talonConfigMod);
-        mechConfig.setTalonConfig(talonConfigMod);
         return this;
     }
 

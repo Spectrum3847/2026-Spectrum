@@ -2,8 +2,9 @@ package frc.robot.subsystems.fuelIntake;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.Robot;
@@ -34,7 +35,6 @@ public class FuelIntake implements Subsystem {
 
         public static class IntakeRollerConfig extends Config {
 
-            // Likely keep current limits
             @Getter private final double supplyCurrentLimit = 80;
             @Getter private final double statorCurrentLimit = 80;
             @Getter private final double lowerSupplyCurrentLimit = 40;
@@ -59,12 +59,11 @@ public class FuelIntake implements Subsystem {
                 configPIDGains(0, velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        lowerSupplyCurrentLimit,
+                        lowerSupplyCurrentTime);
                 configNeutralBrakeMode(false);
                 configCounterClockwise_Positive();
                 setFollowerConfigs(
@@ -92,16 +91,13 @@ public class FuelIntake implements Subsystem {
             simulationInit();
             Telemetry.print(getName() + " Subsystem Initialized");
         }
+
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("IntakeRoller/CurrentCommand", getCurrentCommandName());
-            logDiagnostics("IntakeRoller");
-            if (Telemetry.slowLogThisLoop()) {
-                Telemetry.log("IntakeRoller/RPM", getVelocityRPM(), "RPM");
-            }
+            logStandard("IntakeRoller", false, RpmLog.SLOW);
         }
+
         /**
          * Sets the roller voltage.
          *
@@ -109,10 +105,6 @@ public class FuelIntake implements Subsystem {
          */
         public void setRollerVoltage(double volts) {
             setVoltageOutput(() -> volts);
-        }
-        /** Roller stop. */
-        public void rollerStop() {
-            stop();
         }
 
         // ----------------------------------------------------------------------------
@@ -177,12 +169,11 @@ public class FuelIntake implements Subsystem {
                 configPIDGains(0, velocityKp, 0, 0);
                 configFeedForwardGains(velocityKs, velocityKv, 0, 0);
                 configGearRatio(gearRatio);
-                configSupplyCurrentLimit(supplyCurrentLimit, true);
-                configStatorCurrentLimit(statorCurrentLimit, true);
-                configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-                configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-                configForwardTorqueCurrentLimit(statorCurrentLimit);
-                configReverseTorqueCurrentLimit(statorCurrentLimit);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        lowerSupplyCurrentLimit,
+                        lowerSupplyCurrentTime);
                 configNeutralBrakeMode(false);
                 configClockwise_Positive();
             }
@@ -201,16 +192,13 @@ public class FuelIntake implements Subsystem {
 
             Telemetry.print(getName() + " Subsystem Initialized");
         }
+
         /** Runs the periodic update. */
         @Override
         public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("IntakeKicker/CurrentCommand", getCurrentCommandName());
-            logDiagnostics("IntakeKicker");
-            if (Telemetry.slowLogThisLoop()) {
-                Telemetry.log("IntakeKicker/RPM", getVelocityRPM(), "RPM");
-            }
+            logStandard("IntakeKicker", false, RpmLog.SLOW);
         }
+
         /**
          * Sets the kicker voltage.
          *
@@ -218,27 +206,6 @@ public class FuelIntake implements Subsystem {
          */
         public void setKickerVoltage(double volts) {
             setVoltageOutput(() -> volts);
-        }
-        /** Kicker stop. */
-        public void kickerStop() {
-            stop();
-        }
-    }
-
-    public static class FuelIntakeConfig {
-        @Getter private final IntakeRollerConfig rollerConfig;
-
-        @Getter private final IntakeKickerConfig kickerConfig;
-
-        /**
-         * Creates a new FuelIntakeConfig instance.
-         *
-         * @param rollerConfig the rollerConfig
-         * @param kickerConfig the kickerConfig
-         */
-        public FuelIntakeConfig(IntakeRollerConfig rollerConfig, IntakeKickerConfig kickerConfig) {
-            this.rollerConfig = rollerConfig;
-            this.kickerConfig = kickerConfig;
         }
     }
 
@@ -276,8 +243,8 @@ public class FuelIntake implements Subsystem {
     private static final double KICKER_STALL_STATOR_AMPS = 35;
     private static final double KICKER_STALL_SECS = 1.0;
 
-    private final Timer kickerStallTimer = new Timer();
-    private boolean kickerStallTiming = false;
+    private final Debouncer kickerStallDebouncer =
+            new Debouncer(KICKER_STALL_SECS, DebounceType.kRising);
     /** Once set, the kicker stays off until the intake leaves the reverse state. */
     private boolean kickerStallLatched = false;
 
@@ -293,12 +260,7 @@ public class FuelIntake implements Subsystem {
         boolean stalledNow =
                 Math.abs(kicker.getVelocityRPM()) < KICKER_STALL_RPM
                         && Math.abs(kicker.getStatorCurrent()) > KICKER_STALL_STATOR_AMPS;
-        if (!stalledNow) {
-            kickerStallTiming = false;
-        } else if (!kickerStallTiming) {
-            kickerStallTiming = true;
-            kickerStallTimer.restart();
-        } else if (kickerStallTimer.hasElapsed(KICKER_STALL_SECS)) {
+        if (kickerStallDebouncer.calculate(stalledNow)) {
             kickerStallLatched = true;
             return 0;
         }
@@ -315,6 +277,7 @@ public class FuelIntake implements Subsystem {
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
+
     /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
@@ -333,8 +296,6 @@ public class FuelIntake implements Subsystem {
         double wantedKickerVoltage = 0;
         switch (systemState) {
             case NEUTRAL:
-                wantedRollerVoltage = 0;
-                wantedKickerVoltage = 0;
                 break;
             case INTAKE:
                 wantedRollerVoltage = 12;
@@ -353,46 +314,44 @@ public class FuelIntake implements Subsystem {
                 wantedKickerVoltage = KICKER_INTAKE_VOLTS;
                 break;
             case OFF:
-                roller.rollerStop();
-                kicker.kickerStop();
+                roller.stop();
+                kicker.stop();
                 return;
         }
-        final double finalRollerVoltage = wantedRollerVoltage;
-        final double finalKickerVoltage = wantedKickerVoltage;
-        roller.setRollerVoltage(finalRollerVoltage);
-        kicker.setKickerVoltage(finalKickerVoltage);
+        roller.setRollerVoltage(wantedRollerVoltage);
+        kicker.setKickerVoltage(wantedKickerVoltage);
     }
 
     @Getter private final IntakeRoller roller;
 
     @Getter private final IntakeKicker kicker;
-    @Getter private final FuelIntakeConfig config;
 
     /**
      * Creates a new FuelIntake instance.
      *
-     * @param config the config
+     * @param rollerConfig the intake roller config
+     * @param kickerConfig the intake kicker config
      */
-    public FuelIntake(FuelIntakeConfig config) {
-        this.config = config;
-        this.roller = new IntakeRoller(config.getRollerConfig());
-        this.kicker = new IntakeKicker(config.getKickerConfig());
+    public FuelIntake(IntakeRollerConfig rollerConfig, IntakeKickerConfig kickerConfig) {
+        this.roller = new IntakeRoller(rollerConfig);
+        this.kicker = new IntakeKicker(kickerConfig);
 
         this.register();
         Telemetry.print("Fuel Intake Subsystem Initialized");
     }
+
     /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         if (systemState != SystemState.REVERSE) {
             kickerStallLatched = false;
-            kickerStallTiming = false;
+            kickerStallDebouncer.calculate(false);
         }
         applyStates();
 
-        Telemetry.log("FuelIntake/WantedState", wantedState.toString());
-        Telemetry.log("FuelIntake/SystemState", systemState.toString());
+        Telemetry.logState("FuelIntake/WantedState", wantedState);
+        Telemetry.logState("FuelIntake/SystemState", systemState);
         Telemetry.log("FuelIntake/KickerStallLatched", kickerStallLatched);
     }
 }

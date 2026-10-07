@@ -41,7 +41,11 @@ public enum Rio {
 
     static {
         for (Rio i : Rio.values()) {
-            IDs.put(i.serialNumber, i);
+            // A blank serial is a placeholder for a rio not recorded yet (FM_2026, OM_2026). Only
+            // SIM owns "": otherwise whichever blank entry came last would claim the simulator.
+            if (i.serialNumber != null && (i == SIM || !i.serialNumber.isEmpty())) {
+                IDs.put(i.serialNumber, i);
+            }
         }
     }
 
@@ -69,10 +73,9 @@ public enum Rio {
         this.serialNumber = serialNumber;
         this.isRio2 = isRio2;
     }
+
     /** Checks the id. */
     private static Rio checkID() {
-        rioIdAlert.set(false);
-        rioIdUnknown.set(false);
         String serialNumber = "";
         if (RobotBase.isReal()) {
             // Calling getSerialNumber in a vscode unit test
@@ -80,8 +83,6 @@ public enum Rio {
             // thing with JNIs, so don't do that.
             serialNumber = RobotController.getSerialNumber();
             Telemetry.print("RIO SERIAL: " + serialNumber);
-        } else {
-            serialNumber = "";
         }
 
         if (IDs.containsKey(serialNumber)) {

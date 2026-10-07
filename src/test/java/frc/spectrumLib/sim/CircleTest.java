@@ -27,6 +27,7 @@ public class CircleTest {
             assertNotNull(circle.getCircleBackground()[i]);
         }
     }
+
     /** Verifies color settings. */
     @Test
     @DisplayName("Test Circle setBackgroundColor and setHalfBackground")

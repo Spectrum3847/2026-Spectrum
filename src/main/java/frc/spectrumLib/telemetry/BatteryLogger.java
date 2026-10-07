@@ -7,6 +7,7 @@
 
 package frc.spectrumLib.telemetry;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.Timer;
 import java.util.HashMap;
 import java.util.Map;
@@ -159,9 +160,8 @@ public class BatteryLogger {
             double elapsed =
                     Double.isNaN(lastIntegrationSeconds)
                             ? 0.0
-                            : Math.min(
-                                    Math.max(now - lastIntegrationSeconds, 0.0),
-                                    MAX_INTEGRATION_SECONDS);
+                            : MathUtil.clamp(
+                                    now - lastIntegrationSeconds, 0.0, MAX_INTEGRATION_SECONDS);
             lastIntegrationSeconds = now;
 
             totalPower = totalCurrent * batteryVoltage;

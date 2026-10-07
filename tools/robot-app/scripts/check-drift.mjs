@@ -232,10 +232,11 @@ function checkLoggingFlags() {
         }
 
         // Mechanism.logDiagnostics() is what publishes <Name>/MotorConnected, for the leader only.
-        const logsDiagnostics = /\blogDiagnostics\s*\(/.test(source);
+        // Most mechanisms reach it through Mechanism.logStandard().
+        const logsDiagnostics = /\blog(Diagnostics|Standard)\s*\(/.test(source);
         if (motor.logsMotorConnected === true && !logsDiagnostics) {
             problems.push(
-                `robot-profile.json says ${motor.key} logs MotorConnected, but ${motor.javaFile} never calls logDiagnostics(). ` +
+                `robot-profile.json says ${motor.key} logs MotorConnected, but ${motor.javaFile} never calls logDiagnostics() or logStandard(). ` +
                     `The CAN page will flag that motor as reporting its connection when nothing publishes the key.`
             );
         } else if (motor.logsMotorConnected !== true && logsDiagnostics) {
@@ -286,7 +287,7 @@ function checkElasticLayout() {
      * /Robot/Applied State sit dead on two tabs.
      */
     const LOG_CALL =
-        /(?:Telemetry\.(?:log|logDash|logDashAlways|time|timeEnd)|DogLog\.log|tunable)\s*\(\s*/g;
+        /(?:Telemetry\.(?:log|logDash|logDashAlways|logState|logStateDash|time|timeEnd)|DogLog\.log|tunable)\s*\(\s*/g;
 
     // Keys the DogLog library itself publishes; nothing in src/main/java names them.
     const LIBRARY_PREFIXES = ["SystemStats/", "DogLog/", "RadioStatus/", "PowerDistribution/"];

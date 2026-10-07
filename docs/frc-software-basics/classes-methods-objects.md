@@ -29,7 +29,7 @@ accessModifier returnType methodName(parameterType parameterName) {
 }
 ```
 
-A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types; `SuperStructure.robotInFeedZone()` returns a `Trigger`, for example.
+A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types; `Auton.getAutonomousCommand()` returns a `Command`, for example.
 
 ## Scope and Access Modifiers
 
