@@ -28,10 +28,10 @@ frc.spectrumLib
 
 Core structural interfaces and base classes.
 
-|      Class      |                                                   Description                                                   |
-|-----------------|-----------------------------------------------------------------------------------------------------------------|
-| `SpectrumRobot` | Extends `TimedRobot`; silences joystick connection warnings and extends loop overrun watchdog timeout to 200 ms |
-| `SpectrumState` | Named boolean state backed by a WPILib `Trigger`; supports timed, toggled, and command-driven state transitions |
+|      Class      |                                                           Description                                                           |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
+| `SpectrumRobot` | Extends AdvantageKit's `LoggedRobot`; silences joystick connection warnings and extends loop overrun watchdog timeout to 200 ms |
+| `SpectrumState` | Named boolean state backed by a WPILib `Trigger`; supports timed, toggled, and command-driven state transitions                 |
 
 ---
 

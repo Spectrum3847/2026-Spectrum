@@ -62,7 +62,7 @@ lowBattery.set(voltage < 12.0);
 
 `addVisionMeasurement` only makes sense from a periodic-style update, not from a one-shot command. Calling it sporadically makes the pose estimator drift in unpredictable ways.
 
-`Notifier` versus `addPeriodic`: the swerve sim uses `Notifier` because it needs tight, regular updates. For everything else, `TimedRobot.addPeriodic(...)` is the simpler choice.
+`Notifier` versus `addPeriodic`: the swerve sim uses `Notifier` because it needs tight, regular updates. `Robot` extends AdvantageKit's `LoggedRobot`, which has no `addPeriodic(...)`, so extra periodic work goes in a subsystem's `periodic()` or a `Notifier`.
 
 `requirements` on commands cancel anything else using that subsystem. That's usually what you want, but be aware of it when chaining a state-change `runOnce` to a real command; if you set requirements on the wrong half, you cancel the wrong thing.
 
