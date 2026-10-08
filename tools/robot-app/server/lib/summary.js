@@ -89,7 +89,7 @@ export function summarize(buffer, { name = null } = {}) {
     // so anything above 0.020 is an overrun. Reported as a share of loops so it compares across
     // logs of any length.
     const LOOP_PERIOD_SEC = 0.02;
-    const overruns = loop.filter(([, v]) => v > LOOP_PERIOD_SEC).length;
+    const overruns = loop.filter(([, v]) => Number.isFinite(v) && v > LOOP_PERIOD_SEC).length;
 
     const motorConnected = {};
     for (const { name: key, values } of log.matching(/^\/Robot\/([^/]+)\/MotorConnected$/)) {

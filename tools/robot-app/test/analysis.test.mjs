@@ -226,3 +226,12 @@ test("summary reports no loop stats when every loop sample is NaN", () => {
     w.put("/Robot/Scheduler/robotPeriodic", "double", 2, NaN);
     assert.equal(summarize(Buffer.from(w.buffer())).loop, null);
 });
+
+test("summary overrun percentage ignores non-finite loop samples", () => {
+    const w = new LogWriter();
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 1, 0.01);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 2, 0.05);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 3, Infinity);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 4, NaN);
+    assert.equal(summarize(Buffer.from(w.buffer())).loop.overrunPct, 50);
+});

@@ -1,10 +1,12 @@
 import { Router } from "express";
 import fs from "node:fs";
-import { probeAll, listRobotLogs, downloadLogs } from "../lib/robot.js";
+import { probeAll, robotCandidates, listRobotLogs, downloadLogs } from "../lib/robot.js";
 import { config, logsDir } from "../lib/config.js";
 import { indexLog } from "../lib/manifest.js";
 
 export const robotRouter = Router();
+
+const isRobotHost = (host) => robotCandidates().some((c) => c.host === host);
 
 robotRouter.get("/probe", async (req, res) => {
     res.json(await probeAll());
@@ -13,6 +15,7 @@ robotRouter.get("/probe", async (req, res) => {
 robotRouter.get("/logs", async (req, res) => {
     const host = req.query.host;
     if (!host) return res.status(400).json({ error: "host query parameter is required" });
+    if (!isRobotHost(String(host))) return res.status(400).json({ error: `not a configured robot host: ${host}` });
     try {
         res.json(await listRobotLogs(String(host)));
     } catch (e) {
@@ -33,6 +36,7 @@ robotRouter.post("/sync", async (req, res) => {
     if (!host || !Array.isArray(files) || !files.length) {
         return res.status(400).json({ error: "host and a non-empty files array are required" });
     }
+    if (!isRobotHost(String(host))) return res.status(400).json({ error: `not a configured robot host: ${host}` });
     const bad = files.find((f) => !LOG_NAME.test(String(f?.name)) || !config.robot.logDirs.includes(f?.dir));
     if (bad) return res.status(400).json({ error: `not a robot log: ${bad?.dir}/${bad?.name}` });
     if (syncing) return res.status(409).json({ error: "a sync is already running" });
