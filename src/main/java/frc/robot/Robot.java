@@ -142,8 +142,7 @@ public class Robot extends SpectrumRobot {
 
         // Mirror-to-NetworkTables is off on the robot (Telemetry.start() logs the dashboard keys
         // instead) and on in simulation, so the Telemetry.log keys (Robot/Sim/*, poses, states)
-        // show
-        // up live in AdvantageScope.
+        // show up live in AdvantageScope.
         Telemetry.start(
                 RobotBase.isSimulation(), true, false, true, false, true, PrintPriority.NORMAL);
 
@@ -349,8 +348,7 @@ public class Robot extends SpectrumRobot {
                 .onFalse(superStructure.setStateCommand(WantedSuperState.TEST_TURRET_STOP));
 
         // Each press is also the shot outcome signal: down says the last burst went long, up says
-        // it
-        // fell short. Hood only; the turret trims do the same on left and right. Logged as
+        // it fell short. Hood only; the turret trims do the same on left and right. Logged as
         // ShotCalc/Trim/* and paired with the most recent ShotCalc/Shot/* row. See
         // docs/tools/shot-log.md.
         operator.dPadDown.onTrue(ShotCalculator.decreaseHoodAngleOffset());

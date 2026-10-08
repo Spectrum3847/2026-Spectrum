@@ -21,9 +21,9 @@ Every pointer below is a place to start reading, not a summary of what you will 
   [Class Generation](../coding-conventions/class-generation.md) before adding one.
 * **Per-robot hardware config** lives in
   [`configs/`](../../src/main/java/frc/robot/configs), never in a subsystem file. Each class covers
-  one physical robot. `Robot.java` picks the class from the roboRIO serial at startup, and
-  `frc.spectrumLib.hardware.Rio` holds those serials. Read the `switch` in `Robot.java` to see
-  which one this branch actually runs.
+  one physical robot. `Robot.java` picks the class in a `switch` on `Rio.id`, which
+  `frc.spectrumLib.hardware.Rio` resolves from the roboRIO serial. Read that `switch` to see which
+  class this branch actually runs; it can ignore the serial entirely.
 * **Bindings** are all in `Robot.configureBindings()` in
   [`Robot.java`](../../src/main/java/frc/robot/Robot.java). The `Pilot` and `Operator` classes
   expose the buttons and nothing else.
@@ -57,7 +57,7 @@ mechanism, not in the orchestrator. The orchestrator is for moves a human asked 
 **Hub shifts.** REBUILT alternates each alliance's hub between active and inactive during teleop, so
 "which hub is live" is a game rule, not a robot behavior.
 [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java) tracks the match clock, and
-`Robot.configureBindings()` re-initializes it on every teleop, autonomous, and disabled transition.
+`Robot.configureBindings()` re-initializes it when autonomous starts and when the robot disables.
 Any shift-aware logic depends on that being called; do not add shift logic that reads the clock
 without it.
 

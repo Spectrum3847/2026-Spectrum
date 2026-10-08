@@ -57,7 +57,7 @@ import lombok.Getter;
  *
  * <p>Each loop the subsystem records this loop's turret angle, publishes the robot heading to every
  * camera (and, in fallback mode, the turret-rotated camera transform), flushes NetworkTables so the
- * cameras solve this frame, then updates pose estimation and logs through {@link #VisionLogger}.
+ * cameras solve this frame, then updates pose estimation and logs through {@link VisionLogger}.
  * While disabled it seeds the pose, translation and heading, from the best chassis camera's
  * MegaTag1 only, watching for the seed to hold steady long enough to be trusted ({@link
  * #trackSeedConfirmation(Limelight)}). While enabled it fuses every chassis camera's translation,
@@ -81,15 +81,13 @@ public class Vision implements Subsystem {
          * origin (robot centre, on the carpet) to the camera location: 11.103 in behind centre,
          * 12.490 in left of centre, 17.058 in up.
          *
-         * <p>Rotation: mounted upside down (roll 180) on the angled rear-left corner panel, looking
-         * out over that corner (yaw +135) and 31.8 deg above horizontal. If the Limelight web UI
-         * image orientation is set to flip the image 180 deg, enter roll 0 there instead of 180.
+         * <p>Rotation: mounted upside down (roll near 180) on the angled rear-left corner panel,
+         * looking out over that corner (yaw +135). If the Limelight web UI image orientation is set
+         * to flip the image 180 deg, enter roll 0 there instead of 180.
          *
-         * <p>The 31.8 deg pitch is measured, not CAD. On a stationary robot the AprilTag solves for
-         * tags 21 and 24 put the optical axis at 32.2 and 31.3 deg above horizontal and the
-         * camera's own accelerometer read 31.8, which sits between them. It describes where the
-         * camera actually points, not where the mount was meant to put it, so fixing the bracket to
-         * CAD intent puts it back to 60.
+         * <p>Roll and pitch are measured by the robot app, not CAD. They describe where the camera
+         * actually points, not where the mount was meant to put it, so fixing the bracket to CAD
+         * intent puts the pitch back to 60.
          *
          * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
          * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
@@ -344,19 +342,17 @@ public class Vision implements Subsystem {
         /*
          * The 20 deg gross threshold above was set because one camera's MegaTag1 heading is not
          * trustworthy below it. Two cameras agreeing with each other is a different measurement.
-         * The
-         * turret camera and the chassis camera share nothing but the field, so when both say the
-         * pose heading is off by the same amount, for two seconds, with the robot and turret still,
-         * it is the pose. Replayed on the 2026-09-06/07 logs this fires four times in 25 enabled
-         * minutes, on steady offsets of 7 to 10 deg (one of them measured 7.5 deg twenty seconds
-         * later to within 0.1 deg); on the 2026-09-05 logs, when the turret camera was reading a
-         * slipping belt and not the pose, it never fires, though the chassis camera alone would
-         * have armed for 11 s.
+         * The turret camera and the chassis camera share nothing but the field, so when both say
+         * the pose heading is off by the same amount, for two seconds, with the robot and turret
+         * still, it is the pose. Replayed on the 2026-09-06/07 logs this fires four times in 25
+         * enabled minutes, on steady offsets of 7 to 10 deg (one of them measured 7.5 deg twenty
+         * seconds later to within 0.1 deg); on the 2026-09-05 logs, when the turret camera was
+         * reading a slipping belt and not the pose, it never fires, though the chassis camera alone
+         * would have armed for 11 s.
          *
          * It only works while the turret zero servo has NOT already absorbed the pose error into
          * the encoder, because once the turret camera has been trimmed to agree with a wrong pose
-         * it
-         * is no longer independent evidence. So the servo is held off while this is arming.
+         * it is no longer independent evidence. So the servo is held off while this is arming.
          */
 
         /** Least chassis-camera heading error worth correcting this way. */
@@ -409,8 +405,8 @@ public class Vision implements Subsystem {
          * every sample is "not measurable", and the trim quietly leaves the quarter turn alone. And
          * nothing else can fix it, because a turret camera whose mount transform is 90 deg wrong
          * gets its pose estimates rejected for disagreeing with the pose
-         * (turretHeadingMismatchDeg),
-         * so the camera could not correct the robot and the robot could not correct the camera.
+         * (turretHeadingMismatchDeg), so the camera could not correct the robot and the robot could
+         * not correct the camera.
          *
          * This is the way out: when the camera says the zero is grossly wrong, and keeps saying the
          * same thing, take it in one step and forget the accumulated history. It is deliberately
@@ -561,10 +557,9 @@ public class Vision implements Subsystem {
          * Heading is gyro-only while enabled and only reset above grossHeadingErrorDeg, so a pose
          * heading 5 to 9 deg off stays that way and the turret absorbs it. That is what the
          * 2026-09-06/07 logs show: the turret camera's and the chassis camera's heading errors
-         * moved
-         * together sample by sample (r = 0.65 to 0.94 in every log, 0.71 pooled), which two cameras
-         * can only do if the thing they are both compared against is what is wrong. On 2026-09-05,
-         * when the belt really slipped, they did not (r = 0.08 pooled).
+         * moved together sample by sample (r = 0.65 to 0.94 in every log, 0.71 pooled), which two
+         * cameras can only do if the thing they are both compared against is what is wrong. On
+         * 2026-09-05, when the belt really slipped, they did not (r = 0.08 pooled).
          *
          * The trim absorbing pose error is what puts shots in the hub with a wrong heading, so it
          * is left alone. But it moves the soft limits with it and makes the slip diagnostics lie,
@@ -773,9 +768,8 @@ public class Vision implements Subsystem {
      *
      * <p>Status booleans and strings are logged every loop: DogLog only writes them when they
      * change, and "integrated this loop" is a per-loop truth. Everything that moves every frame
-     * (poses, tag count, target size, estimate age, the Field2d camera markers) is logged at 10 Hz.
-     * Before the split, this ran 30 log calls, three MegaTag2 parses and three Field2d updates
-     * every loop and took a median 4.5 ms of a 20 ms budget on 2026-09-05.
+     * (poses, tag count, target size, estimate age, the Field2d camera markers) is logged at 10 Hz,
+     * because logging all of it every loop took a median 4.5 ms of the 20 ms budget.
      */
     public void logTelemetry() {
         correctTurretZero();
@@ -1588,8 +1582,8 @@ public class Vision implements Subsystem {
         boolean consensusApplied =
                 !gross && checkConsensusHeadingError(now, robotPose, mt1Pose, errorDeg, stationary);
 
-        // NaN is not equal to itself, so an unmeasurable error would otherwise be rewritten
-        // every loop.
+        // NaN is not equal to itself, so an unmeasurable error would otherwise be rewritten every
+        // loop.
         if (Telemetry.slowLogThisLoop()) {
             Telemetry.logDash("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
             Telemetry.logDash(

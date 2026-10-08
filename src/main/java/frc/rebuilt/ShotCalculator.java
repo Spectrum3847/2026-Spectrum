@@ -1171,6 +1171,9 @@ public class ShotCalculator {
      * the model's fitted data range. Callers apply {@link #MPS_FACTOR} to the exit speed and {@code
      * HOOD_ANGLE_OFFSET} to the launch angle.
      *
+     * @param model the polynomial model (hub or feed) to evaluate
+     * @param distance horizontal distance to the aim point, in metres
+     * @param radialVel radial velocity, in m/s
      * @return {@code double[]} { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg, tof_s }
      */
     private static double[] evalPolyRaw(PolyModel model, double distance, double radialVel) {
