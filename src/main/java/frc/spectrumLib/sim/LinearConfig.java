@@ -11,7 +11,7 @@ import lombok.Setter;
  * properties, Mechanism2d display settings, and optional mount attachment used by {@link
  * LinearSim}.
  */
-public class LinearConfig {
+public class LinearConfig implements Mountable.MountedConfig {
     /** Number of Kraken X60 motors driving the linear stage. */
     @Getter private int numMotors = 1;
     /** Gear ratio between the motor and the elevator drum. */
@@ -23,8 +23,7 @@ public class LinearConfig {
     /** Minimum travel height of the mechanism in metres. */
     @Getter private double minHeight = 0;
     /** Maximum travel height of the mechanism in metres. */
-    @Getter
-    private double maxHeight = 10000; // Units.inchesToMeters(Robot.config.elevator.maxHeight);
+    @Getter private double maxHeight = 10000;
 
     // Display Config
     /**
@@ -51,9 +50,14 @@ public class LinearConfig {
     /** Visual length of the moving stage ligament in the Mechanism2d canvas (metres). */
     @Getter private double movingLength = 20;
     /** Whether this linear stage is attached to a parent {@link Mount}. */
-    @Getter private boolean mounted = false;
     /** The parent mount this linear stage is attached to, or {@code null} if not mounted. */
     @Getter private Mount mount;
+
+    /** Whether this config is attached to a parent mount. */
+    public boolean isMounted() {
+        return mount != null;
+    }
+
     /** X position of the mount at simulation start (metres). */
     @Getter private double initMountX;
     /** Y position of the mount at simulation start (metres). */
@@ -78,11 +82,26 @@ public class LinearConfig {
         this.drumRadius = drumRadius;
     }
 
+    /** True when the sim geometry travels opposite the motor's positive direction. */
+    @Getter private boolean reversedLinkage = false;
+
     /**
-     * Sets the number of motors driving this linear stage.
+     * Mirrors the simulated motor so the sim's travel matches the motor's positive direction. See
+     * {@link SimMotor#simState(com.ctre.phoenix6.hardware.TalonFX, boolean)}.
      *
-     * @param numMotors number of Kraken X60 motors
-     * @return this config for chaining
+     * @param reversedLinkage true when the sim travels opposite the motor
+     * @return this config, for chaining
+     */
+    public LinearConfig setReversedLinkage(boolean reversedLinkage) {
+        this.reversedLinkage = reversedLinkage;
+        return this;
+    }
+
+    /**
+     * Sets the number of motors.
+     *
+     * @param numMotors the number of motors
+     * @return this config, for chaining
      */
     public LinearConfig setNumMotors(int numMotors) {
         this.numMotors = numMotors;
@@ -141,7 +160,6 @@ public class LinearConfig {
      */
     public LinearConfig setStaticLength(double lengthInches) {
         this.staticLength = Units.inchesToMeters(lengthInches);
-        ;
         return this;
     }
 
@@ -176,7 +194,6 @@ public class LinearConfig {
      */
     public LinearConfig setMount(LinearSim sim) {
         if (sim != null) {
-            mounted = true;
             mount = sim;
             initMountX = sim.getConfig().getInitialX();
             initMountY = sim.getConfig().getInitialY();
@@ -195,7 +212,6 @@ public class LinearConfig {
      */
     public LinearConfig setMount(ArmSim sim) {
         if (sim != null) {
-            mounted = true;
             mount = sim;
             initMountX = sim.getConfig().getInitialX();
             initMountY = sim.getConfig().getInitialY();

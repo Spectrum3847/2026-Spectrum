@@ -1,7 +1,7 @@
 package frc.robot.subsystems.launcher;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
@@ -135,14 +135,14 @@ public class Launcher extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("Launcher/WantedState", wantedState.toString());
-        Telemetry.log("Launcher/SystemState", systemState.toString());
-        Telemetry.log("Launcher/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Launcher/Voltage", getVoltage(), "volts");
-        Telemetry.log("Launcher/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("Launcher/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("Launcher/Temp", getTemp(), "deg_C");
+        Telemetry.logDash("Launcher/WantedState", wantedState.toString());
+        Telemetry.logDash("Launcher/SystemState", systemState.toString());
+        Telemetry.logDash("Launcher/CurrentCommand", getCurrentCommandName());
+        Telemetry.logDash("Launcher/Voltage", getVoltage(), "volts");
+        Telemetry.logDash("Launcher/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.logDash("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.logDash("Launcher/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logDash("Launcher/Temp", getTemp(), "deg_C");
     }
 
     // --------------------------------------------------------------------------------
@@ -150,27 +150,18 @@ public class Launcher extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            sim = new LauncherSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
+            sim = new LauncherSim(RobotSim.leftView, motor);
         }
     }
 
     class LauncherSim extends RollerSim {
-        public LauncherSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+        public LauncherSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getLauncherX(), config.getLauncherY())
                             .setMount(Robot.getHood().getSim()),
                     mech,
-                    rollerMotorSim,
+                    motor,
                     config.getName());
         }
     }

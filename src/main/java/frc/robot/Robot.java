@@ -14,6 +14,7 @@ import edu.wpi.first.units.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
@@ -50,9 +51,11 @@ import frc.robot.subsystems.swerve.Swerve;
 import frc.robot.subsystems.swerve.SwerveConfig;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.subsystems.vision.Vision.VisionConfig;
+import frc.spectrumLib.framework.RobotLoop;
 import frc.spectrumLib.framework.SpectrumRobot;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.telemetry.BatteryLogger;
+import frc.spectrumLib.telemetry.SystemLoadMonitor;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 import frc.spectrumLib.util.CrashTracker;
@@ -105,10 +108,12 @@ public class Robot extends SpectrumRobot {
     @Getter private static SuperStructure superStructure;
     @Getter private static BatteryLogger batteryLogger;
     @Getter private static CANBus mainCANBus;
+    private final SystemLoadMonitor systemLoad = new SystemLoadMonitor();
 
     public Robot() {
         super();
-        Telemetry.start(true, true, false, true, false, true, PrintPriority.NORMAL);
+        Telemetry.start(
+                RobotBase.isSimulation(), true, false, true, false, true, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");
@@ -190,12 +195,12 @@ public class Robot extends SpectrumRobot {
 
         RobotController.setBrownoutVoltage(Units.Volts.of(4.6));
 
-        Telemetry.log("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
-        Telemetry.log("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
-        Telemetry.log("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
-        Telemetry.log("BuildConstants/GitDate", BuildConstants.GIT_DATE);
-        Telemetry.log("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
-        Telemetry.log(
+        Telemetry.logDashAlways("BuildConstants/ProjectName", BuildConstants.MAVEN_NAME);
+        Telemetry.logDashAlways("BuildConstants/BuildDate", BuildConstants.BUILD_DATE);
+        Telemetry.logDashAlways("BuildConstants/GitSHA", BuildConstants.GIT_SHA);
+        Telemetry.logDashAlways("BuildConstants/GitDate", BuildConstants.GIT_DATE);
+        Telemetry.logDashAlways("BuildConstants/GitBranch", BuildConstants.GIT_BRANCH);
+        Telemetry.logDashAlways(
                 "BuildConstants/GitDirty",
                 switch (BuildConstants.DIRTY) {
                     case 0 -> "All changes committed";
@@ -329,6 +334,8 @@ public class Robot extends SpectrumRobot {
      */
     @Override
     public void robotPeriodic() {
+        RobotLoop.next();
+        systemLoad.periodic();
         try {
             Telemetry.time("Scheduler/robotPeriodic");
             /*
@@ -339,9 +346,9 @@ public class Robot extends SpectrumRobot {
              */
             CommandScheduler.getInstance().run();
 
-            Telemetry.log("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
-            Telemetry.log("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
-            Telemetry.log(
+            Telemetry.logDash("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
+            Telemetry.logDash("Match Data/InShift", ShiftHelpers.getOfficialShiftInfo().active());
+            Telemetry.logDash(
                     "Match Data/TimeLeftInShift",
                     ShiftHelpers.getOfficialShiftInfo().remainingTime(),
                     "seconds");
@@ -379,7 +386,7 @@ public class Robot extends SpectrumRobot {
                                     PathfindingCommand.warmupCommand(),
                                     Commands.runOnce(
                                             () -> {
-                                                Telemetry.log("Initialized", true);
+                                                Telemetry.logDashAlways("Initialized", true);
                                                 autonWarmedUp = true;
                                             }))
                             .ignoringDisable(true);

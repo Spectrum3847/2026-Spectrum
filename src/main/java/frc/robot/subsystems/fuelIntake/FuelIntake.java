@@ -1,7 +1,7 @@
 package frc.robot.subsystems.fuelIntake;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.robot.Robot;
@@ -128,14 +128,14 @@ public class FuelIntake extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("FuelIntake/WantedState", wantedState.toString());
-        Telemetry.log("FuelIntake/SystemState", systemState.toString());
-        Telemetry.log("FuelIntake/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("FuelIntake/Voltage", getVoltage(), "volts");
-        Telemetry.log("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("FuelIntake/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("FuelIntake/Temp", getTemp(), "deg_C");
+        Telemetry.logDash("FuelIntake/WantedState", wantedState.toString());
+        Telemetry.logDash("FuelIntake/SystemState", systemState.toString());
+        Telemetry.logDash("FuelIntake/CurrentCommand", getCurrentCommandName());
+        Telemetry.logDash("FuelIntake/Voltage", getVoltage(), "volts");
+        Telemetry.logDash("FuelIntake/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.logDash("FuelIntake/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.logDash("FuelIntake/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logDash("FuelIntake/Temp", getTemp(), "deg_C");
     }
 
     // --------------------------------------------------------------------------------
@@ -144,27 +144,18 @@ public class FuelIntake extends Mechanism {
     public void simulationInit() {
         if (isAttached()) {
             // Create a new RollerSim with the left view, the motor's sim state, and a 6 in diameter
-            sim = new FuelIntakeSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
+            sim = new FuelIntakeSim(RobotSim.leftView, motor);
         }
     }
 
     class FuelIntakeSim extends RollerSim {
-        public FuelIntakeSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
+        public FuelIntakeSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getIntakeX(), config.getIntakeY())
                             .setMount(Robot.getIntakeExtension().getSim()),
                     mech,
-                    rollerMotorSim,
+                    motor,
                     config.getName());
         }
     }

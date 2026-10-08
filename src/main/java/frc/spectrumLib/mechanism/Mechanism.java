@@ -2,6 +2,7 @@ package frc.spectrumLib.mechanism;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusCode;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.DynamicMotionMagicTorqueCurrentFOC;
@@ -10,6 +11,8 @@ import com.ctre.phoenix6.controls.MotionMagicTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.PositionTorqueCurrentFOC;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
@@ -20,16 +23,23 @@ import com.ctre.phoenix6.signals.GravityTypeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Robot;
+import frc.spectrumLib.framework.RobotLoop;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import frc.spectrumLib.hardware.TalonFXFactory;
-import frc.spectrumLib.util.CachedDouble;
+import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.util.CanDeviceId;
 import frc.spectrumLib.util.Conversions;
 import java.util.function.DoubleSupplier;
@@ -86,21 +96,104 @@ public abstract class Mechanism implements Subsystem {
     /** Alert displayed when an unexpected current reading is detected during diagnostics. */
     Alert currentAlert = new Alert("", AlertType.kWarning);
 
+    /** One alert per follower, raised when it stops pulling its share of the load. */
+    private Alert[] followerAlerts = new Alert[0];
+
+    /**
+     * Seconds each follower has been silent while its leader was loaded. Any sign of life zeroes
+     * it.
+     */
+    private double[] followerMismatchSeconds = new double[0];
+
+    /** FPGA time of the previous follower check, for integrating the mismatch. */
+    private double followerCheckLastSeconds = 0;
+
     /** The last closed-loop position setpoint (in rotations) sent to the motor. */
     private double target = 0;
 
     /** The last closed-loop velocity setpoint (in rotations per second) sent to the motor. */
     private double velocityTarget = 0;
 
-    // Cached sensor readings — updated lazily each loop via CachedDouble
-    private final CachedDouble cachedRotations;
-    private final CachedDouble cachedPercentage;
-    private final CachedDouble cachedVoltage;
-    private final CachedDouble cachedDegrees;
-    private final CachedDouble cachedVelocity;
-    private final CachedDouble cachedStatorCurrent;
-    private final CachedDouble cachedSupplyCurrent;
-    private final CachedDouble cachedTemp;
+    // Status signals read by the getters, refreshed together once per loop (see signalValue)
+    private StatusSignal<Angle> positionStatusSignal;
+
+    private StatusSignal<AngularVelocity> velocityStatusSignal;
+    private BaseStatusSignal voltageSignal;
+    private BaseStatusSignal statorCurrentSignal;
+    private BaseStatusSignal supplyCurrentSignal;
+    private BaseStatusSignal tempSignal;
+    private BaseStatusSignal[] followerSupplySignals = new BaseStatusSignal[0];
+
+    /** Every signal above, so one refreshAll covers the loop. Empty when unattached. */
+    private BaseStatusSignal[] loopSignals = new BaseStatusSignal[0];
+
+    /** Loop on which {@link #loopSignals} were last refreshed, or -1 for never. */
+    private long lastSignalRefreshLoop = -1;
+
+    /** Per-follower supply current log keys, built once. */
+    private String[] followerCurrentKeys = new String[0];
+
+    // Diagnostic log keys, built on the first logDiagnostics() call for the prefix it was given
+    private String diagnosticsPrefix;
+    private String voltageKey;
+    private String statorCurrentKey;
+    private String supplyCurrentKey;
+    private String tempKey;
+    private String motorConnectedKey;
+
+    // logStandard() keys, built the same way
+    private String standardPrefix;
+    private String currentCommandKey;
+    private String rpmKey;
+
+    /**
+     * BatteryLogger channel name for this mechanism, built once to avoid per-loop concatenation.
+     */
+    private final String batteryKey;
+
+    // ── Status signal rates ────────────────────────────────────────────────────
+    //
+    // Every signal published here costs CANivore bandwidth on every mechanism motor AND every
+    // follower. Publishing all eight at 250 Hz put bus utilization at 66-81% in the 2026-09-04
+    // logs, which is where the stale-frame warnings and the intermittently unresponsive hood came
+    // from. Only the feedback used for control needs to be fast; everything else is read once per
+    // 20 ms robot loop for logging, so a faster frame is bandwidth spent on samples nobody reads.
+
+    /**
+     * Rate for a leader's position and velocity. Nothing on the rio consumes them faster than the
+     * 50 Hz loop (Motion Magic closes the loop on the motor itself), so 100 Hz leaves a 2x margin
+     * for latency compensation at 2.5x less bus and Phoenix CPU than the 250 Hz this ran at through
+     * 2026-09-05, when CANivore utilization sat at 63-77% and the rio CPU at 92-95%.
+     */
+    private static final double CONTROL_SIGNAL_HZ = 100;
+
+    /**
+     * Rate for the output signals (duty cycle, motor voltage, torque current) of a leader that has
+     * followers. A follower mirrors its leader from the leader's status frames, so CTRE requires
+     * these to stay enabled on such a leader; 50 Hz is the rate the followers have run on all
+     * season, kept as is.
+     */
+    private static final double FOLLOWED_LEADER_OUTPUT_HZ = 50;
+
+    /**
+     * Rate for signals nothing controls on: currents and voltage, the output signals of a leader
+     * with no followers, and everything on a follower. They are read once per loop and logged at 10
+     * Hz, so 20 Hz is already double what is kept.
+     */
+    private static final double DIAGNOSTIC_SIGNAL_HZ = 20;
+
+    /** Rate for device temperature, which changes over seconds. */
+    private static final double TEMPERATURE_SIGNAL_HZ = 4;
+
+    /** What a motor has to publish, by its job in the mechanism. */
+    private enum SignalRole {
+        /** Runs the mechanism alone. */
+        LEADER,
+        /** Runs the mechanism with followers mirroring its output frames. */
+        FOLLOWED_LEADER,
+        /** Mirrors a leader; nothing on the rio reads its feedback. */
+        FOLLOWER
+    }
 
     // ── Constructors ───────────────────────────────────────────────────────────
 
@@ -113,50 +206,64 @@ public abstract class Mechanism implements Subsystem {
      */
     protected Mechanism(Config config) {
         this.config = config;
+        batteryKey = "Mechanisms/" + config.getName();
 
         if (isAttached()) {
             motor = TalonFXFactory.createConfigTalon(config.id, config.talonConfig);
-            BaseStatusSignal.setUpdateFrequencyForAll(
-                    250,
-                    motor.getDutyCycle(),
-                    motor.getMotorVoltage(),
-                    motor.getTorqueCurrent(),
-                    motor.getStatorCurrent(),
-                    motor.getSupplyCurrent(),
-                    motor.getPosition(),
-                    motor.getVelocity(),
-                    motor.getDeviceTemp());
-            motor.optimizeBusUtilization();
+            boolean hasFollowers = config.followerConfigs.length > 0;
+            configureStatusSignals(
+                    motor,
+                    hasFollowers ? SignalRole.FOLLOWED_LEADER : SignalRole.LEADER,
+                    config.fastOutputLogging);
 
             followerMotors = new TalonFX[config.followerConfigs.length];
+            followerSupplySignals = new BaseStatusSignal[config.followerConfigs.length];
+            followerCurrentKeys = new String[config.followerConfigs.length];
             for (int i = 0; i < config.followerConfigs.length; i++) {
                 followerMotors[i] =
                         TalonFXFactory.createPermanentFollowerTalon(
                                 config.followerConfigs[i].id,
                                 motor,
                                 config.followerConfigs[i].opposeLeader);
-                BaseStatusSignal.setUpdateFrequencyForAll(
-                        250,
-                        followerMotors[i].getDutyCycle(),
-                        followerMotors[i].getMotorVoltage(),
-                        followerMotors[i].getTorqueCurrent(),
-                        followerMotors[i].getStatorCurrent(),
-                        followerMotors[i].getSupplyCurrent(),
-                        followerMotors[i].getPosition(),
-                        followerMotors[i].getVelocity(),
-                        followerMotors[i].getDeviceTemp());
-                followerMotors[i].optimizeBusUtilization();
+                configureStatusSignals(followerMotors[i], SignalRole.FOLLOWER, false);
+                followerSupplySignals[i] = followerMotors[i].getSupplyCurrent(false);
+                followerCurrentKeys[i] =
+                        "Followers/" + config.followerConfigs[i].getName() + "/SupplyCurrent";
+            }
+
+            // getX(false) returns the device's signal object without refreshing it; the getters
+            // refresh all of them in one Phoenix call per loop.
+            positionStatusSignal = motor.getPosition(false);
+            velocityStatusSignal = motor.getVelocity(false);
+            voltageSignal = motor.getMotorVoltage(false);
+            statorCurrentSignal = motor.getStatorCurrent(false);
+            supplyCurrentSignal = motor.getSupplyCurrent(false);
+            tempSignal = motor.getDeviceTemp(false);
+            loopSignals = new BaseStatusSignal[6 + followerSupplySignals.length];
+            loopSignals[0] = positionStatusSignal;
+            loopSignals[1] = velocityStatusSignal;
+            loopSignals[2] = voltageSignal;
+            loopSignals[3] = statorCurrentSignal;
+            loopSignals[4] = supplyCurrentSignal;
+            loopSignals[5] = tempSignal;
+            System.arraycopy(
+                    followerSupplySignals, 0, loopSignals, 6, followerSupplySignals.length);
+
+            followerAlerts = new Alert[config.followerConfigs.length];
+            followerMismatchSeconds = new double[config.followerConfigs.length];
+            for (int i = 0; i < config.followerConfigs.length; i++) {
+                FollowerConfig f = config.followerConfigs[i];
+                followerAlerts[i] =
+                        new Alert(
+                                f.getName()
+                                        + " (CAN "
+                                        + f.getId().getDeviceNumber()
+                                        + ") is not drawing current while "
+                                        + config.getName()
+                                        + " is loaded - check its power leads",
+                                AlertType.kError);
             }
         }
-
-        cachedStatorCurrent = new CachedDouble(this::updateStatorCurrent);
-        cachedSupplyCurrent = new CachedDouble(this::updateSupplyCurrent);
-        cachedVoltage = new CachedDouble(this::updateVoltage);
-        cachedRotations = new CachedDouble(this::updatePositionRotations);
-        cachedPercentage = new CachedDouble(this::updatePositionPercentage);
-        cachedDegrees = new CachedDouble(this::updatePositionDegrees);
-        cachedVelocity = new CachedDouble(this::updateVelocityRPM);
-        cachedTemp = new CachedDouble(this::updateTemp);
 
         this.register();
     }
@@ -173,9 +280,44 @@ public abstract class Mechanism implements Subsystem {
         this(applyAttachedOverride(config, attached));
     }
 
+    /** Applies the attached override. */
     private static Config applyAttachedOverride(Config config, boolean attached) {
         config.attached = attached;
         return config;
+    }
+
+    /**
+     * Sets the status frame rates this mechanism relies on and disables everything else. A
+     * follower's frames cost the same bandwidth as the leader's, so it gets the diagnostic rate for
+     * everything; a leader that has followers keeps the output frames they mirror; a leader whose
+     * feedforward is fit from logs ({@link Config#isFastOutputLogging()}) publishes its output at
+     * the control rate so the logged voltage lines up with the logged velocity.
+     *
+     * @param talon the motor to configure
+     * @param role the motor's job, which decides which frames need to be fast
+     * @param fastOutput {@code true} to publish the output frames at the control rate
+     */
+    private static void configureStatusSignals(TalonFX talon, SignalRole role, boolean fastOutput) {
+        double controlHz = role == SignalRole.FOLLOWER ? DIAGNOSTIC_SIGNAL_HZ : CONTROL_SIGNAL_HZ;
+        double outputHz =
+                fastOutput
+                        ? CONTROL_SIGNAL_HZ
+                        : role == SignalRole.FOLLOWED_LEADER
+                                ? FOLLOWED_LEADER_OUTPUT_HZ
+                                : DIAGNOSTIC_SIGNAL_HZ;
+        BaseStatusSignal.setUpdateFrequencyForAll(
+                controlHz, talon.getPosition(), talon.getVelocity());
+        BaseStatusSignal.setUpdateFrequencyForAll(
+                outputHz, talon.getDutyCycle(), talon.getMotorVoltage(), talon.getTorqueCurrent());
+        BaseStatusSignal.setUpdateFrequencyForAll(
+                DIAGNOSTIC_SIGNAL_HZ, talon.getStatorCurrent(), talon.getSupplyCurrent());
+        talon.getDeviceTemp().setUpdateFrequency(TEMPERATURE_SIGNAL_HZ);
+        // A long run of per-signal config calls, and only ever an optimisation. On a dead
+        // bus it is pure boot latency, so it is the first thing dropped once the budget is
+        // spent.
+        if (!CanConfigBudget.exhausted()) {
+            talon.optimizeBusUtilization();
+        }
     }
 
     // ── Subsystem Overrides ────────────────────────────────────────────────────
@@ -216,19 +358,102 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Returns {@code true} when the leader motor is attached and its status frames are arriving
+     * over CAN. A mechanism that is commanded but reports 0 V with this false has dropped off the
+     * bus, which is what the hood did intermittently on the 2026-09-04 bench.
+     *
+     * @return {@code true} if the leader TalonFX is currently reachable
+     */
+    public boolean isMotorConnected() {
+        return isAttached() && motor.isConnected();
+    }
+
+    /**
      * Reports the combined supply current draw of the leader motor and all followers to the battery
      * logger. Does nothing if the mechanism is not attached.
      */
     public void logBatteryUsage() {
         if (isAttached()) {
-            double motorCurrent = motor.getSupplyCurrent().getValueAsDouble();
+            // getSupplyCurrent() refreshes every signal for this loop, followers included.
+            double motorCurrent = getSupplyCurrent();
             double followersCurrent = 0;
-            for (TalonFX follower : followerMotors) {
-                followersCurrent += follower.getSupplyCurrent().getValueAsDouble();
+            for (int i = 0; i < followerMotors.length; i++) {
+                double amps = followerSupplySignals[i].getValueAsDouble();
+                followersCurrent += amps;
+                checkFollowerAlive(i, amps, motorCurrent);
             }
             Robot.getBatteryLogger()
-                    .reportCurrentUsage("Mechanisms/" + getName(), motorCurrent + followersCurrent);
+                    .reportCurrentUsage(batteryKey, motorCurrent + followersCurrent);
         }
+    }
+
+    /** Leader supply current above which a healthy follower must be pulling its share. */
+    private static final double FOLLOWER_CHECK_LEADER_AMPS = 8.0;
+
+    /** Follower supply current at or below which it is doing no work at all. */
+    private static final double FOLLOWER_DEAD_AMPS = 0.5;
+
+    /**
+     * Seconds of accumulated mismatch before it is called out.
+     *
+     * <p>Accumulated rather than continuous, because nothing here stays loaded for long: a launch
+     * burst runs one to three seconds, and the longest unbroken stretch of the launcher tower's
+     * leader above the threshold in either 2026-09-05 log was 2.78 s. A rule wanting an
+     * uninterrupted fault window would have watched that tower run all day on one motor and said
+     * nothing. Short bursts add up instead.
+     *
+     * <p>Replayed against that day's logs, 1.5 s trips the dead tower follower in both logs while
+     * the two healthy followers reach 0.00 s and 0.50 s -- three times the margin.
+     */
+    private static final double FOLLOWER_DEAD_SECONDS = 1.5;
+
+    /** Ceiling on one loop's contribution, so a disabled stretch cannot bank a fault. */
+    private static final double FOLLOWER_MAX_LOOP_SECONDS = 0.5;
+
+    /**
+     * Raises an alert when a follower stops pulling while its leader is clearly working.
+     *
+     * <p>A permanent follower is invisible when it dies. It shares a gearbox with its leader, so
+     * the mechanism keeps moving on one motor at half the torque and nothing on a dashboard looks
+     * wrong. On 2026-09-05 the launcher tower ran the whole day on one motor with its second one's
+     * power lead off; it took reading the difference between {@code BatteryLogger/Current/
+     * Mechanisms/*} (leader plus followers) and {@code LauncherTower/SupplyCurrent} (leader only)
+     * across three logs to see it, because that difference was the only place the fault existed.
+     *
+     * <p>Now it says so itself. Each follower's draw is published on its own key, and a follower
+     * that draws nothing while its leader is loaded raises a Driver Station error.
+     *
+     * <p>Note this only catches a dead <em>power</em> path. A follower off the CAN bus entirely
+     * never updates its signal, so it reads a constant zero and trips this the same way -- which is
+     * the right outcome, even if the message names the wrong wire.
+     *
+     * @param index which follower, indexing {@code config.followerConfigs}
+     * @param followerAmps that follower's supply current this loop
+     * @param leaderAmps the leader's supply current this loop
+     */
+    private void checkFollowerAlive(int index, double followerAmps, double leaderAmps) {
+        if (index >= followerAlerts.length || followerAlerts[index] == null) {
+            return;
+        }
+        // On the dashboard: the only place a dead follower is visible.
+        if (Telemetry.slowLogThisLoop()) {
+            Telemetry.logDash(followerCurrentKeys[index], followerAmps, "amps");
+        }
+
+        double now = Timer.getFPGATimestamp();
+        double dt = MathUtil.clamp(now - followerCheckLastSeconds, 0, FOLLOWER_MAX_LOOP_SECONDS);
+        if (index == followerMotors.length - 1) {
+            followerCheckLastSeconds = now;
+        }
+
+        if (followerAmps > FOLLOWER_DEAD_AMPS) {
+            // Any draw at all means the power path is intact; forget everything before it.
+            followerMismatchSeconds[index] = 0;
+        } else if (leaderAmps > FOLLOWER_CHECK_LEADER_AMPS) {
+            followerMismatchSeconds[index] += dt;
+        }
+
+        followerAlerts[index].set(followerMismatchSeconds[index] >= FOLLOWER_DEAD_SECONDS);
     }
 
     /**
@@ -255,6 +480,11 @@ public abstract class Mechanism implements Subsystem {
         return new Trigger(this::isRunningDefaultCommand);
     }
 
+    /**
+     * Returns {@code true} if the running default command condition is met.
+     *
+     * @return {@code true} if the running default command condition is met
+     */
     private boolean isRunningDefaultCommand() {
         return this.getCurrentCommand() == this.getDefaultCommand();
     }
@@ -299,7 +529,7 @@ public abstract class Mechanism implements Subsystem {
      * @return {@code true} when position error is within tolerance
      */
     public boolean isAtTargetPosition(DoubleSupplier tolerance) {
-        return Math.abs(cachedRotations.getAsDouble() - target) < tolerance.getAsDouble();
+        return Math.abs(getPositionRotations() - target) < tolerance.getAsDouble();
     }
 
     /**
@@ -311,10 +541,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is within tolerance of target
      */
     public Trigger atRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionRotations() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getPositionRotations, target, tolerance);
     }
 
     /**
@@ -338,8 +565,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is below the threshold
      */
     public Trigger belowRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionRotations() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getPositionRotations, target, tolerance);
     }
 
     /**
@@ -351,8 +577,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is above the threshold
      */
     public Trigger aboveRotations(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionRotations() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getPositionRotations, target, tolerance);
     }
 
     /**
@@ -364,10 +589,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is within tolerance of target
      */
     public Trigger atPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionPercentage() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getPositionPercentage, target, tolerance);
     }
 
     /**
@@ -379,8 +601,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is below the threshold
      */
     public Trigger belowPercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionPercentage() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getPositionPercentage, target, tolerance);
     }
 
     /**
@@ -392,8 +613,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is above the threshold
      */
     public Trigger abovePercentage(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionPercentage() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getPositionPercentage, target, tolerance);
     }
 
     /**
@@ -405,10 +625,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is within tolerance of target
      */
     public Trigger atDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getPositionDegrees() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getPositionDegrees, target, tolerance);
     }
 
     /**
@@ -420,8 +637,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is below the threshold
      */
     public Trigger belowDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionDegrees() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getPositionDegrees, target, tolerance);
     }
 
     /**
@@ -433,8 +649,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when position is above the threshold
      */
     public Trigger aboveDegrees(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getPositionDegrees() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getPositionDegrees, target, tolerance);
     }
 
     /**
@@ -446,8 +661,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when velocity is within tolerance of target
      */
     public Trigger atVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> Math.abs(getVelocityRPM() - target.getAsDouble()) < tolerance.getAsDouble());
+        return near(this::getVelocityRPM, target, tolerance);
     }
 
     /**
@@ -459,8 +673,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when velocity is below the threshold
      */
     public Trigger belowVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getVelocityRPM() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getVelocityRPM, target, tolerance);
     }
 
     /**
@@ -472,8 +685,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when velocity is above the threshold
      */
     public Trigger aboveVelocityRPM(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getVelocityRPM() > (target.getAsDouble() - tolerance.getAsDouble()));
+        return above(this::getVelocityRPM, target, tolerance);
     }
 
     /**
@@ -485,10 +697,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when stator current is within tolerance of target
      */
     public Trigger atCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () ->
-                        Math.abs(getStatorCurrent() - target.getAsDouble())
-                                < tolerance.getAsDouble());
+        return near(this::getStatorCurrent, target, tolerance);
     }
 
     /**
@@ -500,8 +709,7 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when stator current is below the threshold
      */
     public Trigger belowCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
-        return new Trigger(
-                () -> getStatorCurrent() < (target.getAsDouble() + tolerance.getAsDouble()));
+        return below(this::getStatorCurrent, target, tolerance);
     }
 
     /**
@@ -513,94 +721,186 @@ public abstract class Mechanism implements Subsystem {
      * @return trigger that is {@code true} when stator current is above the threshold
      */
     public Trigger aboveCurrent(DoubleSupplier target, DoubleSupplier tolerance) {
+        return above(this::getStatorCurrent, target, tolerance);
+    }
+
+    /** Active while {@code value} is within {@code tolerance} of {@code target}. */
+    private static Trigger near(
+            DoubleSupplier value, DoubleSupplier target, DoubleSupplier tolerance) {
         return new Trigger(
-                () -> getStatorCurrent() > (target.getAsDouble() - tolerance.getAsDouble()));
+                () ->
+                        Math.abs(value.getAsDouble() - target.getAsDouble())
+                                < tolerance.getAsDouble());
+    }
+
+    /** Active while {@code value} is below {@code target + tolerance}. */
+    private static Trigger below(
+            DoubleSupplier value, DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> value.getAsDouble() < target.getAsDouble() + tolerance.getAsDouble());
+    }
+
+    /** Active while {@code value} is above {@code target - tolerance}. */
+    private static Trigger above(
+            DoubleSupplier value, DoubleSupplier target, DoubleSupplier tolerance) {
+        return new Trigger(
+                () -> value.getAsDouble() > target.getAsDouble() - tolerance.getAsDouble());
     }
 
     // ── Sensor Readings ────────────────────────────────────────────────────────
 
     /**
-     * Reads the stator current directly from the motor hardware.
+     * Refreshes every status signal this mechanism reads, once per robot loop, in one Phoenix call.
      *
-     * @return motor stator current in amps, or {@code 0} if not attached
+     * <p>Every Phoenix getter such as {@code motor.getStatorCurrent()} defaults to refreshing its
+     * signal, which is a JNI call each. With eight signals per mechanism read once or more a loop
+     * that was over a hundred JNI calls per loop across the robot. CTRE's recommendation is one
+     * {@code refreshAll} for the lot, which is what this does; every read in the same loop then
+     * sees the same sample, which is the behaviour the per-value caches used to provide.
      */
-    public double updateStatorCurrent() {
-        if (config.attached) {
-            return motor.getStatorCurrent().getValueAsDouble();
+    private void refreshSignalsOncePerLoop() {
+        long loop = RobotLoop.count();
+        if (loop == lastSignalRefreshLoop || loopSignals.length == 0) {
+            return;
         }
-        return 0;
+        lastSignalRefreshLoop = loop;
+        BaseStatusSignal.refreshAll(loopSignals);
+    }
+
+    /** This loop's value of one of the leader's signals, or 0 when there is no hardware. */
+    private double signalValue(BaseStatusSignal signal) {
+        if (!config.attached) {
+            return 0;
+        }
+        refreshSignalsOncePerLoop();
+        return signal.getValueAsDouble();
     }
 
     /**
-     * Returns the cached stator current of the motor.
+     * Returns the stator current of the motor as of this loop.
      *
      * @return motor stator current in amps
      */
     public double getStatorCurrent() {
-        return cachedStatorCurrent.getAsDouble();
+        return signalValue(statorCurrentSignal);
     }
 
     /**
-     * Reads the supply current directly from the motor hardware.
-     *
-     * @return motor supply current in amps, or {@code 0} if not attached
-     */
-    public double updateSupplyCurrent() {
-        if (config.attached) {
-            return motor.getSupplyCurrent().getValueAsDouble();
-        }
-        return 0;
-    }
-
-    /**
-     * Returns the cached supply current of the motor.
+     * Returns the supply current of the motor as of this loop.
      *
      * @return motor supply current in amps
      */
     public double getSupplyCurrent() {
-        return cachedSupplyCurrent.getAsDouble();
+        return signalValue(supplyCurrentSignal);
     }
 
     /**
-     * Reads the motor voltage directly from hardware.
-     *
-     * @return motor voltage in volts, or {@code 0} if not attached
-     */
-    public double updateVoltage() {
-        if (config.attached) {
-            return motor.getMotorVoltage().getValueAsDouble();
-        }
-        return 0;
-    }
-
-    /**
-     * Returns the cached voltage of the motor.
+     * Returns the applied motor voltage as of this loop.
      *
      * @return motor voltage in volts
      */
     public double getVoltage() {
-        return cachedVoltage.getAsDouble();
+        return signalValue(voltageSignal);
     }
 
     /**
-     * Reads the motor temperature directly from hardware.
-     *
-     * @return motor temperature in Celsius, or {@code 0} if not attached
-     */
-    public double updateTemp() {
-        if (config.attached) {
-            return motor.getDeviceTemp().getValueAsDouble();
-        }
-        return 0;
-    }
-
-    /**
-     * Returns the cached temperature of the motor.
+     * Returns the motor temperature as of this loop.
      *
      * @return motor temperature in Celsius
      */
     public double getTemp() {
-        return cachedTemp.getAsDouble();
+        return signalValue(tempSignal);
+    }
+
+    /**
+     * Logs voltage, stator and supply current, temperature and connection under {@code prefix/...},
+     * at 10 Hz. Subclasses call this from {@code periodic()} in place of the five log lines each
+     * used to carry; the keys are built on the first call.
+     *
+     * @param prefix log key prefix, e.g. {@code "Hood"}
+     */
+    protected void logDiagnostics(String prefix) {
+        logDiagnostics(prefix, false);
+    }
+
+    /**
+     * As {@link #logDiagnostics(String)}, optionally also publishing the values to the dashboard.
+     *
+     * @param prefix log key prefix, e.g. {@code "Turret"}
+     * @param dashboard {@code true} to publish through {@link Telemetry#logDash}
+     */
+    protected void logDiagnostics(String prefix, boolean dashboard) {
+        if (!prefix.equals(diagnosticsPrefix)) {
+            diagnosticsPrefix = prefix;
+            voltageKey = prefix + "/Voltage";
+            statorCurrentKey = prefix + "/StatorCurrent";
+            supplyCurrentKey = prefix + "/SupplyCurrent";
+            tempKey = prefix + "/Temp";
+            motorConnectedKey = prefix + "/MotorConnected";
+        }
+        if (!Telemetry.slowLogThisLoop()) {
+            // A feedforward fit needs the applied voltage on every velocity sample, not one in
+            // five.
+            if (config.isFastOutputLogging()) {
+                Telemetry.log(voltageKey, getVoltage(), "volts");
+            }
+            return;
+        }
+        if (dashboard) {
+            Telemetry.logDash(voltageKey, getVoltage(), "volts");
+            Telemetry.logDash(statorCurrentKey, getStatorCurrent(), "amps");
+            Telemetry.logDash(supplyCurrentKey, getSupplyCurrent(), "amps");
+            Telemetry.logDash(tempKey, getTemp(), "deg_C");
+            Telemetry.logDash(motorConnectedKey, isMotorConnected());
+        } else {
+            Telemetry.log(voltageKey, getVoltage(), "volts");
+            Telemetry.log(statorCurrentKey, getStatorCurrent(), "amps");
+            Telemetry.log(supplyCurrentKey, getSupplyCurrent(), "amps");
+            Telemetry.log(tempKey, getTemp(), "deg_C");
+            Telemetry.log(motorConnectedKey, isMotorConnected());
+        }
+    }
+
+    /** How {@link #logStandard} logs {@code <prefix>/RPM}. */
+    public enum RpmLog {
+        /** Not logged. */
+        NONE,
+        /** Slow tier, wpilog only. */
+        SLOW,
+        /** Slow tier, also published to the dashboard. */
+        SLOW_DASH,
+        /** Every loop, for data that needs it (shot dips, feedforward fits), wpilog only. */
+        LOOP,
+        /** Every loop, also published to the dashboard. */
+        LOOP_DASH
+    }
+
+    /**
+     * The per-loop logging every mechanism does: battery use, the current command, {@link
+     * #logDiagnostics(String, boolean)}, and RPM.
+     *
+     * @param prefix log key prefix, e.g. {@code "Feeder"}
+     * @param dashboardDiagnostics whether the diagnostics are also published to the dashboard
+     * @param rpm how RPM is logged
+     */
+    protected void logStandard(String prefix, boolean dashboardDiagnostics, RpmLog rpm) {
+        logBatteryUsage();
+        if (!prefix.equals(standardPrefix)) {
+            standardPrefix = prefix;
+            currentCommandKey = prefix + "/CurrentCommand";
+            rpmKey = prefix + "/RPM";
+        }
+        Telemetry.log(currentCommandKey, getCurrentCommandName());
+        logDiagnostics(prefix, dashboardDiagnostics);
+        boolean slow = rpm == RpmLog.SLOW || rpm == RpmLog.SLOW_DASH;
+        if (rpm == RpmLog.NONE || (slow && !Telemetry.slowLogThisLoop())) {
+            return;
+        }
+        if (rpm == RpmLog.SLOW_DASH || rpm == RpmLog.LOOP_DASH) {
+            Telemetry.logDash(rpmKey, getVelocityRPM(), "RPM");
+        } else {
+            Telemetry.log(rpmKey, getVelocityRPM(), "RPM");
+        }
     }
 
     // ── Unit Conversions ───────────────────────────────────────────────────────
@@ -632,7 +932,7 @@ public abstract class Mechanism implements Subsystem {
      * @return the equivalent position in rotations
      */
     public double degreesToRotations(DoubleSupplier degrees) {
-        return (degrees.getAsDouble() / 360);
+        return Units.degreesToRotations(degrees.getAsDouble());
     }
 
     /**
@@ -642,96 +942,70 @@ public abstract class Mechanism implements Subsystem {
      * @return the equivalent angle in degrees
      */
     public double rotationsToDegrees(DoubleSupplier rotations) {
-        return 360 * rotations.getAsDouble();
+        return Units.rotationsToDegrees(rotations.getAsDouble());
     }
 
     // ── Position & Velocity ────────────────────────────────────────────────────
 
     /**
-     * Returns the cached motor position in rotations.
+     * Returns the motor position in rotations as of this loop.
      *
      * @return motor position in rotations
      */
     public double getPositionRotations() {
-        return cachedRotations.getAsDouble();
+        return signalValue(positionStatusSignal);
     }
 
     /**
-     * Reads the motor position directly from hardware.
+     * Returns the motor position in rotations projected from the signal's own timestamp to now
+     * along the velocity signal, so a mechanism moving at speed reads where it is rather than where
+     * it was when the CAN frame left the motor.
      *
-     * @return motor position in rotations, or {@code 0} if not attached
+     * @return latency-compensated motor position in rotations, or {@code 0} if not attached
      */
-    private double updatePositionRotations() {
-        if (config.attached) {
-            return motor.getPosition().getValueAsDouble();
+    public double getLatencyCompensatedPositionRotations() {
+        if (!config.attached || positionStatusSignal == null) {
+            return 0;
         }
-        return 0;
+        refreshSignalsOncePerLoop();
+        return BaseStatusSignal.getLatencyCompensatedValueAsDouble(
+                positionStatusSignal, velocityStatusSignal);
     }
 
     /**
-     * Returns the cached motor position as a percentage of max rotations.
+     * Same as {@link #getLatencyCompensatedPositionRotations()} in degrees.
+     *
+     * @return latency-compensated motor position in degrees, or {@code 0} if not attached
+     */
+    public double getLatencyCompensatedPositionDegrees() {
+        return rotationsToDegrees(this::getLatencyCompensatedPositionRotations);
+    }
+
+    /**
+     * Returns the motor position as a percentage of max rotations as of this loop.
      *
      * @return motor position in percentage of max rotations (0–100)
      */
     public double getPositionPercentage() {
-        return cachedPercentage.getAsDouble();
-    }
-
-    /**
-     * Computes the motor position as a percentage of max rotations using the cached rotation value.
-     *
-     * @return motor position in percentage of max rotations
-     */
-    private double updatePositionPercentage() {
         return rotationsToPercent(this::getPositionRotations);
     }
 
     /**
-     * Returns the cached motor position in degrees.
+     * Returns the motor position in degrees as of this loop.
      *
      * @return motor position in degrees
      */
     public double getPositionDegrees() {
-        return cachedDegrees.getAsDouble();
-    }
-
-    /**
-     * Computes the motor position in degrees using the cached rotation value.
-     *
-     * @return motor position in degrees
-     */
-    private double updatePositionDegrees() {
         return rotationsToDegrees(this::getPositionRotations);
     }
 
     /**
-     * Reads the motor velocity directly from hardware in rotations per second (CTRE native units).
-     *
-     * @return motor velocity in rotations per second, or {@code 0} if not attached
-     */
-    private double updateVelocityRPS() {
-        if (config.attached) {
-            return motor.getVelocity().getValueAsDouble();
-        }
-        return 0;
-    }
-
-    /**
-     * Returns the cached motor velocity in RPM.
+     * Returns the motor velocity in RPM as of this loop.
      *
      * @return motor velocity in revolutions per minute
      */
     public double getVelocityRPM() {
-        return cachedVelocity.getAsDouble();
-    }
-
-    /**
-     * Computes the motor velocity in RPM from the raw RPS sensor reading.
-     *
-     * @return motor velocity in revolutions per minute
-     */
-    private double updateVelocityRPM() {
-        return Conversions.RPStoRPM(updateVelocityRPS());
+        return Conversions.RPStoRPM(signalValue(velocityStatusSignal));
     }
 
     // ── Command Factories ──────────────────────────────────────────────────────
@@ -915,7 +1189,7 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /** Stops the motor output. Does nothing if the mechanism is not attached. */
-    protected void stop() {
+    public void stop() {
         if (isAttached()) {
             motor.stopMotor();
         }
@@ -978,12 +1252,7 @@ public abstract class Mechanism implements Subsystem {
      * @param velocityRPM the target velocity in revolutions per minute
      */
     protected void setVelocityTCFOCrpm(DoubleSupplier velocityRPM) {
-        if (isAttached()) {
-            velocityTarget = Conversions.RPMtoRPS(velocityRPM.getAsDouble());
-            VelocityTorqueCurrentFOC output =
-                    config.velocityTorqueCurrentFOC.withVelocity(velocityTarget);
-            motor.setControl(output);
-        }
+        setVelocityTorqueCurrentFOC(() -> Conversions.RPMtoRPS(velocityRPM.getAsDouble()));
     }
 
     /**
@@ -1000,6 +1269,44 @@ public abstract class Mechanism implements Subsystem {
     }
 
     /**
+     * Closed-loop velocity control with voltage compensation, taking RPM. The RPM value is
+     * converted to RPS internally before being sent to the motor.
+     *
+     * @param velocityRPM the target velocity in revolutions per minute
+     */
+    protected void setVelocityRPM(DoubleSupplier velocityRPM) {
+        setVelocity(() -> Conversions.RPMtoRPS(velocityRPM.getAsDouble()));
+    }
+
+    /**
+     * Closed-loop position control with voltage compensation.
+     *
+     * @param rotations the target position in rotations
+     */
+    protected void setPosition(DoubleSupplier rotations) {
+        setPositionWithVelocity(rotations, () -> 0);
+    }
+
+    /**
+     * Closed-loop position control with voltage compensation and an explicit velocity feedforward.
+     * This is the correct primitive for tracking a continuously moving setpoint (e.g. a turret
+     * aiming at a target while the robot drives), where profiling would introduce steady-state lag.
+     *
+     * @param rotations the target position in mechanism rotations
+     * @param velocityRPS the velocity feedforward in mechanism rotations per second
+     */
+    protected void setPositionWithVelocity(DoubleSupplier rotations, DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            PositionVoltage output =
+                    config.positionControl
+                            .withPosition(target)
+                            .withVelocity(velocityRPS.getAsDouble());
+            motor.setControl(output);
+        }
+    }
+
+    /**
      * Closed-loop position control using Motion Magic with Torque Current FOC (requires Phoenix
      * Pro).
      *
@@ -1010,6 +1317,27 @@ public abstract class Mechanism implements Subsystem {
             target = rotations.getAsDouble();
             MotionMagicTorqueCurrentFOC mm = config.mmPositionFOC.withPosition(target);
             motor.setControl(mm);
+        }
+    }
+
+    /**
+     * Closed-loop position control using {@link PositionTorqueCurrentFOC} with an explicit velocity
+     * feedforward. This is the correct primitive for tracking a continuously moving setpoint (e.g.
+     * a turret aiming at a target while the robot drives), where profiling would introduce
+     * steady-state lag.
+     *
+     * @param rotations the target position in mechanism rotations
+     * @param velocityRPS the velocity feedforward in mechanism rotations per second
+     */
+    protected void setPositionFocWithVelocity(
+            DoubleSupplier rotations, DoubleSupplier velocityRPS) {
+        if (isAttached()) {
+            target = rotations.getAsDouble();
+            PositionTorqueCurrentFOC req =
+                    config.positionTorqueFOC
+                            .withPosition(target)
+                            .withVelocity(velocityRPS.getAsDouble());
+            motor.setControl(req);
         }
     }
 
@@ -1097,12 +1425,7 @@ public abstract class Mechanism implements Subsystem {
      * @param percent fractional output between -1 and +1
      */
     protected void setPercentOutput(DoubleSupplier percent) {
-        if (isAttached()) {
-            VoltageOut output =
-                    config.voltageControl.withOutput(
-                            config.voltageCompSaturation * percent.getAsDouble());
-            motor.setControl(output);
-        }
+        setVoltageOutput(() -> config.voltageCompSaturation * percent.getAsDouble());
     }
 
     /**
@@ -1112,10 +1435,7 @@ public abstract class Mechanism implements Subsystem {
      * @param voltage the desired voltage in volts
      */
     protected void setVoltageOutput(DoubleSupplier voltage) {
-        if (isAttached()) {
-            VoltageOut output = config.voltageControl.withOutput(voltage.getAsDouble());
-            motor.setControl(output);
-        }
+        voltageOut(voltage, false);
     }
 
     /**
@@ -1125,11 +1445,19 @@ public abstract class Mechanism implements Subsystem {
      * @param voltage the desired voltage in volts
      */
     protected void setVoltageOutputNoSoftLimit(DoubleSupplier voltage) {
+        voltageOut(voltage, true);
+    }
+
+    /**
+     * Sends the shared voltage request. The soft-limit flag is set on every call because the
+     * request object is reused.
+     */
+    private void voltageOut(DoubleSupplier voltage, boolean ignoreSoftLimits) {
         if (isAttached()) {
             VoltageOut output =
                     config.voltageControl
                             .withOutput(voltage.getAsDouble())
-                            .withIgnoreSoftwareLimits(true);
+                            .withIgnoreSoftwareLimits(ignoreSoftLimits);
             motor.setControl(output);
         }
     }
@@ -1188,12 +1516,11 @@ public abstract class Mechanism implements Subsystem {
                 config.configForwardTorqueCurrentLimit(enabledLimit.getAsDouble());
                 config.configReverseTorqueCurrentLimit(-1 * enabledLimit.getAsDouble());
                 config.configStatorCurrentLimit(enabledLimit.getAsDouble(), true);
-                config.applyTalonConfig(motor);
             } else {
                 config.configForwardTorqueCurrentLimit(300);
                 config.configReverseTorqueCurrentLimit(-300);
-                config.applyTalonConfig(motor);
             }
+            config.applyTalonConfig(motor);
         }
     }
 
@@ -1205,13 +1532,8 @@ public abstract class Mechanism implements Subsystem {
      */
     public void toggleSupplyCurrentLimit(DoubleSupplier enabledLimit, boolean enabled) {
         if (isAttached()) {
-            if (enabled) {
-                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), true);
-                config.applyTalonConfig(motor);
-            } else {
-                config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), false);
-                config.applyTalonConfig(motor);
-            }
+            config.configSupplyCurrentLimit(enabledLimit.getAsDouble(), enabled);
+            config.applyTalonConfig(motor);
         }
     }
 
@@ -1231,8 +1553,13 @@ public abstract class Mechanism implements Subsystem {
                 config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);
                 config.configForwardTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
                 config.configReverseTorqueCurrentLimit(-1 * Math.abs(statorLimit.getAsDouble()));
-                for (int i = 0; i < 10; i++) {
-                    StatusCode result = motor.getConfigurator().apply(config.talonConfig);
+                for (int i = 0; i < CanConfigBudget.maxAttempts(); i++) {
+                    StatusCode result =
+                            CanConfigBudget.run(
+                                    config.getName(),
+                                    timeout ->
+                                            motor.getConfigurator()
+                                                    .apply(config.talonConfig, timeout));
                     if (!result.isOK()) {
                         System.out.println(
                                 "Could not apply config changes to "
@@ -1300,36 +1627,7 @@ public abstract class Mechanism implements Subsystem {
      * @return a diagnostic command that checks peak current
      */
     public Command checkMaxCurrent(DoubleSupplier expectedCurrent) {
-        return new Command() {
-            double maxCurrent = 0;
-            String alertText = config.name + " MaxCurrent Error";
-
-            @Override
-            public void initialize() {
-                maxCurrent = 0;
-            }
-
-            @Override
-            public void execute() {
-                double current = getStatorCurrent();
-                if (current > maxCurrent) {
-                    maxCurrent = current;
-                }
-            }
-
-            @Override
-            public void end(boolean interrupted) {
-                if (maxCurrent > expectedCurrent.getAsDouble()) {
-                    currentAlert.setText(
-                            alertText
-                                    + " Expected: "
-                                    + expectedCurrent.getAsDouble()
-                                    + " Actual: "
-                                    + maxCurrent);
-                    currentAlert.set(true);
-                }
-            }
-        };
+        return checkPeakCurrent(expectedCurrent, true, " MaxCurrent Error Expected: ");
     }
 
     /**
@@ -1341,9 +1639,17 @@ public abstract class Mechanism implements Subsystem {
      * @return a diagnostic command that checks whether a minimum current threshold was reached
      */
     public Command checkMinThresholdCurrent(DoubleSupplier expectedCurrent) {
+        return checkPeakCurrent(expectedCurrent, false, " Current Error Expected at least: ");
+    }
+
+    /**
+     * Tracks the peak stator current while running and raises {@link #currentAlert} at the end if
+     * the peak is above ({@code failAbove}) or below the expected current.
+     */
+    private Command checkPeakCurrent(
+            DoubleSupplier expectedCurrent, boolean failAbove, String message) {
         return new Command() {
             double maxCurrent = 0;
-            String alertText = config.name + " Current Error";
 
             @Override
             public void initialize() {
@@ -1352,21 +1658,15 @@ public abstract class Mechanism implements Subsystem {
 
             @Override
             public void execute() {
-                double current = getStatorCurrent();
-                if (current > maxCurrent) {
-                    maxCurrent = current;
-                }
+                maxCurrent = Math.max(maxCurrent, getStatorCurrent());
             }
 
             @Override
             public void end(boolean interrupted) {
-                if (maxCurrent < expectedCurrent.getAsDouble()) {
+                double expected = expectedCurrent.getAsDouble();
+                if (failAbove ? maxCurrent > expected : maxCurrent < expected) {
                     currentAlert.setText(
-                            alertText
-                                    + " Expected at least: "
-                                    + expectedCurrent.getAsDouble()
-                                    + " Actual: "
-                                    + maxCurrent);
+                            config.name + message + expected + " Actual: " + maxCurrent);
                     currentAlert.set(true);
                 }
             }
@@ -1435,6 +1735,16 @@ public abstract class Mechanism implements Subsystem {
          */
         @Getter @Setter private boolean attached = true;
 
+        /**
+         * Publish the leader's output signals (duty cycle, motor voltage, torque current) at the
+         * control rate and log its applied voltage on every loop instead of at 10 Hz. Set it on the
+         * mechanisms whose feedforward is fit from logs: kS and kV survive a 10 Hz voltage, kA does
+         * not, because the acceleration it multiplies is gone between one sample and the next.
+         * Costs one status frame at 100 Hz on this motor and one double per loop in the log; the
+         * followers are untouched.
+         */
+        @Getter @Setter private boolean fastOutputLogging = false;
+
         /** CAN bus device ID and bus name for the leader motor. */
         @Getter private CanDeviceId id;
 
@@ -1469,6 +1779,9 @@ public abstract class Mechanism implements Subsystem {
         private MotionMagicTorqueCurrentFOC mmPositionFOC = new MotionMagicTorqueCurrentFOC(0);
 
         @Getter
+        private PositionTorqueCurrentFOC positionTorqueFOC = new PositionTorqueCurrentFOC(0);
+
+        @Getter
         private DynamicMotionMagicTorqueCurrentFOC dynamicMMPositionFOC =
                 new DynamicMotionMagicTorqueCurrentFOC(0, 0, 0);
 
@@ -1486,6 +1799,7 @@ public abstract class Mechanism implements Subsystem {
 
         @Getter private VoltageOut voltageControl = new VoltageOut(0);
         @Getter private VelocityVoltage velocityControl = new VelocityVoltage(0);
+        @Getter private PositionVoltage positionControl = new PositionVoltage(0);
 
         @Getter
         private VelocityTorqueCurrentFOC velocityTorqueCurrentFOC = new VelocityTorqueCurrentFOC(0);
@@ -1524,7 +1838,9 @@ public abstract class Mechanism implements Subsystem {
          * @param talon the TalonFX motor to configure
          */
         public void applyTalonConfig(TalonFX talon) {
-            StatusCode result = talon.getConfigurator().apply(talonConfig);
+            StatusCode result =
+                    CanConfigBudget.run(
+                            name, timeout -> talon.getConfigurator().apply(talonConfig, timeout));
             if (!result.isOK()) {
                 DriverStation.reportWarning(
                         "Could not apply config changes to " + name + "\'s motor ", false);
@@ -1581,6 +1897,29 @@ public abstract class Mechanism implements Subsystem {
         }
 
         /**
+         * Sets the usual set of current limits in one call: the supply limit with its lower limit
+         * and lower-limit time, the stator limit, and the forward and reverse torque-current limits
+         * at the stator value.
+         *
+         * @param supplyLimit supply current limit in amps
+         * @param statorLimit stator current limit in amps, also used for both torque limits
+         * @param lowerSupplyLimit supply limit to drop to after {@code lowerSupplyTime}, in amps
+         * @param lowerSupplyTime seconds at the supply limit before dropping to the lower limit
+         */
+        public void configCurrentLimits(
+                double supplyLimit,
+                double statorLimit,
+                double lowerSupplyLimit,
+                double lowerSupplyTime) {
+            configSupplyCurrentLimit(supplyLimit, true);
+            configStatorCurrentLimit(statorLimit, true);
+            configLowerSupplyCurrentLimit(lowerSupplyLimit);
+            configLowerSupplyCurrentTime(lowerSupplyTime);
+            configForwardTorqueCurrentLimit(statorLimit);
+            configReverseTorqueCurrentLimit(statorLimit);
+        }
+
+        /**
          * Configures the supply current limit. The absolute value of {@code supplyLimit} is used,
          * so negative values are automatically corrected.
          *
@@ -1588,10 +1927,7 @@ public abstract class Mechanism implements Subsystem {
          * @param enabled {@code true} to enable the limit
          */
         public void configSupplyCurrentLimit(double supplyLimit, boolean enabled) {
-            if (supplyLimit < 0) {
-                supplyLimit = -supplyLimit;
-            }
-            talonConfig.CurrentLimits.SupplyCurrentLimit = supplyLimit;
+            talonConfig.CurrentLimits.SupplyCurrentLimit = Math.abs(supplyLimit);
             talonConfig.CurrentLimits.SupplyCurrentLimitEnable = enabled;
         }
 
@@ -1603,10 +1939,7 @@ public abstract class Mechanism implements Subsystem {
          * @param enabled {@code true} to enable the limit
          */
         public void configStatorCurrentLimit(double statorLimit, boolean enabled) {
-            if (statorLimit < 0) {
-                statorLimit = -statorLimit;
-            }
-            talonConfig.CurrentLimits.StatorCurrentLimit = statorLimit;
+            talonConfig.CurrentLimits.StatorCurrentLimit = Math.abs(statorLimit);
             talonConfig.CurrentLimits.StatorCurrentLimitEnable = enabled;
         }
 
@@ -1617,10 +1950,29 @@ public abstract class Mechanism implements Subsystem {
          * @param currentLimit peak forward torque current in amps
          */
         public void configForwardTorqueCurrentLimit(double currentLimit) {
-            if (currentLimit < 0) {
-                currentLimit = -currentLimit;
-            }
-            talonConfig.TorqueCurrent.PeakForwardTorqueCurrent = currentLimit;
+            talonConfig.TorqueCurrent.PeakForwardTorqueCurrent = Math.abs(currentLimit);
+        }
+
+        /**
+         * Sets the open-loop ramp period for duty cycle, voltage, and torque control.
+         *
+         * @param seconds time to ramp from neutral to full output
+         */
+        public void configOpenLoopRamps(double seconds) {
+            talonConfig.OpenLoopRamps.DutyCycleOpenLoopRampPeriod = seconds;
+            talonConfig.OpenLoopRamps.VoltageOpenLoopRampPeriod = seconds;
+            talonConfig.OpenLoopRamps.TorqueOpenLoopRampPeriod = seconds;
+        }
+
+        /**
+         * Sets the closed-loop ramp period for duty cycle, voltage, and torque control.
+         *
+         * @param seconds time to ramp from neutral to full output
+         */
+        public void configClosedLoopRamps(double seconds) {
+            talonConfig.ClosedLoopRamps.DutyCycleClosedLoopRampPeriod = seconds;
+            talonConfig.ClosedLoopRamps.VoltageClosedLoopRampPeriod = seconds;
+            talonConfig.ClosedLoopRamps.TorqueClosedLoopRampPeriod = seconds;
         }
 
         /**
@@ -1630,10 +1982,7 @@ public abstract class Mechanism implements Subsystem {
          * @param currentLimit peak reverse torque current in amps (sign is corrected if positive)
          */
         public void configReverseTorqueCurrentLimit(double currentLimit) {
-            if (currentLimit > 0) {
-                currentLimit = -currentLimit;
-            }
-            talonConfig.TorqueCurrent.PeakReverseTorqueCurrent = currentLimit;
+            talonConfig.TorqueCurrent.PeakReverseTorqueCurrent = -Math.abs(currentLimit);
         }
 
         /**
@@ -1729,6 +2078,7 @@ public abstract class Mechanism implements Subsystem {
         public void configMotionMagicPosition(double feedforward) {
             mmPositionFOC = mmPositionFOC.withFeedForward(feedforward);
             mmPositionVoltage = mmPositionVoltage.withFeedForward(feedforward);
+            mmPositionVoltageSlot = mmPositionVoltageSlot.withFeedForward(feedforward);
         }
 
         /**
@@ -1797,7 +2147,12 @@ public abstract class Mechanism implements Subsystem {
          * @param kD derivative gain
          */
         public void configPIDGains(int slot, double kP, double kI, double kD) {
-            talonConfigFeedbackPID(slot, kP, kI, kD);
+            switch (slot) {
+                case 0 -> talonConfig.Slot0.withKP(kP).withKI(kI).withKD(kD);
+                case 1 -> talonConfig.Slot1.withKP(kP).withKI(kI).withKD(kD);
+                case 2 -> talonConfig.Slot2.withKP(kP).withKI(kI).withKD(kD);
+                default -> DriverStation.reportWarning("MechConfig: Invalid Feedback slot", false);
+            }
         }
 
         /**
@@ -1822,7 +2177,13 @@ public abstract class Mechanism implements Subsystem {
          * @param kG gravity/load compensation gain
          */
         public void configFeedForwardGains(int slot, double kS, double kV, double kA, double kG) {
-            talonConfigFeedForward(slot, kV, kA, kS, kG);
+            switch (slot) {
+                case 0 -> talonConfig.Slot0.withKS(kS).withKV(kV).withKA(kA).withKG(kG);
+                case 1 -> talonConfig.Slot1.withKS(kS).withKV(kV).withKA(kA).withKG(kG);
+                case 2 -> talonConfig.Slot2.withKS(kS).withKV(kV).withKA(kA).withKG(kG);
+                default -> DriverStation.reportWarning(
+                        "MechConfig: Invalid FeedForward slot", false);
+            }
         }
 
         /**
@@ -1865,14 +2226,11 @@ public abstract class Mechanism implements Subsystem {
         public void configGravityType(int slot, boolean isArm) {
             GravityTypeValue gravityType =
                     isArm ? GravityTypeValue.Arm_Cosine : GravityTypeValue.Elevator_Static;
-            if (slot == 0) {
-                talonConfig.Slot0.GravityType = gravityType;
-            } else if (slot == 1) {
-                talonConfig.Slot1.GravityType = gravityType;
-            } else if (slot == 2) {
-                talonConfig.Slot2.GravityType = gravityType;
-            } else {
-                DriverStation.reportWarning("MechConfig: Invalid slot", false);
+            switch (slot) {
+                case 0 -> talonConfig.Slot0.GravityType = gravityType;
+                case 1 -> talonConfig.Slot1.GravityType = gravityType;
+                case 2 -> talonConfig.Slot2.GravityType = gravityType;
+                default -> DriverStation.reportWarning("MechConfig: Invalid slot", false);
             }
         }
 
@@ -1886,64 +2244,6 @@ public abstract class Mechanism implements Subsystem {
         protected void configMinMaxRotations(double minRotation, double maxRotation) {
             this.minRotations = minRotation;
             this.maxRotations = maxRotation;
-        }
-
-        // ── Private Helpers ───────────────────────────────────────────────────
-
-        /**
-         * Applies feed-forward gains (kV, kA, kS, kG) to the specified TalonFX slot.
-         *
-         * @param slot the gain slot (0, 1, or 2)
-         * @param kV velocity feed-forward
-         * @param kA acceleration feed-forward
-         * @param kS static friction compensation
-         * @param kG gravity compensation
-         */
-        private void talonConfigFeedForward(int slot, double kV, double kA, double kS, double kG) {
-            if (slot == 0) {
-                talonConfig.Slot0.kV = kV;
-                talonConfig.Slot0.kA = kA;
-                talonConfig.Slot0.kS = kS;
-                talonConfig.Slot0.kG = kG;
-            } else if (slot == 1) {
-                talonConfig.Slot1.kV = kV;
-                talonConfig.Slot1.kA = kA;
-                talonConfig.Slot1.kS = kS;
-                talonConfig.Slot1.kG = kG;
-            } else if (slot == 2) {
-                talonConfig.Slot2.kV = kV;
-                talonConfig.Slot2.kA = kA;
-                talonConfig.Slot2.kS = kS;
-                talonConfig.Slot2.kG = kG;
-            } else {
-                DriverStation.reportWarning("MechConfig: Invalid FeedForward slot", false);
-            }
-        }
-
-        /**
-         * Applies PID gains (kP, kI, kD) to the specified TalonFX slot.
-         *
-         * @param slot the gain slot (0, 1, or 2)
-         * @param kP proportional gain
-         * @param kI integral gain
-         * @param kD derivative gain
-         */
-        private void talonConfigFeedbackPID(int slot, double kP, double kI, double kD) {
-            if (slot == 0) {
-                talonConfig.Slot0.kP = kP;
-                talonConfig.Slot0.kI = kI;
-                talonConfig.Slot0.kD = kD;
-            } else if (slot == 1) {
-                talonConfig.Slot1.kP = kP;
-                talonConfig.Slot1.kI = kI;
-                talonConfig.Slot1.kD = kD;
-            } else if (slot == 2) {
-                talonConfig.Slot2.kP = kP;
-                talonConfig.Slot2.kI = kI;
-                talonConfig.Slot2.kD = kD;
-            } else {
-                DriverStation.reportWarning("MechConfig: Invalid Feedback slot", false);
-            }
         }
     }
 }

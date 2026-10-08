@@ -237,9 +237,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         systemState = handleStateTransition();
         applyStates();
 
-        Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
-        Telemetry.log("Swerve/RotationVelocityCoefficient", getRotationVelocityCoefficient());
+        Telemetry.logDash("Swerve/CurrentCommand", getCurrentCommandName());
+        Telemetry.logDash("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
+        Telemetry.logDash("Swerve/RotationVelocityCoefficient", getRotationVelocityCoefficient());
         logBatteryUsage();
         checkPigeonConnection();
 
@@ -267,8 +267,8 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
             }
         }
 
-        Telemetry.log("Swerve/WantedState", wantedState.toString());
-        Telemetry.log("Swerve/SystemState", systemState.toString());
+        Telemetry.logDash("Swerve/WantedState", wantedState.toString());
+        Telemetry.logDash("Swerve/SystemState", systemState.toString());
     }
 
     // -----------------------------------------------------------------------

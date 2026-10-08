@@ -115,14 +115,14 @@ public class IndexerTower extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("IndexerTower/WantedState", wantedState.toString());
-        Telemetry.log("IndexerTower/SystemState", systemState.toString());
-        Telemetry.log("IndexerTower/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IndexerTower/Voltage", getVoltage(), "volts");
-        Telemetry.log("IndexerTower/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("IndexerTower/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("IndexerTower/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("IndexerTower/Temp", getTemp(), "deg_C");
+        Telemetry.logDash("IndexerTower/WantedState", wantedState.toString());
+        Telemetry.logDash("IndexerTower/SystemState", systemState.toString());
+        Telemetry.logDash("IndexerTower/CurrentCommand", getCurrentCommandName());
+        Telemetry.logDash("IndexerTower/Voltage", getVoltage(), "volts");
+        Telemetry.logDash("IndexerTower/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.logDash("IndexerTower/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.logDash("IndexerTower/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logDash("IndexerTower/Temp", getTemp(), "deg_C");
     }
 
     // --------------------------------------------------------------------------------

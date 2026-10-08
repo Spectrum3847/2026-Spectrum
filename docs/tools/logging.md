@@ -11,7 +11,7 @@ Robot logs are the difference between "the elevator stopped working at champs an
 ```java
 // frc.robot.Robot
 Telemetry.start(
-    /* ntPublish     */ true,
+    /* ntMirror      */ RobotBase.isSimulation(),
     /* captureDs     */ true,
     /* captureNt     */ false,
     /* captureConsole*/ true,
@@ -22,12 +22,24 @@ Telemetry.start(
 
 Each flag maps to a `DogLogOptions` setter; toggling them changes what ends up in the `.wpilog` files on the RIO.
 
-* `ntPublish` mirrors every logged value to NetworkTables so [Elastic](elastic.md) and AdvantageScope can see it live.
+* `ntMirror` is the starting position of the SmartDashboard switch `Telemetry/MirrorLogsToNT`, which mirrors every logged value to NetworkTables so AdvantageScope can see it live. It starts on in simulation and off on the robot, to save roboRIO CPU. Flip it in Elastic when AdvantageScope needs the full live stream in the shop. It is forced off whenever the FMS is attached. The dashboard gets its values another way, see [What reaches the dashboard](#what-reaches-the-dashboard).
 * `captureDs` / `captureConsole` snapshot Driver Station messages and `System.out` into the log.
 * `logExtras` (PDH currents, CAN utilization, radio status) is currently off; flip to `true` when you want the extra noise for diagnostics.
 * `tunableOnFMS` controls DogLog's NT tunables; `TuneValue` uses `SmartDashboard` (NetworkTables) regardless, so treat tunables as a practice-only policy and remove/guard them for competition.
 
 `Telemetry.logAlerts()` runs in `periodic()` and pulls anything published to NetworkTables under `SmartDashboard/Alerts` (errors, warnings, infos) into the log file with deduplication, so a flapping alert doesn't fill the disk.
+
+## What reaches the dashboard
+
+While the mirror is off, a value is on NetworkTables only if the code publishes it on purpose. `Telemetry` has three tiers:
+
+|                 call                  |                   wpilog                   |      NetworkTables       |                                   use for                                   |
+|---------------------------------------|--------------------------------------------|--------------------------|-----------------------------------------------------------------------------|
+| `Telemetry.log(key, value)`           | every call (DogLog skips unchanged values) | only through the mirror  | everything                                                                  |
+| `Telemetry.logDash(key, value)`       | every call                                 | every fifth loop (10 Hz) | keys the Elastic layout shows                                               |
+| `Telemetry.logDashAlways(key, value)` | every call                                 | every call               | dashboard keys logged once or on their own cadence, like `BuildConstants/*` |
+
+`Telemetry.slowLogThisLoop()` is true on the same every-fifth loop; wrap anything that does not need 20 ms resolution in it. The Elastic layout in `src/main/deploy/elastic-layout.json` is the list of keys that have to stay `logDash`.
 
 ## Logging Values
 

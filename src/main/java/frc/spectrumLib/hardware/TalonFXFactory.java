@@ -1,6 +1,7 @@
 package frc.spectrumLib.hardware;
 
 import com.ctre.phoenix6.CANBus;
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -12,6 +13,7 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.ReverseLimitSourceValue;
 import com.ctre.phoenix6.signals.ReverseLimitTypeValue;
+import edu.wpi.first.wpilibj.DriverStation;
 import frc.spectrumLib.util.CanDeviceId;
 
 /**
@@ -36,9 +38,7 @@ public class TalonFXFactory {
      * @return the configured TalonFX
      */
     public static TalonFX createDefaultTalon(CanDeviceId id) {
-        var talon = createTalon(id);
-        talon.getConfigurator().apply(getDefaultConfig());
-        return talon;
+        return createConfigTalon(id, getDefaultConfig());
     }
 
     /**
@@ -50,7 +50,15 @@ public class TalonFXFactory {
      */
     public static TalonFX createConfigTalon(CanDeviceId id, TalonFXConfiguration config) {
         var talon = createTalon(id);
-        talon.getConfigurator().apply(config);
+        StatusCode result =
+                CanConfigBudget.run(
+                        "Talon " + id.getDeviceNumber(),
+                        timeout -> talon.getConfigurator().apply(config, timeout));
+        if (!result.isOK()) {
+            DriverStation.reportWarning(
+                    "Could not apply config to Talon " + id.getDeviceNumber() + ": " + result,
+                    false);
+        }
         return talon;
     }
 
@@ -126,9 +134,13 @@ public class TalonFXFactory {
         return config;
     }
 
+    /** Creates the talon. */
     private static TalonFX createTalon(CanDeviceId id) {
         TalonFX talon = new TalonFX(id.getDeviceNumber(), new CANBus(id.getBus()));
-        talon.clearStickyFaults();
+        // Blocking, and worthless on a bus with nothing on it.
+        if (!CanConfigBudget.exhausted()) {
+            talon.clearStickyFaults();
+        }
 
         return talon;
     }

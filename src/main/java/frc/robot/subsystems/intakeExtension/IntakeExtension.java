@@ -3,7 +3,6 @@ package frc.robot.subsystems.intakeExtension;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
@@ -478,15 +477,15 @@ public class IntakeExtension extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("IntakeExtension/WantedState", wantedState.toString());
-        Telemetry.log("IntakeExtension/SystemState", systemState.toString());
-        Telemetry.log("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("IntakeExtension/Voltage", getVoltage(), "volts");
-        Telemetry.log("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("IntakeExtension/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("IntakeExtension/Position", getPositionRotations(), "rotations");
-        Telemetry.log("IntakeExtension/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("IntakeExtension/Temp", getTemp(), "deg_C");
+        Telemetry.logDash("IntakeExtension/WantedState", wantedState.toString());
+        Telemetry.logDash("IntakeExtension/SystemState", systemState.toString());
+        Telemetry.logDash("IntakeExtension/CurrentCommand", getCurrentCommandName());
+        Telemetry.logDash("IntakeExtension/Voltage", getVoltage(), "volts");
+        Telemetry.logDash("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.logDash("IntakeExtension/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.logDash("IntakeExtension/Position", getPositionRotations(), "rotations");
+        Telemetry.logDash("IntakeExtension/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logDash("IntakeExtension/Temp", getTemp(), "deg_C");
         Telemetry.log("IntakeExtension/LeftHomed", leftHomed);
         Telemetry.log("IntakeExtension/RightHomed", rightHomed);
 
@@ -498,19 +497,12 @@ public class IntakeExtension extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            sim = new IntakeExtensionSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
+            sim = new IntakeExtensionSim(RobotSim.leftView, motor);
         }
     }
 
     class IntakeExtensionSim extends LinearSim {
-        public IntakeExtensionSim(Mechanism2d mech, TalonFXSimState intakeExtensionMotorSim) {
+        public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new LinearConfig(
                                     config.getIntakeX(),
@@ -524,7 +516,7 @@ public class IntakeExtension extends Mechanism {
                             .setLineWidth(config.getLineWidth())
                             .setColor(new Color8Bit(Color.kLightGray)),
                     mech,
-                    intakeExtensionMotorSim,
+                    motor,
                     config.getName());
         }
     }

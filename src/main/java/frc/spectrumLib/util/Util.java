@@ -1,10 +1,12 @@
 package frc.spectrumLib.util;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.List;
 import java.util.function.DoubleSupplier;
+import java.util.stream.Collectors;
 
 /** From 254 lib imported from 1678-2024 Contains basic functions that are used often. */
 public class Util {
@@ -35,7 +37,7 @@ public class Util {
      * @return the clamped value
      */
     public static double limit(double v, double min, double max) {
-        return Math.min(max, Math.max(min, v));
+        return MathUtil.clamp(v, min, max);
     }
 
     /**
@@ -78,8 +80,7 @@ public class Util {
      * @return the interpolated value
      */
     public static double interpolate(double a, double b, double x) {
-        x = limit(x, 0.0, 1.0);
-        return a + (b - a) * x;
+        return MathUtil.interpolate(a, b, x);
     }
 
     /**
@@ -90,14 +91,7 @@ public class Util {
      * @return the joined string
      */
     public static String joinStrings(final String delim, final List<?> strings) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < strings.size(); ++i) {
-            sb.append(strings.get(i).toString());
-            if (i < strings.size() - 1) {
-                sb.append(delim);
-            }
-        }
-        return sb.toString();
+        return strings.stream().map(Object::toString).collect(Collectors.joining(delim));
     }
 
     /**
@@ -144,11 +138,7 @@ public class Util {
      * @return {@code true} if all elements are within {@code epsilon} of {@code value}
      */
     public static boolean allCloseTo(final List<Double> list, double value, double epsilon) {
-        boolean result = true;
-        for (Double value_in : list) {
-            result &= epsilonEquals(value_in, value, epsilon);
-        }
-        return result;
+        return list.stream().allMatch(v -> epsilonEquals(v, value, epsilon));
     }
 
     /** Trigger that is true when the robot is enabled in teleop mode. */
