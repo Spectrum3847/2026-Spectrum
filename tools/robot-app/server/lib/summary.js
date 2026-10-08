@@ -124,7 +124,7 @@ export function summarize(buffer, { name = null } = {}) {
                   medianMs: +(percentile(loop, 50) * 1000).toFixed(1),
                   p95Ms: +(percentile(loop, 95) * 1000).toFixed(1),
                   maxMs: +(lStats.max * 1000).toFixed(1),
-                  overrunPct: +((100 * overruns) / loop.length).toFixed(1),
+                  overrunPct: +((100 * overruns) / lStats.n).toFixed(1),
               }
             : null,
         can: uStats
