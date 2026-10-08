@@ -19,14 +19,12 @@ import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
 /**
- * The Fuel Intake subsystem. Responsible for intake and handling of fuel elements.
+ * The fuel intake: the main roller pair that picks fuel off the floor, plus a kicker bar that pulls
+ * it off the rollers and into the robot. Both are driven together by this class's state machine.
  *
- * <p>Made up of the main roller pair that picks fuel off the floor plus a kicker bar that pulls it
- * off the rollers and into the robot. Both are driven together by this class's state machine.
- *
- * <p>This is a container for two independent {@link Mechanism}s rather than a {@code Mechanism}
- * itself, so it implements {@link Subsystem} and registers directly. Without that registration the
- * scheduler would never call {@link #periodic()} and the state machine would never run.
+ * <p>A container for two independent {@link Mechanism}s rather than a {@code Mechanism} itself, so
+ * it implements {@link Subsystem} and registers directly. Without that registration the scheduler
+ * would never call {@link #periodic()} and the state machine would never run.
  */
 public class FuelIntake implements Subsystem {
 
@@ -44,16 +42,14 @@ public class FuelIntake implements Subsystem {
             @Getter private final double velocityKv = 0.23728813559;
             @Getter private final double velocityKs = 0;
 
-            /* kV above was characterized at this ratio; keep the two in sync */
+            /* kV above was characterized at this ratio; keep the two in sync. */
             @Getter private final double gearRatio = 2.33;
 
-            /* Sim Configs */
             @Getter private final double intakeX = Units.inchesToMeters(15);
 
             @Getter private final double intakeY = Units.inchesToMeters(23);
             @Getter private final double wheelDiameter = 6;
 
-            /** Creates a new IntakeRollerConfig instance. */
             public IntakeRollerConfig() {
                 super("Intake Roller Left", 6, Rio.RIO_CANBUS);
                 configPIDGains(0, velocityKp, 0, 0);
@@ -79,11 +75,6 @@ public class FuelIntake implements Subsystem {
 
         @Getter private IntakeRollerSim sim;
 
-        /**
-         * Creates a new IntakeRoller instance.
-         *
-         * @param config the config
-         */
         public IntakeRoller(IntakeRollerConfig config) {
             super(config);
             this.config = config;
@@ -92,40 +83,22 @@ public class FuelIntake implements Subsystem {
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
-        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logStandard("IntakeRoller", false, RpmLog.SLOW);
         }
 
-        /**
-         * Sets the roller voltage.
-         *
-         * @param volts the roller voltage
-         */
         public void setRollerVoltage(double volts) {
             setVoltageOutput(() -> volts);
         }
 
-        // ----------------------------------------------------------------------------
-        // Simulation
-        // ----------------------------------------------------------------------------
-        /** Simulation init. */
         public void simulationInit() {
             if (isAttached()) {
-                // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-                // diameter
                 sim = new IntakeRollerSim(RobotSim.leftView, motor);
             }
         }
 
         class IntakeRollerSim extends RollerSim {
-            /**
-             * Creates a new IntakeRollerSim instance.
-             *
-             * @param mech the mech
-             * @param rollerMotorSim the rollerMotorSim
-             */
             public IntakeRollerSim(Mechanism2d mech, TalonFX rollerMotorSim) {
                 super(
                         new RollerConfig(config.getWheelDiameter())
@@ -139,17 +112,16 @@ public class FuelIntake implements Subsystem {
         }
     }
 
-    /** The kicker bar that helps kick fuel through the intake up into the hopper. */
+    /** The kicker bar that kicks fuel through the intake and up into the hopper. */
     public static class IntakeKicker extends Mechanism {
 
         public static class IntakeKickerConfig extends Config {
 
             @Getter private final double supplyCurrentLimit = 40;
             /**
-             * Was 80. The kicker gets pushed into the bumper, which is where its drag comes from
-             * and is not an easy mechanical fix, so it ran 90 A at the 99th percentile with 129 A
-             * peaks and was the hottest motor on the robot on 2026-09-06 (67 C). It does not need
-             * the torque; cap it.
+             * The kicker gets pushed into the bumper, which is where its drag comes from and is not
+             * an easy mechanical fix, so it ran 90 A at the 99th percentile with 129 A peaks and
+             * was the hottest motor on the robot at 67 C. It does not need the torque, so cap it.
              */
             @Getter private final double statorCurrentLimit = 50;
 
@@ -160,10 +132,9 @@ public class FuelIntake implements Subsystem {
             @Getter private final double velocityKv = 0.23728813559;
             @Getter private final double velocityKs = 0;
 
-            /* kV above was characterized at this ratio; keep the two in sync */
+            /* kV above was characterized at this ratio; keep the two in sync. */
             @Getter private final double gearRatio = 2.33;
 
-            /** Creates a new IntakeKickerConfig instance. */
             public IntakeKickerConfig() {
                 super("Intake Kicker", 8, Rio.CANIVORE);
                 configPIDGains(0, velocityKp, 0, 0);
@@ -181,11 +152,6 @@ public class FuelIntake implements Subsystem {
 
         @Getter private final IntakeKickerConfig config;
 
-        /**
-         * Creates a new IntakeKicker instance.
-         *
-         * @param config the config
-         */
         public IntakeKicker(IntakeKickerConfig config) {
             super(config);
             this.config = config;
@@ -193,23 +159,15 @@ public class FuelIntake implements Subsystem {
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
-        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logStandard("IntakeKicker", false, RpmLog.SLOW);
         }
 
-        /**
-         * Sets the kicker voltage.
-         *
-         * @param volts the kicker voltage
-         */
         public void setKickerVoltage(double volts) {
             setVoltageOutput(() -> volts);
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         NEUTRAL,
@@ -269,16 +227,11 @@ public class FuelIntake implements Subsystem {
 
     private WantedState wantedState = WantedState.NEUTRAL;
     private SystemState systemState = SystemState.NEUTRAL;
-    /**
-     * Sets the wanted state.
-     *
-     * @param state the wanted state
-     */
+
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
 
-    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case NEUTRAL -> SystemState.NEUTRAL;
@@ -290,7 +243,6 @@ public class FuelIntake implements Subsystem {
         };
     }
 
-    /** Applies the states. */
     private void applyStates() {
         double wantedRollerVoltage = 0;
         double wantedKickerVoltage = 0;
@@ -326,12 +278,6 @@ public class FuelIntake implements Subsystem {
 
     @Getter private final IntakeKicker kicker;
 
-    /**
-     * Creates a new FuelIntake instance.
-     *
-     * @param rollerConfig the intake roller config
-     * @param kickerConfig the intake kicker config
-     */
     public FuelIntake(IntakeRollerConfig rollerConfig, IntakeKickerConfig kickerConfig) {
         this.roller = new IntakeRoller(rollerConfig);
         this.kicker = new IntakeKicker(kickerConfig);
@@ -340,7 +286,6 @@ public class FuelIntake implements Subsystem {
         Telemetry.print("Fuel Intake Subsystem Initialized");
     }
 
-    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();

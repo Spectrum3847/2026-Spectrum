@@ -22,13 +22,12 @@ import lombok.Setter;
  * cached per channel name, so steady-state operation performs no string splitting or concatenation.
  * The set of channel names is small and fixed after the first loop.
  *
- * <p>Current is published at 10 Hz ({@link Telemetry#slowLogThisLoop()}) and power and energy at
- * {@link #SLOW_LOG_PERIOD_SECONDS}, because this class was the single largest producer of log
- * records on the robot and the loop period tracks that volume almost linearly. In the 2026-09-05
- * 18:38 log it accounted for 32.3 of the 94 records written per loop -- a third of everything --
- * while the loop ran at 33 Hz with a median period of 27.4 ms. Current is the channel worth
- * watching live; power is current times pack voltage and energy is its integral, so neither needs
- * 50 Hz to stay useful.
+ * <p>Current is published at 10 Hz ({@link Telemetry#slowLogThisLoop()}) and power and energy every
+ * {@link #SLOW_LOG_PERIOD_SECONDS}, because this class was the largest single producer of records
+ * on the robot and the loop period tracks that volume closely. In the 2026-09-05 18:38 log it wrote
+ * 32.3 of 94 records per loop, a third of everything. Current is the channel worth watching live;
+ * power is current times pack voltage and energy is its integral, so neither needs 50 Hz to stay
+ * useful.
  */
 public class BatteryLogger {
 
@@ -114,8 +113,8 @@ public class BatteryLogger {
      * totals. The {@code key} may use "/" or "-" as separators; parent keys are automatically
      * aggregated.
      *
-     * <p>Power and energy are no longer derived here. Both are computed from these currents in
-     * {@link #logPower()}, which knows this loop's pack voltage and its true elapsed time.
+     * <p>Power and energy are computed from these currents in {@link #logPower()}, which knows this
+     * loop's pack voltage and its true elapsed time.
      *
      * @param key Hierarchical name for the current consumer (e.g. {@code "Drive/FrontLeft"})
      * @param amps One or more current readings in amps; absolute values are summed
@@ -136,14 +135,12 @@ public class BatteryLogger {
 
     /**
      * Appends control-overhead current consumers (roboRIO, CANcoders, Pigeon, CANivore, radio),
-     * integrates energy over the elapsed loop, then logs current every loop and power and energy
-     * every {@link #SLOW_LOG_PERIOD_SECONDS}. Resets the per-loop current accumulators afterward;
-     * cumulative energy is preserved across calls.
+     * integrates energy over the elapsed loop, then logs current on the slow tier and power and
+     * energy every {@link #SLOW_LOG_PERIOD_SECONDS}. Resets the per-loop current accumulators
+     * afterward; cumulative energy is preserved across calls.
      */
     public void logPower() {
         if (enabled) {
-            // Controls overhead is added here so it is included in the totalCurrent log below.
-            // Subsystem currents have already been accumulated via logBatteryUsage() in periodic().
             reportCurrentUsage("Controls/roboRIO", rioCurrent);
             reportCurrentUsage("Controls/CANcoders", 0.05 * 4);
             reportCurrentUsage("Controls/Pigeon", 0.04);
@@ -153,9 +150,9 @@ public class BatteryLogger {
             double now = Timer.getFPGATimestamp();
 
             /*
-             * Integrate over the loop that actually elapsed rather than an assumed 20 ms. The
-             * assumption was costing us: the 2026-09-05 logs ran a 20.2 to 27.4 ms median period,
-             * so every energy total that day was under-reported by roughly a fifth to a third.
+             * Integrate over the loop that actually elapsed, not an assumed 20 ms: the 2026-09-05
+             * logs ran a 20.2 to 27.4 ms median period, which under-reported every energy total by
+             * roughly a fifth to a third.
              */
             double elapsed =
                     Double.isNaN(lastIntegrationSeconds)
@@ -178,8 +175,8 @@ public class BatteryLogger {
                 lastSlowLogSeconds = now;
             }
 
-            // Currents at 10 Hz; total current, pack voltage, energy and the per-mechanism currents
-            // are on the Driver Station dashboard and in the robot app, hence logDash.
+            // Current at 10 Hz. Total current, pack voltage, energy, and the per-mechanism currents
+            // are read on the Driver Station dashboard and in the robot app, hence logDash.
             boolean logCurrent = Telemetry.slowLogThisLoop();
             if (logCurrent) {
                 Telemetry.logDash("BatteryLogger/Current", totalCurrent, "amps");
@@ -218,7 +215,6 @@ public class BatteryLogger {
                 }
             }
 
-            // Reset the current total, before next loop
             totalCurrent = 0.0;
         }
     }
@@ -231,7 +227,6 @@ public class BatteryLogger {
         return subsystemCurrents.getOrDefault(key, 0.0);
     }
 
-    /** Joules to watt hours. */
     private double joulesToWattHours(double joules) {
         return joules / 3600.0;
     }

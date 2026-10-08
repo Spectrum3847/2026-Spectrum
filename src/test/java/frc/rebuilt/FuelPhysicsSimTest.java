@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 
 public class FuelPhysicsSimTest {
 
-    /** Verifies PhysicsConfig defaults and that copy() preserves every field. */
     @Test
     @DisplayName("Test PhysicsConfig default values and copy")
     void testPhysicsConfig() {
@@ -22,7 +21,7 @@ public class FuelPhysicsSimTest {
         assertTrue(config.frictionEnabled);
         assertEquals(4, config.solverIterations);
 
-        // Assign distinct non-default values so copy() must carry every field to pass.
+        // Non-default values throughout, so a field that copy() drops shows up as a mismatch.
         config.dragEnabled = false;
         config.magnusEnabled = false;
         config.frictionEnabled = false;
@@ -65,23 +64,21 @@ public class FuelPhysicsSimTest {
         assertEquals(config.conservationMonitor, copy.conservationMonitor);
     }
 
-    /** Verifies SimBall spin RPM conversion from angular velocity. */
     @Test
     @DisplayName("Test SimBall creation and spin RPM calculation")
     void testSimBall() {
         Translation3d pos = new Translation3d(1.0, 2.0, 0.1);
         Translation3d vel = new Translation3d(0.5, 0.0, 0.0);
-        // Spin 100 rad/s about Y axis
+        // Spin 100 rad/s about the Y axis.
         Translation3d omega = new Translation3d(0.0, 100.0, 0.0);
 
         FuelPhysicsSim.SimBall ball = new FuelPhysicsSim.SimBall(pos, vel, omega);
 
-        // RPM = rad/s * 60 / (2 * PI) = 100 * 60 / (2 * PI) approx 954.9296
         double expectedRPM = 100.0 * 60.0 / (2.0 * Math.PI);
         assertEquals(expectedRPM, ball.getSpinRPM(), 1e-4);
     }
 
-    /** Verifies ScoringTarget detects top-down entry and ignores rising balls. */
+    /** A ball scores only when it drops through the hub opening, not when it rises through it. */
     @Test
     @DisplayName("Test ScoringTarget scoring detection")
     void testScoringTarget() {
@@ -91,15 +88,13 @@ public class FuelPhysicsSimTest {
         FuelPhysicsSim.ScoringTarget target = new FuelPhysicsSim.ScoringTarget(hubCenter, exit, 1);
         assertEquals(0, target.getScore());
 
-        // Ball falling vertically into hub opening (prevZ = 2.0, currZ = 1.7, opening height =
-        // 1.829)
+        // Previous Z 2.0 m and current Z 1.7 m straddle the 1.829 m hub opening.
         FuelPhysicsSim.SimBall scoringBall =
                 new FuelPhysicsSim.SimBall(new Translation3d(4.5, 4.0, 1.7));
         scoringBall.prevPos = new Translation3d(4.5, 4.0, 2.0);
 
         assertTrue(target.didScore(scoringBall));
 
-        // Ball rising through opening (prevZ = 1.7, currZ = 2.0) should NOT score
         FuelPhysicsSim.SimBall risingBall =
                 new FuelPhysicsSim.SimBall(new Translation3d(4.5, 4.0, 2.0));
         risingBall.prevPos = new Translation3d(4.5, 4.0, 1.7);
@@ -107,7 +102,6 @@ public class FuelPhysicsSimTest {
         assertFalse(target.didScore(risingBall));
     }
 
-    /** Verifies a FuelPhysicsSim can be constructed with a table key. */
     @Test
     @DisplayName("Test FuelPhysicsSim instantiation")
     void testFuelPhysicsSimInstantiation() {

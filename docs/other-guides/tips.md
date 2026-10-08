@@ -1,82 +1,87 @@
-# Programming Tips
+# Programming tips
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](2026-season-specific.md).*
 
-Practical things that come up often enough to be worth writing down.
+Practical habits that come up often enough to be worth writing down. For how the code is put
+together, read the code.
 
-## Clean Your Java Workspace
+## Clean your Java workspace
 
-If VS Code is showing red squiggles on code that definitely compiles, or IntelliSense is behaving strangely, the language server's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `Java: Clean Language Server Workspace`. If that doesn't do it, run `./gradlew clean build` from the terminal; see [Gradle](../tools/gradle.md) for what that actually does.
+If VS Code is showing red squiggles on code that definitely compiles, or the suggestions have gone
+strange, the language server's cache is probably stale. Open the Command Palette with
+`Ctrl+Shift+P` and run `Java: Clean Language Server Workspace`. If that does not do it, run
+`./gradlew clean build` from the terminal. See [Gradle](../tools/gradle.md) for what that actually
+does.
 
-## Coordinate Systems
+## Field coordinates
 
-FRC uses a field-relative coordinate system where positive X points toward the opposing alliance wall and positive Y points left from the driver's perspective. Robot heading is in radians measured counter-clockwise from the positive X axis. This matters when writing drive commands and when interpreting `Pose2d` values from the vision or auton systems.
+FRC uses a field-relative coordinate system. Positive X points toward the opposing alliance wall,
+and positive Y points left from the driver's perspective. Robot heading is in radians, measured
+counter-clockwise from the positive X axis. This is the convention WPILib uses everywhere, so it
+is worth being fluent in before you write a drive command or read a `Pose2d` value.
 
-If you're confused about which way something points, draw it. A quick sketch on a whiteboard with labeled axes has unblocked many programming sessions faster than any amount of reading.
+When you are not sure which way something points, draw it. A whiteboard sketch with labeled axes
+has unblocked more sessions than any amount of reading.
 
 ## `DoubleSupplier` vs. `double`
 
-Most command and trigger factory methods in this codebase take a `DoubleSupplier` instead of a raw `double`. The difference is that a `DoubleSupplier` is evaluated each time it's called, while a plain `double` is captured once when the command is scheduled.
+Most of the command and trigger factory methods here take a `DoubleSupplier` rather than a plain
+`double`. The difference is when the value is read. A `DoubleSupplier` is asked for its value every
+time something needs it. A `double` is a single number, copied when you pass it, and it never
+changes afterwards.
 
-For setpoints that may shift while a command runs, such as shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue), you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
-
-The launcher shows this pattern:
-
-```java
-// Launcher.applyStates(), AIM_AT_TARGET case
-double wantedRPM = ShotCalculator.getInstance().getParameters().flywheelSpeed();
-final double finalWantedRPM = wantedRPM;
-setVelocityTCFOCrpm(() -> finalWantedRPM);
-```
-
-The `() -> ...` lambda is a `DoubleSupplier` re-read by the control request each loop, so as the shot calculator's flywheel target tracks the live distance, the command follows it instead of freezing the value at scheduling time. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
-
-## Cached Values
-
-Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
-
-The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class already does this for position, velocity, voltage, and current using [`CachedDouble`](../../src/main/java/frc/spectrumLib/util/CachedDouble.java), which is a `SubsystemBase` that clears its cached flag in `periodic()` and recomputes on first access each loop.
-
-If you're reading a sensor value that isn't already cached by `Mechanism`, do it in the subsystem's `periodic()` into a field, and have everything else read the field. Don't scatter CAN reads across command bodies.
-
-## Method Chaining
-
-`Command` and `Trigger` in WPILib return `this` from most modifier methods, so you can write:
+For a setpoint that might move while a command is running, you want the supplier. That covers a
+speed that follows a distance lookup, an angle that follows live sensor data, or anything an
+operator can change. Pass a bare `double` instead and the command is stuck with whatever the
+number was at the moment it was scheduled.
 
 ```java
-myTrigger.whileTrue(
-    launcher.runVelocityTcFocRPM(config::getIdlingRPM)
-        .andThen(launcher.stopMotor())
-        .withTimeout(5.0));
+// The launcher, in its LAUNCH case.
+commandedRPM = ShotCalculator.getInstance().getParameters().flywheelSpeed();
+setVelocityRPM(() -> commandedRPM);
 ```
 
-This is idiomatic in the codebase; you'll see it everywhere in the `*States` files. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
+`setVelocityRPM` takes a `DoubleSupplier`. The `() -> commandedRPM` is that supplier, and it is
+re-read by the control request every loop. So as the shot calculator's target moves with the
+distance, the motor follows it. Writing `setVelocityRPM(commandedRPM)` would compile, and the
+launcher would sit at one fixed speed for the whole match.
 
-## Simulation Before Robot Time
+More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
 
-Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths, most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P → WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
+## Cached values
 
-Reserve time on the real robot for things that genuinely require it: tuning gains, calibrating offsets, testing hardware interactions. Don't develop new features on the robot.
+Every read from a motor is a network call. If you ask the same motor for the same value three times
+in one loop, from three different places, that is three requests and potentially three different
+answers.
 
-## Feature Branches
+The pattern in this repo is to read once per loop and share the result. `Mechanism` sets this up
+for every motor it owns: it collects all of a motor's status signals and refreshes them with a
+single Phoenix call, keyed on the robot loop counter, so every getter in a loop sees the same
+sample and the whole robot makes one call per mechanism rather than one per signal.
 
-Work on a feature branch, not directly on `main`. The typical flow:
+`CachedDouble` does the same job for any value that is not already covered, by wrapping a
+`DoubleSupplier` so it runs at most once per scheduler iteration. It is a `SubsystemBase` whose
+`periodic()` clears the cached flag, which is what makes the cache safe: the scheduler polls
+triggers before it calls subsystem `periodic()`, so a trigger reading the cache always sees the
+current loop's value.
 
-1. Branch from `main` for your feature.
-2. Develop and test in simulation.
-3. Merge `main` back into your branch before opening a pull request, re-test in sim, then put it on the robot if needed.
-4. Open a PR for review by a programming lead before merging.
+If you are reading a sensor that nothing already caches, read it once into a field and have
+everything else read the field. Do not scatter reads across command bodies. There is more on why
+this matters in
+[Loop Time and CPU Handoff 2026-09-05](loop-time-handoff-2026-09-05.md).
 
-Small, focused branches have fewer merge conflicts and are much easier to review than multi-week accumulations of changes. See [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for commit message conventions.
+## Start in simulation
 
-## Logging is Free
+Simulation catches most logic bugs. State transitions, command sequencing, path following, all of
+it is testable before the robot is involved. See [Simulation](../tools/simulation.md) for the full
+workflow. The short version is `Ctrl+Shift+P`, then `WPILib: Simulate Robot Code`, then pick
+**GUI Sim**, which gives you the driver station emulator and a field view.
 
-Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition: these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. The pattern used in every `*States` file is:
+Save robot time for the things that genuinely need the robot: tuning gains, calibrating offsets,
+checking hardware interactions. Do not build new features on the robot.
 
-```java
-private static Command log(Command cmd) {
-    return Telemetry.log(cmd);
-}
-```
+## Other pages
 
-Wrap command factories in `log(...)` and you automatically get init/end events in the log without changing any other code.
+* [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md): branching, commit messages, and pull requests.
+* [Logging and Data Analysis](../tools/logging.md): the telemetry API, the log tiers, and reading the log files.
+* [Loop Time and CPU Handoff 2026-09-05](loop-time-handoff-2026-09-05.md): what a busy loop costs, measured.

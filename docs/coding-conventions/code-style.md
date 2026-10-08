@@ -2,13 +2,13 @@
 
 *Audience: Reference. No prerequisites.*
 
-We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline. Spotless enforces formatting at every `./gradlew build`, so this page is mostly about the parts a formatter can't enforce, naming, structure, judgment calls.
+We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline. Spotless enforces formatting on every `./gradlew build`, so this page is about the parts a formatter cannot enforce: naming, structure, and judgment calls. The formatter's own settings live in [`build.gradle`](../../build.gradle). Read them there, not here.
 
-## Spotless Does the Mechanical Work
+## Spotless does the mechanical work
 
-[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats your `.java`, `.gradle`, `.xml`, and `.md` files using `googleJavaFormat("1.15.0").aosp()` and friends. There's no need to manually format anything; just run `./gradlew build` and Spotless tidies up. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
+`build.gradle` wires `compileJava` to `spotlessApply`, so every build reformats your source for you. There is never a reason to format by hand. If you paste code from a WPILib example or another team's repo, run `./gradlew build` (or `./gradlew spotlessApply`) and let it settle before you commit. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
 
-## The Spirit, Borrowed from AOSP
+## The spirit, borrowed from AOSP
 
 > "One of the simplest rules is BE CONSISTENT. If you're editing code, take a few minutes to look at the surrounding code and determine its style. … The point of having style guidelines is to have a common vocabulary of coding, so readers can concentrate on what you're saying, rather than on how you're saying it."
 
@@ -16,42 +16,38 @@ If you're touching `Launcher.java`, look at how the rest of that file is organiz
 
 ## Naming
 
-* **Classes / Interfaces:** `UpperCamelCase`, `Launcher`, `LauncherConfig`, `SuperStructure`.
-* **Methods / variables:** `lowerCamelCase`, `getVelocityRPM()`, `kPSlot0`.
-* **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, the `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything tunable, even something like `WHEEL_BASE_INCHES` that varies between robots, goes in a `*Config` class as a regular field, not a constant.
-* **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`. `State.LAUNCH_WITH_SQUEEZE`, `Telemetry.Fault.CAMERA_OFFLINE`.
+* **Classes / interfaces:** `UpperCamelCase`, such as `Launcher`, `LauncherConfig`, `SuperStructure`.
+* **Methods and variables:** `lowerCamelCase`, such as `getVelocityRPM()`.
+* **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything that differs between robots, or that we might want to change without recompiling the world, goes in a `*Config` class as an ordinary field. `SwerveConfig` is the clearest example: every one of its values is a lowercase field with a `@Getter`, not a constant.
+* **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`. `WantedSuperState.LAUNCH_WITH_SQUEEZE` is a value, so it is shouty, and `WantedSuperState` is a type, so it is not.
 
-Acronyms get treated as words. `PidConfig`, not `PIDConfig`. `Rpm` in compound names, not `RPM`. The one exception is when the acronym *is* the whole identifier (a constant `RPM`).
+Acronyms get treated as words in type names, so `RpmLog` rather than `RPMLog`. Unit suffixes on getters keep their engineering spelling, so `getVelocityRPM()` rather than `getVelocityRpm()`. Pick whichever of the two your identifier actually is and stay consistent; the AOSP rule of matching the surrounding code settles the rest.
 
-## No `m_` or `_` Prefixes
+## No `m_` or `_` prefixes
 
-If you see `m_someField`, it's from a library we imported and didn't rewrite. Don't add new ones, and feel free to rename them away when touching a file. Field-vs-local disambiguation belongs in `this.field = field` if needed, not in the name.
-
-## Indentation
-
-4 spaces, never tabs. Spotless reformats anything that drifts. If you're pasting code from WPILib examples or another team's repo, run `./gradlew spotlessApply` immediately, it will fix indentation and trailing whitespace in one pass.
+If you see `m_someField`, it is from a library we imported and did not rewrite. Do not add new ones, and feel free to rename them away when you are already in the file. If a field and a local share a name, disambiguate with `this.field = field`, not with a prefix in the name.
 
 ## Imports
 
-Spotless's `removeUnusedImports()` strips dead imports on every build. Don't worry about cleaning these by hand. Don't use star imports (`import com.ctre.phoenix6.*`), the formatter expands them.
+Do not write star imports. The formatter expands them, so a star import becomes a wall of single imports in the next diff, which is exactly the noise a reviewer did not ask for.
 
-## File Organization
+## File organization
 
-For a subsystem file like `Launcher.java`, the conventional order is:
+For a subsystem file, the conventional order is:
 
-1. Inner `Config` class (with `@Getter`/`@Setter` fields).
-2. Fields (motors, sensors, suppliers, triggers).
+1. Inner `Config` class, with its fields.
+2. Fields: motors, sensors, suppliers, triggers.
 3. Constructor.
-4. `setupStates()`, `setupDefaultCommand()`, `periodic()`.
-5. Public API used by `*States` (getters, setpoint setters, `At/Above/Below` trigger helpers).
+4. The state machine: the `WantedState` and `SystemState` enums, `setWantedState(...)`, `handleStateTransition()`, `applyStates()`, `periodic()`.
+5. Public API the rest of the robot calls: getters, setpoint setters, and the at/above/below trigger helpers.
 6. Private helpers.
 
-This isn't a hard rule, but every existing subsystem follows it, and a reader skimming the file knows where to look. See [Class Generation](class-generation.md) for the why behind this layout.
+This is not a hard rule, but every existing subsystem follows it, so a reader skimming the file knows where to look before reading a word. See [Class Generation](class-generation.md) for the reasoning behind the layout.
 
-## Line Length
+## When the formatter wraps something ugly
 
-`googleJavaFormat` wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured: pull out a local, split a chained `Commands.sequence(...)` across multiple lines with one command per line, etc. Don't fight the formatter; let it tell you where things are too dense.
+`googleJavaFormat` wraps long lines wherever it likes, and a signature or a chained call that wraps badly is usually a sign the code wants restructuring rather than a sign the formatter is wrong. Pull out a local, or split a long `Commands.sequence(...)` so one command sits per line. Do not fight the formatter; read the wrapping as feedback.
 
-## When to Diverge
+## When to diverge
 
 Spotless honors `// spotless:off` / `// spotless:on` markers. Use them sparingly, typically for a hand-aligned constant table or a multi-line math expression where the alignment is the readability. Document *why* you're disabling Spotless in a one-line comment above the `off` marker. If a future reader can't tell why the section is special, they'll either re-enable it (and lose the alignment) or worse, copy the suppression elsewhere.

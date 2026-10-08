@@ -3,12 +3,9 @@ package frc.robot.configs;
 import frc.robot.Robot.Config;
 
 public class OM2026 extends Config {
-    /**
-     * Initializes the 2026 Offseason robot configuration with attached subsystems and swerve
-     * encoder offsets.
-     */
     public OM2026() {
         super();
+        // CANcoder offsets in rotations.
 
         swerve.configEncoderOffsets(
                 -0.23046875 - 0.25,

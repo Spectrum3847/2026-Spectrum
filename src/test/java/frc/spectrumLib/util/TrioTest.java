@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class TrioTest {
-    /** Verifies trio constructor and getters. */
     @Test
     @DisplayName("Test Trio constructor and getters")
     void testTrioConstructorAndGetters() {
@@ -16,7 +15,6 @@ public class TrioTest {
         assertEquals(4.56, trio.getThird(), 1e-6);
     }
 
-    /** Verifies the Trio.of factory method. */
     @Test
     @DisplayName("Test Trio.of factory method")
     void testTrioOfFactory() {
