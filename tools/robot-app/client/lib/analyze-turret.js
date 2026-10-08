@@ -81,7 +81,8 @@ export function zeroErrorAnalysis(model, { stepDeg = 3, settleSec = 1.0 } = {}) 
     // Only trust samples while enabled and not mid-unwrap: during a slew the camera's transform
     // lags the turret, which looks like error but is not.
     const unwraps = unwrapWindows(model);
-    const usable = raw.filter(([t]) => !inWindows(t, unwraps));
+    // NaN means the camera had no estimate; it is a gap, not a reading.
+    const usable = raw.filter(([t, v]) => Number.isFinite(v) && inWindows(t, model.enabled) && !inWindows(t, unwraps));
     if (usable.length < 20) return null;
 
     const firstTenth = usable.slice(0, Math.max(10, Math.floor(usable.length * 0.1)));

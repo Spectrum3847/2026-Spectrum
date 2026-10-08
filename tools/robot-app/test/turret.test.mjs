@@ -160,3 +160,17 @@ test("unknown Turret/* channels are surfaced rather than ignored", () => {
     assert.equal(extras.find((e) => e.key === "SlipDetected").type, "boolean");
     assert.equal(extras.find((e) => e.key === "EncoderDisagreementDeg").type, "double");
 });
+
+test("NaN heading samples are gaps, not zero steps", () => {
+    // The turret camera logs NaN when it has no estimate. A NaN followed by a real reading must
+    // not count as the zero stepping.
+    const w = new LogWriter();
+    w.put("DS:enabled", "boolean", 0, true);
+    w.put("DS:enabled", "boolean", 30, false);
+    let i = 0;
+    w.series("/Robot/Vision/TurretLL/HeadingErrorDeg", "double", { from: 0, to: 30, hz: 20, fn: () => (i++ % 4 === 0 ? 1 : NaN) });
+    const zero = zeroErrorAnalysis(new LogModel(parseWpilog(w.buffer()), null));
+    assert.equal(zero.steps.length, 0);
+    assert.equal(zero.baselineDeg, 1);
+    assert.equal(zero.verdict, "ok");
+});
