@@ -1,6 +1,7 @@
 package frc.spectrumLib.sim;
 
 import com.ctre.phoenix6.Utils;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Notifier;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -49,7 +50,11 @@ public final class SimLoop {
         double dt = now - lastTime;
         lastTime = now;
         for (DoubleConsumer step : steps) {
-            step.accept(dt);
+            try {
+                step.accept(dt);
+            } catch (RuntimeException e) {
+                DriverStation.reportError("SimLoop step failed: " + e, e.getStackTrace());
+            }
         }
     }
 }

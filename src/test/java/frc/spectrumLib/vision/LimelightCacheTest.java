@@ -239,7 +239,7 @@ public class LimelightCacheTest {
     }
 
     @Test
-    @DisplayName("setRobotOrientation still writes without flushing")
+    @DisplayName("setRobotOrientation writes the orientation")
     void setRobotOrientationWrites() {
         Limelight limelight = new Limelight(tableName);
         try (DoubleArraySubscriber sub =
