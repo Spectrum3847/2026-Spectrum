@@ -18,7 +18,7 @@ The habits that matter:
 
 * Build commands from the `Commands.*` factories instead of hand rolled `InstantCommand` and `SequentialCommandGroup`. They compose with `onTrue`, `whileTrue`, and `onFalse` without extra wrapping.
 * Tag every command with `.withName("...")`. That name is what DogLog prints and what the running commands widget shows. An untagged command logs as a class name, which is useless in a post match log.
-* Reserve `.ignoringDisable(true)` for behavior that genuinely has to run while the robot is disabled. The real uses are swerve control requests, super structure state changes, the shot calculator nudges, and the disable time shift timer reset in `Robot.configureBindings()`. Putting it on a mechanism default command means that command keeps fighting for the mechanism while the robot sits disabled.
+* Reserve `.ignoringDisable(true)` for behavior that genuinely has to run while the robot is disabled. Current uses include swerve control requests, super structure state changes, the shot calculator nudges, the disable time shift timer reset, and the operator `LB+Y` intake extension reset in `Robot.configureBindings()`. Putting it on a mechanism default command means that command keeps fighting for the mechanism while the robot sits disabled.
 * Bind a trigger instead of calling `CommandScheduler.schedule(...)` from a `periodic()`. The scheduler does arbitrate between the two commands either way. The reason to bind a trigger is that a command the scheduler did not enqueue cannot stop one that was, so nothing will preempt a long-running command that a periodic method started. A trigger puts the start on the scheduler's own queue where its requirement and interruption rules apply.
 
 ## Units
