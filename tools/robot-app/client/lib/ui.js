@@ -122,7 +122,7 @@ export async function refreshRobotPill() {
 }
 
 export function fmtBytes(n) {
-    if (n === null || n === undefined) return "—";
+    if (n === null || n === undefined) return "n/a";
     if (n < 1024) return `${n} B`;
     if (n < 1024 ** 2) return `${(n / 1024).toFixed(0)} KB`;
     if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
@@ -130,14 +130,14 @@ export function fmtBytes(n) {
 }
 
 export function fmtDuration(sec) {
-    if (sec === null || sec === undefined) return "—";
+    if (sec === null || sec === undefined) return "n/a";
     if (sec < 60) return `${sec.toFixed(0)}s`;
     const m = Math.floor(sec / 60);
     return `${m}m ${Math.round(sec - m * 60)}s`;
 }
 
 export function fmtDate(ms) {
-    if (!ms) return "—";
+    if (!ms) return "n/a";
     return new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
@@ -205,7 +205,7 @@ async function mountDriftBanner(header) {
           (stale.length ? `, and ${stale.length} of its data file${stale.length === 1 ? " is" : "s are"} behind the Java.` : ".")
         : `${stale.length} data file${stale.length === 1 ? "" : "s"} here ${stale.length === 1 ? "has" : "have"} not been updated since the robot code changed.`;
 
-    const banner = el("div", { class: `notice ${bad ? "bad" : "warn"}`, style: "margin:0;border-radius:0" },
+    const banner = el("div", { class: `notice ${bad ? "bad" : "warn"}`, style: "margin:0;border-radius:0;border-width:0 0 1px" },
         el("strong", {}, bad ? "Out of date. " : "Possibly out of date. "),
         summary,
         " ",

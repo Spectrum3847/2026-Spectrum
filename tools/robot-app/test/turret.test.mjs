@@ -42,7 +42,7 @@ test("reports the baseline zero error separately from the slip", () => {
     assert.ok(Math.abs(zero.totalDriftDeg - SLIP_DEG) < 1, `total drift ${zero.totalDriftDeg}, expected ~${SLIP_DEG}`);
 });
 
-/** A log whose zero error is wrong but perfectly steady -- a zeroing mistake, not a slip. */
+/** A log whose zero error is wrong but perfectly steady. This is a zeroing mistake, not a slip. */
 function buildSteadyOffsetLog(offsetDeg = -6.4) {
     const w = new LogWriter();
     w.put("DS:enabled", "boolean", 0, false);
@@ -57,7 +57,7 @@ function buildSteadyOffsetLog(offsetDeg = -6.4) {
 
 test("a steady offset is called a bad zero, not a slip", () => {
     // Without this the page cries wolf every time someone forgets to re-zero, and the crew stops
-    // believing it -- which is worse than not having the check.
+    // believing it, which is worse than not having the check.
     const steady = new LogModel(parseWpilog(buildSteadyOffsetLog()), null);
     const zero = zeroErrorAnalysis(steady);
     assert.equal(zero.verdict, "zero-off");

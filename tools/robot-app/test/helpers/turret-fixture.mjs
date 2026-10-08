@@ -54,7 +54,7 @@ export function buildTurretLog() {
     w.series("/Robot/Turret/SystemState", "string", { from: 0, to: END, hz: 2, fn: (t) => (t < 5 ? "IDLE" : "AIM_AT_TARGET") });
 
     // The camera's independent view. Steady, then permanently stepped by the mechanical slip.
-    // Deliberately unaffected by the encoder jump -- the mechanism never moved for that one.
+    // Deliberately unaffected by the encoder jump. The mechanism never moved for that one.
     w.series("/Robot/Vision/TurretLL/HeadingErrorDeg", "double", {
         from: 5, to: END, hz: 10,
         fn: (t) => BASELINE_DEG + (t >= SLIP_T ? SLIP_DEG : 0) + 0.15 * Math.sin(t * 3),

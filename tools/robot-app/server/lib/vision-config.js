@@ -6,7 +6,7 @@
  * value typed into a camera's web UI survives about that long. Calibrating a mount therefore means
  * editing the Java, and this is the only thing in the app that does so.
  *
- * It is deliberately narrow. It understands exactly one shape of code --
+ * It is deliberately narrow. It understands exactly one shape of code, which looks like this.
  *
  *     final LimelightConfig backLeftConfig =
  *             new LimelightConfig(backLeftLL)
@@ -17,7 +17,7 @@
  *                     .withRotation(180, 31.8, 135) // upside down ...
  *                     .setAttached(true);
  *
- * -- and rewrites individual numeric literals in place, keeping every comment and every other
+ * It rewrites individual numeric literals in place, keeping every comment and every other
  * argument byte-for-byte. Only the values a stationary robot can actually measure are writable:
  * roll, pitch and height. Forward, right and yaw need a surveyed robot position and stay CAD.
  *

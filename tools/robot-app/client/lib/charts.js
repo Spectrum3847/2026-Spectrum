@@ -4,7 +4,7 @@
  * Colors are read from the CSS custom properties in styles.css rather than hardcoded, so the
  * light and dark palettes stay in one place and the theme toggle can re-skin live charts.
  *
- * The categorical series order is fixed and never cycled past slot 8 -- a ninth motor on one
+ * The categorical series order is fixed and never cycled past slot 8. A ninth motor on one
  * chart is a prompt to split the chart, not to invent a hue. Both palettes were checked with the
  * dataviz validator against their own surface (lightness band, chroma floor, CVD separation,
  * normal-vision separation, 3:1 contrast).
@@ -37,7 +37,7 @@ export function theme() {
 /**
  * Translucent version of a resolved color.
  *
- * Chart fills go straight to a canvas fillStyle, which knows nothing about CSS -- `var(--bad)` or
+ * Chart fills go straight to a canvas fillStyle, which knows nothing about CSS, so `var(--bad)` or
  * a `color-mix()` string silently paints black there. Always resolve to a literal first.
  */
 export function withAlpha(color, alpha) {
@@ -209,7 +209,7 @@ export function xy(series) {
 /**
  * Thin a series for plotting. A 250 Hz swerve channel over a 15-minute log is 200k points, which
  * Chart.js will happily accept and then take seconds to draw. Keeps the extremes of each bucket so
- * spikes -- the whole point of a current chart -- survive.
+ * spikes, the whole point of a current chart, survive.
  */
 export function decimate(series, maxPoints = 3000) {
     if (series.length <= maxPoints) return series;

@@ -49,7 +49,7 @@ swerveRouter.post("/apply", async (req, res) => {
         const body = req.body || {};
         const offsets = {};
         for (const key of MODULE_KEYS) {
-            const value = Number(body[key]);
+            const value = typeof body[key] === "number" ? body[key] : NaN;
             if (!Number.isFinite(value)) {
                 throw new Error(`Missing or invalid offset for "${key}".`);
             }

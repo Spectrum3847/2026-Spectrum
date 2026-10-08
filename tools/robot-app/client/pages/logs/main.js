@@ -7,6 +7,9 @@ const root = document.getElementById("app");
 
 const state = { config: null, host: null, robotLogs: null, localLogs: [], repo: null, selected: new Set(), busy: false };
 
+/** Progress from the last sync, kept on screen after it ends. */
+let syncProgress = null;
+
 const sections = {
     robot: el("section", {}),
     local: el("section", {}),
@@ -33,15 +36,17 @@ function renderRobot() {
         body.push(el("div", {}, el("span", { class: "spin" }), " Looking for the robot…"));
     } else if (!state.probe.reachable.length) {
         body.push(
-            el("div", { class: "notice warn" },
-                el("strong", {}, "No robot found. "),
-                "Tried ", state.probe.candidates.map((x) => x.host).join(", "), ". ",
-                "Get on the robot radio or plug into the RIO's USB port, then look again."),
+            state.probe.error
+                ? el("div", { class: "notice bad" }, `Could not look for the robot: ${state.probe.error}`)
+                : el("div", { class: "notice warn" },
+                    el("strong", {}, "No robot found. "),
+                    "Tried ", state.probe.candidates.map((x) => x.host).join(", "), ". ",
+                    "Get on the robot radio or plug into the RIO's USB port, then look again."),
             el("button", { onclick: refreshProbe }, "Look again")
         );
     } else {
         const opts = state.probe.reachable.map((r) =>
-            el("option", { value: r.host, selected: r.host === state.host }, `${r.label} — ${r.host} (${r.ms} ms)`));
+            el("option", { value: r.host, selected: r.host === state.host }, `${r.label}, ${r.host} (${r.ms} ms)`));
         body.push(
             el("div", { class: "row" },
                 el("label", { style: "color:var(--tx-dim);font-size:0.84rem" }, "Robot"),
@@ -52,6 +57,7 @@ function renderRobot() {
                     state.busy ? "Syncing…" : `Sync ${state.selected.size || ""} selected`))
         );
         body.push(renderRobotLogs());
+        if (syncProgress) body.push(syncProgress);
     }
     sections.robot.replaceChildren(el("h2", {}, "On the robot"), el("div", { class: "card" }, ...body));
 }
@@ -64,14 +70,14 @@ function renderRobotLogs() {
     const rows = [];
     for (const d of state.robotLogs.dirs) {
         if (!d.files.length) continue;
-        rows.push(el("tr", { class: "dir-row" }, el("td", { colspan: 5 }, el("code", {}, d.dir), ` — ${d.files.length} log${d.files.length === 1 ? "" : "s"}`)));
+        rows.push(el("tr", { class: "dir-row" }, el("td", { colspan: 5 }, el("code", {}, d.dir), `, ${d.files.length} log${d.files.length === 1 ? "" : "s"}`)));
         for (const f of d.files) {
             const have = localNames.has(f.name);
             const id = `${d.dir}/${f.name}`;
             rows.push(
                 el("tr", { class: have ? "have" : null },
                     el("td", {}, el("input", {
-                        type: "checkbox", checked: state.selected.has(id), disabled: have,
+                        type: "checkbox", "aria-label": f.name, checked: state.selected.has(id), disabled: have,
                         onchange: (e) => { e.target.checked ? state.selected.add(id) : state.selected.delete(id); renderRobot(); },
                     })),
                     el("td", { class: "mono" }, f.name),
@@ -92,21 +98,30 @@ function renderRobotLogs() {
 async function refreshProbe() {
     state.probe = null;
     renderRobot();
-    state.probe = await api("/api/robot/probe");
+    try {
+        state.probe = await api("/api/robot/probe");
+    } catch (e) {
+        state.probe = { reachable: [], candidates: [], error: e.message };
+    }
     state.host = state.probe.best?.host || null;
     renderRobot();
     if (state.host) loadRobotLogs();
 }
 
 async function loadRobotLogs() {
+    const host = state.host;
     state.robotLogs = null;
     state.selected.clear();
+    syncProgress = null;
     renderRobot();
+    let logs;
     try {
-        state.robotLogs = await api(`/api/robot/logs?host=${encodeURIComponent(state.host)}`);
+        logs = await api(`/api/robot/logs?host=${encodeURIComponent(host)}`);
     } catch (e) {
-        state.robotLogs = { error: `Could not list logs on ${state.host}: ${e.message}` };
+        logs = { error: `Could not list logs on ${host}: ${e.message}` };
     }
+    if (state.host !== host) return;
+    state.robotLogs = logs;
     renderRobot();
 }
 
@@ -117,45 +132,54 @@ async function sync() {
     if (!files.length) return;
 
     state.busy = true;
+    syncProgress = el("div", { class: "progress" });
     renderRobot();
-    const progress = el("div", { class: "progress" });
-    sections.robot.querySelector(".card").append(progress);
-
-    const res = await fetch("/api/robot/sync", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ host: state.host, files }),
-    });
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
     const lines = new Map();
+    const paint = () => syncProgress.replaceChildren(...[...lines.values()]);
 
-    const paint = () => progress.replaceChildren(...[...lines.values()]);
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const parts = buf.split("\n");
-        buf = parts.pop();
-        for (const part of parts) {
-            if (!part.trim()) continue;
-            const ev = JSON.parse(part);
-            if (ev.state === "complete") {
-                lines.set("__done", el("div", { class: "prog-line ok" }, `Synced ${ev.count} log${ev.count === 1 ? "" : "s"}.`));
-            } else if (ev.state === "failed") {
-                lines.set("__done", el("div", { class: "prog-line bad" }, `Sync failed: ${ev.error}`));
-            } else {
-                const label = { start: "downloading", done: "downloaded", indexing: "indexing", indexed: "indexed", "index-failed": "index failed" }[ev.state] || ev.state;
-                lines.set(ev.name, el("div", { class: `prog-line${ev.state === "index-failed" ? " bad" : ev.state === "indexed" ? " ok" : ""}` },
-                    el("span", { class: "mono" }, ev.name), " — ", label,
-                    ev.ms ? ` in ${(ev.ms / 1000).toFixed(1)}s` : "",
-                    ev.error ? ` (${ev.error})` : ""));
-            }
-            paint();
+    try {
+        const res = await fetch("/api/robot/sync", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ host: state.host, files }),
+        });
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || `${res.status} ${res.statusText}`);
         }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const parts = buf.split("\n");
+            buf = parts.pop();
+            for (const part of parts) {
+                if (!part.trim()) continue;
+                const ev = JSON.parse(part);
+                if (ev.state === "complete") {
+                    lines.set("__done", el("div", { class: "prog-line ok" }, `Synced ${ev.count} log${ev.count === 1 ? "" : "s"}.`));
+                } else if (ev.state === "failed") {
+                    lines.set("__done", el("div", { class: "prog-line bad" }, `Sync failed: ${ev.error}`));
+                } else {
+                    const label = { start: "downloading", done: "downloaded", "download-failed": "download failed", indexing: "indexing", indexed: "indexed", "index-failed": "index failed" }[ev.state] || ev.state;
+                    const failed = ev.state === "index-failed" || ev.state === "download-failed";
+                    lines.set(ev.name, el("div", { class: `prog-line${failed ? " bad" : ev.state === "indexed" ? " ok" : ""}` },
+                        el("span", { class: "mono" }, ev.name), ": ", label,
+                        ev.ms ? ` in ${(ev.ms / 1000).toFixed(1)}s` : "",
+                        ev.error ? ` (${ev.error})` : ""));
+                }
+                paint();
+            }
+        }
+    } catch (e) {
+        lines.set("__done", el("div", { class: "prog-line bad" }, `Sync failed: ${e.message}`));
+        paint();
+    } finally {
+        state.busy = false;
     }
-    state.busy = false;
     state.selected.clear();
     await Promise.all([loadLocal(), loadRepo()]);
     renderRobot();
@@ -168,11 +192,11 @@ function summaryCells(s) {
     const warn = (v, lim) => (v === null || v === undefined ? "" : v >= lim ? "bad" : "");
     return [
         el("td", { class: "num" }, fmtDuration(s.enabledSec)),
-        el("td", { class: `num ${s.battery && s.battery.minVolts < 7 ? "warn-text" : ""}` }, s.battery ? `${s.battery.minVolts} V` : "—"),
-        el("td", { class: "num" }, s.current ? `${s.current.peakAmps} A` : "—"),
-        el("td", { class: "num" }, s.energyWh !== null ? `${s.energyWh} Wh` : "—"),
-        el("td", { class: `num ${warn(s.loop?.overrunPct, 5) === "bad" ? "warn-text" : ""}` }, s.loop ? `${s.loop.overrunPct}%` : "—"),
-        el("td", { class: `num ${warn(s.can?.maxUtilPct, 60) === "bad" ? "warn-text" : ""}` }, s.can ? `${s.can.maxUtilPct}%` : "—"),
+        el("td", { class: `num ${s.battery && s.battery.minVolts < 7 ? "warn-text" : ""}` }, s.battery ? `${s.battery.minVolts} V` : "n/a"),
+        el("td", { class: "num" }, s.current ? `${s.current.peakAmps} A` : "n/a"),
+        el("td", { class: "num" }, s.energyWh !== null ? `${s.energyWh} Wh` : "n/a"),
+        el("td", { class: `num ${warn(s.loop?.overrunPct, 5) === "bad" ? "warn-text" : ""}` }, s.loop ? `${s.loop.overrunPct}%` : "n/a"),
+        el("td", { class: `num ${warn(s.can?.maxUtilPct, 60) === "bad" ? "warn-text" : ""}` }, s.can ? `${s.can.maxUtilPct}%` : "n/a"),
     ];
 }
 
@@ -209,20 +233,31 @@ function renderLocal() {
 }
 
 async function togglePin(l) {
-    if (!l.summary) await api(`/api/logs/${encodeURIComponent(l.name)}/index`, { method: "POST", body: "{}" });
-    await api(`/api/logs/${encodeURIComponent(l.name)}/pin`, { method: "POST", body: JSON.stringify({ pinned: !l.summary?.pinned }) });
+    let error = null;
+    try {
+        if (!l.summary) await api(`/api/logs/${encodeURIComponent(l.name)}/index`, { method: "POST", body: "{}" });
+        await api(`/api/logs/${encodeURIComponent(l.name)}/pin`, { method: "POST", body: JSON.stringify({ pinned: !l.summary?.pinned }) });
+    } catch (e) {
+        error = e;
+    }
     await loadLocal();
     await loadRepo();
     renderLocal();
+    if (error) sections.local.querySelector("h2")?.after(el("div", { class: "notice bad" }, `Could not update ${l.name}: ${error.message}`));
     renderRepo();
 }
 
 async function loadLocal() {
-    const r = await api("/api/logs");
-    state.localLogs = r.logs;
-    state.logsDir = r.dir;
-    state.logsDirExists = r.exists;
-    renderLocal();
+    try {
+        const r = await api("/api/logs");
+        state.localLogs = r.logs;
+        state.logsDir = r.dir;
+        state.logsDirExists = r.exists;
+        renderLocal();
+    } catch (e) {
+        sections.local.replaceChildren(el("h2", {}, "Synced logs"),
+            el("div", { class: "notice bad" }, `Could not list synced logs: ${e.message}`));
+    }
 }
 
 // ---------------------------------------------------------------- repo
@@ -246,7 +281,7 @@ function renderRepo() {
             el("div", { class: "grid cols-4" },
                 el("div", { class: "stat" }, el("div", { class: "label" }, "Branch"), el("div", { class: "value", style: "font-size:1.05rem" }, r.branch)),
                 el("div", { class: "stat" }, el("div", { class: "label" }, "Uncommitted"), el("div", { class: "value" }, r.dirtyFiles)),
-                el("div", { class: "stat" }, el("div", { class: "label" }, "Unpushed"), el("div", { class: "value" }, r.unpushed ?? "—")),
+                el("div", { class: "stat" }, el("div", { class: "label" }, "Unpushed"), el("div", { class: "value" }, r.unpushed ?? "n/a")),
                 el("div", { class: "stat" }, el("div", { class: "label" }, "Pinned logs"), el("div", { class: "value" }, pinned))),
             el("div", { class: "row", style: "margin-top:14px" },
                 el("button", { class: "primary", onclick: publish }, "Commit & push manifest"),
@@ -264,7 +299,7 @@ async function publish() {
     try {
         const r = await api("/api/logs/publish", { method: "POST", body: JSON.stringify({}) });
         out.replaceChildren(el("div", { class: `notice ${r.ok ? "" : "bad"}` },
-            r.noChanges ? "Nothing to commit — the manifest is already up to date."
+            r.noChanges ? "Nothing to commit. The manifest is already up to date."
                 : r.ok ? `Committed${r.pushed ? ` and pushed to ${r.branch}` : ""}.`
                 : `Failed: ${r.error}`));
     } catch (e) {
@@ -275,14 +310,23 @@ async function publish() {
 }
 
 async function loadRepo() {
-    state.repo = await api("/api/logs/repo-status");
-    renderRepo();
+    try {
+        state.repo = await api("/api/logs/repo-status");
+        renderRepo();
+    } catch (e) {
+        sections.repo.replaceChildren(el("h2", {}, "Logs repo"),
+            el("div", { class: "card" }, el("div", { class: "notice bad" }, `Could not check the logs repo: ${e.message}`)));
+    }
 }
 
 // ---------------------------------------------------------------- boot
 
 async function boot() {
-    state.config = await api("/api/config");
+    try {
+        state.config = await api("/api/config");
+    } catch (e) {
+        root.append(el("div", { class: "notice bad" }, `Could not read the app config: ${e.message}`));
+    }
     renderRobot();
     renderLocal();
     renderRepo();

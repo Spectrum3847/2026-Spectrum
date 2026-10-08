@@ -10,6 +10,24 @@ import { visionRouter } from "./routes/vision.js";
 import { runDriftCheck } from "../scripts/check-drift.mjs";
 
 const app = express();
+const LISTEN_HOST = config.host || "127.0.0.1";
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/*
+ * Binding to loopback does not stop a web page in the browser from calling these routes. A JSON
+ * content type forces a CORS preflight, which this server never answers, and the Host check stops
+ * DNS rebinding.
+ */
+app.use("/api", (req, res, next) => {
+    const hostname = (req.headers.host || "").replace(/:\d+$/, "");
+    if (LOOPBACK.has(LISTEN_HOST) && !LOOPBACK.has(hostname)) {
+        return res.status(403).json({ error: `requests must be addressed to localhost, not ${hostname}` });
+    }
+    if (req.method !== "GET" && req.method !== "HEAD" && !req.is("application/json")) {
+        return res.status(415).json({ error: "POST bodies must be application/json" });
+    }
+    next();
+});
 app.use(express.json({ limit: "2mb" }));
 
 app.get("/api/health", (req, res) => res.json({ ok: true, node: process.version }));
@@ -33,9 +51,8 @@ app.get("/api/config", (req, res) => {
 /*
  * Whether this app still describes the robot code.
  *
- * This used to be a Gradle task wired into `check`, which meant nobody could change robot code
- * without stopping to update a web app first -- exactly backwards. The check now lives here: the
- * app reports on itself, and the build is none the wiser.
+ * The app reports this about itself instead of failing the robot build, so nobody has to update
+ * a web app before they can change robot code.
  *
  * "problems" are parsed contradictions; "stale" is the softer and more useful signal, a data file
  * that has not been touched since the Java it mirrors moved. Cached briefly because it shells out
@@ -51,7 +68,7 @@ app.get("/api/drift", (req, res) => {
             driftCache = { at: now, value: runDriftCheck() };
         } catch (e) {
             // A broken checker must never take the app down with it.
-            return res.json({ problems: [], notes: [], stale: [], error: String(e.message) });
+            driftCache = { at: now, value: { problems: [], notes: [], stale: [], error: String(e.message) } };
         }
     }
     res.json(driftCache.value);
@@ -95,9 +112,8 @@ function newestMtime(dir) {
 /**
  * What is wrong with the current build, if anything.
  *
- * A stale or partial dist used to be invisible: the catch-all below served the home page for any
- * path it could not find, so clicking "Logs" quietly showed Home with no error anywhere. Pages
- * are checked against the source tree instead, and a miss is reported rather than papered over.
+ * Pages are checked against the source tree, so a stale or partial dist/ is reported by name
+ * instead of a missing page quietly falling through to Home.
  */
 function buildStatus() {
     if (!fs.existsSync(dist)) return { built: false, missing: expectedPages(), stale: false };
@@ -123,7 +139,7 @@ if (fs.existsSync(dist)) {
             return res
                 .status(503)
                 .type("text/plain")
-                .send(`The "${page}" page exists in client/pages/ but is not in dist/ -- the build is out of date.\n\n${BUILD_HINT}\n`);
+                .send(`The "${page}" page exists in client/pages/ but is not in dist/. The build is out of date.\n\n${BUILD_HINT}\n`);
         }
         res.status(404).type("text/plain").send(`404 ${req.path}\n\nPages: / ${expectedPages().map((n) => `/pages/${n}/`).join(" ")}\n`);
     });
@@ -144,7 +160,7 @@ app.use((err, req, res, next) => {
  * endpoints run git; neither has any business being reachable from the pit network. Override with
  * `host` in config.local.json only if you know why you want that.
  */
-app.listen(config.port, config.host || "127.0.0.1", () => {
+app.listen(config.port, LISTEN_HOST, () => {
     const url = `http://localhost:${config.port}`;
     console.log(`\n  Spectrum robot app   ${url}`);
     console.log(`  logs repo            ${logsRepoPath()}${fs.existsSync(logsRepoPath()) ? "" : "   (not cloned yet)"}`);
@@ -153,11 +169,11 @@ app.listen(config.port, config.host || "127.0.0.1", () => {
     console.log(`  writes camera mounts to ${config.vision?.targetConfig ?? "src/main/java/frc/robot/subsystems/vision/Vision.java"}\n`);
     const build = buildStatus();
     if (!build.built) {
-        console.log("  client               NOT BUILT -- run `npm run build`");
+        console.log("  client               NOT BUILT, run `npm run build`");
     } else if (build.missing.length) {
-        console.log(`  client               INCOMPLETE -- missing ${build.missing.join(", ")}; run \`npm run build\``);
+        console.log(`  client               INCOMPLETE, missing ${build.missing.join(", ")}; run \`npm run build\``);
     } else if (build.stale) {
-        console.log("  client               STALE -- sources are newer than dist/; run `npm run build`");
+        console.log("  client               STALE, sources are newer than dist/; run `npm run build`");
     }
     console.log("\n  Press Ctrl+C to stop.\n");
 

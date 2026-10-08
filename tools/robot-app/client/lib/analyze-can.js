@@ -35,7 +35,7 @@ function coalesce(windows, gap = 0.25) {
 
 /**
  * Windows where MotorConnected went false. This is the direct signal, logged by every mechanism,
- * but it only checks the LEADER -- a dead follower is invisible, which is what
+ * but it only checks the LEADER. A dead follower is invisible, which is what
  * zeroOutputWhileCommanded() below is for.
  */
 export function connectionDropouts(model) {
@@ -68,7 +68,7 @@ export function connectionDropouts(model) {
  * Motors reporting zero output while something was asking them to move.
  *
  * A controller that is commanded to a position and reports exactly 0 V and 0 A is not a motor
- * that decided to rest -- it is a motor that is not receiving or executing control frames. This
+ * that decided to rest. It is a motor that is not receiving or executing control frames. This
  * needs a commanded-vs-measured pair, so it covers Hood and Turret (CommandedDegrees against
  * PositionDegrees) and Launcher and LauncherTower (CommandedRPM against RPM). LauncherTower joined
  * that list on 2026-09-08, when it started logging CommandedRPM; nothing here changed to include it.
@@ -84,9 +84,12 @@ export function zeroOutputWhileCommanded(model, { minSec = 0.25, tolerance = { d
         const volts = mech.voltage;
         if (!volts.length) continue;
 
+        // Older logs store the channels under a renamed mechanism's old name.
+        const names = [mech.name, ...(mech.aliases ?? [])];
+        const chFor = (suffix) => names.map((n) => model.ch(`${n}/${suffix}`)).find((s) => s.length) ?? [];
         for (const { cmd, actual, tol, unit } of pairs) {
-            const cmdSeries = model.ch(`${mech.name}/${cmd}`);
-            const actSeries = model.ch(`${mech.name}/${actual}`);
+            const cmdSeries = chFor(cmd);
+            const actSeries = chFor(actual);
             if (!cmdSeries.length || !actSeries.length) continue;
 
             const windows = [];
@@ -140,7 +143,7 @@ export function zeroOutputWhileCommanded(model, { minSec = 0.25, tolerance = { d
  *
  * DogLog only writes a record when a value CHANGES, so a controller that has stopped answering
  * produces silence rather than a flat line. That makes a long gap in an otherwise chatty channel
- * a genuine staleness signal -- weaker than the two detectors above, because an idle mechanism is
+ * a genuine staleness signal, weaker than the two detectors above, because an idle mechanism is
  * also silent, so this is advisory only.
  */
 export function staleTraces(model, { minGapSec = 1.0, multiple = 25 } = {}) {
@@ -149,19 +152,29 @@ export function staleTraces(model, { minGapSec = 1.0, multiple = 25 } = {}) {
         const series = mech.stator.length ? mech.stator : mech.supply;
         if (series.length < 50) continue;
 
-        const enabled = series.filter(([t]) => inWindows(t, model.enabled));
-        if (enabled.length < 50) continue;
+        // Pairs are only compared inside one enabled window, so the disabled stretch between
+        // auto and teleop is not reported as a dropout.
+        const pairs = [];
+        let count = 0;
+        let prev = null;
+        let prevWindow = -1;
+        for (const [t] of series) {
+            const w = model.enabled.findIndex(([s, e]) => t >= s && t <= e);
+            if (w === -1) continue;
+            count++;
+            if (w === prevWindow) pairs.push([prev, t]);
+            prev = t;
+            prevWindow = w;
+        }
+        if (count < 50 || !pairs.length) continue;
 
-        const deltas = [];
-        for (let i = 1; i < enabled.length; i++) deltas.push(enabled[i][0] - enabled[i - 1][0]);
-        deltas.sort((a, b) => a - b);
+        const deltas = pairs.map(([a, b]) => b - a).sort((a, b) => a - b);
         const median = deltas[deltas.length >> 1];
         const threshold = Math.max(minGapSec, median * multiple);
 
         const gaps = [];
-        for (let i = 1; i < enabled.length; i++) {
-            const gap = enabled[i][0] - enabled[i - 1][0];
-            if (gap >= threshold) gaps.push([enabled[i - 1][0], enabled[i][0], gap]);
+        for (const [a, b] of pairs) {
+            if (b - a >= threshold) gaps.push([a, b, b - a]);
         }
         if (gaps.length) {
             out.push({

@@ -8,8 +8,8 @@
  *   logged explicitly by Robot.robotPeriodic.
  *
  * Mechanisms are DISCOVERED from the log rather than assumed from the profile, so a log from a
- * differently configured robot still opens. The profile only enriches what was found -- current
- * limits above all, since those are never logged.
+ * differently configured robot still opens. The profile only enriches what was found. Current
+ * limits matter most, since those are never logged.
  */
 
 const P = "/Robot/";
@@ -39,7 +39,7 @@ export class LogModel {
      *
      * Presence is not enough: some logs declare BatteryLogger/BatteryVoltage and then write a
      * single record to it, and taking that over a fully populated SystemStats channel produces a
-     * confidently wrong "minimum voltage" -- the worst kind of bug in a tool people trust.
+     * confidently wrong "minimum voltage". That is the worst kind of bug in a tool people trust.
      */
     #richest(...names) {
         let best = [];
@@ -183,7 +183,7 @@ export class LogModel {
             this.warnings.push(
                 `Battery voltage was logged only ${v.length} time${v.length === 1 ? "" : "s"} across ` +
                     `${this.log.durationSec.toFixed(0)}s (${this.batteryVoltageKey}). Minimum voltage and pack resistance ` +
-                    "are unreliable here -- a sag between samples is simply invisible."
+                    "are unreliable here, because a sag between samples is invisible."
             );
         }
         if (!this.hasPerMotorCurrent) {
@@ -239,7 +239,7 @@ export function seriesStats(series) {
 
 /**
  * Fraction of samples at or above a threshold, and the total time spent there.
- * Time is accumulated from sample spacing so it stays honest with DogLog's change-only logging.
+ * Time is accumulated from sample spacing so it stays accurate with DogLog's change-only logging.
  */
 export function timeAtOrAbove(series, threshold) {
     let samples = 0;

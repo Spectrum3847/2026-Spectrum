@@ -12,14 +12,16 @@ function stats(series) {
     let min = Infinity;
     let max = -Infinity;
     let sum = 0;
+    let n = 0;
     for (const [, v] of series) {
         if (typeof v !== "number" || !Number.isFinite(v)) continue;
         if (v < min) min = v;
         if (v > max) max = v;
         sum += v;
+        n++;
     }
-    if (min === Infinity) return null;
-    return { min, max, mean: sum / series.length, n: series.length };
+    if (!n) return null;
+    return { min, max, mean: sum / n, n };
 }
 
 function percentile(series, p) {
@@ -36,7 +38,7 @@ function firstString(log, name) {
 
 /**
  * Enabled windows, derived from DS:enabled. Almost every meaningful statistic should be scoped to
- * these -- a log is mostly the robot sitting disabled on a cart, and including that time makes
+ * these. A log is mostly the robot sitting disabled on a cart, and including that time makes
  * every average meaningless.
  */
 export function enabledWindows(log) {
@@ -80,7 +82,7 @@ export function summarize(buffer, { name = null } = {}) {
     const cStats = stats(totalCurrent);
     const uStats = stats(canUtil);
 
-    // Loop time. DogLog's timeEnd writes SECONDS, not milliseconds -- verified against
+    // Loop time. DogLog's timeEnd writes SECONDS, not milliseconds. Verified against
     // FRC_20260416_210554_TXCMP1_Q19, where p50 is 0.0214 and the max is 0.788, matching the
     // handoff doc's "median 15 to 19 ms ... worst 0.55 and 0.92 s". TimedRobot's period is 20 ms,
     // so anything above 0.020 is an overrun. Reported as a share of loops so it compares across
@@ -120,7 +122,7 @@ export function summarize(buffer, { name = null } = {}) {
             ? {
                   medianMs: +(percentile(loop, 50) * 1000).toFixed(1),
                   p95Ms: +(percentile(loop, 95) * 1000).toFixed(1),
-                  maxMs: +(Math.max(...loop.map(([, v]) => v)) * 1000).toFixed(1),
+                  maxMs: +(stats(loop).max * 1000).toFixed(1),
                   overrunPct: +((100 * overruns) / loop.length).toFixed(1),
               }
             : null,
@@ -128,7 +130,7 @@ export function summarize(buffer, { name = null } = {}) {
             ? {
                   maxUtilPct: +uStats.max.toFixed(1),
                   meanUtilPct: +uStats.mean.toFixed(1),
-                  maxTec: tec.length ? Math.max(...tec.map(([, v]) => v)) : null,
+                  maxTec: stats(tec)?.max ?? null,
               }
             : null,
         motorConnected,

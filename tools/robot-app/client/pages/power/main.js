@@ -67,16 +67,16 @@ function render(log, name) {
     blocks.push(
         el("div", { class: "grid cols-4", style: "margin-bottom:6px" },
             tile("Enabled", fmtDuration(m.enabledSec), `of ${fmtDuration(log.durationSec)} logged`),
-            tile("Peak current", aStats ? `${aStats.max.toFixed(0)} A` : "—", aStats ? `${aStats.mean.toFixed(0)} A average` : null,
+            tile("Peak current", aStats ? `${aStats.max.toFixed(0)} A` : "n/a", aStats ? `${aStats.mean.toFixed(0)} A average` : null,
                 aStats && aStats.max > 300 ? "warn" : ""),
-            tile("Min voltage", vStats ? `${vStats.min.toFixed(2)} V` : "—", `brownout set to ${brownout} V`,
+            tile("Min voltage", vStats ? `${vStats.min.toFixed(2)} V` : "n/a", `brownout set to ${brownout} V`,
                 vStats ? (vStats.min < brownout + 1.5 ? "bad" : vStats.min < 8 ? "warn" : "ok") : ""),
-            tile("Energy used", energy !== null ? `${energy.toFixed(1)} Wh` : "—",
+            tile("Energy used", energy !== null ? `${energy.toFixed(1)} Wh` : "n/a",
                 energy !== null && capacity ? `${((100 * energy) / capacity).toFixed(0)}% of a ${capacity} Wh pack` : null),
-            tile("Pack resistance", resistance ? `${(resistance.ohms * 1000).toFixed(1)} mΩ` : "—",
+            tile("Pack resistance", resistance ? `${(resistance.ohms * 1000).toFixed(1)} mΩ` : "n/a",
                 resistance ? `open-circuit ${resistance.openCircuitVolts.toFixed(2)} V` : "needs voltage + current",
                 resistance ? (resistance.ohms > 0.025 ? "bad" : resistance.ohms > 0.018 ? "warn" : "ok") : ""),
-            tile("Main breaker", breaker ? `${breaker.peakPct.toFixed(0)}%` : "—",
+            tile("Main breaker", breaker ? `${breaker.peakPct.toFixed(0)}%` : "n/a",
                 breaker ? (breaker.trips.length ? `${breaker.trips.length} simulated trip${breaker.trips.length === 1 ? "" : "s"}` : "of trip threshold") : null,
                 breaker ? (breaker.trips.length ? "bad" : breaker.peakPct > 60 ? "warn" : "ok") : ""))
     );
@@ -85,7 +85,7 @@ function render(log, name) {
     //
     // Current and voltage are shown as two charts sharing one x-range rather than one chart with
     // two y-scales. Two scales on one plot let whoever picks the scales imply any correlation they
-    // want, and here the honest story -- current spikes, voltage sags -- reads perfectly well
+    // want, and here the honest story, current spikes and voltage sags, reads perfectly well
     // stacked.
     if (amps.length || volts.length) {
         const xRange = [log.firstTs, log.lastTs];
@@ -147,7 +147,7 @@ function render(log, name) {
             const pStats = seriesStats(supplyE);
             const statorLimit = spec?.statorAmps ?? null;
             const supplyLimit = spec?.supplyAmps ?? null;
-            // "At the limit" means within 5% of it -- a motor pinned at 95% of its stator ceiling
+            // "At the limit" means within 5% of it. A motor pinned at 95% of its stator ceiling
             // is being clipped just as surely as one at 100%.
             const atStator = statorLimit ? timeAtOrAbove(statorE, statorLimit * 0.95) : null;
             const atSupply = supplyLimit ? timeAtOrAbove(supplyE, supplyLimit * 0.95) : null;
@@ -161,26 +161,26 @@ function render(log, name) {
                 el("td", {}, mech.displayName,
                     spec?.followers?.length ? el("span", { class: "tag warn", style: "margin-left:6px", title: "Follower current is not in these traces" }, `+${spec.followers.length}`) : null,
                     mech.aliasText ? el("div", { style: "color:var(--tx-faint);font-size:0.72rem" }, `logged as ${mech.aliasText}`) : null),
-                el("td", { class: "num" }, spec ? spec.canId : "—"),
-                el("td", {}, spec ? spec.bus : "—"),
-                el("td", { class: "num" }, sStats ? `${sStats.max.toFixed(0)} A` : "—"),
-                el("td", { class: "num" }, statorLimit ? `${statorLimit} A` : "—"),
+                el("td", { class: "num" }, spec ? spec.canId : "n/a"),
+                el("td", {}, spec ? spec.bus : "n/a"),
+                el("td", { class: "num" }, sStats ? `${sStats.max.toFixed(0)} A` : "n/a"),
+                el("td", { class: "num" }, statorLimit ? `${statorLimit} A` : "n/a"),
                 el("td", {}, atStator
                     ? el("div", { style: "display:flex;align-items:center;gap:7px" },
                         el("span", { class: "mono", style: "min-width:44px;text-align:right" }, `${pct.toFixed(1)}%`),
                         el("div", { class: "bar", style: "flex:1" }, el("i", { class: barCls, style: `width:${Math.min(100, pct)}%` })))
-                    : "—"),
-                el("td", { class: "num" }, pStats ? `${pStats.max.toFixed(0)} A` : "—"),
-                el("td", { class: "num" }, supplyLimit ? `${supplyLimit} A` : "—"),
-                el("td", { class: "num" }, atSupply ? `${(atSupply.fraction * 100).toFixed(1)}%` : "—"),
-                el("td", { class: "num" }, wh !== null ? `${wh.toFixed(1)} Wh` : "—"));
+                    : "n/a"),
+                el("td", { class: "num" }, pStats ? `${pStats.max.toFixed(0)} A` : "n/a"),
+                el("td", { class: "num" }, supplyLimit ? `${supplyLimit} A` : "n/a"),
+                el("td", { class: "num" }, atSupply ? `${(atSupply.fraction * 100).toFixed(1)}%` : "n/a"),
+                el("td", { class: "num" }, wh !== null ? `${wh.toFixed(1)} Wh` : "n/a"));
         });
 
         blocks.push(
             el("section", {},
                 el("h2", {}, "Per-motor current against its limit"),
                 el("div", { class: "section-note" },
-                    "Statistics cover enabled time only. \"At limit\" is the share of samples within 5% of the configured ceiling — that is where the controller starts clipping."),
+                    "Statistics cover enabled time only. \"At limit\" is the share of samples within 5% of the configured ceiling. That is where the controller starts clipping."),
                 el("div", { class: "card table-wrap" },
                     el("table", {},
                         el("thead", {}, el("tr", {},

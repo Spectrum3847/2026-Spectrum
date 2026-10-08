@@ -18,9 +18,14 @@ export function readManifest() {
 }
 
 export function writeManifest(manifest) {
+    if (manifest.corrupt) {
+        throw new Error(`${manifestPath()} is not valid JSON; fix or restore it from git before indexing more logs`);
+    }
     fs.mkdirSync(logsRepoPath(), { recursive: true });
     manifest.logs.sort((a, b) => (a.name < b.name ? 1 : -1));
-    fs.writeFileSync(manifestPath(), JSON.stringify(manifest, null, 2) + "\n");
+    const tmp = `${manifestPath()}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + "\n");
+    fs.renameSync(tmp, manifestPath());
 }
 
 /** Summarize a synced log and fold it into the manifest, replacing any prior entry. */
@@ -85,7 +90,7 @@ export async function repoStatus() {
 export async function commitAndPush({ message, push = true, pinnedOnly = true }) {
     const repo = logsRepoPath();
     if (!fs.existsSync(path.join(repo, ".git"))) {
-        return { ok: false, error: `${repo} is not a git repo -- clone ${config.logsRepo.remote} there first` };
+        return { ok: false, error: `${repo} is not a git repo. Clone ${config.logsRepo.remote} there first` };
     }
     const manifest = readManifest();
     const toAdd = [config.logsRepo.manifest];

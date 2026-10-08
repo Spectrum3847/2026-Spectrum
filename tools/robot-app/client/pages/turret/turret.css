@@ -26,8 +26,8 @@ svg.dial { width: 100%; height: auto; display: block; }
 
 .verdict { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--bd); background: var(--s1); }
 .verdict .icon { font-size: 1.6rem; line-height: 1; }
-.verdict.ok { border-left: 4px solid var(--ok); }
-.verdict.warn { border-left: 4px solid var(--warn); }
-.verdict.bad { border-left: 4px solid var(--bad); }
+.verdict.ok { border-color: var(--ok); background: var(--ok-bg); }
+.verdict.warn { border-color: var(--warn); background: var(--warn-bg); }
+.verdict.bad { border-color: var(--bad); background: var(--bad-bg); }
 .verdict h3 { margin: 0 0 4px; text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--tx); }
 .verdict p { margin: 0; color: var(--tx-dim); font-size: 0.86rem; }

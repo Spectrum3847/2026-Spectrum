@@ -80,11 +80,13 @@ const state = {
     connection: 'disconnected',
     capture: null,
     capturing: false,
+    writing: false,
     /** Per-module 'accept' | 'flip' for modules that need a decision. */
     resolutions: {}
 };
 
 let client = null;
+let connectedHost = null;
 
 // ---------------------------------------------------------------------------
 // Math
@@ -201,6 +203,7 @@ function connect(host) {
         state.firstSeen[module.key] = 0;
     }
     state.heartbeatAt = 0;
+    connectedHost = host;
     client.connect(host);
 }
 
@@ -213,7 +216,7 @@ function dataIsFresh() {
  * The modules the student ticked in "Modules to align".
  *
  * There is no single reference that squares two of these wheels at once on this drivetrain, so
- * aligning one module at a time is a normal thing to want -- after swapping a single module, say.
+ * aligning one module at a time is a normal thing to want, such as after swapping a single module.
  * Everything unticked keeps the offset it already has in the code.
  *
  * @returns {object[]} entries from MODULES
@@ -296,6 +299,7 @@ function startCapture() {
     // Sample on a timer rather than off NT updates: NetworkTables only sends a topic when it
     // changes, and a wheel that is genuinely still may not send anything at all during the window.
     const sampler = setInterval(() => {
+        if (!state.capture) return;
         if (!dataIsFresh()) {
             state.capture.wentStale = true;
             return;
@@ -322,6 +326,7 @@ function startCapture() {
 
 function finishCapture() {
     const capture = state.capture;
+    if (!capture) return;
 
     if (capture.wentStale) {
         capture.error =
@@ -429,11 +434,11 @@ function renderStatus() {
     if (state.connection !== 'connected') {
         age.textContent = '';
     } else if (!state.heartbeatAt) {
-        age.textContent = '— waiting for alignment data';
+        age.textContent = '· waiting for alignment data';
     } else if (stale) {
-        age.textContent = `— data is ${(ageMs / 1000).toFixed(1)}s old`;
+        age.textContent = `· data is ${(ageMs / 1000).toFixed(1)}s old`;
     } else {
-        age.textContent = '— live';
+        age.textContent = '· live';
     }
 }
 
@@ -458,10 +463,18 @@ function dialSvg(degrees, connected) {
         </svg>`;
 }
 
+/** Skip innerHTML when unchanged, so focus survives the 200 ms render tick. */
+const lastHtml = {};
+
+function setHtml(id, html) {
+    if (lastHtml[id] === html) return;
+    lastHtml[id] = html;
+    document.getElementById(id).innerHTML = html;
+}
+
 function renderModules() {
-    const container = document.getElementById('modules');
     const fresh = dataIsFresh();
-    container.innerHTML = MODULES.map((module) => {
+    setHtml('modules', MODULES.map((module) => {
         const live = state.live[module.key];
         const seen = state.firstSeen[module.key];
         const connected = fresh && seen && live.connected !== false;
@@ -504,7 +517,7 @@ function renderModules() {
                     </dl>
                 </div>
             </div>`;
-    }).join('');
+    }).join(''));
 }
 
 function banner(kind, title, ...paragraphs) {
@@ -514,7 +527,6 @@ function banner(kind, title, ...paragraphs) {
 }
 
 function renderBanners() {
-    const container = document.getElementById('banners');
     const banners = [];
 
     // The robot is running different offsets than the file we are about to edit. Aligning against
@@ -533,7 +545,7 @@ function renderBanners() {
                     'The robot is not running this code',
                     `The magnet offset programmed into ${mismatched
                         .map((m) => m.label)
-                        .join(', ')} does not match <code>${state.target.file}</code>.`,
+                        .join(', ')} does not match <code>${escapeHtml(state.target.file)}</code>.`,
                     'Deploy the current code before aligning, otherwise the new offsets will be ' +
                         'computed against the wrong baseline.'
                 )
@@ -593,13 +605,13 @@ function renderBanners() {
             banner(
                 'info',
                 'Uncommitted changes already in this file',
-                `<code>${state.target.file}</code> has uncommitted edits on branch ` +
-                    `<code>${state.target.branch}</code>. Writing offsets will add to them.`
+                `<code>${escapeHtml(state.target.file)}</code> has uncommitted edits on branch ` +
+                    `<code>${escapeHtml(state.target.branch)}</code>. Writing offsets will add to them.`
             )
         );
     }
 
-    container.innerHTML = banners.join('');
+    setHtml('banners', banners.join(''));
 }
 
 /** Guards the review markup against being rebuilt on every timer tick, which would steal focus. */
@@ -623,7 +635,7 @@ function renderReview() {
     lastReviewSignature = signature;
 
     if (capture.error) {
-        body.innerHTML = `<tr><td colspan="5">${capture.error}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5">${escapeHtml(capture.error)}</td></tr>`;
         resolutions.innerHTML = '';
         return;
     }
@@ -640,7 +652,7 @@ function renderReview() {
                 <td>${module.label}</td>
                 <td>${fmtRotations(sourceOffset)}</td>
                 <td>${fmtRotations(sourceOffset)}</td>
-                <td>&mdash;</td>
+                <td>n/a</td>
                 <td><span class="badge skip">Not captured</span></td>
             </tr>`;
         }
@@ -725,7 +737,7 @@ function renderControls() {
 
     const haveResults = Boolean(state.capture && state.capture.results);
     const resolved = allResolved();
-    writeButton.disabled = !haveResults || !resolved;
+    writeButton.disabled = !haveResults || !resolved || state.writing;
     if (!haveResults) {
         writeBlocked.textContent = 'Capture first.';
     } else if (!resolved) {
@@ -755,17 +767,17 @@ async function loadTarget() {
 
     const aligned = data.alignedOn ? `last aligned ${data.alignedOn}` : 'no alignment recorded';
     document.getElementById('target-summary').innerHTML =
-        `Writes <code>${data.file}</code> &middot; branch <code>${data.branch || '?'}</code> ` +
-        `&middot; ${aligned}`;
+        `Writes <code>${escapeHtml(data.file)}</code> &middot; branch ` +
+        `<code>${escapeHtml(data.branch || '?')}</code> &middot; ${aligned}`;
     document.getElementById('write-target').innerHTML =
         `Updates the four numbers in <code>swerve.configEncoderOffsets(...)</code> in ` +
-        `<code>${data.file}</code>. Nothing else in the file is touched.`;
+        `<code>${escapeHtml(data.file)}</code>. Nothing else in the file is touched.`;
 }
 
 async function writeOffsets() {
-    const button = document.getElementById('write');
     const result = document.getElementById('write-result');
-    button.disabled = true;
+    state.writing = true;
+    render();
 
     // Modules that were not captured keep whatever is already in the file.
     const payload = { ...state.target.offsets };
@@ -782,31 +794,45 @@ async function writeOffsets() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Write failed');
 
+        state.capture = null;
+        state.resolutions = {};
+
+        // Re-read the file so the "in source" column reflects what is now on disk.
+        let reloadNote = '';
+        try {
+            await loadTarget();
+        } catch (err) {
+            reloadNote = banner(
+                'warn',
+                'The file was written, but it could not be re-read',
+                `Reloading the config failed: ${escapeHtml(err.message)}. The "in source" ` +
+                    'values may be stale. Refresh the page before aligning again.'
+            );
+        }
+
         result.hidden = false;
         result.innerHTML =
-            banner('ok', 'Offsets written', `Updated <code>${data.file}</code>.`) +
+            banner('ok', 'Offsets written', `Updated <code>${escapeHtml(data.file)}</code>.`) +
+            reloadNote +
             `<pre>${escapeHtml(data.after)}</pre>` +
             `<ol class="next-steps">
                 <li>Deploy the code to the robot.</li>
                 <li>With the pins still in, come back here: every module you captured should now
                     read close to 0&deg;.</li>
-                <li><strong>Pull all the alignment pins.</strong> Do not skip this &mdash; enabling
+                <li><strong>Pull all the alignment pins.</strong> Do not skip this. Enabling
                     with a pin in will break something.</li>
                 <li>Enable and drive slowly straight forward. If a wheel fights or the robot
                     crabs, that module is a half turn out.</li>
                 <li>Commit the change. To undo instead:
-                    <code>git checkout -- ${data.file}</code></li>
+                    <code>git checkout -- ${escapeHtml(data.file)}</code></li>
             </ol>`;
-
-        // Re-read the file so the "in source" column reflects what is now on disk.
-        await loadTarget();
-        state.capture = null;
-        state.resolutions = {};
     } catch (err) {
         result.hidden = false;
         result.innerHTML = banner('bad', 'Could not write the file', escapeHtml(err.message));
+    } finally {
+        state.writing = false;
+        render();
     }
-    render();
 }
 
 function escapeHtml(text) {
@@ -830,8 +856,10 @@ function init() {
     hostInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') connectToInput();
     });
-    // Picking an entry from the datalist fires change, not keydown.
-    hostInput.addEventListener('change', connectToInput);
+    // Enter also fires change, so skip the host that keydown already connected.
+    hostInput.addEventListener('change', () => {
+        if (hostInput.value.trim() !== connectedHost) connectToInput();
+    });
     document.getElementById('capture').addEventListener('click', startCapture);
     document.getElementById('write').addEventListener('click', writeOffsets);
     for (const input of document.querySelectorAll('#checklist input, #module-select input')) {

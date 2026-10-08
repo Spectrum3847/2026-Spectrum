@@ -1,7 +1,7 @@
 import { Router } from "express";
 import fs from "node:fs";
 import { probeAll, listRobotLogs, downloadLogs } from "../lib/robot.js";
-import { logsDir } from "../lib/config.js";
+import { config, logsDir } from "../lib/config.js";
 import { indexLog } from "../lib/manifest.js";
 
 export const robotRouter = Router();
@@ -22,14 +22,22 @@ robotRouter.get("/logs", async (req, res) => {
 
 /**
  * Pull logs from the robot. Streams newline-delimited JSON progress events rather than returning
- * one response at the end -- a full match log over the robot radio takes minutes, and a page that
+ * one response at the end. A full match log over the robot radio takes minutes, and a page that
  * shows nothing for that long looks broken.
  */
+const LOG_NAME = /^[\w.\- ]+\.wpilog$/;
+let syncing = false;
+
 robotRouter.post("/sync", async (req, res) => {
     const { host, files } = req.body || {};
     if (!host || !Array.isArray(files) || !files.length) {
         return res.status(400).json({ error: "host and a non-empty files array are required" });
     }
+    const bad = files.find((f) => !LOG_NAME.test(String(f?.name)) || !config.robot.logDirs.includes(f?.dir));
+    if (bad) return res.status(400).json({ error: `not a robot log: ${bad?.dir}/${bad?.name}` });
+    if (syncing) return res.status(409).json({ error: "a sync is already running" });
+    syncing = true;
+
     res.writeHead(200, { "content-type": "application/x-ndjson", "cache-control": "no-cache" });
     const emit = (o) => res.write(JSON.stringify(o) + "\n");
 
@@ -49,6 +57,8 @@ robotRouter.post("/sync", async (req, res) => {
         emit({ state: "complete", count: done.length });
     } catch (e) {
         emit({ state: "failed", error: String(e.message) });
+    } finally {
+        syncing = false;
     }
     res.end();
 });
