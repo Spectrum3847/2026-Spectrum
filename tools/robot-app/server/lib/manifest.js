@@ -25,7 +25,12 @@ export function writeManifest(manifest) {
     manifest.logs.sort((a, b) => (a.name < b.name ? 1 : -1));
     const tmp = `${manifestPath()}.tmp`;
     fs.writeFileSync(tmp, JSON.stringify(manifest, null, 2) + "\n");
-    fs.renameSync(tmp, manifestPath());
+    try {
+        fs.renameSync(tmp, manifestPath());
+    } catch (e) {
+        fs.rmSync(tmp, { force: true });
+        throw e;
+    }
 }
 
 /** Summarize a synced log and fold it into the manifest, replacing any prior entry. */

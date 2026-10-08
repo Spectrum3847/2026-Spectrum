@@ -80,6 +80,7 @@ export function summarize(buffer, { name = null } = {}) {
 
     const bStats = stats(battery);
     const cStats = stats(totalCurrent);
+    const lStats = stats(loop);
     const uStats = stats(canUtil);
 
     // Loop time. DogLog's timeEnd writes SECONDS, not milliseconds. Verified against
@@ -118,11 +119,11 @@ export function summarize(buffer, { name = null } = {}) {
         battery: bStats && { minVolts: +bStats.min.toFixed(2), maxVolts: +bStats.max.toFixed(2) },
         current: cStats && { peakAmps: +cStats.max.toFixed(1), meanAmps: +cStats.mean.toFixed(1) },
         energyWh: energy.length ? +energy[energy.length - 1][1].toFixed(1) : null,
-        loop: loop.length
+        loop: lStats
             ? {
                   medianMs: +(percentile(loop, 50) * 1000).toFixed(1),
                   p95Ms: +(percentile(loop, 95) * 1000).toFixed(1),
-                  maxMs: +(stats(loop).max * 1000).toFixed(1),
+                  maxMs: +(lStats.max * 1000).toFixed(1),
                   overrunPct: +((100 * overruns) / loop.length).toFixed(1),
               }
             : null,

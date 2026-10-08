@@ -469,17 +469,10 @@ function render(log) {
                 el("table", {},
                     el("thead", {}, el("tr", {}, ["Time", "What", "Detail"].map((h) => el("th", {}, h)))),
                     el("tbody", {}, eventRows.map((r) =>
-                        el("tr", {
-                            style: "cursor:pointer",
-                            tabindex: "0",
-                            onclick: () => scrubToEvent(r.t),
-                            onkeydown: (e) => {
-                                if (e.key !== "Enter" && e.key !== " ") return;
-                                e.preventDefault();
-                                scrubToEvent(r.t);
-                            },
-                        },
-                            el("td", { class: "num" }, `${r.t.toFixed(1)}s`),
+                        el("tr", { style: "cursor:pointer", onclick: () => scrubToEvent(r.t) },
+                            el("td", { class: "num" },
+                                el("button", { type: "button", class: "event-time", "aria-label": `Scrub the dial to ${r.t.toFixed(1)}s` },
+                                    `${r.t.toFixed(1)}s`)),
                             el("td", {}, el("span", { class: `tag ${r.sev}` }, r.kind)),
                             el("td", {}, r.detail))))))
             : el("div", { class: "empty" }, "Nothing flagged. The turret tracked its commands and its zero held."))));

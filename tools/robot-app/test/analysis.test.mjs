@@ -219,3 +219,10 @@ test("staleTraces still finds a real dropout inside one enabled window", () => {
     assert.equal(stale.count, 1);
     assert.ok(Math.abs(stale.gaps[0][2] - 4) < 0.2);
 });
+
+test("summary reports no loop stats when every loop sample is NaN", () => {
+    const w = new LogWriter();
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 1, NaN);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 2, NaN);
+    assert.equal(summarize(Buffer.from(w.buffer())).loop, null);
+});

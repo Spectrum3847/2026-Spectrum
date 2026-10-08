@@ -38,12 +38,11 @@ robotRouter.post("/sync", async (req, res) => {
     if (syncing) return res.status(409).json({ error: "a sync is already running" });
     syncing = true;
 
-    res.writeHead(200, { "content-type": "application/x-ndjson", "cache-control": "no-cache" });
     const emit = (o) => res.write(JSON.stringify(o) + "\n");
-
-    const dest = logsDir();
-    fs.mkdirSync(dest, { recursive: true });
     try {
+        res.writeHead(200, { "content-type": "application/x-ndjson", "cache-control": "no-cache" });
+        const dest = logsDir();
+        fs.mkdirSync(dest, { recursive: true });
         const done = await downloadLogs(String(host), files, dest, emit);
         for (const f of done) {
             try {

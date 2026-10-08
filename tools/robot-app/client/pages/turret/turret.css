@@ -31,3 +31,13 @@ svg.dial { width: 100%; height: auto; display: block; }
 .verdict.bad { border-color: var(--bad); background: var(--bad-bg); }
 .verdict h3 { margin: 0 0 4px; text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--tx); }
 .verdict p { margin: 0; color: var(--tx-dim); font-size: 0.86rem; }
+
+.event-time {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+.event-time:hover:not(:disabled) { background: none; border: 0; text-decoration: underline; }

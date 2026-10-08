@@ -37,6 +37,8 @@ export async function mountControlsPage(controllerId) {
     }
 
     function draw() {
+        const layer = c.layers.find((l) => l.id === layerId) ?? c.layers[0];
+        layerId = layer.id;
         tabs.replaceChildren(
             ...c.layers.map((l) =>
                 el(
@@ -55,8 +57,6 @@ export async function mountControlsPage(controllerId) {
             )
         );
 
-        const layer = c.layers.find((l) => l.id === layerId) ?? c.layers[0];
-        layerId = layer.id;
         const svg = renderDiagram(c, layerId);
         for (const node of svg.querySelectorAll("[data-control]")) {
             node.addEventListener("mouseenter", () => highlight(node.dataset.control));

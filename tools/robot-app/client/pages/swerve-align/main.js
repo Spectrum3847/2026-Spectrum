@@ -731,7 +731,7 @@ function renderControls() {
     const writeBlocked = document.getElementById('write-blocked');
 
     const ready = readiness();
-    captureButton.disabled = !ready.ready || state.capturing;
+    captureButton.disabled = !ready.ready || state.capturing || state.writing;
     captureButton.textContent = state.capturing ? 'Capturing…' : 'Capture alignment';
     captureBlocked.textContent = ready.ready ? '' : `Waiting on: ${ready.reasons.join('; ')}.`;
 
@@ -796,6 +796,8 @@ async function writeOffsets() {
 
         state.capture = null;
         state.resolutions = {};
+        // Keeps the next write correct even if the reload below fails.
+        state.target.offsets = payload;
 
         // Re-read the file so the "in source" column reflects what is now on disk.
         let reloadNote = '';
