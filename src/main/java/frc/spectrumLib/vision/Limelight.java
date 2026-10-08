@@ -3,6 +3,7 @@ package frc.spectrumLib.vision;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.TimestampedDoubleArray;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.spectrumLib.vision.LimelightHelpers.LimelightResults;
 import frc.spectrumLib.vision.LimelightHelpers.PoseEstimate;
@@ -18,6 +19,12 @@ import lombok.experimental.Accessors;
  *
  * <p>All methods are safe to call when the camera is not attached ({@link #isAttached()} returns
  * {@code false}); they return zero / false / empty values in that case.
+ *
+ * <p>NetworkTables reads are snapshotted per robot loop: the first getter to need a topic reads it
+ * once and every later getter in the same loop reuses that sample, so pose, tag count, raw
+ * fiducials and timestamp always describe the same camera frame. The owning subsystem must call
+ * {@link #invalidate()} exactly once per loop before any getter. Returned {@link PoseEstimate} and
+ * {@link RawFiducial} instances are shared for the rest of the loop and must not be mutated.
  *
  * <p>Two pose estimation flavors are supported:
  *
@@ -45,11 +52,6 @@ public class Limelight {
 
         /** Whether this camera is physically connected to the robot. */
         @Getter @Setter private boolean attached = true;
-
-        /**
-         * Whether pose measurements from this camera are currently being fused into the estimator.
-         */
-        @Getter @Setter private boolean isIntegrating;
 
         /** Physical Config */
         /**
@@ -110,14 +112,98 @@ public class Limelight {
     /** Whether pose measurements from this camera are currently being integrated. */
     @Getter @Setter private boolean isIntegrating = false;
 
-    /** Network-table name of this camera (mirrors {@link LimelightConfig#getName()}). */
-    @Getter private String cameraName = "default";
-
     /** Human-readable string describing the current integration status, logged for diagnostics. */
     @Getter @Setter private String logStatus = "";
 
     /** Human-readable string describing the currently visible tag(s), logged for diagnostics. */
     @Getter @Setter private String tagStatus = "";
+
+    /* ::: Per-loop NetworkTables snapshot :::
+     * Lazily filled on first use within a robot loop and cleared by invalidate(). null (or a
+     * false *Cached flag) means "not read yet this loop". Main robot thread only; no
+     * synchronization. */
+
+    /** Raw botpose_wpiblue sample (value + server timestamp); null until first MT1 read. */
+    private TimestampedDoubleArray mt1Sample;
+
+    /** MegaTag1 estimate parsed from {@link #mt1Sample}; null until derived. */
+    private PoseEstimate mt1Estimate;
+
+    /** MegaTag1 Pose3d derived from {@link #mt1Sample}; null until derived. */
+    private Pose3d mt1Pose3d;
+
+    /** MegaTag2 estimate from botpose_orb_wpiblue; null until first MT2 read. */
+    private PoseEstimate mt2Estimate;
+
+    private boolean tvCached;
+    private boolean tvValue;
+    private boolean taCached;
+    private double taValue;
+
+    /* ::: Per-loop integration telemetry, maintained by the owning subsystem ::: */
+
+    /** Whether an estimate from this camera was fused into the pose estimator this loop. */
+    @Getter @Setter private boolean integratedThisLoop;
+
+    /**
+     * Age in seconds (capture time to now) of the last estimate this camera produced this loop, or
+     * NaN if it produced none. A large value means the camera's timestamps are not trustworthy.
+     */
+    @Getter @Setter private double lastEstimateAgeSeconds = Double.NaN;
+
+    /**
+     * Clears the per-loop NetworkTables snapshot so the next getter re-reads the camera.
+     *
+     * <p>Must be called exactly once per robot loop, before any pose/target getter, by the owning
+     * subsystem (see {@code Vision.periodic()}). Between calls, every getter on this object returns
+     * data from the same NetworkTables sample. Safe to call on a detached camera.
+     */
+    public void invalidate() {
+        mt1Sample = null;
+        mt1Estimate = null;
+        mt1Pose3d = null;
+        mt2Estimate = null;
+        tvCached = false;
+        taCached = false;
+        integratedThisLoop = false;
+        lastEstimateAgeSeconds = Double.NaN;
+    }
+
+    /** Raw MegaTag1 sample for this loop. Caller must have checked {@link #isAttached()}. */
+    private TimestampedDoubleArray mt1Sample() {
+        if (mt1Sample == null) {
+            mt1Sample =
+                    LimelightHelpers.getLimelightDoubleArrayEntry(
+                                    config.getName(), "botpose_wpiblue")
+                            .getAtomic();
+        }
+        return mt1Sample;
+    }
+
+    /** MegaTag1 estimate for this loop. Caller must have checked {@link #isAttached()}. */
+    private PoseEstimate mt1Estimate() {
+        if (mt1Estimate == null) {
+            TimestampedDoubleArray sample = mt1Sample();
+            mt1Estimate = LimelightHelpers.parsePoseEstimate(sample.value, sample.timestamp, false);
+        }
+        return mt1Estimate;
+    }
+
+    /** MegaTag1 Pose3d for this loop. Caller must have checked {@link #isAttached()}. */
+    private Pose3d mt1Pose3d() {
+        if (mt1Pose3d == null) {
+            mt1Pose3d = LimelightHelpers.toPose3D(mt1Sample().value);
+        }
+        return mt1Pose3d;
+    }
+
+    /** MegaTag2 estimate for this loop. Caller must have checked {@link #isAttached()}. */
+    private PoseEstimate mt2Estimate() {
+        if (mt2Estimate == null) {
+            mt2Estimate = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.getName());
+        }
+        return mt2Estimate;
+    }
 
     /**
      * Constructs a Limelight wrapper from a fully populated {@link LimelightConfig}.
@@ -126,7 +212,6 @@ public class Limelight {
      */
     public Limelight(LimelightConfig config) {
         this.config = config;
-        cameraName = config.getName();
     }
 
     /**
@@ -135,7 +220,6 @@ public class Limelight {
      * @param name the network-table name of the camera
      */
     public Limelight(String name) {
-        cameraName = name;
         config = new LimelightConfig(name);
     }
 
@@ -146,7 +230,6 @@ public class Limelight {
      * @param attached {@code true} if the camera is physically present on the robot
      */
     public Limelight(String name, boolean attached) {
-        cameraName = name;
         config = new LimelightConfig(name).setAttached(attached);
     }
 
@@ -159,7 +242,6 @@ public class Limelight {
      */
     public Limelight(String name, int pipeline) {
         this(name);
-        cameraName = name;
         setLimelightPipeline(pipeline);
     }
 
@@ -172,9 +254,7 @@ public class Limelight {
      * @param config the fully populated {@link LimelightConfig} to use
      */
     public Limelight(String name, int pipeline, LimelightConfig config) {
-        this(name);
-        cameraName = name;
-        this.config = config;
+        this(config);
         setLimelightPipeline(pipeline);
     }
 
@@ -184,6 +264,15 @@ public class Limelight {
      * @return the camera name as configured in the LL dashboard
      */
     public String getName() {
+        return config.getName();
+    }
+
+    /**
+     * Returns the network-table name of this camera; the same as {@link #getName()}.
+     *
+     * @return the camera name as configured in the LL dashboard
+     */
+    public String getCameraName() {
         return config.getName();
     }
 
@@ -232,7 +321,11 @@ public class Limelight {
         if (!isAttached()) {
             return false;
         }
-        return LimelightHelpers.getTV(config.getName());
+        if (!tvCached) {
+            tvValue = LimelightHelpers.getTV(config.getName());
+            tvCached = true;
+        }
+        return tvValue;
     }
 
     /**
@@ -241,9 +334,6 @@ public class Limelight {
      * @return whether the LL sees multiple tags or not
      */
     public boolean multipleTagsInView() {
-        if (!isAttached()) {
-            return false;
-        }
         return getTagCountInView() > 1;
     }
 
@@ -257,15 +347,7 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName());
-        if (est == null) {
-            return 0;
-        }
-        return est.tagCount;
-
-        // if (retrieveJSON() == null) return 0;
-
-        // return retrieveJSON().targetingResults.targets_Fiducials.length;
+        return mt1Estimate().tagCount;
     }
 
     /**
@@ -290,7 +372,11 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        return LimelightHelpers.getTA(config.getName());
+        if (!taCached) {
+            taValue = LimelightHelpers.getTA(config.getName());
+            taCached = true;
+        }
+        return taValue;
     }
 
     /* ::: Pose Retrieval ::: */
@@ -304,11 +390,7 @@ public class Limelight {
         if (!isAttached()) {
             return Pose3d.kZero;
         }
-        Pose3d pose3d = LimelightHelpers.getBotPose3d_wpiBlue(config.name);
-        if (pose3d == null) {
-            return Pose3d.kZero;
-        }
-        return pose3d;
+        return mt1Pose3d();
     }
 
     /**
@@ -320,12 +402,7 @@ public class Limelight {
         if (!isAttached()) {
             return Pose2d.kZero;
         }
-        PoseEstimate poseEstimate =
-                LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
-        if (poseEstimate == null) {
-            return Pose2d.kZero;
-        }
-        return poseEstimate.pose;
+        return mt2Estimate().pose;
     }
 
     /**
@@ -338,12 +415,7 @@ public class Limelight {
         if (!isAttached()) {
             return new PoseEstimate();
         }
-
-        PoseEstimate poseEstimate = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name);
-        if (poseEstimate == null) {
-            return new PoseEstimate();
-        }
-        return poseEstimate;
+        return mt1Estimate();
     }
 
     /**
@@ -356,13 +428,7 @@ public class Limelight {
         if (!isAttached()) {
             return new PoseEstimate();
         }
-
-        PoseEstimate poseEstimate =
-                LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.name);
-        if (poseEstimate == null) {
-            return new PoseEstimate();
-        }
-        return poseEstimate;
+        return mt2Estimate();
     }
 
     /**
@@ -372,9 +438,6 @@ public class Limelight {
      * @return {@code true} if the pose estimate meets the accuracy criteria
      */
     public boolean hasAccuratePose() {
-        if (!isAttached()) {
-            return false;
-        }
         return multipleTagsInView() && getTargetSize() > 0.1;
     }
 
@@ -387,9 +450,8 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        double x = LimelightHelpers.getCameraPose3d_TargetSpace(config.name).getX();
-        double y = LimelightHelpers.getCameraPose3d_TargetSpace(config.name).getZ();
-        return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        Pose3d cameraInTargetSpace = LimelightHelpers.getCameraPose3d_TargetSpace(config.name);
+        return Math.hypot(cameraInTargetSpace.getX(), cameraInTargetSpace.getZ());
     }
 
     /**
@@ -402,11 +464,10 @@ public class Limelight {
         if (!isAttached()) {
             return new RawFiducial[0];
         }
-        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.name);
-        if (est == null || est.rawFiducials == null) {
-            return new RawFiducial[0];
-        }
-        return est.rawFiducials;
+        // Same per-loop snapshot as every other MegaTag1 getter; this used to do a second full
+        // NetworkTables read and parse of botpose_wpiblue on each call.
+        RawFiducial[] fiducials = mt1Estimate().rawFiducials;
+        return fiducials == null ? new RawFiducial[0] : fiducials;
     }
 
     /**
@@ -418,11 +479,7 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue(config.getName());
-        if (est == null) {
-            return 0;
-        }
-        return est.timestampSeconds;
+        return mt1Estimate().timestampSeconds;
     }
 
     /**
@@ -434,25 +491,7 @@ public class Limelight {
         if (!isAttached()) {
             return 0;
         }
-        PoseEstimate est = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(config.getName());
-        if (est == null) {
-            return 0;
-        }
-        return est.timestampSeconds;
-    }
-
-    /**
-     * Returns the latency of the pose estimation from the Limelight camera.
-     *
-     * @return The latency of the pose estimation in seconds.
-     */
-    @Deprecated(forRemoval = true)
-    public double getPoseLatency() {
-        if (!isAttached()) {
-            return 0;
-        }
-        return Units.millisecondsToSeconds(
-                LimelightHelpers.getBotPose_wpiBlue(config.getName())[6]);
+        return mt2Estimate().timestampSeconds;
     }
 
     /*
@@ -479,8 +518,7 @@ public class Limelight {
      * @param message a human-readable description of why integration is valid
      */
     public void sendValidStatus(String message) {
-        config.isIntegrating = true;
-        this.isIntegrating = config.isIntegrating;
+        isIntegrating = true;
         logStatus = message;
     }
 
@@ -490,8 +528,7 @@ public class Limelight {
      * @param message a human-readable description of why integration is invalid
      */
     public void sendInvalidStatus(String message) {
-        config.isIntegrating = false;
-        this.isIntegrating = config.isIntegrating;
+        isIntegrating = false;
         logStatus = message;
     }
 
@@ -520,16 +557,65 @@ public class Limelight {
         LimelightHelpers.setPipelineIndex(config.name, pipelineIndex);
     }
 
-    /** Sets the robot orientation in degrees for the Limelight's internal IMU. */
+    /**
+     * Sets the robot orientation in degrees for the Limelight's internal IMU.
+     *
+     * <p>Does not flush NetworkTables; the caller is responsible for a single flush after all
+     * per-loop writes (see {@code Vision.periodic()}).
+     */
     public void setRobotOrientation(double degrees) {
+        setRobotOrientation(degrees, 0);
+    }
+
+    public void updateCameraPose(Pose3d pose) {
         if (!isAttached()) {
             return;
         }
-        LimelightHelpers.SetRobotOrientation(config.name, degrees, 0, 0, 0, 0, 0);
+        LimelightHelpers.setCameraPose_RobotSpace(
+                config.name,
+                pose.getX(),
+                -pose.getY(),
+                pose.getZ(),
+                Units.radiansToDegrees(pose.getRotation().getX()),
+                Units.radiansToDegrees(pose.getRotation().getY()),
+                Units.radiansToDegrees(pose.getRotation().getZ()));
+    }
+
+    /**
+     * Writes this camera's configured mount pose ({@link LimelightConfig#withTranslation} and
+     * {@link LimelightConfig#withRotation}) to the camera over NetworkTables, making the code the
+     * source of truth for the offsets instead of the values typed into the web UI.
+     *
+     * <p>The six values are stored in exactly the convention the camera wants -- forward, right, up
+     * in metres, then roll, pitch, yaw in degrees -- so they go across unchanged. That is the same
+     * order and sign as the boxes in the web UI, so what is in {@code VisionConfig} can be read
+     * straight off against what a camera is showing.
+     *
+     * <p>A Limelight keeps its own copy in flash and falls back to it on boot, so this has to be
+     * republished rather than written once: a camera that reboots mid-match otherwise silently
+     * reverts to whatever was last typed into it. See the resend loop in {@code Vision.periodic()}.
+     *
+     * <p>Does not flush NetworkTables; the caller flushes once after all per-loop writes.
+     */
+    public void pushConfiguredCameraPose() {
+        if (!isAttached()) {
+            return;
+        }
+        LimelightHelpers.setCameraPose_RobotSpace(
+                config.name,
+                config.forward,
+                config.right,
+                config.up,
+                config.roll,
+                config.pitch,
+                config.yaw);
     }
 
     /**
      * Sets the robot orientation and yaw rate for the Limelight's internal IMU fusion (MegaTag2).
+     *
+     * <p>Does not flush NetworkTables; the caller is responsible for a single flush after all
+     * per-loop writes (see {@code Vision.periodic()}).
      *
      * @param degrees robot heading in degrees (positive counter-clockwise)
      * @param angularRate current yaw rate in degrees per second
@@ -538,7 +624,7 @@ public class Limelight {
         if (!isAttached()) {
             return;
         }
-        LimelightHelpers.SetRobotOrientation(config.name, degrees, angularRate, 0, 0, 0, 0);
+        LimelightHelpers.SetRobotOrientation_NoFlush(config.name, degrees, angularRate, 0, 0, 0, 0);
     }
 
     /**
@@ -561,17 +647,10 @@ public class Limelight {
      *     view
      */
     public double getTagTx() {
-        if (!isAttached()) {
-            return -99999;
-        }
-
         if (!targetInView()) {
             return -99999;
         }
-
-        double tx = LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getX();
-
-        return tx;
+        return LimelightHelpers.getTargetPose3d_RobotSpace(config.getName()).getX();
     }
 
     /**
@@ -580,16 +659,10 @@ public class Limelight {
      * @return target area (0–100 %), or {@code -99999} if not attached or no target in view
      */
     public double getTagTA() {
-        if (!isAttached()) {
-            return -99999;
-        }
         if (!targetInView()) {
             return -99999;
         }
-
-        double ta = LimelightHelpers.getTA(cameraName);
-
-        return ta;
+        return getTargetSize();
     }
 
     /**
@@ -600,15 +673,12 @@ public class Limelight {
      *     view
      */
     public double getTagRotationDegrees() {
-        if (!isAttached()) {
-            return -99999;
-        }
         if (!targetInView()) {
             return -99999;
         }
 
         double rotationRadians =
-                LimelightHelpers.getTargetPose3d_RobotSpace(cameraName).getRotation().getZ();
+                LimelightHelpers.getTargetPose3d_RobotSpace(config.getName()).getRotation().getZ();
 
         return Math.toDegrees(rotationRadians);
     }
@@ -643,13 +713,7 @@ public class Limelight {
             return false;
         }
         try {
-            var rawPoseArray =
-                    LimelightHelpers.getLimelightNTTableEntry(config.getName(), "botpose_wpiblue")
-                            .getDoubleArray(new double[0]);
-            if (rawPoseArray.length < 6) {
-                return false;
-            }
-            return true;
+            return mt1Sample().value.length >= 6;
         } catch (Exception e) {
             System.err.println("Avoided crashing statement in Limelight.java: isCameraConnected()");
             return false;

@@ -1,6 +1,6 @@
 package frc.robot.subsystems.hood;
 
-import com.ctre.phoenix6.sim.TalonFXSimState;
+import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
@@ -139,15 +139,15 @@ public class Hood extends Mechanism {
         systemState = handleStateTransition();
         applyStates();
         logBatteryUsage();
-        Telemetry.log("Hood/WantedState", wantedState.toString());
-        Telemetry.log("Hood/SystemState", systemState.toString());
-        Telemetry.log("Hood/CurrentCommand", getCurrentCommandName());
-        Telemetry.log("Hood/Voltage", getVoltage(), "volts");
-        Telemetry.log("Hood/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.log("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.log("Hood/PositionDegrees", getPositionDegrees(), "degrees");
-        Telemetry.log("Hood/RPM", getVelocityRPM(), "RPM");
-        Telemetry.log("Hood/Temp", getTemp(), "deg_C");
+        Telemetry.logDash("Hood/WantedState", wantedState.toString());
+        Telemetry.logDash("Hood/SystemState", systemState.toString());
+        Telemetry.logDash("Hood/CurrentCommand", getCurrentCommandName());
+        Telemetry.logDash("Hood/Voltage", getVoltage(), "volts");
+        Telemetry.logDash("Hood/StatorCurrent", getStatorCurrent(), "amps");
+        Telemetry.logDash("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
+        Telemetry.logDash("Hood/PositionDegrees", getPositionDegrees(), "degrees");
+        Telemetry.logDash("Hood/RPM", getVelocityRPM(), "RPM");
+        Telemetry.logDash("Hood/Temp", getTemp(), "deg_C");
     }
 
     // --------------------------------------------------------------------------------
@@ -155,21 +155,12 @@ public class Hood extends Mechanism {
     // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
-            sim = new HoodSim(RobotSim.leftView, motor.getSimState());
-        }
-    }
-
-    // Must be called to enable the simulation
-    // if roller position changes configure x and y to set position.
-    @Override
-    public void simulationPeriodic() {
-        if (isAttached()) {
-            sim.simulationPeriodic();
+            sim = new HoodSim(RobotSim.leftView, motor);
         }
     }
 
     class HoodSim extends ArmSim {
-        public HoodSim(Mechanism2d mech, TalonFXSimState armMotorSim) {
+        public HoodSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new ArmConfig(
                                     config.hoodX,
@@ -181,7 +172,7 @@ public class Hood extends Mechanism {
                                     180 - 9)
                             .setSimulatedGravity(false),
                     mech,
-                    armMotorSim,
+                    motor,
                     config.getName());
         }
     }

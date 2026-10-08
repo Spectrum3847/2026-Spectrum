@@ -2,6 +2,7 @@ package frc.spectrumLib.util;
 
 import edu.wpi.first.wpilibj.DriverStation;
 import java.net.*;
+import java.util.HexFormat;
 
 /** Common Network Utilities */
 public class Network {
@@ -15,7 +16,6 @@ public class Network {
         InetAddress localHost;
         NetworkInterface ni;
         byte[] hardwareAddress;
-        String mac = "";
         for (int i = 0; i < 10; i++) {
             try {
                 localHost = InetAddress.getLocalHost();
@@ -25,12 +25,7 @@ public class Network {
                 hardwareAddress = ni.getHardwareAddress();
                 if (hardwareAddress == null) return unknown;
 
-                String[] hexadecimal = new String[hardwareAddress.length];
-                for (int j = 0; j < hardwareAddress.length; j++) {
-                    hexadecimal[j] = String.format("%02X", hardwareAddress[j]);
-                }
-                mac = String.join(":", hexadecimal);
-                return mac;
+                return HexFormat.ofDelimiter(":").withUpperCase().formatHex(hardwareAddress);
             } catch (UnknownHostException | SocketException e) {
                 DriverStation.reportWarning("Failed to get MAC, retrying", null);
             }

@@ -1,8 +1,8 @@
 package frc.spectrumLib.sim;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.system.plant.DCMotor;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -41,10 +41,9 @@ public class LinearSim implements Mount, Mountable {
      * @param linearMotorSim the TalonFX sim state of the motor driving the stage
      * @param name unique name prefix used for Mechanism2d element labels
      */
-    public LinearSim(
-            LinearConfig config, Mechanism2d mech, TalonFXSimState linearMotorSim, String name) {
+    public LinearSim(LinearConfig config, Mechanism2d mech, TalonFX motor, String name) {
         this.config = config;
-        this.linearMotorSim = linearMotorSim;
+        this.linearMotorSim = SimMotor.simState(motor, config.isReversedLinkage());
 
         this.elevatorSim =
                 new ElevatorSim(
@@ -77,73 +76,72 @@ public class LinearSim implements Mount, Mountable {
                                 config.getAngle(),
                                 config.getLineWidth(),
                                 new Color8Bit(Color.kBlack)));
+
+        SimLoop.register(this::update);
     }
 
     /**
-     * Returns the moving stage {@link MechanismLigament2d}, useful for attaching additional visual
-     * elements.
+     * Returns the rotation per sec.
      *
-     * @return the elevator moving-stage ligament
+     * @return the rotation per sec
      */
-    public MechanismLigament2d getElevatorMech2d() {
-        return m_elevatorMech2d;
-    }
-
     private double getRotationPerSec() {
-        return (elevatorSim.getVelocityMetersPerSecond() / (2 * Math.PI * config.getDrumRadius()))
-                * config.getElevatorGearing();
+        return drumRotations(elevatorSim.getVelocityMetersPerSecond());
     }
 
+    /**
+     * Returns the rotations.
+     *
+     * @return the rotations
+     */
     private double getRotations() {
-        return (elevatorSim.getPositionMeters() / (2 * Math.PI * config.getDrumRadius()))
-                * config.getElevatorGearing();
+        return drumRotations(elevatorSim.getPositionMeters());
+    }
+
+    /** Converts carriage travel (metres, or metres/second) to motor rotations (or rotations/s). */
+    private double drumRotations(double meters) {
+        return (meters / (2 * Math.PI * config.getDrumRadius())) * config.getElevatorGearing();
     }
 
     /**
      * Advances the elevator physics simulation by one robot period, updates the TalonFX rotor
      * position and velocity, and refreshes both the static and moving Mechanism2d ligaments.
      */
-    public void simulationPeriodic() {
+    public void update(double dt) {
         elevatorSim.setInput(linearMotorSim.getMotorVoltage());
-        elevatorSim.update(TimedRobot.kDefaultPeriod);
+        elevatorSim.update(dt);
 
         linearMotorSim.setRotorVelocity(getRotationPerSec());
         linearMotorSim.setRawRotorPosition(getRotations());
 
         double displacement = elevatorSim.getPositionMeters();
 
+        double angle = stageAngleDegrees();
         if (config.isMounted()) {
-            double angle;
-
-            if (config.getMount().getMountType() == MountType.ARM) {
-                angle = config.getAngle() + Math.toDegrees(config.getMount().getAngle());
-            } else if (config.getMount().getMountType() == MountType.LINEAR) {
-                angle =
-                        config.getAngle()
-                                + Math.toDegrees(
-                                        config.getMount().getAngle() - config.getInitMountAngle());
-            } else {
-                angle = config.getAngle();
-            }
-
             config.setStaticRootX(getUpdatedX(config));
             config.setStaticRootY(getUpdatedY(config));
-
             staticRoot.setPosition(config.getStaticRootX(), config.getStaticRootY());
-            root.setPosition(
-                    config.getStaticRootX() + (displacement * Math.cos(Math.toRadians(angle))),
-                    config.getStaticRootY() + (displacement * Math.sin(Math.toRadians(angle))));
-
             staticMech2d.setAngle(angle);
             m_elevatorMech2d.setAngle(angle);
-
-        } else {
-            root.setPosition(
-                    config.getInitialX()
-                            + (displacement * Math.cos(Math.toRadians(config.getAngle()))),
-                    config.getInitialY()
-                            + (displacement * Math.sin(Math.toRadians(config.getAngle()))));
         }
+        // Unmounted, the static root never moves off the initial position.
+        double radians = Math.toRadians(angle);
+        root.setPosition(
+                config.getStaticRootX() + displacement * Math.cos(radians),
+                config.getStaticRootY() + displacement * Math.sin(radians));
+    }
+
+    /** The stage angle in degrees, following the parent mount when mounted. */
+    private double stageAngleDegrees() {
+        if (!config.isMounted()) {
+            return config.getAngle();
+        }
+        Mount mount = config.getMount();
+        return switch (mount.getMountType()) {
+            case ARM -> config.getAngle() + Math.toDegrees(mount.getAngle());
+            case LINEAR -> config.getAngle()
+                    + Math.toDegrees(mount.getAngle() - config.getInitMountAngle());
+        };
     }
 
     /**
@@ -153,21 +151,7 @@ public class LinearSim implements Mount, Mountable {
      * @return horizontal displacement in metres
      */
     public double getDisplacementX() {
-        double angle;
-
-        if (!config.isMounted()) {
-            angle = config.getAngle();
-        } else if (config.getMount().getMountType() == MountType.ARM) {
-            angle = config.getAngle() + Math.toDegrees(config.getMount().getAngle());
-        } else if (config.getMount().getMountType() == MountType.LINEAR) {
-            angle =
-                    config.getAngle()
-                            + Math.toDegrees(
-                                    config.getMount().getAngle() - config.getInitMountAngle());
-        } else {
-            angle = config.getAngle();
-        }
-
+        double angle = stageAngleDegrees();
         return elevatorSim.getPositionMeters() * Math.cos(Math.toRadians(angle))
                 + (config.getStaticRootX() - config.getInitialX());
     }
@@ -179,21 +163,7 @@ public class LinearSim implements Mount, Mountable {
      * @return vertical displacement in metres
      */
     public double getDisplacementY() {
-        double angle;
-
-        if (!config.isMounted()) {
-            angle = config.getAngle();
-        } else if (config.getMount().getMountType() == MountType.ARM) {
-            angle = config.getAngle() + Math.toDegrees(config.getMount().getAngle());
-        } else if (config.getMount().getMountType() == MountType.LINEAR) {
-            angle =
-                    config.getAngle()
-                            + Math.toDegrees(
-                                    config.getMount().getAngle() - config.getInitMountAngle());
-        } else {
-            angle = config.getAngle();
-        }
-
+        double angle = stageAngleDegrees();
         return elevatorSim.getPositionMeters() * Math.sin(Math.toRadians(angle))
                 + (config.getStaticRootY() - config.getInitialY());
     }

@@ -48,7 +48,7 @@ For routing: `Rio.CANIVORE` is the magic string `"*"` (use the first CANivore bu
 
 ## Status Signals
 
-Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus; the bus is updated in the background, and `.getValue()` just returns the latest cached sample. `Mechanism` reads its signals through `CachedDouble` wrappers (`getPositionRotations()`, `getVelocityRPM()`, etc.), which compute the value at most once per scheduler loop. The constructor sets the signal update frequency once via `BaseStatusSignal.setUpdateFrequencyForAll(100, ...)` and then calls `optimizeBusUtilization()`, so reads within the same loop are free.
+Phoenix surfaces data via `StatusSignal<Double>`. Reading a signal doesn't hit the bus; the bus is updated in the background, and `.getValue()` just returns the latest cached sample. `Mechanism` refreshes all of its signals with one `BaseStatusSignal.refreshAll` per loop (gated on `RobotLoop.count()`), so getters like `getPositionRotations()` and `getVelocityRPM()` cost nothing after the first call in a loop. The constructor sets update rates per signal and then calls `optimizeBusUtilization()`: position and velocity at 100 Hz, output signals at 50 Hz on a leader with followers and 20 Hz otherwise, currents at 20 Hz, temperature at 4 Hz, and every follower signal at 20 Hz. A mechanism whose config sets `fastOutputLogging` keeps its output signals at 100 Hz. Config calls go through `CanConfigBudget`: once failed config calls have used 3 seconds in total, later calls get one attempt each and an alert is raised, so a dead CAN bus cannot stretch boot past a minute.
 
 For one-off reads outside the periodic loop (say, during init), `signal.refresh().getValue()` is fine.
 

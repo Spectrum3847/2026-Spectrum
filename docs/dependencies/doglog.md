@@ -12,7 +12,7 @@ Version pinned: 2026.5.0 ([`vendordeps/DogLog.json`](../../vendordeps/DogLog.jso
 
 ```java
 Telemetry.start(
-    /* ntPublish      */ true,
+    /* ntMirror       */ RobotBase.isSimulation(),
     /* captureDs      */ true,
     /* captureNt      */ false,
     /* captureConsole */ true,
@@ -90,7 +90,7 @@ Add to this enum when you find yourself logging the same fault from multiple fil
 
 ## Things That Have Bitten Us
 
-`ntPublish=true` is convenient but it's not free; NT bandwidth is shared with everything else on the bus. If a match-day log gets noisy, log fewer high-frequency values before reaching for `withNtPublish(false)`.
+Mirroring every logged value to NetworkTables is not free. On the offseason robot on 2026-09-05, the mirror plus a flush every loop was a full-time job for one of the roboRIO's two cores. So the mirror starts off on the robot (on in simulation), is forced off whenever the FMS is attached, and dashboard values are published one by one with `Telemetry.logDash`. The `Telemetry/MirrorLogsToNT` switch on SmartDashboard turns the full mirror on or off in the shop. See [Logging](../tools/logging.md#what-reaches-the-dashboard).
 
 `withNtTunables(true)` controls DogLog's own tunable entries; it does not affect `TuneValue`/`SmartDashboard` writes. If you want to prevent match-day tuning, remove or guard `TuneValue` call sites separately.
 

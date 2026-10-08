@@ -438,20 +438,20 @@ public class ShotCalculator {
                         tofFinal);
 
         Telemetry.log("ShotCalc/LookaheadPose", lookaheadPose);
-        Telemetry.log("ShotCalc/DistanceMeters", lookaheadDist, "meters");
+        Telemetry.logDash("ShotCalc/DistanceMeters", lookaheadDist, "meters");
         Telemetry.log("ShotCalc/DistanceNoLookahead", distanceNoLookahead, "meters");
-        Telemetry.log("ShotCalc/DriveAngleDeg", driveAngle.getDegrees(), "degrees");
+        Telemetry.logDash("ShotCalc/DriveAngleDeg", driveAngle.getDegrees(), "degrees");
         Telemetry.log("ShotCalc/YawOffsetDeg", yawOffsetDeg, "degrees");
-        Telemetry.log("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
-        Telemetry.log("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
-        Telemetry.log("ShotCalc/ExitSpeedMs", exitSpeedMs, "m/s");
+        Telemetry.logDash("ShotCalc/HoodAngleDeg", hoodAngle, "degrees");
+        Telemetry.logDash("ShotCalc/FlywheelSpeedRPM", flywheelSpeed, "RPM");
+        Telemetry.logDash("ShotCalc/ExitSpeedMs", exitSpeedMs, "m/s");
         Telemetry.log("ShotCalc/RadialVelocityMs", radialVelocity, "m/s");
         Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
-        Telemetry.log("ShotCalc/TimeOfFlight", tofFinal, "seconds");
-        Telemetry.log("ShotCalc/FeedShot", feed);
+        Telemetry.logDash("ShotCalc/TimeOfFlight", tofFinal, "seconds");
+        Telemetry.logDash("ShotCalc/FeedShot", feed);
         Telemetry.log("ShotCalc/HubPolyModel", model.name());
-        Telemetry.log("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
-        Telemetry.log("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
+        Telemetry.logDash("ShotCalc/DriveAngleOffsetDegrees", DRIVE_ANGLE_OFFSET, "degrees");
+        Telemetry.logDash("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
         Telemetry.log("ShotCalc/Target", target);
 
         return latestParameters;

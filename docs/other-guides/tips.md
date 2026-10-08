@@ -35,7 +35,7 @@ The `() -> ...` lambda is a `DoubleSupplier` re-read by the control request each
 
 Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
 
-The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class already does this for position, velocity, voltage, and current using [`CachedDouble`](../../src/main/java/frc/spectrumLib/util/CachedDouble.java), which is a `SubsystemBase` that clears its cached flag in `periodic()` and recomputes on first access each loop.
+The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class does this for every status signal it reads: the first getter call in a loop runs one `BaseStatusSignal.refreshAll`, and later calls in the same loop reuse that sample. The loop number comes from [`RobotLoop`](../../src/main/java/frc/spectrumLib/framework/RobotLoop.java), which `Robot.robotPeriodic()` advances first thing. Without that call the cache never refreshes and every reading freezes. `Limelight` works the same way, with `Vision.periodic()` calling `invalidate()` on each camera at the top of the loop.
 
 If you're reading a sensor value that isn't already cached by `Mechanism`, do it in the subsystem's `periodic()` into a field, and have everything else read the field. Don't scatter CAN reads across command bodies.
 

@@ -1,5 +1,7 @@
 package frc.spectrumLib.util;
 
+import edu.wpi.first.math.MathUtil;
+
 // Spectrum 3847
 // Based on Code from FRC# 2363
 
@@ -42,14 +44,8 @@ public abstract class Curve {
      * @return mapped value
      */
     protected double calculateDeadzone(double input) {
-        double deadRadius = deadzone / 2.0;
-        double val = 0.0;
-        if (input > deadRadius) {
-            val = (1.0 / (1.0 - deadRadius)) * (input - deadRadius);
-        } else if (input < -deadRadius) {
-            val = (1.0 / (1.0 - deadRadius)) * (input + deadRadius);
-        }
-        return val;
+        // The deadzone is a full width; half of it either side of zero.
+        return MathUtil.applyDeadband(input, deadzone / 2.0);
     }
 
     /**
@@ -59,8 +55,7 @@ public abstract class Curve {
      * @return mapped value
      */
     protected double calculateScalar(double input) {
-        double val = input * scalar;
-        return val;
+        return input * scalar;
     }
 
     /**
@@ -70,18 +65,23 @@ public abstract class Curve {
      * @return mapped value
      */
     protected double calculateOffset(double input) {
-        double val = input + offset;
-        return val;
+        return input + offset;
     }
 
     /**
-     * Returns a set of points of length <code>pointCount</code> on the curve.
+     * Returns a set of points of length <code>pointCount</code> on the curve. With <code>pointCount
+     * </code> of 1, the single point is the center of the input range.
      *
      * @param pointCount the amount of points on the curve
      * @return a 2D double array of points on the curve
      */
     public double[][] getCurvePoints(int pointCount) {
         double[][] points = new double[pointCount][2];
+        if (pointCount == 1) {
+            points[0][0] = 0.0;
+            points[0][1] = calculate(0.0);
+            return points;
+        }
         double dx = 2.0 / (pointCount - 1);
         for (int i = 0; i < pointCount; i++) {
             double x = -1.0 + (i * dx);

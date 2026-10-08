@@ -20,11 +20,25 @@ There are five tabs right now:
 
 **Git Status**, branch, commit, and build timestamp from `BuildConstants`. The "what's actually running on this robot" tab.
 
-If you add a widget, edit the layout in Elastic and save it back to the file. Spotless leaves JSON alone, so let Elastic round-trip it instead of hand-editing whitespace.
+If you add a widget, edit the layout in Elastic and save it back to the file, and make sure the topic it reads is published by a `Telemetry.logDash` or `logDashAlways` call. Plain `Telemetry.log` keys are not on NetworkTables unless the `Telemetry/MirrorLogsToNT` switch is on. Spotless leaves JSON alone, so let Elastic round-trip it instead of hand-editing whitespace.
+
+## System health alerts
+
+`SystemLoadMonitor` samples the roboRIO once a second and publishes `System/CpuPercent`, `System/MemAvailableMB`, `System/HeapUsedMB`, `System/Gc/MsPerSecond` and the loop period mean, max and overrun share under `System/Loop/`. It raises Driver Station alerts, which show in every Alerts widget:
+
+|                  alert                   |                                  condition                                  |
+|------------------------------------------|-----------------------------------------------------------------------------|
+| roboRIO CPU high (warning)               | CPU at or above 85 % for 10 s; clears under 80 %                            |
+| Robot loop overrunning (warning)         | more than half the loops over 25 ms for 5 s; clears under a quarter         |
+| Robot loop stalled while enabled (error) | one enabled loop over 200 ms; stays up 10 s                                 |
+| GC pause while enabled (warning)         | 100 ms or more of collector time in one second while enabled; stays up 10 s |
+| roboRIO memory low (warning)             | under 24 MB available for 10 s                                              |
+
+Thresholds are constants at the top of `SystemLoadMonitor`.
 
 ## NetworkTables, In Brief
 
-Elastic talks to the robot over NetworkTables. Anything the robot publishes, such as `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.log` (which mirrors to NT when configured), is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
+Elastic talks to the robot over NetworkTables. Anything the robot publishes, such as `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.logDash` (plain `Telemetry.log` reaches NT only through the mirror, see [Logging](logging.md#what-reaches-the-dashboard)), is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
 
 The reverse direction works too. The auto chooser writes back over NT to a `SendableChooser`. Live-tunable values use `SmartDashboard.getNumber(...)` wrapped by `TuneValue` (see [PID Tuning](pid-tuning.md)).
 

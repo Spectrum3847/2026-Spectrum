@@ -12,6 +12,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -250,6 +251,7 @@ public class Vision implements Subsystem {
      * Called every robot loop iteration by the WPILib scheduler.
      *
      * <ol>
+     *   <li>Clears each Limelight's per-loop cache so this loop reads fresh data.
      *   <li>Pushes current heading to all Limelights (required for MegaTag2).
      *   <li>Runs pose-estimation updates appropriate to the current robot mode.
      *   <li>Logs telemetry for all cameras.
@@ -257,7 +259,12 @@ public class Vision implements Subsystem {
      */
     @Override
     public void periodic() {
+        for (Limelight limelight : allLimelights) {
+            limelight.invalidate();
+        }
         setLimeLightOrientation();
+        // setRobotOrientation does not flush; one flush sends every camera's heading now.
+        NetworkTableInstance.getDefault().flush();
         disabledLimelightUpdates();
         enabledLimelightUpdates();
         logTelemetry();

@@ -16,7 +16,7 @@ Both routes have `wpi.sim.addGui().defaultEnabled = true` and `wpi.sim.addDriver
 
 [`frc.robot.RobotSim`](../../src/main/java/frc/robot/RobotSim.java) builds a `Mechanism2d` published to `SmartDashboard/Sim/LeftView`. Drag that into Glass and you get a 2D side-view of the robot rendered from `MechanismLigament2d` segments. Right now it draws an outline; adding subsystem-specific ligaments (hood angle, intake extension position) is how you make it actually useful.
 
-The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim` / `LinearSim` / `RollerSim` in the subsystem's constructor, route it to update its angle/position/velocity from the motor's `getSimState()`, and append it onto `RobotSim.leftView`. The sim classes do the math to map motor rotations into the visualization.
+The pattern from existing subsystems: instantiate a `frc.spectrumLib.sim.ArmSim` / `LinearSim` / `RollerSim` in the subsystem's `simulationInit()`, passing the `TalonFX` and `RobotSim.leftView`. The sim registers itself with `SimLoop`, a shared 200 Hz `Notifier`, so the subsystem does not override `simulationPeriodic()`. If the sim's travel runs opposite the motor's positive direction (the mechanism sits at its limit and never moves in sim), set `setReversedLinkage(true)` on its config. The sim classes do the math to map motor rotations into the visualization.
 
 |   Helper    |                                              What it draws                                              |
 |-------------|---------------------------------------------------------------------------------------------------------|

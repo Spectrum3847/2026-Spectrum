@@ -25,10 +25,9 @@ public class SpectrumState extends Trigger {
     private Alert alert;
 
     /**
-     * Create a new EventTrigger. This will run on the EventScheduler's event loop, which will be
-     * polled any time a path following command is running.
+     * Creates a state polled by the command scheduler's default event loop.
      *
-     * @param name The name of the event. This will be the name of the event marker in the GUI
+     * @param name the state's name, used as its key and in its alert
      */
     public SpectrumState(String name) {
         super(pollCondition(name));
@@ -37,14 +36,15 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Create a new EventTrigger that gets polled by the given event loop instead of the
-     * EventScheduler
+     * Creates a state polled by the given event loop.
      *
-     * @param eventLoop The event loop to poll this trigger
-     * @param name The name of the event. This will be the name of the event marker in the GUI
+     * @param eventLoop the event loop to poll this trigger
+     * @param name the state's name, used as its key and in its alert
      */
     public SpectrumState(EventLoop eventLoop, String name) {
         super(eventLoop, pollCondition(name));
+        this.name = name;
+        alert = new Alert("States", name, AlertType.kInfo);
     }
 
     /**
@@ -178,12 +178,7 @@ public class SpectrumState extends Trigger {
      * @return the command
      */
     public Command toggle() {
-        return Commands.runOnce(
-                        () -> {
-                            value = !value;
-                            alert.set(value);
-                            setCondition(name, value);
-                        })
+        return Commands.runOnce(() -> setState(!value))
                 .ignoringDisable(true)
                 .withName(name + " state: Toggle");
     }
@@ -195,10 +190,7 @@ public class SpectrumState extends Trigger {
      * @return A boolean supplier to poll the event's condition
      */
     private static BooleanSupplier pollCondition(String name) {
-        // Ensure there is a condition in the map for this name
-        if (!stateConditions.containsKey(name)) {
-            stateConditions.put(name, false);
-        }
+        stateConditions.putIfAbsent(name, false);
 
         return () -> stateConditions.get(name);
     }

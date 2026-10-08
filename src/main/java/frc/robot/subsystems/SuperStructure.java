@@ -102,9 +102,9 @@ public class SuperStructure extends SubsystemBase {
 
         previousSuperState = currentSuperState;
 
-        Telemetry.log("SuperStructure/WantedSuperState", wantedSuperState.toString());
-        Telemetry.log("SuperStructure/CurrentSuperState", currentSuperState.toString());
-        Telemetry.log(
+        Telemetry.logDash("SuperStructure/WantedSuperState", wantedSuperState.toString());
+        Telemetry.logDash("SuperStructure/CurrentSuperState", currentSuperState.toString());
+        Telemetry.logDash(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
     }
 
