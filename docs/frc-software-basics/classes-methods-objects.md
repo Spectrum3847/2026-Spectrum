@@ -54,10 +54,10 @@ Gotcha: a method that says it returns something must return something on every p
 
 ## Access modifiers
 
-Every field and method has an access modifier, and picking the narrowest one that works is the habit to build.
+Every field and method has an access level, set by its access modifier or by leaving the modifier off, and picking the narrowest one that works is the habit to build.
 
 - `private` means only code inside this class can see it. This is the default you want.
-- No modifier means only code in the same package can see it.
+- No modifier gives package-private access: only code in the same package can see it. There is no keyword for this one.
 - `public` means anything can see it. Reserve it for the calls other classes need to make.
 
 In the `Rectangle` above, `width` and `height` are `private` on purpose. Nothing outside the class can overwrite them or read them directly, so the only way to get an area is to ask for it through a method. That is the whole idea: keep the data private, expose a small set of `public` methods, and other code cannot put the object into a state you did not allow.
@@ -95,9 +95,14 @@ The practical difference shows up in state. A `static` field is one shared value
 A constructor runs once, when you write `new`. Its name matches the class name, it has no return type, and it is where an object gets its initial state. Writing `new Rectangle(3, 5)` calls the constructor with `width` set to 3 and `height` set to 5, so that is the first thing that happens to a new object, and the only way to make one.
 
 ```java
-public Point(int x, int y) {
-    this.x = x;
-    this.y = y;
+public class Point {
+    private final int x;
+    private final int y;
+
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
 }
 ```
 

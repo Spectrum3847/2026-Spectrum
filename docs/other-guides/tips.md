@@ -20,7 +20,7 @@ Most command and trigger factory methods in this codebase take a `DoubleSupplier
 
 For setpoints that may shift while a command runs, such as shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue), you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
 
-The launcher is the clearest example. Its `applyStates()` reads a wanted RPM out of `ShotCalculator` for the aim state, then hands the control request a supplier rather than the value it just read. The request re-reads the supplier every loop, so the flywheel keeps following the live shot solution instead of freezing on the distance at the moment the state was entered. Look for the `() -> ...` lambda on any control request that should track something.
+The launcher is the clearest example. Its `applyStates()` reads a wanted RPM out of `ShotCalculator` for the aim state, and sends it as the flywheel target. `Launcher.periodic()` calls `applyStates()` every loop, so the target is recomputed each time and the flywheel keeps following the live shot solution instead of freezing on the distance at the moment the state was entered. The control request itself reads its supplier once, when it is sent; the tracking comes from the loop calling it again.
 
 More on the habit in [Class Generation](../coding-conventions/class-generation.md#methods).
 
@@ -30,7 +30,7 @@ Every CAN read is a network call. If you call `motor.getPosition().getValueAsDou
 
 The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class does this for every status signal it reads: the first getter call in a loop runs one `BaseStatusSignal.refreshAll`, and later calls in the same loop reuse that sample. The loop number comes from [`RobotLoop`](../../src/main/java/frc/spectrumLib/framework/RobotLoop.java), which `Robot.robotPeriodic()` advances first thing. Without that call the cache never refreshes and every reading freezes. `Limelight` works the same way, with `Vision.periodic()` calling `invalidate()` on each camera at the top of the loop.
 
-If you're reading a sensor value that `Mechanism` does not already cache, read it once into a field and have every caller read the field. Where that refresh happens is the part to get right: a mechanism's own `periodic()` is never called, because a `Mechanism` is a plain `Subsystem` and only `SuperStructure` registers with the scheduler. See [Class Generation](../coding-conventions/class-generation.md#subsystem-layout). Either way, don't scatter CAN reads across command bodies.
+If you're reading a sensor value that `Mechanism` does not already cache, read it once into a field and have every caller read the field. The mechanism's own `periodic()` is a good place for that refresh: every `Mechanism` registers itself with the scheduler in its constructor, so an override runs once per loop. The base `Mechanism.periodic()` is empty. Either way, don't scatter CAN reads across command bodies.
 
 ## Simulation before robot time
 

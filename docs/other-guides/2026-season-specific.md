@@ -9,7 +9,7 @@ Orientation for the 2026 game. It tells you where things live and which file own
 Under `src/main/java/frc/robot/`:
 
 * `subsystems/` holds one folder per mechanism, each with a single file that carries the mechanism, its inner `Config` class, and its inner `WantedState` and `SystemState` enums. The layout and the reasoning behind it are in [Class Generation](../coding-conventions/class-generation.md).
-* `subsystems/SuperStructure.java` is the orchestrator, and the one registered `SubsystemBase` among the robot's own classes, so it is what the scheduler ticks. The mechanisms below it are plain `Subsystem` objects, not `SubsystemBase`, so they never register themselves.
+* `subsystems/SuperStructure.java` is the orchestrator, a `SubsystemBase`. The mechanisms below it implement `Subsystem` rather than extending `SubsystemBase`, and each registers itself with the scheduler in the `Mechanism` constructor.
 * `pilot/` and `operator/` hold the gamepad classes. They expose `Trigger`s and nothing else; they hold no behavior.
 * `configs/` holds the per-robot config classes.
 * `auton/` holds the auto chooser and the named commands the paths call back into.

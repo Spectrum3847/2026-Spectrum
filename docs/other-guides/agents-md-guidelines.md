@@ -43,7 +43,7 @@ Write this section from your own tree. This repo, for example, has exactly one e
 
 Enough to route a change to the right file. Name the orchestrator, where subsystems live, and where hardware constants live, and say that the last one never lives in a subsystem file. Verify each name against the tree before you write it down; a map that names deleted files is worse than no map.
 
-A worked example, from this repo: the orchestrator is `SuperStructure`, and it is the one registered `SubsystemBase`, so it is what the scheduler ticks. Each mechanism under `src/main/java/frc/robot/subsystems/` is one file holding the mechanism, its inner `Config` class, and its inner `WantedState` and `SystemState` enums, and it is a plain `Subsystem` rather than a `SubsystemBase`, which is a fact worth writing down because nothing else in the tree suggests it. Hardware constants live in the classes under `src/main/java/frc/robot/configs/`, never in a subsystem file. Bindings live in one method, `Robot.configureBindings()`.
+A worked example, from this repo: the orchestrator is `SuperStructure`, a `SubsystemBase`. Each mechanism under `src/main/java/frc/robot/subsystems/` is one file holding the mechanism, its inner `Config` class, and its inner `WantedState` and `SystemState` enums, and it implements `Subsystem` rather than extending `SubsystemBase`, registering itself in the `Mechanism` constructor, which is a fact worth writing down because nothing else in the tree suggests it. Hardware constants live in the classes under `src/main/java/frc/robot/configs/`, never in a subsystem file. Bindings live in one method, `Robot.configureBindings()`.
 
 ### 6. "If you add X, also touch Y" checklists
 

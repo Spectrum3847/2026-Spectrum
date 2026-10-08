@@ -6,7 +6,7 @@
 
 ## Our layout
 
-The layout is [`src/main/deploy/elastic-layout.json`](../../src/main/deploy/elastic-layout.json). It deploys to the roboRIO with the rest of `src/main/deploy`, so anyone who plugs into the robot gets the same tabs we do. Edit it in Elastic and save back to that file. It is JSON and the formatter does not touch it, so let Elastic write it rather than cleaning up whitespace by hand.
+The layout is [`src/main/deploy/elastic-layout.json`](../../src/main/deploy/elastic-layout.json). It deploys to the roboRIO with the rest of `src/main/deploy`, but Elastic does not load it on its own. On each laptop, connect to the robot and use **File > Download From Robot** to get the same tabs we do. Edit it in Elastic and save back to that file. It is JSON and the formatter does not touch it, so let Elastic write it rather than cleaning up whitespace by hand.
 
 **Pre-Match** is the tab on screen between matches and it owns the chooser. **Git Status** answers "which build is actually on this robot": it reads the build stamp the robot publishes at startup.
 

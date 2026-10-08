@@ -22,7 +22,7 @@ Instead of a separate command-factory class, each subsystem drives itself with a
 
 The orchestrator, [`SuperStructure`](../../src/main/java/frc/robot/subsystems/SuperStructure.java), sits above them. Its `setWantedSuperState(WantedSuperState)` (with `setStateCommand(...)` as the command wrapper bindings use) fans one robot-level intent out to every mechanism's `setWantedState(...)` in the `apply*` methods its own `applyStates()` dispatches to. Gamepad bindings and `Auton` talk to `SuperStructure`, never to a mechanism directly.
 
-Worth knowing when you are new to the tree: a `Mechanism` implements `Subsystem` but does not extend `SubsystemBase`, so it never registers itself with the scheduler. `SuperStructure` is the one registered `SubsystemBase` among the robot's own classes, and it is what the scheduler ticks. If you add a mechanism and find that your `periodic()` is never called, this is why, and the fix is to call it from `SuperStructure`, not to change the base class.
+Worth knowing when you are new to the tree: a `Mechanism` implements `Subsystem` but does not extend `SubsystemBase`. It calls `register()` at the end of its constructor instead, so the scheduler ticks every mechanism's `periodic()` on its own, with no wiring through `SuperStructure`.
 
 Stick to this layout for new subsystems unless there's a concrete reason not to.
 
