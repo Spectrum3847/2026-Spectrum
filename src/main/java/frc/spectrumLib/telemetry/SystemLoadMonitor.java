@@ -117,7 +117,8 @@ public class SystemLoadMonitor {
     private double stallLatchUntilSeconds = Double.NEGATIVE_INFINITY;
     private double gcLatchUntilSeconds = Double.NEGATIVE_INFINITY;
 
-    private boolean procAvailable = true;
+    private boolean procStatAvailable = true;
+    private boolean procMeminfoAvailable = true;
     private long lastCpuTotalJiffies = -1;
     private long lastCpuIdleJiffies = -1;
     private long lastGcTimeMs = -1;
@@ -264,7 +265,7 @@ public class SystemLoadMonitor {
      * /proc/stat}, or NaN on the first call or where {@code /proc} does not exist.
      */
     private double readCpuPercent() {
-        if (!procAvailable) {
+        if (!procStatAvailable) {
             return Double.NaN;
         }
         try (BufferedReader reader =
@@ -296,7 +297,7 @@ public class SystemLoadMonitor {
             return deltaTotal > 0 ? 100.0 * (deltaTotal - deltaIdle) / deltaTotal : Double.NaN;
         } catch (IOException | RuntimeException e) {
             // Not Linux, or an unexpected format: stop trying rather than fail every second.
-            procAvailable = false;
+            procStatAvailable = false;
             return Double.NaN;
         }
     }
@@ -307,7 +308,7 @@ public class SystemLoadMonitor {
      * which is why the DS read 4 to 5 MB free all day on 2026-09-05 with nothing actually wrong.
      */
     private double readMemAvailableMb() {
-        if (!procAvailable) {
+        if (!procMeminfoAvailable) {
             return Double.NaN;
         }
         try (BufferedReader reader =
@@ -322,7 +323,7 @@ public class SystemLoadMonitor {
             }
             return Double.NaN;
         } catch (IOException | RuntimeException e) {
-            procAvailable = false;
+            procMeminfoAvailable = false;
             return Double.NaN;
         }
     }

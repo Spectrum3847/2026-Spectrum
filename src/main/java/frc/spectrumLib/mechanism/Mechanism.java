@@ -1116,8 +1116,7 @@ public abstract class Mechanism implements Subsystem {
                 config.configStatorCurrentLimit(Math.abs(statorLimit.getAsDouble()), true);
                 config.configForwardTorqueCurrentLimit(Math.abs(statorLimit.getAsDouble()));
                 config.configReverseTorqueCurrentLimit(-1 * Math.abs(statorLimit.getAsDouble()));
-                int attempts = CanConfigBudget.maxAttempts();
-                for (int i = 0; i < attempts; i++) {
+                for (int i = 0; i < CanConfigBudget.maxAttempts(); i++) {
                     StatusCode result =
                             CanConfigBudget.run(
                                     config.getName(),
