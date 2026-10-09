@@ -5,7 +5,8 @@ pass=0; fail=0
 
 check() { # $1=label $2=want $3=command-string
   local payload got
-  payload=$(printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(printf '%s' "$3" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))')")
+  # Real payloads carry paths like these, and repos usually live under a "github" folder.
+  payload=$(printf '{"session_id":"abc","transcript_path":"/home/student/.claude/projects/-home-student-github-2026-Spectrum/abc.jsonl","cwd":"/home/student/github/2026-Spectrum","hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":%s}}' "$(printf '%s' "$3" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))')")
   printf '%s' "$payload" | bash "$S" >/dev/null 2>&1
   got=$?
   if [ "$got" = "$2" ]; then pass=$((pass+1)); printf 'PASS  %-34s exit=%s\n' "$1" "$got"
@@ -27,6 +28,12 @@ check "log format committer"    0 "$G log -1 --format='%an <%ae> / ${C}ter %cn'"
 check "commit-graph"            0 "$G ${C}-graph verify"
 check "no-commit-id flag"       0 "$G diff-tree --no-${C}-id -r HEAD"
 check "commit at end of string"  2 "$G $C"
+# "git" must be the command, not part of a longer word such as a "github" path.
+check "gh merge with sha guard"  0 "gh pr merge 1 --squash --match-head-${C} abc123"
+check "github cwd, commit text"  0 "echo 'no local $C here'"
+check "word ending in git"       0 "echo legit $C"
+check "git by full path"         2 "/usr/bin/$G $C -m x"
+check "git in subshell"          2 "($G $C -m x)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" = 0 ]
