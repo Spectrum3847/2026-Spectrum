@@ -36,29 +36,14 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /**
- * Full-field ball physics simulation for FRC 2026 REBUILT. Handles drag, Magnus lift, friction,
- * ball-ball collisions, wall bounces, hub scoring, sleeping, CCD, and robot interaction. Single
- * file, only depends on WPILib (wpimath + ntcore). Drop it into your sim and watch balls fly.
+ * Simulates fuel on the 2026 REBUILT field. Depends only on WPILib, so it drops into any sim
+ * harness.
  *
- * <p>Physics: symplectic Euler integration, 3D angular velocity for Magnus (omega x v cross
- * product), Coulomb friction with spin transfer, sequential impulse collision solver with warm
- * starting and Baumgarte stabilization. Spatial hashing for ball-ball broadphase. Ball sleeping
- * keeps 350+ resting balls under 2ms/tick.
- *
- * <p>Usage:
- *
- * <pre>
- *   FuelPhysicsSim ballSim = new FuelPhysicsSim("Sim/Fuel");
- *   ballSim.enable();
- *   ballSim.placeFieldBalls();   // spawns all the game pieces
- *   // in simulationPeriodic():
- *   ballSim.configureRobot(width, length, bumperH, poseSupplier, speedsSupplier);
- *   ballSim.tick();              // runs physics, publishes to NT
- * </pre>
+ * <p>Symplectic Euler integration, sequential impulse contacts with warm starting and Baumgarte
+ * stabilization, spatial hash broadphase, and ball sleeping. Sleeping keeps 350 or more resting
+ * balls under 2 ms per tick.
  */
 public class FuelPhysicsSim {
-
-    // Physics constants
 
     private static final double GRAVITY = 9.81; // m/s^2
     private static final double AIR_DENSITY = 1.225; // kg/m^3, standard atmosphere
@@ -69,18 +54,17 @@ public class FuelPhysicsSim {
     private static final double BALL_MOMENT_OF_INERTIA =
             0.4 * BALL_MASS * BALL_RADIUS * BALL_RADIUS; // 2/5 * m * r^2, solid sphere
 
-    // Aerodynamic coefficients
     private static final double DEFAULT_CD = 0.47; // drag coefficient, smooth sphere
     private static final double DEFAULT_CM = 0.2; // Magnus coefficient, conservative estimate
 
-    // Precomputed force factors (divided by mass to get acceleration factors)
+    // Force factors, already divided by ball mass so they apply straight to acceleration
     private static final double DRAG_ACCEL_FACTOR =
             0.5 * AIR_DENSITY * DEFAULT_CD * BALL_CROSS_AREA / BALL_MASS;
-    // Extra BALL_RADIUS factor converts the omega x v cross product to acceleration
+    // The extra BALL_RADIUS turns the omega x v cross product into an acceleration
     private static final double MAGNUS_ACCEL_FACTOR =
             0.5 * AIR_DENSITY * DEFAULT_CM * BALL_CROSS_AREA * BALL_RADIUS / BALL_MASS;
 
-    // Coefficients of restitution (per-material, from field element build instructions)
+    // Restitution per material, from the field element build instructions
     private static final double COR_CARPET = 0.65; // foam on low-pile carpet
     private static final double COR_WALL =
             0.70; // foam on polycarbonate (alliance walls, guardrails)
@@ -91,17 +75,15 @@ public class FuelPhysicsSim {
     private static final double COR_BUMPER = 0.08; // polycarb-backed foam, nearly inelastic
     private static final double COR_BALL_BALL = 0.45; // foam-on-foam, high deformation loss
 
-    // Friction coefficients
     private static final double MU_GROUND_KINETIC = 0.3; // kinetic friction on carpet
     private static final double MU_GROUND_ROLLING = 0.05; // rolling friction
     private static final double MU_WALL = 0.4; // foam on polycarbonate/fabric
     private static final double MU_BALL_BALL = 0.3; // foam on foam
 
-    // Velocity-dependent COR reference speed
     private static final double COR_VREF = 3.0; // m/s
     private static final double COR_EXPONENT = 0.15;
 
-    // Reusable axis-aligned unit normals (avoids allocating these in hot loops)
+    // Reused so the hot loops never allocate a normal
     private static final Translation3d AXIS_X_POS = new Translation3d(1, 0, 0);
     private static final Translation3d AXIS_X_NEG = new Translation3d(-1, 0, 0);
     private static final Translation3d AXIS_Y_POS = new Translation3d(0, 1, 0);
@@ -109,46 +91,36 @@ public class FuelPhysicsSim {
     private static final Translation3d AXIS_Z_POS = new Translation3d(0, 0, 1);
     private static final Translation3d AXIS_Z_NEG = new Translation3d(0, 0, -1);
 
-    // Period
     private static final double PERIOD = 0.02; // 20ms
-
-    // Field geometry
 
     private static final double FIELD_LENGTH = 16.541; // m
     private static final double FIELD_WIDTH = 8.052; // m
 
-    // Alliance wall and guardrail heights
     private static final double ALLIANCE_WALL_HEIGHT = 0.935; // 36.8 in
     private static final double GUARDRAIL_HEIGHT = 0.508; // 20 in
 
-    // Bump geometry (tent-shaped, 15-degree ramps)
     private static final double BUMP_HEIGHT = 0.165; // m, 6.513 in
 
-    // Hub positions (from game manual field layout)
+    // Hub positions, from the game manual field layout
     private static final Translation2d BLUE_HUB_CENTER = new Translation2d(4.5974, 4.035);
     private static final Translation2d RED_HUB_CENTER = new Translation2d(11.938, 4.035);
 
-    // Hub dimensions
     private static final double HUB_ENTRY_HEIGHT = 1.829; // m, 72 in
     private static final double HUB_ENTRY_RADIUS = 0.5295; // m, 41.7 in / 2 across flats
     private static final double HUB_SIDE = 1.194; // m, 47 in square base
-    // Hub base structure height for ball collision (not a solid wall to scoring height,
-    // just the base frame that deflects ground-level balls)
-    private static final double HUB_BASE_HEIGHT = 0.5; // m, ~20 in base frame
+    // Deflects ground-level balls; not a solid wall up to scoring height
+    private static final double HUB_BASE_HEIGHT = 0.5; // m, about 20 in
 
-    // Net dimensions
     private static final double NET_HEIGHT_MIN = 1.5; // m
     private static final double NET_HEIGHT_MAX = 3.057; // m
     private static final double NET_WIDTH = 1.484; // m
     private static final double NET_OFFSET = HUB_SIDE / 2.0 + 0.261;
 
-    // Trench geometry
     private static final double TRENCH_WIDTH = 1.265; // m
     private static final double TRENCH_BLOCK_WIDTH = 0.305; // m, 12 in
     private static final double TRENCH_HEIGHT = 0.565; // m, 22.25 in underpass
     private static final double TRENCH_PILLAR_HEIGHT = 1.346; // m, 53 in
 
-    // Tower geometry
     private static final double TOWER_POLE_WIDTH = 0.051; // m, 2 in
     private static final double TOWER_POLE_HEIGHT = 1.194; // m, 47 in
     private static final double TOWER_UPRIGHT_THICK = 0.038; // m, 1.5 in
@@ -156,7 +128,6 @@ public class FuelPhysicsSim {
     private static final double TOWER_UPRIGHT_HEIGHT = 1.831; // m, 72.1 in
     private static final double TOWER_UPRIGHT_SPACING = 0.819; // m, 32.25 in center-to-center
 
-    // Tower rung geometry (Schedule 40 pipe)
     private static final double RUNG_OUTER_DIAMETER = 0.042; // m, 1.66 in OD
     private static final double RUNG_RADIUS = RUNG_OUTER_DIAMETER / 2.0;
     private static final double RUNG_OVERHANG = 0.149; // m, 5.875 in past upright
@@ -164,24 +135,18 @@ public class FuelPhysicsSim {
     private static final double RUNG_MID_HEIGHT = 1.143; // m, 45 in
     private static final double RUNG_HIGH_HEIGHT = 1.600; // m, 63 in
 
-    // Tower bracing
     private static final double BRACING_BOTTOM = 0.721; // m, 28.4 in
     private static final double BRACING_TOP = 1.102; // m, 43.4 in
 
-    // Hub ramp area
     private static final double HUB_RAMP_WIDTH = 1.194; // m, 47 in
     private static final double HUB_RAMP_LENGTH = 5.512; // m, 217 in
     private static final double HUB_RAMP_HEIGHT = 0.165; // m, 6.5 in
 
-    // Spatial hash
     private static final double CELL_SIZE = 0.25;
     private static final int GRID_COLS = (int) Math.ceil(FIELD_LENGTH / CELL_SIZE);
     private static final int GRID_ROWS = (int) Math.ceil(FIELD_WIDTH / CELL_SIZE);
 
-    // Max balls
     private static final int MAX_BALLS = 2000;
-
-    // Bump ramp segments (XZ line segments extruded along Y)
 
     private static final BumpSegment[] BUMP_SEGMENTS = {
         // Blue lower bump ramp up/down
@@ -198,14 +163,12 @@ public class FuelPhysicsSim {
         new BumpSegment(FIELD_LENGTH - 4.524, BUMP_HEIGHT, FIELD_LENGTH - 3.96, 0, 4.32, 6.17),
     };
 
-    // AABB obstacles
-
     private static final AABB[] AABB_OBSTACLES;
 
     static {
         List<AABB> aabbs = new ArrayList<>();
 
-        // Trench pillars (4): 12in wide x 53in tall, steel structure
+        // Trench pillars (4)
         aabbs.add(
                 new AABB(
                         3.96,
@@ -243,7 +206,7 @@ public class FuelPhysicsSim {
                         TRENCH_PILLAR_HEIGHT,
                         COR_STEEL));
 
-        // Trench ceilings (4): steel/aluminum above underpass height
+        // Trench ceilings (4)
         double trenchXBlue1 = 3.96;
         double trenchXBlue2 = 5.18;
         double trenchXRed1 = FIELD_LENGTH - 5.18;
@@ -285,7 +248,7 @@ public class FuelPhysicsSim {
                         TRENCH_PILLAR_HEIGHT,
                         COR_STEEL));
 
-        // Tower poles (2): 2in wide x 47in tall
+        // Tower poles (2)
         double blueTowerX = 1.067;
         double redTowerX = 15.494;
         double blueTowerY = 4.039;
@@ -309,7 +272,7 @@ public class FuelPhysicsSim {
                         TOWER_POLE_HEIGHT,
                         COR_STEEL));
 
-        // Tower uprights (4): 1.5in x 3.5in x 72.1in, two per tower
+        // Tower uprights (4)
         double halfSpacing = TOWER_UPRIGHT_SPACING / 2.0;
         aabbs.add(
                 new AABB(
@@ -348,7 +311,7 @@ public class FuelPhysicsSim {
                         TOWER_UPRIGHT_HEIGHT,
                         COR_STEEL));
 
-        // Tower bracing (2): between uprights, 28.4-43.4in height
+        // Tower bracing (2)
         aabbs.add(
                 new AABB(
                         0,
@@ -368,7 +331,7 @@ public class FuelPhysicsSim {
                         BRACING_TOP,
                         COR_STEEL));
 
-        // Hub ramp colliders (2): 47in x 217in ground-level area around each hub
+        // Hub ramp colliders (2)
         aabbs.add(
                 new AABB(
                         BLUE_HUB_CENTER.getX() - HUB_RAMP_WIDTH / 2,
@@ -388,7 +351,7 @@ public class FuelPhysicsSim {
                         HUB_RAMP_HEIGHT,
                         COR_STEEL));
 
-        // Hub body panels deflect ground-level balls
+        // Hub body panels
         aabbs.add(
                 new AABB(
                         BLUE_HUB_CENTER.getX() - HUB_SIDE / 2,
@@ -411,7 +374,7 @@ public class FuelPhysicsSim {
         AABB_OBSTACLES = aabbs.toArray(new AABB[0]);
     }
 
-    // Cylinder obstacles (tower rungs + divider pipes)
+    // Cylinder obstacles (tower rungs)
 
     private static final CylinderObstacle[] CYLINDER_OBSTACLES;
 
@@ -452,7 +415,6 @@ public class FuelPhysicsSim {
         CYLINDER_OBSTACLES = cyls.toArray(new CylinderObstacle[0]);
     }
 
-    /** Axis-aligned bounding box with restitution coefficient. */
     private record AABB(
             double minX,
             double minY,
@@ -462,7 +424,6 @@ public class FuelPhysicsSim {
             double maxZ,
             double cor) {}
 
-    /** Cylinder obstacle defined by two axis endpoints, a radius, and restitution. */
     private record CylinderObstacle(
             double ax,
             double ay,
@@ -501,7 +462,7 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** XZ line segment extruded along a Y range, used for bump ramp geometry. */
+    /** XZ line segment in metres, present only over the yStart to yEnd range. */
     private record BumpSegment(
             double xStart,
             double zStart,
@@ -531,8 +492,7 @@ public class FuelPhysicsSim {
                     xEnd - xStart,
                     zEnd - zStart,
                     Math.hypot(xEnd - xStart, zEnd - zStart),
-                    // Normal perpendicular to line in XZ, flipped so nz >= 0 (points away from
-                    // ground)
+                    // Normal in XZ, flipped so nz >= 0 so it points away from the ground
                     (xEnd - xStart) >= 0
                             ? -(zEnd - zStart) / Math.hypot(xEnd - xStart, zEnd - zStart)
                             : (zEnd - zStart) / Math.hypot(xEnd - xStart, zEnd - zStart),
@@ -540,7 +500,7 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** Physics feature toggles. Flip these on/off to debug or simplify the sim. */
+    /** Physics feature toggles, for isolating terms when debugging. */
     public static class PhysicsConfig {
         public boolean dragEnabled = true;
         public boolean magnusEnabled = true;
@@ -562,10 +522,8 @@ public class FuelPhysicsSim {
         public long deterministicSeed = 42L;
         public boolean conservationMonitor = false;
 
-        /** Default: everything on. */
         public PhysicsConfig() {}
 
-        /** Deep copy. */
         public PhysicsConfig copy() {
             PhysicsConfig c = new PhysicsConfig();
             c.dragEnabled = dragEnabled;
@@ -591,25 +549,21 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** One ball in the simulation. Tracks position, velocity, spin, and lifecycle flags. */
     public static class SimBall {
-        // State
         Translation3d pos; // field-frame position (m)
         Translation3d vel; // field-frame velocity (m/s)
         Translation3d omega; // angular velocity (rad/s), 3D spin axis
 
-        // Previous state (for CCD and scoring detection)
+        // Previous sub-tick state, used for CCD and scoring detection
         Translation3d prevPos;
         Translation3d prevVel;
 
-        // Sleeping
         boolean sleeping;
         int sleepCounter;
 
         // Stuck-on-obstacle detection
         int elevatedSlowCounter;
 
-        // Lifecycle flags
         boolean intaked;
         boolean outOfBounds;
 
@@ -634,24 +588,24 @@ public class FuelPhysicsSim {
             this(pos, new Translation3d(), new Translation3d());
         }
 
-        /** Get backspin in RPM (from the Y component of omega). */
+        /** Backspin about the Y axis, in RPM. */
         public double getSpinRPM() {
             return omega.getY() * 60.0 / (2.0 * Math.PI);
         }
     }
 
-    /** Contact point between two colliding objects. Used by the impulse solver. */
+    /** One contact between two balls, or between a ball and the field geometry. */
     static class Contact {
-        int ballIndexA; // index into balls list
+        int ballIndexA; // index into the balls list
         int ballIndexB; // index into balls list, or -1 for field geometry
         Translation3d normal; // contact normal (A -> B or outward from field)
         double penetration; // overlap depth (positive = overlapping)
         Translation3d contactPoint; // world-space contact location
-        double normalImpulseAccum; // warm-start accumulated normal impulse
-        double tangentImpulseAccum; // warm-start accumulated tangent impulse
+        double normalImpulseAccum; // warm-start accumulator for the normal impulse
+        double tangentImpulseAccum; // warm-start accumulator for the friction impulse
         double restitution; // effective COR for this pair
         double friction; // Coulomb mu for this pair
-        double restitutionVelocity; // target bounce-back speed, set once before solving
+        double restitutionVelocity; // target separating speed, set once before the solver runs
 
         Contact() {
             normal = new Translation3d();
@@ -659,7 +613,6 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** A hub that can be scored in. Detects balls falling through the opening. */
     public static class ScoringTarget {
         final Translation2d center;
         final Translation3d exit;
@@ -678,7 +631,7 @@ public class FuelPhysicsSim {
             if (dist2d > HUB_ENTRY_RADIUS) return false;
             double currZ = ball.pos.getZ();
             double prevZ = ball.prevPos.getZ();
-            // Only count balls falling through the opening (top-down entry)
+            // Count only top-down entries, not balls rising through the opening
             return prevZ > HUB_ENTRY_HEIGHT && currZ <= HUB_ENTRY_HEIGHT;
         }
 
@@ -688,7 +641,6 @@ public class FuelPhysicsSim {
             return new Translation3d(vx, vy, 0);
         }
 
-        /** How many balls have scored in this hub. */
         public int getScore() {
             return score;
         }
@@ -698,7 +650,7 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** Intake zone defined in robot-relative coordinates. Picks up balls that enter the box. */
+    /** Intake box in robot-relative coordinates. Balls inside it get picked up. */
     static class IntakeZone {
         final double xMin, xMax, yMin, yMax;
         final BooleanSupplier active;
@@ -737,25 +689,21 @@ public class FuelPhysicsSim {
         }
     }
 
-    // State
-
     private final List<SimBall> balls = new ArrayList<>();
     private final List<Contact> contacts = new ArrayList<>();
-    private final List<Contact> contactPool = new ArrayList<>(); // pre-allocated contact pool
+    private final List<Contact> contactPool = new ArrayList<>(); // pre-allocated, reused each tick
     private int contactPoolIndex = 0;
 
     private PhysicsConfig config;
     private Random rng;
 
-    // Spatial hash grid for ball-ball broadphase
+    // Spatial hash grid, used for ball-ball broadphase
     @SuppressWarnings("unchecked")
     private final List<Integer>[][] grid = new ArrayList[GRID_COLS][GRID_ROWS];
 
-    // Hub targets
     private final ScoringTarget blueHub;
     private final ScoringTarget redHub;
 
-    // Robot registration
     private Supplier<Pose2d> robotPoseSupplier;
     private Supplier<ChassisSpeeds> robotSpeedsSupplier;
     private double robotWidth;
@@ -764,19 +712,15 @@ public class FuelPhysicsSim {
     private int hopperSize =
             Integer.MAX_VALUE; // max balls the robot can hold; unlimited by default
 
-    // Intakes
     private final List<IntakeZone> intakes = new ArrayList<>();
 
-    // Counters
     private int totalLaunched;
     private int totalScored;
     private int totalIntaked;
     private double lastLaunchSpeed;
 
-    // Running state
     private boolean running;
 
-    // NetworkTables publishing
     private StructArrayPublisher<Translation3d> positionPublisher;
     private StructArrayPublisher<Translation3d> inFlightPublisher;
     private StructArrayPublisher<Translation3d> lastShotArcPublisher;
@@ -789,49 +733,35 @@ public class FuelPhysicsSim {
     private DoublePublisher physicsTimePub;
     private DoublePublisher totalEnergyPub;
 
-    // Last shot arc for trajectory visualization (predicted path in Field3d)
+    // Predicted path of the last shot, published for Field3d
     private Translation3d[] lastShotArc = new Translation3d[0];
     private long lastPhysicsNanos;
 
-    // Conservation monitor state
     private double totalKE;
     private double totalPE;
     private Translation3d totalMomentum = new Translation3d();
 
-    // Constructor
-
     /**
-     * New sim with default physics config. Publishes ball positions to the given NT path.
-     *
-     * @param tableKey where to publish in NetworkTables (e.g. "Sim/Fuel")
+     * @param tableKey where to publish in NetworkTables, for example {@code "Sim/Fuel"}
      */
     public FuelPhysicsSim(String tableKey) {
         this(tableKey, new PhysicsConfig());
     }
 
-    /**
-     * New sim with custom physics config.
-     *
-     * @param tableKey where to publish in NetworkTables
-     * @param config physics feature toggles and tuning
-     */
     public FuelPhysicsSim(String tableKey, PhysicsConfig config) {
         this.config = config;
         this.rng = config.deterministic ? new Random(config.deterministicSeed) : new Random();
 
-        // Initialize spatial hash grid
         for (int i = 0; i < GRID_COLS; i++) {
             for (int j = 0; j < GRID_ROWS; j++) {
                 grid[i][j] = new ArrayList<>();
             }
         }
 
-        // Pre-allocate contact pool
         for (int i = 0; i < 200; i++) {
             contactPool.add(new Contact());
         }
 
-        // Create hubs
         blueHub =
                 new ScoringTarget(
                         BLUE_HUB_CENTER, new Translation3d(5.3, FIELD_WIDTH / 2.0, 0.89), 1);
@@ -841,7 +771,6 @@ public class FuelPhysicsSim {
                         new Translation3d(FIELD_LENGTH - 5.3, FIELD_WIDTH / 2.0, 0.89),
                         -1);
 
-        // NT publishers
         var nt = NetworkTableInstance.getDefault();
         positionPublisher =
                 nt.getStructArrayTopic(tableKey + "/Positions", Translation3d.struct).publish();
@@ -865,33 +794,29 @@ public class FuelPhysicsSim {
         lastLaunchSpeed = 0;
     }
 
-    /** Default constructor, publishes to "Sim/FuelPositions". */
+    /** Publishes to {@code "Sim/FuelPositions"}. */
     public FuelPhysicsSim() {
         this("Sim/FuelPositions");
     }
 
-    /** Turn the sim on. You still need to call tick() every cycle. */
+    /** Turns the sim on. tick() must still be called every cycle. */
     public void enable() {
         running = true;
     }
 
-    /** Pause the sim. Balls freeze in place. */
     public void disable() {
         running = false;
     }
 
-    /** Is the sim running? */
     public boolean isRunning() {
         return running;
     }
 
     /**
-     * Tell the sim about your robot so it can handle bumper collisions and intake pickup.
-     *
-     * @param width robot width along Y axis (m)
-     * @param length robot length along X axis (m)
-     * @param bumperHeight bumper height (m)
-     * @param hopperSize maximum number of balls the robot's hopper can hold; intake stops when full
+     * @param width robot width along the Y axis (m)
+     * @param length robot length along the X axis (m)
+     * @param bumperHeight bumper height (m); balls above it ignore the robot
+     * @param hopperSize capacity; intake stops once the robot holds this many
      * @param poseSupplier field-relative pose supplier
      * @param speedsSupplier field-relative chassis speeds supplier
      */
@@ -910,16 +835,6 @@ public class FuelPhysicsSim {
         this.robotSpeedsSupplier = speedsSupplier;
     }
 
-    /**
-     * Tell the sim about your robot so it can handle bumper collisions and intake pickup. Hopper
-     * capacity is unlimited.
-     *
-     * @param width robot width along Y axis (m)
-     * @param length robot length along X axis (m)
-     * @param bumperHeight bumper height (m)
-     * @param poseSupplier field-relative pose supplier
-     * @param speedsSupplier field-relative chassis speeds supplier
-     */
     public void configureRobot(
             double width,
             double length,
@@ -931,14 +846,10 @@ public class FuelPhysicsSim {
     }
 
     /**
-     * Add an intake zone. Balls that enter this box (in robot-relative coords) get picked up.
-     *
-     * @param xMin front edge in robot frame
-     * @param xMax back edge in robot frame
-     * @param yMin left edge in robot frame
-     * @param yMax right edge in robot frame
-     * @param active returns true when the intake is actually running
-     * @param callback fires when a ball gets picked up
+     * @param xMin front edge in the robot frame (m)
+     * @param xMax back edge in the robot frame (m)
+     * @param yMin left edge in the robot frame (m)
+     * @param yMax right edge in the robot frame (m)
      */
     public void addIntakeZone(
             double xMin,
@@ -950,32 +861,27 @@ public class FuelPhysicsSim {
         intakes.add(new IntakeZone(xMin, xMax, yMin, yMax, active, callback));
     }
 
-    /** Add an intake zone without a callback. */
     public void addIntakeZone(
             double xMin, double xMax, double yMin, double yMax, BooleanSupplier active) {
         addIntakeZone(xMin, xMax, yMin, yMax, active, () -> {});
     }
 
     /**
-     * Shoot a ball into the sim.
-     *
-     * @param pos where the ball leaves the launcher (field frame, meters)
-     * @param vel launch velocity (field frame, m/s)
-     * @param spinRPM backspin in RPM (positive = backspin = Magnus lift)
+     * @param pos where the ball leaves the launcher, field frame (m)
+     * @param vel launch velocity, field frame (m/s)
+     * @param spinRPM positive is backspin, which lifts the ball through the Magnus effect
      */
     public void launchBall(Translation3d pos, Translation3d vel, double spinRPM) {
-        // Convert RPM to 3D omega: backspin is rotation around -Y axis
+        // Backspin is a negative rotation about Y
         double omegaY = -spinRPM * 2.0 * Math.PI / 60.0;
         Translation3d omega = new Translation3d(0, omegaY, 0);
         launchBall(pos, vel, omega);
     }
 
     /**
-     * Shoot a ball with full 3D spin control.
-     *
-     * @param pos launch position (field frame, meters)
-     * @param vel launch velocity (field frame, m/s)
-     * @param omega 3D angular velocity (rad/s)
+     * @param pos where the ball leaves the launcher, field frame (m)
+     * @param vel launch velocity, field frame (m/s)
+     * @param omega 3D angular velocity (rad/s); negative Y is backspin
      */
     public void launchBall(Translation3d pos, Translation3d vel, Translation3d omega) {
         if (balls.size() >= MAX_BALLS) return;
@@ -985,35 +891,30 @@ public class FuelPhysicsSim {
         totalIntaked = Math.max(0, totalIntaked - 1);
         lastLaunchSpeed = vel.getNorm();
 
-        // Predict the trajectory arc for Field3d visualization (20 points, gravity + drag only)
+        // Field3d arc; gravity and drag only, no collisions
         lastShotArc = predictArc(pos, vel, 20, 0.05);
 
-        // Wake nearby sleeping balls
         if (config.sleepingEnabled) {
             wakeNearbyBalls(pos, 1.0);
         }
     }
 
-    /** Drop a ball at this position, sitting on the ground. */
     public void spawnBall(Translation3d pos) {
         if (balls.size() >= MAX_BALLS) return;
         balls.add(new SimBall(pos));
     }
 
-    /** Drop a ball with some initial velocity. */
     public void spawnBall(Translation3d pos, Translation3d vel) {
         if (balls.size() >= MAX_BALLS) return;
         balls.add(new SimBall(pos, vel));
     }
 
-    /** Remove every ball from the sim. */
     public void clearBalls() {
         balls.clear();
     }
 
-    /** Spawn all game pieces in their starting positions (neutral zone + depots). */
+    /** Spawns the neutral zone and both depot grids at their starting positions. */
     public void placeFieldBalls() {
-        // Neutral zone fuel
         double cx = FIELD_LENGTH / 2.0;
         double cy = FIELD_WIDTH / 2.0;
         int nzCols = 12; // 12 * 5.91in = 70.9in, fits inside the 72.0in depth
@@ -1029,7 +930,6 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Depot fuel
         int depotCols = 4; // 4 * 5.91in = 23.6in fits inside 27.0in depth
         int depotRows = 6; // 6 * 5.91in = 35.5in fits inside 42.0in width
 
@@ -1039,7 +939,6 @@ public class FuelPhysicsSim {
         fillBallGrid(0.37, FIELD_WIDTH - 2.10, depotCols, depotRows);
     }
 
-    /** Helper: fill a grid of balls centered at (cx, cy). */
     private void fillBallGrid(double cx, double cy, int cols, int rows) {
         for (int c = 0; c < cols; c++) {
             double x = cx + (c - (cols - 1) * 0.5) * BALL_DIAMETER;
@@ -1050,10 +949,7 @@ public class FuelPhysicsSim {
         }
     }
 
-    /**
-     * Step the sim forward one period (20ms) and publish ball positions to NT. Does nothing if the
-     * sim isn't enabled.
-     */
+    /** Advances one period and publishes ball positions. No-op while disabled. */
     public void tick() {
         if (!running) return;
         long t0 = System.nanoTime();
@@ -1063,9 +959,7 @@ public class FuelPhysicsSim {
     }
 
     /**
-     * Advance physics by dt seconds. Splits into subticks for stability.
-     *
-     * @param dt time to advance (seconds)
+     * @param dt seconds to advance
      */
     public void advancePhysics(double dt) {
         int ticks = Math.max(1, config.subticks);
@@ -1079,10 +973,7 @@ public class FuelPhysicsSim {
         removeFlaggedBalls();
     }
 
-    // Core physics pipeline
-
     private void stepSubtick(double subDt) {
-        // Reset contact list
         contactPoolIndex = 0;
         contacts.clear();
 
@@ -1091,25 +982,21 @@ public class FuelPhysicsSim {
             if (ball.intaked || ball.outOfBounds) continue;
             if (ball.sleeping && config.sleepingEnabled) continue;
 
-            // Save previous state
             ball.prevPos = ball.pos;
             ball.prevVel = ball.vel;
 
-            // Compute forces and get acceleration
             Translation3d accel = computeAcceleration(ball);
 
-            // Symplectic Euler: update velocity first so we don't accumulate energy drift
+            // Symplectic Euler: update velocity first, or energy drifts.
             ball.vel = ball.vel.plus(accel.times(subDt));
             ball.pos = ball.pos.plus(ball.vel.times(subDt));
 
-            // Spin decay
             if (config.spinDecayEnabled && ball.omega.getNorm() > 1e-6) {
                 double decayFactor = Math.exp(-subDt / config.spinDecayTau);
                 ball.omega = ball.omega.times(decayFactor);
             }
         }
 
-        // CCD for fast balls
         if (config.ccdEnabled) {
             for (int i = 0; i < balls.size(); i++) {
                 SimBall ball = balls.get(i);
@@ -1121,17 +1008,14 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Broadphase: build spatial hash
         buildSpatialHash();
 
-        // Generate contacts: ball-ball via spatial hash, ball-field via narrowphase
         generateBallBallContacts();
         generateBallFieldContacts();
 
-        // Sequential impulse solver
         solveContacts();
 
-        // Simple wall/ground handling (direct impulse, not through solver)
+        // Wall, ground, and bump impulses apply directly instead of going through the solver
         for (int i = 0; i < balls.size(); i++) {
             SimBall ball = balls.get(i);
             if (ball.intaked || ball.outOfBounds) continue;
@@ -1141,14 +1025,12 @@ public class FuelPhysicsSim {
             handleBumpCollisions(ball);
         }
 
-        // Hub scoring
         for (int i = 0; i < balls.size(); i++) {
             SimBall ball = balls.get(i);
             if (ball.intaked || ball.outOfBounds) continue;
             handleHubScoring(ball);
         }
 
-        // Net collisions
         for (int i = 0; i < balls.size(); i++) {
             SimBall ball = balls.get(i);
             if (ball.intaked || ball.outOfBounds) continue;
@@ -1157,21 +1039,19 @@ public class FuelPhysicsSim {
             handleNetCollision(ball, redHub);
         }
 
-        // Robot interaction
         if (robotPoseSupplier != null && robotSpeedsSupplier != null) {
             Pose2d robotPose = robotPoseSupplier.get();
             ChassisSpeeds speeds = robotSpeedsSupplier.get();
             Translation2d robotVel =
                     new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
 
-            // Wake radius: robot half-diagonal plus margin so balls react before contact
+            // Half-diagonal plus a margin, so balls react before the bumpers reach them
             double wakeRadius = Math.hypot(robotLength, robotWidth) / 2.0 + 0.3;
             double wakeRadiusSq = wakeRadius * wakeRadius;
 
             for (int i = 0; i < balls.size(); i++) {
                 SimBall ball = balls.get(i);
                 if (ball.intaked || ball.outOfBounds) continue;
-                // Wake sleeping balls near the robot so bumpers push them
                 if (ball.sleeping && config.sleepingEnabled) {
                     double dx = ball.pos.getX() - robotPose.getX();
                     double dy = ball.pos.getY() - robotPose.getY();
@@ -1188,14 +1068,13 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Sleep update
         if (config.sleepingEnabled) {
             for (int i = 0; i < balls.size(); i++) {
                 updateSleepState(balls.get(i));
             }
         }
 
-        // Out-of-bounds cleanup (includes NaN guard, upper Z limit, and stuck-on-obstacle removal)
+        // NaN, field bounds, and upper-Z guard, plus removal of balls stuck on obstacles
         for (int i = 0; i < balls.size(); i++) {
             SimBall ball = balls.get(i);
             if (!Double.isFinite(ball.pos.getX())
@@ -1215,7 +1094,6 @@ public class FuelPhysicsSim {
                     || ball.pos.getZ() > 15.0) {
                 ball.outOfBounds = true;
             }
-            // Remove balls stuck on elevated obstacles
             if (ball.pos.getZ() > BALL_RADIUS + 0.3 && ball.vel.getNorm() < 0.5) {
                 ball.elevatedSlowCounter++;
                 if (ball.elevatedSlowCounter > 250) {
@@ -1226,34 +1104,30 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Conservation monitor
         if (config.conservationMonitor) {
             computeConservationQuantities();
         }
     }
 
-    /** Compute acceleration: gravity + drag + Magnus lift. Magnus only kicks in when airborne. */
     private Translation3d computeAcceleration(SimBall ball) {
-        // Gravity always acts
         double ax = 0, ay = 0, az = -GRAVITY;
 
         double speed = ball.vel.getNorm();
         boolean airborne = ball.pos.getZ() > BALL_RADIUS + 0.01;
 
-        // Drag acts whether on ground or airborne (air doesn't vanish at carpet level)
+        // Drag applies on the ground too; the air does not vanish at carpet level
         if (config.dragEnabled && speed > 1e-6) {
             ax -= DRAG_ACCEL_FACTOR * speed * ball.vel.getX();
             ay -= DRAG_ACCEL_FACTOR * speed * ball.vel.getY();
             az -= DRAG_ACCEL_FACTOR * speed * ball.vel.getZ();
         }
 
-        // Magnus only applies airborne (ground friction dominates spin behavior on carpet)
+        // Airborne only: ground friction dominates spin on carpet
         if (airborne && speed > 1e-6) {
             if (config.magnusEnabled && ball.omega.getNorm() > 1e-3) {
                 Translation3d magnusDir = cross(ball.omega, ball.vel);
                 double magnusMag = magnusDir.getNorm();
                 if (magnusMag > 1e-6) {
-                    // a_magnus = MAGNUS_ACCEL_FACTOR * (omega x v)
                     ax += MAGNUS_ACCEL_FACTOR * magnusDir.getX();
                     ay += MAGNUS_ACCEL_FACTOR * magnusDir.getY();
                     az += MAGNUS_ACCEL_FACTOR * magnusDir.getZ();
@@ -1264,7 +1138,6 @@ public class FuelPhysicsSim {
         return new Translation3d(ax, ay, az);
     }
 
-    /** Continuous collision detection: sweep fast balls so they don't tunnel through walls. */
     private void handleCCD(SimBall ball) {
         Translation3d delta = ball.pos.minus(ball.prevPos);
         double dist = delta.getNorm();
@@ -1272,11 +1145,9 @@ public class FuelPhysicsSim {
 
         Translation3d dir = delta.div(dist);
 
-        // Check against field boundaries
         double tMin = 1.0;
         Translation3d hitNormal = null;
 
-        // X walls
         if (dir.getX() < -1e-6) {
             double t = (BALL_RADIUS - ball.prevPos.getX()) / (delta.getX());
             if (t > 0 && t < tMin) {
@@ -1291,7 +1162,6 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Y walls
         if (dir.getY() < -1e-6) {
             double t = (BALL_RADIUS - ball.prevPos.getY()) / (delta.getY());
             if (t > 0 && t < tMin) {
@@ -1306,7 +1176,6 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Ground
         if (dir.getZ() < -1e-6) {
             double t = (BALL_RADIUS - ball.prevPos.getZ()) / (delta.getZ());
             if (t > 0 && t < tMin) {
@@ -1315,11 +1184,9 @@ public class FuelPhysicsSim {
             }
         }
 
-        // AABB obstacles (ray-box intersection)
         for (AABB aabb : AABB_OBSTACLES) {
             double tHit = sweepSphereAABB(ball.prevPos, delta, aabb);
             if (tHit >= 0 && tHit < tMin) {
-                // Compute normal at hit point
                 Translation3d hitPos = ball.prevPos.plus(delta.times(tHit));
                 Translation3d n = computeAABBNormal(hitPos, aabb);
                 if (n != null) {
@@ -1330,10 +1197,8 @@ public class FuelPhysicsSim {
         }
 
         if (hitNormal != null && tMin < 1.0) {
-            // Move ball to contact point
             ball.pos = ball.prevPos.plus(delta.times(tMin));
 
-            // Reflect velocity
             double vDotN = ball.vel.dot(hitNormal);
             if (vDotN < 0) {
                 double cor = config.velocityDependentCOR ? velocityCOR(COR_WALL, -vDotN) : COR_WALL;
@@ -1343,10 +1208,10 @@ public class FuelPhysicsSim {
     }
 
     /**
-     * Ray-AABB intersection with sphere expansion (Minkowski sum). Returns hit time in [0,1] or -1.
+     * Swept sphere against an AABB expanded by the ball radius. Returns the hit time in [0, 1] or
+     * -1 on a miss.
      */
     private double sweepSphereAABB(Translation3d origin, Translation3d delta, AABB aabb) {
-        // Expand AABB by ball radius (Minkowski sum with sphere)
         double minX = aabb.minX() - BALL_RADIUS;
         double minY = aabb.minY() - BALL_RADIUS;
         double minZ = aabb.minZ() - BALL_RADIUS;
@@ -1357,7 +1222,6 @@ public class FuelPhysicsSim {
         double tEnter = 0;
         double tExit = 1;
 
-        // X slab
         if (Math.abs(delta.getX()) > 1e-9) {
             double invD = 1.0 / delta.getX();
             double t1 = (minX - origin.getX()) * invD;
@@ -1373,7 +1237,6 @@ public class FuelPhysicsSim {
             if (origin.getX() < minX || origin.getX() > maxX) return -1;
         }
 
-        // Y slab
         if (Math.abs(delta.getY()) > 1e-9) {
             double invD = 1.0 / delta.getY();
             double t1 = (minY - origin.getY()) * invD;
@@ -1389,7 +1252,6 @@ public class FuelPhysicsSim {
             if (origin.getY() < minY || origin.getY() > maxY) return -1;
         }
 
-        // Z slab
         if (Math.abs(delta.getZ()) > 1e-9) {
             double invD = 1.0 / delta.getZ();
             double t1 = (minZ - origin.getZ()) * invD;
@@ -1406,10 +1268,8 @@ public class FuelPhysicsSim {
         }
 
         if (tEnter > tExit || tExit < 0) return -1;
-        return tEnter > 0 ? tEnter : -1; // Already inside if tEnter <= 0
+        return tEnter > 0 ? tEnter : -1; // already inside when tEnter <= 0
     }
-
-    // Broadphase (spatial hash)
 
     private void buildSpatialHash() {
         for (int i = 0; i < GRID_COLS; i++) {
@@ -1429,8 +1289,6 @@ public class FuelPhysicsSim {
         }
     }
 
-    // Narrowphase contact generation
-
     private void generateBallBallContacts() {
         for (int i = 0; i < balls.size(); i++) {
             SimBall ballA = balls.get(i);
@@ -1448,7 +1306,7 @@ public class FuelPhysicsSim {
                     List<Integer> cell = grid[ci][cj];
                     for (int k = 0; k < cell.size(); k++) {
                         int j = cell.get(k);
-                        if (j == i) continue; // same ball
+                        if (j == i) continue;
                         if (j < i && !(config.sleepingEnabled && balls.get(j).sleeping)) continue;
 
                         SimBall ballB = balls.get(j);
@@ -1478,7 +1336,6 @@ public class FuelPhysicsSim {
                             c.tangentImpulseAccum = 0;
                             contacts.add(c);
 
-                            // Wake sleeping ball on contact
                             if (ballB.sleeping) {
                                 wakeBall(ballB);
                             }
@@ -1495,12 +1352,10 @@ public class FuelPhysicsSim {
             if (ball.intaked || ball.outOfBounds) continue;
             if (ball.sleeping && config.sleepingEnabled) continue;
 
-            // AABB obstacles
             for (AABB aabb : AABB_OBSTACLES) {
                 generateSphereAABBContact(i, ball, aabb);
             }
 
-            // Cylinder obstacles
             for (CylinderObstacle cyl : CYLINDER_OBSTACLES) {
                 generateSphereCylinderContact(i, ball, cyl);
             }
@@ -1508,7 +1363,6 @@ public class FuelPhysicsSim {
     }
 
     private void generateSphereAABBContact(int ballIndex, SimBall ball, AABB aabb) {
-        // Find nearest point on AABB to sphere center
         double cx = Math.max(aabb.minX(), Math.min(ball.pos.getX(), aabb.maxX()));
         double cy = Math.max(aabb.minY(), Math.min(ball.pos.getY(), aabb.maxY()));
         double cz = Math.max(aabb.minZ(), Math.min(ball.pos.getZ(), aabb.maxZ()));
@@ -1532,7 +1386,6 @@ public class FuelPhysicsSim {
             c.tangentImpulseAccum = 0;
             contacts.add(c);
         } else if (distSq < 1e-9) {
-            // Ball center is inside AABB.
             Translation3d normal = computeEntryFaceNormal(ball.prevPos, ball.pos, aabb);
             if (normal != null) {
                 double pen = computeAABBPenetration(ball.pos, aabb);
@@ -1551,7 +1404,6 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** Which face of the AABB is the point closest to? Returns outward normal of that face. */
     private Translation3d computeAABBNormal(Translation3d p, AABB aabb) {
         double dxMin = p.getX() - aabb.minX();
         double dxMax = aabb.maxX() - p.getX();
@@ -1586,7 +1438,7 @@ public class FuelPhysicsSim {
         return normal;
     }
 
-    /** How deep is a point inside an AABB? Returns min distance to any face. */
+    /** Distance from a point inside the box to the nearest face. */
     private double computeAABBPenetration(Translation3d p, AABB aabb) {
         double dxMin = p.getX() - aabb.minX();
         double dxMax = aabb.maxX() - p.getX();
@@ -1599,9 +1451,9 @@ public class FuelPhysicsSim {
     }
 
     /**
-     * If a ball is inside an AABB, figure out which face it came in through by raycasting from
-     * prevPos to pos. Without this, balls pop onto the top of obstacles when they actually entered
-     * from the side. Falls back to nearest-face if the ray is degenerate (ball spawned inside).
+     * Picks the face a ball entered through by raycasting from {@code from} to {@code to}. Without
+     * this, a ball that entered from the side pops up on top of the obstacle. Falls back to the
+     * nearest face when the ray is degenerate.
      */
     private Translation3d computeEntryFaceNormal(Translation3d from, Translation3d to, AABB aabb) {
         if (from == null) return computeAABBNormal(to, aabb);
@@ -1651,7 +1503,6 @@ public class FuelPhysicsSim {
     private void generateSphereCylinderContact(int ballIndex, SimBall ball, CylinderObstacle cyl) {
         if (cyl.abLenSq() < 1e-12) return;
 
-        // Find nearest point on line segment to ball center
         double apx = ball.pos.getX() - cyl.ax();
         double apy = ball.pos.getY() - cyl.ay();
         double apz = ball.pos.getZ() - cyl.az();
@@ -1689,13 +1540,11 @@ public class FuelPhysicsSim {
         }
     }
 
-    /**
-     * Sequential impulse solver: resolve bounces, friction, and spin transfer across all contacts.
-     */
+    /** Sequential impulse solver over every contact, with warm starting. */
     private void solveContacts() {
         if (contacts.isEmpty()) return;
 
-        // Compute restitution targets from initial approach velocities (before any solving)
+        // Restitution targets from the approach velocity, captured before any solving
         for (int i = 0; i < contacts.size(); i++) {
             Contact c = contacts.get(i);
             SimBall ballA = balls.get(c.ballIndexA);
@@ -1710,7 +1559,7 @@ public class FuelPhysicsSim {
             if (config.velocityDependentCOR) {
                 e = velocityCOR(e, Math.abs(vn));
             }
-            // Only bounce for significant approach speeds.
+            // Drop the bounce below 0.5 m/s of approach speed
             c.restitutionVelocity = vn < -0.5 ? -e * vn : 0;
         }
 
@@ -1733,12 +1582,10 @@ public class FuelPhysicsSim {
         double invMassSum;
 
         if (c.ballIndexB >= 0) {
-            // Ball-ball contact
             SimBall ballB = balls.get(c.ballIndexB);
             relVel = ballA.vel.minus(ballB.vel);
-            invMassSum = 2.0 / BALL_MASS; // both balls have same mass
+            invMassSum = 2.0 / BALL_MASS; // same mass on both sides
         } else {
-            // Ball-field contact
             relVel = ballA.vel;
             invMassSum = 1.0 / BALL_MASS;
         }
@@ -1749,7 +1596,6 @@ public class FuelPhysicsSim {
         c.normalImpulseAccum = Math.max(0, oldAccum + jn);
         jn = c.normalImpulseAccum - oldAccum;
 
-        // Apply normal impulse
         Translation3d normalImpulse = c.normal.times(jn);
         ballA.vel = ballA.vel.plus(normalImpulse.div(BALL_MASS));
         if (c.ballIndexB >= 0) {
@@ -1757,16 +1603,14 @@ public class FuelPhysicsSim {
             ballB.vel = ballB.vel.minus(normalImpulse.div(BALL_MASS));
         }
 
-        // Tangential impulse (friction)
         if (c.friction > 0 && config.frictionEnabled) {
-            // Recompute relative velocity after normal impulse
+            // Relative velocity has to be re-read after the normal impulse
             if (c.ballIndexB >= 0) {
                 relVel = ballA.vel.minus(balls.get(c.ballIndexB).vel);
             } else {
                 relVel = ballA.vel;
             }
 
-            // Tangent velocity: remove normal component
             double vn = relVel.dot(c.normal);
             Translation3d vTangent = relVel.minus(c.normal.times(vn));
             double vTangentMag = vTangent.getNorm();
@@ -1774,17 +1618,14 @@ public class FuelPhysicsSim {
             if (vTangentMag > 1e-6) {
                 Translation3d tangentDir = vTangent.div(vTangentMag);
 
-                // Friction impulse magnitude
                 double jt = -vTangentMag / invMassSum;
 
-                // Coulomb clamp: |j_t| <= mu * j_n
                 double maxFriction = c.friction * c.normalImpulseAccum;
                 double oldTangentAccum = c.tangentImpulseAccum;
                 c.tangentImpulseAccum =
                         Math.max(-maxFriction, Math.min(maxFriction, oldTangentAccum + jt));
                 jt = c.tangentImpulseAccum - oldTangentAccum;
 
-                // Apply tangent impulse
                 Translation3d frictionImpulse = tangentDir.times(jt);
                 ballA.vel = ballA.vel.plus(frictionImpulse.div(BALL_MASS));
                 if (c.ballIndexB >= 0) {
@@ -1792,7 +1633,6 @@ public class FuelPhysicsSim {
                     ballB.vel = ballB.vel.minus(frictionImpulse.div(BALL_MASS));
                 }
 
-                // Spin transfer from friction torque
                 if (config.spinTransferEnabled && Math.abs(jt) > 1e-9) {
                     Translation3d rContact = c.normal.times(-BALL_RADIUS); // from center to contact
                     Translation3d torqueImpulse = cross(rContact, frictionImpulse);
@@ -1812,7 +1652,6 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** Push overlapping objects apart so they don't sink into each other. */
     private void applyPositionCorrection(Contact c) {
         double slop = config.baumgarteSlop;
         double beta = config.baumgarteBeta;
@@ -1836,7 +1675,7 @@ public class FuelPhysicsSim {
     private void handleWallBounce(SimBall ball) {
         double z = ball.pos.getZ();
 
-        // X walls (alliance walls: diamond plate + polycarbonate, height-aware)
+        // Alliance walls; the height check lets balls fly over them
         if (ball.pos.getX() < BALL_RADIUS) {
             if (z < ALLIANCE_WALL_HEIGHT) {
                 ball.pos = new Translation3d(BALL_RADIUS, ball.pos.getY(), ball.pos.getZ());
@@ -1863,7 +1702,7 @@ public class FuelPhysicsSim {
             }
         }
 
-        // Y walls (guardrails: polycarbonate on aluminum extrusion, height-aware)
+        // Guardrails; the height check lets balls fly over them
         if (ball.pos.getY() < BALL_RADIUS) {
             if (z < GUARDRAIL_HEIGHT) {
                 ball.pos = new Translation3d(ball.pos.getX(), BALL_RADIUS, ball.pos.getZ());
@@ -1898,7 +1737,7 @@ public class FuelPhysicsSim {
             if (ball.vel.getZ() < 0) {
                 double cor = effectiveCOR(COR_CARPET, Math.abs(ball.vel.getZ()));
 
-                // If bounce would be very small, just zero out vertical velocity
+                // Bounces under 0.05 m/s are dropped rather than reflected
                 if (Math.abs(ball.vel.getZ() * cor) < 0.05) {
                     ball.vel = new Translation3d(ball.vel.getX(), ball.vel.getY(), 0);
                 } else {
@@ -1908,7 +1747,7 @@ public class FuelPhysicsSim {
                 }
             }
 
-            // Ground friction: uses surface velocity (vel + omega x r) so spin-on-contact works
+            // Friction acts on surface velocity (vel + omega x r), so spin still bites
             if (config.frictionEnabled) {
                 double surfVelX = ball.vel.getX() - ball.omega.getY() * BALL_RADIUS;
                 double surfVelY = ball.vel.getY() + ball.omega.getX() * BALL_RADIUS;
@@ -1919,7 +1758,6 @@ public class FuelPhysicsSim {
                                         + ball.vel.getY() * ball.vel.getY());
 
                 if (surfSpeed > 0.01) {
-                    // friction opposes surface velocity
                     double fdx = -surfVelX / surfSpeed;
                     double fdy = -surfVelY / surfSpeed;
 
@@ -1927,14 +1765,12 @@ public class FuelPhysicsSim {
                     double frictionImpulse =
                             Math.min(MU_GROUND_KINETIC * BALL_MASS * GRAVITY * subDt, maxImpulse);
 
-                    // Friction changes both linear and angular velocity
                     ball.vel =
                             new Translation3d(
                                     ball.vel.getX() + fdx * frictionImpulse / BALL_MASS,
                                     ball.vel.getY() + fdy * frictionImpulse / BALL_MASS,
                                     ball.vel.getZ());
                     if (config.spinTransferEnabled) {
-                        // Torque
                         ball.omega =
                                 new Translation3d(
                                         ball.omega.getX()
@@ -1950,7 +1786,7 @@ public class FuelPhysicsSim {
                                         ball.omega.getZ());
                     }
                 } else if (hSpeed > 1e-4) {
-                    // Rolling resistance decelerates vel and omega together
+                    // Rolling resistance scales vel and omega together
                     double decel = MU_GROUND_ROLLING * GRAVITY * subDt;
                     double scale = Math.max(0, hSpeed - decel) / hSpeed;
                     ball.vel =
@@ -1968,25 +1804,21 @@ public class FuelPhysicsSim {
                 }
             }
 
-            // Settle near-zero vertical velocity when on ground
             if (Math.abs(ball.vel.getZ()) < 0.05 && ball.pos.getZ() <= BALL_RADIUS + 0.01) {
                 ball.vel = new Translation3d(ball.vel.getX(), ball.vel.getY(), 0);
             }
         }
     }
 
-    /** Handle collisions with the tent-shaped bump ramps. */
     private void handleBumpCollisions(SimBall ball) {
         for (BumpSegment seg : BUMP_SEGMENTS) {
             if (ball.pos.getY() < seg.yStart() || ball.pos.getY() > seg.yEnd()) continue;
 
-            // Parametric projection onto line segment
             double px = ball.pos.getX() - seg.xStart();
             double pz = ball.pos.getZ() - seg.zStart();
             double t = (px * seg.lineX() + pz * seg.lineZ()) / (seg.lineLen() * seg.lineLen());
             if (t < 0 || t > 1) continue;
 
-            // Distance from ball center to nearest point on line (in XZ plane)
             double nearX = seg.xStart() + t * seg.lineX();
             double nearZ = seg.zStart() + t * seg.lineZ();
             double dx = ball.pos.getX() - nearX;
@@ -1996,13 +1828,11 @@ public class FuelPhysicsSim {
             if (dist < BALL_RADIUS) {
                 double nx = seg.nx(), nz = seg.nz();
 
-                // Push out
                 ball.pos =
                         ball.pos.plus(
                                 new Translation3d(
                                         nx * (BALL_RADIUS - dist), 0, nz * (BALL_RADIUS - dist)));
 
-                // Velocity reflection
                 double vDotN = ball.vel.getX() * nx + ball.vel.getZ() * nz;
                 if (vDotN < 0) {
                     double cor = effectiveCOR(COR_HDPE, Math.abs(vDotN));
@@ -2014,8 +1844,6 @@ public class FuelPhysicsSim {
             }
         }
     }
-
-    // Hub scoring
 
     private void handleHubScoring(SimBall ball) {
         if (blueHub.didScore(ball)) {
@@ -2033,7 +1861,7 @@ public class FuelPhysicsSim {
         }
     }
 
-    /** Hub net collision: catches overshots, but lets balls pass through from behind. */
+    /** Net collision. Blocks balls moving toward the net and lets them pass out the back. */
     private void handleNetCollision(SimBall ball, ScoringTarget hub) {
         if (ball.pos.getZ() > NET_HEIGHT_MAX || ball.pos.getZ() < NET_HEIGHT_MIN) return;
         if (ball.pos.getY() > hub.center.getY() + NET_WIDTH / 2.0
@@ -2043,11 +1871,9 @@ public class FuelPhysicsSim {
         double distToNet = ball.pos.getX() - netX;
 
         if (Math.abs(distToNet) < BALL_RADIUS) {
-            // Only block balls moving toward the net
             boolean movingTowardNet = ball.vel.getX() * hub.exitVelXSign > 0;
             if (!movingTowardNet) return;
 
-            // Push ball out of net
             double pushDir = distToNet >= 0 ? 1 : -1;
             ball.pos =
                     new Translation3d(
@@ -2076,7 +1902,6 @@ public class FuelPhysicsSim {
             return;
         }
 
-        // Find nearest face and push out
         double dxMin = relPos.getX() + halfL;
         double dxMax = halfL - relPos.getX();
         double dyMin = relPos.getY() + halfW;
@@ -2114,7 +1939,7 @@ public class FuelPhysicsSim {
     }
 
     private void handleIntakePickup(SimBall ball, Pose2d robotPose) {
-        if (totalIntaked >= hopperSize) return; // hopper is full
+        if (totalIntaked >= hopperSize) return;
         for (IntakeZone intake : intakes) {
             if (intake.shouldIntake(ball, robotPose, bumperHeight)) {
                 ball.intaked = true;
@@ -2123,8 +1948,6 @@ public class FuelPhysicsSim {
             }
         }
     }
-
-    // Sleeping
 
     private void updateSleepState(SimBall ball) {
         double speed = ball.vel.getNorm();
@@ -2150,7 +1973,6 @@ public class FuelPhysicsSim {
         ball.sleepCounter = 0;
     }
 
-    /** Wake up sleeping balls near a point (so launched balls disturb resting ones). */
     private void wakeNearbyBalls(Translation3d pos, double radius) {
         double radiusSq = radius * radius;
         for (SimBall ball : balls) {
@@ -2176,14 +1998,12 @@ public class FuelPhysicsSim {
             double speed = ball.vel.getNorm();
             totalKE += 0.5 * BALL_MASS * speed * speed;
 
-            // Rotational KE
             double omegaMag = ball.omega.getNorm();
             totalKE += 0.5 * BALL_MOMENT_OF_INERTIA * omegaMag * omegaMag;
 
-            // Gravitational PE (relative to ground)
+            // Potential energy, with the ground as the zero
             totalPE += BALL_MASS * GRAVITY * ball.pos.getZ();
 
-            // Linear momentum
             mx += BALL_MASS * ball.vel.getX();
             my += BALL_MASS * ball.vel.getY();
             mz += BALL_MASS * ball.vel.getZ();
@@ -2192,7 +2012,7 @@ public class FuelPhysicsSim {
         totalMomentum = new Translation3d(mx, my, mz);
     }
 
-    /** 3D cross product. Using Translation3d directly to avoid WPILib Vector conversion. */
+    /** 3D cross product, on Translation3d to avoid the WPILib vector type. */
     private static Translation3d cross(Translation3d a, Translation3d b) {
         return new Translation3d(
                 a.getY() * b.getZ() - a.getZ() * b.getY(),
@@ -2200,14 +2020,13 @@ public class FuelPhysicsSim {
                 a.getX() * b.getY() - a.getY() * b.getX());
     }
 
-    /** COR drops at higher impact speeds (balls deform more and lose more energy). */
+    /** Restitution falls as impact speed rises, as the ball deforms and loses energy. */
     private double velocityCOR(double e0, double impactSpeed) {
         if (!config.velocityDependentCOR) return e0;
         if (impactSpeed <= COR_VREF) return e0;
         return e0 * Math.pow(COR_VREF / impactSpeed, COR_EXPONENT);
     }
 
-    /** Get the COR to use, with optional velocity-dependent scaling. */
     private double effectiveCOR(double baseCOR, double impactSpeed) {
         if (config.velocityDependentCOR) {
             return velocityCOR(baseCOR, impactSpeed);
@@ -2215,35 +2034,29 @@ public class FuelPhysicsSim {
         return baseCOR;
     }
 
-    /** When a ball hits a wall, friction changes its spin. This handles that. */
     private void applyWallSpinTransfer(SimBall ball, Translation3d wallNormal) {
         if (!config.spinTransferEnabled || !config.frictionEnabled) return;
 
-        // Compute tangential velocity at contact point
         Translation3d rContact = wallNormal.times(-BALL_RADIUS);
         Translation3d surfaceVel = ball.vel.plus(cross(ball.omega, rContact));
 
-        // Remove normal component
         double vn = surfaceVel.dot(wallNormal);
         Translation3d vTangent = surfaceVel.minus(wallNormal.times(vn));
         double vTangentMag = vTangent.getNorm();
 
         if (vTangentMag > 1e-4) {
-            // Total normal impulse includes restitution: j_n = m * |v_n| * (1 + e)
             double impactSpeed = Math.abs(ball.vel.dot(wallNormal));
             double cor = effectiveCOR(COR_WALL, impactSpeed);
             double normalImpulse = BALL_MASS * impactSpeed * (1.0 + cor);
             double frictionImpulse = Math.min(MU_WALL * normalImpulse, BALL_MASS * vTangentMag);
             Translation3d frictionDir = vTangent.div(vTangentMag).unaryMinus();
 
-            // Friction affects both linear velocity and spin (Newton's 3rd law)
             ball.vel = ball.vel.plus(frictionDir.times(frictionImpulse / BALL_MASS));
             Translation3d torqueImpulse = cross(rContact, frictionDir.times(frictionImpulse));
             ball.omega = ball.omega.plus(torqueImpulse.div(BALL_MOMENT_OF_INERTIA));
         }
     }
 
-    /** Grab a contact from the pool (grows the pool if we run out). */
     private Contact allocateContact() {
         if (contactPoolIndex >= contactPool.size()) {
             Contact c = new Contact();
@@ -2254,17 +2067,11 @@ public class FuelPhysicsSim {
         return contactPool.get(contactPoolIndex++);
     }
 
-    /** Clean up balls that got eaten by intakes or flew out of bounds. */
     private void removeFlaggedBalls() {
         balls.removeIf(b -> b.intaked || b.outOfBounds);
     }
 
-    // Trajectory prediction
-
-    /**
-     * Predict where a shot will go (gravity + drag only, no collisions). Returns points you can
-     * plot in AdvantageScope Field3d. Stops at the ground.
-     */
+    /** Ballistic arc for the Field3d shot visual. Gravity and drag only; stops at the ground. */
     private Translation3d[] predictArc(Translation3d pos, Translation3d vel, int steps, double dt) {
         List<Translation3d> arc = new ArrayList<>();
         arc.add(pos);
@@ -2285,16 +2092,13 @@ public class FuelPhysicsSim {
         return arc.toArray(new Translation3d[0]);
     }
 
-    /** Push ball positions and sim stats to NetworkTables for visualization. */
     public void publishPositions() {
-        // All ball positions (for Field3d rendering)
         Translation3d[] positions = new Translation3d[balls.size()];
         for (int i = 0; i < balls.size(); i++) {
             positions[i] = balls.get(i).pos;
         }
         positionPublisher.set(positions);
 
-        // In-flight positions only (airborne balls, can render separately in Field3d)
         List<Translation3d> inFlight = new ArrayList<>();
         int sleeping = 0;
         for (SimBall b : balls) {
@@ -2306,14 +2110,11 @@ public class FuelPhysicsSim {
         }
         inFlightPublisher.set(inFlight.toArray(new Translation3d[0]));
 
-        // Last shot arc (predicted trajectory visible in Field3d)
         lastShotArcPublisher.set(lastShotArc);
 
-        // Scoring
         blueScorePub.set(blueHub.score);
         redScorePub.set(redHub.score);
 
-        // Stats
         ballCountPub.set(balls.size());
         activeBallsPub.set(balls.size() - sleeping);
         sleepingBallsPub.set(sleeping);
@@ -2327,7 +2128,7 @@ public class FuelPhysicsSim {
         return balls.size();
     }
 
-    // Only counts balls above ground level + small margin
+    // Counts balls more than 0.1 m above the resting height
     public int getBallsInFlight() {
         int count = 0;
         for (SimBall ball : balls) {
@@ -2386,7 +2187,7 @@ public class FuelPhysicsSim {
         this.rng = new Random(seed);
     }
 
-    // Translational + rotational KE
+    /** Translational and rotational kinetic energy, in joules. */
     public double getTotalKineticEnergy() {
         computeConservationQuantities();
         return totalKE;
@@ -2434,7 +2235,6 @@ public class FuelPhysicsSim {
         return redHub;
     }
 
-    // Package-private, for tests
     List<SimBall> getBalls() {
         return balls;
     }

@@ -6,10 +6,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import lombok.Getter;
 
-/**
- * Contains various field dimensions and useful reference points. All units are in meters and poses
- * have a blue alliance origin.
- */
+/** Field dimensions and reference points, in meters. Poses use a blue alliance origin. */
 public class Field {
     @Getter public static final double fieldLength = Units.inchesToMeters(651.2);
     @Getter private static final double halfLength = fieldLength / 2.0;
@@ -21,8 +18,7 @@ public class Field {
 
     @Getter
     public static final double startingLineX =
-            Units.inchesToMeters(299.438); // Measured from the inside of starting
-    // line
+            Units.inchesToMeters(299.438); // inside of the starting line
 
     public static final double tag26X = Units.inchesToMeters(158.61);
 
@@ -162,10 +158,8 @@ public class Field {
 
         public static final double tag31Y = fieldWidth / 2.0;
 
-        // Fixed X location
         public static final double frontFaceX = Units.inchesToMeters(43.51);
 
-        // Reference points
         public static final Translation2d center = new Translation2d(frontFaceX, tag31Y);
 
         public static final Translation2d leftUpright =
@@ -202,7 +196,6 @@ public class Field {
 
         public static final double tag29Y = Units.inchesToMeters(26.22);
 
-        // Reference point
         public static final Translation2d center = new Translation2d(0.0, tag29Y);
     }
 
@@ -222,14 +215,12 @@ public class Field {
     @Getter public static final Translation3d blueHubCenter = BlueHub.topCenter;
     @Getter public static final Translation3d redHubCenter = BlueToRed(BlueHub.topCenter);
 
-    /** Returns {@code true} if the robot is on the blue alliance. */
     public static boolean isBlue() {
         return DriverStation.getAlliance()
                 .orElse(DriverStation.Alliance.Blue)
                 .equals(DriverStation.Alliance.Blue);
     }
 
-    /** Returns {@code true} if the robot is on the red alliance. */
     public static boolean isRed() {
         return !isBlue();
     }

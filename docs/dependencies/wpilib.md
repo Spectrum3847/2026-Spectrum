@@ -1,71 +1,52 @@
 # WPILib
 
-*Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
+*Audience: Reference. Assumes you've read [Dependencies overview](overview.md).*
 
-WPILib is the foundation. Pretty much every Java file in the repo imports something from it: `TimedRobot`, the command-based scheduler, the math/geometry types, sensors, sim hooks, SmartDashboard, NetworkTables, the deploy pipeline. If a feature isn't covered here, the [WPILib docs](https://docs.wpilib.org/) probably do.
+WPILib is the substrate: the command scheduler, the math types, the simulation hooks, NetworkTables, the deploy pipeline. This page covers only the places where the team has made a decision. Anything not here, read [WPILib docs](https://docs.wpilib.org/).
 
-The command-based extension lives in [`vendordeps/WPILibNewCommands.json`](../../vendordeps/WPILibNewCommands.json). Everything else is pulled in by GradleRIO directly from `build.gradle`; there's no JSON for "WPILib core."
+The command-based extension is the only vendored piece, `vendordeps/WPILibNewCommands.json`. WPILib core comes straight from GradleRIO via `build.gradle`.
 
-## Packages We Touch Most
+## Mechanisms, and the one direct Subsystem
 
-`edu.wpi.first.wpilibj2.command` is the heart of the codebase: `Command`, `Subsystem`, `Trigger`, and the `Commands.*` factories. If you're writing new behavior, you start here.
+Do not extend `SubsystemBase` for a TalonFX mechanism. Extend [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which is already a `Subsystem`, so it lands in the scheduler with no adapter. [`Vision`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) is the deliberate exception: it implements `Subsystem` directly because there is no motor to wrap and nothing for a base class to do.
 
-For math: `edu.wpi.first.math.*` gives you `Pose2d`, `Rotation2d`, `ChassisSpeeds`, `MathUtil`, `ProfiledPIDController`, and `Matrix`/`VecBuilder` (which we use to weight vision std-devs). The newer `edu.wpi.first.units.*` package is creeping in too: `Inches.of(...)`, `MetersPerSecond.of(...)` show up in `RobotSim` and the swerve sim. Use it on new code that has natural units; older code mixes raw doubles with `Units.inchesToMeters(...)` and that's fine to match.
+## Commands and triggers
 
-For hardware: `edu.wpi.first.wpilibj` has `DriverStation`, `RobotBase`, `Alert`, `Timer`, `Notifier`, `AddressableLED`, and `Mechanism2d`. For dashboards: `smartdashboard.SmartDashboard` and `SendableChooser` (the auto chooser uses both). For the field tag layout: `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` is the one call that nails our vision system to the 2026 field.
+`Robot.configureBindings()` in [`Robot.java`](../../src/main/java/frc/robot/Robot.java) is the one place operator input becomes commands. It is a few dozen lines and it shows every pattern we use, so read it before adding a binding.
 
-## Subsystems
+The habits that matter:
 
-Don't extend `SubsystemBase` directly for a TalonFX mechanism. Use [`frc.spectrumLib.mechanism.Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which gives you config, signal caching, and command factories all in one. The vision system is the lone exception; [`Vision`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) implements `Subsystem` directly because there's no motor to wrap.
+* Build commands from the `Commands.*` factories instead of hand rolled `InstantCommand` and `SequentialCommandGroup`. They compose with `onTrue`, `whileTrue`, and `onFalse` without extra wrapping.
+* Tag every command with `.withName("...")`. That name is what DogLog prints and what the running commands widget shows. An untagged command logs as a class name, which is useless in a post match log.
+* Reserve `.ignoringDisable(true)` for behavior that genuinely has to run while the robot is disabled. Current uses include swerve control requests, super structure state changes, the shot calculator nudges, the disable time shift timer reset, and the operator `LB+Y` intake extension reset in `Robot.configureBindings()`. Putting it on a mechanism default command means that command keeps fighting for the mechanism while the robot sits disabled.
+* Bind a trigger instead of calling `CommandScheduler.schedule(...)` from a `periodic()`. The scheduler does arbitrate between the two commands either way. The reason to bind a trigger is that a command the scheduler did not enqueue cannot stop one that was, so nothing will preempt a long-running command that a periodic method started. A trigger puts the start on the scheduler's own queue where its requirement and interruption rules apply.
 
-## Commands and Triggers
+## Units
 
-Almost everything in this codebase is glued together by `Trigger`. The canonical example lives in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java):
+`edu.wpi.first.units` is the newer style and is what new code should use. `Pounds.of(...)`, `Inches.of(...)`, and `Seconds.of(...)` return a `Mass`, `Distance`, or `Time` rather than a bare `double`, so the unit travels with the value and a caller cannot silently read metres as inches. Seven files use it: `SwerveConfig`, `Swerve`, `Robot`, `Pilot`, `SysID`, `MapleSimSwerveDrivetrain`, and `SpectrumLEDs`. `SwerveConfig` is the clearest example, where every module position is declared as `@Getter private Distance frontLeftXPos = Inches.of(wheelBaseInches / 2);` rather than a converted double. Older files still pass raw doubles through `Units.inchesToMeters(...)`, and several current files do both. Mixing the two inside one file is the thing to avoid. Match whatever the file you are editing already does.
 
-```java
-pilot.LT.onTrue(
-        Commands.either(
-                superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
-                Commands.none(),
-                pilot.RT.negate()));
-```
+## The season field layout
 
-A few habits worth picking up:
-
-Prefer `Commands.either` / `runOnce` / `sequence` over hand-built `InstantCommand` and `SequentialCommandGroup` instances. They read better and compose cleanly with `Trigger.onTrue`/`whileTrue`. Always tag a command with `.withName("...")`; that name is what shows up in DogLog and in the running-commands widget. Use `.ignoringDisable(true)` only when you really need disabled-state behavior; the LED default command is the usual case.
-
-If you're tempted to call `CommandScheduler.getInstance().schedule(...)` from inside a `periodic()` method, bind a trigger instead. Manual scheduling sidesteps `requirements`, and `requirements` is what stops two commands from fighting over the same subsystem.
-
-## Telemetry and Tunables
-
-We use SmartDashboard for two things: live dashboards (`Auto Chooser`, `Mechanism2d` views), and tunable knobs via `SmartDashboard.putNumber` / `getNumber`. The tunable case is wrapped by [`TuneValue`](../../src/main/java/frc/spectrumLib/TuneValue.java), so prefer that over hand-rolled `getNumber` reads.
-
-For anything else, such as sensor readings, state transitions, or fault flags, go through `Telemetry.log(...)` rather than `SmartDashboard.put*`. `Telemetry` routes everything through DogLog with a consistent key format and writes it to the WPILOG so the log survives the match.
-
-## Simulation
-
-`RobotBase.isSimulation()` and `Utils.isSimulation()` (from Phoenix) both work; the file you're editing usually dictates which to use. A mechanism's own `simulationInit()`/`sim` object advances its TalonFX sim state each loop. Full game-piece physics runs through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java), driven from [`RobotSim`](../../src/main/java/frc/robot/RobotSim.java). For per-mechanism visualization, hand a `Mechanism2d` ligament out of `RobotSim` instead of standing up new widgets per subsystem.
+[`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) pins the tag layout with `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)`. That constant is the only thing tying vision to the current field, so it is the line to change when a new game ships.
 
 ## Alerts
 
-WPILib's `Alert` API integrates automatically with `Telemetry.logAlerts()`. Create an alert once at the top of a class, then flip it on and off:
+Create an `Alert` once as a static field, then call `set(...)` on it. `Telemetry.logAlerts()` scrapes the SmartDashboard alerts table every loop and mirrors anything new into the log, so the dashboard, the log, and the Driver Station all get it with no extra plumbing. [`Rio.java`](../../src/main/java/frc/spectrumLib/hardware/Rio.java) is the model to copy, with one alert per known roboRIO serial plus one for the unknown case.
 
-```java
-private static final Alert lowBattery = new Alert("Battery below 12V", AlertType.kWarning);
+## Simulation
 
-lowBattery.set(voltage < 12.0);
-```
+`Utils.isSimulation()` is Phoenix's check and `RobotBase.isSimulation()` is WPILib's. Both work; use whichever the surrounding file already imports instead of adding a second import for the other.
 
-`Rio.java` already uses this pattern for the "unknown RIO" warning at boot; copy that style.
+`MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(...)` carries its own `RobotBase.isReal()` guard, so calling it unconditionally is safe. Mechanism sims step on `SimLoop`, a shared 200 Hz `Notifier`, and the classes that need a sim object build it in their own `simulationInit()`. Game piece physics is not a WPILib job on this robot; see [Simulation](../tools/simulation.md).
 
-## Things to Watch For
+## Things to watch for
 
-`addVisionMeasurement` only makes sense from a periodic-style update, not from a one-shot command. Calling it sporadically makes the pose estimator drift in unpredictable ways.
+`addVisionMeasurement` belongs in a periodic style update, once per measurement with a distinct timestamp. The pose estimator keys measurements by timestamp, so several cameras fusing in one loop is fine and is what `Vision` does. Two calls sharing a timestamp is the problem: the second replaces the correction the first made. A timestamp older than one already processed can also undo later corrections, so a stalled camera that keeps offering a stale reading is worth rejecting rather than passing through.
 
-`Notifier` versus `addPeriodic`: the swerve sim uses `Notifier` because it needs tight, regular updates. For everything else, `TimedRobot.addPeriodic(...)` is the simpler choice.
+`Notifier` versus `addPeriodic`: the swerve sim uses a `Notifier` because it needs tight, regular updates. For everything else, `TimedRobot.addPeriodic(...)` is the simpler choice.
 
-`requirements` on commands cancel anything else using that subsystem. That's usually what you want, but be aware of it when chaining a state-change `runOnce` to a real command; if you set requirements on the wrong half, you cancel the wrong thing.
+Requirements cancel any other command touching the same subsystem, which is usually what you want. It bites on a state-change `runOnce` chained ahead of a real command, such as `setStateCommand(...)` in `SuperStructure`. A `SequentialCommandGroup` holds the union of its children's requirements for the whole sequence, so a requirement on either child reserves that subsystem until the sequence ends, not just while that child runs. Add the requirements for the subsystems the sequence should hold, and no others.
 
-## Further Reading
+## Further reading
 
-[WPILib Documentation](https://docs.wpilib.org/) is the concept-level guide; the [JavaDoc](https://github.wpilib.org/allwpilib/docs/release/java/) is wired into our own generated docs. Before writing a new subsystem from scratch, skim the [Command-Based Programming](https://docs.wpilib.org/en/stable/docs/software/commandbased/index.html) chapter; most of the patterns above will make more sense afterward.
+[WPILib documentation](https://docs.wpilib.org/) is the concept level guide, and the [JavaDoc](https://github.wpilib.org/allwpilib/docs/release/java/) is linked into our generated docs. Read the [command based programming chapter](https://docs.wpilib.org/en/stable/docs/software/commandbased/index.html) before writing a subsystem from scratch.

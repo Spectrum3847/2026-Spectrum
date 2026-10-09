@@ -13,7 +13,6 @@ public class XM2026 extends Config {
                 -0.404052734375 + 0.5,
                 -0.478759765625 + 0.5);
 
-        // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
         fuelIntake.setAttached(true);

@@ -1,26 +1,16 @@
-# Elastic Dashboard
+# Elastic dashboard
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-[Elastic](https://github.com/Gold872/elastic-dashboard) is the driver-station dashboard we run during practice and matches. It reads NetworkTables, surfaces alerts and telemetry, gives the operator a clean place to pick autos, and renders the field. It ships with the WPILib installer.
+[Elastic](https://github.com/Gold872/elastic-dashboard) is the driver station dashboard we run at practice and at matches. It reads NetworkTables, gives the operator the auto chooser, and renders the field. It ships with the WPILib installer.
 
-## Our Layout
+## Our layout
 
-The layout lives at [`src/main/deploy/elastic-layout.json`](../../src/main/deploy/elastic-layout.json). It deploys to the roboRIO with the rest of the static files via GradleRIO's `frcStaticFileDeploy`, so anyone connecting to the robot can pull the same tabs.
+The layout is [`src/main/deploy/elastic-layout.json`](../../src/main/deploy/elastic-layout.json). It deploys to the roboRIO with the rest of `src/main/deploy`, but Elastic does not load it on its own. On each laptop, connect to the robot and use **File > Download From Robot** to get the same tabs we do. Edit it in Elastic and save back to that file. It is JSON and the formatter does not touch it, so let Elastic write it rather than cleaning up whitespace by hand.
 
-There are five tabs right now:
+**Pre-Match** is the tab on screen between matches and it owns the chooser. **Git Status** answers "which build is actually on this robot": it reads the build stamp the robot publishes at startup.
 
-**Pre-Match**, auto chooser, FMS info, robot-init state, alerts, and `Field2d`. This is what's on screen between matches.
-
-**Match**, what the drivers and operators care about during a match: current state, alliance info, scoring readiness, vision status.
-
-**Launching**, launcher and hood telemetry: wheel velocities, target distance, on-target booleans. The page you stare at when shots aren't landing.
-
-**Diagnostic**, subsystem health, current draw, fault flags. Deeper telemetry for when something's actually broken.
-
-**Git Status**, branch, commit, and build timestamp from `BuildConstants`. The "what's actually running on this robot" tab.
-
-If you add a widget, edit the layout in Elastic and save it back to the file, and make sure the topic it reads is published by a `Telemetry.logDash` or `logDashAlways` call. Plain `Telemetry.log` keys are not on NetworkTables unless the `Telemetry/MirrorLogsToNT` switch is on. Spotless leaves JSON alone, so let Elastic round-trip it instead of hand-editing whitespace.
+If you add a widget, edit the layout in Elastic and save it back to the file, and make sure the topic it reads is published by a `Telemetry.logDash` or `logDashAlways` call. Plain `Telemetry.log` keys are not on NetworkTables unless the `Telemetry/MirrorLogsToNT` switch is on.
 
 ## System health alerts
 
@@ -36,7 +26,7 @@ If you add a widget, edit the layout in Elastic and save it back to the file, an
 
 Thresholds are constants at the top of `SystemLoadMonitor`.
 
-## NetworkTables, In Brief
+## NetworkTables in brief
 
 Elastic talks to the robot over NetworkTables. Anything the robot publishes, such as `SmartDashboard.put*`, Shuffleboard, or our `Telemetry.logDash` (plain `Telemetry.log` reaches NT only through the mirror, see [Logging](logging.md#what-reaches-the-dashboard)), is reachable. Widgets bind to a topic like `/SmartDashboard/Field2d` or `/Robot/Initialized`, which is why our log keys use a `Subsystem/Path/Name` hierarchy. It keeps the topic tree navigable.
 
@@ -44,18 +34,21 @@ The reverse direction works too. The auto chooser writes back over NT to a `Send
 
 ## Connecting
 
-Install Elastic (WPILib installer is the easy path; releases are also available on [GitHub](https://github.com/Gold872/elastic-dashboard/releases) for Linux/macOS). Point it at the robot, `roborio-3847-frc.local` for the real bot, `localhost` for sim, and load the layout from `File → Open Layout`. Once you've connected to a robot once, there's a "Download from robot" option that grabs whatever the RIO has deployed.
+Point Elastic at the robot, `roborio-3847-frc.local` for the real bot and `localhost` in sim, then **File, then Open Layout**.
 
-On the driver-station laptop, pin Elastic to the same monitor position every match. The match-day team relies on muscle memory, and a relocated widget at the wrong moment is exactly the kind of small problem that ends up costing points.
+If your copy and the robot's have drifted, the layout menu's **Download from robot** grabs whatever the RIO has deployed. The robot serves the whole `deploy/` directory over HTTP on port 5800, so `http://<rio-ip>:5800/elastic-layout.json` opens in any browser on the network, which saves you when you are not sitting at the driver station laptop.
 
-## A Few Habits
+Pin Elastic to the same monitor position before every match. The operator should never be hunting for a widget mid-match, and a relocated widget at the wrong moment is exactly the kind of small thing that costs points.
 
-One job per tab. The Pre-Match / Match / Launching split exists so the operator isn't hunting for a widget while a match is running.
+## Habits worth keeping
 
-Color-code booleans consistently. Most of our `Boolean Box` widgets use green for `true` and red for `false`. The operator's eyes get used to it; mixing colors slows them down.
+One job per tab, so nothing important is buried under something else.
 
-Use `Field2d` for paths. Publishing a PathPlanner trajectory to `Field2d` lets us preview an auto from Pre-Match without restarting the robot code, which is worth a surprising amount during a hectic afternoon.
+Consistent colors for booleans. Most of ours are green for true and red for false. Mixed colors on the same screen cost the operator real time, and the habit only works if it is uniform.
 
-## SmartDashboard vs Elastic
+Preview the auto on `Field2d` while disabled, before you enable, rather than finding out on the field.
 
-Worth a quick clarification because the names overlap. WPILib's built-in `SmartDashboard` is just NetworkTables under the hood; Elastic is a richer client that talks to the same data. Anything `SmartDashboard.put*` publishes is visible from both. We treat SmartDashboard as the fallback (quick tests where editing the layout isn't worth it) and Elastic as the curated view that goes to competitions.
+## See also
+
+* [Logging](logging.md) for what `Telemetry` publishes and the key naming convention.
+* [PID Tuning](pid-tuning.md) for the live tunables you can edit from here.

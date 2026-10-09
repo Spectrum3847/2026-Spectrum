@@ -42,10 +42,6 @@ public class Auton {
     private final double SECOND_MAN_DELAY = 1.0;
     private final double OPTIONAL_DELAY = 1.0;
 
-    /**
-     * This method configures the available autonomous routines that can be selected from the
-     * SmartDashboard.
-     */
     public void setupSelectors() {
 
         pathChooser.setDefaultOption("Do Nothing", doNothing());
@@ -81,7 +77,7 @@ public class Auton {
 
     public Auton(SuperStructure robotSuperStructure) {
         this.robotSuperStructure = robotSuperStructure;
-        setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
+        setupSelectors();
         Telemetry.print("Auton Subsystem Initialized");
     }
 
@@ -120,9 +116,7 @@ public class Auton {
                         SpectrumAuton("2nd-TBTB 1", mirrored),
                         launch(),
                         SpectrumAuton("2nd-TBTB 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("2nd-TBTB Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -132,9 +126,7 @@ public class Auton {
                         SpectrumAuton("2nd-BBD 1", mirrored),
                         launch(),
                         SpectrumAuton("2nd-BBD 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("2nd-BBD Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -145,9 +137,7 @@ public class Auton {
                         SpectrumAuton("Option TBT 2", mirrored),
                         launch(),
                         SpectrumAuton("Option TBT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("Option TBT Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -158,9 +148,7 @@ public class Auton {
                         SpectrumAuton("Option BBB 2", mirrored),
                         launch(),
                         SpectrumAuton("Option BBB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("Option BBB Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -171,9 +159,7 @@ public class Auton {
                         SpectrumAuton("TBTB 2", mirrored),
                         launch(),
                         SpectrumAuton("TBTB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("TBTB Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -184,9 +170,7 @@ public class Auton {
                         SpectrumAuton("TBTT 2", mirrored),
                         launch(),
                         SpectrumAuton("TBTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("TBTT Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -197,9 +181,7 @@ public class Auton {
                         SpectrumAuton("TTTT 2", mirrored),
                         launch(),
                         SpectrumAuton("TTTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
     }
 
@@ -209,22 +191,10 @@ public class Auton {
                         launch(),
                         SpectrumAuton("BBBB 2", mirrored),
                         launch())
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
+                // the " - Left" / " - Right" suffix is what the field visualizer reads to mirror
                 .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
     }
 
-    /**
-     * Creates a SpectrumAuton command sequence.
-     *
-     * <p>This method generates a command sequence that first waits for 0.01 seconds and then
-     * executes a PathPlannerAuto command with the specified autonomous routine name.
-     *
-     * @param autoName the name of the autonomous routine to execute
-     * @param mirrored whether the autonomous routine should be mirrored
-     * @return a Command that represents the SpectrumAuton sequence
-     */
     public Command SpectrumAuton(String autoName, boolean mirrored) {
         Command autoCommand = new PathPlannerAuto(autoName, mirrored);
         return Commands.waitSeconds(0.01).andThen(autoCommand).withName(autoName);
@@ -238,32 +208,25 @@ public class Auton {
                 .withName(autoName);
     }
 
-    /**
-     * Retrieves the autonomous command selected on the shuffleboard.
-     *
-     * @return the selected autonomous command if one is chosen; otherwise, returns a PrintCommand
-     *     indicating that the autonomous command is null.
-     */
+    /** Never returns null. Falls back to a command that prints a warning. */
     public Command getAutonomousCommand() {
-        Command auton = pathChooser.getSelected(); // sees what auto is chosen on shuffleboard
+        Command auton = pathChooser.getSelected();
         if (auton != null) {
-            return auton; // checks to make sure there is an auto and if there is it runs an auto
+            return auton;
         } else {
-            return new PrintCommand(
-                    "*** AUTON COMMAND IS NULL ***"); // runs if there is no auto chosen, which
-            // shouldn't happen because of the default
-            // auto set to nothing which still runs
-            // something
+            return new PrintCommand("*** AUTON COMMAND IS NULL ***");
         }
     }
 
-    /** This method is called in AutonInit */
     public void startAutonTimer() {
         autonStart = Timer.getFPGATimestamp();
         autoMessagePrinted = false;
     }
 
-    /** Called at AutonExit and displays the duration of the auton command Based on 6328 code */
+    /**
+     * Prints the elapsed auton time at auton exit, calling the run cancelled if it ended early.
+     * Based on 6328 code.
+     */
     public void printAutoDuration() {
         Command autoCommand = getAutonomousCommand();
         if (autoCommand != null) {
@@ -285,13 +248,11 @@ public class Auton {
     }
 
     public static Command followSinglePath(String pathName) {
-        // Load the path you want to follow using its name in the GUI
         PathPlannerPath path;
         try {
             path = PathPlannerPath.fromPathFile(pathName);
 
-            // Create a path following command using AutoBuilder. This will also trigger event
-            // markers.
+            // AutoBuilder also fires the path's event markers
             return AutoBuilder.followPath(path);
         } catch (FileVersionException | IOException | ParseException e) {
             e.printStackTrace();
@@ -301,16 +262,13 @@ public class Auton {
 
     public static Command pathfindingCommandToPose(
             double xPos, double yPos, double rotation, double vel, double accel) {
-        // Since we are using a holonomic drivetrain, the rotation component of this pose
-        // represents the goal holonomic rotation
+        // Swerve is holonomic, so the pose rotation is the goal heading.
         Pose2d targetPose = new Pose2d(xPos, yPos, Rotation2d.fromDegrees(rotation));
 
-        // Create the constraints to use while pathfinding
         PathConstraints constraints =
                 new PathConstraints(
                         vel, accel, Units.degreesToRadians(540), Units.degreesToRadians(720));
 
-        // Since AutoBuilder is configured, we can use it to build pathfinding commands
         Command pathfindingCommand =
                 AutoBuilder.pathfindToPoseFlipped(
                         targetPose, constraints, 0.0 // Goal end velocity in meters/sec
@@ -318,7 +276,7 @@ public class Auton {
 
         return pathfindingCommand;
     }
-    // Log Command
+
     protected static Command log(Command cmd) {
         return Telemetry.log(cmd);
     }

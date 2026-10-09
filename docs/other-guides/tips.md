@@ -1,14 +1,14 @@
-# Programming Tips
+# Programming tips
 
-*Audience: Reference. Assumes you've read [2026 Season Specific](2026-season-specific.md).*
+*Audience: Reference. Assumes you've read [2026 season specific](2026-season-specific.md).*
 
 Practical things that come up often enough to be worth writing down.
 
-## Clean Your Java Workspace
+## Clean your Java workspace
 
 If VS Code is showing red squiggles on code that definitely compiles, or IntelliSense is behaving strangely, the language server's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `Java: Clean Language Server Workspace`. If that doesn't do it, run `./gradlew clean build` from the terminal; see [Gradle](../tools/gradle.md) for what that actually does.
 
-## Coordinate Systems
+## Coordinate systems
 
 FRC uses a field-relative coordinate system where positive X points toward the opposing alliance wall and positive Y points left from the driver's perspective. Robot heading is in radians measured counter-clockwise from the positive X axis. This matters when writing drive commands and when interpreting `Pose2d` values from the vision or auton systems.
 
@@ -20,63 +20,26 @@ Most command and trigger factory methods in this codebase take a `DoubleSupplier
 
 For setpoints that may shift while a command runs, such as shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue), you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
 
-The launcher shows this pattern:
+The launcher is the clearest example. Its `applyStates()` reads a wanted RPM out of `ShotCalculator` for the aim state, and sends it as the flywheel target. `Launcher.periodic()` calls `applyStates()` every loop, so the target is recomputed each time and the flywheel keeps following the live shot solution instead of freezing on the distance at the moment the state was entered. The control request itself reads its supplier once, when it is sent; the tracking comes from the loop calling it again.
 
-```java
-// Launcher.applyStates(), AIM_AT_TARGET case
-double wantedRPM = ShotCalculator.getInstance().getParameters().flywheelSpeed();
-final double finalWantedRPM = wantedRPM;
-setVelocityTCFOCrpm(() -> finalWantedRPM);
-```
+More on the habit in [Class Generation](../coding-conventions/class-generation.md#methods).
 
-The `() -> ...` lambda is a `DoubleSupplier` re-read by the control request each loop, so as the shot calculator's flywheel target tracks the live distance, the command follows it instead of freezing the value at scheduling time. More on this in [Class Generation](../coding-conventions/class-generation.md#methods).
-
-## Cached Values
+## Cached values
 
 Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
 
 The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class does this for every status signal it reads: the first getter call in a loop runs one `BaseStatusSignal.refreshAll`, and later calls in the same loop reuse that sample. The loop number comes from [`RobotLoop`](../../src/main/java/frc/spectrumLib/framework/RobotLoop.java), which `Robot.robotPeriodic()` advances first thing. Without that call the cache never refreshes and every reading freezes. `Limelight` works the same way, with `Vision.periodic()` calling `invalidate()` on each camera at the top of the loop.
 
-If you're reading a sensor value that isn't already cached by `Mechanism`, do it in the subsystem's `periodic()` into a field, and have everything else read the field. Don't scatter CAN reads across command bodies.
+If you're reading a sensor value that `Mechanism` does not already cache, read it once into a field and have every caller read the field. The mechanism's own `periodic()` is a good place for that refresh: every `Mechanism` registers itself with the scheduler in its constructor, so an override runs once per loop. The base `Mechanism.periodic()` is empty. Either way, don't scatter CAN reads across command bodies.
 
-## Method Chaining
+## Simulation before robot time
 
-`Command` and `Trigger` in WPILib return `this` from most modifier methods, so you can write:
-
-```java
-myTrigger.whileTrue(
-    launcher.runVelocityTcFocRPM(config::getIdlingRPM)
-        .andThen(launcher.stopMotor())
-        .withTimeout(5.0));
-```
-
-This is idiomatic in the codebase; you'll see it everywhere in the `*States` files. Splitting across lines like above is fine; just keep the closing parenthesis aligned with the method call that opened it.
-
-## Simulation Before Robot Time
-
-Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths, most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P → WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
+Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths, most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P`, then `WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
 
 Reserve time on the real robot for things that genuinely require it: tuning gains, calibrating offsets, testing hardware interactions. Don't develop new features on the robot.
 
-## Feature Branches
+## Before you commit
 
-Work on a feature branch, not directly on `main`. The typical flow:
+Branch from `main`, develop and test in sim, merge `main` back in, then open a PR. The commit and PR conventions, the shared-machine commit identity mechanism, and the one-feature-per-PR rule are all in [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md). Don't keep a second copy of that here; it changes as the team changes and two copies means one of them is wrong.
 
-1. Branch from `main` for your feature.
-2. Develop and test in simulation.
-3. Merge `main` back into your branch before opening a pull request, re-test in sim, then put it on the robot if needed.
-4. Open a PR for review by a programming lead before merging.
-
-Small, focused branches have fewer merge conflicts and are much easier to review than multi-week accumulations of changes. See [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for commit message conventions.
-
-## Logging is Free
-
-Log more than you think you need to. A voltage reading, a command lifecycle event, a boolean state transition: these are nearly free to log and invaluable after a bad match. See [Logging](../tools/logging.md) for the `Telemetry` API. The pattern used in every `*States` file is:
-
-```java
-private static Command log(Command cmd) {
-    return Telemetry.log(cmd);
-}
-```
-
-Wrap command factories in `log(...)` and you automatically get init/end events in the log without changing any other code.
+For logging, the `Telemetry` API and how to pull signals back out of a `.wpilog` are in [Logging](../tools/logging.md). Log more than you think you need to, but read that page before inventing a pattern: there is already a convention for naming keys and for wrapping commands, and matching it is what makes a log readable six weeks later.

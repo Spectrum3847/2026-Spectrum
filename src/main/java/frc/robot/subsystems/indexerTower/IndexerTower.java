@@ -7,11 +7,10 @@ import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Indexer Tower subsystem. Lifts fuel from the bed up to the launcher. */
+/** Lifts fuel from the bed up to the launcher. */
 public class IndexerTower extends Mechanism {
 
     public static class IndexerTowerConfig extends Config {
-        /* Indexer config values */
         @Getter private final double supplyCurrentLimit = 40;
         @Getter private final double statorCurrentLimit = 180;
         @Getter private final double lowerSupplyCurrentLimit = 40;
@@ -20,7 +19,6 @@ public class IndexerTower extends Mechanism {
         @Getter private final double velocityKv = 0;
         @Getter private final double velocityKs = 40;
 
-        /* Sim Configs */
         @Getter private final double intakeX = Units.inchesToMeters(60);
         @Getter private final double intakeY = Units.inchesToMeters(75);
         @Getter private final double wheelDiameter = 12;
@@ -46,8 +44,6 @@ public class IndexerTower extends Mechanism {
                             MotorAlignmentValue.Aligned));
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         OFF,
@@ -100,13 +96,11 @@ public class IndexerTower extends Mechanism {
     }
 
     @Getter private final IndexerTowerConfig config;
-    // @Getter private IndexerSim sim;
 
     public IndexerTower(IndexerTowerConfig config) {
         super(config);
         this.config = config;
 
-        // simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
@@ -124,35 +118,4 @@ public class IndexerTower extends Mechanism {
         Telemetry.logDash("IndexerTower/RPM", getVelocityRPM(), "RPM");
         Telemetry.logDash("IndexerTower/Temp", getTemp(), "deg_C");
     }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    // public void simulationInit() {
-    //     if (isAttached()) {
-    //         // Create a new RollerSim with the left view, the motor's sim state, and a 6 in
-    // diameter
-    //         sim = new IndexerSim(RobotSim.topView, motor.getSimState());
-    //     }
-    // }
-
-    // // Must be called to enable the simulation
-    // // if roller position changes configure x and y to set position.
-    // @Override
-    // public void simulationPeriodic() {
-    //     if (isAttached()) {
-    //         sim.simulationPeriodic();
-    //     }
-    // }
-
-    // class IndexerSim extends RollerSim {
-    //     public IndexerSim(Mechanism2d mech, TalonFXSimState rollerMotorSim) {
-    //         super(
-    //                 new RollerConfig(config.getWheelDiameter())
-    //                         .setPosition(config.getIntakeX(), config.getIntakeY()),
-    //                 mech,
-    //                 rollerMotorSim,
-    //                 config.getName());
-    //     }
-    // }
 }

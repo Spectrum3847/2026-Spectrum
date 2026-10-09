@@ -9,7 +9,6 @@ public class FM2026 extends Config {
         super();
         swerve.configEncoderOffsets(-0.163818359375, 0.24902, 0.2724609375, -0.31005859375);
 
-        // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
         fuelIntake.setAttached(true);

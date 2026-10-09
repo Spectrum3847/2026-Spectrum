@@ -4,22 +4,13 @@ package frc.spectrumLib.util;
 // Based on Code from FRC# 2363
 
 /**
- * This class maps the value of a input to an exponential curve. It is a subclass of <code>
- * Curve</code>. Modified to allow outputs larger than 1.0
+ * Maps a stick input in [-1, 1] through an exponential of base {@code expVal}, keeping the result
+ * in [-1, 1] and preserving sign. The scalar and offset applied after the exponent set the range of
+ * the final value.
  */
 public class ExpCurve extends Curve {
-    /** The value of the base of the exponent used in calculating the curve. */
     private double expVal;
 
-    /**
-     * Constructs an Exponential Curve object which can be used to map a stick input exponentially.
-     * Initialized with default values: <code>
-     *     expVal = 1.0;
-     *     offset = 0.0;
-     *     scalar = 1.0;
-     *     deadzone = 0.0;
-     * </code>
-     */
     public ExpCurve() {
         setExpVal(1.0);
         setOffset(0.0);
@@ -27,15 +18,6 @@ public class ExpCurve extends Curve {
         setDeadzone(0.0);
     }
 
-    /**
-     * Constructs an Exponential Curve object which can be used to map a stick input exponentially.
-     * Initialized with values provided.
-     *
-     * @param expVal value of the base of the exponent used in the curve
-     * @param offset value used to offset the final curve
-     * @param scalar value used to scale the value before offset
-     * @param deadzone value for the width of the deadband in the center of the curve
-     */
     public ExpCurve(double expVal, double offset, double scalar, double deadzone) {
         setExpVal(expVal);
         setOffset(offset);
@@ -44,10 +26,8 @@ public class ExpCurve extends Curve {
     }
 
     /**
-     * Applies the full exponential curve pipeline: deadzone, exponent, scalar, then offset.
-     *
-     * @param input the raw input value to be mapped (typically in [-1, 1])
-     * @return the mapped output value
+     * Applies the deadzone, then the exponent, then the scalar, then the offset. The deadzone is
+     * the innermost call, so it runs first.
      */
     @Override
     public double calculate(double input) {
@@ -55,10 +35,9 @@ public class ExpCurve extends Curve {
     }
 
     /**
-     * Returns the value of the input mapped by an exponential curve of base <code>expVal</code>.
-     *
-     * @param input the input value to be mapped
-     * @return mapped value
+     * Applies a signed power curve of base {@code expVal}. A base above 1 gives fine control near
+     * the middle of the range, a base below 1 near the ends. Both ends still land on -1 and 1, so
+     * the scalar keeps its meaning as the maximum output.
      */
     private double calculateExpVal(double input) {
         if (expVal == 1.0) {
@@ -68,9 +47,8 @@ public class ExpCurve extends Curve {
     }
 
     /**
-     * Sets the value of <code>expVal</code>, the base of the exponent used to map the input.
-     *
-     * @param expVal the new value of <code>expVal</code>
+     * A base at or below zero falls back to 1.0, leaving the input uncurved. A negative base would
+     * raise a fractional power and produce imaginary results.
      */
     public void setExpVal(double expVal) {
         if (expVal <= 0.0) {
@@ -79,11 +57,6 @@ public class ExpCurve extends Curve {
         this.expVal = expVal;
     }
 
-    /**
-     * Returns the value of <code>expVal</code>, the base of the exponent used to map the input.
-     *
-     * @return the current value of <code>expVal</code>
-     */
     public double getExpVal() {
         return expVal;
     }

@@ -1,112 +1,56 @@
-# 2026 Season Specific Documentation: REBUILT
+# 2026 season specific: REBUILT
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
-This page is the orientation tour for the 2026 FRC game (**REBUILT**), the subsystems we have, the state machine that drives them, the controls layout, and the vision setup. It's the page to read first if you've just cloned the repo and want to understand what does what.
+Orientation for the 2026 game. It tells you where things live and which file owns which decision, and it points at the code for everything else. It deliberately does not list the states, the controls, or the per-robot configs, because those live in source and a copy here would be a copy that lies to you within a week.
 
-## Subsystems
+## Where things live
 
-Each physical thing the robot does lives in its own subsystem folder under `src/main/java/frc/robot/subsystems/`:
+Under `src/main/java/frc/robot/`:
 
-`swerve`, `fuelIntake`, `indexerBed`, `indexerTower`, `intakeExtension`, `launcher`, `hood`, `vision`, `leds`, plus `SuperStructure.java`, the orchestrator that sits above them. The gamepads (`pilot`, `operator`) live one level up under `src/main/java/frc/robot/`.
+* `subsystems/` holds one folder per mechanism, each with a single file that carries the mechanism, its inner `Config` class, and its inner `WantedState` and `SystemState` enums. The layout and the reasoning behind it are in [Class Generation](../coding-conventions/class-generation.md).
+* `subsystems/SuperStructure.java` is the orchestrator, a `SubsystemBase`. The mechanisms below it implement `Subsystem` rather than extending `SubsystemBase`, and each registers itself with the scheduler in the `Mechanism` constructor.
+* `pilot/` and `operator/` hold the gamepad classes. They expose `Trigger`s and nothing else; they hold no behavior.
+* `configs/` holds the per-robot config classes.
+* `auton/` holds the auto chooser and the named commands the paths call back into.
+* `Robot.java` constructs everything, owns the hardware CAN bus, and holds the binding wiring.
+* `RobotSim.java` and the classes under `src/main/java/frc/rebuilt/` are game math and simulation support. `ShotCalculator` and `Field` are called on the real robot, so treat those as robot code. `FuelPhysicsSim` is simulation only and is reached through `RobotSim`.
 
-Anything with a `periodic()` lifecycle and state to manage gets the same shape.
+Under `src/main/java/frc/spectrumLib/` is the reusable layer: the `mechanism` base class, gamepads, hardware wrappers, telemetry, LEDs, swerve, vision, and sim configs. If something there changes, it changes for every robot, so treat it with more care than a per-robot config.
 
-Each subsystem is one file: the subsystem class (extending `Mechanism` for anything motor-backed), an inner `*Config` class holding every tunable as `@Getter private final` fields, and inner `WantedState`/`SystemState` enums driving its state machine. There is no separate `*States` command-factory class, the subsystem drives itself via `setWantedState(...)` + `handleStateTransition()` + `applyStates()`.
+## Where a behavior belongs
 
-The full structural conventions live in [Class Generation](../coding-conventions/class-generation.md); don't reinvent the layout when adding a new subsystem.
+This is the judgment call the code cannot teach:
 
-## Per-Robot Configurations
+* A coordinated move across several mechanisms is a new entry in the `WantedSuperState` enum in [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java), handled in its `handleStateTransition()` and applied in `applyStates()`. A new super-state is the answer whenever two or more mechanisms have to change together.
+* A single trigger that fires a state that already exists is a binding in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java), calling `superStructure.setStateCommand(...)`.
 
-We build multiple physical robots each season and run the same code on all of them. The `Rio.id` field, looked up from the RoboRIO serial number in `frc.spectrumLib.hardware.Rio`, decides which configuration is loaded at startup. All configs live under `src/main/java/frc/robot/configs`:
+Where to read the current answers:
 
-|    Config    |                 Bot                  |                                                                Use                                                                |
-|--------------|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `FM2026`     | Final Machine, the competition robot | Precise calibration, the bot we travel with.                                                                                      |
-| `PM2026`     | Practice Machine                     | Mirrors competition, minor wear-and-tear tweaks.                                                                                  |
-| `XM2026`     | Experimental Machine                 | In-season experimentation and prototyping. Encoder offsets and attachment flags vary. (Off-season work gets its own `OM` config.) |
-| `AM2026`     | Alpha Machine                        | Earlier prototype, used pre-build.                                                                                                |
-| `PHOTON2026` | Photon's machine                     | The robot run by Photon, our sister team.                                                                                         |
+* **The list of robot-level states** is the `WantedSuperState` enum in `SuperStructure.java`. The transition table is that class's `handleStateTransition()`, and the fan-out to each mechanism is in the `apply*` methods it dispatches to. Field-location triggers such as `robotInNeutralZone()` are methods on the same class.
+* **Which button fires which state** is in `Robot.configureBindings()`, and only there. `Pilot` and `Operator` name the triggers and hold no behavior.
 
-Each config can mark a mechanism present or absent via `setAttached(boolean)` so a bot without the launcher doesn't try to initialize one.
+## Per-robot configs
 
-## States and Triggers
+The same code runs on several physical robots. At startup the `Robot()` constructor switches on `Rio.id` to pick a config class; `Rio.id` resolves the RoboRIO serial number against the `Rio` enum in [`Rio.java`](../../src/main/java/frc/spectrumLib/hardware/Rio.java).
 
-Each subsystem exposes a `setWantedState(<Subsystem>.WantedState)` entry point and runs its own `WantedState`/`SystemState` machine internally. Triggers are conditions that fire commands, such as a `pilot.X` press, a sensor reading, or a `SpectrumState` another subsystem flipped.
+Two gotchas a reader will not guess:
 
-The high-level orchestrator is [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java). It maps the `WantedSuperState` enum (below) to a coordinated configuration across every mechanism. `setWantedSuperState(WantedSuperState)` is the entry point (with `setStateCommand(...)` as the command wrapper used by bindings); when `INTAKE_FUEL` fires, `SuperStructure` fans that intent out to each subsystem's `setWantedState(...)`: the fuel intake runs, the indexer bed slow-indexes, the extension extends, and the launcher/hood hold their prep/aim states.
+* **A serial that matches no entry resolves to `Rio.UNKNOWN`,** and `Robot()` falls back to the competition config. So a reflashed or replaced RoboRIO looks exactly like a working robot right up until you deploy to it. If a bot behaves like the wrong robot, check `Rio` first.
+* **Not every config class in `configs/` is wired into that switch.** A class can exist for a robot you are no longer running. Grep `Robot.java` for the config you are about to edit, and if it isn't in the switch, editing it changes nothing at runtime.
 
-## Pose Estimation
+Every config class marks each mechanism present or absent with `setAttached(boolean)`. The mechanism object is still constructed on every robot; the flag is what stops it creating motors and running per-loop work for hardware that is not there, and what makes the sensor getters return zero instead of reading a device that does not exist. Encoder offsets and CAN IDs are per-robot facts. Changing one in the wrong config class silently breaks a different robot and will not fail to compile.
 
-Swerve odometry and Limelight MegaTag readings feed a WPILib `SwerveDrivePoseEstimator`. The filtering, weighting, and which Limelight to trust live in [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java); read [Vision](../tools/vision.md) for the full integration scheme.
+## Vision
 
-## 2026 Robot States
+Three Limelights, back, left, and right, doing AprilTag pose estimation. [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) decides which candidate estimate to trust and builds a `VisionFieldPoseEstimate` (pose, capture timestamp, and per-axis standard deviations), then hands it to the swerve's `addVisionMeasurement(...)`. The tag layout it loads is the seasonal field map, so it changes with the game each year. Game-piece detection and QuestNav are not integrated, so tag tracking is all that runs today.
 
-These are the entries in `SuperStructure.WantedSuperState`, applied by `setWantedSuperState(...)`. Each one drives a coordinated setup across launcher, hood, fuel intake, indexer bed/tower, and intake extension.
+Which estimate gets used, and when, is the part worth reading before you change anything, and it is in `Vision.java`. The fusion scheme, the ambiguity rejection, and resetting pose from vision are covered in [Vision](../tools/vision.md).
 
-|                State                |                             What it does                             |
-|-------------------------------------|----------------------------------------------------------------------|
-| `IDLE`                              | Ready, neutral. Subsystems home.                                     |
-| `INTAKE_FUEL`                       | Active fuel collection, intake runs, bed indexes, extension extends. |
-| `TRACK_TARGET`                      | Launcher + hood aim while the robot is free to drive.                |
-| `LAUNCH_WITH_SQUEEZE`               | Aim + launch with the delayed-close "squeeze" sequence.              |
-| `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY` | Squeeze launch without the delayed close.                            |
-| `LAUNCH_WITHOUT_SQUEEZE`            | Aim + launch while the intake stays extended.                        |
-| `LAUNCH_WITH_BRAKE`                 | Launch while holding the drivetrain in brake.                        |
-| `AUTON_TRACK_TARGET`                | Auton-mode aim.                                                      |
-| `AUTON_INTAKE_FUEL`                 | Auton-mode fuel collection.                                          |
-| `UNJAM`                             | Clear jammed fuel from intake or indexer.                            |
-| `EJECT`                             | Spit fuel back out.                                                  |
-| `FORCE_HOME`                        | Drive every mechanism to its home position.                          |
+## Hub shifts
 
-`CurrentSuperState` mirrors these; `handleStateTransition()` maps the wanted state to the current one each loop.
+REBUILT alternates each alliance's hub between active and inactive during teleop. This is a competition rule, so the code implements it but cannot state it. The schedule lives in [`ShiftHelpers.java`](../../src/main/java/frc/rebuilt/ShiftHelpers.java), as two parallel arrays of shift start and end times, one active and one inactive, with the rotation chosen by which alliance is active first. `autoEndTime` in that same class is the length of the autonomous period, another rule the code encodes rather than states.
 
-A few field-location triggers live on `SuperStructure` itself rather than in the enum: `robotInNeutralZone()`, `robotInEnemyZone()`, `robotInFeedZone()`, `robotInScoreZone()` (which delegate to the swerve pose).
+`Robot.configureBindings()` calls `ShiftHelpers.initialize()` on the teleop, auto, and disabled transitions, which is what keeps the shift clock lined up with the match. That only works because the timer restarts from zero on each of those edges; if a shift-aware behavior reads wrong, check that the clock was reset before you look at the mechanism.
 
-## Vision Hardware
-
-Three Limelight 4s, back, left, right, for AprilTag-based pose estimation. `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` is the seasonal map. Game-piece detection is not currently wired up; QuestNav is on the radar but unintegrated. Details in [Vision](../tools/vision.md).
-
-## Controls Layout
-
-The pilot drives and runs the fuel cycle; the operator handles offset trims and mechanism resets. Every binding lives in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java); the `Pilot`/`Operator` classes just expose the button `Trigger`s (`LT`, `RT`, `XButton`, …). This section is the summary, that method is the truth.
-
-### Pilot, fuel cycle (the triggers)
-
-`LT` and `RT` drive the core intake/launch state machine:
-
-* `LT` held alone, `INTAKE_FUEL`.
-* `RT` held alone, `LAUNCH_WITH_SQUEEZE`.
-* Both held, `LAUNCH_WITHOUT_SQUEEZE`.
-* Release `LT` while `RT` is still held, `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY`.
-* Release `RT` while `LT` is still held, back to `INTAKE_FUEL`.
-* Release both, `IDLE`.
-
-### Pilot, everything else
-
-* Left stick: field-relative translation; right stick: rotation (exponential curves, deadzone in `Pilot`'s config).
-* `X` (hold), `TRACK_TARGET` (launcher + hood aim while driving); release → `IDLE`.
-* `A` (hold), `UNJAM`; release → `IDLE`.
-* `LT + LB`: `EJECT`; release → `IDLE`.
-* `Select`: `FORCE_HOME`; release → `IDLE`.
-* `LB + Dpad` (up/left/down/right), reorient the robot heading forward/left/back/right.
-* While disabled: `A` → coast mechanisms, `B` → brake mechanisms.
-
-### Operator
-
-* `Dpad Down/Up`: hood-angle offset trim (−/+, via `ShotCalculator`).
-* `Dpad Right/Left`: drive-angle offset trim (−/+, via `ShotCalculator`).
-* `Select`: `FORCE_HOME`; release → `IDLE`.
-* `LB + Y`: reset the intake-extension position to max (with a rumble confirmation).
-* While disabled: `A` → coast mechanisms, `B` → brake mechanisms.
-
-### Hub shifts
-
-REBUILT alternates each alliance's hub between active and inactive during teleop. `Robot.configureBindings()` calls [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java)`::initialize` on teleop/auto/disable transitions so shift-aware logic knows where the match clock is.
-
-## Where Robot State Lives
-
-* [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java): the `WantedSuperState`/`CurrentSuperState` enums and the `handleStateTransition()`/`applyStates()` logic that fans a super-state out across every mechanism. This is where a coordinated multi-mechanism move belongs.
-* [`Robot.java`](../../src/main/java/frc/robot/Robot.java): `configureBindings()` wires gamepad triggers and `Auton` event triggers to `superStructure.setStateCommand(...)`. A single trigger that fires one existing state goes here.
-
-If you're adding a behavior that's a coordinated multi-mechanism move, add a `WantedSuperState` and handle it in `SuperStructure`. If you're adding a single trigger that fires an existing state, just bind it in `Robot.configureBindings()`.
+Which alliance is active first comes from the FMS game message rather than from alliance color. That is an FMS convention, and it is why the schedule can be wrong in a practice session with no FMS: the fallback assumes the opponent is active first.

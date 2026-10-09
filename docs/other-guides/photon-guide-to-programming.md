@@ -1,4 +1,4 @@
-# Photon Guide to Programming
+# Photon guide to programming
 
 *Audience: Reference. No prerequisites.*
 
@@ -57,12 +57,4 @@ A few starting points:
 - [CTRE Phoenix 6 docs](https://v6.docs.ctr-electronics.com): TalonFX gain configuration, closed-loop control modes, and fault handling.
 - The `#programming` channel in the team Slack, the fastest way to reach teammates who've already solved the problem.
 
-## Resources Used on This Robot
-
-The [Dependencies Overview](../dependencies/overview.md) lists every library the 2026 robot uses. The ones you'll interact with most directly:
-
-- **WPILib**: commands, subsystems, simulation, and the scheduler.
-- **Phoenix 6**: TalonFX control, MotionMagic, gain configuration, and CAN diagnostics via [Phoenix Tuner X](../tools/phoenix-tuner-x.md).
-- **DogLog / Telemetry**: logging, covered in [Logging](../tools/logging.md).
-- **PathPlanner**: autonomous path generation and following, covered in [Auton](../tools/auton.md).
-- **MapleSim**: physics simulation for the drivetrain and game pieces, covered in [Simulation](../tools/simulation.md).
+When you're stuck on a library rather than on the design, [Dependencies Overview](../dependencies/overview.md) points at the page for each one, and the [table of contents](../index.md) has the robot-specific workflow around them.

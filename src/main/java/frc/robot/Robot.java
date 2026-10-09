@@ -69,9 +69,8 @@ import lombok.Getter;
 import org.json.simple.parser.ParseException;
 
 /**
- * The main robot class. This class is the entry point for the robot code and manages all subsystems
- * and their configurations. The main robot class. This class is the entry point for the robot code
- * and manages all subsystems and their configurations.
+ * Robot entry point. Picks the config for the Rio serial it is running on, then builds the gamepads
+ * and mechanisms.
  */
 public class Robot extends SpectrumRobot {
     @Getter private static RobotSim robotSim;
@@ -118,7 +117,6 @@ public class Robot extends SpectrumRobot {
         try {
             Telemetry.print("--- Robot Init Starting ---");
 
-            // Set up the config
             switch (Rio.id) {
                 case PHOTON2026:
                     config = new PHOTON2026();
@@ -126,16 +124,13 @@ public class Robot extends SpectrumRobot {
                 case PM_2026:
                     config = new PM2026();
                     break;
-                    // case FM_2026:
-                    //     config = new FM2026();
-                    //     break;
                 default: // SIM and UNKNOWN
                     config = new FM2026();
                     break;
             }
 
-            double canInitDelay = 0.1; // Delay between any mechanism with motor/can configs
-            mainCANBus = new CANBus(Rio.CANIVORE); // Use the first CANivore bus found
+            double canInitDelay = 0.1; // separates the mechanisms' CAN config writes
+            mainCANBus = new CANBus(Rio.CANIVORE); // "*" takes the first CANivore found
 
             pilot = new Pilot(config.pilot);
             operator = new Operator(config.operator);
@@ -174,7 +169,6 @@ public class Robot extends SpectrumRobot {
             auton = new Auton(superStructure);
             vision = new Vision(config.vision);
             batteryLogger = new BatteryLogger();
-            // leds = new Leds();
 
             if (Utils.isSimulation()) {
                 robotSim = new RobotSim(superStructure);
@@ -188,7 +182,6 @@ public class Robot extends SpectrumRobot {
             Telemetry.print("--- Robot Init Complete ---");
 
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
@@ -210,27 +203,26 @@ public class Robot extends SpectrumRobot {
     }
 
     public void configureBindings() {
-        // LT alone → intake fuel; do nothing if RT is already held (RT+LT handled below)
+        // LT alone intakes. RT wins, so the guard yields when RT is held.
         pilot.LT.onTrue(
                 Commands.either(
                         superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
                         Commands.none(),
                         pilot.RT.negate()));
 
-        // RT alone → launch; do nothing if LT is already held (RT+LT handled below)
+        // RT alone launches with a squeeze. LT yields, so RT+LT falls through to the binding below.
         pilot.RT.onTrue(
                 Commands.either(
                         superStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
                         Commands.none(),
                         pilot.LT.negate()));
 
-        // RT + LT both held → launch (intake stays extended; resolves to LAUNCH_WITHOUT_SQUEEZE)
+        // RT+LT together launches with the intake held out.
         pilot.RT
                 .and(pilot.LT)
                 .onTrue(superStructure.setStateCommand(WantedSuperState.LAUNCH_WITHOUT_SQUEEZE));
 
-        // LT released while RT still held → launch (no delay; resolves to
-        // LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY)
+        // LT up while RT is held launches with no squeeze delay.
         pilot.LT.onFalse(
                 Commands.either(
                         superStructure.setStateCommand(
@@ -238,14 +230,14 @@ public class Robot extends SpectrumRobot {
                         Commands.none(),
                         pilot.RT));
 
-        // RT released while LT still held → resume intaking
+        // RT up while LT is held resumes the intake.
         pilot.RT.onFalse(
                 Commands.either(
                         superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL),
                         Commands.none(),
                         pilot.LT));
 
-        // Both released → idle
+        // Both triggers up goes idle.
         pilot.RT.or(pilot.LT).onFalse(superStructure.setStateCommand(WantedSuperState.IDLE));
 
         pilot.LT.and(pilot.LB).onTrue(superStructure.setStateCommand(WantedSuperState.EJECT));
@@ -287,12 +279,11 @@ public class Robot extends SpectrumRobot {
         operator.dPadRight.onTrue(ShotCalculator.decreaseDriveAngleOffset());
         operator.dPadLeft.onTrue(ShotCalculator.increaseDriveAngleOffset());
 
-        // Reset hub shift timer when enabling
+        // Reset the shift timer whenever the robot enables.
         Util.teleop.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.autoMode.onTrue(Commands.runOnce(ShiftHelpers::initialize));
         Util.disabled.onTrue(Commands.runOnce(ShiftHelpers::initialize).ignoringDisable(true));
 
-        // Auton Triggers
         Auton.autonIntake.onTrue(
                 superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
         Auton.autonShotPrep.onTrue(
@@ -309,7 +300,6 @@ public class Robot extends SpectrumRobot {
         RobotSim.simLaunching().whileTrue(robotSim.ballSimLaunchFuel());
     }
 
-    /** Sets up the SmartDashboard data for visualization. */
     public void setupSmartDashboardData() {
         SmartDashboard.putData("Field2d", field2d);
     }
@@ -325,12 +315,9 @@ public class Robot extends SpectrumRobot {
         WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
     }
 
-    /* ROBOT PERIODIC  */
     /**
-     * This method is called periodically the entire time the robot is running. Periodic methods are
-     * called every 20 ms (50 times per second) by default Since the robot software is always
-     * looping you shouldn't pause the execution of the robot code This ensures that new values are
-     * updated from the gamepads and sent to the motors
+     * Runs the command scheduler. WPILib calls this every 20 ms, and nothing in the command
+     * framework moves without it.
      */
     @Override
     public void robotPeriodic() {
@@ -338,12 +325,6 @@ public class Robot extends SpectrumRobot {
         systemLoad.periodic();
         try {
             Telemetry.time("Scheduler/robotPeriodic");
-            /*
-             * Runs the Scheduler. This is responsible for polling buttons, adding newly-scheduled
-             * commands, running already-scheduled commands, removing finished or interrupted
-             * commands, and running subsystem periodic() methods. This must be called from the
-             * robot's periodic block in order for anything in the Command-based framework to work.
-             */
             CommandScheduler.getInstance().run();
 
             Telemetry.logDash("Match Data/MatchTime", DriverStation.getMatchTime(), "seconds");
@@ -369,7 +350,6 @@ public class Robot extends SpectrumRobot {
             ShotCalculator.getInstance().clearShootingParameters();
             Telemetry.timeEnd("Scheduler/robotPeriodic");
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
@@ -410,13 +390,13 @@ public class Robot extends SpectrumRobot {
             return;
         }
 
-        // Strip " - Left" / " - Right" suffix to get the base path name
+        // The field visualizer keys off the side suffix, so strip it to get the base path name
         String baseAutoName = fullAutoName;
         if (baseAutoName.endsWith(" - Left") || baseAutoName.endsWith(" - Right")) {
             baseAutoName = baseAutoName.substring(0, baseAutoName.lastIndexOf(" - "));
         }
 
-        // Reload whenever the full name changes — catches both auto switches and side switches
+        // Reload on any name change, whether the auto or the side switched.
         if (!autoName.equals(fullAutoName)) {
             autoName = fullAutoName;
             Telemetry.log("Auton Warmed Up", false);
@@ -428,7 +408,6 @@ public class Robot extends SpectrumRobot {
                     Telemetry.print("Could not load path planner paths");
                 }
 
-                // Flip the paths if on red alliance
                 Optional<Alliance> alliance = DriverStation.getAlliance();
                 if (alliance.isPresent() && alliance.get() == Alliance.Red) {
                     pathPlannerPaths =
@@ -437,7 +416,6 @@ public class Robot extends SpectrumRobot {
                                     .collect(Collectors.toList());
                 }
 
-                // Mirror the paths if starting on the right
                 if (!leftStart) {
                     pathPlannerPaths =
                             pathPlannerPaths.stream()
@@ -446,14 +424,12 @@ public class Robot extends SpectrumRobot {
                 }
 
                 if (!pathPlannerPaths.isEmpty()) {
-                    // Set the robot pose to the starting pose of the first path
                     swerve.resetPose(
                             pathPlannerPaths
                                     .get(0)
                                     .getStartingHolonomicPose()
                                     .orElse(new Pose2d()));
 
-                    // Warm up the starting path
                     Command warmUpPath =
                             Commands.sequence(
                                             AutoBuilder.followPath(pathPlannerPaths.get(0))
@@ -471,7 +447,6 @@ public class Robot extends SpectrumRobot {
                     Telemetry.print("Warning: No paths loaded for auto: " + baseAutoName);
                 }
 
-                // Convert path points to poses
                 List<Pose2d> poses = new ArrayList<>();
                 for (PathPlannerPath path : pathPlannerPaths) {
                     poses.addAll(
@@ -496,13 +471,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("### Disabled Exit### ");
     }
 
-    /* AUTONOMOUS MODE (AUTO) */
-    /**
-     * This mode is run when the DriverStation Software is set to autonomous and enabled. In this
-     * mode the robot is not able to read values from the gamepads
-     */
-
-    /** This method is called once when autonomous starts */
     @Override
     public void autonomousInit() {
         Telemetry.print("@@@ Auton Init @@@ ");
@@ -513,7 +481,6 @@ public class Robot extends SpectrumRobot {
         try {
             auton.init();
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
@@ -534,11 +501,10 @@ public class Robot extends SpectrumRobot {
             Telemetry.print("!!! Teleop Init Starting !!! ");
 
             superStructure.setWantedSuperState(WantedSuperState.IDLE);
-            field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears auto visualizer
+            field2d.getObject("Auto Routine").setPoses(new ArrayList<>()); // clears the visualizer
 
             Telemetry.print("!!! Teleop Init Complete !!! ");
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
@@ -555,15 +521,6 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("!!! Teleop Exit !!! ");
     }
 
-    /* TEST MODE */
-    /**
-     * This mode is run when the DriverStation Software is set to test and enabled. In this mode the
-     * is fully enabled and can move it's outputs and read values from the gamepads. This mode is
-     * never enabled by the competition field It can be used to test specific features or modes of
-     * the robot
-     */
-
-    /** This method is called once when test mode starts */
     @Override
     public void testInit() {
         try {
@@ -572,7 +529,6 @@ public class Robot extends SpectrumRobot {
 
             Telemetry.print("~~~ Test Init Complete ~~~ ");
         } catch (Throwable t) {
-            // intercept error and log it
             CrashTracker.logThrowableCrash(t);
             throw t;
         }
@@ -586,23 +542,15 @@ public class Robot extends SpectrumRobot {
         Telemetry.print("~~~ Test Exit ~~~ ");
     }
 
-    /* SIMULATION MODE */
-    /**
-     * This mode is run when the software is running in simulation and not on an actual robot. This
-     * mode is never enabled by the competition field
-     */
-
-    /** This method is called once when a simulation starts */
     @Override
     public void simulationInit() {
         Telemetry.print("$$$ Simulation Init Starting $$$ ");
         Telemetry.print("$$$ Simulation Init Complete $$$ ");
     }
 
-    /** This method is called periodically during simulation. */
     @Override
     public void simulationPeriodic() {
-        robotSim.getBallSim().tick(); // runs physics, publishes ball positions to NT
+        robotSim.getBallSim().tick(); // ticks the physics and publishes ball positions to NT
         robotSim.updateArticulatedMechanisms();
         Telemetry.log("Sim/Fuel", robotSim.getBallSim().getTotalIntaked());
     }

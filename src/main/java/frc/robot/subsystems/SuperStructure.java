@@ -93,7 +93,7 @@ public class SuperStructure extends SubsystemBase {
     public void periodic() {
         currentSuperState = handleStateTransitions();
 
-        // Restart the squeeze timer exactly once when first entering a squeeze state
+        // Restart the timer on the first loop of a squeeze, not on every loop.
         if (isSqueezeState(currentSuperState) && !isSqueezeState(previousSuperState)) {
             intakeSqueezeTimer.restart();
         }
@@ -171,8 +171,6 @@ public class SuperStructure extends SubsystemBase {
                 break;
         }
     }
-
-    // ── State methods ──────────────────────────────────────────────────────────
 
     private void applyIdle() {
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
@@ -317,8 +315,6 @@ public class SuperStructure extends SubsystemBase {
         hood.setWantedState(Hood.WantedState.HOME);
     }
 
-    // ── Public API ─────────────────────────────────────────────────────────────
-
     public Command coastMechanisms() {
         return Commands.runOnce(
                         () -> {
@@ -337,7 +333,7 @@ public class SuperStructure extends SubsystemBase {
                 .ignoringDisable(true);
     }
 
-    // Allocation-free boolean checks — use these in per-loop code (e.g. ShotCalculator).
+    // Allocation-free, so these are safe to call in per-loop code.
     public boolean isRobotInNeutralZone() {
         return swerve.isInNeutralZone();
     }
@@ -354,7 +350,7 @@ public class SuperStructure extends SubsystemBase {
         return !isRobotInFeedZone();
     }
 
-    // Trigger factories — use these for binding-time composition only.
+    // Each allocates a Trigger, so call these at binding time rather than per loop.
     public Trigger robotInNeutralZone() {
         return new Trigger(this::isRobotInNeutralZone);
     }
