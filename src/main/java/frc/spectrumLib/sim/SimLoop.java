@@ -8,12 +8,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.DoubleConsumer;
 
 /**
- * Shared high-frequency simulation loop. Mechanism sims register a step callback and are driven
- * from a single {@link Notifier} thread far faster than the 50 Hz main loop, so the simulated
- * TalonFX closed loops advance close to their real ~1 kHz cadence and PID gains behave like
- * hardware. This mirrors the swerve drivetrain's sim thread.
+ * Shared high-frequency simulation loop. Mechanism sims register a step callback and run on one
+ * {@link Notifier} thread well above the 50 Hz main loop, so the simulated TalonFX closed loops
+ * advance near their real cadence and PID gains behave like hardware. Mirrors the swerve
+ * drivetrain's sim thread.
  *
- * <p>Sim-only: registration is a no-op on real hardware, so no thread is started on the roboRIO.
+ * <p>Sim-only. Registration is a no-op on real hardware, so no thread starts on the roboRIO.
  */
 public final class SimLoop {
 
@@ -22,14 +22,12 @@ public final class SimLoop {
     private static final List<DoubleConsumer> steps = new CopyOnWriteArrayList<>();
     private static Notifier notifier;
     private static double lastTime;
-    /** Creates a new SimLoop instance. */
+
     private SimLoop() {}
 
     /**
-     * Registers a step callback, invoked with the real elapsed time (seconds) since the previous
+     * Registers a step callback, which receives the real elapsed time in seconds since the previous
      * tick. The first registration starts the shared thread. No-op outside simulation.
-     *
-     * @param step the per-tick update to run
      */
     public static synchronized void register(DoubleConsumer step) {
         if (!Utils.isSimulation()) {
@@ -44,7 +42,6 @@ public final class SimLoop {
         }
     }
 
-    /** Tick. */
     private static void tick() {
         double now = Utils.getCurrentTimeSeconds();
         double dt = now - lastTime;
