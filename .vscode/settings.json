@@ -1,5 +1,8 @@
 {
   "java.configuration.updateBuildConfiguration": "automatic",
+  // JVM used to run the Gradle daemon during the language server's project import.
+  // Without this it falls back to the system JAVA_HOME, which breaks the import if that is not JDK 17+.
+  "java.import.gradle.java.home": "C:/Users/Public/wpilib/2026/jdk",
   "java.server.launchMode": "Standard",
   "files.exclude": {
     "**/.git": true,
@@ -59,5 +62,7 @@
   ],
   "java.compile.nullAnalysis.mode": "automatic",
   "java.debug.settings.onBuildFailureProceed": true,
-  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx4G -Xms100m -Xlog:disable"
+
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx16G -Xms100m -Xlog:disable"
+
 }

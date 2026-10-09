@@ -11,76 +11,87 @@ import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.RollerConfig;
 import frc.spectrumLib.sim.RollerSim;
-import frc.spectrumLib.telemetry.Telemetry;
+import frc.spectrumLib.telemetry.*;
 import lombok.Getter;
 
-/** The Launcher subsystem. Four-motor flywheel that launches fuel at the hub. */
 public class Launcher extends Mechanism {
 
     public static class LauncherConfig extends Config {
 
-        /* Launcher config values */
-        @Getter private final double supplyCurrentLimit = 80;
-        @Getter private final double statorCurrentLimit = 180;
-        @Getter private final double lowerSupplyCurrentLimit = 80;
-        @Getter private final double lowerSupplyCurrentTime = 0;
-        @Getter private final double forwardTorqueCurrentLimit = statorCurrentLimit;
-        @Getter private final double reverseTorqueCurrentLimit = 10;
-        @Getter private final double voltageLimit = 12;
-        @Getter private final double velocityKp = 10;
-        @Getter private final double velocityKv = 0;
-        @Getter private final double velocityKs = 20;
+        @Getter private final double idlingRPM = 700;
 
-        @Getter private final double onTargetToleranceRPM = 100;
+        /**
+         * Supply headroom is the flywheel's recovery time between balls, so this sits well above
+         * the 57 and 45 A the pair drew during a squeeze launch at 8.3 V battery, but below the 80
+         * A stator limit. A cap of 65 made the shots inconsistent and balls collided in the air.
+         */
+        @Getter private final double supplyCurrentLimit = 75;
 
-        /* Sim Configs */
-        @Getter private final double launcherX = Units.inchesToMeters(62.5);
-        @Getter private final double launcherY = Units.inchesToMeters(60);
+        @Getter private final double statorCurrentLimit = 80;
+        @Getter private final double reverseStatorCurrentLimit = -10;
+        @Getter private final double lowerSupplyCurrentLimit = 40;
+        @Getter private final double timeUntilLowerCurrent = 1;
+        @Getter private final double nominalVoltage = 16;
+
+        @Getter private double velocityKp = 0.5;
+        @Getter private double velocityKv = 0.1425;
+        @Getter private double velocityKs = 0;
+
+        @Getter private double onTargetToleranceRPM = 200;
+
+        @Getter private double gearRatio = 1.38;
+
+        @Getter private final double launcherX = Units.inchesToMeters(43);
+
+        @Getter private final double launcherY = Units.inchesToMeters(53);
         @Getter private final double wheelDiameter = 4;
 
         public LauncherConfig() {
-            super("Launcher", 46, Rio.CANIVORE);
+            super("Launcher Front Left", 15, Rio.CANIVORE);
             configPIDGains(0, velocityKp, 0, 0);
             configFeedForwardGains(velocityKs, velocityKv, 0, 0);
-            configGearRatio(1);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configForwardTorqueCurrentLimit(forwardTorqueCurrentLimit);
-            configReverseTorqueCurrentLimit(reverseTorqueCurrentLimit);
+            configGearRatio(gearRatio);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    timeUntilLowerCurrent);
+            configReverseTorqueCurrentLimit(reverseStatorCurrentLimit);
             configNeutralBrakeMode(false);
-            configForwardVoltageLimit(voltageLimit);
-            configReverseVoltageLimit(-voltageLimit);
-            configClockwise_Positive();
+            configForwardVoltageLimit(nominalVoltage);
+            configReverseVoltageLimit(-nominalVoltage);
+            configCounterClockwise_Positive();
+            // The flywheel's feedforward is fit from logs, which needs voltage on every sample.
+            setFastOutputLogging(true);
             setFollowerConfigs(
                     new FollowerConfig(
-                            "Launcher Top Right", 47, Rio.CANIVORE, MotorAlignmentValue.Opposed),
-                    new FollowerConfig(
-                            "Launcher Bottom Left", 48, Rio.CANIVORE, MotorAlignmentValue.Aligned),
-                    new FollowerConfig(
-                            "Launcher Bottom Right",
-                            49,
-                            Rio.CANIVORE,
-                            MotorAlignmentValue.Opposed));
+                            "Launcher Front Right", 16, Rio.CANIVORE, MotorAlignmentValue.Opposed));
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         OFF,
         IDLE_PREP,
-        SLOW_LAUNCH,
-        AIM_AT_TARGET,
+        LAUNCH,
+        /** Flywheel backwards, to push a ball stuck at the wheels back down during an unjam. */
+        REVERSE,
+        /** Fixed speed for the pose-independent set shot. */
+        SET_SHOT,
     }
 
     public enum SystemState {
         OFF,
         IDLE_PREP,
-        SLOW_LAUNCH,
-        AIM_AT_TARGET,
+        LAUNCH,
+        REVERSE,
+        SET_SHOT,
     }
+
+    /**
+     * Flywheel speed while unjamming. Modest on purpose: the reverse torque limit is only 10 A
+     * stator, so this is a nudge, not a launch in the other direction.
+     */
+    private static final double UNJAM_RPM = -1000;
 
     private WantedState wantedState = WantedState.OFF;
     private SystemState systemState = SystemState.OFF;
@@ -93,33 +104,61 @@ public class Launcher extends Mechanism {
         return switch (wantedState) {
             case OFF -> SystemState.OFF;
             case IDLE_PREP -> SystemState.IDLE_PREP;
-            case SLOW_LAUNCH -> SystemState.SLOW_LAUNCH;
-            case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case LAUNCH -> SystemState.LAUNCH;
+            case REVERSE -> SystemState.REVERSE;
+            case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
+
+    /** Flywheel speed commanded this loop (RPM); 0 when stopped. */
+    @Getter private double commandedRPM = 0;
 
     private void applyStates() {
         double wantedRPM = 0;
         switch (systemState) {
             case OFF:
+                commandedRPM = 0;
                 stop();
                 return;
             case IDLE_PREP:
-                wantedRPM = 700;
+                wantedRPM = config.getIdlingRPM();
                 break;
-            case SLOW_LAUNCH:
-                wantedRPM = 400;
-                break;
-            case AIM_AT_TARGET:
+            case LAUNCH:
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedRPM = params.flywheelSpeed();
                 break;
+            case REVERSE:
+                wantedRPM = UNJAM_RPM;
+                break;
+            case SET_SHOT:
+                wantedRPM = ShotCalculator.getSetShotFlywheelRPM();
+                break;
         }
-        final double finalWantedRPM = wantedRPM;
-        setVelocityTCFOCrpm(() -> finalWantedRPM);
+        commandedRPM = wantedRPM;
+        setVelocityRPM(() -> commandedRPM);
+    }
+
+    /** True when the flywheel is launching and on its commanded shot speed. Gates feeding it. */
+    public boolean isAtSpeed() {
+        return (systemState == SystemState.LAUNCH || systemState == SystemState.SET_SHOT)
+                && Math.abs(getVelocityRPM() - commandedRPM) <= config.getOnTargetToleranceRPM();
+    }
+
+    /**
+     * True when the flywheel is launching and has not drooped below the given fraction of its
+     * commanded speed. The feeder gate uses this to decide whether to <em>keep</em> feeding: each
+     * ball loads the flywheel, so a burst that had to re-satisfy {@link #isAtSpeed()} between every
+     * ball would feed in stutters. Only droop is checked, since running fast is never a reason to
+     * stop feeding.
+     */
+    public boolean isAboveSpeedFraction(double fraction) {
+        return (systemState == SystemState.LAUNCH || systemState == SystemState.SET_SHOT)
+                && commandedRPM > 0
+                && getVelocityRPM() >= commandedRPM * fraction;
     }
 
     @Getter private final LauncherConfig config;
+
     @Getter private LauncherSim sim;
 
     public Launcher(LauncherConfig config) {
@@ -134,20 +173,14 @@ public class Launcher extends Mechanism {
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.logDash("Launcher/WantedState", wantedState.toString());
-        Telemetry.logDash("Launcher/SystemState", systemState.toString());
-        Telemetry.logDash("Launcher/CurrentCommand", getCurrentCommandName());
-        Telemetry.logDash("Launcher/Voltage", getVoltage(), "volts");
-        Telemetry.logDash("Launcher/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.logDash("Launcher/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.logDash("Launcher/RPM", getVelocityRPM(), "RPM");
-        Telemetry.logDash("Launcher/Temp", getTemp(), "deg_C");
+        Telemetry.logState("Launcher/WantedState", wantedState);
+        Telemetry.logState("Launcher/SystemState", systemState);
+        // Flywheel speed stays at loop rate: spin-up and the dip as each ball passes are shot data.
+        logStandard("Launcher", true, RpmLog.LOOP_DASH);
+        Telemetry.log("Launcher/CommandedRPM", commandedRPM, "RPM");
+        Telemetry.logDash("Launcher/AtSpeed", isAtSpeed());
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
             sim = new LauncherSim(RobotSim.leftView, motor);
@@ -159,6 +192,7 @@ public class Launcher extends Mechanism {
             super(
                     new RollerConfig(config.getWheelDiameter())
                             .setPosition(config.getLauncherX(), config.getLauncherY())
+                            .setGearRatio(config.getGearRatio())
                             .setMount(Robot.getHood().getSim()),
                     mech,
                     motor,

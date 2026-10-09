@@ -1,0 +1,33 @@
+.turret-top { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .turret-top { grid-template-columns: 1fr; } }
+
+svg.dial { width: 100%; height: auto; display: block; }
+.dial-ring { fill: var(--s2); stroke: var(--bd-strong); stroke-width: 2; }
+.dial-travel { fill: none; stroke: var(--s3); stroke-width: 26; }
+.dial-tick { stroke: var(--bd-strong); stroke-width: 1.5; }
+.dial-tick.major { stroke: var(--tx-faint); stroke-width: 2; }
+.dial-label { fill: var(--tx-faint); font: 600 10px var(--sans); }
+.dial-limit { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 4 3; }
+.dial-chassis { fill: none; stroke: var(--bd-strong); stroke-width: 2; }
+.dial-intake { fill: var(--bd-strong); }
+.needle-measured { stroke: var(--series-1); stroke-width: 5; stroke-linecap: round; }
+.needle-commanded { stroke: var(--series-4); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 6 4; }
+.needle-vision { stroke: var(--series-3); stroke-width: 2.5; stroke-linecap: round; }
+.dial-hub { fill: var(--brand-deep); }
+
+.scrub { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.scrub input[type="range"] { flex: 1; accent-color: var(--brand); }
+.scrub .t { font-family: var(--mono); font-size: 0.82rem; color: var(--tx-dim); min-width: 74px; text-align: right; }
+
+.readout { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 0.84rem; margin-top: 14px; }
+.readout dt { color: var(--tx-faint); }
+.readout dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+.verdict { display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border-radius: 12px; border: 1px solid var(--bd); background: var(--s1); }
+.verdict .icon { font-size: 1.6rem; line-height: 1; }
+.verdict.ok { border-left: 4px solid var(--ok); }
+.verdict.warn { border-left: 4px solid var(--warn); }
+.verdict.bad { border-left: 4px solid var(--bad); }
+.verdict h3 { margin: 0 0 4px; text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--tx); }
+.verdict p { margin: 0; color: var(--tx-dim); font-size: 0.86rem; }

@@ -4,18 +4,17 @@ import frc.robot.Robot.Config;
 
 public class PHOTON2026 extends Config {
 
-    // Photon Machine
     public PHOTON2026() {
         super();
+        // CANcoder offsets in rotations.
         swerve.configEncoderOffsets(0.127197265625, -0.260009765625, 0.1171875, -0.3427734375);
 
-        // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
-        fuelIntake.setAttached(true);
-        intakeExtension.setAttached(true);
+        intakeRoller.setAttached(true);
+        intakeKicker.setAttached(true);
+        intakeExtensionLeft.setAttached(true);
+        intakeExtensionRight.setAttached(true);
         launcher.setAttached(true);
-        indexerTower.setAttached(true);
-        indexerBed.setAttached(true);
     }
 }

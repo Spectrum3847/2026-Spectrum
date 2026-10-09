@@ -16,9 +16,9 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 
 /**
  * WPILib-backed simulation of a roller (flywheel) mechanism driven by a single Kraken X60 motor.
- * Updates the TalonFX sim state each robot period and animates the roller — including spin-color
- * feedback — in a {@link Mechanism2d} canvas. Implements {@link Mountable} so the roller axle can
- * follow a parent {@link Mount}.
+ * Advances the TalonFX sim state on the shared {@link SimLoop} thread and animates the roller in a
+ * {@link Mechanism2d} canvas, coloring by spin direction. Implements {@link Mountable} so the
+ * roller axle can follow a parent {@link Mount}.
  */
 public class RollerSim implements Mountable {
 
@@ -31,12 +31,8 @@ public class RollerSim implements Mountable {
     private Circle roller;
 
     /**
-     * Creates and registers a roller simulation.
-     *
-     * @param config physical and display configuration for the roller
      * @param mech the Mechanism2d canvas to draw the roller on
-     * @param rollerMotorSim the TalonFX sim state of the motor driving the roller
-     * @param name unique name prefix used for Mechanism2d element labels
+     * @param name prefix for this sim's Mechanism2d element labels
      */
     public RollerSim(RollerConfig config, Mechanism2d mech, TalonFX motor, String name) {
         this.config = config;
@@ -69,16 +65,12 @@ public class RollerSim implements Mountable {
         SimLoop.register(this::update);
     }
 
-    /**
-     * Advances the flywheel physics simulation by one robot period, updates the TalonFX rotor
-     * velocity and position, moves the axle to its current mount position, and updates the
-     * Mechanism2d color to reflect the roller's spin direction.
-     */
+    /** One sim tick: steps the flywheel, feeds the rotor state back, and redraws. */
     public void update(double dt) {
         rollerSim.setInput(rollerMotorSim.getMotorVoltage());
         rollerSim.update(dt);
 
-        // FlywheelSim reports mechanism-side velocity; the rotor spins gearRatio times faster.
+        // FlywheelSim reports mechanism-side velocity; the rotor turns gearRatio times faster.
         double rotorRotationsPerSecond =
                 rollerSim.getAngularVelocityRadPerSec() / (2.0 * Math.PI) * config.getGearRatio();
         rollerMotorSim.setRotorVelocity(rotorRotationsPerSecond);
@@ -90,7 +82,7 @@ public class RollerSim implements Mountable {
             rollerAxle.setPosition(config.getInitialX(), config.getInitialY());
         }
 
-        // Scale down the angular velocity so we can actually see what is happening
+        // Scale the drawn angle down so a spinning roller reads as a blur rather than a strobe.
         double rpm = rollerSim.getAngularVelocityRPM() / 2;
         rollerViz.setAngle(rollerViz.getAngle() + Math.toDegrees(rpm) * dt * 0.1);
 

@@ -1,0 +1,362 @@
+# Spectrum robot app
+
+A local web app for the **2026 offseason robot** (`OM2026`). Controls reference, log sync,
+power analysis, and CAN-bus health, in one place, running on your laptop.
+
+```bash
+cd tools/robot-app
+npm install          # once, needs internet
+npm start            # builds and serves on http://localhost:5801
+```
+
+On Windows, double-click `start.bat` instead — it installs, builds and opens the browser.
+`align-swerve.bat` does the same but lands on the alignment page, for the desktop shortcut people
+already have. `./gradlew robotApp` and `./gradlew alignSwerve` do the same from Gradle.
+
+After `npm install`, nothing needs the internet again — it runs in the queue line, in the pit, on
+a field with no signal. Only pulling logs off the robot needs a network, and that network is the
+robot's own.
+
+For development with hot reload:
+
+```bash
+npm run dev          # Vite on 5173, API proxied to the Express server on 5801
+```
+
+## What's here
+
+|           Page           |                                                                                         What it does                                                                                         |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Pilot** / **Operator** | Button maps with a live controller diagram, one layer per modifier chord, including the disabled-mode pit controls that are otherwise only findable by reading `Robot.java`.                 |
+| **Logs**                 | Finds the robot, lists `.wpilog` files on it, pulls them into the team logs repo, and indexes headline numbers into a committed manifest.                                                    |
+| **Turret**               | Where it pointed on a scrubbable dial, whether it reached its command, and whether it slipped — cross-checked against the turret camera.                                                     |
+| **Power**                | Per-motor current against its configured limit, how often each motor is pinned there, battery sag and pack internal resistance, energy per mechanism, and a main-breaker thermal simulation. |
+| **CAN Bus**              | Bus utilization, error counters heading for bus-off, motors that stopped answering, and the device inventory.                                                                                |
+| **Swerve Align**         | Pin the modules, read the CANcoders live over NT4, and write the offsets into the robot config file.                                                                                         |
+| **Cameras**              | Each Limelight live, its mount checked against `Vision.java` by accelerometer and AprilTag solve, auto-tuned exposure, and the fixes written back to the Java and the camera.                |
+
+## The two data files
+
+Both are hand-authored and both are checked against the Java by `npm run check` (and by
+`./gradlew check`).
+
+**`data/controls.json`** — every binding in `Robot.configureBindings()`.
+
+Hand-written rather than generated on purpose. The LT/RT launch behaviour lives inside
+`Commands.either(...)` conditions, so the trigger expression alone understates what the robot
+does; a generator would produce confident, wrong documentation. The drift check enforces that
+every `pilot.X` / `operator.X` the Java binds appears here and vice versa.
+
+**`data/robot-profile.json`** — CAN ids, buses, current limits, follower relationships.
+
+This one is load-bearing. **Current limits are never logged.** They are compiled into the Java
+config classes, so without this file no analyzer can draw a limit line or say "this motor was at
+its ceiling 17% of the match". The drift check verifies every limit against its Java source.
+
+## Reading the analysis honestly
+
+A few things about this robot's telemetry will mislead you if you don't know them. The Power page
+lists them all at the bottom; the ones that bite hardest:
+
+- **Per-motor currents are leader-only.** `Launcher/StatorCurrent`, `IntakeRoller/*` and
+  `LauncherTower/*` exclude their follower, so true draw is roughly double. The
+  `BatteryLogger/Current/Mechanisms/*` column does include followers.
+- **`MotorConnected` covers every mechanism but only its leader.** Every mechanism logs it, so a
+  missing key means a missing mechanism, not a missing check — but a dead *follower* (Launcher
+  Front Right CAN 16, LauncherTower Back 18, Intake Roller Right 7) leaves its leader reporting
+  connected and is invisible in the log. That is why the CAN page also infers dropouts from motors
+  reporting 0 V and 0 A while a setpoint is pending — the signature that found the dead hood on
+  2026-09-04.
+- **Channels are logged at three different rates.** `Swerve/State/*` comes off the 250 Hz odometry
+  thread; states, commanded values and most RPM/position are 50 Hz; and every `<Name>/Voltage`,
+  `StatorCurrent`, `SupplyCurrent`, `Temp` and `MotorConnected` is on a 10 Hz slow tier. The
+  exception is Turret, Launcher and LauncherTower, which set `fastOutputLogging` so their
+  *voltage alone* is 50 Hz — dense enough to fit a feedforward against, while their currents beside
+  it stay at 10 Hz. A denser voltage trace is not a denser current trace.
+- **The roboRIO CAN bus has no health metrics at all.** The intake roller pair (CAN 6 and 7) lives
+  there, so a fault on that bus shows up only as a frozen trace.
+- **`Scheduler/*` is in seconds**, not milliseconds.
+- **Brownout is not logged** and the threshold is set to 4.6 V, well under the 6.8 V default, so
+  the RIO holds on far longer than stock. Sag has to be read off the voltage trace.
+
+## Turret slip
+
+The turret has two independent views of where it points, and that is the whole basis of the page:
+
+|                                   |                                                   |
+|-----------------------------------|---------------------------------------------------|
+| `Turret/PositionDegrees`          | where the encoder thinks it is                    |
+| `Vision/TurretLL/HeadingErrorDeg` | how far the turret camera disagrees with the gyro |
+
+The second key **is** the turret zero error. A steady offset means the zero is wrong — re-zero and
+move on. An offset that *walks or steps* means the mechanism moved relative to its encoder, which
+is what slipping is, and re-zeroing will not save you.
+
+Two slips look nothing alike and the page keeps them apart:
+
+- **Encoder loses counts, mechanism did not move.** Position jumps, the controller sees a sudden
+  error and drives it out. The **clawed back** column measures that recovery. The camera never
+  notices, because nothing actually moved.
+- **Mechanism moves, encoder did not.** Position is unchanged, so the controller sees nothing
+  wrong and does nothing. Only the camera notices. The **left wrong** column is this, and the
+  robot cannot fix it — it does not know.
+
+**Limelight corrections** are the third column of the story. Vision never corrects the turret's
+zero; the controller only trusts the encoder. What vision corrects is the robot *pose*, and the
+commanded turret angle is computed from that pose, so every accepted estimate nudges where the
+turret is told to point. The page measures that nudge in turret degrees, per camera, plus the
+gross-heading safety net and any manual LB+Select re-seed.
+
+The sting: the turret camera's transform is built from the turret angle, so a slipped turret feeds
+it a wrong transform, its estimates get rejected, and you lose the camera that would have revealed
+the slip. The page reports how long the turret camera spent distrusted.
+
+Unwrap windows are excluded from every check. A full-turn slew is legitimate — the handoff doc
+records one at t=101s going -206° to +153° mid-shot — and would otherwise be the largest "slip" in
+every log.
+
+**Testing.** There is no turret log to test against yet (the April logs are from the competition
+robot, which had no turret), so `test/helpers/turret-fixture.mjs` synthesises one with a
+mechanical slip, an encoder jump and an unwrap injected at known times and sizes, and
+`test/turret.test.mjs` asserts each comes back out correctly classified. A slip detector that
+silently never fires is worse than no detector.
+
+**New checks appear automatically.** Any `Turret/*` key the page has no bespoke view for is listed
+under "Other turret channels", so checks added to the robot code show up without anyone editing
+this app first.
+
+## Swerve alignment
+
+The alignment page is the one part of the app that **writes to the source tree**: it rewrites the
+four numbers in `swerve.configEncoderOffsets(...)` in `src/main/java/frc/robot/configs/OM2026.java`
+and nothing else. That is why the server binds to `127.0.0.1` — nothing on the pit network should
+be able to ask a laptop to edit robot code. Point it at a different robot with `swerveAlign.targetConfig`
+in `config.local.json`.
+
+The split is strict: **the browser talks to the robot, the server talks to the source tree, and
+they never swap roles.** `client/lib/nt4.js` is a read-only NT4 client that connects straight from
+the browser to `ws://<robot>:5810`; `server/lib/swerve-config.js` is the only thing that touches
+the `.java` file.
+
+The parser handles the arithmetic already in the configs (`-0.23046875 - 0.25`), rounds to the
+CANcoder's own 1/4096 resolution, and emits the call formatted the way `googleJavaFormat().aosp()`
+would, so `./gradlew spotlessCheck` stays green without anyone running `spotlessApply` afterwards.
+`test/swerve-config.test.mjs` round-trips all of that against the real config file plus the other
+call shapes it has to survive.
+
+Robot side: `SwerveAlignment.java` publishes raw CANcoder data under `/Robot/Swerve/Align/`.
+The full walkthrough is [`docs/tools/swerve-alignment.md`](../../docs/tools/swerve-alignment.md).
+
+## Cameras
+
+The Cameras page is the second place the app **writes to the source tree**: it rewrites roll, pitch
+and height inside the three `LimelightConfig` chains in
+`src/main/java/frc/robot/subsystems/vision/Vision.java`, and nothing else. Forward, right and yaw
+are not offered, because a robot sitting still on a flat floor cannot measure them -- they need a
+surveyed robot position and stay CAD.
+
+The same split as swerve alignment: **the browser talks to the cameras, the server talks to the
+source tree.** `client/lib/limelight.js` calls each Limelight's own HTTP API on port 5807 straight
+from the browser (the cameras send `Access-Control-Allow-Origin: *`); `server/lib/vision-config.js`
+is the only thing that touches the `.java` file. It replaces individual numeric literals in place,
+leaves every comment alone, and wraps the `.withRotation(...)` line the way
+`googleJavaFormat().aosp()` does when its trailing comment pushes it past 100 columns, so
+`spotlessCheck` stays green.
+
+**Why the Java and not the camera's web UI.** `Vision.sendCameraSettings()` pushes the six mount
+numbers to each camera every couple of seconds, so a value typed into the camera lasts about that
+long. A write from this page lands in the Java first and, by default, also saves into the camera's
+pipeline with `update-pipeline?flush=1`, so the camera boots with the right numbers before the code
+has pushed anything.
+
+**Two ways to measure a mount, neither needing to know where the robot is:**
+
+- The camera's **accelerometer** (`results.imu.data[7..9]`, proper acceleration in g). Gravity in
+  the camera frame gives pitch directly. Works with no tag in view, so every card shows it live.
+- The **AprilTag solve** (`t6c_ts`, the camera's pose in the tag's frame). Field tags hang
+  vertically at known heights, so the optical axis against the tag's vertical is pitch, the
+  camera's horizontal axis against it is roll, and the offset below the tag centre is height. Tag
+  heights come from `data/apriltag-2026-rebuilt-welded.json`, copied from WPILib 2026.2.1.
+
+Both were checked against frames captured from this robot on 2026-09-07 (`test/fixtures/`), the
+day the cameras turned out to be mounted at 30 deg rather than the 60 in the code: the tag solve
+reproduces the hand-computed 32.2 and 31.3 deg for tags 21 and 24 and puts the back-right camera
+0.437 m up against 0.443 in CAD. `test/camera-cal.test.mjs` pins those numbers.
+
+**Set the image values** takes `exposure`, `lcgain` (sensor gain) and `black_level` as typed numbers
+and writes them to this camera or to all three at once, saving to flash. It is the other half of
+auto-tune: the sweep answers "what should these be", this answers "make every camera match the
+numbers I already have", which is the usual pit job once one camera has been dialled in. The fields
+track each camera's saved pipeline until you type in them. Unlike the mount numbers, nothing in the
+robot code pushes these back, so what you write stays written. A value outside the range the sweep
+covers is still sent -- the camera is the one entitled to refuse it -- but it is called out in the
+result line. Each camera reports separately, so one unreachable camera does not hide the two that
+took the write.
+
+**Auto-tune image** sweeps `exposure`, then `lcgain` (sensor gain), then `black_level` on the live
+pipeline without flushing, holds each setting for 1.5 s, and scores it by detection rate, tag count,
+ambiguity, corner jitter and pose jitter across the frames, with a tiny preference for shorter
+exposure (less motion blur). The original settings are restored when the sweep ends; nothing is
+saved until **Apply**. Point the camera at tags at a realistic range first.
+
+**Known quirk:** every camera reads its yaw back (`t6c_rs`) with the opposite sign to what was
+set. It is a reporting convention, not an error -- the back-right and turret cameras, with
+independent mounts, agreed on the robot's pose to 5 cm while showing it -- so the mount table
+compares yaw by magnitude.
+
+The walkthrough is [`docs/tools/vision.md`](../../docs/tools/vision.md).
+
+## Theming
+
+Colors come from the team site (`spectrum3847.org`, `src/styles/custom.css`): deep purple
+`#3C0060` for the nav, `#6B1199` as the working accent, white surfaces, `#E9DDF7` borders,
+`#1F1B23` text, with the site's Plus Jakarta Sans / Outfit pairing. The fonts are self-hosted
+through `@fontsource-variable` rather than Google's CDN, so brand typography survives having no
+internet.
+
+Everything is a CSS custom property in `client/styles.css`. A dark variant lives under
+`:root[data-theme="dark"]` for pit and queue-line use — the same hues re-stepped against a
+deep-purple surface, not an inverted light theme. The moon/sun button in the nav toggles it and
+remembers the choice per browser.
+
+Chart colors are read from those same properties at draw time, so charts re-skin with the toggle.
+The eight categorical series slots were validated against each surface for lightness band, chroma,
+colorblind separation, normal-vision separation and 3:1 contrast; brand `#6B1199` is too dark to
+be a series color on white, so slot 1 is the nearest passing step, `#7E22CE`. Slots are assigned
+in fixed order and never cycled — a ninth series on one chart means splitting the chart.
+
+## Logs repo
+
+Synced logs land in a clone of
+[Spectrum3847/2026-Robot-Logs](https://github.com/Spectrum3847/2026-Robot-Logs), expected as a
+sibling of this repository:
+
+```bash
+git clone https://github.com/Spectrum3847/2026-Robot-Logs ../../../2026-Robot-Logs
+```
+
+Point somewhere else with `config.local.json` (gitignored):
+
+```json
+{ "logsRepo": { "path": "/absolute/path/to/2026-Robot-Logs" } }
+```
+
+`.wpilog` files are gitignored there by default — a season of match logs is tens of gigabytes and
+git has no good answer for that. What *is* committed is `manifest.json`, carrying each log's
+duration, enabled time, min voltage, peak current, energy, loop overrun rate and peak CAN load. So
+log history survives in the repo even when the binaries don't. Use **pin** on the Logs page to
+force a specific log into git when it documents something worth keeping.
+
+Separately from the archive, a handful of real *match* logs are committed in this repository under
+`logs/matches/` (see its README). `npm test` parses every one of them, so a change to `wpilog.js`
+or `log-model.js` is checked against real robot data on every clone, not only when the archive
+happens to be checked out. Add one with `python tools/copy-match-logs.py`.
+
+## Finding the robot
+
+Probed in this order, and whichever answers on port 22 first wins:
+
+|         Address          |                                 What it is                                 |
+|--------------------------|----------------------------------------------------------------------------|
+| `10.85.15.2`             | Team 8515 over the radio — the number this robot's radio is configured for |
+| `roborio-8515-frc.local` | Same, over mDNS                                                            |
+| `10.38.47.2`             | Team 3847 over the radio — what a reflashed radio would use                |
+| `roborio-3847-frc.local` | Same, over mDNS                                                            |
+| `172.22.11.2`            | USB, works with no radio at all                                            |
+
+Logs are read from `/U/logs` (the USB stick) and `/home/lvuser/logs` (internal flash).
+
+## Adding a page
+
+Every directory under `client/pages/` containing an `index.html` becomes its own Vite entry point
+automatically — no build config to touch.
+
+```
+client/pages/my-page/
+  index.html      <main id="app"></main> plus <script type="module" src="./main.js">
+  main.js
+```
+
+In `main.js`:
+
+```js
+import "../../styles.css";                    // cards, tables, stat tiles, tags
+import { mountHeader, el, api } from "../../lib/ui.js";
+mountHeader();                                // shared nav + robot status pill
+```
+
+Add a nav entry in `client/lib/ui.js` (`PAGES`). Useful pieces:
+
+|       Module        |                                                   For                                                   |
+|---------------------|---------------------------------------------------------------------------------------------------------|
+| `lib/wpilog.js`     | `.wpilog` parser, works in the browser and in Node                                                      |
+| `lib/log-model.js`  | Normalizes a log across both log eras; discovers mechanisms; enabled windows                            |
+| `lib/charts.js`     | Chart.js defaults, time charts, limit lines, enabled-time shading, decimation                           |
+| `lib/log-loader.js` | The log picker used by Power and CAN                                                                    |
+| `lib/nt4.js`        | Read-only NT4 client; connects the browser straight to the robot                                        |
+| `lib/limelight.js`  | A Limelight's own HTTP API (status, results, pipeline read and update), straight from the browser       |
+| `lib/camera-cal.js` | Mount angles from the accelerometer and the tag solve; detection-quality scoring for the exposure sweep |
+| `/api/robot/probe`  | Which RIO address is reachable                                                                          |
+| `/api/logs`         | Synced logs and their manifest entries                                                                  |
+
+For live robot data, import `lib/nt4.js` and talk NT4 straight from the browser — the server does
+not need to be in the middle. The Swerve Align page is the worked example.
+
+## Layout
+
+```
+server/          Express API: robot discovery, SSH log transfer, manifest, git
+  lib/config.js  config.default.json + config.local.json + --port
+  lib/robot.js   address probing, SSH listing, SFTP download
+  lib/summary.js headline numbers extracted at sync time
+  lib/manifest.js manifest read/write, commit and push
+  lib/swerve-config.js reads and rewrites the encoder offsets in the robot config
+  lib/vision-config.js reads and rewrites the Limelight mounts in Vision.java
+client/          Vite frontend, one entry per page
+  lib/           shared parser, log model, charts, UI helpers
+  pages/         one directory per page
+data/            controls.json, robot-profile.json, the 2026 AprilTag field layout
+scripts/         check-drift.mjs
+test/            node:test coverage of the analysis maths
+```
+
+## When a page shows the wrong content
+
+The Logs page once did this for a reason worth knowing: the repo root's `.gitignore` has `logs/`
+for robot log files, and it silently swallowed `client/pages/logs/`. The page worked for anyone
+who had it on disk and 404'd for everyone who cloned. `tools/robot-app/.gitignore` re-includes it,
+and `scripts/check-drift.mjs` reports any untracked page directory, so it cannot recur
+quietly. If you add a page and the drift check complains, run the `git check-ignore -v` command it
+prints — a root ignore rule is probably eating it.
+
+Otherwise, if a nav tab lands on the home page, `dist/` is out of date — the page you clicked was built into
+`dist/` at some earlier point and no longer matches `client/`. The server now says so instead of
+quietly serving the home page: the startup banner prints `client STALE` or `client INCOMPLETE`,
+and the page itself returns a message naming what to run.
+
+```bash
+npm start          # rebuild and serve
+```
+
+`npm run serve` deliberately skips the build, so it is the one way to end up serving a stale
+`dist/`. Use `npm start` unless you know you want that.
+
+## Commands
+
+```bash
+npm start        # build + serve
+npm run dev      # hot reload
+npm test         # analysis maths
+npm run check    # drift check + tests
+```
+
+The drift check is **not** wired into the Gradle build. Robot code has to be free to move
+without anyone stopping to update a web app first, so nothing here can fail a build or block a
+deploy. The app checks itself instead: the server exposes `/api/drift`, and every page shows a
+banner when this app has fallen behind the Java. Two strengths, worded differently:
+
+* **problems** — contradictions the checker actually parsed, e.g. a current limit that
+  disagrees with its Java field. Red banner.
+* **stale** — a data file that has not been committed since the Java it mirrors changed. That
+  is a prompt to look, not proof of anything wrong, so it gets the softer amber banner. It
+  catches what parsing cannot: a renamed state, a reworded binding, a whole new mechanism.

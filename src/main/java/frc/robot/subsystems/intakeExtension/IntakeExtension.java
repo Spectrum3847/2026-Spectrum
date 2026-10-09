@@ -1,16 +1,20 @@
 package frc.robot.subsystems.intakeExtension;
 
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.configs.TalonFXConfigurator;
 import com.ctre.phoenix6.hardware.TalonFX;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import frc.robot.RobotSim;
+import frc.robot.subsystems.intakeExtension.IntakeExtension.Axis.AxisConfig;
 import frc.spectrumLib.hardware.Rio;
 import frc.spectrumLib.mechanism.Mechanism;
 import frc.spectrumLib.sim.LinearConfig;
@@ -18,155 +22,198 @@ import frc.spectrumLib.sim.LinearSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/**
- * The Intake Extension subsystem. Extends and retracts the fuel intake.
- *
- * <p>The deploy is a rack-and-pinion driven by two independent motors: a left axis (this class, CAN
- * id 4, Clockwise_Positive) and a right axis ({@link IntakeExtensionRight}, CAN id 5,
- * CounterClockwise_Positive). Each side runs its own closed-loop position control rather than one
- * following the other, so a side that skips teeth on the rack can be driven on its own to resync.
- *
- * <p>Normal deploy/retract states command both axes to the same setpoint. The {@code RESYNC} state
- * re-establishes truth by driving each side independently into the fully-extended hard stop (using
- * a soft-limit-bypassing voltage), detecting the stall, and re-zeroing that side's encoder at
- * {@code maxRotations}. This recovers from a tooth skip, which otherwise leaves the motor encoder
- * reading a position the rack is no longer at.
- */
-public class IntakeExtension extends Mechanism {
-
-    public static class IntakeExtensionConfig extends Config {
-
-        @Getter private final double initPosition = 0;
-        @Getter private final double triggerTolerance = 5;
-
-        /* Intake Extension config settings */
-        @Getter private final double zeroSpeed = -0.1;
-        @Getter private final double holdMaxSpeedRPM = 18;
-
-        @Getter private final double maxRotations = 2.8;
-        @Getter private final double minRotations = 0.0;
-
-        @Getter private final double supplyCurrentLimit = 20;
-        @Getter private final double statorCurrentLimit = 40;
-        @Getter private final double lowerSupplyCurrentLimit = 20;
-        @Getter private final double lowerSupplyCurrentTime = 0;
-
-        @Getter private final double positionKp = 13;
-        @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 0;
-        @Getter private final double positionKv = 1.0;
-        @Getter private final double positionKs = 2.0;
-        @Getter private final double positionKa = 0;
-        @Getter private final double positionKg = 0;
-        @Getter private final double gearRatio = 11.25;
-        @Getter private final double mmCruiseVelocity = 100;
-        @Getter private final double mmAcceleration = 300;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double slowMmCruiseVelocity = 4;
-        @Getter private final double slowMmAcceleration = 20;
-        @Getter private final double slowMmJerk = 1000;
-
-        @Getter private final double sensorToMechanismRatio = 11.25;
-        @Getter private final double rotorToSensorRatio = 1;
-        @Getter private final double CANcoderRotorToSensorRatio = 1.7;
-        @Getter private final double CANcoderSensorToMechanismRatio = 1;
-        @Getter private final double CANcoderOffset = 0;
-        @Getter private final boolean CANcoderAttached = false;
-
-        /* Resync / stall-homing settings (toward the fully-extended hard stop) */
-        @Getter private final double homingVoltage = 6;
-        @Getter private final double homingStallRPM = 50.0;
-        @Getter private final double homingMinTimeSecs = 0.3;
-        @Getter private final double homingStallDebounceSecs = 0.15;
-        @Getter private final double homingTimeoutSecs = 3.0;
-
-        /* Sim Configs */
-        @Getter private final double intakeX = Units.inchesToMeters(70);
-        @Getter private final double intakeY = Units.inchesToMeters(23);
-        @Getter private final double extensionMass = 10.0;
-        @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.955 / 2);
-        @Getter private final double extensionGearing = 11.25;
-        @Getter private final double angle = 180;
-        @Getter private final double staticLength = 10;
-        @Getter private final double movingLength = 55;
-        @Getter private final double lineWidth = 20;
-        @Getter private final double maxExtensionHeight = 40;
-
-        public IntakeExtensionConfig() {
-            super("IntakeExtension", 4, Rio.CANIVORE);
-            configMinMaxRotations(minRotations, maxRotations);
-            configPIDGains(0, positionKp, positionKi, positionKd);
-            configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
-            configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configGearRatio(gearRatio);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
-            configForwardSoftLimit(maxRotations, true);
-            configReverseSoftLimit(minRotations, true);
-            configNeutralBrakeMode(true);
-            configClockwise_Positive();
-        }
-
-        public IntakeExtensionConfig applyMotorConfig(TalonFX motor) {
-            TalonFXConfigurator configurator = motor.getConfigurator();
-            TalonFXConfiguration talonConfigMod = getTalonConfig();
-
-            configurator.apply(talonConfigMod);
-            talonConfig = talonConfigMod;
-            return this;
-        }
-    }
-
-    // ================================================================================
-    // Right Axis — independent, closed-loop, mirror-mounted
-    // ================================================================================
+public class IntakeExtension implements Subsystem {
 
     /**
-     * The right deploy axis. A standalone {@link Mechanism} (not a follower) so it can be driven
-     * independently of the left during a resync. Gains, limits, and geometry mirror the left
-     * config; only the CAN id, name, and motor inversion differ (the right gearbox is mirrored, so
-     * it is {@code CounterClockwise_Positive} where the left is {@code Clockwise_Positive}, giving
-     * both axes the same "positive = extend" convention).
+     * One side of the extension. The two sides are identical apart from name, CAN id and motor
+     * direction, and share every tunable value.
      */
-    public static class IntakeExtensionRight extends Mechanism {
+    public static class Axis extends Mechanism {
 
-        public static class RightConfig extends Config {
-            public RightConfig(IntakeExtensionConfig left) {
-                super("IntakeExtensionRight", 5, Rio.CANIVORE);
-                setAttached(left.isAttached());
-                configMinMaxRotations(left.getMinRotations(), left.getMaxRotations());
-                configPIDGains(0, left.getPositionKp(), left.getPositionKi(), left.getPositionKd());
-                configFeedForwardGains(
-                        left.getPositionKs(),
-                        left.getPositionKv(),
-                        left.getPositionKa(),
-                        left.getPositionKg());
-                configMotionMagic(
-                        left.getMmCruiseVelocity(), left.getMmAcceleration(), left.getMmJerk());
-                configSupplyCurrentLimit(left.getSupplyCurrentLimit(), true);
-                configStatorCurrentLimit(left.getStatorCurrentLimit(), true);
-                configLowerSupplyCurrentLimit(left.getLowerSupplyCurrentLimit());
-                configLowerSupplyCurrentTime(left.getLowerSupplyCurrentTime());
-                configGearRatio(left.getGearRatio());
-                configForwardTorqueCurrentLimit(left.getStatorCurrentLimit());
-                configReverseTorqueCurrentLimit(left.getStatorCurrentLimit());
-                configForwardSoftLimit(left.getMaxRotations(), true);
-                configReverseSoftLimit(left.getMinRotations(), true);
-                configNeutralBrakeMode(true);
-                configCounterClockwise_Positive();
+        public static class AxisConfig extends Config {
+
+            @Getter private final double maxRotations = 3.652821;
+            @Getter private final double minRotations = 0.0;
+
+            @Getter private final double supplyCurrentLimit = 80;
+            @Getter private final double statorCurrentLimit = 80;
+            @Getter private final double lowerSupplyCurrentLimit = 40;
+            @Getter private final double lowerSupplyCurrentTime = 1;
+
+            @Getter private final double positionKp = 4.2;
+            @Getter private final double positionKi = 0;
+            @Getter private final double positionKd = 0;
+            @Getter private final double positionKv = 0.39;
+            @Getter private final double positionKs = 0;
+            @Getter private final double positionKa = 0;
+            @Getter private final double positionKg = -0.017;
+            @Getter private final double gearRatio = 3.5;
+            @Getter private final double rampPeriod = 0.02;
+
+            @Getter private final double mmCruiseVelocity = 15.246559;
+            @Getter private final double mmAcceleration = 76.232794;
+            @Getter private final double mmJerk = 0;
+            @Getter private final double slowMmCruiseVelocity = 7.623279;
+            @Getter private final double slowMmAcceleration = 38.116397;
+            @Getter private final double slowMmJerk = 0;
+
+            /**
+             * Full travel of the extension, hard stop to hard stop. {@code maxRotations} is this
+             * distance divided by the drum circumference, so inch values convert through it.
+             */
+            @Getter private final double travelInches = 11.5;
+
+            /*
+             * Agitate (after 4414): pull the extension in a short stroke, and if that pull meets
+             * fuel resistance (stator current above the loaded threshold) push it back out so the
+             * dye rotor can keep turning instead of compressing the bed. Each pull that finishes
+             * without meeting resistance means the fuel has drawn down, so the extension keeps
+             * going all the way in, still backing off if it hits fuel on the way. Roughly one
+             * pull-push cycle per second.
+             */
+            @Getter private final double agitateStrokeInches = 2.0;
+            @Getter private final double agitateHalfPeriodSecs = 0.5;
+            @Getter private final double agitateLoadedDebounceSecs = 0.06;
+            @Getter private final double agitateSettleToleranceInches = 0.25;
+            /** A pull that covers this share of the stroke without loading counts as unloaded. */
+            @Getter private final double agitatePullSuccessFraction = 0.5;
+            /**
+             * Outside a launch, this many stalled pulls in a row means the fuel is already packed
+             * and the agitate parks instead of burning current. A launch always agitates.
+             */
+            @Getter private final int agitateIdleGiveUpPulls = 3;
+
+            /*
+             * The two axes are joined through the intake roller, so the roller works badly if one
+             * side is further in than the other. Each side runs its own loop, so when they drift
+             * apart by more than the max skew the agitate stops moving and brings both to their
+             * midpoint until they are within the resume skew of each other.
+             */
+            @Getter private final double agitateMaxSkewInches = 0.5;
+            @Getter private final double agitateResumeSkewInches = 0.2;
+            /**
+             * A skew hold that has not converged in this long releases anyway, and the hold cannot
+             * re-arm for the cooldown. In the 2026-09-06 22:25 log one hold lasted 126 s because
+             * the two encoders disagreed by a constant quarter inch, which no amount of commanding
+             * the midpoint can remove.
+             */
+            @Getter private final double agitateSkewHoldTimeoutSecs = 1.0;
+
+            @Getter private final double agitateSkewHoldCooldownSecs = 3.0;
+            /**
+             * The skew baseline is learned while sitting fully extended: both sides are on the same
+             * hard stop, so any encoder difference there is zero offset, not physical skew. The
+             * sides must be this slow for this long before the reading is taken.
+             */
+            @Getter private final double skewBaselineSettleSecs = 0.3;
+
+            @Getter private final double skewBaselineMaxRPM = 18;
+            /** Larger differences at the stop are a pushed or slipped side, not a zero offset. */
+            @Getter private final double skewBaselineMaxInches = 1.0;
+
+            /**
+             * Full extend target. 99 rather than 100 because the extension has to be almost all the
+             * way out to intake, but a 100 target sits on the hard stop drawing 20 to 35 A stator
+             * for as long as it is out (2026-09-06 22:25 log: 204 s of it).
+             */
+            @Getter private final double fullExtendPercent = 99;
+
+            /*
+             * Full extend drives out, then drops to neutral. The motors are configured to coast, so
+             * a collision pushes the intake in instead of breaking it. If it gets pushed in by the
+             * re-extend distance and then sits still for the steady time, it drives back out. It
+             * also re-extends when intake is pressed again. "At target" is within the tolerance of
+             * the full extend target, or stalled short of it for the steady time.
+             */
+            @Getter private final double extendReextendInches = 2.0;
+            @Getter private final double extendSteadySecs = 0.3;
+            @Getter private final double extendSteadyMaxRPM = 18;
+            @Getter private final double extendAtTargetToleranceInches = 0.25;
+
+            /**
+             * Once the intake has deployed it cannot come all the way back in: the kicker bar arms
+             * are in the way. Measured 2026-09-06 23:40 with the extension resting against them:
+             * 1.715 rot on both sides, 47 percent of travel. No command may ask for less than this
+             * once the extension has ever been out past it, so it never touches the arms; only a
+             * power-on with the intake stowed (position near zero) clears the latch.
+             *
+             * <p>60, not 50: the agitate's full retract settles at 51.6 to 52 percent and the
+             * roller hits the kicker bar side plate there, so the arms are not the only thing in
+             * the way. 60 puts about an inch of air between the roller and the plate, and the
+             * agitate still has a 4.6 in working range above it.
+             */
+            @Getter private final double deployedRetractFloorPercent = 60;
+
+            public double deployedRetractFloorRotations() {
+                return deployedRetractFloorPercent / 100.0 * maxRotations;
+            }
+
+            /** Converts a distance along the extension's travel into drum rotations. */
+            public double inchesToRotations(double inches) {
+                return inches / travelInches * maxRotations;
+            }
+
+            @Getter private final double intakeX = Units.inchesToMeters(70);
+            @Getter private final double intakeY = Units.inchesToMeters(23);
+            @Getter private final double drumRadiusMeters = Units.inchesToMeters(0.5010597711);
+            @Getter private final double angle = 180;
+            @Getter private final double staticLength = 10;
+            @Getter private final double movingLength = 55;
+            @Getter private final double lineWidth = 20;
+            @Getter private final double maxExtensionHeight = 40;
+
+            /** The left axis: CAN 4, clockwise positive. */
+            public static AxisConfig left() {
+                return new AxisConfig("IntakeExtensionLeft", 4, false);
+            }
+
+            /** The right axis: CAN 5, counter-clockwise positive. */
+            public static AxisConfig right() {
+                return new AxisConfig("IntakeExtensionRight", 5, true);
+            }
+
+            private AxisConfig(String name, int canId, boolean counterClockwisePositive) {
+                super(name, canId, Rio.CANIVORE);
+                configMinMaxRotations(minRotations, maxRotations);
+                configPIDGains(0, positionKp, positionKi, positionKd);
+                configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
+                configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+                configGravityType(false);
+                configOpenLoopRamps(rampPeriod);
+                configClosedLoopRamps(rampPeriod);
+                configCurrentLimits(
+                        supplyCurrentLimit,
+                        statorCurrentLimit,
+                        lowerSupplyCurrentLimit,
+                        lowerSupplyCurrentTime);
+                configGearRatio(gearRatio);
+                configForwardSoftLimit(maxRotations, true);
+                configReverseSoftLimit(minRotations, true);
+                // Always coast: a collision must be able to push the intake in.
+                configNeutralBrakeMode(false);
+                if (counterClockwisePositive) {
+                    configCounterClockwise_Positive();
+                } else {
+                    configClockwise_Positive();
+                }
             }
         }
 
-        @Getter private final RightConfig rightConfig;
+        @Getter private final AxisConfig config;
+        @Getter private IntakeExtensionSim sim;
+        private final String positionKey;
 
-        public IntakeExtensionRight(IntakeExtensionConfig leftConfig) {
-            super(new RightConfig(leftConfig));
-            this.rightConfig = (RightConfig) super.config;
+        public Axis(AxisConfig config) {
+            super(config);
+            this.config = config;
+            positionKey = getName() + "/Position";
             Telemetry.print(getName() + " Subsystem Initialized");
+        }
+
+        @Override
+        public void periodic() {
+            logStandard(getName(), false, RpmLog.SLOW);
+            Telemetry.log(positionKey, getPositionRotations(), "rotations");
         }
 
         /** Closed-loop Motion Magic to an absolute rotation target. */
@@ -174,112 +221,64 @@ public class IntakeExtension extends Mechanism {
             setMMPosition(() -> rotations);
         }
 
-        /** Slow (dynamic Motion Magic voltage) move to a rotation target. */
-        public void goToRotationsSlow(
-                double rotations, double cruiseVelocity, double acceleration, double jerk) {
+        /** Moves the axis to a rotation target on the slow Motion Magic profile. */
+        public void goToRotationsSlow(double rotations) {
             setDynMMPositionVoltage(
-                    () -> rotations, () -> cruiseVelocity, () -> acceleration, () -> jerk);
-        }
-
-        /** Open-loop voltage that bypasses soft limits. Used to drive into the hard stop. */
-        public void driveHomingVoltage(double volts) {
-            setVoltageOutputNoSoftLimit(() -> volts);
-        }
-
-        /** Seeds this axis's encoder to a known starting position (rotations). */
-        public void setInitialPosition(double rotations) {
-            if (isAttached()) {
-                motor.setPosition(rotations);
-            }
+                    () -> rotations,
+                    config::getSlowMmCruiseVelocity,
+                    config::getSlowMmAcceleration,
+                    config::getSlowMmJerk);
         }
 
         /** Re-zeroes this axis at the fully-extended hard stop. */
         public void zeroAtMax() {
-            setMotorPosition(() -> rightConfig.getMaxRotations());
+            setMotorPosition(() -> config.getMaxRotations());
         }
 
-        /** Holds the axis (neutral output). */
-        public void stopAxis() {
-            stop();
+        /** Builds the sim model when this axis is attached. Only the left axis has one. */
+        public void simulationInit() {
+            if (isAttached()) {
+                sim = new IntakeExtensionSim(RobotSim.leftView, motor);
+            }
         }
 
-        @Override
-        public void periodic() {
-            logBatteryUsage();
-            Telemetry.log("IntakeExtensionRight/CurrentCommand", getCurrentCommandName());
-            Telemetry.log("IntakeExtensionRight/Voltage", getVoltage(), "volts");
-            Telemetry.log("IntakeExtensionRight/StatorCurrent", getStatorCurrent(), "amps");
-            Telemetry.log("IntakeExtensionRight/SupplyCurrent", getSupplyCurrent(), "amps");
-            Telemetry.log("IntakeExtensionRight/Position", getPositionRotations(), "rotations");
-            Telemetry.log("IntakeExtensionRight/RPM", getVelocityRPM(), "RPM");
-            Telemetry.log("IntakeExtensionRight/Temp", getTemp(), "deg_C");
+        class IntakeExtensionSim extends LinearSim {
+            public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
+                super(
+                        new LinearConfig(
+                                        config.getIntakeX(),
+                                        config.getIntakeY(),
+                                        config.getGearRatio(),
+                                        config.getDrumRadiusMeters())
+                                .setAngle(config.getAngle())
+                                .setMovingLength(config.getMovingLength())
+                                .setStaticLength(config.getStaticLength())
+                                .setMaxHeight(config.getMaxExtensionHeight())
+                                .setLineWidth(config.getLineWidth())
+                                .setColor(new Color8Bit(Color.kLightGray))
+                                .setReversedLinkage(true),
+                        mech,
+                        motor,
+                        config.getName());
+            }
         }
     }
-
-    // ---- Subsystem plumbing ----
-
-    @Getter private final IntakeExtensionConfig config;
-    @Getter private IntakeExtensionSim sim;
-    private final IntakeExtensionRight right;
-
-    public IntakeExtension(IntakeExtensionConfig config) {
-        super(config);
-        this.config = config;
-        this.right = new IntakeExtensionRight(config);
-
-        setInitialPosition();
-
-        simulationInit();
-        Telemetry.print(getName() + " Subsystem Initialized");
-    }
-
-    private void setInitialPosition() {
-        if (isAttached()) {
-            double initialRotations = config.getInitPosition();
-            motor.setPosition(initialRotations);
-            right.setInitialPosition(initialRotations);
-        }
-    }
-
-    public void resetCurrentPositionToMax() {
-        if (isAttached()) {
-            motor.setPosition(config.getMaxRotations());
-        }
-        if (right.isAttached()) right.zeroAtMax();
-    }
-
-    public Command resetCurrentPositionToMaxCommand() {
-        return new InstantCommand(this::resetCurrentPositionToMax);
-    }
-
-    public Command resetToInitialPos() {
-        return new InstantCommand(this::setInitialPosition);
-    }
-
-    /** Sets brake mode on both deploy axes. */
-    @Override
-    public void setBrakeMode(boolean isInBrake) {
-        super.setBrakeMode(isInBrake);
-        if (right.isAttached()) right.setBrakeMode(isInBrake);
-    }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         STOPPED,
         FULL_EXTEND,
         CONDITIONAL_EXTEND,
         FULL_RETRACT,
-        SLOW_CLOSE,
-        RESYNC,
+        AGITATE,
+        /** Agitate only if intaking sent the extension out; otherwise leave it stopped. */
+        CONDITIONAL_AGITATE,
     }
 
     public enum SystemState {
         STOPPED,
         FULL_EXTEND,
         FULL_RETRACT,
-        SLOW_CLOSE,
-        HOMING,
+        AGITATE,
     }
 
     private WantedState wantedState = WantedState.STOPPED;
@@ -305,219 +304,668 @@ public class IntakeExtension extends Mechanism {
                 sentOutByIntakeState = false;
                 yield SystemState.FULL_RETRACT;
             }
-            case SLOW_CLOSE -> SystemState.SLOW_CLOSE;
-            case RESYNC -> SystemState.HOMING;
+            case AGITATE -> SystemState.AGITATE;
+            case CONDITIONAL_AGITATE -> sentOutByIntakeState
+                    ? SystemState.AGITATE
+                    : SystemState.STOPPED;
         };
     }
 
     private void applyStates() {
         switch (systemState) {
             case FULL_EXTEND:
-                commandBoth(100, false);
+                applyFullExtend();
                 break;
             case FULL_RETRACT:
-                commandBoth(0, false);
+                applyFullRetract();
                 break;
-            case SLOW_CLOSE:
-                commandBoth(25, true);
-                break;
-            case HOMING:
-                applyHoming();
+            case AGITATE:
+                applyAgitate();
                 break;
             case STOPPED:
-                stop();
-                if (right.isAttached()) right.stopAxis();
+                left.stop();
+                right.stop();
                 return;
         }
     }
 
-    /**
-     * Commands both axes to the same position.
-     *
-     * @param percent target as a percentage of max rotations (0–100)
-     * @param slow whether to use the slow (dynamic Motion Magic voltage) profile
-     */
     private void commandBoth(double percent, boolean slow) {
-        final double rotations = percentToRotations(() -> percent);
+        commandBothRotations(left.percentToRotations(() -> percent), slow);
+    }
+
+    private void commandBothRotations(double rotations, boolean slow) {
+        // Nothing may ask for less than the deployed floor. See retractLimitRotations().
+        rotations = Math.max(rotations, retractLimitRotations());
+        // Both sides get the same target. Offsetting the right target by the learned skew baseline
+        // was tried and abandoned: the baseline once swung to -0.96 rot, which told the right side
+        // to sit 3 in further out than the left, so it never came in and the two fought through the
+        // roller link. The baseline is only used to judge skew now.
         if (slow) {
-            setDynMMPositionVoltage(
-                    () -> rotations,
-                    () -> config.getSlowMmCruiseVelocity(),
-                    () -> config.getSlowMmAcceleration(),
-                    () -> config.getSlowMmJerk());
-            if (right.isAttached()) {
-                right.goToRotationsSlow(
-                        rotations,
-                        config.getSlowMmCruiseVelocity(),
-                        config.getSlowMmAcceleration(),
-                        config.getSlowMmJerk());
-            }
+            left.goToRotationsSlow(rotations);
+            right.goToRotationsSlow(rotations);
         } else {
-            setMMPosition(() -> rotations);
-            if (right.isAttached()) right.goToRotations(rotations);
+            left.goToRotations(rotations);
+            right.goToRotations(rotations);
         }
     }
 
-    // ---- Resync / stall homing ----
+    /** Whether both axes are turning slower than {@code maxRpm}. */
+    private boolean bothStill(double maxRpm) {
+        return Math.abs(left.getVelocityRPM()) < maxRpm
+                && Math.abs(right.getVelocityRPM()) < maxRpm;
+    }
 
-    private final Timer homingTimer = new Timer();
-    private boolean leftHomed = false;
-    private boolean rightHomed = false;
-    // Timestamp (homingTimer seconds) each side was last seen moving above the stall speed.
-    private double leftLastMoving = 0;
-    private double rightLastMoving = 0;
+    /** Latched once the extension has been out past the floor; cleared only near zero. */
+    private boolean deployed = false;
 
     /**
-     * Drives each side independently into the fully-extended hard stop, re-zeroing that side's
-     * encoder at {@code maxRotations} once it stalls. A tooth skip corrupts the motor encoder, so
-     * the hard stop is the only reliable position truth; homing uses a soft-limit-bypassing voltage
-     * so it can reach the physical stop even when the (stale) encoder thinks the soft limit is
-     * already reached.
+     * The furthest-in position any command may ask for. Zero until the intake first deploys, then
+     * the kicker-bar floor for the rest of the power cycle. Reading near zero again (a power-on
+     * with the intake stowed) clears the latch, since that is the only way it can be in there.
      */
-    private void applyHoming() {
-        // Re-arm on entry to the HOMING state.
-        if (previousSystemState != SystemState.HOMING) {
-            homingTimer.restart();
-            leftHomed = false;
-            rightHomed = false;
-            leftLastMoving = 0;
-            rightLastMoving = 0;
+    private double retractLimitRotations() {
+        return deployed ? config.deployedRetractFloorRotations() : config.getMinRotations();
+    }
+
+    private void updateDeployedLatch() {
+        double floor = config.deployedRetractFloorRotations();
+        double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
+        if (position >= floor) {
+            deployed = true;
+        } else if (position <= config.getMinRotations() + config.inchesToRotations(0.5)) {
+            deployed = false;
+        }
+    }
+
+    /**
+     * Stator current, on either axis, above which a pull is treated as compressing fuel. The
+     * threshold starts at {@code Start} when agitate begins and ramps linearly to {@code End} over
+     * {@code RampSecs}, so the longer a launch runs the harder the agitate is allowed to push. Both
+     * ends are tunable from NetworkTables.
+     *
+     * <p>Sized from a log of a real burst. At a fixed 40 A, 103 of 156 pulls tripped after a median
+     * 0.63 in of a 2 in stroke, but pulls that never met fuel also peaked at a median 39 A and 46 A
+     * at the 90th percentile (9 Hz sampling, so true peaks were higher). 40 A was the free-motion
+     * noise floor, not a fuel detector. The loaded fraction fell from 65 to 76 percent in the first
+     * 4 s of a burst to 44 percent at 6 to 10 s and 0 past 10 s, so the bed does draw down, and the
+     * ramp lets the agitate follow it in.
+     */
+    private static final DoubleSubscriber agitateLoadedStatorAmpsStart =
+            Telemetry.tunable("IntakeExtension/AgitateLoadedStatorAmpsStart", 55.0);
+
+    private static final DoubleSubscriber agitateLoadedStatorAmpsEnd =
+            Telemetry.tunable("IntakeExtension/AgitateLoadedStatorAmpsEnd", 75.0);
+
+    private static final DoubleSubscriber agitateLoadedRampSecs =
+            Telemetry.tunable("IntakeExtension/AgitateLoadedRampSecs", 8.0);
+
+    /** FPGA time the current agitate began; the loaded threshold ramps from here. */
+    private double agitateStartTime = 0;
+
+    /** The loaded threshold in effect this loop, for the ramp. */
+    private double agitateLoadedThreshold(double now) {
+        double ramp = Math.max(agitateLoadedRampSecs.get(), 0.01);
+        double frac = MathUtil.clamp((now - agitateStartTime) / ramp, 0.0, 1.0);
+        double start = agitateLoadedStatorAmpsStart.get(), end = agitateLoadedStatorAmpsEnd.get();
+        return start + (end - start) * frac;
+    }
+
+    private final Timer agitateTimer = new Timer();
+    /** True while pushing back out to the outer position, false while pulling in. */
+    private boolean agitateOut = false;
+    /** Where the current pull started from and where a push-out returns to (rotations). */
+    private double agitateOuterRotations = 0;
+    /** True once a pull has finished unloaded and the extension is heading all the way in. */
+    private boolean agitateFullRetract = false;
+    /** True once the extension has reached the retracted stop; it just holds there. */
+    private boolean agitateRetracted = false;
+    /** Where it was when it counted as retracted; held from here. */
+    private double agitateRetractedRotations = 0;
+    /** Stator current above the loaded threshold for the debounce time, during a pull. */
+    private final Debouncer agitateLoadedDebouncer;
+    /** Whether the current pull has met fuel resistance. */
+    private boolean agitateLoaded = false;
+
+    /**
+     * Current-aware agitate, after 4414.
+     *
+     * <p>Pull in one stroke from the outer position. If either axis's stator current stays above
+     * the loaded threshold for the debounce time, the pull is compressing fuel: push back out to
+     * the outer position so the dye rotor can keep turning, then pull again after half a period. If
+     * the pull reaches its target and the half period ends without ever loading, the fuel has drawn
+     * down, so keep pulling all the way in. Meeting fuel on the way in pushes out one stroke from
+     * wherever it was and resumes the cycle from there. Reaching the retracted stop ends the
+     * agitate: the extension holds there and is no longer counted as sent out by intaking.
+     *
+     * <p>Position decisions use the average of the two encoders. If the sides drift apart past the
+     * max skew, the cycle pauses and both are brought to their midpoint first. See {@link
+     * #holdForSkew}.
+     */
+    private void applyAgitate() {
+        final double minRot = retractLimitRotations();
+        final double maxRot = config.getMaxRotations();
+        final double stroke = config.inchesToRotations(config.getAgitateStrokeInches());
+        final double tolerance = config.inchesToRotations(config.getAgitateSettleToleranceInches());
+        final double leftPos = left.getPositionRotations();
+        final double rightPos = right.getPositionRotations();
+        final double position = (leftPos + rightPos) / 2.0;
+        final double now = Timer.getFPGATimestamp();
+
+        if (previousSystemState != SystemState.AGITATE) {
+            agitateOuterRotations = MathUtil.clamp(position, minRot, maxRot);
+            agitateRetracted = agitateOuterRotations <= minRot + tolerance;
+            agitateSkewHold = false;
+            agitateStartTime = now;
+            agitateStalledPulls = 0;
+            agitateIdleParked = false;
+            startAgitatePull(position);
         }
 
-        boolean timedOut = homingTimer.get() >= config.getHomingTimeoutSecs();
-
-        // ── Left side (this mechanism) ──
-        if (!leftHomed) {
-            if (detectLeftStall()) {
-                setMotorPosition(() -> config.getMaxRotations());
-                stop();
-                leftHomed = true;
-            } else if (timedOut) {
-                Telemetry.print("IntakeExtension: LEFT resync timed out");
-                stop();
-                leftHomed = true;
-            } else {
-                setVoltageOutputNoSoftLimit(() -> config.getHomingVoltage());
-            }
-        } else {
-            stop();
+        // Outside a launch the agitate is only prep. Once a few pulls in a row have stalled, the
+        // fuel is already packed and more pulling is just current, so park at the outer position
+        // until a launch starts, where the wanted state becomes plain AGITATE, or the state
+        // changes.
+        if (wantedState != WantedState.CONDITIONAL_AGITATE) {
+            agitateIdleParked = false;
+        }
+        if (agitateIdleParked) {
+            commandBothRotations(agitateOuterRotations, true);
+            return;
         }
 
-        // ── Right side (independent axis) ──
-        if (right.isAttached()) {
-            if (!rightHomed) {
-                if (detectRightStall()) {
-                    right.zeroAtMax();
-                    right.stopAxis();
-                    rightHomed = true;
-                } else if (timedOut) {
-                    Telemetry.print("IntakeExtension: RIGHT resync timed out");
-                    right.stopAxis();
-                    rightHomed = true;
-                } else {
-                    right.driveHomingVoltage(config.getHomingVoltage());
+        if (holdForSkew(leftPos, rightPos, position, now)) {
+            return;
+        }
+
+        if (agitateRetracted) {
+            sentOutByIntakeState = false;
+            // Hold where it stopped rather than keep pushing at the floor. The right side has been
+            // seen sitting 0.17 rot short of the floor drawing 30 A for the rest of every burst,
+            // trying to close a gap the fuel would not give.
+            commandBothRotations(agitateRetractedRotations, true);
+            return;
+        }
+
+        if (agitateOut) {
+            // Push-out phase: sit at the outer position for half a period, then pull again.
+            if (agitateTimer.hasElapsed(config.getAgitateHalfPeriodSecs())) {
+                if (wantedState == WantedState.CONDITIONAL_AGITATE
+                        && agitateStalledPulls >= config.getAgitateIdleGiveUpPulls()) {
+                    agitateIdleParked = true;
+                    commandBothRotations(agitateOuterRotations, true);
+                    return;
                 }
+                startAgitatePull(position);
             } else {
-                right.stopAxis();
+                commandBothRotations(agitateOuterRotations, true);
+                return;
             }
-        } else {
-            rightHomed = true; // no right axis attached → nothing to resync
         }
+
+        // Pull phase.
+        double statorAmps = Math.max(left.getStatorCurrent(), right.getStatorCurrent());
+        agitateLoaded = agitateLoadedDebouncer.calculate(statorAmps >= agitateLoadedThreshold(now));
+
+        double target =
+                agitateFullRetract ? minRot : Math.max(agitateOuterRotations - stroke, minRot);
+
+        if (agitateLoaded) {
+            // Fuel is resisting: back off one stroke from here so the bed is not compressed.
+            if (agitateFullRetract) {
+                agitateOuterRotations = MathUtil.clamp(position + stroke, minRot, maxRot);
+            }
+            agitateFullRetract = false;
+            agitateStalledPulls++;
+            agitateOut = true;
+            agitateTimer.restart();
+            commandBothRotations(agitateOuterRotations, true);
+            return;
+        }
+
+        if (agitateFullRetract) {
+            if (position <= minRot + tolerance) {
+                agitateRetracted = true;
+                agitateRetractedRotations = position;
+                sentOutByIntakeState = false;
+            }
+        } else if (agitateTimer.hasElapsed(config.getAgitateHalfPeriodSecs())) {
+            // Judge the pull by how far it moved, not by whether it closed on the target. The
+            // position loop settles a quarter to a third of an inch short under load, 80 unloaded
+            // pulls travelling a median 1.71 in of the 2 in stroke, and requiring the last quarter
+            // inch threw every one of them back out.
+            double travelled = agitatePullStartRotations - position;
+            if (travelled >= stroke * config.getAgitatePullSuccessFraction()) {
+                // Most of an unloaded pull: the fuel has drawn down, so keep going all the way in.
+                agitateFullRetract = true;
+                agitateStalledPulls = 0;
+                target = minRot;
+            } else {
+                // Barely moved but never loaded either. Keep the cadence: push out and retry.
+                agitateStalledPulls++;
+                agitateOut = true;
+                agitateTimer.restart();
+                commandBothRotations(agitateOuterRotations, true);
+                return;
+            }
+        }
+
+        commandBothRotations(target, true);
     }
 
-    private boolean detectLeftStall() {
-        double now = homingTimer.get();
-        if (Math.abs(getVelocityRPM()) >= config.getHomingStallRPM()) {
-            leftLastMoving = now;
-        }
-        return isStalled(now, leftLastMoving);
-    }
+    /** Position when the current pull began; the pull is judged by travel from here. */
+    private double agitatePullStartRotations = 0;
 
-    private boolean detectRightStall() {
-        double now = homingTimer.get();
-        if (Math.abs(right.getVelocityRPM()) >= config.getHomingStallRPM()) {
-            rightLastMoving = now;
-        }
-        return isStalled(now, rightLastMoving);
-    }
+    /** Pulls in a row that loaded or failed to move; a pull that gets through resets it. */
+    private int agitateStalledPulls = 0;
+
+    /** True when a non-launch agitate has given up and is parked at the outer position. */
+    private boolean agitateIdleParked = false;
+
+    /** True while the agitate is paused to bring the two axes back together. */
+    private boolean agitateSkewHold = false;
 
     /**
-     * A side is stalled once it has gone the debounce window without moving above the stall speed,
-     * but only after the minimum drive time has elapsed (so the initial pre-motion zero velocity is
-     * not mistaken for a stall).
+     * Keeps the two axes roughly together. When they are further apart than the max skew, commands
+     * both to their midpoint and holds there until they are within the resume skew, then restarts
+     * the current phase so its timer and loaded detector do not count the hold.
+     *
+     * @return true when the hold is active and the caller should not command anything else
      */
-    private boolean isStalled(double now, double lastMoving) {
-        if (now < config.getHomingMinTimeSecs()) {
+    private boolean holdForSkew(double leftPos, double rightPos, double midpoint, double now) {
+        // Physical skew is the encoder difference minus the zero offset learned at the hard stop.
+        double skew = Math.abs(leftPos - rightPos - skewBaselineRotations);
+
+        if (agitateSkewHold) {
+            boolean converged =
+                    skew <= config.inchesToRotations(config.getAgitateResumeSkewInches());
+            boolean timedOut = now - skewHoldStart >= config.getAgitateSkewHoldTimeoutSecs();
+            if (converged || timedOut) {
+                agitateSkewHold = false;
+                if (timedOut) {
+                    skewHoldCooldownUntil = now + config.getAgitateSkewHoldCooldownSecs();
+                    skewHoldTimeouts++;
+                }
+                // Start the phase over so the hold time is not charged to it.
+                agitateTimer.restart();
+                agitateLoadedDebouncer.calculate(false);
+                return false;
+            }
+        } else if (skew > config.inchesToRotations(config.getAgitateMaxSkewInches())
+                && now >= skewHoldCooldownUntil) {
+            agitateSkewHold = true;
+            skewHoldStart = now;
+        } else {
             return false;
         }
-        return (now - lastMoving) >= config.getHomingStallDebounceSecs();
+
+        double target = MathUtil.clamp(midpoint, retractLimitRotations(), config.getMaxRotations());
+        commandBothRotations(target, true);
+        return true;
     }
 
-    /** Whether the most recent resync has finished homing both sides. */
-    public boolean isResyncComplete() {
-        return systemState == SystemState.HOMING && leftHomed && rightHomed;
+    private double skewHoldStart = 0;
+    private double skewHoldCooldownUntil = 0;
+    private int skewHoldTimeouts = 0;
+
+    private enum ExtendPhase {
+        DRIVING,
+        COASTING,
+    }
+
+    private ExtendPhase extendPhase = ExtendPhase.DRIVING;
+    /** Set by {@link #requestExtend()}; makes the next full-extend loop drive out again. */
+    private boolean extendRequested = false;
+    /** Where the extension was when it started coasting; re-extend is measured from here. */
+    private double coastStartRotations = 0;
+    /** Times a stalled full extend has been taken as the new out point. */
+    private int outPointRelearns = 0;
+
+    private final Timer extendSteadyTimer = new Timer();
+    private boolean extendSteadyTiming = false;
+
+    /** Asks full extend to drive out again, for when intake is pressed again while coasting. */
+    public void requestExtend() {
+        extendRequested = true;
     }
 
     /**
-     * Runs a full resync: drives both sides into the extended hard stop, re-zeros each, then
-     * returns the subsystem to {@code STOPPED}.
-     *
-     * @return a command that completes once both sides are re-zeroed
+     * Drives to the full extend target, then goes neutral so the coasting motors let a collision
+     * push the intake in. While coasting, a push of the re-extend distance that then settles for
+     * the steady time, or a new extend request, drives it out again.
      */
-    public Command resyncCommand() {
-        return startEnd(
-                        () -> setWantedState(WantedState.RESYNC),
-                        () -> setWantedState(WantedState.STOPPED))
-                .until(this::isResyncComplete)
-                .withName("IntakeExtension.resync");
+    private void applyFullExtend() {
+        final double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
+        final double target = left.percentToRotations(config::getFullExtendPercent);
+        final double tolerance =
+                config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+        final boolean still = bothStill(config.getExtendSteadyMaxRPM());
+
+        if (previousSystemState != SystemState.FULL_EXTEND || extendRequested) {
+            extendPhase = ExtendPhase.DRIVING;
+            extendRequested = false;
+            extendSteadyTiming = false;
+        }
+
+        boolean steady = false;
+        if (still) {
+            if (!extendSteadyTiming) {
+                extendSteadyTiming = true;
+                extendSteadyTimer.restart();
+                steadySkewStart = left.getPositionRotations() - right.getPositionRotations();
+            }
+            steady = extendSteadyTimer.hasElapsed(config.getExtendSteadySecs());
+        } else {
+            extendSteadyTiming = false;
+        }
+
+        switch (extendPhase) {
+            case DRIVING -> {
+                boolean atTarget = position >= target - tolerance;
+                if (atTarget || steady) {
+                    if (!atTarget && sidesAgree()) {
+                        // Stalled short of the target with both sides in the same place: the stop
+                        // is here, not where the encoders say. Take this as the new out point so
+                        // retract and agitate still work after a motor restart or a power-on with
+                        // the intake out. If the sides disagree, one of them is bound up short of
+                        // the other, seen lagging by 0.2 to 0.8 rot at each stall, and zeroing
+                        // would write that lag into its frame. Leave it alone.
+                        left.zeroAtMax();
+                        right.zeroAtMax();
+                        skewBaselineRotations = 0;
+                        outPointRelearns++;
+                    }
+                    // Either got there or is stalled short of it. Let go.
+                    extendPhase = ExtendPhase.COASTING;
+                    coastStartRotations = config.getMaxRotations();
+                    extendSteadyTiming = false;
+                    left.stop();
+                    right.stop();
+                } else {
+                    commandBoth(config.getFullExtendPercent(), false);
+                }
+            }
+            case COASTING -> {
+                double pushedIn = coastStartRotations - position;
+                if (pushedIn >= config.inchesToRotations(config.getExtendReextendInches())
+                        && steady) {
+                    extendPhase = ExtendPhase.DRIVING;
+                    extendSteadyTiming = false;
+                    commandBoth(config.getFullExtendPercent(), false);
+                } else {
+                    left.stop();
+                    right.stop();
+                    if (position >= target - tolerance) {
+                        // Resting on the stop: the one place the encoder offset can be learned.
+                        updateSkewBaseline();
+                        resyncAtStopWhileCoasting(steady);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * While coasting on the extended stop, an encoder that reads past the stop has slipped. The
+     * right side has drifted from 3.7 to 4.4 rot with no current applied, against a 3.65 max, three
+     * times in one session. Both sides are physically on the stop, so once they have been still for
+     * the steady time any side reading off the max by more than the tolerance is set back to it.
+     * This is the same correction the stall relearn makes, applied at rest.
+     */
+    private void resyncAtStopWhileCoasting(boolean steady) {
+        if (!steady) {
+            return;
+        }
+        double max = config.getMaxRotations();
+        double tol = config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+        boolean leftOff = Math.abs(left.getPositionRotations() - max) > tol;
+        boolean rightOff = Math.abs(right.getPositionRotations() - max) > tol;
+        // Only when the sides read the same place: then both are on the stop and a reading off
+        // max is a frame error. If they disagree, one side is short of the stop and its reading
+        // is the truth about that, not a zero to correct.
+        if ((leftOff || rightOff) && sidesAgree()) {
+            left.zeroAtMax();
+            right.zeroAtMax();
+            skewBaselineRotations = 0;
+            restResyncs++;
+        }
+    }
+
+    /**
+     * A side that reads past the extended stop cannot be there, so its zero is wrong and the
+     * direction of the error is known: set it to max. Each side is judged on its own, every loop,
+     * because the right side has kept walking out past max while coasting with no power applied,
+     * 3.66 to 4.53 rot in two seconds, six times in one session, and a once-per-rest correction was
+     * undone within a second. Throttled per side so a drifting encoder does not turn into a stream
+     * of position writes.
+     */
+    private void clampPastMax() {
+        double limit =
+                config.getMaxRotations()
+                        + config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+        double now = Timer.getFPGATimestamp();
+        if (left.getPositionRotations() > limit && now - lastLeftClamp >= PAST_MAX_CLAMP_PERIOD) {
+            left.zeroAtMax();
+            lastLeftClamp = now;
+            pastMaxClamps++;
+        }
+        if (right.getPositionRotations() > limit && now - lastRightClamp >= PAST_MAX_CLAMP_PERIOD) {
+            right.zeroAtMax();
+            lastRightClamp = now;
+            pastMaxClamps++;
+        }
+    }
+
+    private static final double PAST_MAX_CLAMP_PERIOD = 0.1;
+    private double lastLeftClamp = Double.NEGATIVE_INFINITY;
+    private double lastRightClamp = Double.NEGATIVE_INFINITY;
+    private int pastMaxClamps = 0;
+
+    /** Left minus right when the current steady period began; see {@link #sidesAgree()}. */
+    private double steadySkewStart = 0;
+
+    /**
+     * True when the two encoders can be zeroed together: their difference is within the baseline
+     * cap and has not changed over the steady period. A constant difference is a zero offset (the
+     * 2026-09-07 00:07 log: left 3.29, right 3.53 on every one of four extends, to the hundredth)
+     * and re-zeroing both to max is right. A difference still changing while the sides are "still"
+     * is one side creeping, and zeroing would write the creep into its frame.
+     */
+    private boolean sidesAgree() {
+        double skew = left.getPositionRotations() - right.getPositionRotations();
+        boolean small =
+                Math.abs(skew) <= config.inchesToRotations(config.getSkewBaselineMaxInches());
+        boolean stable =
+                Math.abs(skew - steadySkewStart) <= config.inchesToRotations(SKEW_STABLE_INCHES);
+        return small && stable;
+    }
+
+    /** Skew may change by at most this much over a steady period and still count as stable. */
+    private static final double SKEW_STABLE_INCHES = 0.1;
+
+    private int restResyncs = 0;
+
+    private final Debouncer retractStallDebouncer;
+    private boolean retractHolding = false;
+    private double retractHoldRotations = 0;
+
+    /**
+     * Drives to fully retracted. If the frame is off (an out point learned against an obstruction
+     * puts "zero" past the real retracted stop), the extension stalls short; rather than push into
+     * the stop at the current limit, it holds where it stopped. The next clean full extend
+     * re-learns the frame at the real stop.
+     */
+    private void applyFullRetract() {
+        final double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
+        final double tolerance =
+                config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+        final boolean still = bothStill(config.getExtendSteadyMaxRPM());
+
+        if (previousSystemState != SystemState.FULL_RETRACT) {
+            retractHolding = false;
+            retractStallDebouncer.calculate(false);
+        }
+
+        if (retractHolding) {
+            commandBothRotations(retractHoldRotations, false);
+            return;
+        }
+
+        boolean atTarget = position <= retractLimitRotations() + tolerance;
+        if (retractStallDebouncer.calculate(still && !atTarget)) {
+            retractHolding = true;
+            retractHoldRotations = position;
+            commandBothRotations(retractHoldRotations, false);
+            return;
+        }
+        commandBothRotations(retractLimitRotations(), false);
+    }
+
+    /** Left minus right encoder reading when both sides sit on the extended hard stop. */
+    private double skewBaselineRotations = 0;
+
+    private final Timer skewBaselineTimer = new Timer();
+    private boolean skewBaselineSettling = false;
+
+    /**
+     * Learns the encoder zero offset between the two sides. Called while fully extended: once both
+     * sides have been nearly stationary for the settle time they are on the hard stop together, so
+     * whatever difference the encoders show is offset, and it is recorded as the baseline that the
+     * skew hold measures against. A resync zeroes both at that stop, so it resets the baseline.
+     */
+    private void updateSkewBaseline() {
+        boolean still = bothStill(config.getSkewBaselineMaxRPM());
+        if (!still) {
+            skewBaselineSettling = false;
+            return;
+        }
+        if (!skewBaselineSettling) {
+            skewBaselineSettling = true;
+            skewBaselineTimer.restart();
+            return;
+        }
+        if (skewBaselineTimer.hasElapsed(config.getSkewBaselineSettleSecs())) {
+            double leftPos = left.getPositionRotations();
+            double rightPos = right.getPositionRotations();
+            double tol = config.inchesToRotations(config.getExtendAtTargetToleranceInches());
+            double target = left.percentToRotations(config::getFullExtendPercent);
+            double maxOffset = config.inchesToRotations(config.getSkewBaselineMaxInches());
+            double offset = leftPos - rightPos;
+            // Only a reading with both sides at the stop and a small difference is a zero offset.
+            // Anything else is a side that has been pushed or has slipped, and must not become the
+            // reference: the right side has been seen reading 4.44 rot against a 3.65 max, and the
+            // baseline followed it to -0.96 rot.
+            if (leftPos >= target - tol
+                    && rightPos >= target - tol
+                    && Math.abs(offset) <= maxOffset) {
+                skewBaselineRotations = offset;
+            }
+        }
+    }
+
+    private void startAgitatePull(double position) {
+        agitatePullStartRotations = position;
+        agitateOut = false;
+        agitateFullRetract = false;
+        agitateLoaded = false;
+        agitateLoadedDebouncer.calculate(false);
+        agitateTimer.restart();
+    }
+
+    @Getter private final Axis left;
+    @Getter private final Axis right;
+
+    /** Tunables shared by both axes; the left axis's config instance. */
+    private final AxisConfig config;
+
+    public IntakeExtension(AxisConfig leftConfig, AxisConfig rightConfig) {
+        this.config = leftConfig;
+        agitateLoadedDebouncer =
+                new Debouncer(leftConfig.getAgitateLoadedDebounceSecs(), DebounceType.kRising);
+        retractStallDebouncer =
+                new Debouncer(leftConfig.getExtendSteadySecs(), DebounceType.kRising);
+        this.left = new Axis(leftConfig);
+        this.right = new Axis(rightConfig);
+        left.simulationInit();
+
+        // Deliberately no encoder zeroing here. The TalonFX keeps counting across robot-code
+        // restarts, so zeroing in the constructor throws the position away on every deploy.
+        // Deploying with the intake extended once read both encoders as zero there, put "full
+        // extend" already at the stop, and made every agitate pull toward zero pull toward fully
+        // out, so the intake never came in. The zero is therefore wherever the extension was at
+        // motor power-on, which should be retracted. If it was not, or a motor restarts mid-match,
+        // the first full extend that stalls short of its target takes that stall as the new out
+        // point, so the frame fixes itself in use. See applyFullExtend.
+
+        this.register();
+        Telemetry.print("Intake Extension Subsystem Initialized");
+    }
+
+    /**
+     * Drops both extension axes into coast so the mechanism can be moved by hand. Runs while
+     * disabled, which is the only time it is useful.
+     */
+    public Command coastModeCommand() {
+        return new InstantCommand(() -> setBrakeMode(false))
+                .ignoringDisable(true)
+                .withName("IntakeExtension.coastMode");
+    }
+
+    public void setBrakeMode(boolean isInBrake) {
+        left.setBrakeMode(isInBrake);
+        right.setBrakeMode(isInBrake);
+    }
+
+    /** The simulation model for the left intake extension axis. */
+    public Axis.IntakeExtensionSim getSim() {
+        return left.getSim();
+    }
+
+    public double getPositionPercentage() {
+        return left.getPositionPercentage();
     }
 
     @Override
     public void periodic() {
+        clampPastMax();
+        updateDeployedLatch();
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.logDash("IntakeExtension/WantedState", wantedState.toString());
-        Telemetry.logDash("IntakeExtension/SystemState", systemState.toString());
-        Telemetry.logDash("IntakeExtension/CurrentCommand", getCurrentCommandName());
-        Telemetry.logDash("IntakeExtension/Voltage", getVoltage(), "volts");
-        Telemetry.logDash("IntakeExtension/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.logDash("IntakeExtension/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.logDash("IntakeExtension/Position", getPositionRotations(), "rotations");
-        Telemetry.logDash("IntakeExtension/RPM", getVelocityRPM(), "RPM");
-        Telemetry.logDash("IntakeExtension/Temp", getTemp(), "deg_C");
-        Telemetry.log("IntakeExtension/LeftHomed", leftHomed);
-        Telemetry.log("IntakeExtension/RightHomed", rightHomed);
+
+        Telemetry.logState("IntakeExtension/WantedState", wantedState);
+        Telemetry.logState("IntakeExtension/SystemState", systemState);
+        // Dashboard: average of both sides as a percentage of travel, so a bad zero is visible.
+        Telemetry.logDash(
+                "IntakeExtension/Percent",
+                (left.getPositionPercentage() + right.getPositionPercentage()) / 2.0,
+                "percent");
+        Telemetry.log("IntakeExtension/Agitate/Out", agitateOut);
+        Telemetry.log("IntakeExtension/Agitate/Loaded", agitateLoaded);
+        Telemetry.log("IntakeExtension/Agitate/FullRetract", agitateFullRetract);
+        Telemetry.log("IntakeExtension/Agitate/Retracted", agitateRetracted);
+        Telemetry.log("IntakeExtension/Agitate/SkewHold", agitateSkewHold);
+        Telemetry.log("IntakeExtension/Agitate/SkewHoldTimeouts", skewHoldTimeouts);
+        Telemetry.log("IntakeExtension/ExtendPhase", extendPhase.toString());
+        Telemetry.log("IntakeExtension/OutPointRelearns", outPointRelearns);
+        Telemetry.log("IntakeExtension/RestResyncs", restResyncs);
+        Telemetry.log("IntakeExtension/PastMaxClamps", pastMaxClamps);
+        Telemetry.log("IntakeExtension/Deployed", deployed);
+        Telemetry.log(
+                "IntakeExtension/RetractLimitRotations", retractLimitRotations(), "rotations");
+        Telemetry.log("IntakeExtension/Agitate/StalledPulls", agitateStalledPulls);
+        Telemetry.log("IntakeExtension/Agitate/IdleParked", agitateIdleParked);
+        if (systemState == SystemState.AGITATE) {
+            Telemetry.log(
+                    "IntakeExtension/Agitate/LoadedThresholdAmps",
+                    agitateLoadedThreshold(Timer.getFPGATimestamp()),
+                    "amps");
+        }
+        Telemetry.log("IntakeExtension/SkewBaselineRotations", skewBaselineRotations, "rotations");
+        Telemetry.log(
+                "IntakeExtension/SkewRotations",
+                left.getPositionRotations() - right.getPositionRotations(),
+                "rotations");
+        Telemetry.log("IntakeExtension/Agitate/OuterRotations", agitateOuterRotations, "rotations");
 
         previousSystemState = systemState;
-    }
-
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    public void simulationInit() {
-        if (isAttached()) {
-            sim = new IntakeExtensionSim(RobotSim.leftView, motor);
-        }
-    }
-
-    class IntakeExtensionSim extends LinearSim {
-        public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
-            super(
-                    new LinearConfig(
-                                    config.getIntakeX(),
-                                    config.getIntakeY(),
-                                    config.getExtensionGearing(),
-                                    config.getDrumRadiusMeters())
-                            .setAngle(config.getAngle())
-                            .setMovingLength(config.getMovingLength())
-                            .setStaticLength(config.getStaticLength())
-                            .setMaxHeight(config.getMaxExtensionHeight())
-                            .setLineWidth(config.getLineWidth())
-                            .setColor(new Color8Bit(Color.kLightGray)),
-                    mech,
-                    motor,
-                    config.getName());
-        }
     }
 }

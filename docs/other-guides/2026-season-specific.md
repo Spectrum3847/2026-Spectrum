@@ -1,112 +1,108 @@
-# 2026 Season Specific Documentation: REBUILT
+# 2026 season specific: REBUILT
 
-*Audience: Reference. Assumes you've read [Setup](../setup.md).*
+*Audience: Reference for team students and mentors. Assumes you've read [Setup](../setup.md).*
 
-This page is the orientation tour for the 2026 FRC game (**REBUILT**), the subsystems we have, the state machine that drives them, the controls layout, and the vision setup. It's the page to read first if you've just cloned the repo and want to understand what does what.
+This page is for the things a single file cannot tell you: where a decision belongs, and the few
+operating rules the code cannot state for itself. For what any class, method, or state actually
+does, read the class.
 
-## Subsystems
+## Where things live
 
-Each physical thing the robot does lives in its own subsystem folder under `src/main/java/frc/robot/subsystems/`:
+Every pointer below is a place to start reading, not a summary of what you will find there.
 
-`swerve`, `fuelIntake`, `indexerBed`, `indexerTower`, `intakeExtension`, `launcher`, `hood`, `vision`, `leds`, plus `SuperStructure.java`, the orchestrator that sits above them. The gamepads (`pilot`, `operator`) live one level up under `src/main/java/frc/robot/`.
+* **The orchestrator** is [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java).
+  Its `WantedSuperState` enum is the list of coordinated robot behaviors, and its
+  `handleStateTransitions()` and `applyStates()` are where one wanted state becomes a setting on
+  every mechanism. Start here to understand any multi-mechanism move.
+* **Each mechanism** is one folder under
+  [`subsystems/`](../../src/main/java/frc/robot/subsystems) holding one file: the mechanism, an inner
+  `*Config` class with its tunables, and inner `WantedState` and `SystemState` enums. The mechanism
+  drives itself, so a caller sets a wanted state and the mechanism decides what that means. See
+  [Class Generation](../coding-conventions/class-generation.md) before adding one.
+* **Per-robot hardware config** lives in
+  [`configs/`](../../src/main/java/frc/robot/configs), never in a subsystem file. Each class covers
+  one physical robot. `Robot.java` picks the class in a `switch` on `Rio.id`, which
+  `frc.spectrumLib.hardware.Rio` resolves from the roboRIO serial. Read that `switch` to see which
+  class this branch actually runs; it can ignore the serial entirely.
+* **Bindings** are all in `Robot.configureBindings()` in
+  [`Robot.java`](../../src/main/java/frc/robot/Robot.java). The `Pilot` and `Operator` classes
+  expose the buttons and nothing else.
+* **Game-specific helpers** for 2026 are in
+  [`src/main/java/frc/rebuilt`](../../src/main/java/frc/rebuilt): the field, the shot model, shift
+  timing, and the physics simulation.
+* **Vision** is [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java), which
+  owns the three cameras and fuses their estimates into the pose estimator. The seasonal AprilTag
+  map is chosen in [`Field.java`](../../src/main/java/frc/rebuilt/Field.java), not in the vision
+  subsystem. Read [Vision](../tools/vision.md) for the integration scheme.
+* **Autos** are registered in
+  [`Auton.java`](../../src/main/java/frc/robot/auton/Auton.java), and the paths and auto files live
+  under [`src/main/deploy/pathplanner/`](../../src/main/deploy/pathplanner). See
+  [Auton](../tools/auton.md).
 
-Anything with a `periodic()` lifecycle and state to manage gets the same shape.
+## Where a new behavior goes
 
-Each subsystem is one file: the subsystem class (extending `Mechanism` for anything motor-backed), an inner `*Config` class holding every tunable as `@Getter private final` fields, and inner `WantedState`/`SystemState` enums driving its state machine. There is no separate `*States` command-factory class, the subsystem drives itself via `setWantedState(...)` + `handleStateTransition()` + `applyStates()`.
+There is one rule, and it is the only thing on this page you have to memorize.
 
-The full structural conventions live in [Class Generation](../coding-conventions/class-generation.md); don't reinvent the layout when adding a new subsystem.
+* If the behavior is a **coordinated move across several mechanisms**, add a value to
+  `WantedSuperState` and handle it in `SuperStructure`. That is the only place that knows about more
+  than one mechanism at a time.
+* If the behavior is **one input firing a state that already exists**, bind it in
+  `Robot.configureBindings()` and change nothing else.
 
-## Per-Robot Configurations
+A mechanism that needs to notice something on its own, such as a jam or a stall, belongs inside that
+mechanism, not in the orchestrator. The orchestrator is for moves a human asked for.
 
-We build multiple physical robots each season and run the same code on all of them. The `Rio.id` field, looked up from the RoboRIO serial number in `frc.spectrumLib.hardware.Rio`, decides which configuration is loaded at startup. All configs live under `src/main/java/frc/robot/configs`:
+## Operating rules you cannot read off the code
 
-|    Config    |                 Bot                  |                                                                Use                                                                |
-|--------------|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| `FM2026`     | Final Machine, the competition robot | Precise calibration, the bot we travel with.                                                                                      |
-| `PM2026`     | Practice Machine                     | Mirrors competition, minor wear-and-tear tweaks.                                                                                  |
-| `XM2026`     | Experimental Machine                 | In-season experimentation and prototyping. Encoder offsets and attachment flags vary. (Off-season work gets its own `OM` config.) |
-| `AM2026`     | Alpha Machine                        | Earlier prototype, used pre-build.                                                                                                |
-| `PHOTON2026` | Photon's machine                     | The robot run by Photon, our sister team.                                                                                         |
+**Hub shifts.** REBUILT alternates each alliance's hub between active and inactive during teleop, so
+"which hub is live" is a game rule, not a robot behavior.
+[`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java) tracks the match clock, and
+`Robot.configureBindings()` re-initializes it when autonomous starts and when the robot disables.
+Any shift-aware logic depends on that being called; do not add shift logic that reads the clock
+without it.
 
-Each config can mark a mechanism present or absent via `setAttached(boolean)` so a bot without the launcher doesn't try to initialize one.
+**Test mode is not a reduced mode.** `robotPeriodic()` runs in every mode, so vision, the
+orchestrator, the scheduler, and every mechanism's `periodic()` behave in test exactly as they do in
+teleop. Nothing is quieter in test. The one thing that would break this is WPILib enabling LiveWindow
+in test, which disables the command scheduler. It defaults off and nothing turns it on here. Leave it
+that way.
 
-## States and Triggers
+**The turret zero depends on a physical pin.** The turret has no absolute position reference, so the
+code recovers its zero at boot from the motor's rotor angle. That is only correct if the turret was
+pinned at its zero before the power cycle. A code restart keeps the count the code already had, so
+the seed runs on a real power cycle only. The consequences, the alerts, and the manual override are
+all documented on `Turret.seedFromZeroReference()`. The one-line version for the pit: if the
+turret was not pinned, re-zero by hand while disabled.
 
-Each subsystem exposes a `setWantedState(<Subsystem>.WantedState)` entry point and runs its own `WantedState`/`SystemState` machine internally. Triggers are conditions that fire commands, such as a `pilot.X` press, a sensor reading, or a `SpectrumState` another subsystem flipped.
+**An angle outside the turret's travel is not a reading, it is a fault.** The mechanism cannot
+physically be there, so a reported angle out there means the zero has slipped. Re-zero before you
+trust any shot taken since.
 
-The high-level orchestrator is [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java). It maps the `WantedSuperState` enum (below) to a coordinated configuration across every mechanism. `setWantedSuperState(WantedSuperState)` is the entry point (with `setStateCommand(...)` as the command wrapper used by bindings); when `INTAKE_FUEL` fires, `SuperStructure` fans that intent out to each subsystem's `setWantedState(...)`: the fuel intake runs, the indexer bed slow-indexes, the extension extends, and the launcher/hood hold their prep/aim states.
+## Shot map: the near-shot RPM drop
 
-## Pose Estimation
+Practice shooting on 2026-09-19 found that shots close to the hub landed long while far shots landed
+correct. Correcting it with the hood was a dead end: the hood's worth in range grows with distance,
+so a flat trim fixes one end of the range by breaking the other. The team's answer was to leave the
+hood alone and take the range out of the near shots with exit speed instead, which also keeps those
+shots flatter.
 
-Swerve odometry and Limelight MegaTag readings feed a WPILib `SwerveDrivePoseEstimator`. The filtering, weighting, and which Limelight to trust live in [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java); read [Vision](../tools/vision.md) for the full integration scheme.
+That correction is `ShotCalculator.nearShotRpmDrop`, and the dashboard knob that sets its size is
+the `ShotCalc/NearShotRpmDrop` tunable, logged as `ShotCalc/NearShotRpmDropApplied` on every launch
+loop. It applies to tracked hub shots and to set shots, not to feed shots. Zero disables it.
 
-## 2026 Robot States
+The measured reasoning, the numbers, and what was tried before this are in
+[Tuning and Calibration Handoff 2026-09-08](tuning-calibration-handoff-2026-09-08.md). The shape of
+the data it produces is in [Shot Records and Trim Events](../tools/shot-log.md).
 
-These are the entries in `SuperStructure.WantedSuperState`, applied by `setWantedSuperState(...)`. Each one drives a coordinated setup across launcher, hood, fuel intake, indexer bed/tower, and intake extension.
+## Dye rotor: feed auto-unjam
 
-|                State                |                             What it does                             |
-|-------------------------------------|----------------------------------------------------------------------|
-| `IDLE`                              | Ready, neutral. Subsystems home.                                     |
-| `INTAKE_FUEL`                       | Active fuel collection, intake runs, bed indexes, extension extends. |
-| `TRACK_TARGET`                      | Launcher + hood aim while the robot is free to drive.                |
-| `LAUNCH_WITH_SQUEEZE`               | Aim + launch with the delayed-close "squeeze" sequence.              |
-| `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY` | Squeeze launch without the delayed close.                            |
-| `LAUNCH_WITHOUT_SQUEEZE`            | Aim + launch while the intake stays extended.                        |
-| `LAUNCH_WITH_BRAKE`                 | Launch while holding the drivetrain in brake.                        |
-| `AUTON_TRACK_TARGET`                | Auton-mode aim.                                                      |
-| `AUTON_INTAKE_FUEL`                 | Auton-mode fuel collection.                                          |
-| `UNJAM`                             | Clear jammed fuel from intake or indexer.                            |
-| `EJECT`                             | Spit fuel back out.                                                  |
-| `FORCE_HOME`                        | Drive every mechanism to its home position.                          |
+A jammed feed is detected in software, from rotor stator current held above a threshold for a
+debounce period. The one thing that is not a jam is the rotor spinning up against a packed bed, so
+the check stays disarmed for a moment after feeding starts or restarts, and every timer restarts
+after a reverse. It is the same shape as the idle stall check, so it needs no current-limit config
+writes.
 
-`CurrentSuperState` mirrors these; `handleStateTransition()` maps the wanted state to the current one each loop.
-
-A few field-location triggers live on `SuperStructure` itself rather than in the enum: `robotInNeutralZone()`, `robotInEnemyZone()`, `robotInFeedZone()`, `robotInScoreZone()` (which delegate to the swerve pose).
-
-## Vision Hardware
-
-Three Limelight 4s, back, left, right, for AprilTag-based pose estimation. `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)` is the seasonal map. Game-piece detection is not currently wired up; QuestNav is on the radar but unintegrated. Details in [Vision](../tools/vision.md).
-
-## Controls Layout
-
-The pilot drives and runs the fuel cycle; the operator handles offset trims and mechanism resets. Every binding lives in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java); the `Pilot`/`Operator` classes just expose the button `Trigger`s (`LT`, `RT`, `XButton`, …). This section is the summary, that method is the truth.
-
-### Pilot, fuel cycle (the triggers)
-
-`LT` and `RT` drive the core intake/launch state machine:
-
-* `LT` held alone, `INTAKE_FUEL`.
-* `RT` held alone, `LAUNCH_WITH_SQUEEZE`.
-* Both held, `LAUNCH_WITHOUT_SQUEEZE`.
-* Release `LT` while `RT` is still held, `LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY`.
-* Release `RT` while `LT` is still held, back to `INTAKE_FUEL`.
-* Release both, `IDLE`.
-
-### Pilot, everything else
-
-* Left stick: field-relative translation; right stick: rotation (exponential curves, deadzone in `Pilot`'s config).
-* `X` (hold), `TRACK_TARGET` (launcher + hood aim while driving); release → `IDLE`.
-* `A` (hold), `UNJAM`; release → `IDLE`.
-* `LT + LB`: `EJECT`; release → `IDLE`.
-* `Select`: `FORCE_HOME`; release → `IDLE`.
-* `LB + Dpad` (up/left/down/right), reorient the robot heading forward/left/back/right.
-* While disabled: `A` → coast mechanisms, `B` → brake mechanisms.
-
-### Operator
-
-* `Dpad Down/Up`: hood-angle offset trim (−/+, via `ShotCalculator`).
-* `Dpad Right/Left`: drive-angle offset trim (−/+, via `ShotCalculator`).
-* `Select`: `FORCE_HOME`; release → `IDLE`.
-* `LB + Y`: reset the intake-extension position to max (with a rumble confirmation).
-* While disabled: `A` → coast mechanisms, `B` → brake mechanisms.
-
-### Hub shifts
-
-REBUILT alternates each alliance's hub between active and inactive during teleop. `Robot.configureBindings()` calls [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java)`::initialize` on teleop/auto/disable transitions so shift-aware logic knows where the match clock is.
-
-## Where Robot State Lives
-
-* [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java): the `WantedSuperState`/`CurrentSuperState` enums and the `handleStateTransition()`/`applyStates()` logic that fans a super-state out across every mechanism. This is where a coordinated multi-mechanism move belongs.
-* [`Robot.java`](../../src/main/java/frc/robot/Robot.java): `configureBindings()` wires gamepad triggers and `Auton` event triggers to `superStructure.setStateCommand(...)`. A single trigger that fires one existing state goes here.
-
-If you're adding a behavior that's a coordinated multi-mechanism move, add a `WantedSuperState` and handle it in `SuperStructure`. If you're adding a single trigger that fires an existing state, just bind it in `Robot.configureBindings()`.
+The logic is in `DyeRotor.indexMaxWithAutoUnjam()` and is reached from `handleStateTransition()`, so
+`applyStates()` and the rest of the robot only ever see the resulting state. The thresholds are
+DogLog tunables under `DyeRotor/`, and the state is logged as `DyeRotor/AutoUnjamActive` and
+`DyeRotor/AutoUnjamCount`.

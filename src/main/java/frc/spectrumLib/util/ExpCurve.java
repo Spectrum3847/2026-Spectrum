@@ -4,22 +4,13 @@ package frc.spectrumLib.util;
 // Based on Code from FRC# 2363
 
 /**
- * This class maps the value of a input to an exponential curve. It is a subclass of <code>
- * Curve</code>. Modified to allow outputs larger than 1.0
+ * Maps an input through an exponential curve. Nothing clamps the output, so offset and scalar can
+ * push a result past [-1, 1].
  */
 public class ExpCurve extends Curve {
-    /** The value of the base of the exponent used in calculating the curve. */
+    /** Base of the exponent applied to the input. */
     private double expVal;
 
-    /**
-     * Constructs an Exponential Curve object which can be used to map a stick input exponentially.
-     * Initialized with default values: <code>
-     *     expVal = 1.0;
-     *     offset = 0.0;
-     *     scalar = 1.0;
-     *     deadzone = 0.0;
-     * </code>
-     */
     public ExpCurve() {
         setExpVal(1.0);
         setOffset(0.0);
@@ -28,13 +19,8 @@ public class ExpCurve extends Curve {
     }
 
     /**
-     * Constructs an Exponential Curve object which can be used to map a stick input exponentially.
-     * Initialized with values provided.
-     *
-     * @param expVal value of the base of the exponent used in the curve
-     * @param offset value used to offset the final curve
-     * @param scalar value used to scale the value before offset
-     * @param deadzone value for the width of the deadband in the center of the curve
+     * @param expVal base of the exponent applied to the input
+     * @param deadzone width of the deadband centred on zero
      */
     public ExpCurve(double expVal, double offset, double scalar, double deadzone) {
         setExpVal(expVal);
@@ -44,10 +30,10 @@ public class ExpCurve extends Curve {
     }
 
     /**
-     * Applies the full exponential curve pipeline: deadzone, exponent, scalar, then offset.
+     * Applies the stages in order: deadzone, exponent, scalar, offset. Changing the order changes
+     * the result.
      *
-     * @param input the raw input value to be mapped (typically in [-1, 1])
-     * @return the mapped output value
+     * @param input the raw input, usually in [-1, 1]
      */
     @Override
     public double calculate(double input) {
@@ -55,10 +41,8 @@ public class ExpCurve extends Curve {
     }
 
     /**
-     * Returns the value of the input mapped by an exponential curve of base <code>expVal</code>.
-     *
-     * @param input the input value to be mapped
-     * @return mapped value
+     * A normalized exponential that keeps the input's sign and reaches 1.0 at both endpoints. With
+     * an expVal of 1.0 the input passes through untouched.
      */
     private double calculateExpVal(double input) {
         if (expVal == 1.0) {
@@ -67,11 +51,7 @@ public class ExpCurve extends Curve {
         return (Math.pow(expVal, Math.abs(input)) - 1.0) / (expVal - 1.0) * Math.signum(input);
     }
 
-    /**
-     * Sets the value of <code>expVal</code>, the base of the exponent used to map the input.
-     *
-     * @param expVal the new value of <code>expVal</code>
-     */
+    /** Zero or less is stored as 1.0, which makes the mapping the identity. */
     public void setExpVal(double expVal) {
         if (expVal <= 0.0) {
             expVal = 1.0;
@@ -79,11 +59,6 @@ public class ExpCurve extends Curve {
         this.expVal = expVal;
     }
 
-    /**
-     * Returns the value of <code>expVal</code>, the base of the exponent used to map the input.
-     *
-     * @return the current value of <code>expVal</code>
-     */
     public double getExpVal() {
         return expVal;
     }

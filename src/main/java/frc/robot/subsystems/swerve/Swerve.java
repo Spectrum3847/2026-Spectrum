@@ -1,3 +1,5 @@
+// Based on
+// https://github.com/CrossTheRoadElec/Phoenix6-Examples/blob/main/java/SwerveWithPathPlanner/src/main/java/frc/robot/subsystems/CommandSwerveDrivetrain.java
 package frc.robot.subsystems.swerve;
 
 import static edu.wpi.first.units.Units.Inches;
@@ -5,34 +7,30 @@ import static edu.wpi.first.units.Units.Pounds;
 import static edu.wpi.first.units.Units.Seconds;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.swerve.SwerveDrivetrain;
-import com.ctre.phoenix6.swerve.SwerveModule;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveModule.SteerRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
-import com.ctre.phoenix6.swerve.utility.PhoenixPIDController;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rectangle2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.units.measure.AngularVelocity;
-import edu.wpi.first.units.measure.LinearAcceleration;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -41,34 +39,26 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.rebuilt.Field;
 import frc.rebuilt.FieldHelpers;
 import frc.rebuilt.RobotBumpSim;
-import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
+import frc.spectrumLib.framework.RobotLoop;
+import frc.spectrumLib.hardware.CanConfigBudget;
 import frc.spectrumLib.swerve.MapleSimSwerveDrivetrain;
 import frc.spectrumLib.telemetry.Telemetry;
-import frc.spectrumLib.util.Util;
-import java.util.Arrays;
 import java.util.Optional;
-import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
- * in command-based projects easily.
- */
+/** The drivetrain. Extends CTRE's SwerveDrivetrain and implements Subsystem. */
 public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> implements Subsystem {
 
-    // ── State machine ──────────────────────────────────────────────────────────────────
     public enum WantedState {
         TELEOP_DRIVE,
-        PILOT_AIM_AT_TARGET,
         X_BRAKE,
         IDLE
     }
 
     public enum SystemState {
         TELEOP_DRIVE,
-        PILOT_AIM_AT_TARGET,
         X_BRAKE,
         IDLE
     }
@@ -76,22 +66,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private WantedState wantedState = WantedState.IDLE;
     private SystemState systemState = SystemState.IDLE;
 
-    private final StatusSignal<AngularVelocity> angularPitchVelocity;
-    private final StatusSignal<AngularVelocity> angularRollVelocity;
-    private final StatusSignal<AngularVelocity> angularYawVelocity;
-    private final StatusSignal<Angle> roll;
-    private final StatusSignal<Angle> pitch;
-    private final StatusSignal<LinearAcceleration> accelerationX;
-    private final StatusSignal<LinearAcceleration> accelerationY;
-
-    public static final double TRANSLATION_ERROR_MARGIN_METERS = Units.inchesToMeters(1.0);
-    public static final double DRIVE_TO_POINT_STATIC_FRICTION_CONSTANT = 0.02;
     private static final double SKEW_COMPENSATION_SCALAR = -0.03;
 
     @Getter @Setter private double teleopVelocityCoefficient = 1.0;
-    @Getter @Setter private double rotationVelocityCoefficient = 1.0;
+    @Getter @Setter private double teleopRotationVelocityCoefficient = 1.0;
 
-    @Getter private SwerveConfig config;
+    @Getter private final SwerveConfig config;
     private Notifier simNotifier = null;
 
     private Alert pigeonAlert = new Alert("Pigeon IMU Disconnected", Alert.AlertType.kError);
@@ -107,19 +87,13 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                     .withDriveRequestType(DriveRequestType.Velocity)
                     .withSteerRequestType(SteerRequestType.Position);
 
-    private final SwerveRequest.FieldCentricFacingAngle DRIVE_AT_ANGLE_REQUEST =
-            new SwerveRequest.FieldCentricFacingAngle()
-                    .withDriveRequestType(SwerveModule.DriveRequestType.Velocity)
-                    .withSteerRequestType(SwerveModule.SteerRequestType.Position);
-
     private final SwerveRequest.SwerveDriveBrake X_BRAKE = new SwerveRequest.SwerveDriveBrake();
 
-    /**
-     * Constructs a new Swerve drive subsystem.
-     *
-     * @param config The configuration object containing drivetrain constants and module
-     *     configurations.
-     */
+    private final SwerveRequest.Idle IDLE_REQUEST = new SwerveRequest.Idle();
+
+    /** Publishes raw CANcoder data for the tools/swerve-align web app. */
+    private final SwerveAlignment alignment;
+
     public Swerve(SwerveConfig config) {
         super(
                 TalonFX::new,
@@ -137,143 +111,201 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
 
         configurePathPlanner();
 
-        // Configure heading PID on the shared drive-at-angle request
-        DRIVE_AT_ANGLE_REQUEST.HeadingController =
-                new PhoenixPIDController(
-                        config.getKPRotationController(),
-                        config.getKIRotationController(),
-                        config.getKDRotationController());
-        DRIVE_AT_ANGLE_REQUEST.HeadingController.enableContinuousInput(-Math.PI, Math.PI);
-        DRIVE_AT_ANGLE_REQUEST
-                .withDeadband(
-                        config.getLinearSpeedAt12Volts().baseUnitMagnitude()
-                                * config.getAimDeadband())
-                .withRotationalDeadband(
-                        config.getAngularSpeedAt12Volts().baseUnitMagnitude()
-                                * config.getAimDeadband())
-                .withMaxAbsRotationalRate(config.getAngularSpeedAt12Volts());
-
         this.register();
 
-        angularPitchVelocity = getPigeon2().getAngularVelocityYWorld();
-        angularRollVelocity = getPigeon2().getAngularVelocityXWorld();
-        angularYawVelocity = getPigeon2().getAngularVelocityZWorld();
-        roll = getPigeon2().getRoll();
-        pitch = getPigeon2().getPitch();
-        accelerationX = getPigeon2().getAccelerationX();
-        accelerationY = getPigeon2().getAccelerationY();
+        // Eight motors' worth of per-signal config calls, and only an optimisation: on a dead bus
+        // it is boot latency for nothing, so it is skipped once the CAN config budget is spent.
+        if (!CanConfigBudget.exhausted()) {
+            optimizeBusUtilization();
+        }
+        // Must come after optimizeBusUtilization(), which silences the CANcoder signals it wants.
+        alignment = new SwerveAlignment(getModules(), config);
 
-        BaseStatusSignal.setUpdateFrequencyForAll(250, angularYawVelocity);
-        BaseStatusSignal.setUpdateFrequencyForAll(
-                100,
-                angularPitchVelocity,
-                angularRollVelocity,
-                roll,
-                pitch,
-                accelerationX,
-                accelerationY);
+        var modules = getModules();
+        moduleCurrentSignals = new BaseStatusSignal[modules.length * 4];
+        moduleCurrentKeys = new String[modules.length * 4];
+        moduleConnectedKeys = new String[modules.length * 2];
+        for (int i = 0; i < modules.length; i++) {
+            moduleCurrentSignals[4 * i] = modules[i].getDriveMotor().getStatorCurrent(false);
+            moduleCurrentSignals[4 * i + 1] = modules[i].getDriveMotor().getSupplyCurrent(false);
+            moduleCurrentSignals[4 * i + 2] = modules[i].getSteerMotor().getStatorCurrent(false);
+            moduleCurrentSignals[4 * i + 3] = modules[i].getSteerMotor().getSupplyCurrent(false);
 
-        getPigeon2().optimizeBusUtilization();
-        optimizeBusUtilization();
-
-        registerTelemetry(this::log);
+            // Built once so the 10 Hz tick does no string concatenation.
+            String module =
+                    i < SwerveAlignment.MODULE_NAMES.length
+                            ? SwerveAlignment.MODULE_NAMES[i]
+                            : "Module" + i;
+            moduleCurrentKeys[4 * i] = CURRENTS_PREFIX + module + "/DriveStatorCurrent";
+            moduleCurrentKeys[4 * i + 1] = CURRENTS_PREFIX + module + "/DriveSupplyCurrent";
+            moduleCurrentKeys[4 * i + 2] = CURRENTS_PREFIX + module + "/SteerStatorCurrent";
+            moduleCurrentKeys[4 * i + 3] = CURRENTS_PREFIX + module + "/SteerSupplyCurrent";
+            moduleConnectedKeys[2 * i] = "Swerve/Modules/" + module + "/DriveConnected";
+            moduleConnectedKeys[2 * i + 1] = "Swerve/Modules/" + module + "/SteerConnected";
+        }
 
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
-    // --------------------------------------------------------------------------------
-    // Periodic and Setup Methods
-    // --------------------------------------------------------------------------------
+    /** Snapshot of the drivetrain state for this loop; see {@link #loopState()}. */
+    private SwerveDriveState loopState;
 
-    protected void log(SwerveDriveState state) {
+    /** Loop the snapshot was taken on, or -1 for none. */
+    private long loopStateLoop = -1;
+
+    /**
+     * The drivetrain state, read once per loop.
+     *
+     * <p>{@code getState()} is a JNI call plus the odometry lock plus a copy, and the pose gets
+     * pulled that way a dozen times a loop, from vision, the shot calculator, the superstructure,
+     * the turret, Field2d and the zone triggers. Every caller in a loop now sees the same snapshot,
+     * which is also the right semantics: a shot solution and the turret aiming it should agree on
+     * where the robot is. The snapshot is dropped whenever the pose is changed on purpose, so a
+     * correction made early in the loop is seen by everything after it.
+     */
+    protected SwerveDriveState loopState() {
+        long loop = RobotLoop.count();
+        if (loopState == null || loopStateLoop != loop) {
+            loopState = getState().clone();
+            loopStateLoop = loop;
+        }
+        return loopState;
+    }
+
+    /** Forgets this loop's state snapshot so the next read sees a pose change made this loop. */
+    private void invalidateLoopState() {
+        loopStateLoop = -1;
+    }
+
+    /**
+     * Logs pose, module targets, module states and chassis speeds from the main loop.
+     *
+     * <p>Not from CTRE's {@code registerTelemetry} callback, which runs on the odometry thread
+     * while it holds the drivetrain state lock. Four struct serializations and a queue put per call
+     * happened under that lock, so a full DogLog queue dropped exactly these four keys, and {@code
+     * Swerve.periodic} then showed up at 100 to 200 ms in overrun traces waiting on that lock from
+     * {@code setControl}. Logging the loop's own snapshot here costs the odometry thread nothing
+     * and keeps odometry at 250 Hz.
+     */
+    private void logSwerveState() {
+        SwerveDriveState state = loopState();
         Telemetry.log("Swerve/State/Pose", state.Pose);
         Telemetry.log("Swerve/State/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/State/MeasuredStates", state.ModuleStates);
         Telemetry.log("Swerve/State/MeasuredSpeeds", state.Speeds);
     }
 
-    protected void logBatteryUsage() {
-        double steerMotorCurrent = getSteerMotorSupplyCurrents();
-        double driveMotorCurrent = getDriveMotorSupplyCurrents();
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerMotorCurrent);
-        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveMotorCurrent);
+    /** NetworkTables/DogLog key prefix for the drivetrain's current telemetry. */
+    private static final String CURRENTS_PREFIX = "Swerve/Currents/";
 
-        Telemetry.log("Swerve/Currents/DriveStatorCurrent", getDriveMotorStatorCurrents());
-        Telemetry.log("Swerve/Currents/SteerStatorCurrent", getSteerMotorStatorCurrents());
-        Telemetry.log("Swerve/Currents/DriveSupplyCurrent", getDriveMotorSupplyCurrents());
-        Telemetry.log("Swerve/Currents/SteerSupplyCurrent", getSteerMotorSupplyCurrents());
-    }
+    /** Drive and steer stator and supply current signals for every module, refreshed together. */
+    private BaseStatusSignal[] moduleCurrentSignals = new BaseStatusSignal[0];
 
-    protected double getDriveMotorStatorCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getDriveMotor().getStatorCurrent().getValueAsDouble())
-                .sum();
-    }
-
-    protected double getSteerMotorStatorCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getSteerMotor().getStatorCurrent().getValueAsDouble())
-                .sum();
-    }
-
-    protected double getDriveMotorSupplyCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getDriveMotor().getSupplyCurrent().getValueAsDouble())
-                .sum();
-    }
-
-    protected double getSteerMotorSupplyCurrents() {
-        return Arrays.stream(getModules())
-                .mapToDouble(module -> module.getSteerMotor().getSupplyCurrent().getValueAsDouble())
-                .sum();
-    }
+    /** Log key for each entry of {@link #moduleCurrentSignals}, in the same order. */
+    private String[] moduleCurrentKeys = new String[0];
 
     /**
-     * This method is called periodically and is used to update the pilot's perspective. It ensures
-     * that the swerve drive system is aligned correctly based on the pilot's view.
+     * {@code Swerve/Modules/<name>/DriveConnected} and {@code .../SteerConnected}, two per module.
+     *
+     * <p>The only other connection telemetry the swerve has is {@code Swerve/Align/.../Connected},
+     * which publishes while disabled, so a drivetrain motor going quiet mid-match leaves no direct
+     * evidence and the failure has to be read off its currents at 10 Hz. These ride the same 10 Hz
+     * refresh as the currents.
      */
+    private String[] moduleConnectedKeys = new String[0];
+
+    private double driveStatorCurrent;
+    private double driveSupplyCurrent;
+    private double steerStatorCurrent;
+    private double steerSupplyCurrent;
+
+    /**
+     * Reports drive and steer supply current to the battery logger every loop and logs the four
+     * current sums at 10 Hz.
+     *
+     * <p>The sixteen module current signals are refreshed in one Phoenix call on the 10 Hz tick and
+     * held between ticks. The battery logger's energy integral tolerates a 100 ms sample and hold.
+     *
+     * <p>Each signal is logged per module as well as summed, because a drive motor that stopped
+     * turning its wheel otherwise shows up only as a dip in a total the other three still dominate.
+     * The per-module keys cost twelve more doubles on a tick that has already paid for the refresh.
+     */
+    protected void logBatteryUsage() {
+        if (Telemetry.slowLogThisLoop() && moduleCurrentSignals.length > 0) {
+            BaseStatusSignal.refreshAll(moduleCurrentSignals);
+            driveStatorCurrent = 0;
+            driveSupplyCurrent = 0;
+            steerStatorCurrent = 0;
+            steerSupplyCurrent = 0;
+            for (int i = 0; i < moduleCurrentSignals.length; i += 4) {
+                double driveStator = moduleCurrentSignals[i].getValueAsDouble();
+                double driveSupply = moduleCurrentSignals[i + 1].getValueAsDouble();
+                double steerStator = moduleCurrentSignals[i + 2].getValueAsDouble();
+                double steerSupply = moduleCurrentSignals[i + 3].getValueAsDouble();
+
+                driveStatorCurrent += driveStator;
+                driveSupplyCurrent += driveSupply;
+                steerStatorCurrent += steerStator;
+                steerSupplyCurrent += steerSupply;
+
+                Telemetry.log(moduleCurrentKeys[i], driveStator);
+                Telemetry.log(moduleCurrentKeys[i + 1], driveSupply);
+                Telemetry.log(moduleCurrentKeys[i + 2], steerStator);
+                Telemetry.log(moduleCurrentKeys[i + 3], steerSupply);
+                // A signal whose refresh failed is a motor that did not answer.
+                Telemetry.log(
+                        moduleConnectedKeys[i / 2], moduleCurrentSignals[i].getStatus().isOK());
+                Telemetry.log(
+                        moduleConnectedKeys[i / 2 + 1],
+                        moduleCurrentSignals[i + 2].getStatus().isOK());
+            }
+            Telemetry.log(CURRENTS_PREFIX + "DriveStatorCurrent", driveStatorCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "SteerStatorCurrent", steerStatorCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "DriveSupplyCurrent", driveSupplyCurrent);
+            Telemetry.log(CURRENTS_PREFIX + "SteerSupplyCurrent", steerSupplyCurrent);
+        }
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveSteer", steerSupplyCurrent);
+        Robot.getBatteryLogger().reportCurrentUsage("Mechanisms/SwerveDrive", driveSupplyCurrent);
+    }
+
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
 
-        Telemetry.logDash("Swerve/CurrentCommand", getCurrentCommandName());
-        Telemetry.logDash("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
-        Telemetry.logDash("Swerve/RotationVelocityCoefficient", getRotationVelocityCoefficient());
+        Telemetry.logState("Swerve/WantedState", wantedState);
+        Telemetry.logState("Swerve/SystemState", systemState);
+        Telemetry.log("Swerve/CurrentCommand", getCurrentCommandName());
+        Telemetry.log("Swerve/TeleopVelocityCoefficient", getTeleopVelocityCoefficient());
+        Telemetry.log(
+                "Swerve/TeleopRotationVelocityCoefficient", getTeleopRotationVelocityCoefficient());
+        logSwerveState();
         logBatteryUsage();
+        alignment.log();
+
         checkPigeonConnection();
 
         if (Utils.isSimulation()) {
             Telemetry.log("Sim/SimPose", getRobotPose());
             if (robotBumpSim != null) {
-                synchronized (simLock) {
-                    Pose2d simPose =
-                            mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
-                    ChassisSpeeds robotRelSpeeds =
-                            mapleSimSwerveDrivetrain.mapleSimDrive
-                                    .getDriveTrainSimulatedChassisSpeedsRobotRelative();
-                    ChassisSpeeds fieldRelSpeeds =
-                            ChassisSpeeds.fromRobotRelativeSpeeds(
-                                    robotRelSpeeds, simPose.getRotation());
-                    // subticks=5 -> dt = 20ms/5 = 4ms sub-steps (matches MapleSim's 5ms period
-                    // closely)
-                    simRobotPose3d = robotBumpSim.update(simPose, fieldRelSpeeds, 5);
-                    if (robotBumpSim.isOnRamp()) {
-                        mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(
-                                robotBumpSim.getSimWorldPose(simPose));
-                    }
-                    Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
+                Pose2d simPose =
+                        mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
+                ChassisSpeeds robotRelSpeeds =
+                        mapleSimSwerveDrivetrain.mapleSimDrive
+                                .getDriveTrainSimulatedChassisSpeedsRobotRelative();
+                ChassisSpeeds fieldRelSpeeds =
+                        ChassisSpeeds.fromRobotRelativeSpeeds(
+                                robotRelSpeeds, simPose.getRotation());
+                // subticks 5 gives dt = 20ms/5 = 4ms sub-steps, close to MapleSim's 5ms period
+                simRobotPose3d = robotBumpSim.update(simPose, fieldRelSpeeds, 5);
+                if (robotBumpSim.isOnRamp()) {
+                    mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(
+                            robotBumpSim.getSimWorldPose(simPose));
                 }
+                Telemetry.log("Sim/RobotPose3d", simRobotPose3d);
             }
         }
-
-        Telemetry.logDash("Swerve/WantedState", wantedState.toString());
-        Telemetry.logDash("Swerve/SystemState", systemState.toString());
     }
-
-    // -----------------------------------------------------------------------
-    // Subsystem Setup
-    // -----------------------------------------------------------------------
 
     protected String getCurrentCommandName() {
         Command currentCommand = this.getCurrentCommand();
@@ -287,34 +319,22 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case TELEOP_DRIVE -> SystemState.TELEOP_DRIVE;
-            case PILOT_AIM_AT_TARGET -> SystemState.PILOT_AIM_AT_TARGET;
             case X_BRAKE -> SystemState.X_BRAKE;
             case IDLE -> SystemState.IDLE;
-            default -> SystemState.IDLE;
         };
     }
 
     private void applyStates() {
         switch (systemState) {
-            default:
             case IDLE:
-                setControl(new SwerveRequest.Idle());
-                break;
-            case PILOT_AIM_AT_TARGET:
-                var params = ShotCalculator.getInstance().getParameters();
-                ChassisSpeeds joystickSpeeds = calculateSpeedsBasedOnJoystickInputs();
-                setControl(
-                        DRIVE_AT_ANGLE_REQUEST
-                                .withVelocityX(joystickSpeeds.vxMetersPerSecond)
-                                .withVelocityY(joystickSpeeds.vyMetersPerSecond)
-                                .withTargetDirection(params.driveAngle()));
-
+                setControl(IDLE_REQUEST);
                 break;
             case TELEOP_DRIVE:
                 setControl(FIELD_CENTRIC_DRIVE.withSpeeds(calculateSpeedsBasedOnJoystickInputs()));
                 break;
             case X_BRAKE:
                 setControl(X_BRAKE);
+                break;
         }
     }
 
@@ -327,19 +347,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         double yMagnitude = Robot.getPilot().getDriveLeftPositive();
         double angularMagnitude = Robot.getPilot().getDriveCCWPositive();
 
-        double xVelocity =
-                (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-                                        == DriverStation.Alliance.Blue
-                                ? xMagnitude
-                                : -xMagnitude)
-                        * teleopVelocityCoefficient;
-        double yVelocity =
-                (DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
-                                        == DriverStation.Alliance.Blue
-                                ? yMagnitude
-                                : -yMagnitude)
-                        * teleopVelocityCoefficient;
-        double angularVelocity = angularMagnitude * rotationVelocityCoefficient;
+        // Field-relative stick directions are mirrored for the red alliance.
+        double allianceSign = Field.isBlue() ? 1 : -1;
+        double xVelocity = allianceSign * xMagnitude * teleopVelocityCoefficient;
+        double yVelocity = allianceSign * yMagnitude * teleopVelocityCoefficient;
+        double angularVelocity = angularMagnitude * teleopRotationVelocityCoefficient;
 
         Rotation2d skewCompensationFactor =
                 Rotation2d.fromRadians(
@@ -353,43 +365,21 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                 getRobotPose().getRotation().plus(skewCompensationFactor));
     }
 
-    // --------------------------------------------------------------------------------
-    // Pose Methods
-    // --------------------------------------------------------------------------------
-
-    /**
-     * The function `getRobotPose` returns the robot's pose after checking and updating it.
-     *
-     * @return The `getRobotPose` method is returning the robot's current pose after calling the
-     *     `seedCheckedPose` method with the current pose as an argument.
-     */
     public Pose2d getRobotPose() {
-        // Simulates collision by with field obstacles and boundaries
+        // In simulation the pose comes from MapleSim, which also models collisions with the field
+        // obstacles and boundaries.
         if (this.mapleSimSwerveDrivetrain != null) {
-            synchronized (simLock) {
-                return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
-            }
+            return mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose();
         }
-        return getState().Pose;
+        return loopState().Pose;
     }
 
-    /**
-     * Checks the connection status of the Pigeon IMU. If it is not connected, an alert will show up
-     * in Elastic
-     */
     private void checkPigeonConnection() {
-        if (getPigeon2() == null || !getPigeon2().isConnected()) {
-            pigeonAlert.set(true);
-        } else {
-            pigeonAlert.set(false);
-        }
+        pigeonAlert.set(!getPigeon2().isConnected());
     }
 
     /**
-     * Get the robot's pose at a specific timestamp using interpolation
-     *
-     * @param timestampSeconds The timestamp to sample at
-     * @return The interpolated pose, or current pose if timestamp not in buffer
+     * The interpolated pose at a timestamp, falling back to the current pose if it is not buffered.
      */
     public Pose2d getPoseAtTimestamp(double timestampSeconds) {
         Optional<Pose2d> sampled = super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
@@ -400,108 +390,72 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     @Override
     public void resetPose(Pose2d pose) {
         if (this.mapleSimSwerveDrivetrain != null) {
-            synchronized (simLock) {
-                mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
-            }
-            Timer.delay(0.05); // Wait for simulation to update
+            mapleSimSwerveDrivetrain.mapleSimDrive.setSimulationWorldPose(pose);
+            Timer.delay(0.05); // let the simulation catch up
         }
         super.resetPose(pose);
+        invalidateLoopState();
     }
 
-    // --------------------------------------------------------------------------------
-    // Zone Triggers
-    // --------------------------------------------------------------------------------
-
-    public Trigger inXzone(double minXmeter, double maxXmeter) {
-        return new Trigger(
-                () -> Util.inRange(() -> getRobotPose().getX(), () -> minXmeter, () -> maxXmeter));
+    @Override
+    public void resetTranslation(Translation2d translation) {
+        super.resetTranslation(translation);
+        invalidateLoopState();
     }
 
-    public Trigger inYzone(double minYmeter, double maxYmeter) {
-        return new Trigger(
-                () -> Util.inRange(() -> getRobotPose().getY(), () -> minYmeter, () -> maxYmeter));
+    @Override
+    public void resetRotation(Rotation2d rotation) {
+        super.resetRotation(rotation);
+        invalidateLoopState();
     }
 
-    /**
-     * This method is used to check if the robot is in the X zone of the field flips the values if
-     * Red Alliance
-     *
-     * @param minXmeter the minimum X coordinate in meters
-     * @param maxXmeter the maximum X coordinate in meters
-     * @return the Trigger
-     */
-    public Trigger inXzoneAlliance(double minXmeter, double maxXmeter) {
-        return new Trigger(
-                () ->
-                        Util.inRange(
-                                FieldHelpers.flipXifRed(getRobotPose().getX()),
-                                minXmeter,
-                                maxXmeter));
+    @Override
+    public void seedFieldCentric() {
+        super.seedFieldCentric();
+        invalidateLoopState();
     }
 
-    /**
-     * This method is used to check if the robot is in the Y zone of the field flips the values if
-     * Red Alliance
-     *
-     * @param minYmeter the minimum Y coordinate in meters
-     * @param maxYmeter the maximum Y coordinate in meters
-     * @return the Trigger
-     */
-    public Trigger inYzoneAlliance(double minYmeter, double maxYmeter) {
-        return new Trigger(
-                () ->
-                        Util.inRange(
-                                FieldHelpers.flipYifRed(getRobotPose().getY()),
-                                minYmeter,
-                                maxYmeter));
+    @Override
+    public void addVisionMeasurement(Pose2d visionRobotPose, double timestampSeconds) {
+        super.addVisionMeasurement(visionRobotPose, timestampSeconds);
+        invalidateLoopState();
+    }
+
+    @Override
+    public void addVisionMeasurement(
+            Pose2d visionRobotPose, double timestampSeconds, Matrix<N3, N1> visionStdDevs) {
+        super.addVisionMeasurement(visionRobotPose, timestampSeconds, visionStdDevs);
+        invalidateLoopState();
     }
 
     private static final double NEUTRAL_DEPTH_METERS = Units.inchesToMeters(283.0);
-    private static final double NEUTRAL_LENGTH_METERS = Units.inchesToMeters(317.7);
     private static final double ENEMY_ALLIANCE_DEPTH_METERS = Units.inchesToMeters(180.0);
 
     private static final Rectangle2d NEUTRAL_ZONE =
             new Rectangle2d(
-                    new Translation2d(
-                            Field.fieldLength / 2.0 - NEUTRAL_DEPTH_METERS / 2.0,
-                            Field.fieldWidth / 2.0 - NEUTRAL_LENGTH_METERS / 2.0),
+                    new Translation2d(Field.fieldLength / 2.0 - NEUTRAL_DEPTH_METERS / 2.0, 0),
                     new Translation2d(
                             Field.fieldLength / 2.0 + NEUTRAL_DEPTH_METERS / 2.0,
-                            Field.fieldWidth / 2.0 + NEUTRAL_LENGTH_METERS / 2.0));
+                            Field.fieldWidth));
 
     private static final Rectangle2d ENEMY_ALLIANCE_ZONE =
             new Rectangle2d(
                     new Translation2d(Field.fieldLength - ENEMY_ALLIANCE_DEPTH_METERS, 0),
                     new Translation2d(Field.fieldLength, Field.fieldWidth));
 
-    /** Returns {@code true} when the robot is inside the neutral zone. Allocation-free. */
+    /** True when the robot is inside the neutral zone. Allocation-free. */
     public boolean isInNeutralZone() {
         return NEUTRAL_ZONE.contains(getRobotPose().getTranslation());
     }
 
     /**
-     * Returns {@code true} when the robot is inside the opposing alliance's zone (pose X is flipped
-     * for red so the same rectangle works for both alliances).
+     * True when the robot is inside the opposing alliance's zone. Pose X is flipped for red, so the
+     * same rectangle works for both alliances.
      */
     public boolean isInEnemyAllianceZone() {
+        Pose2d pose = getRobotPose();
         return ENEMY_ALLIANCE_ZONE.contains(
-                new Translation2d(
-                        FieldHelpers.flipXifRed(getRobotPose().getX()), getRobotPose().getY()));
-    }
-
-    public Trigger inNeutralZone() {
-        return new Trigger(this::isInNeutralZone);
-    }
-
-    public Trigger inEnemyAllianceZone() {
-        return new Trigger(this::isInEnemyAllianceZone);
-    }
-
-    public Trigger inFieldRight() {
-        final double fieldWidthMeters = Units.feetToMeters(27.0); // full field width (Y)
-        final double halfWidth = fieldWidthMeters / 2.0;
-
-        return new Trigger(() -> getRobotPose().getY() < halfWidth);
+                new Translation2d(FieldHelpers.flipXifRed(pose.getX()), pose.getY()));
     }
 
     public Trigger inFieldLeft() {
@@ -511,29 +465,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         return new Trigger(() -> getRobotPose().getY() >= halfWidth);
     }
 
-    // --------------------------------------------------------------------------------
-    // Speed Checks
-    // --------------------------------------------------------------------------------
-
-    public boolean isGoingTooFast(double thresholdSpeed) {
-        ChassisSpeeds speeds = getCurrentRobotChassisSpeeds();
-        double linearSpeed = Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond);
-        return linearSpeed > thresholdSpeed;
-    }
-
-    public Trigger overSpeedTrigger(double thresholdSpeed) {
-        return new Trigger(() -> isGoingTooFast(thresholdSpeed));
-    }
-
     public ChassisSpeeds getCurrentRobotChassisSpeeds() {
-        return getKinematics().toChassisSpeeds(getState().ModuleStates);
+        return getKinematics().toChassisSpeeds(loopState().ModuleStates);
     }
 
-    // --------------------------------------------------------------------------------
-    // Reorientation Methods
-    // --------------------------------------------------------------------------------
-
-    private void applyReorient(double angleDegrees) {
+    protected void reorient(double angleDegrees) {
         resetPose(
                 new Pose2d(
                         getRobotPose().getX(),
@@ -541,113 +477,43 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                         Rotation2d.fromDegrees(angleDegrees)));
     }
 
-    protected Command reorient(double angleDegrees) {
-        return runOnce(() -> applyReorient(angleDegrees));
-    }
-
-    public Command reorientForward() {
-        return reorient(0).withName("reorientForward");
-    }
-
-    public Command reorientLeft() {
-        return reorient(90).withName("reorientLeft");
-    }
-
-    public Command reorientBack() {
-        return reorient(180).withName("reorientBack");
-    }
-
-    public Command reorientRight() {
-        return reorient(270).withName("reorientRight");
-    }
-
-    protected double getClosestCardinal() {
-        double heading = getRotation().getRadians();
-        if (heading > -Math.PI / 4 && heading <= Math.PI / 4) {
-            return 0;
-        } else if (heading > Math.PI / 4 && heading <= 3 * Math.PI / 4) {
-            return 90;
-        } else if (heading > 3 * Math.PI / 4 || heading <= -3 * Math.PI / 4) {
-            return 180;
-        } else {
-            return 270;
-        }
-    }
-
-    protected Command cardinalReorient() {
+    protected Command reorientPilotAngle(double angleDegrees) {
         return runOnce(
                 () -> {
-                    double angleDegrees = getClosestCardinal();
-                    applyReorient(angleDegrees);
+                    double output = FieldHelpers.flipAngleIfRed(angleDegrees);
+                    reorient(output);
                 });
     }
 
-    public boolean frontClosestToAngle(double angleDegrees) {
-        double heading = getRotation().getDegrees();
-        double flippedHeading;
-        if (heading > 0) {
-            flippedHeading = heading - 180;
-        } else {
-            flippedHeading = heading + 180;
-        }
-        double frontDifference = getRotationDifference(heading, angleDegrees);
-        double flippedDifference = getRotationDifference(flippedHeading, angleDegrees);
-
-        return frontDifference < flippedDifference;
+    /**
+     * Reorients the robot front away from the driver station. Angles are blue-origin and get
+     * flipped on red.
+     */
+    public Command reorientForward() {
+        return reorientPilotAngle(0).withName("Swerve.reorientForward");
     }
 
-    // Helper method to calculate the shortest angle difference
-    public double getRotationDifference(double angle1, double angle2) {
-        double diff = Math.abs(angle1 - angle2) % 360;
-        return diff > 180 ? 360 - diff : diff;
+    /** Reorients the robot front to the driver's left. */
+    public Command reorientLeft() {
+        return reorientPilotAngle(90).withName("Swerve.reorientLeft");
     }
 
-    // --------------------------------------------------------------------------------
-    // Rotation Controller
-    // --------------------------------------------------------------------------------
-
-    Rotation2d getRotation() {
-        return getRobotPose().getRotation();
+    /** Reorients the robot front back toward the driver station. */
+    public Command reorientBack() {
+        return reorientPilotAngle(180).withName("Swerve.reorientBack");
     }
 
-    double getRotationRadians() {
-        return getRobotPose().getRotation().getRadians();
+    /** Reorients the robot front to the driver's right. */
+    public Command reorientRight() {
+        return reorientPilotAngle(270).withName("Swerve.reorientRight");
     }
-
-    // --------------------------------------------------------------------------------
-    // Request Methods
-    // --------------------------------------------------------------------------------
-
-    // Used to set a control request to the swerve module, ignores disable so commands are
-    // continuous.
-    Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
-        return run(() -> this.setControl(requestSupplier.get())).ignoringDisable(true);
-    }
-
-    // ── Public state setters ───────────────────────────────────────────────────────────
 
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
 
-    public boolean isAtDesiredRotation() {
-        return isAtDesiredRotation(Units.degreesToRadians(10.0));
-    }
-
-    public boolean isAtDesiredRotation(double toleranceRadians) {
-        if (systemState != SystemState.PILOT_AIM_AT_TARGET) {
-            return false;
-        }
-        return Math.abs(DRIVE_AT_ANGLE_REQUEST.HeadingController.getPositionError())
-                < toleranceRadians;
-    }
-
-    // --------------------------------------------------------------------------------
-    // Path Planner Configuration
-    // --------------------------------------------------------------------------------
-
     private void configurePathPlanner() {
-        // Seed robot to in front of blue hub (Paths will change this starting position)
+        // Seeds the robot in front of the blue hub. Paths change this starting position.
         resetPose(
                 new Pose2d(
                         Field.getBlueHubCenter().getX() - 2,
@@ -657,10 +523,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         try {
             var config = RobotConfig.fromGUISettings();
             AutoBuilder.configure(
-                    this::getRobotPose, // Supplier of current robot pose
-                    this::resetPose, // Consumer for seeding pose against auto
-                    this::getCurrentRobotChassisSpeeds, // Supplier of current robot speeds
-                    // Consumer of ChassisSpeeds and feedforwards to drive the robot
+                    this::getRobotPose,
+                    this::resetPose,
+                    this::getCurrentRobotChassisSpeeds,
                     (speeds, feedforwards) -> {
                         setControl(
                                 AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
@@ -670,16 +535,12 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
                                                 feedforwards.robotRelativeForcesY()));
                     },
                     new PPHolonomicDriveController(
-                            // PID constants for translation
-                            new PIDConstants(4, 0, 0),
-                            // PID constants for rotation
-                            new PIDConstants(3, 0, 0)),
+                            new PIDConstants(4, 0, 0), new PIDConstants(4, 0, 0)),
                     config,
                     // Assume the path needs to be flipped for Red vs Blue, this is normally the
                     // case
-                    () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
-                    this // Subsystem for requirements
-                    );
+                    Field::isRed,
+                    this);
         } catch (Exception ex) {
             DriverStation.reportError(
                     "Failed to load PathPlanner config and configure AutoBuilder",
@@ -687,14 +548,11 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         }
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-
+    // Simulated drivetrain, used for robot bump simulation.
     @Getter private MapleSimSwerveDrivetrain mapleSimSwerveDrivetrain = null;
+
     @Getter private RobotBumpSim robotBumpSim = null;
     @Getter private Pose3d simRobotPose3d = Pose3d.kZero;
-    private final Object simLock = new Object();
 
     @SuppressWarnings("unchecked")
     private void startSimThread() {
@@ -717,13 +575,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         robotBumpSim = new RobotBumpSim(getModuleLocations());
 
         /* Run simulation at a faster rate so PID gains behave more reasonably */
-        simNotifier =
-                new Notifier(
-                        () -> {
-                            synchronized (simLock) {
-                                mapleSimSwerveDrivetrain.update();
-                            }
-                        });
+        simNotifier = new Notifier(mapleSimSwerveDrivetrain::update);
         simNotifier.startPeriodic(config.getSimLoopPeriod());
     }
 }

@@ -19,6 +19,25 @@ public class Operator extends Gamepad {
     public final Trigger startButton = start;
     public final Trigger selectButton = select;
 
+    /* Coast/brake and turret zeroing are pit controls, only live while disabled. */
+    public final Trigger coastA = AButton.and(disabled);
+    public final Trigger zeroTurretB = BButton.and(disabled);
+
+    /*
+     * Held, not latched: releasing it lets the servo re-home the turret zero, both the trim and the
+     * gross re-home, and a 2-tag solve mid-match moved it 52.4 deg. X is free, live enabled as well
+     * as disabled, and nothing else on the operator uses it.
+     */
+    public final Trigger visionTurretFixX = XButton;
+
+    /*
+     * Zeroes the persisted hood and turret trims. A chord of the two buttons nothing else uses, and
+     * live enabled as well as disabled: the trims survive a power cycle, so the operator has to be
+     * able to clear a stale one without a redeploy, and neither button is reachable by accident
+     * mid-match.
+     */
+    public final Trigger resetShotTrims_StartSelect = startButton.and(selectButton);
+
     public final Trigger leftStickPress = leftStickClick;
     public final Trigger rightStickPress = rightStickClick;
 
@@ -28,7 +47,6 @@ public class Operator extends Gamepad {
     public final Trigger dPadRight = rightDpad;
 
     public static class OperatorConfig extends Config {
-
         public OperatorConfig() {
             super("Operator", 1);
             setTriggersDeadzone(0.0);

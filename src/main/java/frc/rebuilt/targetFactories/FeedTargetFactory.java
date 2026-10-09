@@ -5,13 +5,29 @@ import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
 import edu.wpi.first.math.interpolation.Interpolator;
 import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import frc.rebuilt.Field;
 import frc.robot.Robot;
 import frc.robot.subsystems.swerve.Swerve;
+import lombok.Getter;
 
 public class FeedTargetFactory {
 
     private static final Swerve swerve = Robot.getSwerve();
+    @Getter private static boolean left;
+
+    public static Command feedLeft() {
+        return new InstantCommand(() -> left = Field.isBlue() ? true : false);
+    }
+
+    public static Command feedRight() {
+        return new InstantCommand(() -> left = Field.isBlue() ? false : true);
+    }
+
+    public static Command feedDefault() {
+        return new InstantCommand(() -> left = swerve.inFieldLeft().getAsBoolean());
+    }
 
     static InterpolatingTreeMap<Double, Double> distanceOffsetMap =
             new InterpolatingTreeMap<>(InverseInterpolator.forDouble(), Interpolator.forDouble());
@@ -23,8 +39,8 @@ public class FeedTargetFactory {
     static Double kXDistanceOffset = Units.inchesToMeters(0);
 
     public static Translation2d generate() {
-        boolean inFieldLeft = swerve.inFieldLeft().getAsBoolean();
-        boolean inOpposingAllianceZone = swerve.inEnemyAllianceZone().getAsBoolean();
+        boolean inFieldLeft = isLeft();
+        boolean inOpposingAllianceZone = swerve.isInEnemyAllianceZone();
         Translation2d feedTarget;
 
         if (inOpposingAllianceZone) {
@@ -41,12 +57,10 @@ public class FeedTargetFactory {
             }
         }
 
-        double distance =
-                new Translation2d(feedTarget.getX(), feedTarget.getY())
-                        .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
+        double distance = feedTarget.getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
-        // Do math in blue alliance, we flip for red.
+        // Offsets are worked out in the blue frame, then flipped for red.
         var offSet = new Translation2d(kXDistanceOffset, -distanceOffset);
 
         if (Field.isRed()) {

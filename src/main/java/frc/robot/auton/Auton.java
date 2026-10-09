@@ -3,12 +3,8 @@ package frc.robot.auton;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.events.EventTrigger;
-import com.pathplanner.lib.path.PathConstraints;
-import com.pathplanner.lib.path.PathPlannerPath;
-import com.pathplanner.lib.util.FileVersionException;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Alert;
+import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -16,21 +12,19 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.PrintCommand;
 import frc.robot.subsystems.SuperStructure;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
-import frc.spectrumLib.framework.SpectrumState;
 import frc.spectrumLib.telemetry.Telemetry;
-import java.io.IOException;
-import org.json.simple.parser.ParseException;
+import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class Auton {
-
-    public static final SpectrumState autonLaunching = new SpectrumState("AutonLaunching");
 
     public static final EventTrigger autonIntake = new EventTrigger("intake");
     public static final EventTrigger autonShotPrep = new EventTrigger("shotPrep");
     public static final EventTrigger autonShoot = new EventTrigger("shoot");
+    public static final EventTrigger autonShootWithIntake = new EventTrigger("shootWithIntake");
     public static final EventTrigger autonClearState = new EventTrigger("clearState");
     public static final EventTrigger autonUnjam = new EventTrigger("unjam");
     public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
@@ -39,40 +33,30 @@ public class Auton {
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 
-    private final double SECOND_MAN_DELAY = 1.0;
-    private final double OPTIONAL_DELAY = 1.0;
+    private static final double LAUNCH_SECONDS = 2.5;
 
-    /**
-     * This method configures the available autonomous routines that can be selected from the
-     * SmartDashboard.
-     */
     public void setupSelectors() {
 
         pathChooser.setDefaultOption("Do Nothing", doNothing());
 
-        pathChooser.addOption("TBTB Left", TBTB(false));
-        pathChooser.addOption("TBTB Right", TBTB(true));
-
-        pathChooser.addOption("TBTT Left", TBTT(false));
-        pathChooser.addOption("TBTT Right", TBTT(true));
-
-        pathChooser.addOption("TTTT Left", TTTT(false));
-        pathChooser.addOption("TTTT Right", TTTT(true));
-
-        pathChooser.addOption("BBBB Left", BBBB(false));
-        pathChooser.addOption("BBBB Right", BBBB(true));
-
-        pathChooser.addOption("Optional - Left TBT", optional_TBT(false));
-        pathChooser.addOption("Optional - Right TBT", optional_TBT(true));
-
-        pathChooser.addOption("Optional - Left BBB", optional_BBB(false));
-        pathChooser.addOption("Optional - Right BBB", optional_BBB(true));
-
-        pathChooser.addOption("2nd Man - TBTB Left", secondMan_TBTB(false));
-        pathChooser.addOption("2nd Man - TBTB Right", secondMan_TBTB(true));
-
-        pathChooser.addOption("2nd Man - BBD Left", secondMan_BBD(false));
-        pathChooser.addOption("2nd Man - BBD Right", secondMan_BBD(true));
+        pathChooser.addOption("Double Swipe Left", single("OSTBTB FULL", false));
+        pathChooser.addOption("Double Swipe Right", single("OSTBTB FULL", true));
+        pathChooser.addOption("Single Swipe with Depot Left", single("OSRIPPOFF FULL", false));
+        pathChooser.addOption("Single Swipe with Depot Right", single("OSRIPPOFF FULL", true));
+        pathChooser.addOption("2nd Double Swipe Left", TWOMANOSTBTB(false));
+        pathChooser.addOption("2nd Double Swipe Right", TWOMANOSTBTB(true));
+        pathChooser.addOption("Center 1 Swipe Left", OSCENT(false));
+        pathChooser.addOption("Center 1 Swipe Right", OSCENT(true));
+        pathChooser.addOption("Center to Depot Left", single("OSCENTOT FULL", false));
+        pathChooser.addOption("Center to Depot Right", single("OSCENTOT FULL", true));
+        pathChooser.addOption(
+                "Single Swipe with Depot Cutoff Left", single("OSRIPOFF CUTOFF", false));
+        pathChooser.addOption(
+                "Single Swipe with Depot Cutoff Right", single("OSRIPOFF CUTOFF", true));
+        pathChooser.addOption(
+                "Double Swipe 1 1/2 Left", single("OSRIPOFF DOUBLE SWIPE FULL", false));
+        pathChooser.addOption(
+                "Double Swipe 1 1/2 Right", single("OSRIPOFF DOUBLE SWIPE FULL", true));
 
         SmartDashboard.putData("Auto Chooser", pathChooser);
     }
@@ -81,245 +65,153 @@ public class Auton {
 
     public Auton(SuperStructure robotSuperStructure) {
         this.robotSuperStructure = robotSuperStructure;
-        setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
+        setupSelectors(); // starts the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized");
     }
 
     public void init() {
-        Command autonCommand = getAutonomousCommand();
-
-        if (autonCommand != null) {
-            CommandScheduler.getInstance().schedule(autonCommand);
-            startAutonTimer();
-        } else {
-            Telemetry.print("No Auton Command Found");
-        }
+        CommandScheduler.getInstance().schedule(getAutonomousCommand());
+        autonStart = Timer.getFPGATimestamp();
+        autoMessagePrinted = false;
     }
 
+    /** Exit. Prints how long the auto ran, once, based on 6328's code. */
     public void exit() {
-        printAutoDuration();
+        if (!getAutonomousCommand().isScheduled() && !autoMessagePrinted) {
+            Telemetry.print(
+                    String.format(
+                            "*** Auton %s in %.2f secs ***",
+                            DriverStation.isAutonomousEnabled() ? "finished" : "CANCELLED",
+                            Timer.getFPGATimestamp() - autonStart));
+            autoMessagePrinted = true;
+        }
     }
 
     public Command doNothing() {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
     }
 
-    public Command launch() {
+    /** A routine step that sets a super state and moves straight on. */
+    public Command state(WantedSuperState state) {
+        return robotSuperStructure.setStateCommand(state);
+    }
+
+    /**
+     * A routine step that holds a super state for a fixed time, then returns to {@code IDLE}
+     * ({@code IDLE} resolves to {@code AUTON_IDLE} in auto).
+     */
+    public Command holdState(WantedSuperState state, double seconds) {
         return Commands.sequence(
-                        autonLaunching.setTrue(),
-                        robotSuperStructure.setStateCommand(WantedSuperState.LAUNCH_WITH_SQUEEZE),
-                        Commands.waitSeconds(2.5),
-                        robotSuperStructure.setStateCommand(WantedSuperState.IDLE),
-                        autonLaunching.setFalse())
+                        state(state), Commands.waitSeconds(seconds), state(WantedSuperState.IDLE))
+                .withName("Auton.hold " + state);
+    }
+
+    /** A routine step that launches between path segments, then idles. */
+    public Command launch() {
+        return holdState(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE, LAUNCH_SECONDS)
                 .withName("Auton.launch");
     }
 
-    public Command secondMan_TBTB(boolean mirrored) {
-        return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
-                        SpectrumAuton("2nd-TBTB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("2nd-TBTB 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("2nd-TBTB Full - " + (mirrored ? "Right" : "Left"));
+    // Named TWOMANOSTBTB because Java identifiers can't start with a digit; the auto file it loads
+    // is "2MANOSTBTB FULL.auto".
+
+    public Command TWOMANOSTBTB(boolean mirrored) {
+        return routine(
+                "2MANOSTBTB FULL",
+                mirrored,
+                Commands.waitSeconds(2),
+                SpectrumAuton("2MANOSTBTB FULL", mirrored));
     }
 
-    public Command secondMan_BBD(boolean mirrored) {
-        return Commands.sequence(
-                        Commands.waitSeconds(SECOND_MAN_DELAY),
-                        SpectrumAuton("2nd-BBD 1", mirrored),
-                        launch(),
-                        SpectrumAuton("2nd-BBD 2", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("2nd-BBD Full - " + (mirrored ? "Right" : "Left"));
+    public Command OSCENT(boolean mirrored) {
+        return routine(
+                "OSCENT FULL",
+                mirrored,
+                SpectrumAuton("OSCENT FULL", mirrored),
+                // Keeps launching after the path ends, at a standstill.
+                state(WantedSuperState.AUTON_LAUNCH_WITH_SQUEEZE));
     }
 
-    public Command optional_TBT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("Option TBT 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
-                        SpectrumAuton("Option TBT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("Option TBT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("Option TBT Full - " + (mirrored ? "Right" : "Left"));
-    }
-
-    public Command optional_BBB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("Option BBB 1", mirrored),
-                        Commands.waitSeconds(OPTIONAL_DELAY),
-                        SpectrumAuton("Option BBB 2", mirrored),
-                        launch(),
-                        SpectrumAuton("Option BBB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("Option BBB Full - " + (mirrored ? "Right" : "Left"));
-    }
-
-    public Command TBTB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TBTB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTB 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTB 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TBTB Full - " + (mirrored ? "Right" : "Left"));
-    }
-
-    public Command TBTT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TBTT 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TBTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TBTT Full - " + (mirrored ? "Right" : "Left"));
-    }
-
-    public Command TTTT(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("TTTT 1", mirrored),
-                        launch(),
-                        SpectrumAuton("TTTT 2", mirrored),
-                        launch(),
-                        SpectrumAuton("TTTT 3", mirrored))
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("TTTT Full - " + (mirrored ? "Right" : "Left"));
-    }
-
-    public Command BBBB(boolean mirrored) {
-        return Commands.sequence(
-                        SpectrumAuton("BBBB 1", mirrored),
-                        launch(),
-                        SpectrumAuton("BBBB 2", mirrored),
-                        launch())
-                // the "- Right" and "- Left" is added to the name of the command so that when the
-                // visualizer checks the name of the command it can determine whether the auto is
-                // mirrored or not and correctly mirror the poses
-                .withName("BBBB Full - " + (mirrored ? "Right" : "Left"));
+    // ---- Building blocks ----
+    /** A routine that is just one {@code .auto} file. */
+    private Command single(String autoName, boolean mirrored) {
+        return routine(autoName, mirrored, SpectrumAuton(autoName, mirrored));
     }
 
     /**
-     * Creates a SpectrumAuton command sequence.
+     * Sequences a routine's steps: path segments from {@link #SpectrumAuton}, state steps from
+     * {@link #state}, {@link #holdState} or {@link #launch}, waits, or any other command. For
+     * example:
      *
-     * <p>This method generates a command sequence that first waits for 0.01 seconds and then
-     * executes a PathPlannerAuto command with the specified autonomous routine name.
+     * <pre>{@code
+     * routine("TBTB Full", mirrored,
+     *         SpectrumAuton("TBTB 1", mirrored), launch(),
+     *         SpectrumAuton("TBTB 2", mirrored), launch(),
+     *         SpectrumAuton("TBTB 3", mirrored));
+     * }</pre>
      *
-     * @param autoName the name of the autonomous routine to execute
-     * @param mirrored whether the autonomous routine should be mirrored
-     * @return a Command that represents the SpectrumAuton sequence
+     * <p>It is named {@code "<fullAutoName> - Left"} or {@code " - Right"}, spaces included.
+     * Robot.disabledPeriodic strips that suffix to find {@code <fullAutoName>.auto}, and uses it to
+     * preview the paths and place the robot on the start pose, so for a routine built from segments
+     * that file must be the whole routine end to end. The visualizer reads the suffix to decide
+     * whether to mirror the poses.
+     */
+    private static Command routine(String fullAutoName, boolean mirrored, Command... steps) {
+        return Commands.sequence(steps)
+                .withName(fullAutoName + " - " + (mirrored ? "Right" : "Left"));
+    }
+
+    /**
+     * Creates the PathPlannerAuto for one {@code .auto} file, built here at boot so its
+     * trajectories are generated and cached before the match. PathPlanner's FollowPathCommand
+     * reuses the ideal trajectory generated in the constructor only if the robot is still and
+     * within 30 deg of the path's starting heading.
      */
     public Command SpectrumAuton(String autoName, boolean mirrored) {
-        Command autoCommand = new PathPlannerAuto(autoName, mirrored);
-        return Commands.waitSeconds(0.01).andThen(autoCommand).withName(autoName);
+        verifyAutoFile(autoName);
+        return new PathPlannerAuto(autoName, mirrored).withName(autoName);
     }
 
-    public Command SpectrumAuton(String autoName, boolean mirrored, double duration) {
-        Command autoCommand = new PathPlannerAuto(autoName, mirrored);
-        return Commands.waitSeconds(0.01)
-                .andThen(autoCommand)
-                .withTimeout(duration)
-                .withName(autoName);
-    }
+    private static final Set<String> missingAutoFiles = new LinkedHashSet<>();
+
+    private static final Alert missingAutoFileAlert = new Alert("", AlertType.kError);
 
     /**
-     * Retrieves the autonomous command selected on the shuffleboard.
+     * Checks at boot that every {@code .auto} file a routine uses exists in
+     * deploy/pathplanner/autos.
      *
-     * @return the selected autonomous command if one is chosen; otherwise, returns a PrintCommand
-     *     indicating that the autonomous command is null.
+     * <p>PathPlanner reports a missing file to the Driver Station once at construction and then
+     * runs an empty command, and the rio's filesystem is case sensitive where the Windows sim is
+     * not, so a misnamed segment of a multi-segment routine is otherwise silent.
+     * Robot.logAutoSelection only checks the selected routine's full file.
+     */
+    private static void verifyAutoFile(String autoName) {
+        if (AutoBuilder.getAllAutoNames().contains(autoName)) {
+            return;
+        }
+        missingAutoFiles.add(autoName);
+        missingAutoFileAlert.setText(
+                "No .auto file on the rio for: "
+                        + String.join(", ", missingAutoFiles)
+                        + " (names are case-sensitive on the rio). Those autos will do nothing.");
+        missingAutoFileAlert.set(true);
+        Telemetry.print(
+                "!!! No .auto file named '"
+                        + autoName
+                        + "' in deploy/pathplanner/autos. That auto will do nothing.",
+                PrintPriority.HIGH);
+    }
+
+    /** Runs when the chooser has no match, e.g. a stale dashboard selection after a rename. */
+    private final Command noSelection = Commands.print("*** AUTON COMMAND IS NULL ***");
+
+    /**
+     * The autonomous command selected on the shuffleboard. Never null: {@code getSelected()}
+     * returns null when the dashboard sends a name the chooser does not have, so that falls back to
+     * a print.
      */
     public Command getAutonomousCommand() {
-        Command auton = pathChooser.getSelected(); // sees what auto is chosen on shuffleboard
-        if (auton != null) {
-            return auton; // checks to make sure there is an auto and if there is it runs an auto
-        } else {
-            return new PrintCommand(
-                    "*** AUTON COMMAND IS NULL ***"); // runs if there is no auto chosen, which
-            // shouldn't happen because of the default
-            // auto set to nothing which still runs
-            // something
-        }
-    }
-
-    /** This method is called in AutonInit */
-    public void startAutonTimer() {
-        autonStart = Timer.getFPGATimestamp();
-        autoMessagePrinted = false;
-    }
-
-    /** Called at AutonExit and displays the duration of the auton command Based on 6328 code */
-    public void printAutoDuration() {
-        Command autoCommand = getAutonomousCommand();
-        if (autoCommand != null) {
-            if (!autoCommand.isScheduled() && !autoMessagePrinted) {
-                if (DriverStation.isAutonomousEnabled()) {
-                    Telemetry.print(
-                            String.format(
-                                    "*** Auton finished in %.2f secs ***",
-                                    Timer.getFPGATimestamp() - autonStart));
-                } else {
-                    Telemetry.print(
-                            String.format(
-                                    "*** Auton CANCELLED in %.2f secs ***",
-                                    Timer.getFPGATimestamp() - autonStart));
-                }
-                autoMessagePrinted = true;
-            }
-        }
-    }
-
-    public static Command followSinglePath(String pathName) {
-        // Load the path you want to follow using its name in the GUI
-        PathPlannerPath path;
-        try {
-            path = PathPlannerPath.fromPathFile(pathName);
-
-            // Create a path following command using AutoBuilder. This will also trigger event
-            // markers.
-            return AutoBuilder.followPath(path);
-        } catch (FileVersionException | IOException | ParseException e) {
-            e.printStackTrace();
-        }
-        return new PrintCommand("ERROR LOADING PATH");
-    }
-
-    public static Command pathfindingCommandToPose(
-            double xPos, double yPos, double rotation, double vel, double accel) {
-        // Since we are using a holonomic drivetrain, the rotation component of this pose
-        // represents the goal holonomic rotation
-        Pose2d targetPose = new Pose2d(xPos, yPos, Rotation2d.fromDegrees(rotation));
-
-        // Create the constraints to use while pathfinding
-        PathConstraints constraints =
-                new PathConstraints(
-                        vel, accel, Units.degreesToRadians(540), Units.degreesToRadians(720));
-
-        // Since AutoBuilder is configured, we can use it to build pathfinding commands
-        Command pathfindingCommand =
-                AutoBuilder.pathfindToPoseFlipped(
-                        targetPose, constraints, 0.0 // Goal end velocity in meters/sec
-                        );
-
-        return pathfindingCommand;
-    }
-    // Log Command
-    protected static Command log(Command cmd) {
-        return Telemetry.log(cmd);
+        Command auton = pathChooser.getSelected();
+        return auton != null ? auton : noSelection;
     }
 }

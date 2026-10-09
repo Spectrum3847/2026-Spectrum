@@ -1,82 +1,73 @@
-# 2026 Spectrum Robot Code
+# 2026 Spectrum robot code
 
 Robot code for Spectrum 3847's FRC 2026 season.
 
 ## Description
 
-This is the working code base for our robots in the 2026 REBUILT FRC Competition. The code is constantly being worked on, so watch out for bugs and issues.
+This is the working code base for our robots in the 2026 REBUILT FRC Competition. The code is
+constantly being worked on, so watch out for bugs and issues.
+
+**To find out what the robot does, read the code.** The `docs/` directory is written for people, team
+students and mentors trying to get a job done. It deliberately does not restate what the code
+already says, because a copy goes stale the first time someone edits the code and then quietly
+misleads. Start at [docs/index.md](docs/index.md).
 
 ### Features
 
-* Mechanism class wraps all the TalonFX configurations and control mode calls so they are easier to use.
-* Heavy use of Triggers as states for activating commands. This all but eliminates the need for complex multi-mechanism command groups.
-* Simulation classes allow us to build a good representation of the complete robot in sim so more of the code can be tested without the robot.
-* CachedDouble: Allows a value to only be updated once per periodic loop. This is useful for CANbus calls to sensors or motors, etc.
-* LED classes that use the CTRE CANdle for animations, easily have multiple strips on one port, has priorities for when to override animations that are currently running, different animations for each control mode, etc.
+* A mechanism base class that wraps the TalonFX configuration and the control mode calls, so each
+  mechanism file is short.
+* Triggers used as states for activating commands, which all but eliminates the need for complex
+  multi-mechanism command groups.
+* Simulation classes that let us build a good representation of the complete robot in simulation, so
+  more of the code can be tested without the robot.
+* Each mechanism refreshes all of a motor's status signals with one Phoenix `refreshAll` per robot
+  loop, keyed on the loop counter, so every getter in a loop sees the same sample and the loop makes
+  one JNI call per mechanism rather than one per signal.
+* LED classes that use the CTRE CANdle for animations, support multiple strips on one port, set
+  priorities for when to override a running animation, and allow different animations per control
+  mode.
 
-### Build Tools and Extensions
+### Build tools and extensions
 
-* **Spotless:** Autoformats are code on each build so that we keep a consistent format across programmers.
-* **SpotBugs**: Catches some common bugs in the software such as using = instead of == in a conditional, etc.
-* **Lombok:** Annotations to create Getter and Setter methods. This allows for less boilerplate code.
-* **Error Lens:** Highlights errors and makes them easier to see and fix.
-* **Git Config User Profiles:** Allows multiple programmers to share the same computers and commit under their own names.
-* **Git Lens:** lets you see who committed changes and more
-* **SpellRight:** Spell Check for VSCode
+* **Spotless:** auto-formats all code on each build, so we keep a consistent format across
+  programmers.
+* **SpotBugs:** catches some common bugs in the software, such as using `=` instead of `==` in a
+  conditional.
+* **Lombok:** annotations that create getter and setter methods, which means less boilerplate.
+* **Error Lens:** highlights errors and makes them easier to see and fix.
+* **Git Config User Profiles:** lets several programmers share a computer and still commit under
+  their own names.
+* **Git Lens:** shows who committed a change and more.
+* **SpellRight:** spell check for VSCode.
 
 ### Dependencies
 
 * WPILib 2026
-* CTRE Phoenix 6 (using their swerve control code)
+* CTRE Phoenix 6, using their swerve control code
 * PathPlanner
-* DogLog (logging)
-* MapleSim (drivetrain simulation)
+* DogLog, for logging
+* MapleSim, for drivetrain simulation
 
-## Project Structure
+## Project structure
 
-* Robot = In season robot code, we have configuration files to be able to run our code base on multiple robots at once. Heavily uses WPILib commands and triggers.
-* [`SpectrumLib`](src/main/java/frc/spectrumLib) = Code that we try to reuse year to year.
-* Each subsystem can be modified independently without needing to understand the rest of the robot code.
+The shape of the repository, at the top level. Each of these has its own documentation where a
+person needs one.
 
 ```text
-src
-└── main: main source code
-    ├── java: Java source files
-    │   └── frc: all FRC application code
-    │       ├── robot: main robot application and subsystems
-    │       │   ├── auton: autonomous routines and PathPlanner integration
-    │       │   ├── configs: robot-specific hardware configs (FM2026, XM2026, PM2026, AM2026, PHOTON2026)
-    │       │   ├── subsystems: SuperStructure orchestrator plus each mechanism
-    │       │   │   ├── swerve: swerve drive subsystem and controllers
-    │       │   │   ├── vision: Limelight vision subsystem
-    │       │   │   ├── launcher: fuel launcher mechanism
-    │       │   │   ├── indexerTower: vertical fuel indexer mechanism
-    │       │   │   ├── indexerBed: horizontal fuel indexer mechanism
-    │       │   │   ├── fuelIntake: ground intake mechanism
-    │       │   │   ├── intakeExtension: intake arm extension mechanism
-    │       │   │   ├── hood: launcher hood pivot mechanism
-    │       │   │   └── leds: CANdle LED control and animation
-    │       │   ├── pilot: pilot gamepad bindings and commands
-    │       │   └── operator: operator gamepad bindings and commands
-    │       ├── spectrumLib: reusable Spectrum team utilities (year-to-year code)
-    │       │   ├── framework: SpectrumRobot base and SpectrumState
-    │       │   ├── gamepads: gamepad abstraction layer
-    │       │   ├── hardware: TalonFX factory, CANcoder, servo, and RIO identity
-    │       │   ├── leds: CANdle LED management utilities
-    │       │   ├── mechanism: motor and mechanism base classes
-    │       │   ├── sim: physics simulation helpers
-    │       │   ├── swerve: shared swerve helpers (MapleSim integration, SysID)
-    │       │   ├── telemetry: DogLog-based logging and tunable values
-    │       │   ├── util: utility classes (conversions, CAN IDs, crash tracking)
-    │       │   │   └── exceptions: custom exception classes
-    │       │   └── vision: vision utilities (Limelight helpers)
-    │       └── rebuilt: 2026 game-specific field, sim, and targeting helpers
-    │           └── targetFactories: target factory implementations
-    └── deploy: files deployed to RoboRIO
-        └── pathplanner: PathPlanner autonomous paths and settings
-            ├── paths: individual path trajectory files
-            └── autos: autonomous routine configurations
-vendordeps: vendor dependency JSON files (WPILib, CTRE, PathPlanner, etc.)
+src/           robot code
+  main/java      application code
+  main/deploy    files pushed to the roboRIO, including the PathPlanner paths and autos
+  test           unit tests
+docs/          documentation, written for people
+tools/         local tools, including the robot app
+scripts/       one-off Node helpers
+vendordeps/    vendor dependency JSON, checked in
 ```
 
-#### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).
+The code splits three ways. `src/main/java/frc/robot` is the season's robot application, with one
+folder per mechanism and the classes that hold the hardware constants for each physical robot. It
+is what changes every season. `src/main/java/frc/spectrumLib` is the code we try to reuse year to
+year, and it changes rarely. `src/main/java/frc/rebuilt` is game-specific helpers for 2026 only,
+and it is deleted at the end of the season.
+
+The online JavaDoc is at <https://spectrum3847.github.io/2026-Spectrum>.

@@ -32,11 +32,11 @@ public class HubTargetFactory {
         Translation3d hubPose = Field.isRed() ? Field.getRedHubCenter() : Field.getBlueHubCenter();
 
         double distance =
-                new Translation2d(hubPose.getX(), hubPose.getY())
+                hubPose.toTranslation2d()
                         .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
-        // Do math in blue alliance, we flip for red.
+        // Offsets are worked out in the blue frame, then flipped for red.
         var offSet = new Translation2d(kXDistanceOffset, -distanceOffset);
 
         if (Field.isRed()) {

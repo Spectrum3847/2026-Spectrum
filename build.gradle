@@ -31,10 +31,15 @@ deploy {
                 // getTargetTypeClass is a shortcut to get the class type using a string
 
                 frcJava(getArtifactTypeClass('FRCJavaArtifact')) {
-                    jvmArgs.add("-XX:+UnlockExperimentalVMOptions")
-                    jvmArgs.add("-XX:GCTimeRatio=5")
+                    /*
+                     * Serial is the right collector for a two-core roboRIO: no concurrent GC
+                     * threads competing with the robot loop. It ignores the pause-time and
+                     * time-ratio hints (-XX:MaxGCPauseMillis, -XX:GCTimeRatio), which used to be
+                     * set here and read like protection that was not there. What actually bounds
+                     * the pauses is Robot.disabledInit()/disabledPeriodic() running a full
+                     * collection while the robot is disabled, so old gen is empty at enable.
+                     */
                     jvmArgs.add("-XX:+UseSerialGC")
-                    jvmArgs.add("-XX:MaxGCPauseMillis=50")
 
                     final MAX_JAVA_HEAP_SIZE_MB = 100;
                     jvmArgs.add("-Xmx" + MAX_JAVA_HEAP_SIZE_MB + "M")
@@ -43,6 +48,23 @@ deploy {
 
                     jvmArgs.add("-XX:+HeapDumpOnOutOfMemoryError")
                     jvmArgs.add("-XX:HeapDumpPath=/u/frc-usercode.hprof")
+
+                    /*
+                     * GC log, to settle where the long loop stalls come from.
+                     *
+                     * Every 2026-09-05 log has at least one loop over 500 ms and three have one
+                     * over 900 ms, topping out at 1302 ms. The Driver Station calls comms lost
+                     * after about a second of silence, which is how the robot ends up disabled
+                     * with nobody touching anything. A serial full GC of a 100 MB heap on this CPU
+                     * lands in exactly that range, and it stops every Java thread including the
+                     * one answering the DS -- but that is inference from timing, not something any
+                     * log actually recorded. This records it.
+                     *
+                     * Rotated and capped at five 2 MB files, so it cannot become the disk problem
+                     * it is here to help diagnose.
+                     */
+                    jvmArgs.add("-Xlog:gc*,safepoint:file=/home/lvuser/logs/gc.log" +
+                            ":time,uptime,level:filecount=5,filesize=2M")
                 }
 
                 // Static files artifact
@@ -92,8 +114,6 @@ dependencies {
 
     testImplementation 'org.junit.jupiter:junit-jupiter:6.1.3'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-    implementation 'com.google.guava:guava:33.7.2-jre'
 }
 
 test {
@@ -230,5 +250,52 @@ spotless {
         trimTrailingWhitespace()
         leadingTabsToSpaces(2)
         endWithNewline()
+    }
+}
+
+
+/*
+ * Opens the Spectrum robot app on the swerve alignment page. The alignment tool now lives in
+ * tools/robot-app alongside the controls reference, log sync and the log analysis pages, so this
+ * starts that app rather than a second server on its own port.
+ *
+ * It only runs when invoked, so a plain build never touches it.
+ */
+tasks.register('alignSwerve', Exec) {
+    group = 'Spectrum'
+    description = 'Open the swerve module alignment page in the robot app'
+    workingDir = file('tools/robot-app')
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        commandLine 'cmd', '/c', 'npm', 'run', 'align'
+    } else {
+        commandLine 'npm', 'run', 'align'
+    }
+}
+
+/*
+ * Moves robot logs off the roboRIO into the 2026-Robot-Logs repo, as release assets.
+ *
+ * Nothing prunes the rio's log directory on its own; it had 2.2 GB on it on 2026-09-05. Pass
+ * -Pdelete to remove what was uploaded, or -PdryRun to see what it would take. It only runs when
+ * invoked, so a plain build never touches the robot.
+ */
+tasks.register('archiveLogs', Exec) {
+    group = 'Spectrum'
+    description = 'Copy roboRIO logs to the 2026-Robot-Logs releases (-Pdelete to clear the rio)'
+    def args = ['tools/archive-logs.sh']
+    if (project.hasProperty('delete')) args << '--delete'
+    if (project.hasProperty('dryRun')) args << '--dry-run'
+    commandLine(['bash'] + args)
+}
+
+/** Opens the robot app on its home page. */
+tasks.register('robotApp', Exec) {
+    group = 'Spectrum'
+    description = 'Open the Spectrum robot app (controls, logs, power, CAN, swerve align)'
+    workingDir = file('tools/robot-app')
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        commandLine 'cmd', '/c', 'npm', 'start'
+    } else {
+        commandLine 'npm', 'start'
     }
 }

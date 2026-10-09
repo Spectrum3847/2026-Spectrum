@@ -1,65 +1,48 @@
-# Autonomous Programming (Auton)
+# Autonomous programming (auton)
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-The first 15 seconds of a match are unattended; the robot runs whatever sequence was selected before the match started. For 2026 we use [PathPlanner](https://pathplanner.dev) for path-following and our own `Auton` class to stitch paths and shoot sequences together.
+The first 15 seconds of a match are unattended. The robot runs whatever sequence was selected before the match started, so the cost of a bad auto is a whole match spent recovering. We use [PathPlanner](https://pathplanner.dev) for path following and our own `Auton` class to stitch paths and shoot sequences together.
 
-## How It's Wired
+## How the two halves divide
 
-Most of the routine logic lives in one file: [`frc.robot.auton.Auton`](../../src/main/java/frc/robot/auton/Auton.java). The PathPlanner/`AutoBuilder` registration it relies on lives in [`Swerve.java`](../../src/main/java/frc/robot/subsystems/swerve/Swerve.java) (`configurePathPlanner()`), since that's where the pose/speeds suppliers and drive request live. `Auton` owns:
+Path following is configured in [`Swerve.java`](../../src/main/java/frc/robot/subsystems/swerve/Swerve.java) under `configurePathPlanner()`, because that is where the pose and speed suppliers and the drive request live. Everything else is in [`frc.robot.auton.Auton`](../../src/main/java/frc/robot/auton/Auton.java): the chooser, the event triggers, and the helpers that build a routine out of path segments and state steps.
 
-* A `SendableChooser<Command>` that publishes auto names to NetworkTables. Elastic's Pre-Match tab picks this up automatically.
-* A handful of `EventTrigger`s with names that match the markers in the `.auto` files, `intake`, `shotPrep`, `shoot`, `clearState`, `unjam`, `poseUpdate`. When PathPlanner crosses one, the matching `Trigger` fires whatever command has been bound to it in [`Robot.java`](../../src/main/java/frc/robot/Robot.java) (e.g. `Auton.autonIntake.onTrue(...)`).
-* The `launch()` command, which flips the `autonLaunching` state, sets `WantedSuperState.LAUNCH_WITH_SQUEEZE` for 2.5 seconds, then returns to `IDLE`. Every auto chains some number of `SpectrumAuton(...)` segments together with `launch()` between them.
+`Auton` publishes a `SendableChooser` to NetworkTables under `Auto Chooser`, which Elastic's Pre-Match tab picks up. The list of what is in it is `setupSelectors()`; that is the place to add an entry, and the place to read when you want to know what the robot can run.
 
-`Robot.autonomousInit` calls `Auton.init()`, which schedules the selected command and starts an FPGA timer. `Robot.autonomousExit` calls `printAutoDuration()` so the console shows how long the routine actually took (or how much it had left when teleop took over). The timer trick is borrowed from team 6328; it makes "did the auto finish in time" answerable at a glance.
+`Robot.autonomousInit` calls `Auton.init()`, which schedules the selected command and starts an FPGA timer. `Robot.autonomousExit` calls `Auton.exit()`, which prints how long the routine actually took, or that it was cancelled. That timer is based on team 6328's code, credited in the comment on `Auton.exit()`. It is the thing that makes "did the auto finish in time" answerable at a glance, so keep it.
 
-## The Routine Catalog
+If the dashboard sends a selection the chooser does not have, which is what a stale name after an option is renamed looks like, `getAutonomousCommand()` returns a print command rather than null. You get a line in the console instead of a robot that does nothing with no explanation.
 
-Every entry in the chooser is just a sequence of `SpectrumAuton(pathName, mirrored)` calls glued together with `launch()`. The naming pattern is `<scoring sequence>` where each letter is a goal column (T/B/D). `TBTB`, for example, runs Top → Bottom → Top → Bottom. Each routine has a Left and Right variant, `mirrored = true` flips poses across the field's midline so the same `.auto` file works from both starting positions.
+## The Left and Right naming convention
 
-|   Group    |            Entries             |                                                  Notes                                                  |
-|------------|--------------------------------|---------------------------------------------------------------------------------------------------------|
-| Headliners | `TBTB`, `TBTT`, `TTTT`, `BBBB` | Four-shot routines, all chained `SpectrumAuton + launch`                                                |
-| Optional   | `Option TBT`, `Option BBB`     | Insert an `OPTIONAL_DELAY` (1.0 s) after the first segment, used when a partner needs the lane to clear |
-| 2nd Man    | `2nd-TBTB`, `2nd-BBD`          | Begin with `SECOND_MAN_DELAY` (1.0 s) so we're not in the way of an ally's first move                   |
-| Fallback   | `Do Nothing`                   | Default chooser entry, never let a missing selection mean an unscheduled robot                          |
+Every chooser entry has a Left and a Right variant. `mirrored = true` flips poses across the field's midline so one `.auto` file works from both starting positions, and `routine(...)` names the two entries with a `" - Left"` or `" - Right"` suffix.
 
-The `withName(...)` suffix `" - Left"` / `" - Right"` is significant: the field visualizer parses the suffix to decide whether to mirror the rendered pose. Don't drop it.
+That suffix is load-bearing, not decoration. `Robot.disabledPeriodic` strips it to find the `.auto` file for the trajectory preview and the start-pose check, and it decides the mirror from the same string. An entry named without the suffix will not preview and will not get its start pose checked. Keep it.
 
-## Paths and Autos in PathPlanner
+## Paths and autos in PathPlanner
 
-PathPlanner stores its data in [`src/main/deploy/pathplanner/`](../../src/main/deploy/pathplanner/):
+PathPlanner's data lives in [`src/main/deploy/pathplanner/`](../../src/main/deploy/pathplanner/): trajectories under `paths/`, auto sequences under `autos/`, plus `navgrid.json` and `settings.json`. `settings.json` carries the robot kinematics the pathfinder generates against, so if you change a swerve dimension you have to keep that in step or the generated trajectories are for a robot that does not exist.
 
-* `paths/*.path`: single trajectories (waypoints, constraints, rotation targets).
-* `autos/*.auto`: sequences of paths and named commands. `PathPlannerAuto("TBTB 1", mirrored)` loads `autos/TBTB 1.auto`.
-* `navgrid.json`: the obstacle grid for the pathfinder.
-* `settings.json`: robot kinematics PathPlanner uses for trajectory generation. Keep this in sync with the swerve constants.
+`frcStaticFileDeploy` ships the whole `deploy/` tree to the roboRIO, so anyone connected to the bot gets whatever PathPlanner state matches the deployed code. Editing a path in the PathPlanner app writes the JSON back into the repo. Commit that alongside any code change that depends on it, or the next person to pull gets a path that does not match the robot.
 
-`frcStaticFileDeploy` ships the whole `deploy/` tree to the roboRIO, so anyone connected to the bot has whatever PathPlanner state matches the deployed code. Editing a path in the PathPlanner app writes the JSON back into the repo; commit that alongside any code changes that depend on it.
+## Event markers
 
-## Event Markers
+Every meaningful behaviour during a routine fires from an event marker rather than a hand-coded `waitSeconds(...)`. A burst of fuel lasts a different length of time every match, so a timing that was right in practice stops being right the moment the robot accelerates differently.
 
-Every meaningful behavior during an auto routine fires from an event marker, not from a hand-coded `waitSeconds(...)`. The flow is:
+There is no wait in front of the routine either. Each `PathPlannerAuto` is built at boot, so PathPlanner has already generated and cached its trajectories by the time the match starts, and the first path command drives in the first scheduler loop of auto. The one thing that can cost loops there is a seeded heading that disagrees with the path's starting heading, because PathPlanner then regenerates the trajectory on the spot. That is what the Pre-Match tab's **Pose Seed Confirmed** box is for.
 
-1. In PathPlanner, drop a marker on the path and name it (`intake`, `shotPrep`, `shoot`, …).
-2. `Auton.java` declares a matching `public static final EventTrigger autonIntake = new EventTrigger("intake");` etc.
-3. `Robot.java` binds those triggers to whatever super-state should fire, e.g. `Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.INTAKE_FUEL))`.
+Being confirmed says the measurement is trustworthy, not that it agrees with the auto. Those are different questions and the code answers them separately. While disabled, `Robot.checkStartPose()` compares the current pose against the selected auto's starting pose, already flipped for red and mirrored for a right start, puts both differences on the Pre-Match tab as **Start Pose Err (m)** and **Start Heading Err (deg)**, and raises a Driver Station error once they have exceeded their limits for a sustained second. Without a heading seed it refuses to answer at all rather than reporting a perfect zero, because unseeded the code is comparing the start pose against itself.
 
-The advantage is the auto file stays declarative: "intake from here to here, then shoot", instead of hardcoding timings that drift the moment the robot accelerates differently.
+That check catches a wrong auto selection, a wrong side, an alliance that has not come through yet, and a bad vision seed. They all look identical from the path's point of view: the robot drives to its own start point first.
 
-## Adding a New Auto
+## Adding a new auto
 
-1. Open PathPlanner, design the new path(s) and `.auto` file. Make sure event-marker names line up with the existing `EventTrigger` list in `Auton.java` (or add a new trigger and bind it in `Robot.configureBindings()`).
-2. Add a method on `Auton` that returns a `Command`. Follow the existing pattern: `Commands.sequence(SpectrumAuton(...), launch(), SpectrumAuton(...))` and tag it with `.withName("YourAuto Full - " + (mirrored ? "Right" : "Left"))`.
-3. Register it in `setupSelectors()` with `pathChooser.addOption("YourAuto Left", yourAuto(false))` plus the mirrored counterpart.
-4. Test in sim first (`./gradlew simulateJava` → select the auto from Elastic's chooser). The `Field2d` preview will show the trajectory; verify the mirrored variant ends up where you expect.
+1. Design the paths and the `.auto` file in the PathPlanner app. Marker names have to match an existing trigger or you have to add one.
+2. A one-file auto needs no new method: pass its name to `single(...)`. A multi-step one gets a method that passes the steps to `routine(...)`. The first `.auto` file named has to cover the whole routine end to end, because the trajectory preview and the start-pose check both load it.
+3. Register it in `setupSelectors()` with `addOption` for each side. The `.auto` name is case sensitive on the rio and the filesystem there is case sensitive where the Windows sim is not, so a mismatch passes everything you do on a laptop and then does nothing on the field. `Auton.verifyAutoFile` checks at boot and raises an alert, and `Robot.logAutoSelection` writes both the chosen name and whether the file was found to the log, which is the first thing to check when an auto sat still.
+4. Test in sim first with `./gradlew simulateJava` and the auto selected from the chooser. The `Field2d` preview shows the trajectory. Run the mirrored variant too and confirm it ends up where you expect, not just that it exists.
 
-## Useful Helpers
+## See also
 
-* `followSinglePath(name)` runs a single PathPlanner `.path` outside of an `.auto` wrapper. Handy for one-off scripted moves, less useful in competition.
-* `pathfindingCommandToPose(x, y, rot, vel, accel)` invokes `AutoBuilder.pathfindToPoseFlipped(...)`, which navigates to a pose using `navgrid.json` for obstacle avoidance. Used during testing more than matches, the on-the-fly planner is slower than running a pre-baked path.
-
-## See Also
-
-[2026 Season Specific](../other-guides/2026-season-specific.md) for the state machine that auton drives. [PathPlanner](../dependencies/pathplanner.md) for the dependency-level details, version, JavaDoc link, and which APIs we lean on.
+[2026 Season Specific](../other-guides/2026-season-specific.md) for the state machine that auton drives. [PathPlanner](../dependencies/pathplanner.md) for the dependency-level details and version. [Shot Records and Trim Events](shot-log.md) for what the shot columns in a log mean once a routine has run.

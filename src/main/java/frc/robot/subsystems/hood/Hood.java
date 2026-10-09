@@ -12,73 +12,80 @@ import frc.spectrumLib.sim.ArmSim;
 import frc.spectrumLib.telemetry.Telemetry;
 import lombok.Getter;
 
-/** The Hood subsystem. Positions the hood that sets the fuel launch angle. */
 public class Hood extends Mechanism {
 
     public static class HoodConfig extends Config {
 
-        @Getter private final double initPosition = 9;
+        /* 34.5 deg of travel */
+        @Getter private final double maxRotations = 0.095833;
+        @Getter private final double minRotations = 0.0;
 
-        @Getter private final double maxRotations = 0.137;
-        @Getter private final double minRotations = 0.024;
+        /** Position error (degrees) within which the hood counts as on target for a shot. */
+        @Getter private final double aimToleranceDegrees = 0.5;
 
-        /* Hood config values */
-        @Getter private final double supplyCurrentLimit = 40;
-        @Getter private final double statorCurrentLimit = 60;
+        /**
+         * Below this angle the hood counts as resting on its hard stop at home, and output is cut
+         * instead of holding position 0. The hard stop sits fractionally above the encoder zero, so
+         * holding 0 against it stalled the motor at 75 A stator continuously on the bench and
+         * heated it 19 C in 30 s of idle. Brake mode holds it.
+         */
+        @Getter private final double homeRestToleranceDegrees = 1.0;
+
+        @Getter private final double supplyCurrentLimit = 80;
+        @Getter private final double statorCurrentLimit = 80;
         @Getter private final double lowerSupplyCurrentLimit = 40;
         @Getter private final double lowerSupplyCurrentTime = 1;
-        @Getter private final double positionKp = 3000;
+        @Getter private final double positionKp = 2750;
         @Getter private final double positionKi = 0;
-        @Getter private final double positionKd = 220;
-        @Getter private final double positionKv = 0;
-        @Getter private final double positionKs = 25;
+        @Getter private final double positionKd = 0;
+        @Getter private final double positionKv = 10.22819093986847;
+        @Getter private final double positionKs = 0.49;
         @Getter private final double positionKa = 0;
         @Getter private final double positionKg = 0;
 
-        @Getter private final double gearRatio = 51.667;
-        @Getter private final double mmCruiseVelocity = 50;
-        @Getter private final double mmAcceleration = 200;
-        @Getter private final double mmJerk = 1000;
-        @Getter private final double holdMaxSpeedRPM = 18;
+        @Getter private final double gearRatio = 59.4;
+        @Getter private final double mmCruiseVelocity = 0.1;
+        @Getter private final double mmAcceleration = 0.4;
+        @Getter private final double mmJerk = 0;
+        @Getter private final double peakVoltage = 3;
 
-        /* Sim Configs */
-        @Getter private final double hoodX = Units.inchesToMeters(62.5);
-        @Getter private final double hoodY = Units.inchesToMeters(50);
-        @Getter private final double simRatio = 51.667;
-        @Getter private final double length = Units.inchesToMeters(10);
+        @Getter private final double hoodX = Units.inchesToMeters(45);
+
+        @Getter private final double hoodY = Units.inchesToMeters(52.5);
+        @Getter private final double length = Units.inchesToMeters(7.735);
 
         public HoodConfig() {
-            super("Hood", 15, Rio.CANIVORE);
+            super("Hood", 19, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
             configPIDGains(0, positionKp, positionKi, positionKd);
             configFeedForwardGains(positionKs, positionKv, positionKa, positionKg);
             configMotionMagic(mmCruiseVelocity, mmAcceleration, mmJerk);
+            configForwardVoltageLimit(peakVoltage);
+            configReverseVoltageLimit(-peakVoltage);
             configGearRatio(gearRatio);
-            configSupplyCurrentLimit(supplyCurrentLimit, true);
-            configStatorCurrentLimit(statorCurrentLimit, true);
-            configLowerSupplyCurrentLimit(lowerSupplyCurrentLimit);
-            configLowerSupplyCurrentTime(lowerSupplyCurrentTime);
-            configForwardTorqueCurrentLimit(statorCurrentLimit);
-            configReverseTorqueCurrentLimit(statorCurrentLimit);
+            configCurrentLimits(
+                    supplyCurrentLimit,
+                    statorCurrentLimit,
+                    lowerSupplyCurrentLimit,
+                    lowerSupplyCurrentTime);
             configForwardSoftLimit(maxRotations, true);
             configReverseSoftLimit(minRotations, true);
             configNeutralBrakeMode(true);
-            configClockwise_Positive();
+            configCounterClockwise_Positive();
         }
     }
 
-    // ---- State Machine ----
-
     public enum WantedState {
         HOME,
-        STOPPED,
         AIM_AT_TARGET,
+        /** Fixed angle for the pose-independent set shot. */
+        SET_SHOT
     }
 
     public enum SystemState {
         HOME,
-        STOPPED,
         AIM_AT_TARGET,
+        SET_SHOT
     }
 
     private WantedState wantedState = WantedState.HOME;
@@ -91,68 +98,78 @@ public class Hood extends Mechanism {
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case HOME -> SystemState.HOME;
-            case STOPPED -> SystemState.STOPPED;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
+            case SET_SHOT -> SystemState.SET_SHOT;
         };
     }
 
+    /** Hood angle commanded this loop, in degrees. */
+    @Getter private double commandedDegrees = 0;
+
     private void applyStates() {
-        double wantedDegrees = 9;
+        double wantedDegrees = 0;
         switch (systemState) {
             case HOME:
-                wantedDegrees = 9.0;
+                wantedDegrees = 0.0;
+                if (getPositionDegrees() <= config.getHomeRestToleranceDegrees()) {
+                    // Resting on the hard stop, so stop pushing into it. See
+                    // homeRestToleranceDegrees.
+                    commandedDegrees = 0.0;
+                    stop();
+                    return;
+                }
                 break;
-            case STOPPED:
-                stop();
-                return;
             case AIM_AT_TARGET:
                 var params = ShotCalculator.getInstance().getParameters();
                 wantedDegrees = params.hoodAngle();
                 break;
+            case SET_SHOT:
+                wantedDegrees = ShotCalculator.getSetShotHoodDegrees();
+                break;
         }
-        final double finalWantedDegrees = wantedDegrees;
-        final double finalWantedPosition = degreesToRotations(() -> finalWantedDegrees);
-        setMMPositionFoc(() -> finalWantedPosition);
+        commandedDegrees = wantedDegrees;
+        double wantedPosition = degreesToRotations(() -> commandedDegrees);
+        setPosition(() -> wantedPosition);
+    }
+
+    /** True when the hood is aiming and on its commanded shot angle. Gates feeding the flywheel. */
+    public boolean isAtAngle() {
+        return isAtAngle(config.getAimToleranceDegrees());
+    }
+
+    /**
+     * Same check as {@link #isAtAngle()} against a caller-supplied tolerance. The feeder gate uses
+     * a wider tolerance to decide whether to <em>keep</em> feeding than to start.
+     */
+    public boolean isAtAngle(double toleranceDegrees) {
+        return (systemState == SystemState.AIM_AT_TARGET || systemState == SystemState.SET_SHOT)
+                && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
     }
 
     @Getter private final HoodConfig config;
+
     @Getter private HoodSim sim;
 
     public Hood(HoodConfig config) {
         super(config);
         this.config = config;
 
-        setInitialPosition();
-
         simulationInit();
         Telemetry.print(getName() + " Subsystem Initialized");
-    }
-
-    private void setInitialPosition() {
-        if (isAttached()) {
-            motor.setPosition(degreesToRotations(() -> config.getInitPosition()));
-        }
     }
 
     @Override
     public void periodic() {
         systemState = handleStateTransition();
         applyStates();
-        logBatteryUsage();
-        Telemetry.logDash("Hood/WantedState", wantedState.toString());
-        Telemetry.logDash("Hood/SystemState", systemState.toString());
-        Telemetry.logDash("Hood/CurrentCommand", getCurrentCommandName());
-        Telemetry.logDash("Hood/Voltage", getVoltage(), "volts");
-        Telemetry.logDash("Hood/StatorCurrent", getStatorCurrent(), "amps");
-        Telemetry.logDash("Hood/SupplyCurrent", getSupplyCurrent(), "amps");
-        Telemetry.logDash("Hood/PositionDegrees", getPositionDegrees(), "degrees");
-        Telemetry.logDash("Hood/RPM", getVelocityRPM(), "RPM");
-        Telemetry.logDash("Hood/Temp", getTemp(), "deg_C");
+        Telemetry.logState("Hood/WantedState", wantedState);
+        Telemetry.logState("Hood/SystemState", systemState);
+        logStandard("Hood", true, RpmLog.LOOP);
+        Telemetry.logDash("Hood/PositionDegrees", getPositionDegrees(), "deg");
+        Telemetry.log("Hood/CommandedDegrees", commandedDegrees, "deg");
+        Telemetry.log("Hood/AtAngle", isAtAngle());
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
     public void simulationInit() {
         if (isAttached()) {
             sim = new HoodSim(RobotSim.leftView, motor);
@@ -165,12 +182,14 @@ public class Hood extends Mechanism {
                     new ArmConfig(
                                     config.hoodX,
                                     config.hoodY,
-                                    config.simRatio,
+                                    config.gearRatio,
                                     config.length,
-                                    90,
-                                    180 - 9,
-                                    180 - 9)
-                            .setSimulatedGravity(false),
+                                    180 - config.getMaxRotations() * 360,
+                                    180 - config.getMinRotations() * 360,
+                                    180 - config.getMinRotations() * 360)
+                            .setSimulatedGravity(false)
+                            // The drawn angle falls as the hood raises.
+                            .setReversedLinkage(true),
                     mech,
                     motor,
                     config.getName());

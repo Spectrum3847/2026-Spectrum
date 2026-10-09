@@ -7,11 +7,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 
 public class FieldHelpers {
-    // -----------------------------------------------------------------------
-    // Field Helper Methods
-    // -----------------------------------------------------------------------
-
-    /* Methods to flip robot pose */
 
     public static double flipAngle(double angle) {
         return (angle + 180) % 360;
@@ -55,7 +50,6 @@ public class FieldHelpers {
         return Field.fieldWidth - yCoordinate;
     }
 
-    // If we are red flip the x pose to the other side of the field
     public static double flipXifRed(double xCoordinate) {
         if (Field.isRed()) {
             return Field.fieldLength - xCoordinate;
@@ -63,7 +57,6 @@ public class FieldHelpers {
         return xCoordinate;
     }
 
-    // If we are red flip the y pose to the other side of the field
     public static double flipYifRed(double yCoordinate) {
         if (Field.isRed()) {
             return Field.fieldWidth - yCoordinate;
@@ -74,8 +67,7 @@ public class FieldHelpers {
     /**
      * Normalizes an angle to the range [-π, π).
      *
-     * @param angle The angle in radians.
-     * @return The normalized angle.
+     * @param angle the angle in radians
      */
     public static double normalizeAngle(double angle) {
         angle = angle % (2 * Math.PI);
