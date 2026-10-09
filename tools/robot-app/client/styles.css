@@ -7,7 +7,7 @@
  * rather than Google's CDN so the app still works with no internet.
  *
  * Light is the brand default. Dark is a second, deliberately stepped set for pit and queue-line
- * use -- same hues, re-stepped against a deep-purple surface, not an automatic inversion.
+ * use, with the same hues re-stepped against a deep-purple surface, not an automatic inversion.
  */
 @import "@fontsource-variable/plus-jakarta-sans";
 @import "@fontsource-variable/outfit";
@@ -36,7 +36,7 @@
     --accent-dim: #f3e8ff;
     --accent-ink: #3c0060;
 
-    /* Status. Reserved -- never reused as a series color. */
+    /* Status. Reserved, never reused as a series color. */
     --ok: #15803d;
     --warn: #b45309;
     --bad: #b91c1c;
@@ -218,6 +218,7 @@ h3 { font-size: 0.9rem; margin: 20px 0 8px; color: var(--tx-dim); text-transform
     padding: 16px 18px;
     box-shadow: var(--shadow-sm);
 }
+a.card:hover { border-color: var(--accent); text-decoration: none; }
 .grid { display: grid; gap: 14px; }
 .grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -289,16 +290,16 @@ tbody tr:hover td { background: var(--s2); }
 /* ---------------------------------------------------------------- notices */
 
 .notice {
-    border-left: 3px solid var(--accent);
+    border: 1px solid var(--bd);
     background: var(--s2);
     padding: 11px 14px;
-    border-radius: 0 8px 8px 0;
+    border-radius: 8px;
     margin: 14px 0;
     font-size: 0.85rem;
     color: var(--tx-dim);
 }
-.notice.warn { border-left-color: var(--warn); background: var(--warn-bg); }
-.notice.bad { border-left-color: var(--bad); background: var(--bad-bg); }
+.notice.warn { border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: var(--warn-bg); }
+.notice.bad { border-color: color-mix(in srgb, var(--bad) 40%, transparent); background: var(--bad-bg); }
 .notice strong { color: var(--tx); }
 
 .tag {

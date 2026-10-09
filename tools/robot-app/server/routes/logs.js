@@ -37,8 +37,7 @@ logsRouter.get("/repo-status", async (req, res) => res.json(await repoStatus()))
 logsRouter.get("/file/:name", (req, res) => {
     const target = safeLogPath(req.params.name);
     if (!target || !fs.existsSync(target)) return res.status(404).json({ error: "log not found" });
-    res.type("application/octet-stream");
-    fs.createReadStream(target).pipe(res);
+    res.sendFile(target, { headers: { "content-type": "application/octet-stream" } });
 });
 
 logsRouter.post("/:name/index", (req, res) => {
@@ -55,10 +54,14 @@ logsRouter.post("/:name/pin", (req, res) => {
     const { pinned = true, note = null } = req.body || {};
     const manifest = readManifest();
     const entry = manifest.logs.find((l) => l.name === req.params.name);
-    if (!entry) return res.status(404).json({ error: "log is not in the manifest -- index it first" });
+    if (!entry) return res.status(404).json({ error: "log is not in the manifest. Index it first" });
     entry.pinned = !!pinned;
     if (note !== null) entry.note = note;
-    writeManifest(manifest);
+    try {
+        writeManifest(manifest);
+    } catch (e) {
+        return res.status(500).json({ error: e.message });
+    }
     res.json(entry);
 });
 

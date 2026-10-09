@@ -20,7 +20,7 @@ export async function mountControlsPage(controllerId) {
         return;
     }
 
-    document.title = `${c.name} controls — Spectrum`;
+    document.title = `${c.name} controls | Spectrum`;
     let layerId = new URLSearchParams(location.search).get("layer") || c.layers[0].id;
 
     const diagramBox = el("div", { class: "diagram-box" });
@@ -37,6 +37,8 @@ export async function mountControlsPage(controllerId) {
     }
 
     function draw() {
+        const layer = c.layers.find((l) => l.id === layerId) ?? c.layers[0];
+        layerId = layer.id;
         tabs.replaceChildren(
             ...c.layers.map((l) =>
                 el(
@@ -55,7 +57,6 @@ export async function mountControlsPage(controllerId) {
             )
         );
 
-        const layer = c.layers.find((l) => l.id === layerId);
         const svg = renderDiagram(c, layerId);
         for (const node of svg.querySelectorAll("[data-control]")) {
             node.addEventListener("mouseenter", () => highlight(node.dataset.control));
@@ -121,7 +122,7 @@ export async function mountControlsPage(controllerId) {
           )
         : null;
 
-    // replaceChildren stringifies null, so filter before spreading -- the operator has no sticks
+    // replaceChildren stringifies null, so filter before spreading. The operator has no sticks
     // section and an empty one must vanish, not print "null".
     const parts = [
         el("h1", {}, `${c.name} controls`),

@@ -49,14 +49,14 @@ function chartCard(title, note, height = "") {
     return { card, canvas };
 }
 
-const fmtDeg = (v) => (Number.isFinite(v) ? `${v.toFixed(1)}°` : "—");
+const fmtDeg = (v) => (Number.isFinite(v) ? `${v.toFixed(1)}°` : "n/a");
 
 /**
  * Top-down turret dial.
  *
  * 0 degrees is the turret's zero, which on this robot faces AWAY from the intake. Angles increase
  * counter-clockwise, matching the sign convention in the log, and the shaded arc is the actual
- * travel the soft limits allow -- the turret cannot spin freely, which is why it unwraps.
+ * travel the soft limits allow. The turret cannot spin freely, which is why it unwraps.
  */
 function buildDial(limits) {
     const R = 130;
@@ -153,7 +153,7 @@ function render(log) {
     if (!pos.length) {
         content.replaceChildren(el("div", { class: "notice warn" },
             el("strong", {}, "No turret data in this log. "),
-            "Turret/PositionDegrees is missing — this is probably a log from the competition robot, which had no turret."));
+            "Turret/PositionDegrees is missing. This is probably a log from the competition robot, which had no turret."));
         return;
     }
 
@@ -171,11 +171,11 @@ function render(log) {
     // ------------------------------------------------------------ verdict
     const VERDICTS = {
         slipped: { cls: "bad", icon: "✖", title: "The turret slipped",
-            body: (z) => `The camera's zero error stepped ${z.steps.length} time${z.steps.length === 1 ? "" : "s"} and stayed moved — the largest by ${fmtDeg(Math.max(...z.steps.map((s) => Math.abs(s.jump))))}. A step that persists means the turret moved relative to its encoder. Re-zeroing will not fix this; check the belt and the encoder coupling.` },
+            body: (z) => `The camera's zero error stepped ${z.steps.length} time${z.steps.length === 1 ? "" : "s"} and stayed moved, the largest by ${fmtDeg(Math.max(...z.steps.map((s) => Math.abs(s.jump))))}. A step that persists means the turret moved relative to its encoder. Re-zeroing will not fix this; check the belt and the encoder coupling.` },
         drifting: { cls: "bad", icon: "▲", title: "The zero drifted during this log",
-            body: (z) => `Zero error went from ${fmtDeg(z.baselineDeg)} to ${fmtDeg(z.endingDeg)} — ${fmtDeg(z.totalDriftDeg)} over the session, about ${fmtDeg(z.driftPerMinDeg)} per minute. Gradual walk like this is a belt creeping rather than one clean skip.` },
+            body: (z) => `Zero error went from ${fmtDeg(z.baselineDeg)} to ${fmtDeg(z.endingDeg)}. That is ${fmtDeg(z.totalDriftDeg)} over the session, about ${fmtDeg(z.driftPerMinDeg)} per minute. Gradual walk like this is a belt creeping rather than one clean skip.` },
         "zero-off": { cls: "warn", icon: "◑", title: "The zero is off, but steady",
-            body: (z) => `Zero error sat at ${fmtDeg(z.baselineDeg)} and stayed there. Nothing is slipping — the turret was simply zeroed ${fmtDeg(Math.abs(z.baselineDeg))} away from true. Point it at its zero by hand and press operator B while disabled.` },
+            body: (z) => `Zero error sat at ${fmtDeg(z.baselineDeg)} and stayed there. Nothing is slipping. The turret was simply zeroed ${fmtDeg(Math.abs(z.baselineDeg))} away from true. Point it at its zero by hand and press operator B while disabled.` },
         ok: { cls: "ok", icon: "✔", title: "No slip detected",
             body: (z) => `Zero error stayed near ${fmtDeg(z.baselineDeg)} for the whole log with no persistent steps. The encoder and the camera agree about where the turret points.` },
     };
@@ -188,7 +188,7 @@ function render(log) {
     } else {
         blocks.push(el("div", { class: "notice warn" },
             el("strong", {}, "No slip verdict. "),
-            "Vision/TurretLL/HeadingErrorDeg has too few usable samples in this log — the turret camera needs to see tags for the independent cross-check. Everything below still works from the encoder alone."));
+            "Vision/TurretLL/HeadingErrorDeg has too few usable samples in this log. The turret camera needs to see tags for the independent cross-check. Everything below still works from the encoder alone."));
     }
 
     // ------------------------------------------------------------ tiles
@@ -197,36 +197,36 @@ function render(log) {
     const posNoUnwrap = clipToEnabled(pos, m.enabled).filter(([t]) => !inWindows(t, unwraps));
     const posStats = seriesStats(posNoUnwrap.length ? posNoUnwrap : clipToEnabled(pos, m.enabled));
     blocks.push(el("div", { class: "grid cols-4", style: "margin-bottom:6px" },
-        tile("Zero error", zero ? fmtDeg(zero.baselineDeg) : "—", "at the start of the log",
+        tile("Zero error", zero ? fmtDeg(zero.baselineDeg) : "n/a", "at the start of the log",
             zero ? (Math.abs(zero.baselineDeg) > 5 ? "bad" : Math.abs(zero.baselineDeg) > 2 ? "warn" : "ok") : ""),
-        tile("Drift", zero?.totalDriftDeg !== undefined ? fmtDeg(zero.totalDriftDeg) : "—",
+        tile("Drift", zero?.totalDriftDeg !== undefined ? fmtDeg(zero.totalDriftDeg) : "n/a",
             zero?.driftPerMinDeg != null ? `${fmtDeg(zero.driftPerMinDeg)}/min` : null,
             zero ? (Math.abs(zero.totalDriftDeg) > 3 ? "bad" : "ok") : ""),
-        tile("On target", tracking ? `${tracking.withinTolerancePct.toFixed(0)}%` : "—",
+        tile("On target", tracking ? `${tracking.withinTolerancePct.toFixed(0)}%` : "n/a",
             tracking ? `within ${tracking.toleranceDeg}° while enabled` : null,
             tracking ? (tracking.withinTolerancePct < 70 ? "warn" : "ok") : ""),
-        tile("Not following", tracking ? fmtDuration(tracking.stuckSec) : "—", "error held with voltage applied",
+        tile("Not following", tracking ? fmtDuration(tracking.stuckSec) : "n/a", "error held with voltage applied",
             tracking ? (tracking.stuckSec > 2 ? "bad" : "ok") : ""),
         tile("Position jumps", jumps.length, "faster than physically plausible", jumps.length ? "bad" : "ok"),
         tile("Stalls", effort.stalls.length, "current, no motion", effort.stalls.length ? "warn" : "ok"),
         tile("Unwraps", unwraps.length, "full-turn slews", unwraps.length ? "warn" : "ok"),
-        tile("Travel used", posStats ? `${fmtDeg(posStats.min)} … ${fmtDeg(posStats.max)}` : "—",
+        tile("Travel used", posStats ? `${fmtDeg(posStats.min)} … ${fmtDeg(posStats.max)}` : "n/a",
             `limits ${limits.reverseDeg}° … ${limits.forwardDeg}°`)));
 
     blocks.push(el("div", { class: "grid cols-4", style: "margin:14px 0 6px" },
-        tile("Net zero shift", correction.netZeroShiftDeg != null ? fmtDeg(correction.netZeroShiftDeg) : "—",
+        tile("Net zero shift", correction.netZeroShiftDeg != null ? fmtDeg(correction.netZeroShiftDeg) : "n/a",
             "start of log to end", correction.netZeroShiftDeg != null && Math.abs(correction.netZeroShiftDeg) > 3 ? "bad" : "ok"),
-        tile("Controller clawed back", correction.events.length ? fmtDeg(correction.totalCorrectedDeg) : "—",
+        tile("Controller clawed back", correction.events.length ? fmtDeg(correction.totalCorrectedDeg) : "n/a",
             "tracking error it drove out"),
-        tile("Left uncorrected", correction.events.length ? fmtDeg(correction.totalResidualDeg) : "—",
+        tile("Left uncorrected", correction.events.length ? fmtDeg(correction.totalResidualDeg) : "n/a",
             "aim error nothing fixed", correction.totalResidualDeg > 2 ? "bad" : "ok"),
-        tile("Limelight aim nudges", limelight.perCamera.reduce((a, c) => a + c.corrections, 0) || "—",
+        tile("Limelight aim nudges", limelight.perCamera.reduce((a, c) => a + c.corrections, 0) || "n/a",
             limelight.totalCorrectionDeg ? `${fmtDeg(limelight.totalCorrectionDeg)} total` : "no pose estimates integrated")));
 
     // ------------------------------------------------------------ dial + scrub
     const dial = buildDial(limits);
     const readout = el("dl", { class: "readout" });
-    const slider = el("input", { type: "range", min: 0, max: 1000, value: 0 });
+    const slider = el("input", { type: "range", min: 0, max: 1000, value: 0, "aria-label": "Scrub time" });
     const timeLabel = el("span", { class: "t" });
 
     const paintAt = (tSec) => {
@@ -243,8 +243,8 @@ function render(log) {
             ["swatch-commanded", "Commanded", fmtDeg(c)],
             ["swatch-vision", "Camera says", trueDeg === null ? "no tags" : fmtDeg(trueDeg)],
             [null, "Error", fmtDeg(valueAt(err, tSec))],
-            [null, "Current", (() => { const a = valueAt(cur, tSec); return a === null ? "—" : `${a.toFixed(0)} A`; })()],
-            [null, "State", valueAt(m.ch("Turret/SystemState"), tSec) ?? "—"],
+            [null, "Current", (() => { const a = valueAt(cur, tSec); return a === null ? "n/a" : `${a.toFixed(0)} A`; })()],
+            [null, "State", valueAt(m.ch("Turret/SystemState"), tSec) ?? "n/a"],
             [null, "Ready", valueAt(ready, tSec) === true ? "yes" : "no"],
             [null, "Unwrapping", inWindows(tSec, unwraps) ? "YES" : "no"],
         ];
@@ -260,6 +260,11 @@ function render(log) {
     const t0 = log.firstTs;
     const span = Math.max(0.001, log.lastTs - log.firstTs);
     slider.addEventListener("input", () => paintAt(t0 + (slider.value / 1000) * span));
+    const scrubToEvent = (t) => {
+        slider.value = Math.round(((t - t0) / span) * 1000);
+        paintAt(t);
+        slider.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
 
     // Open on the most interesting moment rather than t=0, which is always the robot sitting still.
     const focus = zero?.steps[0]?.t ?? jumps[0]?.t ?? tracking?.stuckWindows[0]?.[0] ?? m.enabled[0]?.[0] ?? t0;
@@ -299,7 +304,7 @@ function render(log) {
     // ------------------------------------------------------------ commanded vs measured
     {
         const { card, canvas } = chartCard("Commanded vs measured angle",
-            "The two should sit on top of each other except during a slew. Grey bands are unwraps — a legitimate full turn, not a fault.", "tall");
+            "The two should sit on top of each other except during a slew. Grey bands are unwraps. They are legitimate full turns, not faults.", "tall");
         blocks.push(card);
         queueMicrotask(() => {
             const unwrapShade = {
@@ -376,7 +381,7 @@ function render(log) {
         ...effort.stalls.map(([s, e]) => ({ t: s, kind: "Stall", detail: `${(e - s).toFixed(1)}s of current with no motion`, sev: "warn" })),
         ...effort.backdriven.map(([s, e]) => ({ t: s, kind: "Back-driven", detail: `${(e - s).toFixed(1)}s of motion with no current`, sev: "warn" })),
         ...(tracking?.stuckWindows || []).map(([s, e]) => ({ t: s, kind: "Not following", detail: `${(e - s).toFixed(1)}s outside tolerance with voltage applied`, sev: "warn" })),
-        ...unwraps.map(([s, e]) => ({ t: s, kind: "Unwrap", detail: `${(e - s).toFixed(1)}s full-turn slew — expected, but fuel fed during it goes anywhere`, sev: "" })),
+        ...unwraps.map(([s, e]) => ({ t: s, kind: "Unwrap", detail: `${(e - s).toFixed(1)}s full-turn slew. Expected, but fuel fed during it goes anywhere`, sev: "" })),
     ].sort((a, b) => a.t - b.t);
 
     // ------------------------------------------------------------ slip and correction
@@ -390,7 +395,7 @@ function render(log) {
         blocks.push(el("section", {},
             el("h2", {}, "Slip and correction"),
             el("div", { class: "section-note" },
-                "Two different slips look nothing alike. If the encoder loses counts the controller sees a sudden error and drives it out — that is the ",
+                "Two different slips look nothing alike. If the encoder loses counts the controller sees a sudden error and drives it out. That is the ",
                 el("strong", {}, "clawed back"), " column. If the mechanism moves and the encoder does not, the controller sees nothing wrong and does nothing; only the camera notices, and that is ",
                 el("strong", {}, "left wrong"), "."),
             el("div", { class: "card table-wrap" },
@@ -405,7 +410,7 @@ function render(log) {
                             el("td", { class: "num" }, fmtDeg(e.errPeakDeg)),
                             el("td", { class: "num" }, fmtDeg(e.recoveredDeg)),
                             el("td", { class: "num" }, e.recoverySec == null ? "never" : `${e.recoverySec.toFixed(2)}s`),
-                            el("td", { class: "num" }, e.residualDeg == null ? "—" : fmtDeg(e.residualDeg)),
+                            el("td", { class: "num" }, e.residualDeg == null ? "n/a" : fmtDeg(e.residualDeg)),
                             el("td", {}, el("span", { class: `tag ${cls}` }, label)));
                     }))))));
     }
@@ -416,7 +421,7 @@ function render(log) {
         const parts = [
             el("h2", {}, "Limelight corrections"),
             el("div", { class: "section-note" },
-                "Vision never corrects the turret's zero — the controller only trusts the encoder. What vision corrects is the robot ",
+                "Vision never corrects the turret's zero. The controller only trusts the encoder. What vision corrects is the robot ",
                 el("em", {}, "pose"), ", and the commanded turret angle is computed from that pose, so every accepted estimate nudges where the turret is told to point. That nudge, in turret degrees, is the correction."),
         ];
 
@@ -464,15 +469,10 @@ function render(log) {
                 el("table", {},
                     el("thead", {}, el("tr", {}, ["Time", "What", "Detail"].map((h) => el("th", {}, h)))),
                     el("tbody", {}, eventRows.map((r) =>
-                        el("tr", {
-                            style: "cursor:pointer",
-                            onclick: () => {
-                                slider.value = Math.round(((r.t - t0) / span) * 1000);
-                                paintAt(r.t);
-                                slider.scrollIntoView({ behavior: "smooth", block: "center" });
-                            },
-                        },
-                            el("td", { class: "num" }, `${r.t.toFixed(1)}s`),
+                        el("tr", { style: "cursor:pointer", onclick: () => scrubToEvent(r.t) },
+                            el("td", { class: "num" },
+                                el("button", { type: "button", class: "event-time", "aria-label": `Scrub the dial to ${r.t.toFixed(1)}s` },
+                                    `${r.t.toFixed(1)}s`)),
                             el("td", {}, el("span", { class: `tag ${r.sev}` }, r.kind)),
                             el("td", {}, r.detail))))))
             : el("div", { class: "empty" }, "Nothing flagged. The turret tracked its commands and its zero held."))));
@@ -482,7 +482,7 @@ function render(log) {
         blocks.push(el("section", {},
             el("h2", {}, "Other turret channels in this log"),
             el("div", { class: "section-note" },
-                "Turret/* keys this page does not have a purpose-built view for — including any checks added to the robot code since. ",
+                "Turret/* keys this page does not have a purpose-built view for, including any checks added to the robot code since. ",
                 "Tell me which of these matter and they get proper treatment."),
             el("div", { class: "card table-wrap" },
                 el("table", {},
@@ -499,7 +499,7 @@ function render(log) {
                         return el("tr", {},
                             el("td", { class: "mono" }, c.key),
                             el("td", { style: "color:var(--tx-dim)" }, c.type),
-                            el("td", {}, c.unit || "—"),
+                            el("td", {}, c.unit || "n/a"),
                             el("td", { class: "num" }, c.values.length),
                             el("td", {}, summary));
                     }))))));

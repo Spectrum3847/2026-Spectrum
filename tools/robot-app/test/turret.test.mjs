@@ -42,7 +42,7 @@ test("reports the baseline zero error separately from the slip", () => {
     assert.ok(Math.abs(zero.totalDriftDeg - SLIP_DEG) < 1, `total drift ${zero.totalDriftDeg}, expected ~${SLIP_DEG}`);
 });
 
-/** A log whose zero error is wrong but perfectly steady -- a zeroing mistake, not a slip. */
+/** A log whose zero error is wrong but perfectly steady. This is a zeroing mistake, not a slip. */
 function buildSteadyOffsetLog(offsetDeg = -6.4) {
     const w = new LogWriter();
     w.put("DS:enabled", "boolean", 0, false);
@@ -57,7 +57,7 @@ function buildSteadyOffsetLog(offsetDeg = -6.4) {
 
 test("a steady offset is called a bad zero, not a slip", () => {
     // Without this the page cries wolf every time someone forgets to re-zero, and the crew stops
-    // believing it -- which is worse than not having the check.
+    // believing it, which is worse than not having the check.
     const steady = new LogModel(parseWpilog(buildSteadyOffsetLog()), null);
     const zero = zeroErrorAnalysis(steady);
     assert.equal(zero.verdict, "zero-off");
@@ -159,4 +159,18 @@ test("unknown Turret/* channels are surfaced rather than ignored", () => {
     assert.deepEqual(keys, ["EncoderDisagreementDeg", "SlipDetected"]);
     assert.equal(extras.find((e) => e.key === "SlipDetected").type, "boolean");
     assert.equal(extras.find((e) => e.key === "EncoderDisagreementDeg").type, "double");
+});
+
+test("NaN heading samples are gaps, not zero steps", () => {
+    // The turret camera logs NaN when it has no estimate. A NaN followed by a real reading must
+    // not count as the zero stepping.
+    const w = new LogWriter();
+    w.put("DS:enabled", "boolean", 0, true);
+    w.put("DS:enabled", "boolean", 30, false);
+    let i = 0;
+    w.series("/Robot/Vision/TurretLL/HeadingErrorDeg", "double", { from: 0, to: 30, hz: 20, fn: () => (i++ % 4 === 0 ? 1 : NaN) });
+    const zero = zeroErrorAnalysis(new LogModel(parseWpilog(w.buffer()), null));
+    assert.equal(zero.steps.length, 0);
+    assert.equal(zero.baselineDeg, 1);
+    assert.equal(zero.verdict, "ok");
 });

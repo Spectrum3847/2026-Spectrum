@@ -7,7 +7,7 @@
  *   Vision/TurretLL/HeadingErrorDeg   how far the turret camera's view disagrees with the gyro
  *
  * The handoff doc records that the second key *is* the turret zero error. So a steady offset means
- * the zero is wrong by that many degrees -- annoying, fixed by re-zeroing. An offset that WALKS
+ * the zero is wrong by that many degrees, which is annoying but fixed by re-zeroing. An offset that WALKS
  * during a session means the mechanism moved relative to its encoder, which is what slipping is.
  * Telling those two apart is the whole point of this page, and it is only possible because the
  * camera is an independent witness.
@@ -49,8 +49,8 @@ function slope(series) {
 /**
  * Windows the turret was deliberately slewing a full turn to unwrap its wire.
  *
- * Every motion check has to exclude these. An unwrap is a legitimate ~360 degree jump -- the
- * handoff doc records one at t=101s going -206 to +153 mid-shot -- and would otherwise read as the
+ * Every motion check has to exclude these. An unwrap is a legitimate ~360 degree jump. The
+ * handoff doc records one at t=101s going -206 to +153 mid-shot, and would otherwise read as the
  * largest slip event in the log.
  */
 export function unwrapWindows(model, padSec = 0.3) {
@@ -71,7 +71,7 @@ export function unwrapWindows(model, padSec = 0.3) {
 /**
  * Zero-error behaviour from the turret camera.
  *
- * Returns the drift rate, the baseline offset, and any step changes -- a step that persists is a
+ * Returns the drift rate, the baseline offset, and any step changes. A step that persists is a
  * slip event; camera noise comes back.
  */
 export function zeroErrorAnalysis(model, { stepDeg = 3, settleSec = 1.0 } = {}) {
@@ -81,7 +81,8 @@ export function zeroErrorAnalysis(model, { stepDeg = 3, settleSec = 1.0 } = {}) 
     // Only trust samples while enabled and not mid-unwrap: during a slew the camera's transform
     // lags the turret, which looks like error but is not.
     const unwraps = unwrapWindows(model);
-    const usable = raw.filter(([t]) => !inWindows(t, unwraps));
+    // NaN means the camera had no estimate; it is a gap, not a reading.
+    const usable = raw.filter(([t, v]) => Number.isFinite(v) && inWindows(t, model.enabled) && !inWindows(t, unwraps));
     if (usable.length < 20) return null;
 
     const firstTenth = usable.slice(0, Math.max(10, Math.floor(usable.length * 0.1)));
@@ -95,7 +96,8 @@ export function zeroErrorAnalysis(model, { stepDeg = 3, settleSec = 1.0 } = {}) 
     for (let i = 1; i < usable.length; i++) {
         const jump = usable[i][1] - usable[i - 1][1];
         if (Math.abs(jump) < stepDeg) continue;
-        const after = usable.filter(([t]) => t > usable[i][0] && t <= usable[i][0] + settleSec).map(([, v]) => v);
+        const after = [];
+        for (let j = i + 1; j < usable.length && usable[j][0] <= usable[i][0] + settleSec; j++) after.push(usable[j][1]);
         if (!after.length) continue;
         const held = median(after);
         if (Math.abs(held - usable[i - 1][1]) >= stepDeg * 0.7) {
@@ -136,8 +138,8 @@ export function zeroErrorAnalysis(model, { stepDeg = 3, settleSec = 1.0 } = {}) 
 /**
  * Tracking: does the turret reach what it was told, and how long does it take?
  *
- * Counts windows where the error stays outside tolerance despite the controller pushing -- the
- * mechanism not following its command, as opposed to simply being mid-move.
+ * Counts windows where the error stays outside tolerance despite the controller pushing, which means the
+ * mechanism is not following its command, as opposed to simply being mid-move.
  */
 export function trackingAnalysis(model, { toleranceDeg = 2, minStuckSec = 0.5 } = {}) {
     const err = model.ch("Turret/PositionError");
@@ -152,26 +154,33 @@ export function trackingAnalysis(model, { toleranceDeg = 2, minStuckSec = 0.5 } 
     const withinPct = (100 * abs.filter((v) => v <= toleranceDeg).length) / abs.length;
 
     // "Stuck" = outside tolerance, with the controller applying voltage, for a sustained stretch.
+    // A window closes at the last usable sample before a disable or unwrap, never spanning it.
     const stuck = [];
     let open = null;
-    for (let i = 0; i < usable.length; i++) {
-        const [t, e] = usable[i];
+    let lastUsable = null;
+    const close = (t) => {
+        if (open !== null && t - open >= minStuckSec) stuck.push([open, t]);
+        open = null;
+    };
+    for (const [t, e] of err) {
+        if (!inWindows(t, model.enabled) || inWindows(t, unwraps)) {
+            close(lastUsable);
+            continue;
+        }
+        lastUsable = t;
         const v = valueAt(volts, t);
         const bad = Math.abs(e) > toleranceDeg && v !== null && Math.abs(v) > 0.5;
         if (bad && open === null) open = t;
-        else if (!bad && open !== null) {
-            if (t - open >= minStuckSec) stuck.push([open, t]);
-            open = null;
-        }
+        else if (!bad) close(t);
     }
-    if (open !== null && model.log.lastTs - open >= minStuckSec) stuck.push([open, model.log.lastTs]);
+    close(lastUsable);
 
     return {
         samples: usable.length,
         withinTolerancePct: withinPct,
         toleranceDeg,
         medianAbsErrDeg: median(abs),
-        maxAbsErrDeg: Math.max(...abs),
+        maxAbsErrDeg: abs.reduce((m, v) => Math.max(m, v), 0),
         stuckWindows: stuck,
         stuckSec: stuck.reduce((a, [s, e]) => a + (e - s), 0),
     };
@@ -209,7 +218,7 @@ export function motionAnomalies(model, { maxDegPerSec = 400, minJumpDeg = 4 } = 
 /**
  * Effort with no motion, and motion with no effort.
  *
- * The first is a stall -- the motor pushing against something that will not move, which is how a
+ * The first is a stall. The motor is pushing against something that will not move, which is how a
  * belt gets chewed. The second means something other than the motor moved the turret.
  */
 export function effortAnomalies(model, { stallAmps = 20, stillDegPerSec = 2, minSec = 0.3 } = {}) {
@@ -241,6 +250,8 @@ export function effortAnomalies(model, { stallAmps = 20, stillDegPerSec = 2, min
                 open = null;
             }
         }
+        const end = pos[pos.length - 1][0];
+        if (open !== null && end - open >= minSec) out.push([open, end]);
         return out;
     };
 
@@ -309,7 +320,7 @@ export function trueWindows(series, lastTs) {
  *
  *   Mechanism moves, encoder did not. PositionDegrees is unchanged, so the controller sees nothing
  *     wrong and does nothing. The turret is now aiming wrong and stays wrong. Only the camera
- *     notices. The robot CANNOT correct this -- it does not know.
+ *     notices. The robot CANNOT correct this. It does not know.
  *
  * So "how much did the robot correct" is answered from PositionError, and "how much is still
  * wrong" from the camera's zero error. They are different numbers and both matter.
@@ -319,7 +330,18 @@ export function slipCorrection(model, zero, jumps, { windowSec = 4, toleranceDeg
     const pos = model.ch("Turret/PositionDegrees");
     const heading = zero?.series ?? [];
 
-    const between = (series, a, b) => series.filter(([t]) => t >= a && t <= b).map(([, v]) => v);
+    const between = (series, a, b) => {
+        let lo = 0;
+        let hi = series.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (series[mid][0] < a) lo = mid + 1;
+            else hi = mid;
+        }
+        const out = [];
+        for (let i = lo; i < series.length && series[i][0] <= b; i++) out.push(series[i][1]);
+        return out;
+    };
     const med = (arr) => (arr.length ? [...arr].sort((x, y) => x - y)[arr.length >> 1] : null);
 
     const candidates = [
@@ -332,7 +354,7 @@ export function slipCorrection(model, zero, jumps, { windowSec = 4, toleranceDeg
 
         // What the controller did about it.
         const after = between(err, c.t, end).map(Math.abs);
-        const errPeak = after.length ? Math.max(...after) : null;
+        const errPeak = after.length ? after.reduce((m, v) => Math.max(m, v), 0) : null;
         const errEnd = med(between(err, Math.max(c.t, end - 0.5), end).map(Math.abs));
         const recoveredDeg = errPeak !== null && errEnd !== null ? Math.max(0, errPeak - errEnd) : null;
 
@@ -347,7 +369,7 @@ export function slipCorrection(model, zero, jumps, { windowSec = 4, toleranceDeg
             }
         }
 
-        // What the camera says is still wrong afterwards -- the part nothing corrected.
+        // The part nothing corrected: what the camera still says is wrong afterwards.
         const before = med(between(heading, c.t - 2, c.t - 0.2));
         const settled = med(between(heading, Math.max(c.t, end - 2), end));
         const residualDeg = before !== null && settled !== null ? settled - before : null;
@@ -389,7 +411,7 @@ export function slipCorrection(model, zero, jumps, { windowSec = 4, toleranceDeg
 /**
  * What the Limelights did about it.
  *
- * Vision does not correct the turret's zero -- nothing does, the encoder is the only thing the
+ * Vision does not correct the turret's zero. Nothing does; the encoder is the only thing the
  * turret controller trusts. What vision corrects is the robot POSE, and the commanded turret angle
  * is computed from that pose. So every accepted estimate nudges where the turret is told to point,
  * and the size of that nudge is the Limelight's correction measured in turret degrees.
@@ -400,9 +422,9 @@ export function slipCorrection(model, zero, jumps, { windowSec = 4, toleranceDeg
  *   Vision/HeadingCorrection/Applied the gross-heading safety net firing after a bad seed
  *   Vision/PoseReset/Before|After    someone pressing LB+Select to re-seed from the camera
  *
- * The sting in the tail: the turret camera's transform is computed from the turret angle, so a
+ * Worse, the turret camera's transform is computed from the turret angle, so a
  * turret that has slipped feeds the camera a wrong transform, its estimates disagree with the
- * gyro, and it gets rejected. A slip does not just spoil the aim -- it costs you the camera that
+ * gyro, and it gets rejected. A slip does not just spoil the aim. It costs you the camera that
  * would have revealed it.
  */
 export function limelightCorrections(model, { cameras = ["TurretLL", "BackLeftLL", "BackRightLL"] } = {}) {
@@ -469,7 +491,7 @@ export function limelightCorrections(model, { cameras = ["TurretLL", "BackLeftLL
         const b = before[i]?.[1];
         return {
             t,
-            headingDeltaDeg: b && a ? a.deg - b.deg : null,
+            headingDeltaDeg: b && a ? ((((a.deg - b.deg + 180) % 360) + 360) % 360) - 180 : null,
             nudgeDeg: nudgeAt(t, 0.2),
         };
     });

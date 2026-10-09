@@ -398,7 +398,7 @@
               "control": "Y",
               "edge": "held",
               "action": "Feed override",
-              "detail": "HELD, not pressed. Bypasses every shot-readiness gate and feeds anyway. This is not an onTrue binding — the trigger is handed to SuperStructure.setFeedOverride() as a live condition.",
+              "detail": "HELD, not pressed. Bypasses every shot-readiness gate and feeds anyway. This is not an onTrue binding. The trigger is handed to SuperStructure.setFeedOverride() as a live condition.",
               "trigger": "operator.YButton",
               "line": 376,
               "special": "supplier"

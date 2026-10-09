@@ -1,8 +1,8 @@
 /*
  * Minimal read-only NetworkTables 4 client.
  *
- * The alignment app only ever subscribes -- it never publishes a value and never needs a synced
- * clock -- so this is a fraction of a full NT4 implementation: a WebSocket, the JSON control
+ * The alignment app only ever subscribes. It never publishes a value and never needs a synced
+ * clock, so this is a fraction of a full NT4 implementation: a WebSocket, the JSON control
  * messages, and a msgpack decoder. No RTT handshake, no encoder, no dependencies.
  *
  * Protocol reference: https://github.com/wpilibsuite/allwpilib/blob/main/ntcore/doc/networktables4.adoc
