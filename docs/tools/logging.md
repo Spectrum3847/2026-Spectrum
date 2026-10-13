@@ -81,6 +81,17 @@ python tools/copy-match-logs.py
 
 It scans the usual laptop and DS log folders plus the repo's own `logs/` and `rio-logs/` scratch folders. It refuses anything over 50 MB and reads each copy back before keeping it. Then describe the log in the folder's README, saying what happened and what it is good for testing, and commit. Big logs and the full season's worth go to the [2026-Robot-Logs](https://github.com/Spectrum3847/2026-Robot-Logs) archive with `tools/archive-logs.sh`.
 
+## The Pigeon
+
+[`PigeonTelemetry`](../../src/main/java/frc/robot/subsystems/swerve/PigeonTelemetry.java) logs the gyro itself under `Swerve/Pigeon/*`, wpilog only. The pose's heading is no substitute: vision corrects it, so a gyro that under-reads every turn is hidden behind the corrections. The set is meant to be enough for gyro calibration, tip and bump detection, and traction control without another round of logging.
+
+* Every loop: `Yaw` (continuous, so ten turns read about 3600), `YawRate`, `Pitch`, `Roll`, `PitchRate`, `RollRate`, `AccelX`/`Y`/`Z` (in g, gravity included) and `Connected`. Set the acceleration against `Swerve/State/MeasuredStates` to see wheel slip.
+* Slow tier: `GravityX`/`Y`/`Z`, `Temperature`, `SupplyVoltage`, `UpTime` (falls to zero when the Pigeon reboots) and the `FaultField`/`StickyFaultField` bitfields.
+
+The axes are the Pigeon's own until its mount pose is configured, so check which way it is mounted before reading `AccelX` as forward. Values are sampled at the 50 Hz loop; a bump shorter than 20 ms can fall between samples.
+
+**Gyro scalar check.** Line the robot up on a square edge, note `Swerve/Pigeon/Yaw`, turn it slowly through ten full turns in one direction, stop on the same edge, and read it again. Error per turn is (change - 3600) / 10. That number goes in the Pigeon's `GyroTrim.GyroScalarZ`; confirm the sign by re-running the test. Repeat in the other direction.
+
 ## One row per event
 
 Not everything worth logging is a signal sampled over time. A burst of fuel and an operator's verdict on where it landed are events, and they are logged as one sparse row each rather than as another loop-rate stream. Reading them takes a little care, because DogLog skips a record whose value has not changed.

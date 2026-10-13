@@ -94,6 +94,9 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     /** Publishes raw CANcoder data for the tools/swerve-align web app. */
     private final SwerveAlignment alignment;
 
+    /** Logs the Pigeon's own signals, which the pose's heading hides behind vision corrections. */
+    private final PigeonTelemetry pigeonTelemetry;
+
     public Swerve(SwerveConfig config) {
         super(
                 TalonFX::new,
@@ -120,6 +123,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         }
         // Must come after optimizeBusUtilization(), which silences the CANcoder signals it wants.
         alignment = new SwerveAlignment(getModules(), config);
+        pigeonTelemetry = new PigeonTelemetry(getPigeon2());
 
         var modules = getModules();
         moduleCurrentSignals = new BaseStatusSignal[modules.length * 4];
@@ -282,6 +286,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
         logSwerveState();
         logBatteryUsage();
         alignment.log();
+        pigeonTelemetry.log();
 
         checkPigeonConnection();
 
