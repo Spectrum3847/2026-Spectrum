@@ -5,15 +5,13 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 
 /**
- * A WPILib {@link Servo} that also implements {@link Subsystem}, allowing it to be registered with
- * the command-based framework and participate in requirement checking.
+ * A WPILib {@link Servo} that registers itself with the {@link CommandScheduler}, so it takes part
+ * in command requirement checking.
  */
 public class SpectrumServo extends Servo implements Subsystem {
 
     /**
-     * Creates a SpectrumServo connected to the given PWM port on the RoboRIO.
-     *
-     * @param port PWM channel (0–9) the servo signal wire is plugged into
+     * @param port PWM channel [0, 9] the servo signal wire is plugged into
      */
     public SpectrumServo(int port) {
         super(port);

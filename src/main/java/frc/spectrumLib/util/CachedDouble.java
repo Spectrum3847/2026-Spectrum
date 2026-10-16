@@ -4,38 +4,28 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.DoubleSupplier;
 
 /**
- * Caches a DoubleSupplier value so it is computed at most once per scheduler iteration. Note:
- * Subsystem periodic() is typically called after triggers are polled each iteration.
+ * Caches a DoubleSupplier so it runs at most once per scheduler iteration. The scheduler polls
+ * triggers before it calls subsystem periodic(), which is what makes a per-iteration cache safe.
  */
 public class CachedDouble extends SubsystemBase implements DoubleSupplier {
     private boolean cached = false;
     private double value;
     private final DoubleSupplier source;
 
-    /**
-     * Creates a CachedDouble wrapping the given supplier.
-     *
-     * @param source the underlying supplier whose value is cached each scheduler iteration
-     */
     public CachedDouble(DoubleSupplier source) {
         this.source = source;
     }
 
     /**
-     * Called by the scheduler each iteration to invalidate the cached value so the next {@link
-     * #getAsDouble()} call re-queries the source.
+     * Called by the scheduler each iteration. Clears the cache so the next {@link #getAsDouble()}
+     * re-queries the source.
      */
     @Override
     public void periodic() {
         cached = false;
     }
 
-    /**
-     * Returns the cached value of the source supplier, querying the supplier at most once per
-     * scheduler iteration.
-     *
-     * @return the supplier's value for the current iteration
-     */
+    /** The source's value for the current iteration, read at most once per iteration. */
     @Override
     public double getAsDouble() {
         if (!cached) {

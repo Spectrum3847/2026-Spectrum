@@ -63,12 +63,11 @@ svg.pad { width: 100%; height: auto; display: block; }
     gap: 12px;
     background: var(--s1);
     border: 1px solid var(--bd);
-    border-left: 3px solid var(--bd);
     border-radius: 9px;
     padding: 11px 13px;
     transition: border-color 0.12s, background 0.12s;
 }
-.binding.hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--s3); }
+.binding.hover { border-color: var(--accent); background: var(--s3); }
 .binding-key {
     display: flex;
     flex-direction: column;

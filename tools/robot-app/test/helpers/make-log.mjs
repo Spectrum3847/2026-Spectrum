@@ -65,6 +65,7 @@ export class LogWriter {
             case "boolean": payload = Buffer.from([value ? 1 : 0]); break;
             case "int64": payload = Buffer.alloc(8); payload.writeBigInt64LE(BigInt(Math.round(value))); break;
             case "string": payload = Buffer.from(String(value), "utf8"); break;
+            case "raw": payload = value; break; // bytes as given, under the declared type
             default: throw new Error(`LogWriter has no encoder for ${type}`);
         }
         this.#record(id, payload, tsSec);

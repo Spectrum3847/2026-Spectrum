@@ -2,69 +2,63 @@
 
 *Audience: Reference. Assumes you've read [Code Style](code-style.md).*
 
-[Lombok](https://projectlombok.org/) is an annotation processor that generates boilerplate at compile time, getters, setters, constructors, equals/hashCode, so we don't have to hand-write it. The plugin lives in [`build.gradle`](../../build.gradle) (`io.freefair.lombok` 9.1.0), so the wiring is already done. This page is about which annotations we actually use and where.
+[Lombok](https://projectlombok.org/) is an annotation processor that generates boilerplate at compile time, so we do not hand-write getters, setters, or constructors. The plugin is applied from the `io.freefair.lombok` block in [`build.gradle`](../../build.gradle), which is where the pinned version lives. Read it there rather than here, so this page never disagrees with the build. This page is about which annotations we use and which we do not.
 
-## The Two Annotations You'll See Most
+## The two you will see most
 
-`@Getter` and `@Setter` are everywhere. They sit on the inner `*Config` classes that hold tunable values for each subsystem:
-
-```java
-// from LauncherConfig (excerpt)
-@Getter @Setter private double kP = 0.25;
-@Getter @Setter private double maxRPM = 6000.0;
-@Getter @Setter private int motorId = 30;
-```
-
-Compiled output gets `getKP()`, `setKP(double)`, etc., same as if you'd written them by hand. They keep the config classes tightly scannable: each line is one field, one default, no getter/setter clutter.
-
-If you forget the annotation and call `config.getKP()` from elsewhere, the compile error is "method `getKP()` not found." Add `@Getter` (or `@Getter @Setter`) to the field, rebuild, fixed.
-
-## Chained Setters: `@Accessors(chain = true)`
-
-The Lombok default is `void setKP(double)`. We *want* setters that return `this` so per-robot configs read like a builder:
+`@Getter` and `@Setter` sit on the `*Config` inner classes that hold each subsystem's tunable values. The pattern, in shape:
 
 ```java
-this.swerveConfig = new SwerveConfig()
-    .setMaxSpeed(5.0)
-    .setMaxAngularRate(Math.PI * 2)
-    .setCanBus(canivore);
+@Getter @Setter private double someGain = 0.5;
+@Getter private final double someLimit = 12.0;
 ```
 
-To get that, annotate the class with `@Accessors(chain = true)`. Example in [`frc.spectrumLib.vision.Limelight`](../../src/main/java/frc/spectrumLib/vision/Limelight.java). Without it, the setters return `void` and chaining produces compile errors that are easy to misread ("cannot invoke `setMaxSpeed` on void").
+Compiled output is `getSomeGain()` / `setSomeGain(double)` and friends, exactly as if you had written them. The point is that each line of a config is one field, one default, and no accessor clutter, so a reader scanning a config sees the numbers rather than the plumbing.
 
-`@Accessors(chain = true)` is per-class; annotating one class doesn't affect others. If your `*Config` needs chaining and you didn't add it, the IDE will let you write `.setX(...).setY(...)` but the compile will fail.
+If you forget the annotation and call the accessor from somewhere else, the compile error names a method that does not exist. That is the normal failure mode and it is a two-second fix.
 
-## Other Annotations We Use
+## Chained setters
 
-* `@RequiredArgsConstructor`: generates a constructor taking exactly the `final` fields. Used in a few `frc.spectrumLib.util` value objects.
-* `@AllArgsConstructor`: like the above but for every field. Used rarely.
-* `@NoArgsConstructor`: explicit no-arg constructor when other constructors are present.
-* `@Builder`: exists in Lombok but we mostly don't use it; we prefer the chained-setter pattern above.
+Lombok's default setter returns `void`. We sometimes want it to return `this` so a config assembled at a call site reads as one expression:
 
-What we *don't* use:
+```java
+config.setName("limelight").setAttached(true);
+```
 
-* `@Data`: it generates `equals`/`hashCode` based on every field, which interacts badly with mutable configs and is rarely the contract we want.
-* `@EqualsAndHashCode` / `@ToString`, when we need them, we'd rather see them written out.
-* `@SneakyThrows`: please no; see [Exception Handling](exception-handling.md).
-* `@Synchronized`: robot code is single-threaded for the parts that matter.
+`@Accessors(chain = true)` on the class is what produces that. The annotation is per class, so adding it to one config does nothing for any other. Without it the setters return `void`, the chain produces a compile error, and the error message ("cannot invoke on void") is easy to misread as a missing method.
 
-## How It Works (Briefly)
+`Limelight.LimelightConfig` is the example in this codebase. Mechanism configs deliberately do *not* chain: a mechanism's config is immutable once constructed, and a settable gear ratio is a bug waiting to happen. See [Class Generation](class-generation.md).
 
-Lombok hooks into the Java compiler as an annotation processor. When `compileJava` runs, Lombok scans for its annotations and emits the corresponding method bytecode directly into the `.class` files. There's no source-code generation step you can see in the repo; the `.java` files genuinely don't contain the getters.
+## What we use beyond those
 
-This has two implications:
+`@RequiredArgsConstructor` appears on a couple of constants holders and value objects where a constructor over the final fields is exactly what is wanted.
 
-1. **Your IDE needs the Lombok plugin** to see the generated methods. Without it, every Lombok-annotated class looks like it's missing methods, even though the build succeeds. In VSCode the *Lombok Annotations Support* extension handles this; install it before assuming the codebase is broken.
-2. **Don't try to commit generated code.** It doesn't exist in source, only at compile time.
+That is close to the whole list. `@AllArgsConstructor`, `@NoArgsConstructor`, and `@Builder` are not used here; the chained-setter pattern covers the case a builder would, and writing the constructor out is shorter for the small value types we have.
 
-## When NOT to Use Lombok
+What we do not use, and why:
 
-* When you want validation in a setter (`setKP` clamping to a range, say). Hand-write that one, the annotation generates a plain assignment.
-* On `static` fields. Lombok still generates static accessors, but they're confusing to read.
-* On a single-use POJO. If the class has three fields and one use site, `@Getter @Setter` is fine, but a record (`record Foo(int x, int y)`) is cleaner.
+* `@Data`: it generates `equals` and `hashCode` over every field, which interacts badly with mutable configs and is rarely the contract we want.
+* `@EqualsAndHashCode` and `@ToString`: when we need them we would rather read them written out.
+* `@SneakyThrows`: see [Exception Handling](exception-handling.md).
+* `@Synchronized`: the parts of robot code that matter are single-threaded.
 
-## See Also
+## How it works, briefly
 
-* [Build Tools](../tools/build-tools.md) for the Lombok plugin wiring.
-* [Class Generation](class-generation.md) for the per-subsystem config pattern that uses these annotations.
-* Lombok's [official docs](https://projectlombok.org/features/) for the full annotation catalog.
+Lombok hooks into the Java compiler as an annotation processor. When `compileJava` runs, it emits the generated methods straight into the `.class` files. There is no generated source in the repo, and the `.java` files genuinely do not contain the getters.
+
+Two consequences:
+
+1. Your IDE needs the Lombok plugin to see the generated methods. Without it, every Lombok-annotated class looks like it is missing methods even though the build succeeds. In VSCode that is the *Lombok Annotations Support* extension; install it before assuming the codebase is broken.
+2. Do not try to commit generated code. It does not exist in source, only at compile time.
+
+## When not to use Lombok
+
+* When you want validation in a setter, such as clamping a gain to a range. The annotation generates a plain assignment; hand-write that one.
+* On `static` fields. Lombok still generates static accessors, and they read badly.
+* On a single-use POJO. A record is cleaner when the class has three fields and one use site.
+
+## See also
+
+* [Build Tools](../tools/build-tools.md) for the plugin wiring and the VSCode extensions.
+* [Class Generation](class-generation.md) for the config pattern these annotations serve.
+* Lombok's [annotation catalog](https://projectlombok.org/features/) for what each annotation does.

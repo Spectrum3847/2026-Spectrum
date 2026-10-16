@@ -27,7 +27,7 @@ public class HubTargetFactory {
     }
 
     static Double kXDistanceOffset = Units.inchesToMeters(0);
-    /** Generate. */
+
     public static Translation3d generate() {
         Translation3d hubPose = Field.isRed() ? Field.getRedHubCenter() : Field.getBlueHubCenter();
 
@@ -36,7 +36,7 @@ public class HubTargetFactory {
                         .getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
-        // Do math in blue alliance, we flip for red.
+        // Offsets are worked out in the blue frame, then flipped for red.
         var offSet = new Translation2d(kXDistanceOffset, -distanceOffset);
 
         if (Field.isRed()) {

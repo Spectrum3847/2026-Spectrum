@@ -24,14 +24,13 @@ public class Hood extends Mechanism {
         @Getter private final double aimToleranceDegrees = 0.5;
 
         /**
-         * Below this angle (degrees) the hood is considered to be resting on its hard stop at home,
-         * and output is cut instead of holding position 0. The hard stop sits fractionally above
-         * the encoder zero, so holding 0 against it stalled the motor at 75 A stator continuously
-         * on the bench (2026-09-04 logs) and heated it 19 C in 30 s of idle. Brake mode holds it.
+         * Below this angle the hood counts as resting on its hard stop at home, and output is cut
+         * instead of holding position 0. The hard stop sits fractionally above the encoder zero, so
+         * holding 0 against it stalled the motor at 75 A stator continuously on the bench and
+         * heated it 19 C in 30 s of idle. Brake mode holds it.
          */
         @Getter private final double homeRestToleranceDegrees = 1.0;
 
-        /* Hood config values */
         @Getter private final double supplyCurrentLimit = 80;
         @Getter private final double statorCurrentLimit = 80;
         @Getter private final double lowerSupplyCurrentLimit = 40;
@@ -50,13 +49,11 @@ public class Hood extends Mechanism {
         @Getter private final double mmJerk = 0;
         @Getter private final double peakVoltage = 3;
 
-        /* Sim Configs */
         @Getter private final double hoodX = Units.inchesToMeters(45);
 
         @Getter private final double hoodY = Units.inchesToMeters(52.5);
         @Getter private final double length = Units.inchesToMeters(7.735);
 
-        /** Creates a new HoodConfig instance. */
         public HoodConfig() {
             super("Hood", 19, Rio.CANIVORE);
             configMinMaxRotations(minRotations, maxRotations);
@@ -93,16 +90,11 @@ public class Hood extends Mechanism {
 
     private WantedState wantedState = WantedState.HOME;
     private SystemState systemState = SystemState.HOME;
-    /**
-     * Sets the wanted state.
-     *
-     * @param state the wanted state
-     */
+
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
 
-    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case HOME -> SystemState.HOME;
@@ -111,18 +103,17 @@ public class Hood extends Mechanism {
         };
     }
 
-    /** Hood angle commanded this loop (degrees). */
+    /** Hood angle commanded this loop, in degrees. */
     @Getter private double commandedDegrees = 0;
 
-    /** Applies the states. */
     private void applyStates() {
         double wantedDegrees = 0;
         switch (systemState) {
             case HOME:
                 wantedDegrees = 0.0;
                 if (getPositionDegrees() <= config.getHomeRestToleranceDegrees()) {
-                    // Resting on the hard stop: stop pushing into it (see
-                    // homeRestToleranceDegrees).
+                    // Resting on the hard stop, so stop pushing into it. See
+                    // homeRestToleranceDegrees.
                     commandedDegrees = 0.0;
                     stop();
                     return;
@@ -141,10 +132,7 @@ public class Hood extends Mechanism {
         setPosition(() -> wantedPosition);
     }
 
-    /**
-     * Returns {@code true} when the hood is aiming and within the configured tolerance of the
-     * commanded shot angle. Gates feeding into the flywheel.
-     */
+    /** True when the hood is aiming and on its commanded shot angle. Gates feeding the flywheel. */
     public boolean isAtAngle() {
         return isAtAngle(config.getAimToleranceDegrees());
     }
@@ -152,9 +140,6 @@ public class Hood extends Mechanism {
     /**
      * Same check as {@link #isAtAngle()} against a caller-supplied tolerance. The feeder gate uses
      * a wider tolerance to decide whether to <em>keep</em> feeding than to start.
-     *
-     * @param toleranceDegrees allowed angle error in degrees
-     * @return true when aiming and within {@code toleranceDegrees} of the commanded angle
      */
     public boolean isAtAngle(double toleranceDegrees) {
         return (systemState == SystemState.AIM_AT_TARGET || systemState == SystemState.SET_SHOT)
@@ -165,11 +150,6 @@ public class Hood extends Mechanism {
 
     @Getter private HoodSim sim;
 
-    /**
-     * Creates a new Hood instance.
-     *
-     * @param config the config
-     */
     public Hood(HoodConfig config) {
         super(config);
         this.config = config;
@@ -178,7 +158,6 @@ public class Hood extends Mechanism {
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
-    /** Runs the periodic update. */
     @Override
     public void periodic() {
         systemState = handleStateTransition();
@@ -191,10 +170,6 @@ public class Hood extends Mechanism {
         Telemetry.log("Hood/AtAngle", isAtAngle());
     }
 
-    // --------------------------------------------------------------------------------
-    // Simulation
-    // --------------------------------------------------------------------------------
-    /** Simulation init. */
     public void simulationInit() {
         if (isAttached()) {
             sim = new HoodSim(RobotSim.leftView, motor);
@@ -202,12 +177,6 @@ public class Hood extends Mechanism {
     }
 
     class HoodSim extends ArmSim {
-        /**
-         * Creates a new HoodSim instance.
-         *
-         * @param mech the mech
-         * @param motor the motor
-         */
         public HoodSim(Mechanism2d mech, TalonFX motor) {
             super(
                     new ArmConfig(

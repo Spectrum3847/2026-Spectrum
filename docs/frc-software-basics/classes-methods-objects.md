@@ -1,100 +1,194 @@
-# Classes, Methods, and Objects
+# Classes, methods, and objects
 
 *Audience: New programmers. Assumes you've read [Loops](loops.md).*
 
-A class is a blueprint. An object is a specific instance built from that blueprint. In this codebase, every mechanism on the robot is a class: `Launcher`, `IndexerBed`, `Hood`, and so on. When `Robot.java` starts up, it constructs one object of each class, which owns that mechanism's motors and state for the whole match.
+The examples on this page are invented, not taken from this robot's code. A class is a blueprint,
+and an object is one thing built from that blueprint. You write the blueprint once, then make as
+many objects from it as you need.
 
-For how we structure those classes and their companion `*States` files, see [Class Generation](../coding-conventions/class-generation.md).
+## A class and an object
+
+```java
+public class BankAccount {
+    private final String owner;
+    private double balance;
+
+    public BankAccount(String owner) {
+        this.owner = owner;
+        this.balance = 0.0;
+    }
+
+    public void deposit(double amount) {
+        balance += amount;
+    }
+
+    public boolean withdraw(double amount) {
+        if (amount > balance) {
+            return false;
+        }
+        balance -= amount;
+        return true;
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+}
+```
+
+`new BankAccount("Ada")` builds one object from that blueprint. The two words it holds, the owner
+and the balance, are called fields. The things it can do, `deposit`, `withdraw` and `getBalance`,
+are called methods.
+
+```java
+BankAccount ada = new BankAccount("Ada");
+
+ada.deposit(100.00);
+ada.deposit(50.00);
+ada.getBalance();      // 150.0
+ada.withdraw(200.00);  // false, not enough money
+ada.getBalance();      // 150.0, unchanged
+ada.withdraw(50.00);   // true
+ada.getBalance();      // 100.0
+```
+
+Two objects built from the same class keep separate values. A second `BankAccount` starts at zero
+however much the first one holds.
 
 ## Methods
 
-A method is a named block of code the class can run. In Java, calling a method is "invoking" it.
+Calling a method means writing the object, a dot, the method name, and parentheses. The parentheses
+are required even when the method takes nothing, so `ada.getBalance()` and never `ada.getBalance`.
+
+A method that does nothing back says `void` and has no `return` line. A method that hands back a
+value says what type that value is, and uses `return` to hand it over. In the class above,
+`deposit` returns nothing (`void`), `withdraw` returns a `boolean`, and `getBalance` returns a
+`double`.
+
+## Where a variable is visible
+
+A variable or method can be marked so that other code is not allowed to touch it directly.
+
+* `private` means only code inside this class can see it.
+* no keyword at all means only code in the same package can see it.
+* `public` means anything can.
+
+The usual arrangement is to keep fields `private` and hand out values through a getter method, as
+`getBalance()` does. Then you can change how a value is stored, or check it before returning it,
+without breaking anything that used the class.
+
+## Static and not static
+
+A `static` field or method belongs to the class itself, so there is one copy of it shared by every
+object. Everything above is not static, which means each `BankAccount` object has its own copy and
+you reach it through an object.
 
 ```java
-someObject.doSomething(parameter1, parameter2);
-```
+public class BankAccount {
+    private static int accountsCreated = 0;
 
-If there are no parameters, the parentheses are still required:
+    private final String owner;
+    private double balance;
 
-```java
-launcher.stopMotor();
-```
+    public BankAccount(String owner) {
+        this.owner = owner;
+        this.balance = 0.0;
+        accountsCreated++;
+    }
 
-The general form of a method declaration:
+    public double getBalance() {
+        return balance;
+    }
 
-```java
-accessModifier returnType methodName(parameterType parameterName) {
-    // body
-    return value;  // omit this line if returnType is void
-}
-```
-
-A method that doesn't return anything declares `void`. One that returns a `boolean` declares `boolean`, and so on. A method can return any type including object types; `Auton.getAutonomousCommand()` returns a `Command`, for example.
-
-## Scope and Access Modifiers
-
-`private` means only code inside this class can see this variable or method. `public` means anything can. No modifier at all (package-private) means only code in the same package can.
-
-The convention in this codebase: config fields are `private` (exposed through a `@Getter`), and a subsystem's control API is `public` instance methods like `setWantedState(...)`. That keeps internal mechanism data hidden while exposing a clean API to `SuperStructure`.
-
-```java
-public class IndexerBed extends Mechanism {
-    @Getter private final double indexerVoltageOut = 8;  // private field, read via getter
-    // ...
-    public void setWantedState(WantedState state) {       // public; SuperStructure calls this
-        this.wantedState = state;
+    public static int getAccountsCreated() {
+        return accountsCreated;
     }
 }
 ```
 
-## Static vs. Non-Static
-
-A `static` method or field belongs to the class itself, not to any particular instance. You call it with the class name, not an object name. `ShotCalculator` exposes its dashboard-offset controls this way:
-
 ```java
-ShotCalculator.increaseHoodAngleOffset();  // static method on ShotCalculator
-Math.abs(-5);                              // static method on Math
+BankAccount ada = new BankAccount("Ada");
+BankAccount alan = new BankAccount("Alan");
+
+ada.getBalance();                  // 0.0
+BankAccount.getAccountsCreated();  // 2, one counter for the whole class
 ```
 
-Non-static (instance) methods and fields belong to a specific object. You call them on the object:
-
-```java
-launcher.stopMotor();          // instance method on a specific Launcher object
-```
-
-`*States` classes are all static because there's only ever one launcher, one indexer, etc. The static reference to the mechanism object (`private static Launcher launcher = Robot.getLauncher()`) is initialized once when `Robot.java` constructs everything.
+Notice the difference in how they are called. `ada.getBalance()` goes through an object, because
+the balance belongs to that object. `BankAccount.getAccountsCreated()` names the class, because
+the counter belongs to the class. Java will let you write `ada.getAccountsCreated()`, but it reads
+as a mistake, so write it the clear way.
 
 ## Constructors
 
-A constructor runs once when an object is created. It sets up the object's initial state. Its name matches the class name and it has no return type:
+The constructor runs once, when the object is created, and sets up its starting values. Its name is
+the class name, it has no return type, and its parameter list is what `new` matches against.
+
+`new BankAccount("Ada")` and `new BankAccount()` are only both allowed if you wrote two
+constructors. Writing no constructor at all is fine too, and Java gives you one that takes nothing
+and leaves every field at its default.
+
+A class can extend another class to add to it. `super(...)` calls the parent constructor, and it
+has to be the first line:
 
 ```java
-public class IndexerBed extends Mechanism {
-    public IndexerBed(IndexerBedConfig config) {
-        super(config);
-        // motor setup, encoder wiring, etc.
+public class SavingsAccount extends BankAccount {
+    private final double rate;
+
+    public SavingsAccount(String owner, double rate) {
+        super(owner);
+        this.rate = rate;
     }
 }
 ```
 
-`super(config)` calls the parent class (`Mechanism`) constructor before doing any `IndexerBed`-specific setup.
+## Lambdas and method references
 
-## Lambdas and Method References
-
-When a method expects a function as a parameter, like a `DoubleSupplier` or `Command` factory, you can pass a lambda rather than writing a whole named method:
+Sometimes you want to hand a piece of code to a method as if it were a value, so the method can run
+it later. The shortest form is a lambda, which is a chunk of code in parentheses with an arrow
+before the body.
 
 ```java
-// lambda: () -> body
-launcher.runVelocityTcFocRPM(() -> config.getIdlingRPM())
+import java.util.function.DoubleSupplier;
 
-// method reference: shorthand when the lambda just calls one method
-launcher.runVelocityTcFocRPM(config::getIdlingRPM)
+Portfolio p = new Portfolio();
+
+DoubleSupplier a = () -> p.getCash();
 ```
 
-Both are equivalent. The method reference form reads more clearly when there's nothing else in the lambda body. Lambdas are how commands in this codebase stay connected to live config values: if `idlingRPM` changes at runtime (through a `TuneValue`, say), the command sees the new value because it re-evaluates the supplier each loop.
+`p::getCash` is a method reference, and it means exactly the same thing as the lambda above. Use
+whichever is easier to read; the method reference is shorter when the code is just one call.
 
-This is covered further in [Tips](../other-guides/tips.md#doublesupplier-vs-double).
+```java
+import java.util.function.DoubleSupplier;
+
+class Portfolio {
+    double cash = 100.0;
+
+    double getCash() {
+        return cash;
+    }
+
+    void deposit(double amount) {
+        cash += amount;
+    }
+}
+
+Portfolio p = new Portfolio();
+
+DoubleSupplier a = () -> p.getCash();
+DoubleSupplier b = p::getCash;
+
+System.out.println(a.getAsDouble());   // 100.0
+p.deposit(50.0);
+System.out.println(b.getAsDouble());   // 150.0
+```
+
+Both suppliers ask the portfolio when they are called, so both see 150.0 after the deposit. If you
+had read the value into a `double` first and passed that, it would stay 100.0 forever. This is why
+code that wants a live number asks for a supplier instead. There is more on that in
+[Programming Tips](../other-guides/tips.md#doublesupplier-vs-double).
 
 ---
 
-*Previous: [Loops](loops.md). Next: [Formatting Code & Comments](formatting-code.md)*
+*Previous: [Loops](loops.md). Next: [Code formatting and comments](formatting-code.md)*

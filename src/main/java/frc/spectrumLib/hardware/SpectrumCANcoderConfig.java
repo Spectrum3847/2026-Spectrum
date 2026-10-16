@@ -5,7 +5,7 @@ import lombok.Setter;
 
 /** Configuration parameters for a {@link SpectrumCANcoder}. */
 public class SpectrumCANcoderConfig {
-    /** CAN device ID of the CANcoder; may be set after construction. */
+    /** CAN device ID, set separately from this object so a caller can read it back out. */
     @Getter @Setter private int CANcoderID;
     /** Gear ratio between the motor rotor and the CANcoder shaft (rotor turns / sensor turn). */
     @Getter private double rotorToSensorRatio = 1;
@@ -21,15 +21,6 @@ public class SpectrumCANcoderConfig {
     /** Whether the CANcoder sensor direction is inverted (clockwise positive). */
     @Getter private boolean inverted = false;
 
-    /**
-     * Creates a fully-specified CANcoder configuration.
-     *
-     * @param rotorToSensorRatio Gear ratio from motor rotor to CANcoder shaft
-     * @param sensorToMechanismRatio Gear ratio from CANcoder shaft to mechanism output
-     * @param offset Magnetic offset in rotations
-     * @param attached {@code true} if the CANcoder is physically installed
-     * @param inverted {@code true} to make clockwise rotation positive
-     */
     public SpectrumCANcoderConfig(
             double rotorToSensorRatio,
             double sensorToMechanismRatio,

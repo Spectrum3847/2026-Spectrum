@@ -10,9 +10,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * The inverse model in {@link TurretCameraGeometry} must undo the forward model exactly, for every
- * robot pose and turret angle, including across the 180 deg wrap, and a turret zero error must show
- * up in the recovered heading with the sign the zero trim expects.
+ * The inverse model must undo the forward model exactly, for every pose and turret angle and across
+ * the 180 deg wrap, and a turret zero error must show up with the sign the trim expects.
  */
 public class TurretCameraGeometryTest {
 
@@ -93,7 +92,7 @@ public class TurretCameraGeometryTest {
         double zeroErrorDeg = 9.6;
         Rotation2d reportedTurret = actualTurret.minus(Rotation2d.fromDegrees(zeroErrorDeg));
 
-        // The camera really is where the actual turret angle puts it.
+        // Place the camera with the true turret angle, not the one the robot reports.
         Pose2d camera = SPECTRUM.cameraFloorPose(robot, actualTurret);
 
         // The robot believes the encoder.
@@ -116,8 +115,7 @@ public class TurretCameraGeometryTest {
         Pose2d recovered = SPECTRUM.robotPose(camera, wrongTurret, robot.getRotation());
 
         double displacement = recovered.getTranslation().getDistance(robot.getTranslation());
-        // Chord of a 5 deg arc on a 0.138 m arm: about 12 mm. This is the whole point of solving
-        // on the roboRIO: a 5 deg transform lag used to move the pose by range times the angle.
+        // Chord of a 5 deg arc on the 0.138 m arm, about 12 mm: error scales with arm, not range.
         double chord = 2 * 0.138 * Math.sin(Math.toRadians(2.5));
         assertEquals(chord, displacement, 1e-9);
     }
@@ -128,7 +126,7 @@ public class TurretCameraGeometryTest {
         Pose2d robot = new Pose2d(1, 1, Rotation2d.fromDegrees(179));
         Rotation2d turret = Rotation2d.fromDegrees(3);
         Pose2d camera = SPECTRUM.cameraFloorPose(robot, turret);
-        // 179 + 3 + 180 = 362 -> 2 deg
+        // 179 + 3 + 180 wraps to 2 deg.
         assertEquals(2.0, camera.getRotation().getDegrees(), 1e-9);
         assertPoseEquals(robot, SPECTRUM.robotPose(camera, turret, robot.getRotation()));
     }

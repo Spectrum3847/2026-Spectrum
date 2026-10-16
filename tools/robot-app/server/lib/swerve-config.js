@@ -45,8 +45,8 @@ export const MODULE_LABELS = ["Front Left", "Front Right", "Back Left", "Back Ri
 /**
  * Evaluates one argument expression from the config call.
  *
- * The existing values are arithmetic rather than plain literals -- OM2026.java has entries like
- * `-0.23046875 - 0.25` where someone recorded the raw reading and the correction separately -- so
+ * The existing values are arithmetic rather than plain literals. OM2026.java has entries like
+ * `-0.23046875 - 0.25` where someone recorded the raw reading and the correction separately, so
  * this has to do more than parseFloat. Anything outside a strict numeric-expression charset is
  * rejected rather than guessed at.
  *
@@ -252,7 +252,7 @@ function rewriteConfig(source, offsets, now) {
 }
 
 // ---------------------------------------------------------------------------
-// Git helpers (informational only -- the tool never runs a git write command)
+// Git helpers (informational only; the tool never runs a git write command)
 // ---------------------------------------------------------------------------
 
 function git(args) {

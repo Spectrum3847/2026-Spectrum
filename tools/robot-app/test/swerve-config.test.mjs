@@ -97,8 +97,8 @@ test("a rewrite touches only the offsets call", () => {
     const source = fs.readFileSync(targetPath(), "utf8");
     const written = rewriteConfig(source, TARGET, new Date("2026-09-05"));
     // Remove the call and its provenance comment, then compare what is left. Blank lines are
-    // dropped because the call itself changes line count -- a five-line wrapped call can come
-    // back as one line -- and that is not a change to the rest of the file.
+    // dropped because the call itself changes line count. A five-line wrapped call can come
+    // back as one line, and that is not a change to the rest of the file.
     const strip = (s) =>
         s
             .replace(/^\s*\/\/ Aligned by the Spectrum robot app on .*\n/m, "")

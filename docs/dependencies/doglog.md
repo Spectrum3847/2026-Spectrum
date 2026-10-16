@@ -2,100 +2,52 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-DogLog is a small WPILib logger that writes WPILOG files on the roboRIO and (optionally) re-publishes everything to NetworkTables so dashboards can read it live. We extend it with our own [`Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java) class, and that's the layer 99% of the code calls.
+DogLog is the logger that writes our WPILOG files. We do not call it directly. Everything goes through [`frc.spectrumLib.telemetry.Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java), which extends `DogLog`, implements `Subsystem` so the scheduler runs its per-loop housekeeping, and is the layer essentially all of the robot code calls.
 
-Version pinned: 2026.5.0 ([`vendordeps/DogLog.json`](../../vendordeps/DogLog.json)).
+The version is pinned in `vendordeps/`.
 
-## The `Telemetry` Wrapper
+## Telemetry is a static facade on purpose
 
-`frc.spectrumLib.telemetry.Telemetry` extends `dev.doglog.DogLog` and implements `Subsystem`, so the scheduler runs its `periodic()` once a loop. `Robot.java` boots it with:
+Every entry point on `Telemetry` is static, and no instance methods may be added to it. The class is the single vocabulary for logging; the moment half the codebase calls it one way and the other half calls it the other way, both spellings are wrong forever and the value of having one facade is gone. If you need per-instance state, put it in a separate class that logs through `Telemetry`.
 
-```java
-Telemetry.start(
-    /* ntMirror       */ false,
-    /* captureDs      */ true,
-    /* captureNt      */ false,
-    /* captureConsole */ true,
-    /* logExtras      */ false,
-    /* tunableOnFMS   */ true,
-    PrintPriority.NORMAL);
-```
+## The start options are a decision, not defaults
 
-Translated to `DogLogOptions`, that publishes everything to NetworkTables (so Elastic and SmartDashboard see it), captures DriverStation events and `System.out` into the WPILOG, and leaves NT tunables editable even on FMS. We also hand DogLog a `PowerDistribution` so PDH currents log automatically.
+`Robot`'s constructor calls `Telemetry.start(...)` once, with a set of flags chosen for a competition robot rather than left at their defaults. Read the call and its comments before changing it, because the two flags that are off are off on purpose: the NetworkTables mirror is off on the robot, and the extra logging categories are off. On the robot we log dashboard keys individually instead; in simulation the mirror is on, which is why every logged key shows up live in AdvantageScope when you sim.
 
-There's one piece outside of `start(...)` worth knowing: `SmartDashboard.putData(CommandScheduler.getInstance())` exposes the running-commands widget. Don't remove that; it's the fastest way to see what's actually scheduled when something looks wrong.
+`Telemetry.start` also hands DogLog a `PowerDistribution` instance, so PDH currents land in the log without anyone writing a line for them.
 
-## Logging Values
+## Logging values
 
-```java
-Telemetry.log("Subsystem/ValueName", value);
-Telemetry.log("Subsystem/ValueName", value, "units");
-```
+Keys are `Subsystem/Path/Name`, so Elastic and AdvantageScope render them as a tree. Before inventing a new top-level key, look at what already exists in the code and reuse its prefix. Drift here is what makes a log unsearchable a season later.
 
-Keys use `Subsystem/Path/Name` so both Elastic and AdvantageScope render them as a tree. Look at the existing keys (`Launcher/RPM`, `Match Data/MatchTime`, `BuildConstants/GitSHA`) before inventing a new top-level key; drift here is what makes logs unsearchable a season later.
+`Telemetry.log` has overloads for the primitive types, arrays, and WPILib structs, so in practice you just call it and pass the value. Add units to the value where there are any; the logger uses the third argument for exactly that.
 
-DogLog has overloads for doubles, booleans, strings, arrays, and WPILib structs like `Pose2d` and `ChassisSpeeds`. Just call `log` and pass the value.
+## Logging commands
 
-## Logging Commands
+Wrapping a command with `Telemetry.log(...)` records when it was initialized and when it ended under the `Commands` key, which is the fastest way to answer "did that command ever run". Wrap only the outermost command in a group. Wrapping inner ones just produces log spam and no extra information.
 
-```java
-Auton.autonUnjam.onTrue(
-    Telemetry.log(
-        Commands.sequence(/* ... */)));
-```
+## Console output
 
-`Telemetry.log(Command)` wraps a command so it writes `Init:` and `End:` entries to the `Commands` key. Only wrap the outermost command in a group; wrapping inner ones just produces log spam.
+`Telemetry.print(...)` stamps the time, decides whether to print to the console based on the priority, and logs the line under `Prints` so it survives in the WPILOG. Use it instead of `System.out.println`. A bare print disappears when console capture is off, and it has no timestamp, so two identical messages a match apart are indistinguishable.
 
-## Console Prints
-
-`Telemetry.print(...)` does three things at once: stamps the time, decides whether to print to stdout based on a `PrintPriority`, and logs the line under `Prints` so it survives in the WPILOG even if console capture is off. Use it instead of `System.out.println`; bare prints disappear unless `captureConsole` is on, and they don't get a timestamp.
-
-Two priorities exist:
-
-* `HIGH` always prints to the console.
-* `NORMAL` only prints if the global priority is set to NORMAL.
-
-Both always log.
+There are two priorities. `HIGH` always reaches the console. `NORMAL` reaches the console only when the global priority is also `NORMAL`, which is the setting `Robot` uses in a match. Both always land in the log either way.
 
 ## Alerts
 
-`Telemetry.logAlerts()` runs every periodic tick and scrapes `SmartDashboard/Alerts` for new error/warning/info strings, mirroring anything new into the `Alerts` log key. So the normal WPILib pattern still works:
+`Telemetry` scrapes active `Alert` objects every loop and mirrors anything new into the `Alerts` log key, so the ordinary WPILib pattern of declaring an alert as a static field and flipping it with `set(boolean)` gives you the dashboard, the log, and no plumbing. See [WPILib](wpilib.md).
 
-```java
-private static final Alert lowBattery = new Alert("Battery below 12V", AlertType.kWarning);
+## Build stamps
 
-// later
-lowBattery.set(voltage < 12.0);
-```
+`Robot.robotInit` writes a set of `BuildConstants/...` keys into every log. Those come from `BuildConstants.java`, which the `gversion` Gradle task regenerates on every `compileJava`. When you pull up a log a week later trying to work out why the robot misbehaved, those keys are how you tell which build produced it. Never edit that file by hand and never commit it; it is generated.
 
-The dashboard shows it, the log captures it, no extra plumbing.
+## Things that have bitten us
 
-## Build Stamps
+Mirroring every logged value to NetworkTables, with a flush per loop, was a full-time job for one of the roboRIO's two cores on 2026-09-05. That is why the mirror is off on the robot. Individual dashboard values still go out through `Telemetry.logDash`, and a `Telemetry/MirrorLogsToNT` switch on SmartDashboard turns the full mirror back on for an AdvantageScope session in the shop. The switch is ignored whenever the FMS is attached, so nobody can flip it mid-match.
 
-`Robot.robotInit` writes `BuildConstants/ProjectName`, `BuildDate`, `GitSHA`, `GitDate`, and `GitBranch`. Those come from the `BuildConstants.java` that the `gversion` Gradle task regenerates on every `compileJava`. When you pull up a log a week later trying to figure out why a robot misbehaved, those five keys are how you know which build was on it.
+`withNtTunables` controls DogLog's own tunable entries. It does not affect `TuneValue` or `SmartDashboard` writes. If you need to prevent match-day tuning, guard the call sites separately.
 
-## Faults
+`Telemetry.Fault` is the shared vocabulary for conditions worth naming rather than describing in free text. Add an entry when you notice yourself logging the same fault from more than one file; the enum is in the source, so read it there for what it currently holds.
 
-`Telemetry.Fault` is an enum for conditions worth tracking by name rather than by stringly-typed key:
+## Further reading
 
-```java
-public enum Fault {
-    CAMERA_OFFLINE,
-    AUTO_SHOT_TIMEOUT_TRIGGERED,
-    BROWNOUT,
-}
-```
-
-Add to this enum when you find yourself logging the same fault from multiple files.
-
-## Things That Have Bitten Us
-
-The mirror is off by default on the robot and on by default in simulation (`Telemetry.start(RobotBase.isSimulation(), …)`), so every logged key, `Robot/Sim/*` included, is live in AdvantageScope when simming. On 2026-09-05 every logged value going to NetworkTables, plus a flush every loop, was a full-time job for one of the roboRIO's two cores. Dashboard values are published individually with `Telemetry.logDash`; the `Telemetry/MirrorLogsToNT` switch on SmartDashboard turns the full mirror back on for an AdvantageScope session in the shop and is ignored whenever the FMS is attached. See [Logging](../tools/logging.md#what-reaches-the-dashboard).
-
-`withNtTunables(true)` controls DogLog's own tunable entries; it does not affect `TuneValue`/`SmartDashboard` writes. If you want to prevent match-day tuning, remove or guard `TuneValue` call sites separately.
-
-Don't add instance methods to `Telemetry`. It's a static façade on purpose. Once half the codebase calls `telemetry.log(...)` and the other half calls `Telemetry.log(...)`, both sides are wrong forever.
-
-## Further Reading
-
-[DogLog JavaDoc](https://javadoc.doglog.dev) is wired into our generated JavaDoc site. The [README](https://github.com/jonahsnider/doglog) covers feature flags we haven't touched. For the bigger picture on what to log and when, see [Logging](../tools/logging.md).
+The [DogLog JavaDoc](https://javadoc.doglog.dev) is cross-linked from our generated docs, and the [README](https://github.com/jonahsnider/doglog) covers the feature flags we have not touched. For what to log and when, see [Logging](../tools/logging.md).

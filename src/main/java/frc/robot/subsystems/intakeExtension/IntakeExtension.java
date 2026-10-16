@@ -137,15 +137,13 @@ public class IntakeExtension implements Subsystem {
              * once the extension has ever been out past it, so it never touches the arms; only a
              * power-on with the intake stowed (position near zero) clears the latch.
              *
-             * <p>Was 50. At Chezy on 2026-09-18 the agitate's full retract settled at 51.6 to 52
-             * percent in every burst (P8 log, 400 to 444 s) and the roller was hitting the kicker
-             * bar side plate there, so the arms are not the only thing in the way. Raised to 60 to
-             * put about an inch of air between the roller and the plate; the agitate still has a
-             * 4.6 in working range above it.
+             * <p>60, not 50: the agitate's full retract settles at 51.6 to 52 percent and the
+             * roller hits the kicker bar side plate there, so the arms are not the only thing in
+             * the way. 60 puts about an inch of air between the roller and the plate, and the
+             * agitate still has a 4.6 in working range above it.
              */
             @Getter private final double deployedRetractFloorPercent = 60;
 
-            /** The deployed floor in drum rotations. */
             public double deployedRetractFloorRotations() {
                 return deployedRetractFloorPercent / 100.0 * maxRotations;
             }
@@ -174,10 +172,6 @@ public class IntakeExtension implements Subsystem {
                 return new AxisConfig("IntakeExtensionRight", 5, true);
             }
 
-            /**
-             * Configures one extension axis: motion control, current limits, soft limits, coast,
-             * gearing and direction.
-             */
             private AxisConfig(String name, int canId, boolean counterClockwisePositive) {
                 super(name, canId, Rio.CANIVORE);
                 configMinMaxRotations(minRotations, maxRotations);
@@ -209,11 +203,6 @@ public class IntakeExtension implements Subsystem {
         @Getter private IntakeExtensionSim sim;
         private final String positionKey;
 
-        /**
-         * Creates one intake extension axis.
-         *
-         * @param config configuration for the axis
-         */
         public Axis(AxisConfig config) {
             super(config);
             this.config = config;
@@ -221,7 +210,6 @@ public class IntakeExtension implements Subsystem {
             Telemetry.print(getName() + " Subsystem Initialized");
         }
 
-        /** Runs the periodic update. */
         @Override
         public void periodic() {
             logStandard(getName(), false, RpmLog.SLOW);
@@ -233,11 +221,7 @@ public class IntakeExtension implements Subsystem {
             setMMPosition(() -> rotations);
         }
 
-        /**
-         * Moves the axis to a rotation target on the slow Motion Magic profile.
-         *
-         * @param rotations the target position in rotations
-         */
+        /** Moves the axis to a rotation target on the slow Motion Magic profile. */
         public void goToRotationsSlow(double rotations) {
             setDynMMPositionVoltage(
                     () -> rotations,
@@ -251,7 +235,7 @@ public class IntakeExtension implements Subsystem {
             setMotorPosition(() -> config.getMaxRotations());
         }
 
-        /** Creates the simulation for this axis when it is attached. Only the left axis has one. */
+        /** Builds the sim model when this axis is attached. Only the left axis has one. */
         public void simulationInit() {
             if (isAttached()) {
                 sim = new IntakeExtensionSim(RobotSim.leftView, motor);
@@ -259,12 +243,6 @@ public class IntakeExtension implements Subsystem {
         }
 
         class IntakeExtensionSim extends LinearSim {
-            /**
-             * Initializes the intake extension simulation model.
-             *
-             * @param mech the mechanism visualization to bind to the simulation
-             * @param motor the motor simulation state driving the model
-             */
             public IntakeExtensionSim(Mechanism2d mech, TalonFX motor) {
                 super(
                         new LinearConfig(
@@ -285,8 +263,6 @@ public class IntakeExtension implements Subsystem {
             }
         }
     }
-
-    // ---- State Machine ----
 
     public enum WantedState {
         STOPPED,
@@ -309,16 +285,11 @@ public class IntakeExtension implements Subsystem {
     private SystemState systemState = SystemState.STOPPED;
     private SystemState previousSystemState = SystemState.STOPPED;
     private boolean sentOutByIntakeState = false;
-    /**
-     * Sets the wanted state.
-     *
-     * @param state the wanted state
-     */
+
     public void setWantedState(WantedState state) {
         this.wantedState = state;
     }
 
-    /** Handles the state transition. */
     private SystemState handleStateTransition() {
         return switch (wantedState) {
             case STOPPED -> SystemState.STOPPED;
@@ -340,7 +311,6 @@ public class IntakeExtension implements Subsystem {
         };
     }
 
-    /** Applies the outputs associated with the current system state. */
     private void applyStates() {
         switch (systemState) {
             case FULL_EXTEND:
@@ -359,29 +329,17 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
-    /**
-     * Commands both intake extension axes to the specified extension percentage.
-     *
-     * @param percent the target extension percentage
-     * @param slow whether to use the slow motion profile
-     */
     private void commandBoth(double percent, boolean slow) {
         commandBothRotations(left.percentToRotations(() -> percent), slow);
     }
 
-    /**
-     * Commands both intake extension axes to an absolute rotation target.
-     *
-     * @param rotations the target position in drum rotations
-     * @param slow whether to use the slow motion profile
-     */
     private void commandBothRotations(double rotations, boolean slow) {
-        // Nothing may ask for less than the deployed floor; see retractLimitRotations().
+        // Nothing may ask for less than the deployed floor. See retractLimitRotations().
         rotations = Math.max(rotations, retractLimitRotations());
-        // Both sides get the same target. An earlier version offset the right target by the
-        // learned skew baseline; in the 2026-09-06 23:47 log the baseline swung to -0.96 rot and
-        // the right side was told to sit 3 in further out than the left, so it never came in and
-        // the two fought through the roller link. The baseline is only used to judge skew now.
+        // Both sides get the same target. Offsetting the right target by the learned skew baseline
+        // was tried and abandoned: the baseline once swung to -0.96 rot, which told the right side
+        // to sit 3 in further out than the left, so it never came in and the two fought through the
+        // roller link. The baseline is only used to judge skew now.
         if (slow) {
             left.goToRotationsSlow(rotations);
             right.goToRotationsSlow(rotations);
@@ -397,8 +355,6 @@ public class IntakeExtension implements Subsystem {
                 && Math.abs(right.getVelocityRPM()) < maxRpm;
     }
 
-    // ---- Deployed retract floor ----
-
     /** Latched once the extension has been out past the floor; cleared only near zero. */
     private boolean deployed = false;
 
@@ -411,7 +367,6 @@ public class IntakeExtension implements Subsystem {
         return deployed ? config.deployedRetractFloorRotations() : config.getMinRotations();
     }
 
-    /** Updates the deployed latch from the measured position. Runs once per loop. */
     private void updateDeployedLatch() {
         double floor = config.deployedRetractFloorRotations();
         double position = (left.getPositionRotations() + right.getPositionRotations()) / 2.0;
@@ -422,19 +377,18 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
-    // ---- Agitate ----
-
     /**
      * Stator current, on either axis, above which a pull is treated as compressing fuel. The
      * threshold starts at {@code Start} when agitate begins and ramps linearly to {@code End} over
-     * {@code RampSecs}, so the longer a launch runs the harder the agitate is allowed to push.
+     * {@code RampSecs}, so the longer a launch runs the harder the agitate is allowed to push. Both
+     * ends are tunable from NetworkTables.
      *
-     * <p>Sized from the 2026-09-06 22:25 log. At a fixed 40 A, 103 of 156 pulls tripped after a
-     * median 0.63 in of a 2 in stroke, but pulls that never met fuel also peaked at a median 39 A
-     * and 46 A at the 90th percentile (9 Hz sampling, so true peaks were higher). 40 A was the
-     * free-motion noise floor, not a fuel detector. The loaded fraction fell from 65 to 76 percent
-     * in the first 4 s of a burst to 44 percent at 6 to 10 s and 0 past 10 s, so the bed does draw
-     * down, and the ramp lets the agitate follow it in. Both ends are tunable from NetworkTables.
+     * <p>Sized from a log of a real burst. At a fixed 40 A, 103 of 156 pulls tripped after a median
+     * 0.63 in of a 2 in stroke, but pulls that never met fuel also peaked at a median 39 A and 46 A
+     * at the 90th percentile (9 Hz sampling, so true peaks were higher). 40 A was the free-motion
+     * noise floor, not a fuel detector. The loaded fraction fell from 65 to 76 percent in the first
+     * 4 s of a burst to 44 percent at 6 to 10 s and 0 past 10 s, so the bed does draw down, and the
+     * ramp lets the agitate follow it in.
      */
     private static final DoubleSubscriber agitateLoadedStatorAmpsStart =
             Telemetry.tunable("IntakeExtension/AgitateLoadedStatorAmpsStart", 55.0);
@@ -484,7 +438,7 @@ public class IntakeExtension implements Subsystem {
      * agitate: the extension holds there and is no longer counted as sent out by intaking.
      *
      * <p>Position decisions use the average of the two encoders. If the sides drift apart past the
-     * max skew, the cycle pauses and both are brought to their midpoint first; see {@link
+     * max skew, the cycle pauses and both are brought to their midpoint first. See {@link
      * #holdForSkew}.
      */
     private void applyAgitate() {
@@ -507,9 +461,10 @@ public class IntakeExtension implements Subsystem {
             startAgitatePull(position);
         }
 
-        // Outside a launch the agitate is only prep. Once a few pulls in a row have stalled the
+        // Outside a launch the agitate is only prep. Once a few pulls in a row have stalled, the
         // fuel is already packed and more pulling is just current, so park at the outer position
-        // until a launch starts (the wanted state becomes plain AGITATE) or the state changes.
+        // until a launch starts, where the wanted state becomes plain AGITATE, or the state
+        // changes.
         if (wantedState != WantedState.CONDITIONAL_AGITATE) {
             agitateIdleParked = false;
         }
@@ -524,9 +479,9 @@ public class IntakeExtension implements Subsystem {
 
         if (agitateRetracted) {
             sentOutByIntakeState = false;
-            // Hold where it stopped rather than keep pushing at the floor. In the 2026-09-07 00:07
-            // log the right side sat 0.17 rot short of the floor drawing 30 A for the rest of every
-            // burst trying to close a gap the fuel would not give.
+            // Hold where it stopped rather than keep pushing at the floor. The right side has been
+            // seen sitting 0.17 rot short of the floor drawing 30 A for the rest of every burst,
+            // trying to close a gap the fuel would not give.
             commandBothRotations(agitateRetractedRotations, true);
             return;
         }
@@ -575,9 +530,9 @@ public class IntakeExtension implements Subsystem {
             }
         } else if (agitateTimer.hasElapsed(config.getAgitateHalfPeriodSecs())) {
             // Judge the pull by how far it moved, not by whether it closed on the target. The
-            // position loop settles a quarter to a third of an inch short under load (2026-09-06
-            // 23:29 log: 80 unloaded pulls travelled a median 1.71 in of the 2 in stroke), and
-            // requiring the last quarter inch threw every one of them back out.
+            // position loop settles a quarter to a third of an inch short under load, 80 unloaded
+            // pulls travelling a median 1.71 in of the 2 in stroke, and requiring the last quarter
+            // inch threw every one of them back out.
             double travelled = agitatePullStartRotations - position;
             if (travelled >= stroke * config.getAgitatePullSuccessFraction()) {
                 // Most of an unloaded pull: the fuel has drawn down, so keep going all the way in.
@@ -614,7 +569,7 @@ public class IntakeExtension implements Subsystem {
      * both to their midpoint and holds there until they are within the resume skew, then restarts
      * the current phase so its timer and loaded detector do not count the hold.
      *
-     * @return true if the hold is active and the caller should not command anything else
+     * @return true when the hold is active and the caller should not command anything else
      */
     private boolean holdForSkew(double leftPos, double rightPos, double midpoint, double now) {
         // Physical skew is the encoder difference minus the zero offset learned at the hard stop.
@@ -651,8 +606,6 @@ public class IntakeExtension implements Subsystem {
     private double skewHoldStart = 0;
     private double skewHoldCooldownUntil = 0;
     private int skewHoldTimeouts = 0;
-
-    // ---- Full extend: drive out, then coast ----
 
     private enum ExtendPhase {
         DRIVING,
@@ -714,9 +667,8 @@ public class IntakeExtension implements Subsystem {
                         // is here, not where the encoders say. Take this as the new out point so
                         // retract and agitate still work after a motor restart or a power-on with
                         // the intake out. If the sides disagree, one of them is bound up short of
-                        // the other (2026-09-06 23:47 log: the right lagged 0.2 to 0.8 rot at each
-                        // stall, was zeroed there, then crept to the real stop and read past max)
-                        // and zeroing would write that lag into its frame. Leave it alone.
+                        // the other, seen lagging by 0.2 to 0.8 rot at each stall, and zeroing
+                        // would write that lag into its frame. Leave it alone.
                         left.zeroAtMax();
                         right.zeroAtMax();
                         skewBaselineRotations = 0;
@@ -753,11 +705,11 @@ public class IntakeExtension implements Subsystem {
     }
 
     /**
-     * While coasting on the extended stop, an encoder that reads past the stop has slipped: in the
-     * 2026-09-06 23:47 log the right side drifted from 3.7 to 4.4 rot with no current applied,
-     * against a 3.65 max, three times. Both sides are physically on the stop, so once they have
-     * been still for the steady time any side reading off the max by more than the tolerance is set
-     * back to it. This is the same correction the stall relearn makes, applied at rest.
+     * While coasting on the extended stop, an encoder that reads past the stop has slipped. The
+     * right side has drifted from 3.7 to 4.4 rot with no current applied, against a 3.65 max, three
+     * times in one session. Both sides are physically on the stop, so once they have been still for
+     * the steady time any side reading off the max by more than the tolerance is set back to it.
+     * This is the same correction the stall relearn makes, applied at rest.
      */
     private void resyncAtStopWhileCoasting(boolean steady) {
         if (!steady) {
@@ -781,10 +733,10 @@ public class IntakeExtension implements Subsystem {
     /**
      * A side that reads past the extended stop cannot be there, so its zero is wrong and the
      * direction of the error is known: set it to max. Each side is judged on its own, every loop,
-     * because the right side kept walking out past max while coasting with no power applied
-     * (2026-09-06 23:59 log: 3.66 to 4.53 rot in two seconds, six times in one session), and a
-     * once-per-rest correction was undone within a second. Throttled per side so a drifting encoder
-     * does not turn into a stream of position writes.
+     * because the right side has kept walking out past max while coasting with no power applied,
+     * 3.66 to 4.53 rot in two seconds, six times in one session, and a once-per-rest correction was
+     * undone within a second. Throttled per side so a drifting encoder does not turn into a stream
+     * of position writes.
      */
     private void clampPastMax() {
         double limit =
@@ -832,8 +784,6 @@ public class IntakeExtension implements Subsystem {
 
     private int restResyncs = 0;
 
-    // ---- Full retract: drive in, hold if it stalls short ----
-
     private final Debouncer retractStallDebouncer;
     private boolean retractHolding = false;
     private double retractHoldRotations = 0;
@@ -870,8 +820,6 @@ public class IntakeExtension implements Subsystem {
         commandBothRotations(retractLimitRotations(), false);
     }
 
-    // ---- Skew baseline ----
-
     /** Left minus right encoder reading when both sides sit on the extended hard stop. */
     private double skewBaselineRotations = 0;
 
@@ -904,8 +852,8 @@ public class IntakeExtension implements Subsystem {
             double offset = leftPos - rightPos;
             // Only a reading with both sides at the stop and a small difference is a zero offset.
             // Anything else is a side that has been pushed or has slipped, and must not become the
-            // reference: in the 2026-09-06 23:47 log the right side read 4.44 rot against a 3.65
-            // max and the baseline followed it to -0.96 rot.
+            // reference: the right side has been seen reading 4.44 rot against a 3.65 max, and the
+            // baseline followed it to -0.96 rot.
             if (leftPos >= target - tol
                     && rightPos >= target - tol
                     && Math.abs(offset) <= maxOffset) {
@@ -914,7 +862,6 @@ public class IntakeExtension implements Subsystem {
         }
     }
 
-    /** Begins a pull-in phase: resets the loaded detector and the half-period timer. */
     private void startAgitatePull(double position) {
         agitatePullStartRotations = position;
         agitateOut = false;
@@ -924,20 +871,12 @@ public class IntakeExtension implements Subsystem {
         agitateTimer.restart();
     }
 
-    // ---- Subsystem plumbing ----
-
     @Getter private final Axis left;
     @Getter private final Axis right;
 
     /** Tunables shared by both axes; the left axis's config instance. */
     private final AxisConfig config;
 
-    /**
-     * Initializes the intake extension subsystem with its left and right axis configurations.
-     *
-     * @param leftConfig the left axis configuration, which also supplies the shared tunables
-     * @param rightConfig the right axis configuration
-     */
     public IntakeExtension(AxisConfig leftConfig, AxisConfig rightConfig) {
         this.config = leftConfig;
         agitateLoadedDebouncer =
@@ -949,23 +888,21 @@ public class IntakeExtension implements Subsystem {
         left.simulationInit();
 
         // Deliberately no encoder zeroing here. The TalonFX keeps counting across robot-code
-        // restarts, so zeroing in the constructor threw the position away on every deploy. On
-        // 2026-09-06 at 23:08 the code was deployed with the intake extended: both encoders read
-        // zero there, "full extend" was already at the stop, and every agitate pull toward zero
-        // pulled toward fully out, so the intake never came in. The zero is therefore wherever the
-        // extension was at motor power-on, which should be retracted. If it was not, or a motor
-        // restarts mid-match, the first full extend that stalls short of its target takes that
-        // stall as the new out point (see applyFullExtend), so the frame fixes itself in use.
+        // restarts, so zeroing in the constructor throws the position away on every deploy.
+        // Deploying with the intake extended once read both encoders as zero there, put "full
+        // extend" already at the stop, and made every agitate pull toward zero pull toward fully
+        // out, so the intake never came in. The zero is therefore wherever the extension was at
+        // motor power-on, which should be retracted. If it was not, or a motor restarts mid-match,
+        // the first full extend that stalls short of its target takes that stall as the new out
+        // point, so the frame fixes itself in use. See applyFullExtend.
 
         this.register();
         Telemetry.print("Intake Extension Subsystem Initialized");
     }
 
     /**
-     * Creates a command that drops both extension axes into coast so the mechanism can be moved by
-     * hand. Runs while disabled, which is the only time it is useful.
-     *
-     * @return the coast-mode command
+     * Drops both extension axes into coast so the mechanism can be moved by hand. Runs while
+     * disabled, which is the only time it is useful.
      */
     public Command coastModeCommand() {
         return new InstantCommand(() -> setBrakeMode(false))
@@ -973,35 +910,20 @@ public class IntakeExtension implements Subsystem {
                 .withName("IntakeExtension.coastMode");
     }
 
-    /**
-     * Sets the brake mode for both intake extension axes.
-     *
-     * @param isInBrake whether to enable brake mode
-     */
     public void setBrakeMode(boolean isInBrake) {
         left.setBrakeMode(isInBrake);
         right.setBrakeMode(isInBrake);
     }
 
-    /**
-     * Provides the simulation model for the left intake extension axis.
-     *
-     * @return the left intake extension simulation model
-     */
+    /** The simulation model for the left intake extension axis. */
     public Axis.IntakeExtensionSim getSim() {
         return left.getSim();
     }
 
-    /**
-     * Reports the extension position as a percentage of its configured range.
-     *
-     * @return the current extension position percentage
-     */
     public double getPositionPercentage() {
         return left.getPositionPercentage();
     }
 
-    /** Runs the periodic update. */
     @Override
     public void periodic() {
         clampPastMax();

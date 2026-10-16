@@ -27,9 +27,8 @@ import frc.spectrumLib.telemetry.Telemetry;
 import java.util.Set;
 import lombok.Getter;
 
-// General Sim principles
-// Always move the root/origin to change it's display position
-// Looking at the robot from the left view (right side of the robot)
+// Sim conventions: move the root or origin to change the display position. The left view looks at
+// the robot from its left side.
 public class RobotSim {
     @Getter public static final double topViewHeight = 150;
     @Getter public static final double topViewWidth = 150;
@@ -59,11 +58,7 @@ public class RobotSim {
     private static final double LAUNCH_HEIGHT_INCHES = 19.5;
 
     private SuperStructure robotSuperStructure;
-    /**
-     * Creates a new RobotSim instance.
-     *
-     * @param superStructure the superStructure
-     */
+
     public RobotSim(SuperStructure superStructure) {
         this.robotSuperStructure = superStructure;
         SmartDashboard.putData("Sim/LeftView", RobotSim.leftView);
@@ -74,11 +69,10 @@ public class RobotSim {
 
         ballSim = new FuelPhysicsSim("Sim/Fuel");
         ballSim.enable();
-        ballSim.placeFieldBalls(); // spawns all the game pieces
+        ballSim.placeFieldBalls(); // spawns every fuel piece on the field
         configBallSimRobot();
     }
 
-    /** Updates the articulated mechanisms. */
     public void updateArticulatedMechanisms() {
         double intakeExtensionMeters =
                 Units.inchesToMeters(12)
@@ -124,14 +118,12 @@ public class RobotSim {
         Telemetry.log("Sim/Components", mechanismPoses);
     }
 
-    /** Draw robot. */
     public void drawRobot() {
         drawSideRobot();
         drawTopRobot();
         drawTurretCircle();
     }
 
-    /** Draw turret circle. */
     @SuppressWarnings("unused")
     public void drawTurretCircle() {
         MechanismRoot2d circleRoot =
@@ -142,7 +134,6 @@ public class RobotSim {
         Circle circle = new Circle(50, 30, "Turret Circle", circleRoot, topView);
     }
 
-    /** Draw top robot. */
     public void drawTopRobot() {
         MechanismRoot2d robotRoot =
                 topView.getRoot(
@@ -168,7 +159,6 @@ public class RobotSim {
         ll.setColor(edgeColor);
     }
 
-    /** Draw side robot. */
     public void drawSideRobot() {
         MechanismRoot2d robotRoot =
                 leftView.getRoot(
@@ -192,12 +182,8 @@ public class RobotSim {
         br.setColor(edgeColor);
         bl.setColor(edgeColor);
         ll.setColor(edgeColor);
-
-        // MechanismLigament2d shooter = bl.append(new MechanismLigament2d("shooter", 0.4, 135));
-        // shooter.setColor(new Color8Bit(Color.kBlack));
     }
 
-    /** Config ball sim robot. */
     private void configBallSimRobot() {
         double bumperHeight = Units.inchesToMeters(5);
         double intakeWidth = Units.inchesToMeters(8.275);
@@ -221,7 +207,6 @@ public class RobotSim {
                 robotSuperStructure::currentStateIsIntaking);
     }
 
-    /** Creates the sim ball launch. */
     private Command createSimBallLaunch() {
         return Commands.runOnce(
                 () -> {
@@ -275,9 +260,8 @@ public class RobotSim {
 
     /**
      * Launches the sim hopper's fuel, one ball per {@code timeBetweenBallLaunches}, for as long as
-     * it runs (bound while the robot is launching). Fuel intaked mid-launch is launched too: this
-     * used to count the hopper once at the start and stop after that many, stranding anything
-     * picked up during the launch.
+     * it runs. It is bound while the robot is launching, and fuel intaked mid-launch is launched
+     * too, rather than only the fuel the hopper held when the launch started.
      */
     public Command ballSimLaunchFuel() {
         if (!Utils.isSimulation()) {

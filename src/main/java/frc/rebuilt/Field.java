@@ -27,8 +27,8 @@ import lombok.RequiredArgsConstructor;
  * Contains field dimensions, the location of every field element, and other useful reference
  * points.
  *
- * <p>NOTE: All constants are defined relative to the field coordinate system, and from the
- * perspective of the blue alliance station.
+ * <p>Every constant is in the field coordinate system, from the perspective of the blue alliance
+ * station.
  *
  * <p>Reference points are derived from the official AprilTag layout wherever possible rather than
  * being hand-entered, so they stay in the same frame the vision pose estimator reports in.
@@ -37,13 +37,11 @@ public class Field {
 
     public static final FieldType fieldType = FieldType.WELDED;
 
-    // AprilTag related constants
     public static final int aprilTagCount =
             AprilTagLayoutType.OFFICIAL.getLayout().getTags().size();
     public static final double aprilTagWidth = Units.inchesToMeters(6.5);
     public static final AprilTagLayoutType defaultAprilTagType = AprilTagLayoutType.OFFICIAL;
 
-    // Field dimensions
     @Getter
     public static final double fieldLength =
             AprilTagLayoutType.OFFICIAL.getLayout().getFieldLength();
@@ -54,17 +52,15 @@ public class Field {
     public static final Translation2d fieldCenter =
             new Translation2d(fieldLength / 2.0, fieldWidth / 2.0);
 
-    // Fuel dimensions
     public static final double fuelDiameter = Units.inchesToMeters(5.91);
 
     public static final double trenchBarWidth = Units.inchesToMeters(2.95);
 
     /**
-     * Pose of an official AprilTag. Always reads the OFFICIAL layout so field geometry stays fixed
+     * Pose of an official AprilTag. Always reads the OFFICIAL layout, so field geometry stays fixed
      * even when vision is pointed at a reduced layout.
      *
-     * @param id the tag ID
-     * @throws IllegalStateException if the tag is not present in the official layout
+     * @throws IllegalStateException if the tag is not in the official layout
      */
     private static Pose3d tagPose(int id) {
         return AprilTagLayoutType.OFFICIAL
@@ -118,7 +114,6 @@ public class Field {
 
         public static final double center = fieldWidth / 2.0;
 
-        // Right of hub
         public static final double rightBumpStart = Hub.nearRightCorner.getY();
         public static final double rightBumpEnd = rightBumpStart - RightBump.width;
         public static final double rightBumpMiddle = (rightBumpStart + rightBumpEnd) / 2.0;
@@ -127,7 +122,6 @@ public class Field {
         public static final double rightTrenchMiddle =
                 (rightTrenchOpenStart + rightTrenchOpenEnd) / 2.0;
 
-        // Left of hub
         public static final double leftBumpEnd = Hub.nearLeftCorner.getY();
         public static final double leftBumpStart = leftBumpEnd + LeftBump.width;
         public static final double leftBumpMiddle = (leftBumpStart + leftBumpEnd) / 2.0;
@@ -140,7 +134,6 @@ public class Field {
     /** Hub related constants */
     public static class Hub {
 
-        // Dimensions
         public static final double width = Units.inchesToMeters(47.0);
         // includes the catcher at the top
         public static final double height = Units.inchesToMeters(72.0);
@@ -148,15 +141,13 @@ public class Field {
         public static final double innerHeight = Units.inchesToMeters(56.5);
 
         /**
-         * Hub center X, taken as the midpoint of the near- and far-face tags (26 and 20).
+         * Hub center X, the midpoint of the near and far face tags (26 and 20).
          *
-         * <p>Upstream used {@code tagX(26) + width / 2}, which lands 0.27 in short: the tag-to-tag
-         * span across the hub is 47.53 in, not the nominal 47.0. That error flipped sign under
-         * BlueToRed, so the blue and red hub centers ended up 0.54 in apart.
+         * <p>The tag to tag span across the hub is 47.53 in, not the nominal 47.0, so centring on
+         * the hub's own width would land 0.27 in short.
          */
         public static final double centerX = (tagX(26) + tagX(20)) / 2.0;
 
-        // Relevant reference points on alliance side
         public static final Translation3d topCenterPoint =
                 new Translation3d(centerX, fieldWidth / 2.0, height);
         public static final Translation3d innerCenterPoint =
@@ -185,12 +176,10 @@ public class Field {
     /** Left Bump related constants */
     public static class LeftBump {
 
-        // Dimensions
         public static final double width = Units.inchesToMeters(73.0);
         public static final double height = Units.inchesToMeters(6.513);
         public static final double depth = Units.inchesToMeters(44.4);
 
-        // Relevant reference points on alliance side
         public static final Translation2d nearLeftCorner =
                 Hub.nearLeftCorner.plus(new Translation2d(0.0, width));
         public static final Translation2d nearRightCorner = Hub.nearLeftCorner;
@@ -201,12 +190,10 @@ public class Field {
 
     /** Right Bump related constants */
     public static class RightBump {
-        // Dimensions
         public static final double width = Units.inchesToMeters(73.0);
         public static final double height = Units.inchesToMeters(6.513);
         public static final double depth = Units.inchesToMeters(44.4);
 
-        // Relevant reference points on alliance side
         public static final Translation2d nearLeftCorner = Hub.nearRightCorner;
         public static final Translation2d nearRightCorner =
                 Hub.nearRightCorner.minus(new Translation2d(0.0, width));
@@ -217,14 +204,12 @@ public class Field {
 
     /** Left Trench related constants */
     public static class LeftTrench {
-        // Dimensions
         public static final double width = Units.inchesToMeters(65.65);
         public static final double depth = Units.inchesToMeters(47.0);
         public static final double height = Units.inchesToMeters(40.25);
         public static final double openingWidth = Units.inchesToMeters(50.34);
         public static final double openingHeight = Units.inchesToMeters(22.25);
 
-        // Relevant reference points on alliance side
         public static final Translation3d openingTopLeft =
                 new Translation3d(LinesVertical.hubCenter, fieldWidth, openingHeight);
         public static final Translation3d openingTopRight =
@@ -239,14 +224,12 @@ public class Field {
     /** Right Trench related constants */
     public static class RightTrench {
 
-        // Dimensions
         public static final double width = Units.inchesToMeters(65.65);
         public static final double depth = Units.inchesToMeters(47.0);
         public static final double height = Units.inchesToMeters(40.25);
         public static final double openingWidth = Units.inchesToMeters(50.34);
         public static final double openingHeight = Units.inchesToMeters(22.25);
 
-        // Relevant reference points on alliance side
         public static final Translation3d openingTopLeft =
                 new Translation3d(LinesVertical.hubCenter, openingWidth, openingHeight);
         public static final Translation3d openingTopRight =
@@ -259,7 +242,6 @@ public class Field {
 
     /** Tower related constants */
     public static class Tower {
-        // Dimensions
         public static final double width = Units.inchesToMeters(49.25);
         public static final double depth = Units.inchesToMeters(45.0);
         public static final double height = Units.inchesToMeters(78.25);
@@ -273,9 +255,8 @@ public class Field {
         public static final double midRungHeight = Units.inchesToMeters(45.0);
         public static final double highRungHeight = Units.inchesToMeters(63.0);
 
-        // Relevant reference points on alliance side. The centerline follows tag 31 (y = 147.47
-        // in), NOT the field centerline -- the 2026 field has 180-degree rotational symmetry, so
-        // the blue and red towers sit at different Y.
+        // The centerline follows tag 31 (y = 147.47 in), not the field centerline: the 2026 field
+        // has 180-degree rotational symmetry, so the blue and red towers sit at different Y.
         public static final Translation2d centerPoint = new Translation2d(frontFaceX, tagY(31));
         public static final Translation2d leftUpright =
                 new Translation2d(
@@ -287,14 +268,13 @@ public class Field {
 
     /** Depot related constants */
     public static class Depot {
-        // Dimensions
         public static final double width = Units.inchesToMeters(42.0);
         public static final double depth = Units.inchesToMeters(27.0);
         public static final double height = Units.inchesToMeters(1.125);
         public static final double distanceFromCenterY = Units.inchesToMeters(75.93);
 
-        // Relevant reference points on alliance side. The depot runs from the alliance wall out to
-        // `depth`, so its middle is at depth / 2; the corners are the field-side (far) pair.
+        // The depot runs from the alliance wall out to depth, so its middle is at depth / 2; the
+        // corners are the field-side (far) pair.
         public static final Translation3d depotCenter =
                 new Translation3d(depth / 2.0, (fieldWidth / 2) + distanceFromCenterY, height);
         public static final Translation3d leftCorner =
@@ -307,22 +287,18 @@ public class Field {
 
     /** Outpost related constants */
     public static class Outpost {
-        // Dimensions
         public static final double width = Units.inchesToMeters(31.8);
         public static final double openingDistanceFromFloor = Units.inchesToMeters(28.1);
         public static final double height = Units.inchesToMeters(7.0);
 
-        // Relevant reference points on alliance side
         public static final Translation2d centerPoint = new Translation2d(0, tagY(29));
     }
 
     /** Fuel pool related constants */
     public static class FuelPool {
-        // Dimensions
         public static final double width = Units.inchesToMeters(181.9);
         public static final double depth = Units.inchesToMeters(71.9);
 
-        // Relevant reference points on alliance side
         public static final Translation2d nearLeftCorner =
                 new Translation2d(fieldLength / 2.0 - depth / 2.0, fieldWidth / 2.0 + width / 2.0);
         public static final Translation2d nearRightCorner =
@@ -332,10 +308,6 @@ public class Field {
         public static final Translation2d rightCenter =
                 new Translation2d(fieldLength / 2.0, fieldWidth / 2.0 - width / 2.0);
     }
-
-    // -----------------------------------------------------------------------
-    // Feeding reference points
-    // -----------------------------------------------------------------------
 
     public static final Translation2d normalFeedBlueLeft = new Translation2d(1, fieldWidth - 1);
     public static final Translation2d normalFeedBlueRight = new Translation2d(1, 1);
@@ -349,17 +321,13 @@ public class Field {
     public static final Translation2d deepFeedRedRight =
             new Translation2d(fieldLength - 1, fieldWidth - 2.5);
 
-    // -----------------------------------------------------------------------
-    // Alliance helpers
-    // -----------------------------------------------------------------------
-
     /**
      * Maps a blue-alliance field point to its red-alliance counterpart.
      *
      * <p>The 2026 field has 180-degree rotational symmetry, not mirror symmetry, so both X and Y
-     * flip. Verified against the tag layout: rotating every blue tag lands on a real red tag
-     * (16/16), while flipping X alone only works for the 10 that happen to sit symmetrically.
-     * Matches {@link FieldHelpers#flipIfRed}.
+     * flip. Verified against the tag layout: rotating every blue tag lands on a real red tag (16 of
+     * 16), while flipping X alone only works for the 10 that happen to sit symmetrically. Matches
+     * {@link FieldHelpers#flipIfRed}.
      */
     public static Translation3d BlueToRed(Translation3d translation) {
         return new Translation3d(
@@ -382,11 +350,10 @@ public class Field {
      * Holder so the hub centers are computed on first use rather than during {@code
      * Field.<clinit>}.
      *
-     * <p>They cannot be plain static fields up here. {@link Hub} reads {@link #tagX}, which forces
-     * {@code Field} to initialize; if something touches {@code Field.Hub} before it touches {@code
-     * Field}, the JVM would re-enter {@code Hub.<clinit>}, see it already in progress, skip it, and
-     * hand back a null {@code topCenterPoint}. Deferring to a holder breaks the cycle: by the time
-     * anything calls the getters below, both classes are fully initialized.
+     * <p>{@link Hub} reads {@link #tagX}, which forces {@code Field} to initialize. If something
+     * touched {@code Field.Hub} before it touched {@code Field}, the JVM would re-enter {@code
+     * Hub.<clinit>}, see it already in progress, skip it, and hand back a null {@code
+     * topCenterPoint}. Deferring to a holder breaks the cycle.
      */
     private static final class HubCenters {
         static final Translation3d blue = Hub.topCenterPoint;
@@ -403,29 +370,17 @@ public class Field {
         return HubCenters.red;
     }
 
-    /** Returns {@code true} if the robot is on the blue alliance. */
     public static boolean isBlue() {
         return DriverStation.getAlliance()
                 .orElse(DriverStation.Alliance.Blue)
                 .equals(DriverStation.Alliance.Blue);
     }
 
-    /** Returns {@code true} if the robot is on the red alliance. */
     public static boolean isRed() {
         return !isBlue();
     }
 
-    // -----------------------------------------------------------------------
-    // AprilTag layout plumbing
-    // -----------------------------------------------------------------------
-
-    /**
-     * Which physical variant of the field to load tags for.
-     *
-     * <p>Littleton also had an {@code HQ} variant backed by its own JSON tree. WPILib only ships
-     * the welded and AndyMark layouts, so that option is gone; add a deploy-directory loader here
-     * if an HQ layout is ever needed.
-     */
+    /** Which physical field variant to load tags for. WPILib ships only welded and AndyMark. */
     @RequiredArgsConstructor
     public enum FieldType {
         WELDED(AprilTagFields.k2026RebuiltWelded),
@@ -437,10 +392,9 @@ public class Field {
     /**
      * Selectable AprilTag layouts.
      *
-     * <p>Littleton had reduced layouts (hub only, outpost only, tower only) loaded from JSON files
-     * under {@code deploy/apriltags}. This project has no such files, so only the full official
-     * layout and an empty one are available. To add a subset, filter {@code OFFICIAL.getLayout()
-     * .getTags()} by ID and build a new {@link AprilTagFieldLayout} from the result.
+     * <p>OFFICIAL is the whole field and NONE is empty. A reduced layout would be built by
+     * filtering {@code OFFICIAL.getLayout().getTags()} by ID and making a new {@link
+     * AprilTagFieldLayout} from the result.
      */
     public enum AprilTagLayoutType {
         OFFICIAL,
@@ -448,17 +402,13 @@ public class Field {
 
         private volatile AprilTagFieldLayout layout;
         private volatile String layoutString;
-        /**
-         * Returns the layout.
-         *
-         * @return the layout
-         */
+
         public AprilTagFieldLayout getLayout() {
             if (layout == null) {
                 synchronized (this) {
                     if (layout == null) {
                         // Reading fieldType can force Field.<clinit>, which calls back into this
-                        // method and fills in `layout` before control returns here. Re-check so we
+                        // method and fills in layout before control returns here. Re-check so we
                         // don't load and discard a second copy.
                         AprilTagFields wpilibField = fieldType.getWpilibField();
                         if (layout != null) {
@@ -484,11 +434,6 @@ public class Field {
             return layout;
         }
 
-        /**
-         * Returns the layout string.
-         *
-         * @return the layout string
-         */
         public String getLayoutString() {
             if (layoutString == null) {
                 getLayout();
@@ -497,7 +442,7 @@ public class Field {
         }
     }
 
-    // Constructed last: Trigger touches the CommandScheduler, which requires the HAL.
+    // Constructed last: Trigger touches the CommandScheduler, which needs the HAL.
     public static final Trigger red = new Trigger(Field::isRed);
     public static final Trigger blue = new Trigger(Field::isBlue);
 }

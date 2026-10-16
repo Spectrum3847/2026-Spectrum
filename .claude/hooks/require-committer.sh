@@ -20,7 +20,9 @@ payload="${payload//\\n/$'\n'}"
 # mention both words in different places is left alone.
 # "commit" must end there: a trailing word character means this is "committer", "commit-graph",
 # or a flag like --no-commit-id, none of which write a commit.
-is_commit=$'git[^&|;\n]*commit([^a-zA-Z0-9_-]|$)'
+# "git" must be a whole word followed by a blank: the payload also holds cwd and transcript
+# paths, and a repo under a "github" folder would otherwise match.
+is_commit=$'(^|[^a-zA-Z0-9_.-])git[[:blank:]][^&|;\n]*commit([^a-zA-Z0-9_-]|$)'
 if [[ ! "$payload" =~ $is_commit ]]; then
     exit 0
 fi

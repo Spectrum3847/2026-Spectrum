@@ -1,47 +1,79 @@
 # Applied to FRC
 
-*Audience: New programmers. Assumes you've read [Formatting Code & Comments](formatting-code.md).*
+*Audience: New programmers. Assumes you've read [Code formatting and comments](formatting-code.md).*
 
-The basics docs in this section cover Java as a language. This page is the bridge: it maps what you've learned to what actually shows up (or doesn't) in robot code.
+The rest of this section teaches Java as a language. This page is the bridge: it maps what you
+have learned onto what actually shows up in robot code, and onto one thing that deliberately does
+not.
 
-## The Command-Based Framework Replaces Most Loops
+The names on this page are generic. They stand in for a mechanism, not for anything in this repo.
 
-The biggest shift from general Java to FRC Java is that WPILib's command-based framework handles repetition for you. `teleop` and `autonomous` aren't loops you write. The scheduler calls `periodic()` on every subsystem, then runs whatever commands are scheduled, 50 times a second.
+## The scheduler does the repeating for you
 
-That means `while` loops doing continuous robot control are almost never the right tool. Instead of:
+This is the biggest change coming from general Java. WPILib's command-based framework handles
+repetition on your behalf. Teleop and autonomous are not loops you write. The scheduler runs 50
+times a second, and each time it calls `periodic()` on every subsystem you registered, then runs
+whatever commands are currently scheduled.
+
+That means a `while` loop doing continuous robot control is almost never the right tool. Say you
+wanted a mechanism to keep driving forward while a button is held. The instinct from plain Java is
+this:
 
 ```java
-while (unjamButtonHeld) {
-    runUnjam();
+// Do not put this in periodic(). The loop never returns.
+while (fastForward.get()) {
+    drive(1.0);
 }
 ```
 
-you write:
+Two things go wrong. Nothing after the loop ever runs, including the rest of `periodic()`. And
+because the scheduler is what calls `periodic()`, the whole robot stops being scheduled. The
+command-based version is:
 
 ```java
-pilot.AButton.onTrue(superStructure.setStateCommand(WantedSuperState.UNJAM));
+// `fastForward` is a Trigger, and `drive` is a method that returns a Command.
+fastForward.whileTrue(drive(1.0));
 ```
 
-The `Trigger.whileTrue()` call handles the "keep doing this while the condition holds" logic. When the trigger goes false, the command ends automatically. No loop, no manual state management.
+`whileTrue` handles the "keep doing this while the condition holds" part. When the button is
+released the command ends on its own. No loop, and nothing for you to reset.
 
-## What You'll Actually Use
+This is the single most useful thing on this page. If you reach for a `while` loop in a command or
+in a subsystem's `periodic()`, there is almost always a trigger or a command composition that fits
+better.
 
-**If/else and logic operators**, everywhere. Conditions gate command scheduling, check sensor state, and drive branching in subsystem logic. `Launcher.java` checks `isAttached()` before configuring motors; `Swerve.java` checks `isSimulation()` to decide which drivetrain to initialize.
+## What you will actually use
 
-**Classes and objects**: the entire robot is structured around them. Each mechanism is a class. `SuperStructure` and every subsystem are all classes. See [Class Generation](../coding-conventions/class-generation.md) for how they're organized.
+**If, else, and the logic operators**, everywhere. Conditions gate command scheduling, check
+sensor readings, and choose between branches inside a mechanism's state machine.
 
-**Enums**, heavily used. `SuperStructure` defines the top-level robot states (`WantedSuperState`: `IDLE`, `TRACK_TARGET`, `INTAKE_FUEL`, etc.). A `switch` on that enum drives `handleStateTransitions()`. When you see a mechanism that has multiple named modes (`WantedState`/`SystemState`), those modes are an enum too.
+**Classes and objects.** The whole robot is built out of them. Every mechanism is a class, and one
+orchestrator class holds them and decides what each one should be doing. See
+[Class Generation](../coding-conventions/class-generation.md) for how a mechanism is laid out in
+this repo.
 
-**Standard `for` loops**, used in specific places where you need to touch every element of a fixed array. `Swerve` iterates all four swerve modules by index; `Vision.java` iterates all three Limelights with an enhanced `for`. See [Loops](loops.md) and [Arrays](arrays.md).
+**Enums, heavily.** A mechanism with several named modes usually holds them in an enum, and a
+`switch` on that enum drives what happens in each mode. The compiler checks that you covered every
+value, which is most of the reason to use an enum over a string or a number.
 
-**Lambdas and method references**, used constantly. Command factories take `DoubleSupplier` instead of `double` so setpoints can be live values. `config::getIdlingRPM` is a method reference; `() -> config.getIdlingRPM()` is an equivalent lambda. See [Classes, Methods, and Objects](classes-methods-objects.md).
+**Plain `for` loops**, in the places where you need to touch every value in a fixed size array.
+Use the enhanced form when you do not need the index. See [Loops](loops.md) and
+[Arrays and enums](arrays.md).
 
-## What's Rare
+**Lambdas and method references**, constantly. Anything that holds a setpoint which may need to
+change while a command runs takes a supplier rather than a plain number, so the command re-reads it
+every loop instead of freezing the value it was given. `config::getLimit` and `() -> config.getLimit()`
+mean the same thing. See [Classes, methods, and objects](classes-methods-objects.md).
 
-`while` loops and `do-while` loops appear occasionally in utility and setup code, but almost never in subsystem periodic logic or command bodies. If you're reaching for one in a command, there's usually a trigger or command composition that fits better.
+## What is rare
 
-Raw arrays are present but tend to live at the edges of the system, collecting module positions, storing April tag IDs, passing data to WPILib APIs that expect arrays. For anything that grows or shrinks, the codebase uses `List` or lets WPILib handle it.
+`while` and `do-while` loops turn up in utility and setup code, but almost never in a command body
+or in a subsystem's `periodic()`. If you want one there, look for a trigger first.
+
+Raw arrays show up at the edges, collecting a fixed set of readings or handing data to a WPILib
+call that wants an array. For a collection that grows or shrinks, use a `List` or let WPILib hold
+it.
 
 ---
 
-*Previous: [Formatting Code & Comments](formatting-code.md), Up next: the [reference docs](../index.md#i-already-know-how-to-program--show-me-the-reference) on tools, dependencies, and conventions.*
+*Previous: [Code formatting and comments](formatting-code.md), Up next: the [reference docs](../index.md#i-already-know-how-to-program-show-me-the-reference) on tools, dependencies, and conventions.*

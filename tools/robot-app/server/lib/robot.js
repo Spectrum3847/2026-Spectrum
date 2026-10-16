@@ -27,7 +27,7 @@ export function robotCandidates() {
 
 /**
  * TCP connect to sshd. Cheaper than ping, and it tests the thing we actually need rather than
- * mere reachability -- a RIO that answers ICMP but not SSH is useless to us.
+ * mere reachability. A RIO that answers ICMP but not SSH is useless to us.
  */
 export function probeHost(host, { port = 22, timeoutMs = 1500 } = {}) {
     return new Promise((resolve) => {
@@ -54,6 +54,14 @@ export async function probeAll() {
     return { candidates: results, reachable, best: reachable[0] || null };
 }
 
+function withTimeout(promise, ms, what) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms / 1000} s`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 /** Connect to the RIO. lvuser has no password on a stock roboRIO image. */
 async function connect(host) {
     const ssh = new NodeSSH();
@@ -76,8 +84,8 @@ export async function listRobotLogs(host) {
     try {
         const dirs = [];
         for (const dir of config.robot.logDirs) {
-            // %s size, %Y mtime epoch, %n name -- one line per file, easy to parse and cheap.
-            const res = await ssh.execCommand(`find ${dir} -maxdepth 1 -name '*.wpilog' -printf '%s\\t%T@\\t%f\\n' 2>/dev/null`);
+            // %s size, %Y mtime epoch, %n name. One line per file, easy to parse and cheap.
+            const res = await withTimeout(ssh.execCommand(`find ${dir} -maxdepth 1 -name '*.wpilog' -printf '%s\\t%T@\\t%f\\n' 2>/dev/null`), 15000, `listing ${dir}`);
             const files = res.stdout
                 .split("\n")
                 .filter(Boolean)
@@ -106,9 +114,18 @@ export async function downloadLogs(host, files, destDir, onProgress = () => {}) 
         for (const f of files) {
             const remote = path.posix.join(f.dir, f.name);
             const local = path.join(destDir, f.name);
+            // Downloaded under a temp name so a dropped connection never leaves a truncated .wpilog.
+            const part = `${local}.part`;
             onProgress({ name: f.name, state: "start", bytes: f.bytes });
             const started = Date.now();
-            await ssh.getFile(local, remote);
+            try {
+                await ssh.getFile(part, remote);
+                fs.renameSync(part, local);
+            } catch (e) {
+                fs.rmSync(part, { force: true });
+                onProgress({ name: f.name, state: "download-failed", error: String(e.message) });
+                continue;
+            }
             const st = fs.statSync(local);
             done.push({ name: f.name, bytes: st.size, ms: Date.now() - started, remote });
             onProgress({ name: f.name, state: "done", bytes: st.size, ms: Date.now() - started });

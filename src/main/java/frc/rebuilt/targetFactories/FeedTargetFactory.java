@@ -38,7 +38,6 @@ public class FeedTargetFactory {
 
     static Double kXDistanceOffset = Units.inchesToMeters(0);
 
-    /** Generate. */
     public static Translation2d generate() {
         boolean inFieldLeft = isLeft();
         boolean inOpposingAllianceZone = swerve.isInEnemyAllianceZone();
@@ -61,7 +60,7 @@ public class FeedTargetFactory {
         double distance = feedTarget.getDistance(Robot.getSwerve().getRobotPose().getTranslation());
 
         double distanceOffset = distanceOffsetMap.get(distance);
-        // Do math in blue alliance, we flip for red.
+        // Offsets are worked out in the blue frame, then flipped for red.
         var offSet = new Translation2d(kXDistanceOffset, -distanceOffset);
 
         if (Field.isRed()) {

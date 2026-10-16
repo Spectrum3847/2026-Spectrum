@@ -37,14 +37,8 @@ import org.ironmaple.simulation.motorsims.SimulatedMotorController;
 import org.ironmaple.simulation.seasonspecific.rebuilt2026.Arena2026Rebuilt;
 
 /**
- *
- *
- * <h2>Injects Maple-Sim simulation data into a CTRE swerve drivetrain.</h2>
- *
- * <p>This class retrieves simulation data from Maple-Sim and injects it into the CTRE {@link
- * com.ctre.phoenix6.swerve.SwerveDrivetrain} instance.
- *
- * <p>It replaces the {@link com.ctre.phoenix6.swerve.SimSwerveDrivetrain} class.
+ * Feeds Maple-Sim results into a CTRE {@link com.ctre.phoenix6.swerve.SwerveDrivetrain}, in place
+ * of {@link com.ctre.phoenix6.swerve.SimSwerveDrivetrain}.
  */
 public class MapleSimSwerveDrivetrain {
     /** Simulation state of the Pigeon2 gyro, used to inject computed yaw and angular velocity. */
@@ -53,33 +47,16 @@ public class MapleSimSwerveDrivetrain {
     /** Simulated representations of each swerve module, indexed FL/FR/BL/BR. */
     private final SimSwerveModule[] simModules;
 
-    /** The underlying Maple-Sim drive simulation providing physics and odometry. */
     public final SwerveDriveSimulation mapleSimDrive;
 
     /**
-     *
-     *
-     * <h2>Constructs a drivetrain simulation using the specified parameters.</h2>
-     *
-     * @param simPeriod the time period of the simulation
-     * @param robotMassWithBumpers the total mass of the robot, including bumpers
-     * @param bumperLengthX the length of the bumper along the X-axis (influences the collision
-     *     space of the robot)
-     * @param bumperWidthY the width of the bumper along the Y-axis (influences the collision space
-     *     of the robot)
-     * @param driveMotorModel the {@link DCMotor} model for the drive motor, typically <code>
-     *     DCMotor.getKrakenX60Foc()
-     *     </code>
-     * @param steerMotorModel the {@link DCMotor} model for the steer motor, typically <code>
-     *     DCMotor.getKrakenX60Foc()
-     *     </code>
-     * @param wheelCOF the coefficient of friction of the drive wheels
-     * @param moduleLocations the locations of the swerve modules on the robot, in the order <code>
-     *     FL, FR, BL, BR</code>
-     * @param pigeon the {@link Pigeon2} IMU used in the drivetrain
-     * @param modules the {@link SwerveModule}s, typically obtained via {@link
-     *     SwerveDrivetrain#getModules()}
-     * @param moduleConstants the constants for the swerve modules
+     * @param bumperLengthX the bumper length along the X axis, which sets the robot's collision
+     *     space
+     * @param bumperWidthY the bumper width along the Y axis, which sets the robot's collision space
+     * @param driveMotorModel the drive motor model, typically {@code DCMotor.getKrakenX60Foc()}
+     * @param steerMotorModel the steer motor model, typically {@code DCMotor.getKrakenX60Foc()}
+     * @param moduleLocations the module positions, ordered FL, FR, BL, BR
+     * @param modules the {@link SwerveModule}s, usually from {@link SwerveDrivetrain#getModules()}
      */
     @SuppressWarnings("unchecked")
     public MapleSimSwerveDrivetrain(
@@ -131,12 +108,8 @@ public class MapleSimSwerveDrivetrain {
     }
 
     /**
-     *
-     *
-     * <h2>Update the simulation.</h2>
-     *
-     * <p>Updates the Maple-Sim simulation and injects the results into the simulated CTRE devices,
-     * including motors and the IMU.
+     * Advances the arena one step, which drives the module motor sims, then writes the resulting
+     * yaw and yaw rate into the {@link Pigeon2} sim state.
      */
     public void update() {
         SimulatedArena.getInstance().simulationPeriodic();
@@ -147,28 +120,15 @@ public class MapleSimSwerveDrivetrain {
                                 .omegaRadiansPerSecond));
     }
 
-    /**
-     *
-     *
-     * <h1>Represents the simulation of a single {@link SwerveModule}.</h1>
-     */
+    /** One module's Maple-Sim physics, wired to the CTRE motor controllers. */
     protected static class SimSwerveModule {
         /** Constants (gear ratios, friction voltages, wheel radius, etc.) for this module. */
         public final SwerveModuleConstants<
                         TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
                 moduleConstant;
 
-        /** Maple-Sim physics simulation instance for this module. */
         public final SwerveModuleSimulation moduleSimulation;
 
-        /**
-         * Constructs a simulated swerve module by wiring the Maple-Sim physics model to the CTRE
-         * motor controllers.
-         *
-         * @param moduleConstant constants for this swerve module
-         * @param moduleSimulation Maple-Sim simulation instance for this module
-         * @param module the real CTRE {@link SwerveModule} whose sim states will be driven
-         */
         public SimSwerveModule(
                 SwerveModuleConstants<
                                 TalonFXConfiguration, TalonFXConfiguration, CANcoderConfiguration>
@@ -185,40 +145,25 @@ public class MapleSimSwerveDrivetrain {
         }
     }
 
-    // Static utils classes
-
     /**
-     * Adapts a {@link TalonFX} motor controller for use as a {@link SimulatedMotorController} in
-     * Maple-Sim by forwarding encoder state from the simulation into the CTRE sim state.
+     * Adapts a {@link TalonFX} for Maple-Sim's {@link SimulatedMotorController}, forwarding the
+     * simulated rotor state into the CTRE sim state.
      */
     public static class TalonFXMotorControllerSim implements SimulatedMotorController {
-        /** CAN device ID of the underlying TalonFX. */
         public final int id;
 
-        /** CTRE simulation state object used to inject position, velocity, and voltage. */
+        /** Where this adapter injects position, velocity and voltage. */
         private final TalonFXSimState talonFXSimState;
 
-        /**
-         * Constructs the adapter for the given TalonFX.
-         *
-         * @param talonFX the TalonFX motor controller to wrap
-         */
         public TalonFXMotorControllerSim(TalonFX talonFX) {
             this.id = talonFX.getDeviceID();
             this.talonFXSimState = talonFX.getSimState();
         }
 
         /**
-         * Injects simulated rotor position, velocity, and supply voltage into the TalonFX sim
-         * state, then returns the motor output voltage requested by the controller's closed-loop
-         * algorithm.
-         *
-         * @param mechanismAngle current mechanism-side angle from the physics model
-         * @param mechanismVelocity current mechanism-side angular velocity from the physics model
-         * @param encoderAngle current encoder angle (rotor-side) from the physics model
-         * @param encoderVelocity current encoder angular velocity (rotor-side) from the physics
-         *     model
-         * @return the voltage the controller is requesting from the simulated battery
+         * Writes the rotor-side encoder state and the simulated battery voltage into the TalonFX
+         * sim state, then returns the voltage the controller's closed loop asks for. The
+         * mechanism-side arguments are unused, since a TalonFX closes its loop on the rotor sensor.
          */
         @Override
         public Voltage updateControlSignal(
@@ -235,24 +180,16 @@ public class MapleSimSwerveDrivetrain {
     }
 
     /**
-     * Extends {@link TalonFXMotorControllerSim} to also drive a remote CANcoder simulation state.
-     * Used for steer motors whose feedback device is a remote CANcoder.
+     * Drives a remote CANcoder sim state as well, for a steer motor whose feedback device is a
+     * remote CANcoder.
      */
     @SuppressWarnings("all")
     public static class TalonFXMotorControllerWithRemoteCanCoderSim
             extends TalonFXMotorControllerSim {
-        /** CAN device ID of the remote CANcoder. */
         private final int encoderId;
 
-        /** CTRE simulation state of the remote CANcoder. */
         private final CANcoderSimState remoteCancoderSimState;
 
-        /**
-         * Constructs the adapter for a steer motor paired with a remote CANcoder.
-         *
-         * @param talonFX the steer TalonFX motor controller
-         * @param cancoder the remote CANcoder used as the steer feedback sensor
-         */
         public TalonFXMotorControllerWithRemoteCanCoderSim(TalonFX talonFX, CANcoder cancoder) {
             super(talonFX);
             this.remoteCancoderSimState = cancoder.getSimState();
@@ -261,16 +198,8 @@ public class MapleSimSwerveDrivetrain {
         }
 
         /**
-         * Injects simulated supply voltage, position, and velocity into the remote CANcoder sim
-         * state, then delegates to the parent implementation to update the TalonFX and return the
-         * requested motor voltage.
-         *
-         * @param mechanismAngle current mechanism-side angle (written to the CANcoder)
-         * @param mechanismVelocity current mechanism-side angular velocity (written to the
-         *     CANcoder)
-         * @param encoderAngle current encoder (rotor-side) angle (forwarded to TalonFX)
-         * @param encoderVelocity current encoder angular velocity (forwarded to TalonFX)
-         * @return the voltage the controller is requesting from the simulated battery
+         * Writes the mechanism-side angle and velocity into the remote CANcoder sim state, then
+         * hands all four values to the parent, which forwards the rotor-side pair to the TalonFX.
          */
         @Override
         public Voltage updateControlSignal(
@@ -288,14 +217,8 @@ public class MapleSimSwerveDrivetrain {
     }
 
     /**
-     *
-     *
-     * <h2>Regulates all {@link SwerveModuleConstants} for a drivetrain simulation.</h2>
-     *
-     * <p>This method processes an array of {@link SwerveModuleConstants} to apply necessary
-     * adjustments for simulation purposes, ensuring compatibility and avoiding known bugs.
-     *
-     * @see #regulateModuleConstantForSimulation(SwerveModuleConstants)
+     * Applies the simulation-only adjustments to every module constant. Does nothing on real
+     * hardware.
      */
     public static SwerveModuleConstants<?, ?, ?>[] regulateModuleConstantsForSimulation(
             SwerveModuleConstants<?, ?, ?>[] moduleConstants) {
@@ -306,41 +229,21 @@ public class MapleSimSwerveDrivetrain {
     }
 
     /**
-     *
-     *
-     * <h2>Regulates the {@link SwerveModuleConstants} for a single module.</h2>
-     *
-     * <p>This method applies specific adjustments to the {@link SwerveModuleConstants} for
-     * simulation purposes. These changes have no effect on real robot operations and address known
-     * simulation bugs:
-     *
-     * <ul>
-     *   <li><strong>Inverted Drive Motors:</strong> Prevents drive PID issues caused by inverted
-     *       configurations.
-     *   <li><strong>Non-zero CanCoder Offsets:</strong> Fixes potential module state optimization
-     *       issues.
-     *   <li><strong>Steer Motor PID:</strong> Adjusts PID values tuned for real robots to improve
-     *       simulation performance.
-     * </ul>
-     *
-     * <h4>Note:This function is skipped when running on a real robot, ensuring no impact on
-     * constants used on real robot hardware.</h4>
+     * Adjusts one module's constants for simulation, to work around simulation bugs rather than
+     * robot behaviour. Motor inversions go to false because an inverted configuration upsets the
+     * drive PID, and the CANcoder offset goes to zero because a non-zero one upsets the module
+     * state optimization. The steer gains set below are placeholders that keep the sim stable, not
+     * values fit to anything.
      */
     private static void regulateModuleConstantForSimulation(
             SwerveModuleConstants<?, ?, ?> moduleConstants) {
-        // Skip regulation if running on a real robot
         if (RobotBase.isReal()) return;
 
-        // Apply simulation-specific adjustments to module constants
         moduleConstants
-                // Disable encoder offsets
                 .withEncoderOffset(0)
-                // Disable motor inversions for drive and steer motors
                 .withDriveMotorInverted(false)
                 .withSteerMotorInverted(false)
-                // Disable CanCoder inversion
                 .withEncoderInverted(false)
-                // TODO: Adjust steer and drive motor PID gains for simulation
                 .withSteerMotorGains(
                         new Slot0Configs()
                                 .withKP(1000.0)
@@ -352,10 +255,8 @@ public class MapleSimSwerveDrivetrain {
                                 .withStaticFeedforwardSign(
                                         StaticFeedforwardSignValue.UseClosedLoopSign))
                 .withSteerMotorGearRatio(21.428571428571427)
-                // Adjust friction voltages
                 .withDriveFrictionVoltage(Volts.of(0.1))
                 .withSteerFrictionVoltage(Volts.of(0.05))
-                // Adjust steer inertia
                 .withSteerInertia(KilogramSquareMeters.of(0.05));
     }
 }

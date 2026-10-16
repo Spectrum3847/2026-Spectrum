@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 public class CachedDoubleTest {
 
     private CachedDouble cachedDouble;
-    /** Cleanup. */
+
     @AfterEach
     void cleanup() {
         if (cachedDouble != null) {
@@ -20,7 +20,6 @@ public class CachedDoubleTest {
         }
     }
 
-    /** Verifies caching and invalidation. */
     @Test
     @DisplayName("Test CachedDouble caches value within same iteration and invalidates on periodic")
     void testCachingAndInvalidation() {
@@ -34,22 +33,18 @@ public class CachedDoubleTest {
 
         assertEquals(0, callCounter.get());
 
-        // First call evaluates the supplier
         double val1 = cachedDouble.getAsDouble();
         assertEquals(42.0, val1, 1e-6);
         assertEquals(1, callCounter.get());
 
-        // Subsequent calls return cached value without querying supplier again
         double val2 = cachedDouble.getAsDouble();
         double val3 = cachedDouble.getAsDouble();
         assertEquals(42.0, val2, 1e-6);
         assertEquals(42.0, val3, 1e-6);
         assertEquals(1, callCounter.get());
 
-        // Scheduler periodic call invalidates cache
         cachedDouble.periodic();
 
-        // Next getAsDouble queries the supplier again
         double val4 = cachedDouble.getAsDouble();
         assertEquals(42.0, val4, 1e-6);
         assertEquals(2, callCounter.get());

@@ -26,7 +26,6 @@ public class ShiftHelpers {
         DISABLED;
     }
 
-    /** Shift info. */
     public record ShiftInfo(
             ShiftEnum currentShift, double elapsedTime, double remainingTime, boolean active) {}
 
@@ -48,33 +47,19 @@ public class ShiftHelpers {
     // Override source for alliance win detection; empty when not overridden.
     @Setter private static Supplier<Optional<Boolean>> allianceWinOverride = () -> Optional.empty();
 
-    /**
-     * Returns the alliance win override.
-     *
-     * @return the current alliance win override, or empty when unset
-     */
     public static Optional<Boolean> getAllianceWinOverride() {
         return allianceWinOverride.get();
     }
 
-    /**
-     * Returns the current alliance-win override supplier.
-     *
-     * <p>Package-private so tests can restore the exact supplier instance.
-     */
+    /** The exact supplier instance, so a test can put back the one it found. */
     static Supplier<Optional<Boolean>> getAllianceWinOverrideSupplier() {
         return allianceWinOverride;
     }
 
-    /**
-     * Returns the first active alliance.
-     *
-     * @return the first active alliance
-     */
     public static Alliance getFirstActiveAlliance() {
         var alliance = DriverStation.getAlliance().orElse(Alliance.Blue);
 
-        // Return override value
+        // Alliance win override, if one is set
         var winOverride = getAllianceWinOverride();
         if (!winOverride.isEmpty()) {
             return winOverride.get()
@@ -82,7 +67,7 @@ public class ShiftHelpers {
                     : (alliance == Alliance.Blue ? Alliance.Blue : Alliance.Red);
         }
 
-        // Return FMS value
+        // FMS game-specific message names the previous winner
         String message = DriverStation.getGameSpecificMessage();
         if (message.length() > 0) {
             char character = message.charAt(0);
@@ -93,7 +78,7 @@ public class ShiftHelpers {
             }
         }
 
-        // Return default value
+        // Default: the other alliance
         return alliance == Alliance.Blue ? Alliance.Red : Alliance.Blue;
     }
 
@@ -103,11 +88,6 @@ public class ShiftHelpers {
         shiftTimer.restart();
     }
 
-    /**
-     * Returns the schedule.
-     *
-     * @return the schedule
-     */
     private static boolean[] getSchedule() {
         boolean[] currentSchedule;
         Alliance startAlliance = getFirstActiveAlliance();
@@ -118,11 +98,6 @@ public class ShiftHelpers {
         return currentSchedule;
     }
 
-    /**
-     * Returns the shift info.
-     *
-     * @return the shift info
-     */
     private static ShiftInfo getShiftInfo(
             boolean[] currentSchedule, double[] shiftStartTimes, double[] shiftEndTimes) {
         double timerValue = shiftTimer.get();
@@ -139,7 +114,7 @@ public class ShiftHelpers {
             active = true;
             currentShift = ShiftEnum.AUTO;
         } else if (DriverStation.isEnabled()) {
-            // Adjust the current offset if the time difference above the threshold
+            // Re-sync the local timer to the FMS match time when the two drift apart
             if (Math.abs(fieldTeleopTime - currentTime) >= timeResetThreshold
                     && fieldTeleopTime <= 135
                     && DriverStation.isFMSAttached()) {
@@ -158,18 +133,17 @@ public class ShiftHelpers {
                 currentShiftIndex = shiftStartTimes.length - 1;
             }
 
-            // Calculate elapsed and remaining time in the current shift, ignoring combined shifts
+            // Elapsed and remaining time in the current shift, before any combining
             stateTimeElapsed = currentTime - shiftStartTimes[currentShiftIndex];
             stateTimeRemaining = shiftEndTimes[currentShiftIndex] - currentTime;
 
-            // If the state is the same as the last shift, combine the elapsed time
+            // Consecutive shifts with the same state are reported as one long shift
             if (currentShiftIndex > 0) {
                 if (currentSchedule[currentShiftIndex] == currentSchedule[currentShiftIndex - 1]) {
                     stateTimeElapsed = currentTime - shiftStartTimes[currentShiftIndex - 1];
                 }
             }
 
-            // If the state is the same as the next shift, combine the remaining time
             if (currentShiftIndex < shiftEndTimes.length - 1) {
                 if (currentSchedule[currentShiftIndex] == currentSchedule[currentShiftIndex + 1]) {
                     stateTimeRemaining = shiftEndTimes[currentShiftIndex + 1] - currentTime;
@@ -184,20 +158,10 @@ public class ShiftHelpers {
         return shiftInfo;
     }
 
-    /**
-     * Returns the official shift info.
-     *
-     * @return the official shift info
-     */
     public static ShiftInfo getOfficialShiftInfo() {
         return getShiftInfo(getSchedule(), shiftStartTimes, shiftEndTimes);
     }
 
-    /**
-     * Returns the shifted shift info.
-     *
-     * @return the shifted shift info
-     */
     public static ShiftInfo getShiftedShiftInfo() {
         boolean[] shiftSchedule = getSchedule();
         // Starting active

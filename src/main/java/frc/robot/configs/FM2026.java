@@ -4,15 +4,11 @@ import frc.robot.Robot.Config;
 
 public class FM2026 extends Config {
 
-    /**
-     * Initializes the Final Machine configuration, including swerve encoder offsets and attached
-     * mechanisms.
-     */
     public FM2026() {
         super();
+        // CANcoder offsets in rotations.
         swerve.configEncoderOffsets(-0.163818359375, 0.24902, 0.2724609375, -0.31005859375);
 
-        // Attached Mechanisms
         pilot.setAttached(true);
         operator.setAttached(true);
         intakeRoller.setAttached(true);
@@ -20,9 +16,7 @@ public class FM2026 extends Config {
         intakeExtensionLeft.setAttached(true);
         intakeExtensionRight.setAttached(true);
         launcher.setAttached(true);
-        // indexerTower.setAttached(true);
         rotor.setAttached(true);
         feeder.setAttached(true);
-        // hood.setAttached(true);
     }
 }

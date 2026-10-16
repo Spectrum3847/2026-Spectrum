@@ -1,66 +1,94 @@
-# Formatting Code
+# Code formatting and comments
 
-*Audience: New programmers. Assumes you've read [Classes, Methods, & Objects](classes-methods-objects.md).*
+*Audience: New programmers. Assumes you've read [Classes, methods, and objects](classes-methods-objects.md).*
 
-## Java Basics
+The examples on this page are invented, not taken from this robot's code.
 
-Java files end in `.java` and the filename must match the public class name inside. Execution in a standard Java program starts from `main()`, but in a WPILib robot project `Robot.java` is the entry point; WPILib calls `robotInit()`, `teleopPeriodic()`, and so on rather than a `main()` you write yourself.
+## The shape of a Java file
 
-Java uses braces `{}` to group code into blocks. Indentation is cosmetic; the compiler ignores whitespace and relies on braces to know what belongs where. A method body is everything between its opening and closing brace; an `if` block is everything between its pair of braces.
+A file is named after the class it holds. `BankAccount.java` holds `class BankAccount`, and you may
+only have one `public` class per file.
+
+In a plain Java program, execution starts at a method called `main`. Robot projects are different,
+and [Applied to FRC](applied-to-frc.md) covers how those start.
+
+Curly braces group lines of code into a block. A method body is everything between one pair, and
+so is the body of an `if`. The compiler uses the braces, not the indentation, to work out what
+belongs where, so indentation is for people.
 
 ```java
-void moveRobot() {
-    moveForward();   // inside moveRobot
-}                    // end of moveRobot
+void greet() {
+    System.out.println("hello");
+}
 
 int a = 5;
 int b = 1;
 if (a > b) {
-    System.out.println("a greater than b");
+    System.out.println("a is greater than b");
 } else {
-    System.out.println("a not greater than b");
+    System.out.println("a is not greater than b");
 }
 ```
 
-Every statement ends with a semicolon. Missing one is a compile error; Java won't try to guess where statements end the way Python does.
+Every statement ends with a semicolon. Leave one off and it is a compile error. Java will not guess
+where a statement ends.
 
-## Spotless Formatting
-
-You don't have to think much about code style manually. Spotless reformats every `.java` file automatically when you build. The full rules are in [Gradle](../tools/gradle.md), but the short version: run `./gradlew spotlessApply` if CI complains about formatting, and the tool fixes it for you.
-
-If you have a block of code that needs to stay hand-aligned (a matrix of numbers, for example), wrap it:
-
-```java
-// spotless:off
-double[][] matrix = {
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0},
-};
-// spotless:on
-```
+You do not need to format code by hand. A tool does it for you on every build. For the rules this
+project uses, and the reasoning behind them, see
+[Code Style](../coding-conventions/code-style.md).
 
 ## Comments
 
-Single-line comments start with `//`. Anything after those two slashes on the same line is ignored by the compiler.
+A comment is a note for the reader. The compiler skips it entirely, so a comment can say anything
+and change nothing about what the program does.
+
+**A single line comment** starts with two slashes. Everything after them on that line is a comment.
 
 ```java
-double idlingRPM = 700;  // rotations per minute
+double interestRate = 0.02;   // two hundredths, written as a decimal
 ```
 
-JavaDoc comments use `/** ... */` and attach documentation to classes and methods. Any `public` method, especially on a `*States` class, should have at least a one-line JavaDoc so tooling and teammates can read what it does without opening the implementation:
+**A block comment** starts with a slash and a star and ends with a star and a slash. It can run
+over several lines. You will not see many of these.
+
+```java
+/*
+ * Everything between the markers is a comment,
+ * including the line breaks.
+ */
+```
+
+**A Javadoc comment** also uses two stars, `/**` and `*/`, and is the one that matters here. It
+attaches to the class or method below it, and it is what other people and your editor read
+instead of the code. Use it on anything public that someone else will call.
 
 ```java
 /**
- * Schedules the launcher velocity command only if it isn't already running.
+ * Moves money out of this account.
  *
- * @param command the command to schedule
+ * @param amount how much to take out, in dollars
+ * @return true if the withdrawal went through
  */
-public static void scheduleIfNotRunning(Command command) { ... }
+public boolean withdraw(double amount) {
+    if (amount > balance) {
+        return false;
+    }
+    balance -= amount;
+    return true;
+}
 ```
 
-Block comments (`/* ... */`) exist but are less common than `//` in this codebase. Use `//` for inline notes and JavaDoc `/** */` for public API documentation.
+Three parts carry most of the meaning:
+
+* The first line says what the method does, in one sentence.
+* Each `@param` line names one parameter and says what it is.
+* `@return` says what comes back.
+
+Say what the code does not already say. A comment that repeats the line underneath it is noise,
+and a comment that explains why something is written an unusual way saves the next person an
+afternoon. There is more on this in
+[Documentation and Comments](../coding-conventions/documentation-and-comments.md).
 
 ---
 
-*Previous: [Classes, Methods, & Objects](classes-methods-objects.md). Next: [Applied to FRC](applied-to-frc.md)*
+*Previous: [Classes, methods, and objects](classes-methods-objects.md). Next: [Applied to FRC](applied-to-frc.md)*

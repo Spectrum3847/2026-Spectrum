@@ -16,34 +16,18 @@ public class TuneValue {
     /** SmartDashboard key under which this value is published and read. */
     @Getter private String name;
 
-    /**
-     * Creates a TuneValue, publishing {@code defaultValue} to SmartDashboard under {@code name}.
-     *
-     * @param name SmartDashboard key
-     * @param defaultValue Initial value written to SmartDashboard
-     */
     public TuneValue(String name, double defaultValue) {
         SmartDashboard.putNumber(name, defaultValue);
         value = defaultValue;
         this.name = name;
     }
 
-    /**
-     * Reads the current value from SmartDashboard and caches it locally.
-     *
-     * @return the latest value from SmartDashboard
-     */
+    /** Reads the current value from SmartDashboard and caches it in {@link #value}. */
     public Double update() {
         value = SmartDashboard.getNumber(name, value);
         return value;
     }
 
-    /**
-     * Returns a {@link DoubleSupplier} that calls {@link #update()} each time it is queried,
-     * suitable for passing to command factories that accept live-updating suppliers.
-     *
-     * @return a supplier backed by this TuneValue
-     */
     public DoubleSupplier getSupplier() {
         return this::update;
     }

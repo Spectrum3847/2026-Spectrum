@@ -2,7 +2,7 @@
  * Main-breaker trip curve and thermal simulation.
  *
  * Ported from the team's WPI-Log-Analizer. The curve is the Bussmann CB185-120 (Series 18X)
- * maximum time-to-trip, i.e. the slow end of the manufacturing tolerance band -- so the
+ * maximum time-to-trip, i.e. the slow end of the manufacturing tolerance band, so the
  * simulation is optimistic about survival, which is the safe direction for "would this have
  * popped?" questions.
  */

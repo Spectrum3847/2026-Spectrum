@@ -2,97 +2,58 @@
 
 *Audience: Reference. Assumes you've read [Dependencies Overview](overview.md).*
 
-PathPlanner is two pieces: a desktop editor that produces `.path` and `.auto` files, and an on-robot library that reads them and drives the swerve through them. We use both for every autonomous routine.
+PathPlanner is two pieces: a desktop editor that produces `.path` and `.auto` files, and an on-robot library that reads them and drives the swerve. We use both for every autonomous routine. The version is pinned in `vendordeps/`.
 
-Version 2026.1.2, pinned in [`vendordeps/PathplannerLib-2026.1.2.json`](../../vendordeps/PathplannerLib-2026.1.2.json).
+The path and auto files live in [`src/main/deploy/pathplanner/`](../../src/main/deploy/pathplanner/) and deploy to the roboRIO with the rest of `src/main/deploy`. On the Java side there are three entry points worth knowing: `Swerve.configurePathPlanner()` registers the drivetrain with `AutoBuilder` at boot, [`Auton`](../../src/main/java/frc/robot/auton/Auton.java) declares the event triggers and builds the chooser, and `Robot.disabledInit` schedules the PathPlanner warmups.
 
-## What's in the Repo
+## Adding an auto step
 
-The path and auto files live in [`src/main/deploy/pathplanner/`](../../src/main/deploy/pathplanner/): `paths/` for individual trajectories, `autos/` for sequences, plus `settings.json` and `navgrid.json` for the editor. They deploy to the roboRIO under `/home/lvuser/deploy/pathplanner/` automatically.
+Path event markers fire `EventTrigger`s. There are no `NamedCommands` in this codebase. A new auto step is three edits:
 
-The Java side has three entry points:
+1. Drop the event marker on the path in the PathPlanner editor and save.
+2. Add a matching `public static final EventTrigger` constant in `Auton.java`, using the same string.
+3. Bind it in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java) with `.onTrue(...)`, usually to a `setStateCommand(...)` for a `WantedSuperState`.
 
-* `Swerve.configurePathPlanner()` registers the drivetrain with `AutoBuilder` at boot.
-* `frc.robot.auton.Auton` defines the auto routines, the event triggers, and the `SendableChooser` exposed to the driver station.
-* `Robot.disabledInit` schedules the PathPlanner warmups (once per session, guarded by `autonWarmedUp`) so the first auto doesn't hitch.
+The marker name and the string in the constructor have to match exactly. If your trigger never fires, that is the first thing to check, along with trailing whitespace on the marker name. It looks identical in the editor and does not match in Java.
 
-## AutoBuilder Wiring
+## The drivetrain controller gains are seasonal
 
-`Swerve.configurePathPlanner()` is where PathPlanner meets the swerve drive:
+`AutoBuilder.configure` in `Swerve.configurePathPlanner()` carries the translation and rotation `PIDConstants` for the whole robot. They get re-tuned every year, and a small shift has an outsized effect on whether a path lands on its end pose. Do not change them without coordinating with whoever owns auto tuning, and expect to re-tune them if the drivetrain changes underneath.
 
-```java
-AutoBuilder.configure(
-        this::getRobotPose,
-        this::resetPose,
-        this::getCurrentRobotChassisSpeeds,
-        (speeds, feedforwards) -> setControl(
-                AutoRequest.withSpeeds(ChassisSpeeds.discretize(speeds, 0.020))
-                        .withWheelForceFeedforwardsX(feedforwards.robotRelativeForcesX())
-                        .withWheelForceFeedforwardsY(feedforwards.robotRelativeForcesY())),
-        new PPHolonomicDriveController(
-                new PIDConstants(4, 0, 0),  // translation
-                new PIDConstants(3, 0, 0)), // rotation
-        config,
-        () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
-        this);
-```
+The same call also passes a `RobotConfig` read from the editor's `settings.json`, and an alliance supplier that decides whether a path needs flipping.
 
-Those PID constants get re-tuned every year. Don't change them without coordinating with whoever owns auto tuning; small shifts have outsized effects on whether a path lands on its end pose.
+## Mirroring and flipping are different things
 
-## Event Triggers
+The chooser offers one `.auto` file as a left and a right variant, and that works because mirroring and flipping mean opposite things:
 
-Path event markers fire `EventTrigger`s. They're declared once at the top of `Auton.java`:
+* `mirrorPath()` mirrors across the center line of the same alliance. It turns a left-side auto into a right-side one.
+* `flipPath()` flips for red versus blue.
 
-```java
-public static final EventTrigger autonIntake     = new EventTrigger("intake");
-public static final EventTrigger autonShotPrep   = new EventTrigger("shotPrep");
-public static final EventTrigger autonShoot      = new EventTrigger("shoot");
-public static final EventTrigger autonClearState = new EventTrigger("clearState");
-public static final EventTrigger autonUnjam      = new EventTrigger("unjam");
-public static final EventTrigger autonPoseUpdate = new EventTrigger("poseUpdate");
-```
+Inside an `.auto` file both are automatic, because the editor and the `AutoBuilder` alliance supplier do them for you. If you load a path directly from Java instead of going through a `PathPlannerAuto`, neither one happens on its own and you are responsible for both. `Robot` does this explicitly for the auto preview, which is a working example of the manual path.
 
-…and then bound to super-states in `Robot.configureBindings()`:
+## The chooser
 
-```java
-Auton.autonIntake.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_INTAKE_FUEL));
-Auton.autonShotPrep.onTrue(superStructure.setStateCommand(WantedSuperState.AUTON_TRACK_TARGET));
-Auton.autonClearState.onTrue(superStructure.setStateCommand(WantedSuperState.IDLE));
-```
+`Auton.setupSelectors()` fills a `SendableChooser<Command>` and publishes it to SmartDashboard under `Auto Chooser`, so it shows up on the Elastic pre-match tab. The command for an option comes from `PathPlannerAuto`, with a `mirrored` flag for the left and right pair.
 
-Adding a new auto step is a three-step recipe: drop the event marker in the editor, add a matching `EventTrigger` constant in `Auton.java`, and bind it to a `WantedSuperState` (or whatever command you want) in `Robot.configureBindings()`. The marker name and the string passed to `new EventTrigger(...)` have to match exactly; if your trigger isn't firing, that's the first thing to double-check.
+Two things to know before you add an option:
 
-## The Auto Chooser
-
-`Auton.setupSelectors()` builds a `SendableChooser<Command>` and publishes it to SmartDashboard so it surfaces on Elastic's Pre-Match tab:
-
-```java
-pathChooser.addOption("TBTB Left",  TBTB(false));
-pathChooser.addOption("TBTB Right", TBTB(true));
-// ...
-SmartDashboard.putData("Auto Chooser", pathChooser);
-```
-
-Each option ultimately returns `new PathPlannerAuto(autoName, mirrored)`. The `mirrored` flag is how a single `.auto` file becomes both the "Left" and "Right" variants: `PathPlannerPath.mirrorPath()` mirrors across the center line of *the same* alliance, while `PathPlannerPath.flipPath()` flips for red versus blue (which the alliance lambda in `AutoBuilder` does for you inside an `.auto`).
-
-If you're loading a path directly from Java instead of through an `.auto`, the alliance flip is *not* automatic. You're on the hook for `flipPath()` and `mirrorPath()` yourself.
+* Auto names in the chooser must match the `.auto` file names exactly, including case. The roboRIO's filesystem is case-sensitive and the Windows sim is not, so a mismatch passes locally and fails on the robot with the auto simply not starting. `Auton.verifyAutoFile` alerts at boot and `Robot.logAutoSelection` writes the outcome to the wpilog.
+* `Auton.getAutonomousCommand()` returns a print command rather than null when the chooser has nothing selected, so a missing selection is visible on the Driver Station instead of throwing during the auto period.
 
 ## Warmup
 
-`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` (once per session, guarded by `autonWarmedUp`) so the JIT has compiled the hot paths before the first auto runs. If you add new path-loading code that's only used in matches, schedule a warmup the same way; `PathPlannerPath.fromPathFile(...)` is heavy on the first call.
+`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()` once per session, guarded by a flag, so the JIT has compiled the hot paths before the first auto runs. Anything new that is only loaded during a match, such as parsing a path file, deserves a warmup the same way. Path loading is heavy on its first call.
 
-## Loading a Path From Java
+## Loading a path directly from Java
 
-For the occasional one-off (a recovery routine, a fallback after a failed pose update), `PathPlannerPath.fromPathFile("MyPath")` is what you want. It throws `IOException`, `ParseException`, and `FileVersionException`, catch them all and report through `DriverStation.reportError` and `Telemetry.print` so a missing or malformed file doesn't silently kill the auto.
+For a one-off, such as a recovery routine or a fallback after a failed pose update, read the file with the library's `PathPlannerPath.fromPathFile(...)`. It declares checked exceptions, so catch them specifically, report through `DriverStation` and `Telemetry`, and make sure a missing or malformed file cannot leave the auto silently doing nothing.
 
 ## Gotchas
 
-The editor's `settings.json` shadows the robot constants. If your generated trajectories assume one robot mass and the real swerve assumes another, paths won't track. Keep them aligned.
+The editor's `settings.json` shadows the robot constants. If the trajectories were generated against one robot mass or wheel friction and the real swerve assumes another, the paths will not track. Keep them aligned, and re-check `settings.json` after any change to the robot's physical mass or gearing.
 
-`navgrid.json` is editor-only. It deploys, but nothing reads it on the robot. Keep it under source control so the editor opens cleanly for everyone.
+`navgrid.json` is editor-only. It deploys to the roboRIO, but nothing on the robot reads it. Keep it under source control anyway so the editor opens cleanly for everyone.
 
-Event marker names with trailing whitespace are a recurring footgun. They look identical in the editor and don't match in Java.
+## Further reading
 
-## Further Reading
-
-[PathPlanner Documentation](https://pathplanner.dev/home.html) covers the editor and on-robot library at a concept level. The [JavaDoc](https://pathplanner.dev/api/java/) is linked into our generated docs. For our higher-level "how an auto runs end-to-end" view, see [Auton](../tools/auton.md).
+[PathPlanner Documentation](https://pathplanner.dev/home.html) covers the editor and the on-robot library. The [JavaDoc](https://pathplanner.dev/api/java/) is cross-linked from our generated docs. For how an auto runs end to end from a human's point of view, see [Auton](../tools/auton.md).

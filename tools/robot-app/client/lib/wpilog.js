@@ -1,7 +1,7 @@
 /**
  * WPILib DataLog (.wpilog) reader.
  *
- * Runs unchanged in the browser and in Node -- both have DataView/TextDecoder -- so the sync
+ * Runs unchanged in the browser and in Node, both of which have DataView/TextDecoder, so the sync
  * server and the analysis pages share one parser and can never disagree about what a log says.
  *
  * Record framing, per the WPILib datalog spec:
@@ -66,13 +66,19 @@ function decodeValue(type, view, offset, size, buf) {
             return out;
         }
         case "string[]": {
+            // Bounded by the record, so one corrupt array cannot end the parse or eat the next records.
+            const stop = offset + size;
+            if (size < 4) return undefined;
             let p = offset;
             const n = view.getUint32(p, true);
             p += 4;
+            if (n > (size - 4) / 4) return undefined;
             const out = [];
             for (let i = 0; i < n; i++) {
+                if (p + 4 > stop) return undefined;
                 const len = view.getUint32(p, true);
                 p += 4;
+                if (p + len > stop) return undefined;
                 out.push(utf8.decode(new Uint8Array(buf, p, len)));
                 p += len;
             }
@@ -155,14 +161,18 @@ export function parseWpilog(input, opts = {}) {
 
     let buf;
     if (input instanceof ArrayBuffer) buf = input;
-    else if (ArrayBuffer.isView(input)) buf = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+    else if (ArrayBuffer.isView(input)) {
+        // A large Node Buffer owns its whole ArrayBuffer; copying it would double peak memory.
+        const whole = input.byteOffset === 0 && input.byteLength === input.buffer.byteLength;
+        buf = whole ? input.buffer : input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+    }
     else throw new TypeError("parseWpilog expects an ArrayBuffer or a typed array");
 
     const view = new DataView(buf);
     const end = view.byteLength;
     let pos = 0;
 
-    const magic = utf8.decode(new Uint8Array(buf, 0, 6));
+    const magic = end >= 12 ? utf8.decode(new Uint8Array(buf, 0, 6)) : "";
     if (magic !== "WPILOG") {
         log.error = "not a WPILOG file";
         return log;
@@ -244,7 +254,7 @@ export function parseWpilog(input, opts = {}) {
             pos = payloadStart + size;
         }
     } catch (e) {
-        // A truncated log -- the RIO lost power mid-write -- is normal and still worth reading.
+        // A truncated log is normal, for example when the RIO lost power mid-write, and still worth reading.
         log.error = `stopped at byte ${pos}: ${e.message}`;
     }
 

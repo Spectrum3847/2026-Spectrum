@@ -9,8 +9,8 @@
  *   data/controls.json      every pilot.X / operator.X bound in Robot.configureBindings()
  *   data/robot-profile.json every motor's supply and stator current limit
  *
- * These are hand-written rather than generated on purpose -- the LT/RT bindings' real behaviour
- * lives inside Commands.either(...) conditions that no extractor can describe usefully -- so this
+ * These are hand-written rather than generated on purpose. The LT/RT bindings' real behaviour
+ * lives inside Commands.either(...) conditions that no extractor can describe usefully, so this
  * check is what keeps "hand-written" from meaning "wrong by March".
  *
  * This is NOT wired into the Gradle build. Robot code has to be free to move without anyone
@@ -96,7 +96,7 @@ function checkControls() {
             }
         }
 
-        // Line numbers are a convenience, not correctness -- warn, do not fail.
+        // Line numbers are a convenience, not correctness. Warn, do not fail.
         const lines = robotJava.split("\n");
         for (const layer of controller.layers) {
             for (const b of layer.bindings) {
@@ -138,7 +138,7 @@ function checkLimits() {
     const byKey = new Map(profile.motors.map((m) => [m.key, m]));
     for (const motor of profile.motors) {
         // RightConfig takes its limits from LeftConfig at construction time, so there is nothing
-        // to read in its own class body -- check that the two profile entries agree instead.
+        // to read in its own class body, so check that the two profile entries agree instead.
         if (motor.inheritsLimitsFrom) {
             const parent = byKey.get(motor.inheritsLimitsFrom);
             if (!parent) {
@@ -283,7 +283,7 @@ function checkElasticLayout() {
      * nearly all of them were live: the mechanisms cache keys as `prefix + "/StatorCurrent"`, the
      * cameras as `"Vision/" + name + "/TagCount"`, the loop timings come from Telemetry.time(),
      * and DogLog publishes SystemStats and its own diagnostics with no call in this repo at all. A
-     * check that cries wolf 94 times is worse than no check -- that noise floor is what let
+     * check that cries wolf 94 times is worse than no check. That noise floor is what let
      * /Robot/Applied State sit dead on two tabs.
      */
     const LOG_CALL =
@@ -396,7 +396,7 @@ function checkPagesTracked() {
     let tracked;
     try {
         tracked = new Set(
-            execFileSync("git", ["ls-files", "--", "tools/robot-app/client/pages"], { cwd: REPO, encoding: "utf8" })
+            execFileSync("git", ["ls-files", "--", "tools/robot-app/client/pages"], { cwd: REPO, encoding: "utf8", timeout: 5000 })
                 .split("\n")
                 .filter(Boolean)
         );
@@ -413,7 +413,7 @@ function checkPagesTracked() {
             if (!tracked.has(rel)) {
                 problems.push(
                     `${rel} is not tracked by git. A fresh clone will not have it, Vite will not build that page, ` +
-                        `and its nav tab will 404. Check \`git check-ignore -v ${rel}\` -- a .gitignore rule is probably eating it.`
+                        `and its nav tab will 404. Check \`git check-ignore -v ${rel}\`. A .gitignore rule is probably eating it.`
                 );
             }
         }
@@ -425,7 +425,7 @@ function checkPagesTracked() {
 /** Unix seconds of the last commit touching a path, or null if git cannot say. */
 function lastCommitSeconds(rel) {
     try {
-        const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", rel], { cwd: REPO, encoding: "utf8" }).trim();
+        const out = execFileSync("git", ["log", "-1", "--format=%ct", "--", rel], { cwd: REPO, encoding: "utf8", timeout: 5000 }).trim();
         return out ? Number(out) : null;
     } catch {
         return null;

@@ -1,7 +1,7 @@
 /*
  * Cameras page.
  *
- * One card per Limelight: its stream, its health, and how it is mounted -- as Vision.java has it,
+ * One card per Limelight: its stream, its health, and how it is mounted, as Vision.java has it,
  * as the camera has saved it, and as the camera can measure it right now from its accelerometer
  * and from any AprilTag it can see. Two calibrators sit under that:
  *
@@ -56,13 +56,13 @@ const LABELS = { backLeftConfig: "Back left", backRightConfig: "Back right", tur
 const humanize = (key) => LABELS[key] || key.replace(/Config$/, "").replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 
 const fmt = {
-    m: (v) => (Number.isFinite(v) ? `${v.toFixed(3)} m` : "—"),
-    cm: (v) => (Number.isFinite(v) ? `${(v * 100).toFixed(1)} cm` : "—"),
-    deg: (v) => (Number.isFinite(v) ? `${v.toFixed(1)}°` : "—"),
-    deg2: (v) => (Number.isFinite(v) ? `${v.toFixed(2)}°` : "—"),
-    sdeg: (v) => (Number.isFinite(v) ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}°` : "—"),
-    num: (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—"),
-    pct: (v) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : "—"),
+    m: (v) => (Number.isFinite(v) ? `${v.toFixed(3)} m` : "n/a"),
+    cm: (v) => (Number.isFinite(v) ? `${(v * 100).toFixed(1)} cm` : "n/a"),
+    deg: (v) => (Number.isFinite(v) ? `${v.toFixed(1)}°` : "n/a"),
+    deg2: (v) => (Number.isFinite(v) ? `${v.toFixed(2)}°` : "n/a"),
+    sdeg: (v) => (Number.isFinite(v) ? `${v >= 0 ? "+" : ""}${v.toFixed(1)}°` : "n/a"),
+    num: (v, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "n/a"),
+    pct: (v) => (Number.isFinite(v) ? `${Math.round(v * 100)}%` : "n/a"),
 };
 
 // ---------------------------------------------------------------------------
@@ -134,7 +134,9 @@ async function loadLayout() {
 }
 
 async function pollCamera(cam) {
-    const [status, results] = await Promise.allSettled([cam.client.status(), cam.client.results()]);
+    const client = cam.client;
+    const [status, results] = await Promise.allSettled([client.status(), client.results()]);
+    if (cam.client !== client) return;
     if (status.status === "fulfilled" && status.value) {
         cam.status = status.value;
         cam.lastSeen = Date.now();
@@ -145,7 +147,9 @@ async function pollCamera(cam) {
     if (results.status === "fulfilled" && results.value) cam.results = results.value;
     if (!cam.error && Date.now() - cam.pipelineAt > PIPELINE_POLL_MS) {
         try {
-            cam.pipeline = await cam.client.pipeline(cam.status?.pipelineIndex ?? 0);
+            const pipeline = await client.pipeline(cam.status?.pipelineIndex ?? 0);
+            if (cam.client !== client) return;
+            cam.pipeline = pipeline;
             cam.pipelineAt = Date.now();
         } catch {
             // Keep the last one.
@@ -240,10 +244,10 @@ function renderPoseSection() {
                         el("tr", {},
                             el("td", {}, humanize(cam.key)),
                             el("td", { class: "num" }, String(tags)),
-                            el("td", { class: "num" }, pose ? fmt.m(pose[0]) : "—"),
-                            el("td", { class: "num" }, pose ? fmt.m(pose[1]) : "—"),
-                            el("td", { class: "num" }, pose ? fmt.deg(pose[5]) : "—"),
-                            el("td", { class: "num" }, cam.results?.stdev_mt1 && tags > 0 ? `${fmt.cm(Math.hypot(cam.results.stdev_mt1[0], cam.results.stdev_mt1[1]))}` : "—")))))),
+                            el("td", { class: "num" }, pose ? fmt.m(pose[0]) : "n/a"),
+                            el("td", { class: "num" }, pose ? fmt.m(pose[1]) : "n/a"),
+                            el("td", { class: "num" }, pose ? fmt.deg(pose[5]) : "n/a"),
+                            el("td", { class: "num" }, cam.results?.stdev_mt1 && tags > 0 ? `${fmt.cm(Math.hypot(cam.results.stdev_mt1[0], cam.results.stdev_mt1[1]))}` : "n/a")))))),
             el("div", { class: "footnote" },
                 "Every camera solves the robot's pose through its own mount transform, so two cameras seeing tags at once is a test of both mounts at once. ",
                 "A yaw or sideways error in one mount shows up here as a disagreement that grows with distance, and this page cannot fix it: ",
@@ -260,7 +264,7 @@ const IMAGE_STEPS = { exposure: "1", lcgain: "0.1", black_level: "1" };
 
 function buildCard(cam) {
     const d = cam.dom;
-    d.hostInput = el("input", { type: "text", value: cam.host, spellcheck: "false", title: "Hostname or IP of this camera" });
+    d.hostInput = el("input", { type: "text", value: cam.host, spellcheck: "false", title: "Hostname or IP of this camera", "aria-label": "Camera host" });
     const useBtn = el("button", { onclick: () => setHost(cam, d.hostInput.value) }, "Use");
     d.hostInput.addEventListener("keydown", (e) => e.key === "Enter" && setHost(cam, d.hostInput.value));
     d.uiLink = el("a", { href: cam.client.webUiUrl(), target: "_blank", rel: "noopener" }, "web UI ↗");
@@ -301,7 +305,7 @@ function buildCard(cam) {
 
     // Image tuning
     d.sweep = {};
-    for (const k of PIPELINE_IMAGE_KEYS) d.sweep[k] = el("input", { type: "text", value: DEFAULT_SWEEPS[k].join(", ") });
+    for (const k of PIPELINE_IMAGE_KEYS) d.sweep[k] = el("input", { type: "text", value: DEFAULT_SWEEPS[k].join(", "), "aria-label": `${IMAGE_LABELS[k]} sweep values` });
     d.tuneBtn = el("button", { class: "primary", onclick: () => autoTune(cam) }, "Auto-tune image");
     d.abortBtn = el("button", { disabled: true, onclick: () => cam.tuning?.abort?.() }, "Stop");
     d.tuneProgress = el("div", { class: "progress" });
@@ -480,9 +484,9 @@ function renderMeasurement(cam) {
         el("tr", {},
             el("td", {}, label),
             el("td", { class: "num" }, String(n)),
-            el("td", { class: "num" }, pitch === null ? "—" : `${fmt.deg2(pitch)}${Number.isFinite(pitchStd) ? ` ± ${pitchStd.toFixed(2)}` : ""}`),
-            el("td", { class: "num" }, roll === null ? "—" : fmt.deg(roll)),
-            el("td", { class: "num" }, height === null ? "—" : `${fmt.m(height)}${Number.isFinite(heightStd) ? ` ± ${(heightStd * 1000).toFixed(0)} mm` : ""}`),
+            el("td", { class: "num" }, pitch === null ? "n/a" : `${fmt.deg2(pitch)}${Number.isFinite(pitchStd) ? ` ± ${pitchStd.toFixed(2)}` : ""}`),
+            el("td", { class: "num" }, roll === null ? "n/a" : fmt.deg(roll)),
+            el("td", { class: "num" }, height === null ? "n/a" : `${fmt.m(height)}${Number.isFinite(heightStd) ? ` ± ${(heightStd * 1000).toFixed(0)} mm` : ""}`),
             el("td", { class: "dim" }, extra || ""));
 
     const rows = [];
@@ -588,7 +592,7 @@ function parseCandidates(text, fallback) {
  * Writes the three typed image values to one camera or to all of them, and saves to flash.
  *
  * Separate from the sweep on purpose. Auto-tune answers "what should these be?"; this answers "make
- * every camera match the numbers I already have", which is the common pit job -- one camera gets
+ * every camera match the numbers I already have", which is the common pit job. One camera gets
  * dialled in by hand or by sweep and the other two have to be told. Applying to all is why the
  * values are read out of the fields rather than out of this card's own pipeline.
  *
@@ -613,7 +617,7 @@ async function applyImageSettings(cam, all) {
         }
         values[k] = n;
         // The sweep candidates are the range this robot's cameras have actually been run at, so
-        // outside it is worth saying out loud -- but it is the camera's call to refuse, not ours.
+        // outside it is worth saying out loud, but it is the camera's call to refuse, not ours.
         const lo = Math.min(...DEFAULT_SWEEPS[k]);
         const hi = Math.max(...DEFAULT_SWEEPS[k]);
         if (n < lo || n > hi) outOfSweep.push(`${IMAGE_LABELS[k]} ${n} is outside the ${lo}-${hi} this page sweeps`);
@@ -728,9 +732,9 @@ function renderTuning(cam) {
                             el("td", { class: "num" }, fmt.num(r.metrics.meanTags, 1)),
                             el("td", { class: "num" }, fmt.num(r.metrics.meanAmbig, 2)),
                             el("td", { class: "num" }, fmt.num(r.metrics.cornerJitterPx, 2)),
-                            el("td", { class: "num" }, r.metrics.poseJitterM === null ? "—" : fmt.cm(r.metrics.poseJitterM)),
-                            el("td", { class: "num" }, r.metrics.latencyMs === null ? "—" : `${fmt.num(r.metrics.latencyMs, 0)} ms`),
-                            el("td", { class: "num" }, Number.isFinite(r.score) ? r.score.toFixed(1) : "—"))))))));
+                            el("td", { class: "num" }, r.metrics.poseJitterM === null ? "n/a" : fmt.cm(r.metrics.poseJitterM)),
+                            el("td", { class: "num" }, r.metrics.latencyMs === null ? "n/a" : `${fmt.num(r.metrics.latencyMs, 0)} ms`),
+                            el("td", { class: "num" }, Number.isFinite(r.score) ? r.score.toFixed(1) : "n/a"))))))));
 
     if (t.done && t.result && !t.error) {
         const changed = PIPELINE_IMAGE_KEYS.filter((k) => t.result[k] !== t.original[k]);
@@ -773,9 +777,12 @@ grid.replaceChildren(...state.cameras.map(buildCard));
 renderPoseSection();
 
 async function tick() {
-    await Promise.all(state.cameras.map(pollCamera));
-    for (const cam of state.cameras) refreshCard(cam);
-    renderPoseSection();
-    setTimeout(tick, POLL_MS);
+    try {
+        await Promise.all(state.cameras.map(pollCamera));
+        for (const cam of state.cameras) refreshCard(cam);
+        renderPoseSection();
+    } finally {
+        setTimeout(tick, POLL_MS);
+    }
 }
 tick();

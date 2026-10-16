@@ -4,14 +4,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import java.net.*;
 import java.util.HexFormat;
 
-/** Common Network Utilities */
 public class Network {
     static final String unknown = "UNKNOWN";
-    /**
-     * Gets the MAC address of the robot
-     *
-     * @return the MAC address of the robot
-     */
+    /** This machine's MAC address, or {@code "UNKNOWN"} after 10 failed attempts. */
     public static String getMACaddress() {
         InetAddress localHost;
         NetworkInterface ni;
@@ -35,11 +30,7 @@ public class Network {
         return unknown;
     }
 
-    /**
-     * Gets the IP address of the robot
-     *
-     * @return the IP address of the robot
-     */
+    /** This machine's IP address, or {@code "UNKNOWN"} after 10 failed attempts. */
     public static String getIPaddress() {
         InetAddress localHost;
         String ip = "";
@@ -58,11 +49,9 @@ public class Network {
     }
 
     /**
-     * Resolves and returns the IP address of a device identified by its mDNS or hostname address
-     * (e.g. {@code "limelight.local"}).
+     * Resolves a hostname or mDNS name, such as {@code "limelight.local"}.
      *
-     * @param deviceNameAddress the hostname or mDNS name to resolve
-     * @return the resolved IP address string, or {@code "UNKNOWN"} if resolution fails
+     * @return the resolved IP address, or {@code "UNKNOWN"} after 10 failed attempts
      */
     public static String getIPaddress(String deviceNameAddress) {
         InetAddress localHost;

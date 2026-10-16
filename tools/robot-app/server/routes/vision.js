@@ -35,7 +35,7 @@ visionRouter.get("/target", async (req, res) => {
  * Writes measured mount values for one camera into Vision.java.
  *
  * Body: { camera: "backLeftConfig", roll?: degrees, pitch?: degrees, up?: metres }. Only those
- * three are accepted -- forward, right and yaw need a surveyed robot position and stay CAD. The
+ * three are accepted. Forward, right and yaw need a surveyed robot position and stay CAD. The
  * server binds to loopback, so nothing on the pit network can reach this.
  */
 visionRouter.post("/apply", async (req, res) => {
@@ -45,7 +45,7 @@ visionRouter.post("/apply", async (req, res) => {
         const values = {};
         for (const k of WRITABLE) {
             if (body[k] === undefined || body[k] === null) continue;
-            const v = Number(body[k]);
+            const v = typeof body[k] === "number" ? body[k] : NaN;
             if (!Number.isFinite(v)) throw new Error(`"${k}" must be a number.`);
             values[k] = v;
         }

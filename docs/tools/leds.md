@@ -2,56 +2,44 @@
 
 *Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
 
-The robot's LEDs are live: [`Leds`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) (`frc.robot.subsystems.leds`) extends `SpectrumLEDs` and drives a Phoenix 6 CANdle, device ID 1 on the CANivore, a 20-LED RGB external strip.
+**The robot's LED subsystem is not running.** [`Leds.java`](../../src/main/java/frc/robot/subsystems/leds/Leds.java) is commented out from top to bottom, and nothing in `Robot.java` constructs a `Leds`. Do not assume LEDs work, and do not write a binding against `Leds` expecting it to exist.
 
-## Library: `SpectrumLEDs`
+The library underneath it is complete and is what you would build on. This page covers the library's design and what bringing `Leds` back involves.
 
-[`frc.spectrumLib.leds.SpectrumLEDs`](../../src/main/java/frc/spectrumLib/leds/SpectrumLEDs.java) is our wrapper around a **Phoenix 6 `CANdle`** (not the WPILib `AddressableLED` stack). It `implements Subsystem` and owns:
+## The library: SpectrumLEDs
 
-* A `CANdle` (device ID + CAN bus, set by `Config`).
-* A `CANdleConfiguration` for strip type, brightness, and loss-of-signal behavior.
-* An animation slot the CANdle uses for hardware animations (strobe, fade, rainbow, …).
+[`frc.spectrumLib.leds.SpectrumLEDs`](../../src/main/java/frc/spectrumLib/leds/SpectrumLEDs.java) wraps a Phoenix 6 `CANdle` directly, not WPILib's `AddressableLED` stack. That choice is what makes the hardware animations available at all: patterns either become a CANdle animation running on the device, or they are written per LED from the roboRIO each loop. Blink, breathe and rainbow go to the device. Gradients, ombre, countdown and anything reading a supplier have to be per-LED writes.
 
-The constructor takes a `Config` either by device id + LED count (it owns the CANdle) or by sharing an existing `CANdle` with a start index and count (a sub-view that addresses a slice of the same physical strip without owning the hardware).
+Read the pattern factories in that file for the list. What is worth knowing without reading them is that they all return the same `CANdlePattern` type, so a pattern from one of the hardware factories and one of the software factories are interchangeable as far as `setPattern` is concerned.
 
-## Patterns
+`SpectrumLEDs` implements `Subsystem`, so it gets `periodic()` and a default command. Its `Config` has two constructors and the difference matters: one takes a device ID and a bus and the instance owns the hardware, the other takes an existing `CANdle` plus a start index and a count and the instance addresses only that slice of a shared strip, applying no hardware configuration of its own. Use the second one if you ever split one physical strip between two subsystems.
 
-`SpectrumLEDs` ships with pattern factories that return `CANdlePattern` objects (some backed by hardware CANdle animations, some by per-LED color writes):
+The `Config` also carries an `attached` flag. A zone that is not physically connected can be left unattached, which is how a config that exists for the offseason can still be constructed in season.
 
-|                     Method                     |                                      What you get                                       |
-|------------------------------------------------|-----------------------------------------------------------------------------------------|
-| `solid(color)`                                 | A static color.                                                                         |
-| `blink(color, onTime)`                         | On for `onTime` seconds, off for the same.                                              |
-| `breathe(color, period)`                       | Smooth fade in/out across `period` seconds.                                             |
-| `rainbow()` / `scrollingRainbow()`             | Full rainbow, optionally scrolling at 0.25 m/s along the strip.                         |
-| `gradient(colors...)`                          | Continuous gradient between an arbitrary number of colors.                              |
-| `stripe(percent, c1, c2)`                      | First `percent` of strip in `c1`, rest in `c2`.                                         |
-| `chase(color, percent, speed)`                 | A moving block of `color` covering `percent` of the strip, scrolling at `speed` Hz.     |
-| `bounce(color, duration)`                      | A lit cell with two trails of dimmer color bouncing across the strip.                   |
-| `ombre(start, end)` / `wave(c1, c2, len, dur)` | Color transitions implemented inline because WPILib's built-ins don't quite cover them. |
-| `countdown(startSupplier, duration)`           | Strip starts full, turns off back-to-front over `duration`, color fades yellow → red.   |
-| `switchCountdown(startColor)`                  | 2026-specific: alliance-shift countdown that flips between alliance colors and purple.  |
-| `edges(color, length)`                         | `length` LEDs lit at each end, rest off.                                                |
+## Driving patterns from commands
 
-Hardware-animation patterns (blink, breathe, rainbow) are driven by the CANdle's own animation engine via Phoenix 6 controls (`StrobeAnimation`, `SingleFadeAnimation`, `RainbowAnimation`, …); the color/gradient patterns are written per-LED each loop.
+`setPattern(pattern, priority)` returns a command that applies the pattern every loop for as long as it runs, and holds that priority while it does.
 
-## Driving Patterns from Commands
+Four things about that command are worth knowing before you build on it:
 
-`setPattern(pattern, priority)` returns a `Command` that applies the pattern every loop. It calls `.ignoringDisable(true)`, so LED commands keep running while the robot is disabled, exactly what you want for status lights.
+* **It runs while the robot is disabled.** That is deliberate. Status lights are the one thing you want lit while the robot is waiting on the field.
 
-```java
-public Command idleLights() {
-    return leds.setPattern(leds.breathe(purple, 2.0), 1);
-}
-```
+* **Priority is how one pattern preempts another.** `checkPriority(int)` returns a `Trigger` that is true when the currently-held priority is at or below the number you pass, which is the gate for a higher-priority command to take over. Endgame strobe over alliance breathing is the intended shape.
 
-The `priority` slot is an integer. `checkPriority(int)` returns a `Trigger` so a higher-priority animation (endgame strobe) can preempt a lower-priority one (alliance breathing) cleanly through a `Trigger` chain.
+* **Priority is released when the command ends**, not when you think you are done with it, and it is released through a `finallyDo` so an interrupted command releases it too. A pattern left holding a high priority will block everything below it indefinitely.
 
-## Wiring It Into the Robot
+* **Switching from a hardware animation to a software pattern clears the animation slot first**, and only this instance's own slot, so other instances sharing the same CANdle keep animating. If you skip that clear you get the ghost of the old animation under the new colours, which looks like the pattern factory is wrong.
 
-`Leds` is a normal subsystem: bind status triggers (auto mode, alliance shift, endgame, "about to shift") to `leds.setPattern(...)` commands at their priorities, the same way any other subsystem is wired in `Robot.java`. The [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java) match-clock windows are what the shift-aware animations key off of.
+## Bringing Leds back
 
-## See Also
+The commented-out `Leds` is a complete, current-looking file, which makes it easy to assume it works. It has not been compiled since it was commented out, so treat it as a sketch.
 
-* CTRE's Phoenix 6 [CANdle](https://v6.docs.ctr-electronics.com/) docs for the underlying animation controls.
-* `Subsystem` for the lifecycle hooks the scheduler runs each loop.
+* The hardware it describes is a CANdle on the CANivore with a 20-LED external strip, addressed from an LED index that skips the CANdle's own onboard LEDs, with loss-of-signal behaviour set to disable the LEDs.
+* It sets a breathing default command in its constructor and logs its own command and animation state each loop.
+* Wiring it in means constructing it in `Robot.java` and passing it to `SuperStructure`, then binding status triggers to `setPattern` commands at the right priorities, the same way any other subsystem is wired. Match-clock patterns get their timing from [`ShiftHelpers`](../../src/main/java/frc/rebuilt/ShiftHelpers.java).
+* Compile and deploy before you trust any of it. The LEDs are a CAN device, and an LED subsystem is a perfectly good way to find out the CAN bus has a spare.
+
+## See also
+
+* CTRE's Phoenix 6 [CANdle](https://v6.docs.ctr-electronics.com/) documentation for the animation controls and the config fields.
+* [Elastic Dashboard](elastic.md), since a status LED and a dashboard widget are usually the same requirement and one of them has to be chosen.

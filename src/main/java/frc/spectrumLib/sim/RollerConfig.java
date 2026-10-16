@@ -5,33 +5,31 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import lombok.Getter;
 
 /**
- * Configuration data for a roller mechanism simulation. Stores physical properties, display colors,
- * canvas position, and optional mount attachment used by {@link RollerSim}.
+ * Physical properties, display colors, canvas position, and the optional parent mount for a {@link
+ * RollerSim}.
  */
 public class RollerConfig implements Mountable.MountedConfig {
-    /** Outer diameter of the roller in inches, used for physics and visual scaling. */
+    /** Roller diameter in inches, used for both the physics model and the drawing. */
     @Getter private double rollerDiameterInches = 2;
-    /** Number of radial lines used to draw the roller circle in the Mechanism2d canvas. */
+
     @Getter private int backgroundLines = 36;
-    /** Gear ratio between the motor and the roller output shaft. */
+    /** Motor rotations per roller revolution. */
     @Getter private double gearRatio = 5;
-    /** Moment of inertia of the roller used by the flywheel physics simulation (kg·m²). */
+    /** Roller moment of inertia in kg·m², fed to the flywheel sim. */
     @Getter private double simMOI = 0.01;
-    /** Color displayed when the roller is stationary or below the velocity threshold. */
+    /** Color below the spin threshold the sim treats as stationary. */
     @Getter private Color8Bit offColor = new Color8Bit(Color.kBlack);
-    /** Color displayed when the roller is spinning in the forward direction. */
+    /** Color while the roller spins in the forward direction. */
     @Getter private Color8Bit fwdColor = new Color8Bit(Color.kGreen);
-    /** Color displayed when the roller is spinning in the reverse direction. */
+    /** Color while the roller spins in the reverse direction. */
     @Getter private Color8Bit revColor = new Color8Bit(Color.kRed);
-    /** Initial X position of the roller axle in the Mechanism2d canvas (metres). */
+    /** Initial axle X on the Mechanism2d canvas, in metres. */
     @Getter private double initialX = 0;
-    /** Initial Y position of the roller axle in the Mechanism2d canvas (metres). */
+    /** Initial axle Y on the Mechanism2d canvas, in metres. */
     @Getter private double initialY = 0;
-    /** Whether this roller is attached to a parent {@link Mount}. */
     /** The parent mount this roller is attached to, or {@code null} if not mounted. */
     @Getter private Mount mount;
 
-    /** Whether this config is attached to a parent mount. */
     public boolean isMounted() {
         return mount != null;
     }
@@ -43,11 +41,6 @@ public class RollerConfig implements Mountable.MountedConfig {
     /** Angle of the mount at simulation start (radians). */
     @Getter private double initMountAngle;
 
-    /**
-     * Creates a RollerConfig for a roller with the given diameter.
-     *
-     * @param diameterInches outer diameter of the roller in inches
-     */
     public RollerConfig(double diameterInches) {
         rollerDiameterInches = diameterInches;
     }
@@ -58,44 +51,22 @@ public class RollerConfig implements Mountable.MountedConfig {
     /**
      * Mirrors the simulated motor so the sim's travel matches the motor's positive direction. See
      * {@link SimMotor#simState(com.ctre.phoenix6.hardware.TalonFX, boolean)}.
-     *
-     * @param reversedLinkage true when the sim travels opposite the motor
-     * @return this config, for chaining
      */
     public RollerConfig setReversedLinkage(boolean reversedLinkage) {
         this.reversedLinkage = reversedLinkage;
         return this;
     }
 
-    /**
-     * Sets the gear ratio.
-     *
-     * @param ratio the ratio of motor speed to roller speed
-     * @return this config, for chaining
-     */
     public RollerConfig setGearRatio(double ratio) {
         gearRatio = ratio;
         return this;
     }
 
-    /**
-     * Sets the moment of inertia used by the flywheel physics simulation.
-     *
-     * @param moi moment of inertia in kg·m²
-     * @return this config for chaining
-     */
     public RollerConfig setSimMOI(double moi) {
         simMOI = moi;
         return this;
     }
 
-    /**
-     * Sets the initial position of the roller axle in the Mechanism2d canvas.
-     *
-     * @param x initial X position in metres
-     * @param y initial Y position in metres
-     * @return this config for chaining
-     */
     public RollerConfig setPosition(double x, double y) {
         initialX = x;
         initialY = y;
@@ -103,11 +74,9 @@ public class RollerConfig implements Mountable.MountedConfig {
     }
 
     /**
-     * Attaches this roller to a {@link LinearSim} mount so its axle tracks the linear stage's
-     * position.
+     * Attaches this roller to a {@link LinearSim} so its axle follows that stage.
      *
-     * @param sim the linear stage to mount onto, or {@code null} to leave unmounted
-     * @return this config for chaining
+     * @param sim the stage to follow, or null to leave this roller unmounted
      */
     public RollerConfig setMount(LinearSim sim) {
         if (sim != null) {
@@ -121,10 +90,9 @@ public class RollerConfig implements Mountable.MountedConfig {
     }
 
     /**
-     * Attaches this roller to an {@link ArmSim} mount so its axle tracks the arm tip's position.
+     * Attaches this roller to an {@link ArmSim} so its axle follows the arm tip.
      *
-     * @param sim the parent arm to mount onto, or {@code null} to leave unmounted
-     * @return this config for chaining
+     * @param sim the arm to follow, or null to leave this roller unmounted
      */
     public RollerConfig setMount(ArmSim sim) {
         if (sim != null) {

@@ -43,48 +43,36 @@ import lombok.Getter;
  * Vision subsystem that manages the turret-mounted Limelight and fuses its pose estimates into the
  * swerve odometry via WPILib's {@code SwerveDrivePoseEstimator}.
  *
- * <p>Supports chassis-mounted cameras plus a turret-mounted camera whose frame rotates with the
- * turret. Chassis cameras use their fixed configured mount and report a robot pose. The turret
- * camera is told it sits on the robot centre with no yaw, so what it reports is its own
- * floor-projected position and heading; {@link #solveTurretCamera()} then composes the robot pose
- * on the roboRIO from that, the turret angle the turret had at the frame's timestamp ({@link
- * frc.robot.subsystems.turret.Turret#getAngleAt}) and the gyro heading at that time. The older
- * scheme, pushing the live turret-rotated transform to the camera every loop so the camera solves a
- * robot pose itself, is kept behind the {@code Vision/TurretRioTransform} dashboard switch as a
- * fallback ({@link #updateTurretCameraPose()}); it applies whatever transform the camera last
- * received to a frame captured tens of milliseconds earlier, so a slewing turret displaces the pose
- * by range times the lag.
+ * <p>Chassis cameras report a robot pose from their fixed configured mount. The turret camera is
+ * told it sits on the robot centre with no yaw, so what it reports is its own floor-projected
+ * position and heading; {@link #solveTurretCamera()} then composes the robot pose on the roboRIO
+ * from that, the turret angle the turret had at the frame's timestamp ({@link
+ * frc.robot.subsystems.turret.Turret#getAngleAt}) and the gyro heading at that time.
  *
- * <p>Each robot loop iteration the subsystem:
+ * <p>Clearing the {@code Vision/TurretRioTransform} dashboard switch falls back to pushing the live
+ * turret-rotated transform to the camera every loop and fusing its MegaTag2 translation ({@link
+ * #updateTurretCameraPose()}). That applies whatever transform the camera last received to a frame
+ * captured tens of milliseconds earlier, so a slewing turret displaces the pose by range times the
+ * lag.
  *
- * <ol>
- *   <li>Records this loop's turret angle, publishes the robot heading to every camera (and, in
- *       fallback mode, the turret-rotated camera transform), then flushes NetworkTables so they
- *       solve this frame.
- *   <li>While disabled, picks the best chassis camera ({@link #getBestLimelight()}) and seeds the
- *       pose (translation and heading) from that camera's MT1 only, watching for the seed to hold
- *       steady long enough to be trusted ({@link #trackSeedConfirmation(Limelight)}). While enabled
- *       it fuses every chassis camera's translation, from MT2 once the seed is confirmed and from
- *       MT1 until then ({@link #chassisUsesMt2()}), plus the turret camera's MT2 translation
- *       ({@link #getMT2VisionEstimate(Limelight)}), never heading, unless the gross-heading safety
- *       net fires ({@link #checkGrossHeadingError(Limelight)}) off the best chassis camera.
- *   <li>Logs camera status and pose data via {@link VisionLogger}.
- * </ol>
+ * <p>Each loop the subsystem records this loop's turret angle, publishes the robot heading to every
+ * camera (and, in fallback mode, the turret-rotated camera transform), flushes NetworkTables so the
+ * cameras solve this frame, then updates pose estimation and logs through {@link VisionLogger}.
+ * While disabled it seeds the pose, translation and heading, from the best chassis camera's
+ * MegaTag1 only, watching for the seed to hold steady long enough to be trusted ({@link
+ * #trackSeedConfirmation(Limelight)}). While enabled it fuses every chassis camera's translation,
+ * from MegaTag2 once the seed is confirmed and from MegaTag1 until then ({@link
+ * #chassisUsesMt2()}), plus the turret camera's MegaTag2 translation ({@link
+ * #getMT2VisionEstimate(Limelight)}), never heading, unless the gross-heading safety net fires
+ * ({@link #checkGrossHeadingError(Limelight)}) off the best chassis camera.
  *
  * <p>The camera can be enabled/disabled with {@link LimelightConfig#setAttached(boolean)}; a
  * detached camera is never read from and contributes no estimates.
  */
 public class Vision implements Subsystem {
 
-    // =========================================================================
-    // Configuration
-    // =========================================================================
-
     public static class VisionConfig {
 
-        // -- Back-Left Limelight ----------------------------------------------
-
-        /** NetworkTables hostname for the rear-left static Limelight. */
         @Getter final String backLeftLL = "limelight-left"; // must match the camera's hostname
 
         /**
@@ -93,18 +81,13 @@ public class Vision implements Subsystem {
          * origin (robot centre, on the carpet) to the camera location: 11.103 in behind centre,
          * 12.490 in left of centre, 17.058 in up.
          *
-         * <p>Rotation: the camera is mounted upside down (roll 180) on the angled rear-left corner
-         * panel, looking out over that corner (yaw +135, i.e. rear-left) and 31.8 deg above
-         * horizontal. If the Limelight web UI image orientation is set to flip the image 180 deg,
-         * enter roll 0 there instead of 180.
+         * <p>Rotation: mounted upside down (roll near 180) on the angled rear-left corner panel,
+         * looking out over that corner (yaw +135). If the Limelight web UI image orientation is set
+         * to flip the image 180 deg, enter roll 0 there instead of 180.
          *
-         * <p>The pitch was 60 until 2026-09-07, when the camera was measured on a stationary robot
-         * and found to be nowhere near it. Three independent readings agreed: the AprilTag solves
-         * for tags 21 and 24 put the optical axis 32.2 and 31.3 deg above horizontal, and the
-         * camera's own accelerometer put it at 31.8 (the rear-left unit read 28.7 the same way).
-         * 31.8 is the accelerometer figure and sits between the two tag solves. It describes where
-         * the camera is actually pointing, not where the mount was meant to put it -- if the
-         * bracket gets fixed to the CAD intent, this goes back to 60.
+         * <p>Roll and pitch are measured by the robot app, not CAD. They describe where the camera
+         * actually points, not where the mount was meant to put it, so fixing the bracket to CAD
+         * intent puts the pitch back to 60.
          *
          * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
          * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
@@ -122,24 +105,20 @@ public class Vision implements Subsystem {
                                 179.1, 30.4, 135) // upside down, 30.4 deg up, facing rear-left
                         .setAttached(true);
 
-        // -- Back-Right Limelight ---------------------------------------------
-
-        /** NetworkTables hostname for the rear-right static Limelight. */
         @Getter final String backRightLL = "limelight-right"; // must match the camera's hostname
 
         /**
          * Robot-relative pose of the rear-right Limelight. Translation measured in CAD from the
          * robot origin (robot centre, on the carpet) to the camera location: 10.064 in behind
-         * centre, 13.315 in right of centre, 17.458 in up.
+         * centre, 13.315 in right of centre.
          *
-         * <p>Rotation: the camera is mounted upside down (roll 180) on the angled rear-right corner
-         * panel, looking out over that corner (yaw -135, i.e. rear-right) and 31.8 deg above
-         * horizontal. If the Limelight web UI image orientation is set to flip the image 180 deg,
-         * enter roll 0 there instead of 180.
+         * <p>Rotation: mounted upside down (roll 178.9) on the angled rear-right corner panel,
+         * looking out over that corner (yaw -135) and 30 deg above horizontal. If the Limelight web
+         * UI image orientation is set to flip the image 180 deg, enter roll 0 there instead.
          *
-         * <p>Measured, not from CAD -- see the note on {@link #backLeftConfig}. This is the camera
-         * the 2026-09-07 measurement was taken on: 32.2 and 31.3 deg from the tag 21 and 24 solves,
-         * 31.8 from its accelerometer.
+         * <p>Measured, not from CAD. See the note on {@link #backLeftConfig} for how the pitch was
+         * arrived at: this is the camera the 2026-09-07 measurement was taken on, reading 32.2 and
+         * 31.3 deg from the tag 21 and 24 solves and 31.8 from its accelerometer.
          *
          * <p>These values are the source of truth: {@link #sendCameraSettings()} writes all six to
          * the camera over NetworkTables every couple of seconds, overwriting whatever is entered in
@@ -156,9 +135,6 @@ public class Vision implements Subsystem {
                         .withRotation(178.9, 30, -135) // upside down, 30 deg up, facing rear-right
                         .setAttached(true);
 
-        // -- Turret Limelight -------------------------------------------------
-
-        /** NetworkTables hostname for the turret-mounted Limelight. */
         @Getter final String turretLL = "limelight-turret";
 
         /**
@@ -166,7 +142,7 @@ public class Vision implements Subsystem {
          * robot rear. Translation in metres (forward, right, up); rotation in degrees (roll, pitch,
          * yaw). Measured in CAD from the robot origin (robot centre, on the carpet) to the camera
          * location: on the centreline, 0.138 m behind centre. Height is NOT from CAD (the model is
-         * known to be wrong there); 18.632 in is the value measured on the robot.
+         * known to be wrong there); the up value is the one measured on the robot.
          *
          * <p>The offsets entered in the Limelight GUI are irrelevant for pose solving. In the
          * default mode {@link Vision#sendCameraSettings()} pushes zero forward, zero right and zero
@@ -177,12 +153,10 @@ public class Vision implements Subsystem {
          * that do not move with the turret (height, roll, pitch), and they are also used by {@link
          * Limelight#getDistanceToTarget(double)}.
          *
-         * <p>The pitch was 60 until 2026-09-07, when it was measured on a stationary robot: the
-         * camera's accelerometer put the optical axis 28.5 deg above horizontal and the tag 24
-         * solve put it at 29.5, so 30 is entered here. Roll measured -4, near enough to the 0 in
-         * this config that the camera is mounted upright as intended. Like the chassis cameras (see
-         * {@link #backLeftConfig}), this describes where the camera actually points, not what the
-         * mount was meant to give -- fix the bracket and this goes back to 60.
+         * <p>The pitch and roll are measured, not CAD. Like the chassis cameras (see {@link
+         * #backLeftConfig}), the pitch describes where the camera actually points, so fixing the
+         * bracket to CAD intent puts it back to 60. Roll measured -4, near enough to the value here
+         * that the camera is mounted upright as intended.
          */
         @Getter
         final LimelightConfig turretConfig =
@@ -193,8 +167,6 @@ public class Vision implements Subsystem {
                                 Units.inchesToMeters(19.957)) // up (measured on robot, not CAD)
                         // Mount measured by the robot app on 2026-09-19
                         .withRotation(1, 28.9, 0); // yaw unused; live turret angle is used
-
-        // -- Turret geometry --------------------------------------------------
 
         /** Robot-centre to turret pivot offset (metres). */
         @Getter final Translation2d robotToTurretCenter = Translation2d.kZero;
@@ -211,44 +183,37 @@ public class Vision implements Subsystem {
          */
         @Getter final Rotation2d cameraYawAtTurretZero = Rotation2d.k180deg;
 
-        // -- Turret camera transform -------------------------------------------
-        //
-        // The camera's solve is for the frame it captured. The turret angle that belongs with it
-        // is the one the turret had then, not the one it has when the solve arrives 30 to 60 ms
-        // later, and at 90 deg/s those differ by several degrees -- which, applied at the camera
-        // as part of its mount transform, moved the reported pose by range times that angle. So
-        // by default the camera is given a mount with no planar offset and no yaw, the robot keeps
-        // a history of turret angles against time (Turret.getAngleAt), and the robot pose is
-        // composed here from the frame's own timestamp. 341 and 581 both arrived at the same
-        // design in 2026; neither pushes a live transform to the camera.
+        /*
+         * The camera's solve is for the frame it captured. The turret angle that belongs with it
+         * is the one the turret had then, not the one it has when the solve arrives 30 to 60 ms
+         * later, and at 90 deg/s those differ by several degrees, which applied at the camera as
+         * part of its mount transform moved the reported pose by range times that angle. So by
+         * default the camera is given a mount with no planar offset and no yaw, the robot keeps a
+         * history of turret angles against time (Turret.getAngleAt), and the robot pose is composed
+         * here from the frame's own timestamp.
+         */
 
         /**
-         * Dashboard key for the switch. False restores the previous scheme (push the live
-         * turret-rotated transform to the camera every loop and fuse its MegaTag2 translation) so
-         * the two can be compared at an event without a deploy. Flipping it re-sends the camera's
-         * mount within a loop.
+         * Dashboard key for the switch between composing the turret robot pose on the roboRIO
+         * (true) and pushing the live turret-rotated transform to the camera every loop and fusing
+         * its MegaTag2 translation (false), so the two can be compared at an event without a
+         * deploy. Flipping it re-sends the camera's mount within a loop.
          */
         @Getter final String turretRioTransformDashboardKey = "Vision/TurretRioTransform";
 
         @Getter final boolean turretRioTransformDefault = true;
 
-        // -- Pipeline indices -------------------------------------------------
-
         @Getter final int backLeftTagPipeline = 0;
         @Getter final int backRightTagPipeline = 0;
         @Getter final int turretTagPipeline = 0;
 
-        // -- Pose estimation covariance ---------------------------------------
-
         /**
-         * Variance used to effectively ignore a measurement dimension — here, the heading of every
-         * estimate fused while enabled, so the gyro owns heading during a match. The X/Y std-devs
-         * that are actually fused are chosen per-estimate in {@link
+         * Variance used to effectively ignore a measurement dimension. Here it is the heading of
+         * every estimate fused while enabled, so the gyro owns heading during a match. The X/Y
+         * std-devs that are actually fused are chosen per-estimate in {@link
          * Vision#getMT1Estimate(Limelight, boolean)}.
          */
         @Getter final double kLargeVariance = 999999.0;
-
-        // -- Estimate sanity gates --------------------------------------------
 
         /**
          * Estimates older than this (seconds, capture time to now) are rejected. The pose estimator
@@ -265,36 +230,26 @@ public class Vision implements Subsystem {
          */
         @Getter final double turretHeadingMismatchDeg = 5.0;
 
-        // -- Gross heading correction while enabled ---------------------------
-        //
-        // Heading is normally gyro-only while enabled. This is the safety net for enabling before
-        // the cameras have seeded the pose: a stationary robot whose two-tag MegaTag1 heading
-        // disagrees with the gyro by a lot, for a full second, gets its heading reset once.
+        /*
+         * Heading is normally gyro-only while enabled. This is the safety net for enabling before
+         * the cameras have seeded the pose: a stationary robot whose two-tag MegaTag1 heading
+         * disagrees with the gyro by a lot, for a full second, gets its heading reset once.
+         */
 
         /**
          * Heading error that arms the correction.
          *
-         * <p>This has been both too high and much too low. It started at 10.0; on 2026-09-05 it
-         * went to 3.0 because the 18:00 log showed a median error of -6.7 deg that never armed, and
-         * 6.7 deg is a foot and a half of miss at three metres. That reasoning was wrong, because
-         * it assumed the gyro was the half that was mistaken.
+         * <p>One camera's MegaTag1 heading is not trustworthy below this. Two-tag geometry noise
+         * has a 15 deg tail, and across 1120 simultaneous samples the two chassis cameras disagreed
+         * with each other by more than 2 deg 92 percent of the time, median 5.6. Split by tag count
+         * the reason is plain: at four tags a camera holds heading to about a degree, at two it has
+         * the 15 deg tail, at one it is worth nothing. 20 deg sits clear of that noise ceiling and
+         * far below the 90 and 180 deg boot-heading errors this exists to catch.
          *
-         * <p>It was not. Both chassis cameras are bolted to the same frame, so the difference
-         * between their headings has no gyro in it at all -- and across 1120 simultaneous samples
-         * in the 20:25 log they disagreed with each other by more than 2 deg 92 percent of the
-         * time, median 5.6 deg. Split by how many tags each one had, the reason is plain: at four
-         * tags a camera holds heading to about a degree, at two it has a 15 deg tail, at one it is
-         * worth nothing. So a 3 deg threshold was not catching gyro drift, it was letting two-tag
-         * geometry noise shove the heading around -- and the turret zero servo then chased it.
-         *
-         * <p>20 deg sits clear of that two-tag noise ceiling while staying far below the 90 and 180
-         * deg boot-heading errors this exists to catch. Replayed across the 18:38, 20:00 and 20:25
-         * logs, it fires on exactly one thing: the genuine -104.5 deg boot error at the start of
-         * the 20:25 run. Every correction it drops was between 4 and 8 deg.
-         *
-         * <p>Requiring three tags instead of two was tried and rejected: that -104.5 deg error was
-         * seen with two, so the stricter rule would have missed the only correction that ever
-         * mattered while changing nothing else.
+         * <p>The gate stays at two tags. The genuine -104.5 deg boot error was seen on a two-tag
+         * solve, so a stricter tag count would have missed the only correction that ever fired.
+         * Replayed across the 18:38, 20:00 and 20:25 logs, 20 deg fires on exactly that one case,
+         * and every correction it drops is between 4 and 8 deg.
          */
         @Getter final double grossHeadingErrorDeg = 20.0;
 
@@ -302,20 +257,16 @@ public class Vision implements Subsystem {
         @Getter final double grossHeadingMaxLinearSpeed = 0.2; // m/s
         @Getter final double grossHeadingMaxOmega = 0.1; // rad/s
 
-        // -- Placement heading confirmation -------------------------------------
-        //
-        // When no camera has seeded the pose before the match, the robot is sitting on the
-        // selected auto's start pose, placed there by Robot.disabledPeriodic, and that heading is
-        // the best answer available. It stayed unconfirmed until a camera agreed with it, and on
-        // 2026-09-19 (Chezy Q4, Q11, Q17) that took until the robot stopped in front of tags in
-        // teleop, because the only enabled seed path needed the robot slow and a multi-tag solve
-        // at the same moment. In Q17 the turret camera held two to four tags for the first four
-        // seconds of auto while the robot drove, and none of it counted.
-        //
-        // Agreement does not move the pose, so it needs no stillness: a multi-tag heading that
-        // matches the placed heading frame after frame is confirmation, whatever the robot is
-        // doing. Steady disagreement is the placement being wrong, and the best chassis camera
-        // then re-seeds heading and translation the way the disabled seed does.
+        /*
+         * When no camera has seeded the pose before the match, the robot is sitting on the selected
+         * auto's start pose, placed there by Robot.disabledPeriodic, and that heading is the best
+         * answer available.
+         *
+         * Agreement does not move the pose, so it needs no stillness: a multi-tag heading that
+         * matches the placed heading frame after frame is confirmation, whatever the robot is
+         * doing. Steady disagreement is the placement being wrong, and the best chassis camera
+         * then re-seeds heading and translation the way the disabled seed does.
+         */
 
         /** Largest camera-minus-pose heading difference, degrees, that still counts as agreeing. */
         @Getter final double placementAgreeDeg = 8.0;
@@ -323,20 +274,19 @@ public class Vision implements Subsystem {
         /** Camera frames, one vote per frame, that must agree or steadily disagree to decide. */
         @Getter final int placementDecideFrames = 10;
 
-        // -- Chassis camera source while enabled --------------------------------
-        //
-        // MegaTag1 solves heading from tag geometry and its translation moves with that heading:
-        // at two tags the heading has a 15 deg tail (see grossHeadingErrorDeg), which at three
-        // metres is a quarter metre of translation. MegaTag2 pins the heading to the one the robot
-        // pushes and solves translation alone, so it is far steadier while moving -- but it is
-        // only as good as the pushed heading. So the chassis cameras fuse MT1 until the disabled
-        // seeding has put a heading in the pose that has held still long enough to be believed,
-        // and MT2 after that. Heading is never fused from either while enabled.
+        /*
+         * MegaTag1 solves heading from tag geometry and its translation moves with that heading: at
+         * two tags the heading has a 15 deg tail (see grossHeadingErrorDeg), which at three metres
+         * is a quarter metre of translation. MegaTag2 pins the heading to the one the robot pushes
+         * and solves translation alone, so it is far steadier while moving, but it is only as good
+         * as the pushed heading. So the chassis cameras fuse MT1 until the disabled seeding has put
+         * a heading in the pose that has held still long enough to be believed, and MT2 after
+         * that. Heading is never fused from either while enabled.
+         */
 
         /**
          * Dashboard key for the MT2 switch, so the two sources can be compared at an event without
-         * a deploy. False falls back to MT1 translation for the whole enabled period, which is what
-         * the code did before 2026-09-15.
+         * a deploy. False falls back to MT1 translation for the whole enabled period.
          */
         @Getter final String chassisMt2DashboardKey = "Vision/ChassisUseMT2";
 
@@ -356,15 +306,13 @@ public class Vision implements Subsystem {
          */
         @Getter final double seedConfirmSpreadDeg = 3.0;
 
-        // -- Per-estimate rejection gates ---------------------------------------
-
         /**
          * MegaTag1 solves whose robot height is further than this (metres) from the carpet are
          * rejected. The robot cannot leave the floor, so a solve that says it did is a bad solve or
-         * a bad mount transform: the 30-versus-60 deg mount pitch of 2026-09-07 would have shown up
-         * here as every pose sitting well above or below zero. The value is the AdvantageKit
-         * template default, on the loose side on purpose until it has been watched at an event;
-         * {@code Vision/<cam>/MountCheck/HeightMeters} logs what healthy frames read.
+         * a bad mount transform: a wrong mount pitch shows up here as every pose sitting well above
+         * or below zero. The value is the AdvantageKit template default, on the loose side on
+         * purpose until it has been watched at an event; {@code
+         * Vision/<cam>/MountCheck/HeightMeters} logs what healthy frames read.
          */
         @Getter final double maxZErrorMeters = 0.75;
 
@@ -385,27 +333,27 @@ public class Vision implements Subsystem {
 
         /**
          * Turret slew (rot/s, relative to the robot) above which the turret camera's estimates are
-         * rejected. The mount transform pushed to the camera lags the frame it is applied to by the
-         * capture and NetworkTables delay, so a fast slew smears the transform as well as the
-         * image. Measured against {@link frc.robot.subsystems.turret.Turret#getSlewOmegaRotPerSec}.
+         * rejected. A slewing turret smears the image, and in fallback mode also lags the mount
+         * transform behind the frame it is applied to, by the capture and NetworkTables delay.
+         * Measured against {@link frc.robot.subsystems.turret.Turret#getSlewOmegaRotPerSec}.
          */
         @Getter final double turretFusionMaxOmega = 0.75;
 
-        // -- Consensus heading correction -------------------------------------
-        //
-        // The 20 deg gross threshold above was set because ONE camera's MegaTag1 heading is not
-        // trustworthy below that: two-tag geometry noise has a 15 deg tail. Two cameras agreeing
-        // with each other is a different measurement. The turret camera and the chassis camera
-        // share nothing but the field, so when both say the pose heading is off by the same amount,
-        // for two seconds, with the robot and turret still, it is the pose. Replayed on the
-        // 2026-09-06/07 logs this fires four times in 25 enabled minutes, on steady offsets of 7 to
-        // 10 deg (one of them measured 7.5 deg twenty seconds later to within 0.1 deg); on the
-        // 2026-09-05 logs, when the turret camera was reading a slipping belt and not the pose, it
-        // never fires, though the chassis camera alone would have armed for 11 s.
-        //
-        // It only works while the turret zero servo has NOT already absorbed the pose error into
-        // the encoder -- once the turret camera has been trimmed to agree with a wrong pose it is
-        // no longer independent evidence. So the servo is held off while this is arming.
+        /*
+         * The 20 deg gross threshold above was set because one camera's MegaTag1 heading is not
+         * trustworthy below it. Two cameras agreeing with each other is a different measurement.
+         * The turret camera and the chassis camera share nothing but the field, so when both say
+         * the pose heading is off by the same amount, for two seconds, with the robot and turret
+         * still, it is the pose. Replayed on the 2026-09-06/07 logs this fires four times in 25
+         * enabled minutes, on steady offsets of 7 to 10 deg (one of them measured 7.5 deg twenty
+         * seconds later to within 0.1 deg); on the 2026-09-05 logs, when the turret camera was
+         * reading a slipping belt and not the pose, it never fires, though the chassis camera alone
+         * would have armed for 11 s.
+         *
+         * It only works while the turret zero servo has NOT already absorbed the pose error into
+         * the encoder, because once the turret camera has been trimmed to agree with a wrong pose
+         * it is no longer independent evidence. So the servo is held off while this is arming.
+         */
 
         /** Least chassis-camera heading error worth correcting this way. */
         @Getter final double consensusHeadingMinErrorDeg = 4.0;
@@ -420,76 +368,69 @@ public class Vision implements Subsystem {
         @Getter final double consensusHeadingHoldSeconds = 2.0;
         @Getter final double consensusHeadingCooldownSeconds = 5.0;
 
-        // -- Turret zero auto-correction --------------------------------------
-        //
-        // The turret has no absolute reference, so its zero is wherever it pointed at motor
-        // power-on. The turret camera measures that error directly: its mount transform is built
-        // from the turret encoder, so a steady disagreement between its MegaTag1 heading and the
-        // (gyro-and-swerve-camera) pose heading is the encoder error itself. On 2026-09-05 that
-        // sat at a rock-steady -9.6 deg for a hundred seconds while the swerve camera agreed with
-        // the pose heading to 0.00 deg, and the shots missed by feet.
+        /*
+         * The turret has no absolute reference, so its zero is wherever it pointed at motor
+         * power-on. The turret camera measures that error directly: its mount transform is built
+         * from the turret encoder, so a steady disagreement between its MegaTag1 heading and the
+         * (gyro-and-swerve-camera) pose heading is the encoder error itself. On 2026-09-05 that
+         * sat at a rock-steady -9.6 deg for a hundred seconds while the swerve camera agreed with
+         * the pose heading to 0.00 deg, and the shots missed by feet.
+         */
 
         /**
          * Below this the filtered error is noise, not slip; do not spend a CAN write on it.
          *
-         * <p>Was 0.5, which was set against raw frames. Across the 2026-09-06/07 logs the raw error
-         * had a median of 0.0 deg and a 90th percentile of 3 to 5 deg, so 70 percent of samples
-         * cleared 0.5 while the zero was in fact right. A converged filter (see {@link
-         * #turretZeroFilterHoldSeconds}) has a noise standard deviation of 0.1 to 0.2 deg, so 1.0
-         * is about five sigma of it, and still well under the 2 to 3.5 deg a launch burst built up
-         * on 2026-09-05 when the belt really was slipping.
+         * <p>Raw frames scatter far wider than the filter: across the 2026-09-06/07 logs the raw
+         * error had a median of 0.0 deg and a 90th percentile of 3 to 5 deg, so most samples
+         * cleared a much smaller gate while the zero was in fact right. A converged filter (see
+         * {@link #turretZeroFilterHoldSeconds}) has a noise standard deviation of 0.1 to 0.2 deg,
+         * so 1.0 is about five sigma of it, and still well under the 2 to 3.5 deg a launch burst
+         * built up on 2026-09-05 when the belt really was slipping.
          */
         @Getter final double turretZeroDeadbandDeg = 1.0;
 
         /**
          * Refuse anything wilder than this; that size wants a human, not a servo.
          *
-         * <p>Was 45, which was far too generous. The turret camera's raw heading error on the
-         * 2026-09-05 20:25 log ran from -177 to +105 deg around a median of -0.9, so 45 let a large
-         * slice of that tail through as if it were a real zero error. Real slip arrives a fraction
-         * of a degree at a time.
+         * <p>Real slip arrives a fraction of a degree at a time. The turret camera's raw heading
+         * error on the 2026-09-05 20:25 log ran from -177 to +105 deg around a median of -0.9, so
+         * this ceiling has to sit clear of that tail rather than near the median.
          */
         @Getter final double turretZeroMaxErrorDeg = 15.0;
 
-        // -- Turret zero re-home ----------------------------------------------
-        //
-        // The trim above walks the zero a fraction of a degree at a time and refuses anything over
-        // turretZeroMaxErrorDeg, which is right for slip and useless for a gross error. On
-        // 2026-09-07 the turret sat about 90 deg out -- pointed at the trench instead of the hub --
-        // and the trim ignored it completely: the error was 94 deg, the ceiling 15, so every sample
-        // was "not measurable" and thrown away. It dutifully trimmed the 10 deg of ordinary slip
-        // underneath and left the quarter turn alone. Nothing else could fix it either, because a
-        // turret camera whose mount transform is 90 deg wrong gets its pose estimates rejected for
-        // disagreeing with the pose (turretHeadingMismatchDeg), so the camera could not correct the
-        // robot and the robot could not correct the camera.
-        //
-        // This is the way out: when the camera says the zero is grossly wrong, and keeps saying the
-        // same thing, take it in one step and forget the accumulated history. It is deliberately
-        // hard to trigger, because it is a large instantaneous change to a mechanism that may be
-        // aimed at something.
+        /*
+         * The trim walks the zero a fraction of a degree at a time and refuses anything over
+         * turretZeroMaxErrorDeg, which is right for slip and useless for a gross error: a turret
+         * sitting 90 deg out, pointed at the trench instead of the hub, reads an error of 94 deg,
+         * every sample is "not measurable", and the trim quietly leaves the quarter turn alone. And
+         * nothing else can fix it, because a turret camera whose mount transform is 90 deg wrong
+         * gets its pose estimates rejected for disagreeing with the pose
+         * (turretHeadingMismatchDeg), so the camera could not correct the robot and the robot could
+         * not correct the camera.
+         *
+         * This is the way out: when the camera says the zero is grossly wrong, and keeps saying the
+         * same thing, take it in one step and forget the accumulated history. It is deliberately
+         * hard to trigger, because it is a large instantaneous change to a mechanism that may be
+         * aimed at something.
+         */
 
         /**
          * Tags the turret camera must see before a re-home is considered.
          *
-         * <p>One, and that is deliberate. Tag count is the right gate for trusting a camera's
-         * absolute pose, and it is the wrong gate here. On the 2026-09-07 log the turret camera saw
-         * exactly one tag for all 34 samples of the 94 deg error, so a two- or three-tag rule would
-         * never have fired on the only fault it exists to fix -- the same way requiring three tags
-         * would have suppressed the genuine -104 deg boot-heading correction on 2026-09-05.
-         *
          * <p>What separates a real offset from a bad single-tag solve is not how many tags, it is
-         * whether the number holds still. Those 34 samples included 27 reading -93.7 to -95.7 deg,
-         * a 2 deg spread; a single-tag guess wanders across tens of degrees. So the consistency
+         * whether the number holds still. On the 2026-09-07 log the turret camera saw exactly one
+         * tag for all 34 samples of the 94 deg error, and 27 of those read -93.7 to -95.7 deg, a 2
+         * deg spread, where a single-tag guess wanders across tens of degrees. So the consistency
          * gates below carry the weight, and the divergence latch is the backstop if they are ever
          * fooled: a re-home that does not bring the error near zero disables further trimming
          * instead of snapping again.
          *
-         * <p>Raised from 1 to 2 after the 2026-09-19 01:46 log. The turret camera picked up one tag
-         * and re-homed the zero by -177.8 deg, and the camera's own heading flipped by 180 deg at
-         * that same instant: the single-tag MegaTag1 mirror ambiguity, not a turret offset. The
-         * consistency gate did not save it because the same camera frame was being counted on every
-         * robot loop -- 15 "agreeing samples" in 0.3 s. Two tags disambiguate the solve; the frame
-         * gate and the cap below are the backstops.
+         * <p>Two tags disambiguate the solve. A mirrored single-tag solve reads about 180 deg out:
+         * on 2026-09-19 01:46 the turret camera picked up one tag and re-homed the zero by -177.8
+         * deg, and the camera's own heading flipped by 180 deg at that same instant. The
+         * consistency gate did not save it, because the same camera frame was being counted on
+         * every robot loop, 15 "agreeing samples" in 0.3 s. The frame gate and the cap below are
+         * the backstops.
          */
         @Getter final int turretZeroRehomeMinTags = 2;
 
@@ -521,10 +462,10 @@ public class Vision implements Subsystem {
         /**
          * Smallest error worth re-homing for.
          *
-         * <p>Below this the trim handles it. Equal to {@link #getTurretZeroMaxErrorDeg()} so the
-         * two meet: the trim walks anything up to 15 deg and the re-home takes anything from 15 up
-         * in one step. Was 20 until 2026-09-19, which left a 15 to 20 deg band that neither would
-         * touch -- and two rotor turns of boot zero error is 18.1 deg, squarely inside it.
+         * <p>Equal to {@link #getTurretZeroMaxErrorDeg()} so the two meet: the trim walks anything
+         * up to 15 deg and the re-home takes anything from 15 up in one step. Two rotor turns of
+         * boot zero error is 18.1 deg, so a gap between the two would leave a real error neither
+         * touches.
          */
         @Getter final double turretZeroRehomeMinErrorDeg = 15.0;
 
@@ -555,14 +496,11 @@ public class Vision implements Subsystem {
          * Measurable samples since the filter was seeded before it is allowed to move the encoder.
          * Gaps shorter than {@link #turretZeroFilterHoldSeconds} do not reset the count.
          *
-         * <p>Was 5, with the filter dropped on every unmeasurable loop. In the 2026-09-06/07 logs
-         * the median measurable run was two loops, so the filter was re-seeded from a raw frame
-         * constantly and, at alpha 0.05, had moved only 23 percent of the way toward the truth when
-         * five samples unlocked it. The result was a servo acting on single frames: 62 percent of
-         * its steps were pinned at the rate limit, in coin-flip directions -- 424 steps and 253 deg
-         * of encoder writes for 26 deg of net change over a night. 25 samples is 72 percent
-         * converged, and with the hold below it is reached in most measurable windows (80 percent
-         * of measurable time was in runs of a second or longer).
+         * <p>The filter must survive a run of short gaps, because measurability flickers: across
+         * the 2026-09-06/07 logs the median measurable run was two loops, and a filter re-seeded
+         * constantly acts on single frames. At alpha 0.05, 25 samples is 72 percent converged, and
+         * with the hold below it is reached in most measurable windows (80 percent of measurable
+         * time was in runs of a second or longer).
          */
         @Getter final int turretZeroMinMeasurableSamples = 25;
 
@@ -599,10 +537,9 @@ public class Vision implements Subsystem {
         /**
          * Low-pass on the measurement, per sample. Slip is slow; single frames are not trusted.
          *
-         * <p>Halved from 0.1 after the 2026-09-05 20:25 log: replayed against that measurement
-         * stream, 0.05 cut the wasted back-and-forth about ten percent at every deadband tried,
-         * while the net correction that landed stayed within a degree. Slip is slow enough that the
-         * added lag costs nothing.
+         * <p>Replayed against the 2026-09-05 20:25 measurement stream, 0.05 cut the wasted
+         * back-and-forth about ten percent at every deadband tried, while the net correction that
+         * landed stayed within a degree. Slip is slow enough that the added lag costs nothing.
          */
         @Getter final double turretZeroFilterAlpha = 0.05;
 
@@ -614,22 +551,22 @@ public class Vision implements Subsystem {
          */
         @Getter final double turretSlipAlertDegPerMinute = 5.0;
 
-        // -- Telling slip from pose heading error ------------------------------
-        //
-        // The trim's measurement is turret camera heading minus POSE heading, so it reads a pose
-        // heading error exactly as it reads a turret zero error, and corrects the turret for both.
-        // Heading is gyro-only while enabled and only reset above grossHeadingErrorDeg, so a pose
-        // heading 5 to 9 deg off stays that way and the turret absorbs it. That is what the
-        // 2026-09-06/07 logs show: the turret camera's and the chassis camera's heading errors
-        // moved together sample by sample (r = 0.65 to 0.94 in every log, 0.71 pooled), which two
-        // cameras can only do if the thing they are both compared against is what is wrong. On
-        // 2026-09-05, when the belt really slipped, they did not (r = 0.08 pooled).
-        //
-        // The trim absorbing pose error is what puts shots in the hub with a wrong heading, so it
-        // is left alone. But it moves the soft limits with it and makes the slip diagnostics lie,
-        // so the two parts are separated here for the dashboard and the alerts: the chassis
-        // camera's disagreement with the pose is the pose part, and turret-minus-chassis is what
-        // the turret alone accounts for.
+        /*
+         * The trim's measurement is turret camera heading minus POSE heading, so it reads a pose
+         * heading error exactly as it reads a turret zero error, and corrects the turret for both.
+         * Heading is gyro-only while enabled and only reset above grossHeadingErrorDeg, so a pose
+         * heading 5 to 9 deg off stays that way and the turret absorbs it. That is what the
+         * 2026-09-06/07 logs show: the turret camera's and the chassis camera's heading errors
+         * moved together sample by sample (r = 0.65 to 0.94 in every log, 0.71 pooled), which two
+         * cameras can only do if the thing they are both compared against is what is wrong. On
+         * 2026-09-05, when the belt really slipped, they did not (r = 0.08 pooled).
+         *
+         * The trim absorbing pose error is what puts shots in the hub with a wrong heading, so it
+         * is left alone. But it moves the soft limits with it and makes the slip diagnostics lie,
+         * so the two parts are separated here for the dashboard and the alerts: the chassis
+         * camera's disagreement with the pose is the pose part, and turret-minus-chassis is what
+         * the turret alone accounts for.
+         */
 
         /**
          * Low-pass, per sample, on the pose-heading error and the turret-only error. Slower than
@@ -662,7 +599,7 @@ public class Vision implements Subsystem {
          * #getTurretZeroDivergenceHoldSeconds()}. Correcting the wrong way it grows and stays,
          * which matters more than the aim: soft limits are enforced against the reported position,
          * so driving reported away from reality is exactly how the turret gets past a soft stop and
-         * into the cable chain -- and at 3 deg/s it would do that twenty times faster than the slip
+         * into the cable chain, and at 3 deg/s it would do that twenty times faster than the slip
          * ever did.
          */
         @Getter final double turretZeroDivergenceDeg = 25.0;
@@ -671,14 +608,8 @@ public class Vision implements Subsystem {
         @Getter final double turretZeroDivergenceHoldSeconds = 10.0;
     }
 
-    // =========================================================================
-    // Fields
-    // =========================================================================
-
-    /** Rear-left static Limelight instance. */
     @Getter public final Limelight backLeftLL;
 
-    /** Rear-right static Limelight instance. */
     @Getter public final Limelight backRightLL;
 
     /** Turret-mounted Limelight instance; its frame rotates with the turret. */
@@ -687,10 +618,8 @@ public class Vision implements Subsystem {
     /** Chassis-mounted (non-turret) Limelights, whose reported pose is already the robot pose. */
     public final Limelight[] swerveLimelights;
 
-    /** All Limelights in one array for bulk operations. */
     public final Limelight[] allLimelights;
 
-    /** One logger per Limelight, for the bulk telemetry loops. */
     private final VisionLogger[] allLoggers;
 
     private final VisionConfig config;
@@ -722,8 +651,8 @@ public class Vision implements Subsystem {
     private int yawRateHistoryIndex = 0;
 
     /**
-     * How often the settings the robot owns -- IMU mode, and the chassis cameras' mount poses --
-     * are re-sent to every camera.
+     * How often the settings the robot owns, IMU mode and the chassis cameras' mount poses, are
+     * re-sent to every camera.
      *
      * <p>A Limelight that boots after the robot, or reboots mid-session, comes up in IMU mode 0
      * with no robot heading and produces garbage MegaTag2 poses, and falls back to the mount pose
@@ -734,15 +663,9 @@ public class Vision implements Subsystem {
 
     private double lastSettingsSendFpgaSeconds = Double.NEGATIVE_INFINITY;
 
-    // =========================================================================
-    // Construction
-    // =========================================================================
-
     /**
-     * Creates the Vision subsystem.
-     *
-     * <p>Instantiates the Limelight and its logger and sets IMU mode 0 (external heading only,
-     * correct for a mount whose frame rotates relative to the robot).
+     * Instantiates the Limelight and its logger and sets IMU mode 0, external heading only, which
+     * is the correct mode for a mount whose frame rotates relative to the robot.
      *
      * <p>Deliberately NOT registered with the scheduler: {@link frc.robot.Robot#robotPeriodic()}
      * calls {@link #periodic()} explicitly before {@code CommandScheduler.run()} so this loop's
@@ -797,21 +720,13 @@ public class Vision implements Subsystem {
         Telemetry.print(getName() + " Subsystem Initialized");
     }
 
-    // =========================================================================
-    // Subsystem Periodic
-    // =========================================================================
-
     /**
      * Called once per robot loop by {@link frc.robot.Robot#robotPeriodic()}, before {@code
      * CommandScheduler.run()}, so the mechanisms see this loop's vision-corrected pose.
      *
-     * <ol>
-     *   <li>Clears every camera's per-loop NetworkTables snapshot so this loop reads fresh data.
-     *   <li>Publishes the live camera mount transform and the robot heading, then performs the
-     *       loop's single NetworkTables flush (the orientation writes themselves do not flush).
-     *   <li>Runs pose-estimation updates appropriate to the current robot mode.
-     *   <li>Logs camera telemetry.
-     * </ol>
+     * <p>The order matters and is not visible in the body: the per-loop NetworkTables snapshot is
+     * cleared first, the live mount transform and robot heading are published next, and only then
+     * is the loop's single flush issued, so every camera solves this frame.
      */
     @Override
     public void periodic() {
@@ -853,9 +768,8 @@ public class Vision implements Subsystem {
      *
      * <p>Status booleans and strings are logged every loop: DogLog only writes them when they
      * change, and "integrated this loop" is a per-loop truth. Everything that moves every frame
-     * (poses, tag count, target size, estimate age, the Field2d camera markers) is logged at 10 Hz.
-     * This ran 30 log calls, three MegaTag2 parses and three Field2d updates every loop and took a
-     * median 4.5 ms of a 20 ms budget on 2026-09-05.
+     * (poses, tag count, target size, estimate age, the Field2d camera markers) is logged at 10 Hz,
+     * because logging all of it every loop took a median 4.5 ms of the 20 ms budget.
      */
     public void logTelemetry() {
         correctTurretZero();
@@ -900,23 +814,18 @@ public class Vision implements Subsystem {
             Telemetry.log("Vision/TurretLL/RobotPose", turretSolvedRobotPose);
             Telemetry.log("Vision/TurretLL/AngleAtFrameDeg", turretSolvedAngleDeg, "deg");
         }
-        // On the dashboard.
         Telemetry.logDash(
                 "Vision/SecondsSinceAcceptedEstimate",
                 secondsSinceLastAcceptedEstimate(),
                 "seconds");
     }
 
-    // =========================================================================
-    // Pose Estimation — Private Pipeline
-    // =========================================================================
-
     /**
      * Pushes the robot's current heading (from swerve odometry) to the camera each loop.
      *
-     * <p>This is the <b>robot</b> heading, not the camera's: {@link #updateTurretCameraPose()}
-     * tells the camera where it is mounted, including the turret's yaw, so the camera composes the
-     * two itself.
+     * <p>This is the <b>robot</b> heading, not the camera's. In fallback mode {@link
+     * #updateTurretCameraPose()} tells the camera where it is mounted, including the turret's yaw,
+     * so the camera composes the two itself.
      */
     private void setLimeLightOrientation() {
         // These writes do not flush; periodic() flushes once after all per-loop writes.
@@ -934,7 +843,7 @@ public class Vision implements Subsystem {
      *
      * <p>The camera sits at {@code robotToTurretCenter + turretCenterToCamera} rotated by the
      * current turret angle, and its yaw in the robot frame is the turret angle plus the camera's
-     * yaw at turret zero ({@link TurretCameraGeometry}). Height, roll, and pitch do not move with
+     * yaw at turret zero ({@link TurretCameraGeometry}). Height, roll and pitch do not move with
      * the turret and come from {@link VisionConfig#getTurretConfig()}. The camera applies the
      * transform it most recently received to whatever frame it solves next, which is the lag the
      * default mode exists to remove.
@@ -988,7 +897,7 @@ public class Vision implements Subsystem {
      *
      * <p>Fallback mode: the camera solved the robot pose itself with the last transform pushed to
      * it, so its botpose is taken as the robot pose and the heading error is against the current
-     * gyro heading, exactly as before.
+     * gyro heading.
      */
     private void solveTurretCamera() {
         if (turretSolveComputed) {
@@ -1068,26 +977,13 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * While the robot is disabled, seeds the pose estimator (translation and heading) from the best
-     * chassis camera's MegaTag1 only, so the pose is correct before the match starts.
-     *
-     * <p>MegaTag2 is deliberately not used here. It depends on the heading we push to the camera,
-     * which is the very thing seeding is trying to fix, and the turret camera's MT2 additionally
-     * depends on the turret zero. Fusing them alongside a tight MT1 seed made the pose flip a metre
-     * every loop when the turret zero was off (seen in the 2026-09-04 bench logs).
-     */
-    /**
      * True once a chassis camera has actually seeded the pose while disabled.
      *
      * <p>Heading is gyro-only while enabled, and this seeding is the only thing that ever sets it
      * from vision. Enable before it has happened and the robot's idea of which way it is facing is
-     * just however it was sitting at power-on, for the whole enabled period -- and the turret aims
-     * off by exactly that much.
-     *
-     * <p>Which is what kept happening. In all three 2026-09-05 test logs the robot was enabled
-     * before any camera had produced a pose: by 4 s, by 13 s, and once by 74 s. The cameras were
-     * still booting. Nothing said so, because a pose seeded from a bad heading looks exactly like
-     * one seeded from a good heading.
+     * just however it was sitting at power-on, for the whole enabled period, and the turret aims
+     * off by exactly that much. Nothing says so, because a pose seeded from a bad heading looks
+     * exactly like one seeded from a good heading.
      */
     @Getter private boolean poseHeadingSeeded = false;
 
@@ -1110,6 +1006,15 @@ public class Vision implements Subsystem {
                             + " for about a second before auto starts",
                     AlertType.kWarning);
 
+    /**
+     * While the robot is disabled, seeds the pose estimator (translation and heading) from the best
+     * chassis camera's MegaTag1 only, so the pose is correct before the match starts.
+     *
+     * <p>MegaTag2 is deliberately not used here. It depends on the heading we push to the camera,
+     * which is the very thing seeding is trying to fix, and the turret camera's MT2 additionally
+     * depends on the turret zero. Fusing them alongside a tight MT1 seed made the pose flip a metre
+     * every loop when the turret zero was off (seen in the 2026-09-04 bench logs).
+     */
     private void disabledLimelightUpdates() {
         if (Util.disabled.getAsBoolean()) {
             Limelight best = getBestLimelight();
@@ -1158,13 +1063,11 @@ public class Vision implements Subsystem {
      * Last-resort disabled seed from the turret camera, used only when no chassis camera produced
      * an estimate this loop.
      *
-     * <p>The chassis cameras are the better heading source and are tried first. But they look out
-     * over the rear corners, and in the 2026-09-19 Chezy practice match neither of them saw a
-     * single tag in the 387 s before the match -- both reported "No Targets in View" the entire
-     * time, while the turret camera held 1 to 2 tags from 80 s onward. The pose was therefore never
-     * seeded, the robot entered auto on its power-on heading, and the turret zero trim was later
-     * measured absorbing 7.4 deg of pose heading error. A turret seed would have been far better
-     * than none.
+     * <p>The chassis cameras are the better heading source and are tried first, but they look out
+     * over the rear corners and a match is easily one where neither of them ever sees a tag while
+     * the turret camera holds one or two from early on. The pose was never seeded in such a match,
+     * the robot entered auto on its power-on heading, and the turret zero trim was measured
+     * absorbing 7.4 deg of pose heading error. A turret seed would have been far better than none.
      *
      * <p>Why it stays the fallback and not a peer: the turret camera's implied robot heading is its
      * MegaTag1 field heading minus the turret angle, so it inherits the turret zero error, whereas
@@ -1174,7 +1077,7 @@ public class Vision implements Subsystem {
      * <p>For the same reason it sets {@link #poseHeadingSeeded} but never {@link
      * #poseSeedConfirmed}: confirmation is what switches the chassis cameras to MegaTag2 and what
      * PathPlanner's trajectory reuse leans on, and a turret-derived heading has not earned that.
-     * {@link #trackSeedConfirmation} would also misread it -- that method compares raw MegaTag1
+     * {@link #trackSeedConfirmation} would also misread it, that method compares raw MegaTag1
      * rotations, which for the turret camera is the camera's heading, not the robot's.
      */
     private void seedFromTurretCamera() {
@@ -1209,18 +1112,17 @@ public class Vision implements Subsystem {
      *
      * <p>The turret aims by subtracting the robot's heading from a field-relative angle, so an
      * unseeded pose does not make it aim badly, it makes it aim off by exactly the robot's power-on
-     * heading error -- and there is no way to tell from the turret's own signals that this has
-     * happened. In all three 2026-09-05 test logs the robot was enabled before any camera had
-     * produced a pose. Until vision has written a real one, pointing at where the target is
-     * believed to be is worse than not pointing at all, so {@link
-     * frc.robot.subsystems.turret.Turret} holds at its zero instead.
+     * heading error, and there is no way to tell from the turret's own signals that this has
+     * happened. Until vision has written a real one, pointing at where the target is believed to be
+     * is worse than not pointing at all, so {@link frc.robot.subsystems.turret.Turret} holds at its
+     * zero instead.
      *
-     * <p>Either flag is enough. {@link #poseHeadingSeeded} is set by the disabled seed and, since
-     * Chezy QM4 (2026-09-19), by {@link #seedWhileEnabled}, which is the in-match recovery path
-     * when the robot enables before any camera has seen a tag; {@link #poseSeedConfirmed} is also
-     * set by the gross heading correction.
+     * <p>Either flag is enough. {@link #poseHeadingSeeded} is set by the disabled seed and by
+     * {@link #seedWhileEnabled}, the in-match recovery path when the robot enables before any
+     * camera has seen a tag; {@link #poseSeedConfirmed} is also set by the gross heading
+     * correction.
      *
-     * <p>Simulation has no vision at all -- nothing in this repo simulates a Limelight -- but the
+     * <p>Simulation has no vision at all, nothing in this repo simulates a Limelight, but the
      * simulated pose comes from MapleSim and is ground truth, so it is trusted outright. Without
      * that the turret would never aim in a sim.
      *
@@ -1235,8 +1137,6 @@ public class Vision implements Subsystem {
      *
      * <p>Raw {@code tv}, not a pose: this says a tag is visible, and nothing about whether the
      * robot knows where it is. Used by the turret's follow-a-tag pit check.
-     *
-     * @return true when the turret Limelight reports a valid target
      */
     public boolean isTurretTagInView() {
         return turretLL.targetInView();
@@ -1247,7 +1147,7 @@ public class Vision implements Subsystem {
      *
      * <p>Limelight {@code tx}: positive with the tag right of the crosshair, zero when centred.
      * Because the camera rides the turret and looks along its aim, driving this to zero points the
-     * turret at the tag -- without a pose, a tag map or an alliance. The camera is pitched up about
+     * turret at the tag, without a pose, a tag map or an alliance. The camera is pitched up about
      * 29 deg, so a degree here is not exactly a degree of turret azimuth; the sign is right and the
      * zero is right, which is all a closed loop on it needs.
      *
@@ -1304,8 +1204,7 @@ public class Vision implements Subsystem {
      * Advances or resets the seed-confirmation run with this loop's seeded frame. Same shape as the
      * turret re-home's agreement check: the run ends the moment a sample would widen its spread
      * past the gate, because a real heading reads the same every frame and a two-tag guess does
-     * not. Headings are compared relative to the run's first sample so the wrap at 180 deg cannot
-     * split a run.
+     * not.
      *
      * @param best the chassis camera that seeded the pose this loop
      */
@@ -1395,8 +1294,6 @@ public class Vision implements Subsystem {
             }
         }
     }
-
-    // -- Placement heading confirmation ----------------------------------------------------------
 
     /**
      * True once {@link frc.robot.Robot} has placed the pose on the selected auto's start and no
@@ -1570,20 +1467,13 @@ public class Vision implements Subsystem {
     /**
      * Seeds the pose during the match when nothing seeded it before enable.
      *
-     * <p>Chezy 2026-09-19 QM4: no camera saw a tag in the 270 s before the match, the robot enabled
-     * unseeded, and the only in-match recovery was the gross heading correction, which needs a
-     * {@link VisionConfig#getGrossHeadingErrorDeg()} error. The heading was off by about seven
-     * degrees, so it never fired and the turret held its zero for the whole match, while the turret
-     * camera had two or three tags for 45 percent of teleop and the back-right camera two tags for
-     * 24 percent of it.
-     *
-     * <p>So, until something has seeded the pose: the first fresh multi-tag solve from the best
-     * chassis camera, taken while the robot is slow enough for the gross-heading net, is integrated
-     * the way the disabled seed integrates it, heading included. Failing that, the turret camera
-     * seeds as it does while disabled, with the same caveat that its heading carries the turret
-     * zero error. Multi-tag only, both ways: single-tag MegaTag1 headings are what the fifteen
-     * degree tail is made of, and a wrong seed while enabled points the turret wrong with
-     * confidence, which is the thing the lockout exists to prevent.
+     * <p>Until something has seeded the pose, the first fresh multi-tag solve from the best chassis
+     * camera, taken while the robot is slow enough for the gross-heading net, is integrated the way
+     * the disabled seed integrates it, heading included. Failing that, the turret camera seeds as
+     * it does while disabled, with the same caveat that its heading carries the turret zero error.
+     * Multi-tag only, both ways: single-tag MegaTag1 headings are what the fifteen degree tail is
+     * made of, and a wrong seed while enabled points the turret wrong with confidence, which is the
+     * thing this lockout exists to prevent.
      *
      * @param best the chassis camera the heading corrections trust this loop
      */
@@ -1692,7 +1582,8 @@ public class Vision implements Subsystem {
         boolean consensusApplied =
                 !gross && checkConsensusHeadingError(now, robotPose, mt1Pose, errorDeg, stationary);
 
-        // NaN is not equal to itself, so an unmeasurable error would otherwise write every loop.
+        // NaN is not equal to itself, so an unmeasurable error would otherwise be rewritten every
+        // loop.
         if (Telemetry.slowLogThisLoop()) {
             Telemetry.logDash("Vision/HeadingCorrection/ErrorDeg", errorDeg, "deg");
             Telemetry.logDash(
@@ -1803,16 +1694,14 @@ public class Vision implements Subsystem {
      * Whether the operator is currently allowing vision to move the turret zero.
      *
      * <p>Default {@code false}: nothing in {@link #correctTurretZero()} writes the encoder unless
-     * this is held. Both halves of the servo are behind it -- the slow trim and the gross re-home
-     * -- because both write the zero, and on the 2026-09-19 Chezy Q24 log it was the re-home that
-     * did the damage: 52.4 deg in one step off a 2-tag solve at teleop+108.3 s, which the turret's
-     * own position guard then accepted as a re-frame (131.0 deg became 169.2 deg) and carried into
-     * the soft limits and every aim after it. The drive team's read of that match is that the belt
-     * never slipped, so every degree the servo wrote was the servo chasing a pose heading error --
-     * which is what the trim's own diagnostic said at teleop+93.9 s ("absorbing a pose heading
-     * error, not slip").
+     * this is held. Both halves of the servo are behind it, the slow trim and the gross re-home,
+     * because both write the zero, and on the 2026-09-19 Chezy Q24 log it was the re-home that did
+     * the damage: 52.4 deg in one step off a 2-tag solve at teleop+108.3 s, which the turret's own
+     * position guard then accepted as a re-frame (131.0 deg became 169.2 deg) and carried into the
+     * soft limits and every aim after it. The drive team's read of that match is that the belt
+     * never slipped, so every degree the servo wrote was the servo chasing a pose heading error.
      *
-     * <p>Hold-to-enable rather than a latch, deliberately: this moves a turret that may be aimed at
+     * <p>Hold to enable rather than a latch, deliberately: this moves a turret that may be aimed at
      * something, and a held button cannot be left armed into the next match.
      */
     private BooleanSupplier turretZeroCorrectionEnable = () -> false;
@@ -1833,7 +1722,6 @@ public class Vision implements Subsystem {
         this.turretZeroCorrectionEnable = enable;
     }
 
-    /** Whether the chassis is inside the stationary gates used by the heading corrections. */
     private boolean chassisStill() {
         ChassisSpeeds speeds = Robot.getSwerve().getCurrentRobotChassisSpeeds();
         return Math.hypot(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
@@ -1841,7 +1729,6 @@ public class Vision implements Subsystem {
                 && Math.abs(speeds.omegaRadiansPerSecond) <= config.getGrossHeadingMaxOmega();
     }
 
-    /** Whether the turret is slewing slowly enough for a camera heading to be trusted. */
     private boolean turretStill() {
         return Robot.getTurret().getSlewOmegaRotPerSec() <= config.getTurretZeroMaxTurretOmega();
     }
@@ -1882,41 +1769,10 @@ public class Vision implements Subsystem {
                     AlertType.kWarning);
 
     /**
-     * Continuously walks the turret encoder toward what the turret camera says, correcting both a
-     * bad power-on zero and ongoing mechanical slip.
-     *
-     * <p>{@link #turretCameraHeadingErrorDeg()} is the turret camera's heading minus the pose
-     * heading. The camera's mount transform is built from the turret encoder, so a turret zero
-     * error shows up here in full -- but so does a pose heading error, and the reading cannot tell
-     * them apart. On 2026-09-05 the swerve cameras agreed with the pose to a couple of degrees
-     * while this read -37 deg: turret. On 2026-09-06/07 the swerve cameras disagreed with the pose
-     * by 5 to 9 deg and this reading tracked theirs sample for sample: pose. {@link
-     * #updateTurretReferenceErrors} publishes the two parts separately.
-     *
-     * <p>This started life as a one-shot: measure, correct once, and give up if the error came
-     * back, on the theory that an error which survives correction means the sign is wrong. That was
-     * wrong for the fault of 2026-09-05, when the belt gave up about 0.36 percent of every degree
-     * it travelled (3.6 deg per 1000 deg, one direction, in every log) and the error always came
-     * back. Hence a rate-limited servo rather than a one-shot, and no give-up. By 2026-09-06/07 the
-     * measured slip was 0.4 to 0.6 deg per 1000 deg with the step directions a coin flip, i.e.
-     * nothing detectable; the servo's authority is kept anyway so that if the belt goes again it is
-     * corrected within the match.
-     *
-     * <p>What still stops it: a launch, because moving the turret with fuel in the air is worse
-     * than the miss it would fix; a slewing turret or a moving robot, because the reading is not
-     * trustworthy then; and anything past {@link VisionConfig#getTurretZeroMaxErrorDeg()}, which is
-     * likelier a bad frame than a real error.
-     *
-     * <p>The correction is bounded by {@link VisionConfig#getTurretZeroMaxTrimDegPerSec()}, so a
-     * sign error walks the turret at a known, slow, visible rate instead of jumping it. The slip
-     * rate is published, and past {@link VisionConfig#getTurretSlipAlertDegPerMinute()} it raises
-     * an alert -- vision papering over a mechanical fault should be loud about it, not silent.
-     */
-    /**
      * The agreeing run so far: how many, their sum, and their extremes.
      *
      * <p>No buffer needed. The spread gate already keeps every sample in a run within a few degrees
-     * of the others, so the mean of the run and its median cannot differ by more than that -- and
+     * of the others, so the mean of the run and its median cannot differ by more than that, and
      * tracking min and max gives a true peak-to-peak rather than distance from whichever sample
      * happened to arrive first.
      */
@@ -1954,8 +1810,8 @@ public class Vision implements Subsystem {
      * <p>Everything here is about not doing it by accident. The robot and the turret must be still,
      * the turret camera must have at least {@link VisionConfig#getTurretZeroRehomeMinTags()} tags,
      * the robot's own heading must already be vision-seeded and currently backed by a chassis
-     * camera that can see tags -- the turret camera cannot vouch for a pose whose error is the
-     * thing being measured -- the turret motor must have been connected for {@link
+     * camera that can see tags, since the turret camera cannot vouch for a pose whose error is the
+     * thing being measured, and the turret motor must have been connected for {@link
      * VisionConfig#getTurretZeroMotorConnectedSeconds()}, and nothing may be launching. Then {@link
      * VisionConfig#getTurretZeroRehomeSamples()} readings have to agree to within {@link
      * VisionConfig#getTurretZeroRehomeSpreadDeg()} peak to peak, where each camera frame counts
@@ -2094,7 +1950,7 @@ public class Vision implements Subsystem {
      *
      * <p>The divergence latch is cleared too. It exists to stop a trim that is correcting the wrong
      * way from walking the reported position past a soft stop on its own, and a human holding the
-     * enable is the judgement it was waiting for -- leaving it latched would make the button do
+     * enable is the judgement it was waiting for. Leaving it latched would make the button do
      * nothing with no indication why.
      *
      * @param now the current FPGA time
@@ -2115,6 +1971,35 @@ public class Vision implements Subsystem {
         Telemetry.log("Vision/TurretZero/RehomeProgress", 0);
     }
 
+    /**
+     * Continuously walks the turret encoder toward what the turret camera says, correcting both a
+     * bad power-on zero and ongoing mechanical slip.
+     *
+     * <p>{@link #turretCameraHeadingErrorDeg()} is the turret camera's heading minus the pose
+     * heading. The camera's mount transform is built from the turret encoder, so a turret zero
+     * error shows up here in full, but so does a pose heading error, and the reading cannot tell
+     * them apart. On 2026-09-05 the swerve cameras agreed with the pose to a couple of degrees
+     * while this read -37 deg, which was the turret. On 2026-09-06/07 the swerve cameras disagreed
+     * with the pose by 5 to 9 deg and this reading tracked theirs sample for sample, which was the
+     * pose. {@link #updateTurretReferenceErrors} publishes the two parts separately.
+     *
+     * <p>This is a rate-limited servo rather than a one-shot because real slip is continuous: the
+     * belt of 2026-09-05 gave up 0.36 percent of every degree it travelled, one direction, in every
+     * log, so a single correction never held. Its authority is kept even though the slip measured
+     * by 2026-09-06/07 was down to 0.4 to 0.6 deg per 1000 deg with coin-flip step directions,
+     * which is nothing detectable, so that if the belt goes again it is corrected within the match.
+     *
+     * <p>What still stops it: a launch, because moving the turret with fuel in the air is worse
+     * than the miss it would fix; a slewing turret or a moving robot, because the reading is not
+     * trustworthy then; and anything past {@link VisionConfig#getTurretZeroMaxErrorDeg()}, which is
+     * likelier a bad frame than a real error.
+     *
+     * <p>The correction is bounded by {@link VisionConfig#getTurretZeroMaxTrimDegPerSec()}, so a
+     * sign error walks the turret at a known, slow, visible rate instead of jumping it. The slip
+     * rate is published, and past {@link VisionConfig#getTurretSlipAlertDegPerMinute()} it raises
+     * an alert, because vision papering over a mechanical fault should be loud about it, not
+     * silent.
+     */
     private void correctTurretZero() {
         double now = Timer.getFPGATimestamp();
 
@@ -2187,7 +2072,7 @@ public class Vision implements Subsystem {
                 /*
                  * Measurement just started or resumed, so start the rate limiter's clock here.
                  * Otherwise the elapsed time since the last apply is however long the gap was, and
-                 * the first step out of it gets the full one-second allowance -- a 3 deg jump.
+                 * the first step out of it gets the full one-second allowance, a 3 deg jump.
                  */
                 turretZeroLastApplySeconds = now;
             }
@@ -2220,7 +2105,7 @@ public class Vision implements Subsystem {
             /*
              * Signed, so a servo arguing with itself does not read as slip. Slip walks one way;
              * noise cancels. The absolute total is kept alongside it purely to expose the
-             * difference -- on 2026-09-05 these were 33.4 and 82.7 deg over the same window, and
+             * difference: on 2026-09-05 these were 33.4 and 82.7 deg over the same window, and
              * only the second number reached the slip alert.
              */
             turretZeroRateWindowDeg += step;
@@ -2234,7 +2119,7 @@ public class Vision implements Subsystem {
             Telemetry.log("Vision/TurretZero/LastStepDeg", step, "deg");
 
             // Trimming should be shrinking this. If it is not, the sign is wrong, and continuing
-            // walks the reported position away from the real one -- which is what the soft limits
+            // walks the reported position away from the real one, which is what the soft limits
             // are checked against.
             if (Math.abs(turretZeroFilteredErrorDeg) >= config.getTurretZeroDivergenceDeg()) {
                 if (Double.isNaN(turretZeroDivergenceStartSeconds)) {
@@ -2410,9 +2295,8 @@ public class Vision implements Subsystem {
     }
 
     /**
-     * Returns {@code true} when the turret camera can produce a usable estimate — both the camera
-     * and the turret mechanism must be attached, since the published mount transform needs a live
-     * turret angle.
+     * The turret camera can produce a usable estimate only when the camera and the turret mechanism
+     * are both attached, since the published mount transform needs a live turret angle.
      */
     private boolean turretEstimatesAvailable() {
         return turretLL.isAttached() && Robot.getTurret().isAttached();
@@ -2437,23 +2321,11 @@ public class Vision implements Subsystem {
      * is the solve flattened; for the turret camera it is the roboRIO-side composition from {@link
      * #solveTurretCamera()}.
      *
-     * <p>Rejection criteria (any one triggers rejection):
-     *
-     * <ul>
-     *   <li>No targets in view.
-     *   <li>Any tag ambiguity &gt; 0.9 (pose flip risk).
-     *   <li>Pose outside the field boundary.
-     *   <li>Robot spin rate over the lookback window &ge; {@link
-     *       VisionConfig#getMaxYawRateRadPerSec()}.
-     *   <li>Target too small (&le; 0.025 %).
-     *   <li>Roll or pitch &gt; 5° (camera physically disturbed).
-     *   <li>Solved height further than {@link VisionConfig#getMaxZErrorMeters()} from the floor.
-     * </ul>
-     *
-     * <p>Accepted estimates are assigned a translation std-dev based on how many tags are visible
-     * and how large the target appears; heading is always given a huge std-dev so the gyro owns
-     * heading while enabled. {@code forceIntegrateXY} overrides both to near-zero, used during
-     * disabled pre-seeding, which is where the field heading is established.
+     * <p>Rejects on no targets in view, then hands off to {@link #rejectionCheck} and {@link
+     * #tiltOrHeightRejected}. Accepted estimates are assigned a translation std-dev based on how
+     * many tags are visible and how large the target appears; heading is always given a huge
+     * std-dev so the gyro owns heading while enabled. {@code forceIntegrateXY} overrides both to
+     * near-zero, used during disabled pre-seeding, which is where the field heading is established.
      *
      * @param ll the Limelight the solve came from
      * @param megaTag1Pose3d the camera's 3-D MegaTag1 solve, for the tilt and height gates
@@ -2477,14 +2349,13 @@ public class Vision implements Subsystem {
         RawFiducial[] tags = ll.getRawFiducial();
         double highestAmbiguity = -1;
 
-        // Distance from current odometry pose to the MT1 estimate
         double mt1PoseDifference =
                 Robot.getSwerve()
                         .getRobotPose()
                         .getTranslation()
                         .getDistance(megaTag1Pose2d.getTranslation());
 
-        // Ambiguity scan — reject immediately if any tag exceeds 0.9
+        // Reject on the first tag ambiguity over 0.9.
         ll.setTagStatus("");
         for (RawFiducial tag : tags) {
             if (highestAmbiguity < 0 || tag.ambiguity > highestAmbiguity) {
@@ -2496,7 +2367,6 @@ public class Vision implements Subsystem {
             }
         }
 
-        // Field boundary, spin rate, and target-size rejections
         if (rejectionCheck(ll, megaTag1Pose2d, targetSize)) {
             return null;
         }
@@ -2508,9 +2378,8 @@ public class Vision implements Subsystem {
         // Select the translation std-dev based on confidence tier.
         //
         // Heading is never fused while enabled. The Pigeon drifts a small fraction of a degree
-        // over a match, while MegaTag1 yaw jitters by a degree or more frame to frame. Fusing it
-        // (the 2025 code used 0.1 deg here, which applies ~98% of the camera's heading every
-        // frame) put that jitter straight into the turret setpoint, since turret angle is the
+        // over a match, while MegaTag1 yaw jitters by a degree or more frame to frame, and fusing
+        // it would put that jitter straight into the turret setpoint, since turret angle is the
         // field bearing minus the robot heading. Heading is corrected only by the disabled
         // pre-seeding below and by the operator's manual pose reset.
         double degStds = config.getKLargeVariance();
@@ -2696,10 +2565,10 @@ public class Vision implements Subsystem {
         for (Limelight limelight : swerveLimelights) {
             /*
              * Tag count decides; target size only breaks ties. Target size is an image-area
-             * percentage, so adding the two raw let a big close target outweigh a whole extra tag
-             * -- 139 samples in the 20:25 log had a size above 1.0, and one reached 4.98. Tag
-             * count is what heading accuracy actually tracks: four tags holds about a degree,
-             * two has a 15 deg tail.
+             * percentage, so adding the two raw let a big close target outweigh a whole extra tag:
+             * 139 samples in the 20:25 log had a size above 1.0, and one reached 4.98. Tag count
+             * is what heading accuracy actually tracks. Four tags holds about a degree, two has a
+             * 15 deg tail.
              */
             double score = limelight.getTagCountInView() * 100.0 + limelight.getTargetSize();
             if (score > bestScore) {
@@ -2874,10 +2743,6 @@ public class Vision implements Subsystem {
         lastSettingsSendFpgaSeconds = Timer.getFPGATimestamp();
     }
 
-    // =========================================================================
-    // Pose Access & Queries
-    // =========================================================================
-
     /**
      * Triggers a rewind-capture snapshot on all Limelights (captures 165 seconds of history for
      * post-match review).
@@ -2887,10 +2752,6 @@ public class Vision implements Subsystem {
             LimelightHelpers.triggerRewindCapture(limelight.getName(), 165);
         }
     }
-
-    // =========================================================================
-    // Pose Reset
-    // =========================================================================
 
     /**
      * Resets the robot pose using the turret camera's MegaTag1 estimate.
@@ -2954,15 +2815,9 @@ public class Vision implements Subsystem {
         return true;
     }
 
-    // =========================================================================
-    // Commands
-    // =========================================================================
-
     /**
-     * Returns a command that seeds the robot pose from the current AprilTag estimate. Runs while
-     * disabled, since seeding the pose before a match starts is the point of it.
-     *
-     * @return the pose reset command
+     * A command that seeds the robot pose from the current AprilTag estimate. Runs while disabled,
+     * since seeding the pose before a match starts is the point of it.
      */
     public Command resetVisionPoseCommand() {
         return runOnce(this::resetPoseToTurretVision)
@@ -2970,19 +2825,13 @@ public class Vision implements Subsystem {
                 .withName("Vision.resetPoseToTurretVision");
     }
 
-    // =========================================================================
-    // Inner Classes
-    // =========================================================================
-
     /**
-     * Immutable data class that bundles a vision-derived field pose with its FPGA timestamp and
-     * covariance matrix, ready for use with {@code
-     * SwerveDrivePoseEstimator.addVisionMeasurement()}.
-     */
-    /**
+     * A vision-derived field pose with its FPGA timestamp and covariance matrix, ready for use with
+     * {@code SwerveDrivePoseEstimator.addVisionMeasurement()}.
+     *
      * @param visionRobotPoseMeters field-relative robot pose (metres, radians)
      * @param timestampSeconds FPGA-converted capture timestamp (seconds)
-     * @param visionMeasurementStdDevs 3×1 std-dev vector {@code [x, y, theta]} passed to the pose
+     * @param visionMeasurementStdDevs 3x1 std-dev vector {@code [x, y, theta]} passed to the pose
      *     estimator; larger values mean less trust in that dimension
      */
     private record VisionFieldPoseEstimate(

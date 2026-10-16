@@ -1,16 +1,11 @@
 package frc.spectrumLib.sim;
 
 /**
- * Represents a simulation component that other mechanisms can be attached to. Implementations
- * expose their current position and angle so child mechanisms can update their own position each
- * simulation period.
+ * A simulation component other mechanisms attach to. Implementations expose their current position
+ * and angle, so a child can place itself once per simulation period.
  */
 public interface Mount {
 
-    /**
-     * Discriminates between the two supported mount types so child mechanisms can apply the correct
-     * positioning logic.
-     */
     public enum MountType {
         /** A linear (elevator-style) stage mount. */
         LINEAR,
@@ -18,45 +13,21 @@ public interface Mount {
         ARM,
     }
 
-    /**
-     * Returns the type of this mount, used by child mechanisms to select positioning logic.
-     *
-     * @return this mount's {@link MountType}
-     */
+    /** Children switch on this to choose between linear and arm placement. */
     MountType getMountType();
 
-    /**
-     * Returns the horizontal displacement of this mount from its initial position (metres).
-     *
-     * @return horizontal displacement in metres
-     */
+    /** Horizontal distance from the initial position, in metres. */
     double getDisplacementX();
 
-    /**
-     * Returns the vertical displacement of this mount from its initial position (metres).
-     *
-     * @return vertical displacement in metres
-     */
+    /** Vertical distance from the initial position, in metres. */
     double getDisplacementY();
 
-    /**
-     * Returns the current absolute angle of this mount in radians.
-     *
-     * @return angle in radians
-     */
+    /** Current absolute angle, in radians. */
     double getAngle();
 
-    /**
-     * Returns the X coordinate that child mechanisms should use as their attachment point (metres).
-     *
-     * @return mount X position in metres
-     */
+    /** The X coordinate a child should attach to, in metres. */
     double getMountX();
 
-    /**
-     * Returns the Y coordinate that child mechanisms should use as their attachment point (metres).
-     *
-     * @return mount Y position in metres
-     */
+    /** The Y coordinate a child should attach to, in metres. */
     double getMountY();
 }

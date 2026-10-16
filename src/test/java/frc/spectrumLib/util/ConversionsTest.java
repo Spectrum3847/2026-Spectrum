@@ -6,7 +6,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class ConversionsTest {
-    /** Verifies the RPM-to-RPS double conversion. */
     @Test
     @DisplayName("Test RPM to RPS conversion with double")
     void testRPMtoRPSDouble() {
@@ -16,7 +15,6 @@ public class ConversionsTest {
         assertEquals(-50.0, Conversions.RPMtoRPS(-3000.0), 1e-6);
     }
 
-    /** Verifies the RPM-to-RPS DoubleSupplier conversion. */
     @Test
     @DisplayName("Test RPM to RPS conversion with DoubleSupplier")
     void testRPMtoRPSDoubleSupplier() {
@@ -24,7 +22,6 @@ public class ConversionsTest {
         assertEquals(50.0, Conversions.RPMtoRPS(() -> 3000.0), 1e-6);
     }
 
-    /** Verifies the RPS-to-RPM conversion. */
     @Test
     @DisplayName("Test RPS to RPM conversion")
     void testRPStoRPM() {

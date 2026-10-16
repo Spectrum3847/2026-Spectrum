@@ -23,28 +23,47 @@ export function logPicker({ onLoad, current }) {
         file,
         status);
 
-    async function loadByName(name) {
-        status.textContent = "downloading…";
-        const buf = await fetch(`/api/logs/file/${encodeURIComponent(name)}`).then((r) => {
-            if (!r.ok) throw new Error(`${r.status} fetching ${name}`);
-            return r.arrayBuffer();
-        });
-        await handle(buf, name);
+    // Only the most recent pick may render; a slow earlier download must not replace it.
+    let seq = 0;
+    let failure = null;
+
+    async function load(name, read) {
+        const my = ++seq;
+        failure?.remove();
+        failure = null;
+        try {
+            status.textContent = "downloading…";
+            const buf = await read();
+            if (my !== seq) return;
+            status.textContent = "parsing…";
+            await new Promise((r) => setTimeout(r, 0)); // let the status paint before we block
+            if (my !== seq) return;
+            const t0 = performance.now();
+            const log = parseWpilog(buf);
+            status.textContent = `${fmtBytes(buf.byteLength)} · ${log.durationSec.toFixed(0)}s · parsed in ${(performance.now() - t0).toFixed(0)} ms`;
+            onLoad(log, name);
+        } catch (e) {
+            if (my !== seq) return;
+            status.textContent = "";
+            failure = el("div", { class: "notice bad", style: "flex-basis:100%" },
+                el("strong", {}, `Could not show ${name}. `), e.message);
+            box.append(failure);
+            console.error(e);
+        }
     }
 
-    async function handle(buf, name) {
-        status.textContent = "parsing…";
-        await new Promise((r) => setTimeout(r, 0)); // let the status paint before we block
-        const t0 = performance.now();
-        const log = parseWpilog(buf);
-        status.textContent = `${fmtBytes(buf.byteLength)} · ${log.durationSec.toFixed(0)}s · parsed in ${(performance.now() - t0).toFixed(0)} ms`;
-        onLoad(log, name);
-    }
+    const loadByName = (name) =>
+        load(name, () =>
+            fetch(`/api/logs/file/${encodeURIComponent(name)}`).then((r) => {
+                if (!r.ok) throw new Error(`${r.status} fetching ${name}`);
+                return r.arrayBuffer();
+            }));
 
-    file.addEventListener("change", async () => {
+    file.addEventListener("change", () => {
         const f = file.files?.[0];
         if (!f) return;
-        await handle(await f.arrayBuffer(), f.name);
+        file.value = "";
+        load(f.name, () => f.arrayBuffer());
     });
     select.addEventListener("change", () => {
         if (select.value) {
@@ -60,7 +79,7 @@ export function logPicker({ onLoad, current }) {
             lastList = r.logs;
             const wanted = current || new URLSearchParams(location.search).get("log");
             if (!r.logs.length) {
-                select.replaceChildren(el("option", { value: "" }, "no synced logs — sync some on the Logs page"));
+                select.replaceChildren(el("option", { value: "" }, "no synced logs, sync some on the Logs page"));
                 status.textContent = "";
                 return;
             }
@@ -73,19 +92,10 @@ export function logPicker({ onLoad, current }) {
             return;
         }
 
-        // Loading and rendering is deliberately outside the catch above. A page that throws while
-        // rendering is not a server error, and reporting it as one in the log dropdown sends
-        // whoever is debugging it looking in the wrong place.
-        try {
-            const wanted = current || new URLSearchParams(location.search).get("log");
-            if (wanted && lastList.some((l) => l.name === wanted)) await loadByName(wanted);
-            else status.textContent = "";
-        } catch (e) {
-            status.textContent = "";
-            box.append(el("div", { class: "notice bad", style: "flex-basis:100%" },
-                el("strong", {}, "This page failed to render that log. "), e.message));
-            throw e;
-        }
+        // Outside the catch above: a page that throws while rendering is not a server error.
+        const wanted = current || new URLSearchParams(location.search).get("log");
+        if (wanted && lastList.some((l) => l.name === wanted)) await loadByName(wanted);
+        else status.textContent = "";
     })();
 
     return box;

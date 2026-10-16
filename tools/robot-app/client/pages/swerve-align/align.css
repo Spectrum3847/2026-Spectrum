@@ -1,19 +1,10 @@
 /*
- * Spectrum 3847 palette, taken from spectrum3847.org: deep purple chrome on white, Outfit for
- * headings and Plus Jakarta Sans for body text.
- *
- * The fonts are named but never fetched. This app runs in a pit with no internet as often as not,
- * and a blocking webfont request there costs a DNS timeout before anything paints. On a machine
- * that has them installed it looks like the site; everywhere else it falls back cleanly.
- */
-
-/*
  * Swerve alignment page.
  *
  * The component styles below came from the standalone tools/swerve-align app unchanged. Only its
  * token block was replaced: it defined the Spectrum palette locally, and the app already defines
  * the same palette in client/styles.css. Aliasing its names onto the shared ones means one source
- * of truth for the colours -- and it inherits the dark theme for free, which the standalone tool
+ * of truth for the colours, and it inherits the dark theme for free, which the standalone tool
  * never had.
  */
 .align-page {
@@ -32,15 +23,6 @@
     --line: var(--bd);
     --line-strong: var(--bd-strong);
 
-    --ok: var(--ok);
-    --ok-bg: var(--ok-bg);
-    --warn: var(--warn);
-    --warn-bg: var(--warn-bg);
-    --bad: var(--bad);
-    --bad-bg: var(--bad-bg);
-
-    --shadow-sm: var(--shadow-sm);
-    --shadow-md: var(--shadow-md);
     --shadow-lg: var(--shadow-md);
 
     --font: var(--sans);
@@ -458,7 +440,6 @@ table.review tr.skipped td {
     padding: 14px 16px;
     margin-bottom: 14px;
     border: 1px solid;
-    border-left-width: 4px;
     font-size: 14px;
     background: var(--surface);
 }
@@ -514,8 +495,7 @@ table.review tr.skipped td {
 
 .resolution {
     background: var(--surface);
-    border: 1px solid var(--line-strong);
-    border-left: 4px solid var(--warn);
+    border: 1px solid var(--warn);
     border-radius: 8px;
     padding: 13px 15px;
     margin-top: 12px;

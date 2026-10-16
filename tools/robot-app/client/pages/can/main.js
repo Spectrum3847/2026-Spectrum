@@ -75,16 +75,16 @@ function render(log) {
 
     blocks.push(
         el("div", { class: "grid cols-4", style: "margin-bottom:6px" },
-            tile("Peak bus load", uStats ? `${uStats.max.toFixed(0)}%` : "—",
+            tile("Peak bus load", uStats ? `${uStats.max.toFixed(0)}%` : "n/a",
                 uStats ? `${uStats.mean.toFixed(0)}% average` : "not logged",
                 uStats ? (uStats.max > 70 ? "bad" : uStats.max > 50 ? "warn" : "ok") : ""),
-            tile("Peak TX errors", maxTec !== null ? maxTec : "—", "bus-off at 255",
+            tile("Peak TX errors", maxTec !== null ? maxTec : "n/a", "bus-off at 255",
                 maxTec === null ? "" : maxTec > 200 ? "bad" : maxTec > 50 ? "warn" : "ok"),
-            tile("Peak RX errors", maxRec !== null ? maxRec : "—", "bus-off at 255",
+            tile("Peak RX errors", maxRec !== null ? maxRec : "n/a", "bus-off at 255",
                 maxRec === null ? "" : maxRec > 200 ? "bad" : maxRec > 50 ? "warn" : "ok"),
-            tile("Bus-off events", busOffSteps.length || (busOff.length ? 0 : "—"), "controller reset the bus",
+            tile("Bus-off events", busOffSteps.length || (busOff.length ? 0 : "n/a"), "controller reset the bus",
                 busOffSteps.length ? "bad" : busOff.length ? "ok" : ""),
-            tile("TX queue full", txFullSteps.length || (txFull.length ? 0 : "—"), "frames dropped before sending",
+            tile("TX queue full", txFullSteps.length || (txFull.length ? 0 : "n/a"), "frames dropped before sending",
                 txFullSteps.length ? "warn" : txFull.length ? "ok" : ""),
             tile("Motors that went dark", deadMotors.size, deadMotors.size ? [...deadMotors].join(", ") : "none detected",
                 deadMotors.size ? "bad" : "ok"))
@@ -96,7 +96,7 @@ function render(log) {
             el("section", {},
                 el("h2", {}, "Motors that reported nothing while being commanded"),
                 el("div", { class: "section-note" },
-                    "Zero volts and zero amps with a setpoint pending is not a resting motor — it is a controller that is not receiving or executing control frames. " +
+                    "Zero volts and zero amps with a setpoint pending is not a resting motor. It is a controller that is not receiving or executing control frames. " +
                     "This is the signature that found the dead hood on 2026-09-04."),
                 ...commanded.map((c) =>
                     el("div", { class: "notice bad" },
@@ -112,7 +112,7 @@ function render(log) {
             el("section", {},
                 el("h2", {}, "MotorConnected dropped"),
                 el("div", { class: "section-note" },
-                    "The direct signal. Every mechanism logs it, but only for its leader motor -- a dead follower keeps its leader reporting connected."),
+                    "The direct signal. Every mechanism logs it, but only for its leader motor. A dead follower keeps its leader reporting connected."),
                 ...dropouts.map((d) =>
                     el("div", { class: "notice bad" },
                         el("strong", {}, `${d.motor}: `),
@@ -181,15 +181,15 @@ function render(log) {
             el("section", {},
                 el("h2", {}, "Suspicious silences"),
                 el("div", { class: "section-note" },
-                    "Advisory only. Logging is change-based, so a controller that stops answering goes quiet rather than flat — " +
-                    "but so does a mechanism that is simply idle. Read these alongside what the robot was doing at the time."),
+                    "Advisory only. Logging is change-based, so a controller that stops answering goes quiet rather than flat. " +
+                    "But so does a mechanism that is simply idle. Read these alongside what the robot was doing at the time."),
                 el("div", { class: "card table-wrap" },
                     el("table", {},
                         el("thead", {}, el("tr", {}, ["Motor", "CAN", "Normal interval", "Gaps", "Longest gap", "When"].map((h) => el("th", {}, h)))),
                         el("tbody", {}, stale.map((s) =>
                             el("tr", {},
                                 el("td", {}, s.motor),
-                                el("td", { class: "num" }, s.canId ?? "—"),
+                                el("td", { class: "num" }, s.canId ?? "n/a"),
                                 el("td", { class: "num" }, `${s.medianIntervalMs.toFixed(0)} ms`),
                                 el("td", { class: "num" }, s.count),
                                 el("td", { class: "num" }, `${s.gaps[0][2].toFixed(1)}s`),
@@ -233,7 +233,7 @@ function render(log) {
         blocks.push(
             el("section", {},
                 el("h2", {}, "Device inventory"),
-                el("div", { class: "section-note" }, `${rows.length} devices from the robot profile. Not read from the log — this is what should be on the buses.`),
+                el("div", { class: "section-note" }, `${rows.length} devices from the robot profile. Not read from the log. This is what should be on the buses.`),
                 rioBus?.note ? el("div", { class: "notice warn" }, el("strong", {}, "Blind spot. "), rioBus.note) : null,
                 el("div", { class: "card table-wrap" },
                     el("table", {},

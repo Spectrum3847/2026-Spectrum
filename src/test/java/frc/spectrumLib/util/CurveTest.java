@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 public class CurveTest {
 
     private static class TestCurve extends Curve {
-        /** Applies the full deadzone-scalar-offset pipeline. */
         @Override
         public double calculate(double input) {
             double deadbandVal = calculateDeadzone(input);
@@ -17,7 +16,6 @@ public class CurveTest {
         }
     }
 
-    /** Verifies Curve getters and setters, including negative deadzone handling. */
     @Test
     @DisplayName("Test Curve getters and setters")
     void testGettersAndSetters() {
@@ -31,37 +29,33 @@ public class CurveTest {
         curve.setDeadzone(0.1);
         assertEquals(0.1, curve.getDeadzone(), 1e-6);
 
-        curve.setDeadzone(-0.2); // Negative deadzone should be converted with Math.abs
+        curve.setDeadzone(-0.2);
         assertEquals(0.2, curve.getDeadzone(), 1e-6);
     }
 
-    /** Verifies the deadzone remapping of inputs inside and outside the deadband. */
     @Test
     @DisplayName("Test Curve deadzone calculation")
     void testDeadzoneCalculation() {
         Curve curve = new TestCurve();
-        curve.setDeadzone(0.2); // deadRadius = 0.1
+        // Deadband width 0.2, so the half width the remap uses is 0.1.
+        curve.setDeadzone(0.2);
         curve.setScalar(1.0);
         curve.setOffset(0.0);
 
-        // Within deadband -> 0.0
         assertEquals(0.0, curve.calculate(0.0), 1e-6);
         assertEquals(0.0, curve.calculate(0.05), 1e-6);
         assertEquals(0.0, curve.calculate(-0.05), 1e-6);
 
-        // At boundary
         assertEquals(0.0, curve.calculate(0.1), 1e-6);
         assertEquals(0.0, curve.calculate(-0.1), 1e-6);
 
-        // Outside deadband (squished range)
-        // (1.0 / (1.0 - 0.1)) * (0.55 - 0.1) = (1/0.9) * 0.45 = 0.5
+        // Outside the band the range is squished: (1 / 0.9) * (0.55 - 0.1) = 0.5.
         assertEquals(0.5, curve.calculate(0.55), 1e-6);
         assertEquals(-0.5, curve.calculate(-0.55), 1e-6);
         assertEquals(1.0, curve.calculate(1.0), 1e-6);
         assertEquals(-1.0, curve.calculate(-1.0), 1e-6);
     }
 
-    /** Verifies scalar multiplication and offset addition in the curve. */
     @Test
     @DisplayName("Test Curve scalar and offset")
     void testScalarAndOffset() {
@@ -75,7 +69,6 @@ public class CurveTest {
         assertEquals(-1.0, curve.calculate(-1.0), 1e-6);
     }
 
-    /** Verifies getCurvePoints sampling, including the single-point case. */
     @Test
     @DisplayName("Test getCurvePoints generation")
     void testGetCurvePoints() {
@@ -84,7 +77,7 @@ public class CurveTest {
         curve.setScalar(1.0);
         curve.setOffset(0.0);
 
-        // Single-point sampling uses the center of the input range; a nonzero offset must show up
+        // One point samples the centre of the input range, where the offset shows.
         curve.setOffset(0.5);
         double[][] single = curve.getCurvePoints(1);
         curve.setOffset(0.0);

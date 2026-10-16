@@ -24,31 +24,19 @@ import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
 @SuppressWarnings("unused")
 public class ShotCalculator {
 
-    // =========================================================================
-    // Singleton
-    // =========================================================================
-
     private static ShotCalculator instance;
 
     /** Robot-centre to launcher offset. Zero = launcher is at robot centre. */
     private static final Transform2d robotToLauncher = Transform2d.kZero;
-    /**
-     * Returns the instance.
-     *
-     * @return the instance
-     */
+
     public static ShotCalculator getInstance() {
         if (instance == null) instance = new ShotCalculator();
         return instance;
     }
 
-    // =========================================================================
-    // Shot Parameters Record
-    // =========================================================================
-
     /**
-     * Immutable snapshot of all quantities needed to command the turret, hood, and flywheel
-     * subsystems for a single shot.
+     * Immutable snapshot of everything needed to command the turret, hood and flywheel for one
+     * shot.
      */
     public record ShootingParameters(
             /** {@code true} when distance is within the polynomial's fitted range. */
@@ -74,20 +62,12 @@ public class ShotCalculator {
 
     private ShootingParameters latestParameters = null;
 
-    // =========================================================================
-    // Runtime-Adjustable Offsets
-    // =========================================================================
-
     public static final double STARTING_HOOD_ANGLE_OFFSET = 0; // degrees
     public static double HOOD_ANGLE_OFFSET = STARTING_HOOD_ANGLE_OFFSET;
 
     /**
-     * Degrees per operator D-pad press.
-     *
-     * <p>Was 0.1, which is a fortieth of the correction the hub model actually needed -- forty
-     * presses to move the shot the distance one afternoon of testing said it was out. A quarter
-     * degree is roughly a quarter of a foot of range near where this robot shoots, which is finer
-     * than anyone can judge from watching a ball land.
+     * Degrees per operator D-pad press. A quarter of a degree is about a quarter of a foot of range
+     * near where this robot shoots, finer than anyone can judge from watching a ball land.
      */
     public static final double HOOD_OFFSET_STEP_DEG = 0.25;
 
@@ -95,80 +75,59 @@ public class ShotCalculator {
     public static final double TURRET_OFFSET_STEP_DEG = 1.0;
 
     /**
-     * Session-only since 2026-09-19. Chezy QM4 booted with +10 deg of turret trim in flash, the
-     * cap, left there by an operator pressing D-pad right at a turret that was parked for a pose it
-     * did not have. A turret trim is a correction for one match's pose error, not a calibration, so
-     * it starts at zero every boot and never touches {@link Preferences}.
+     * The turret trim is session-only and starts at zero every boot, because it corrects one
+     * match's pose error rather than calibrating anything. It never touches {@link Preferences}.
      */
     public static final double STARTING_TURRET_ANGLE_OFFSET = 0; // degrees
 
     public static double TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
-    /** The two operator trims. */
     public enum TrimAxis {
         HOOD,
         TURRET
     }
 
     /**
-     * Largest trim either axis will hold, degrees either side of zero.
-     *
-     * <p>The hood model moves the shot about a foot per degree near where this robot shoots, so ten
-     * degrees is ten feet of range, far past any correction a real fit needs. The cap is not there
-     * to stop the operator, who cannot press the D-pad forty times by accident; it is there because
-     * the trims now come back off the rio's flash at boot, and a corrupt or hand-edited preference
-     * should not be able to command the turret twenty degrees off target before anyone notices. The
-     * hood is clamped again downstream against its soft limits; the turret trim is not, which is
-     * the axis this actually protects.
+     * Largest trim either axis will hold, degrees either side of zero. Ten degrees is ten feet of
+     * hood range near where this robot shoots, far past any real fit. The cap also stops a corrupt
+     * or hand-edited preference from commanding the turret off target before anyone notices: the
+     * hood is clamped again downstream against its soft limits, but the turret trim is not.
      */
     public static final double MAX_TRIM_DEG = 10.0;
 
     /**
      * Preferences key the hood trim persists under. Flat name, no slash: {@link Preferences} keeps
      * everything in one NetworkTables table, and a slash would nest a sub-table its own {@code
-     * getKeys()} does not walk.
-     *
-     * <p>Public because it is the name of a value that outlives the code that wrote it. Anything
-     * reading a trim off a rio -- a test, the robot app, someone in the pit with Elastic's
-     * Preferences widget -- needs the same string this class uses, not a copy of it.
+     * getKeys()} does not walk. Public so a test or the robot app reads trims off the rio with the
+     * same string rather than a copy of it.
      */
     public static final String HOOD_TRIM_PREF_KEY = "ShotHoodTrimDeg";
 
     /**
-     * Preferences key older builds persisted the turret trim under. Nothing writes it any more;
-     * {@link #loadPersistedTrims()} removes it so a rio that still has one cannot apply it.
+     * Dead key. No turret trim is written any more, and {@link #loadPersistedTrims()} removes it so
+     * a rio that still holds one cannot apply it.
      */
     public static final String TURRET_TRIM_PREF_KEY = "ShotTurretTrimDeg";
 
     /**
-     * Preferences key a flywheel trim persisted under for one match (Chezy Q11, 2026-09-19).
-     * Removed the same day: the operator walked it to the +20 % cap and then the -20 % cap inside
-     * one match while the shot map itself was wrong, and a second axis moving with every hood press
-     * made the presses impossible to read. RPM comes straight from the model again. {@link
-     * #loadPersistedTrims()} deletes any stored copy so nothing can read it back.
+     * Dead key. No flywheel trim exists, and {@link #loadPersistedTrims()} deletes any stored copy
+     * so nothing can read it back.
      */
     public static final String FLYWHEEL_TRIM_PREF_KEY = "ShotFlywheelTrimPct";
 
     /**
-     * Reads the hood trim back off the rio.
+     * Reads the hood trim back off the rio. Call once during robot construction, before any binding
+     * can move a trim.
      *
-     * <p>Call once during robot construction, before any binding can move a trim. Until 2026-09-08
-     * these were plain static fields, so every redeploy zeroed whatever the operator had dialled in
-     * and the only way to keep a correction was for someone to remember the number and fold it into
-     * the model's {@code hoodOffsetDeg} by hand. That is exactly what the -4 and then -5 degree hub
-     * trims in the git log are.
-     *
-     * <p>{@link Preferences} lives in flash, so a trim now survives a power cycle as well as a
-     * redeploy. That is the point and it is also the risk: a trim dialled in against a shop ceiling
-     * last week silently applies at the next event. The mitigation is this method's boot print and
-     * the operator's Start+Select reset, not an expiry. An expiry would zero the trim in the middle
-     * of a session the operator thought was still calibrated, which is the worse failure.
+     * <p>A trim in flash survives a power cycle as well as a redeploy, so the boot print and the
+     * operator's Start+Select reset are the safeguard against a stale correction. An expiry would
+     * be the wrong safeguard: it would zero a trim in the middle of a session the operator still
+     * thought was calibrated.
      */
     public static void loadPersistedTrims() {
         Preferences.initDouble(HOOD_TRIM_PREF_KEY, STARTING_HOOD_ANGLE_OFFSET);
 
-        // The turret trim is session-only. Drop any copy an older build left in flash so that
-        // nothing, including a hand-edited preference, can read it back.
+        // The turret trim is session-only, so drop any copy an older build left in flash.
         if (Preferences.containsKey(TURRET_TRIM_PREF_KEY)) {
             Telemetry.print(
                     String.format(
@@ -180,7 +139,7 @@ public class ShotCalculator {
         }
         TURRET_ANGLE_OFFSET = STARTING_TURRET_ANGLE_OFFSET;
 
-        // The flywheel trim lasted one match. Nothing reads it; drop the stored copy.
+        // Nothing writes the flywheel trim, so drop any stored copy.
         if (Preferences.containsKey(FLYWHEEL_TRIM_PREF_KEY)) {
             Preferences.remove(FLYWHEEL_TRIM_PREF_KEY);
         }
@@ -215,8 +174,8 @@ public class ShotCalculator {
 
     /**
      * Whether each model's {@code hoodOffsetDeg} calibration is applied. Those offsets correct how
-     * the real robot's shots land (the hub model's -5 deg is shots landing long on 2026-09-05); the
-     * simulated ball flies the fitted model, so in simulation they only make it miss.
+     * the real robot's shots land, and the simulated ball flies the fitted model, so in simulation
+     * they only make it miss.
      */
     private static boolean applyModelHoodOffsets = true;
 
@@ -226,10 +185,10 @@ public class ShotCalculator {
     }
 
     /**
-     * Zeroes every hood and turret trim for simulation: the operator trims start at zero without
-     * reading {@link Preferences} (used instead of {@link #loadPersistedTrims()}, since the sim's
-     * Preferences file on the laptop keeps whatever the last sim session nudged), and each model's
-     * {@code hoodOffsetDeg} calibration is switched off. D-pad nudges still work for the session.
+     * Zeroes every hood and turret trim for simulation, including the model's {@code hoodOffsetDeg}
+     * calibration. Use this instead of {@link #loadPersistedTrims()}, since the sim's Preferences
+     * file on the laptop keeps whatever the last session nudged. D-pad nudges still work for the
+     * session.
      */
     public static void zeroTrimsForSimulation() {
         HOOD_ANGLE_OFFSET = 0;
@@ -249,11 +208,9 @@ public class ShotCalculator {
      *
      * <p>Every press is a judgement about the last burst: hood down means it went long, hood up
      * means it fell short, and the turret pair say which side it missed on. That makes the D-pad
-     * the outcome signal, so there are no separate short/made/long buttons; a made shot is the
-     * absence of a press. See {@code docs/tools/shot-log.md} for how the two record streams pair
-     * up.
+     * the outcome signal, so there are no separate short, made and long buttons. See {@code
+     * docs/tools/shot-log.md} for how the two record streams pair up.
      *
-     * @param axis which trim to move
      * @param delta signed nudge in degrees, before clamping
      */
     private static void nudgeTrim(TrimAxis axis, double delta) {
@@ -289,14 +246,12 @@ public class ShotCalculator {
                 .withName("ShotCalculator.decreaseHoodTrim");
     }
 
-    /** Increase turret angle offset. */
     public static Command increaseTurretAngleOffset() {
         return Commands.runOnce(() -> nudgeTrim(TrimAxis.TURRET, TURRET_OFFSET_STEP_DEG))
                 .ignoringDisable(true)
                 .withName("ShotCalculator.increaseTurretTrim");
     }
 
-    /** Decrease turret angle offset. */
     public static Command decreaseTurretAngleOffset() {
         return Commands.runOnce(() -> nudgeTrim(TrimAxis.TURRET, -TURRET_OFFSET_STEP_DEG))
                 .ignoringDisable(true)
@@ -307,10 +262,7 @@ public class ShotCalculator {
      * Zeroes both trims and clears the stored hood trim from flash.
      *
      * <p>Bound to a two-button chord because it has to be reachable in the pit without being
-     * reachable by accident. A persisted trim nobody can clear from the driver station is worse
-     * than one that evaporates.
-     *
-     * @return the reset command
+     * reachable by accident.
      */
     public static Command resetTrimsCommand() {
         return Commands.runOnce(
@@ -341,21 +293,14 @@ public class ShotCalculator {
                 .withName("ShotCalculator.resetTrims");
     }
 
-    // =========================================================================
-    // Shot Records
-    // =========================================================================
-    //
-    // Two sparse streams, one row per event, both wpilog-only:
-    //
+    // Two sparse streams, one row per event, both wpilog only:
     //   ShotCalc/Shot/*  one row when the feed gate opens, saying what was aimed
     //   ShotCalc/Trim/*  one row per operator D-pad press, saying how it went
-    //
-    // Neither is a loop-rate stream. Balls per burst are counted afterwards from the dips in
-    // Launcher/RPM, which is kept at loop rate for exactly that (Launcher.java 203).
-    //
-    // DogLog skips a record whose value has not changed, so a burst at the same distance with the
-    // same model writes Index and TimestampSeconds and little else. Read a row by taking each
-    // key's last value at or before that row's timestamp; see docs/tools/shot-log.md.
+    // Neither is loop rate; balls per burst are counted afterwards from the dips in Launcher/RPM,
+    // which is kept at loop rate for that. DogLog skips a record whose value has not changed, so a
+    // burst at the same distance with the same model writes an index and a timestamp and little
+    // else. Read a row by taking each key's last value at or before that row's timestamp. See
+    // docs/tools/shot-log.md.
 
     /** Bursts since boot. The pairing key between a shot row and the trim row that judges it. */
     private static long shotIndex = 0;
@@ -380,15 +325,12 @@ public class ShotCalculator {
     /**
      * Writes one row describing the burst that is starting.
      *
-     * <p>Called on the rising edge of the feed gate, which is the first loop fuel is allowed into
-     * the flywheel and so the last loop on which the aim was still a prediction. Everything here is
-     * either what the model asked for or what the mechanism actually did, on that loop.
+     * <p>Called on the rising edge of the feed gate, the first loop fuel is allowed into the
+     * flywheel and so the last loop the aim was still a prediction.
      *
      * <p>Two omissions are deliberate. There is no outcome field, because the outcome arrives later
-     * as a trim press. And the vision turret-zero split, {@code
-     * Vision/TurretZero/PoseHeadingErrorDeg} and {@code TurretOnlyErrorDeg}, is not copied in: it
-     * is already logged at 10 Hz and joins on time, and duplicating it here would let the two drift
-     * apart.
+     * as a trim press. And the vision turret-zero split is not copied in: it is already logged at
+     * 10 Hz and joins on time, and duplicating it here would let the two drift apart.
      *
      * @param poseTrusted whether vision had accepted an estimate recently enough to believe the
      *     distance, as computed by the feed gate
@@ -401,9 +343,8 @@ public class ShotCalculator {
         lastShotTimestampSeconds = now;
         lastShotDistanceMeters = params.distanceNoLookahead();
 
-        // The one key on NetworkTables: the operator needs to see bursts counting up to know
-        // records are being written at all. One publish per burst is nothing next to the loop-rate
-        // traffic the 09-05 tiers exist to control.
+        // Dash only: the operator watches bursts count up to confirm records are being written at
+        // all, and one publish per burst is nothing next to the loop-rate traffic.
         Telemetry.logDashAlways("ShotCalc/Shot/Index", shotIndex);
 
         Telemetry.log("ShotCalc/Shot/TimestampSeconds", now, "seconds");
@@ -424,8 +365,8 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/Shot/InRange", params.isValid());
         Telemetry.log("ShotCalc/Shot/PoseTrusted", poseTrusted);
 
-        // Actuals. Null-guarded because a sim or a bench run can call this before every mechanism
-        // exists, and a missing number should read as NaN rather than crash the loop.
+        // Actuals, null-guarded so a sim or a bench run can call this before every mechanism
+        // exists and a missing number reads as NaN rather than crashing the loop.
         Telemetry.log(
                 "ShotCalc/Shot/ActualRPM",
                 Robot.getLauncher() == null ? Double.NaN : Robot.getLauncher().getVelocityRPM(),
@@ -434,10 +375,9 @@ public class ShotCalculator {
                 "ShotCalc/Shot/ActualHoodDeg",
                 Robot.getHood() == null ? Double.NaN : Robot.getHood().getPositionDegrees(),
                 "degrees");
-        // Measured minus commanded, matching Turret/TrackingErrorDegrees. Note that
-        // Turret/PositionError is logged with the OPPOSITE sign (Turret.java 309); this key follows
-        // getTrackingErrorDegrees(). Which way in the world a positive value points is not
-        // documented anywhere on the turret, so read it as a magnitude unless you have checked.
+        // Measured minus commanded. Note that Turret/PositionError is logged with the opposite
+        // sign, and which way a positive value points in the world is not documented on the
+        // turret, so read this as a magnitude unless you have checked.
         Telemetry.log(
                 "ShotCalc/Shot/TurretErrorDeg",
                 Robot.getTurret() == null
@@ -454,10 +394,9 @@ public class ShotCalculator {
      *
      * <p>{@code ShotIndex} and {@code SecondsSinceShot} are the pairing. A press seconds after a
      * burst is a verdict on that burst; a press in the pit with no burst behind it carries index -1
-     * and an infinite age, and analysis drops it. Deciding what counts as "seconds after" is the
-     * reader's job, not this method's, so the age is logged rather than thresholded here.
+     * and an infinite age, and analysis drops it. Deciding what counts as seconds after is the
+     * reader's job, so the age is logged rather than thresholded here.
      *
-     * @param axis which trim moved
      * @param delta how far the trim actually moved in degrees, after clamping; zero at the limit
      * @param value the trim's new value in degrees
      * @param reset true when this row is the Start+Select reset rather than a judgement
@@ -497,53 +436,40 @@ public class ShotCalculator {
         Telemetry.log("ShotCalc/Trim/ShotDistanceMeters", lastShotDistanceMeters, "meters");
     }
 
-    // =========================================================================
-    // Polynomial Model
-    // =========================================================================
-    // 2D degree-3 polynomial surface:
-    //   f(distance_m, radialVel_ms) → { exitSpeed_ms, launchAngle_deg }
+    // 2D degree-3 polynomial surface: f(distance_m, radialVel_ms) -> {exitSpeed_ms,
+    // launchAngle_deg}
     // Monomial basis: 1, d, v, d², d·v, v², d³, d²·v, d·v², v³
 
     /**
      * Global exit-speed scale factor. Adjust post-characterization to correct for ball compression,
-     * wear, or temperature without re-fitting the polynomial. 1.0 = no scaling. Applied to both the
+     * wear or temperature without refitting the polynomial. 1.0 = no scaling. Applied to both the
      * hub and feed models.
      */
     private static final double MPS_FACTOR = 1;
 
     /**
-     * Scale factor converting polynomial exit speed (m/s) to flywheel RPM: the shot's power
-     * transfer, expressed as the RPM it costs to put one m/s on the ball.
+     * Scale factor converting polynomial exit speed (m/s) to flywheel RPM: what the shot's power
+     * transfer costs in RPM per m/s on the ball.
      *
-     * <p>The fitted 365 RPM per m/s against the 4 in wheel is a coupling ratio of 0.515 (ball speed
-     * over wheel surface speed), which is the no-slip figure for a single wheel against a fixed
-     * hood: the ball rolls, so its centre leaves at half the surface speed and the rest goes into
-     * backspin. Grip that is worse than no-slip -- worn wheels, a light squeeze, a cold ball --
-     * moves the real ratio below 0.515, and then every shot lands short at the RPM the model asks
-     * for.
-     *
-     * <p>Fudge it here rather than re-fitting the polynomial. This is the coupling only: raising it
-     * commands more RPM for the same wanted exit speed and leaves the ballistics, the time of
-     * flight, and the sim's ball alone. {@link #MPS_FACTOR} is the other knob and means something
-     * different -- that the ball really does leave faster than the poly says -- so it moves the
-     * simulated ball too.
+     * <p>The fitted 365 against the 4 in wheel is a coupling ratio of 0.515, the no-slip figure for
+     * a single wheel against a fixed hood: the ball rolls, so its centre leaves at half the surface
+     * speed and the rest goes into backspin. Grip worse than no-slip (worn wheels, a light squeeze,
+     * a cold ball) puts the real ratio below 0.515, and then every shot lands short at the RPM the
+     * model asks for. Fudge this rather than refitting. It is the coupling only: raising it
+     * commands more RPM for the same wanted exit speed and leaves the ballistics and the sim's ball
+     * alone. {@link #MPS_FACTOR} is the other knob and means something different, that the ball
+     * really does leave faster than the poly says, so it moves the simulated ball too.
      */
     private static final double RPM_PER_MPS_FITTED = 365.0;
 
     /**
-     * Boot value: the fitted coupling, unchanged.
+     * Boot value for the coupling, the fitted figure unchanged.
      *
-     * <p>A 6.8 % raise to 390 was drafted after Chezy Q45 to buy half a metre of range everywhere.
-     * It never went on the robot, and the practice-field shooting that followed (2026-09-19,
-     * evening, at 365) said the opposite: the far shots were landing, and it was the shots inside
-     * tower radius that went long. A coupling raise moves every range by {@code dR = 2R * dv/v}, so
-     * it would have made the near shots worse to fix a far problem that was not there. The near
-     * shots are handled by {@link #nearShotRpmDrop(double)} instead, and this number stays at the
-     * fit.
-     *
-     * <p>Rule of thumb if it does need to move: each 1 % (about 3.7 RPM per m/s) is worth 0.07 m at
-     * 3.5 m, and the effect grows with range, so it is the knob for a bias that is the same sign at
-     * every distance and biggest far out. It is the wrong knob for a bias at one end of the range.
+     * <p>Rule of thumb if it does need to move: a coupling raise shifts every range by {@code dR =
+     * 2R * dv/v}, so each 1 % (about 3.7 RPM per m/s) is worth 0.07 m at 3.5 m and more further
+     * out. It is the knob for a bias that is the same sign at every distance and biggest far away.
+     * It is the wrong knob for a bias at one end of the range, which {@link
+     * #nearShotRpmDrop(double)} handles.
      */
     private static final double RPM_PER_MPS_DEFAULT = RPM_PER_MPS_FITTED;
 
@@ -555,50 +481,33 @@ public class ShotCalculator {
     /**
      * Live handle on the coupling, on the dashboard as {@code ShotCalc/RpmPerMps}.
      *
-     * <p>Dashboard only and deliberately not a gamepad axis or a {@link Preferences} key: the
-     * flywheel trim that {@link #FLYWHEEL_TRIM_PREF_KEY} documents was walked to both caps inside
-     * one match and died for it. This is a pit knob that a person types a number into, it starts at
-     * {@link #RPM_PER_MPS_DEFAULT} every boot, and {@code ShotCalc/RpmPerMps} is logged every loop
-     * so a log says which number a shot was taken at. The clamp moves with the boot value, so it is
-     * 292 to 438 at the current default.
+     * <p>Deliberately a pit knob a person types a number into rather than a gamepad axis or a
+     * {@link Preferences} key. It starts at {@link #RPM_PER_MPS_DEFAULT} every boot and is logged
+     * every loop, so a log says which number a shot was taken at. The clamp moves with the boot
+     * value, so it is 292 to 438 at the current default.
      */
     private static final DoubleSubscriber RPM_PER_MPS_TUNE =
             Telemetry.tunable("ShotCalc/RpmPerMps", RPM_PER_MPS_DEFAULT);
 
-    /**
-     * The coupling to command with this loop, clamped to +/-20 % of the fitted value.
-     *
-     * @return RPM per m/s of wanted exit speed
-     */
     private static double rpmPerMps() {
         return MathUtil.clamp(
                 RPM_PER_MPS_TUNE.get(RPM_PER_MPS_DEFAULT), RPM_PER_MPS_MIN, RPM_PER_MPS_MAX);
     }
 
-    // =========================================================================
-    // Near-shot RPM drop -- the shot map correction for inside tower radius
-    // =========================================================================
-
     /**
      * Shape of the near-shot correction: fraction of {@link #NEAR_SHOT_RPM_DROP_DEFAULT} to take
      * off the flywheel command, indexed by distance to the hub in metres. 1.0 at 3.0 m and inside,
-     * zero from 3.75 m out, and rising below 2.5 m.
+     * zero from 3.75 m out, and rising below 2.5 m. Endpoints hold outside the table, so the
+     * hub-face set shot at 0.98 m gets the 1.5 m value.
      *
-     * <p>Practice-field shooting on 2026-09-19 (at the fitted 365 RPM per m/s) had every hub shot
-     * from about tower radius inward landing long, and the far shots landing. Taking 1.5 deg of
-     * hood out fixed the near shots and dropped the far ones short, because the model's hood is
-     * worth 0.2 m per degree at 2 m and 0.4 m per degree at 3.5 m. The team's preference is to
-     * leave the hood alone and take the range out with exit speed, which also keeps the near shot
-     * lower.
-     *
-     * <p>The size comes from converting that 1.5 deg, about 0.25 to 0.3 m of range, into the exit
-     * speed change that removes the same range at the model's own hood angle, in vacuum: 4.4 % at
-     * 3.0 m, 5.2 % at 2.5 m, 6.8 % at 2.0 m, 10.6 % at 1.5 m. Speed is a weak knob at the steep
-     * near angles (84 deg launch at 1.5 m), which is why the shape rises so fast inside 2.5 m.
-     * Normalised to the 3.0 m value and rounded; the 3.0 m value at 365 RPM per m/s is about 130
-     * RPM by that vacuum sum and about 240 RPM by the model's own hood slope, so the default sits
-     * between them. Endpoints hold outside the table, so the hub-face set shot at 0.98 m gets the
-     * 1.5 m value.
+     * <p>At the fitted coupling, practice shooting on 2026-09-19 had every hub shot from about
+     * tower radius inward landing long and the far shots landing. Taking 1.5 deg of hood out fixed
+     * the near shots and dropped the far ones short, so the range comes off exit speed instead,
+     * which also keeps the near shot lower. The size comes from converting that 1.5 deg, about 0.25
+     * to 0.3 m of range, into the exit-speed change that removes the same range at the model's own
+     * hood angle in vacuum: 4.4 % at 3.0 m, 5.2 % at 2.5 m, 6.8 % at 2.0 m, 10.6 % at 1.5 m. Speed
+     * is a weak knob at the steep near angles (84 deg launch at 1.5 m), which is why the shape
+     * rises so fast inside 2.5 m.
      */
     private static final InterpolatingDoubleTreeMap NEAR_SHOT_DROP_SHAPE =
             new InterpolatingDoubleTreeMap();
@@ -622,18 +531,14 @@ public class ShotCalculator {
     private static final double NEAR_SHOT_RPM_DROP_MAX = 400.0;
 
     /**
-     * Live handle on the near-shot drop, on the dashboard as {@code ShotCalc/NearShotRpmDrop}.
-     *
-     * <p>Same rules as {@link #RPM_PER_MPS_TUNE}: a pit knob a person types a number into, back to
-     * {@link #NEAR_SHOT_RPM_DROP_DEFAULT} every boot, never on the gamepad and never persisted. The
-     * value in force and the RPM actually removed are both logged every loop a shot is in progress.
+     * Live handle on the near-shot drop, on the dashboard as {@code ShotCalc/NearShotRpmDrop}. Same
+     * rules as {@link #RPM_PER_MPS_TUNE}: back to {@link #NEAR_SHOT_RPM_DROP_DEFAULT} every boot,
+     * never on the gamepad and never persisted, and logged every loop a shot is in progress.
      */
     private static final DoubleSubscriber NEAR_SHOT_RPM_DROP_TUNE =
             Telemetry.tunable("ShotCalc/NearShotRpmDrop", NEAR_SHOT_RPM_DROP_DEFAULT);
 
     /**
-     * RPM to take off a hub shot at the given range.
-     *
      * @param distanceMeters launcher to hub centre, the distance the model was evaluated at
      * @return a non-negative RPM reduction, zero at and beyond 3.75 m
      */
@@ -649,10 +554,10 @@ public class ShotCalculator {
     /**
      * Flywheel speed the launcher can actually hold, measured rather than specified: 416.5 RPM per
      * volt applied, the median of eight Chezy match logs (spread 407 to 430, and the inverse of the
-     * fitted {@code velocityKv = 0.1425}). The gearing does not set the ceiling -- the battery
-     * does. At the fastest moment ever logged, 4194 RPM in Q45, the motor was applying 9.94 V
-     * against a 9.95 V bus: saturated, with 5.5 % of that match's launch samples within a volt of
-     * the same wall.
+     * fitted {@code velocityKv = 0.1425}). The gearing does not set the ceiling, the battery does.
+     * At the fastest moment ever logged, 4194 RPM in Q45, the motor was applying 9.94 V against a
+     * 9.95 V bus: saturated, with 5.5 % of that match's launch samples within a volt of the same
+     * wall.
      */
     private static final double RPM_PER_VOLT = 416.5;
 
@@ -664,26 +569,20 @@ public class ShotCalculator {
     private static final double USABLE_BUS_VOLTS = 9.85;
 
     /**
-     * Fastest flywheel speed worth commanding with the current gearing: about 4100 RPM.
-     *
-     * <p>Nothing in the normal range reaches this: the model tops out at 3780 RPM at the fitted
-     * coupling. It is a backstop for a coupling raise or a longer shot.
+     * Fastest flywheel speed worth commanding with the current gearing: about 4100 RPM. Nothing in
+     * the normal range reaches this, since the model tops out at 3780 RPM at the fitted coupling.
      *
      * <p>Asking for more does not make the ball faster, it makes {@link
-     * frc.robot.subsystems.launcher.Launcher#isAtSpeed()} unsatisfiable -- that gate is a +/-200
-     * RPM window around the command, so a command the flywheel cannot reach keeps the shot-ready
-     * gate shut and no fuel feeds. In Q11 every sample commanded above 4000 RPM read not-at-speed.
-     * Clamping here means a far shot fires a little short instead of not firing at all.
-     *
-     * <p>Raise this when the battery situation improves: the number is {@link #RPM_PER_VOLT} times
-     * the bus volts a burst actually holds, less a little so the gate's window can close.
+     * frc.robot.subsystems.launcher.Launcher#isAtSpeed()} unsatisfiable: that gate is a +/-200 RPM
+     * window around the command, so a command the flywheel cannot reach keeps the shot-ready gate
+     * shut and no fuel feeds. Clamping here means a far shot fires a little short instead of not
+     * firing at all. Raise this when the battery improves, to {@link #RPM_PER_VOLT} times the bus
+     * volts a burst actually holds, less a little so the gate's window can close.
      */
     private static final double MAX_FEASIBLE_FLYWHEEL_RPM =
             Math.floor(RPM_PER_VOLT * USABLE_BUS_VOLTS / 50.0) * 50.0;
 
     /**
-     * Caps a wanted flywheel speed at what the hardware can hold.
-     *
      * @param wantedRPM the model's flywheel speed, fudge already applied
      * @return the same speed, or {@link #MAX_FEASIBLE_FLYWHEEL_RPM} when it was over the ceiling
      */
@@ -706,16 +605,8 @@ public class ShotCalculator {
      * @param name descriptive name for telemetry
      * @param distMin fitted distance lower bound (metres); inputs clamped, shots outside flagged
      *     invalid
-     * @param distMax fitted distance upper bound (metres)
-     * @param rvMin fitted radial-velocity lower bound (m/s)
-     * @param rvMax fitted radial-velocity upper bound (m/s)
-     * @param dMean distance normalisation mean
-     * @param dStd distance normalisation standard deviation
-     * @param vMean radial-velocity normalisation mean
-     * @param vStd radial-velocity normalisation standard deviation
      * @param speedCoeffs exit-speed coefficients in the monomial basis 1, d, v, d², d·v, v², d³,
      *     d²·v, d·v², v³
-     * @param angleCoeffs launch-angle coefficients in the same basis
      * @param tofCoeffs time-of-flight coefficients (seconds) in the same basis; read this instead
      *     of simulating or estimating flight time when solving the virtual target. Null when the
      *     model was fitted without a flight-time output, in which case the solver falls back to a
@@ -741,7 +632,6 @@ public class ShotCalculator {
             double[] tofCoeffs,
             double hoodOffsetDeg) {}
 
-    /** Hub-shot model — used when the robot is in a scoring zone. */
     private static final PolyModel HUB_MODEL =
             new PolyModel(
                     "No Ceiling Hub Model",
@@ -789,12 +679,12 @@ public class ShotCalculator {
                         /* d·v² */ 3.5468556379e-2,
                         /* v³   */ 3.7823545109e-2
                     },
-                    // Shots landed 3 to 4 feet past the hub centre on 2026-09-05. The model moves
-                    // the hood about one degree per foot of range near where this robot shoots, so
-                    // four degrees down. Still long on the 20:00 run that evening, so one more.
+                    // Shots landed 3 to 4 ft past the hub centre on 2026-09-05. The hood is worth
+                    // about a degree per foot of range here, so 4 deg down; still long that
+                    // evening, so 5.
                     -5.0);
 
-    /** 3 meter ceiling hub model - used when the robot is testing at home */
+    /** Hub model fitted for a 3 m ceiling, for testing at home. */
     private static final PolyModel CEILING_3M_HUB_MODEL =
             new PolyModel(
                     "3 Meter Ceiling Hub Model",
@@ -842,10 +732,9 @@ public class ShotCalculator {
                         /* d·v² */ 4.6814046679e-2,
                         /* v³   */ 3.1845113863e-3
                     },
-                    // This fit scores as it is.
+                    // Scores as it is, so no calibration offset.
                     0.0);
 
-    /** Feed-shot model — floor target, optimised for maximum robustness. */
     private static final PolyModel FEED_MODEL =
             new PolyModel(
                     "Feed Shot Model",
@@ -897,69 +786,50 @@ public class ShotCalculator {
                     0.0);
 
     /**
-     * Active hub model. The name is logged to {@code ShotCalc/HubPolyModel} — check it before a
-     * match, because the two fits do not shoot the same and nothing else makes the difference
-     * obvious.
-     *
-     * <p>Back on the full-field fit to test the -4 deg hood trim it now carries. It shot 3 to 4
-     * feet past the hub centre without it, which its own table says is about four degrees of hood.
-     * If that trim does not close the gap, {@link #CEILING_3M_HUB_MODEL} is the known-good fallback
-     * — it scores, at the cost of a trajectory shaped to stay under a 3 m roof.
+     * Active hub model. The name is logged to {@code ShotCalc/HubPolyModel}, so check it before a
+     * match: the two fits do not shoot the same and nothing else makes the difference obvious. The
+     * ceiling fit is the known-good fallback, at the cost of a trajectory shaped to stay under a 3
+     * m roof.
      */
     private static final PolyModel WANTED_HUB_MODEL = HUB_MODEL;
 
-    // =========================================================================
-    // Set shot -- the fallback when the pose is gone
-    // =========================================================================
-
     /**
      * The fixed shots, one per parking spot. Each is a range to the hub centre and a turret angle;
-     * the hood and flywheel come off the model at that range, at a standstill.
+     * the hood and flywheel come off the live hub model at that range, at a standstill, so a set
+     * shot follows the shot map without anyone retyping numbers.
      *
-     * <p>Ranges are worked from the field geometry, not measured. Robot centre, and therefore the
-     * launcher ({@code robotToLauncher} is zero), sits 15 in inside the bumper of a 30 in robot.
-     * The hub centre is the midpoint of tags 26 and 20, (4.626, 4.035) m.
+     * <p>Ranges are worked from the field geometry, not measured. The robot centre, and therefore
+     * the launcher, sits 15 in inside the bumper of a 30 in robot. The hub centre is the midpoint
+     * of tags 26 and 20, (4.626, 4.035) m.
      *
-     * <p>The turret's zero points away from the intake, so "intake facing the hub" means the turret
-     * turns a half turn to shoot back over it. {@code -180} rather than {@code +180}: the travel is
-     * -216 to +180 deg, and a command sitting exactly on the forward soft limit has no margin.
-     * Every spot except the hub face parks intake-away, turret at zero: from most of the tracked
-     * turret positions that is the short move, so the shot is ready sooner than one that latches a
-     * profiled half turn (see {@code Turret.longMoveDegrees}).
-     *
-     * <p>Forgiving to be off by: the model moves about 0.5 deg of hood and 35 RPM per 15 cm at
-     * these ranges, so lining up by eye against the field element is good enough.
-     *
-     * <p>Hood and flywheel are not stored here: {@code setShotSolution()} reads them off the live
-     * hub model, the near-shot RPM drop and the operator's hood trim every loop, so a set shot
-     * follows the shot map without anyone retyping numbers. For reference, at the fitted model with
-     * the 150 RPM drop and zero trim (2026-09-20): Tower 14.3 deg / 2850 RPM, HubFace 6.1 deg /
-     * 2470 RPM, either trench 15.4 deg / 3020 RPM. The logged {@code Hood/CommandedDegrees} and
-     * {@code Launcher/CommandedRPM} are the numbers actually in force.
+     * <p>The turret's zero points away from the intake, so an intake-facing spot means the turret
+     * turns a half turn to shoot back over it. That is -180 rather than +180: the travel is -216 to
+     * +180 deg, and a command sitting exactly on the forward soft limit has no margin. Every spot
+     * except the hub face parks intake-away, turret at zero, which from most tracked turret
+     * positions is the short move.
      */
     public enum SetShot {
         /**
          * Parked against the tower's field-facing wall, intake to the wall, turret at zero shooting
-         * the hub. Tower front face 43.51 in on the tower centreline (tag 31, y = 3.746 m), so the
-         * robot centre is at (1.486, 3.746) m: 3.15 m, 10.3 ft.
+         * the hub. The tower front face is 43.51 in on the tower centreline (tag 31, y = 3.746 m),
+         * so the robot centre is at (1.486, 3.746) m: 3.15 m, 10.3 ft.
          */
         TOWER("Tower", 3.15, 0.0),
         /**
          * Bumper against the hub's near face, intake to the hub, turret over the intake. Hub half
          * width 23.5 in plus 15 in: 0.98 m. That is below the model's fitted 1.5 m floor, so the
-         * model is evaluated at 1.5 m and clamped there. Untested at the time of writing; treat it
-         * as a lob until the practice field says otherwise.
+         * model is evaluated at 1.5 m and clamped there. Untested at the time of writing, so treat
+         * it as a lob.
          */
         HUB_FACE("HubFace", 0.978, -180.0),
         /**
          * Sitting in the left trench lane with the robot just clear of the trench, intake pointed
-         * away from the hub, turret at zero shooting back over the far bumper. Trench opening is
-         * 50.34 in wide at the wall, so its centreline is 3.395 m from the field centreline; the
+         * away from the hub, turret at zero shooting back over the far bumper. The trench opening
+         * is 50.34 in wide at the wall, so its centreline is 3.395 m from the field centreline; the
          * robot centre is 23.5 + 15 in along x from the hub centre once it has cleared the 47 in
          * trench: 3.53 m. Sitting inside the trench instead is 3.40 m, 13 cm less, which the model
          * barely notices. The robot is 30 in square, so which end faces the hub does not move its
-         * centre, and the range is the same as it was intake-to-hub (2026-09-20: turned round so
-         * the turret makes no half turn on the way to the shot).
+         * centre, and the range is the same as it was intake-to-hub.
          */
         LEFT_TRENCH("LeftTrench", 3.53, 0.0),
         /** Mirror of {@link #LEFT_TRENCH}. */
@@ -981,10 +851,6 @@ public class ShotCalculator {
         }
     }
 
-    /**
-     * Range the tower set shot is fitted for. Kept as the name older notes and logs use; the value
-     * is {@link SetShot#TOWER}.
-     */
     public static final double SET_SHOT_DISTANCE_METERS = SetShot.TOWER.distanceMeters;
 
     private static volatile SetShot selectedSetShot = SetShot.TOWER;
@@ -992,19 +858,13 @@ public class ShotCalculator {
     /**
      * Picks which fixed shot the SET_SHOT super state runs. Called from the pilot binding before
      * the state is requested; the selection sticks until the next binding changes it.
-     *
-     * @param shot the parking spot
      */
     public static void selectSetShot(SetShot shot) {
         selectedSetShot = shot;
         Telemetry.logDashAlways("ShotCalc/SetShot", shot.label);
     }
 
-    /**
-     * The fixed shot currently selected.
-     *
-     * @return the selected shot, {@link SetShot#TOWER} until anything picks one
-     */
+    /** The selected set shot, {@link SetShot#TOWER} until anything picks one. */
     public static SetShot getSelectedSetShot() {
         return selectedSetShot;
     }
@@ -1014,9 +874,8 @@ public class ShotCalculator {
      *
      * <p>Read off the same fitted surface a tracked shot uses, at a fixed distance with zero
      * velocity, so it moves with the model and with the operator's D-pad hood trim instead of being
-     * a pair of magic numbers that quietly go stale the next time the model is refitted. It never
-     * touches the robot pose, which is the entire point: this is what gets used when the pose is
-     * the thing that has failed.
+     * a pair of magic numbers that go stale on the next refit. It never touches the robot pose,
+     * which is the point: this is what gets used when the pose is the thing that has failed.
      *
      * @return {@code { hoodDegrees, flywheelRPM }}
      */
@@ -1032,36 +891,17 @@ public class ShotCalculator {
         return new double[] {hoodDegrees, feasibleFlywheelRPM(rpm)};
     }
 
-    /**
-     * Hood angle for the selected set shot, in degrees.
-     *
-     * @return the commanded hood angle
-     */
     public static double getSetShotHoodDegrees() {
         return setShotSolution()[0];
     }
 
-    /**
-     * Flywheel speed for the selected set shot, in RPM.
-     *
-     * @return the commanded flywheel speed
-     */
     public static double getSetShotFlywheelRPM() {
         return setShotSolution()[1];
     }
 
-    /**
-     * Turret mechanism angle for the selected set shot, in degrees from zero.
-     *
-     * @return the commanded turret angle
-     */
     public static double getSetShotTurretDegrees() {
         return selectedSetShot.turretDegrees;
     }
-
-    // =========================================================================
-    // State — Velocity Derivative Filters
-    // =========================================================================
 
     private static final double LOOP_PERIOD_SECS = 0.02;
 
@@ -1079,43 +919,23 @@ public class ShotCalculator {
 
     private double lastHoodAngle = Double.NaN;
     private Rotation2d lastTurretAngle = null;
-    // =========================================================================
-    // Main API
-    // =========================================================================
 
     /**
-     * Returns the current shooting parameters, computing them from the robot's live pose and
-     * velocity if not already cached this loop.
-     *
-     * <p>Approach:
-     *
-     * <ol>
-     *   <li>Apply a phase delay to the odometry pose to account for sensor latency.
-     *   <li>Compute the launcher's field-relative velocity, including the tangential component from
-     *       robot rotation about its centre.
-     *   <li>Decompose that velocity into radial (toward target) and tangential (perpendicular)
-     *       components.
-     *   <li>Run the 1690 Orbit iterative virtual-target solver to determine the optimal exit speed,
-     *       launch angle, and yaw correction for shoot-on-the-move.
-     *   <li>Derive the turret angle, hood angle, and flywheel RPM from the result.
-     * </ol>
+     * The current shooting parameters, computed from the robot's live pose and velocity if not
+     * already cached this loop.
      *
      * <p>Call {@link #clearShootingParameters()} at the start of each loop to allow re-computation
      * on the next call.
-     *
-     * @return the latest {@link ShootingParameters}
      */
     public ShootingParameters getParameters() {
         if (latestParameters != null) return latestParameters;
 
-        // ── Target selection ─────────────────────────────────────────────────
         boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
         // Feed and hub shots use separately-fitted polynomial surfaces.
         PolyModel model = feed ? FEED_MODEL : WANTED_HUB_MODEL;
 
-        // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
         ChassisSpeeds robotRelativeVelocity = Robot.getSwerve().getCurrentRobotChassisSpeeds();
         estimatedPose =
@@ -1125,12 +945,10 @@ public class ShotCalculator {
                                 robotRelativeVelocity.vyMetersPerSecond * PHASE_DELAY_SECS,
                                 robotRelativeVelocity.omegaRadiansPerSecond * PHASE_DELAY_SECS));
 
-        // ── Launcher pose + static distance ──────────────────────────────────
         Pose2d launcherPose = estimatedPose.transformBy(robotToLauncher);
         Translation2d launcherToTarget = target.minus(launcherPose.getTranslation());
         double distanceNoLookahead = launcherToTarget.getNorm();
 
-        // ── Field-relative launcher velocity (includes rotation arm) ─────────
         ChassisSpeeds fieldVelocity =
                 ChassisSpeeds.fromRobotRelativeSpeeds(
                         robotRelativeVelocity, estimatedPose.getRotation());
@@ -1146,7 +964,6 @@ public class ShotCalculator {
                                 * (robotToLauncher.getX() * Math.cos(robotAngle)
                                         - robotToLauncher.getY() * Math.sin(robotAngle));
 
-        // ── Decompose velocity into radial and tangential components ──────────
         // Unit vector from launcher toward target
         double ux = launcherToTarget.getX() / distanceNoLookahead;
         double uy = launcherToTarget.getY() / distanceNoLookahead;
@@ -1155,7 +972,6 @@ public class ShotCalculator {
         // Tangential: perpendicular to the radial axis
         double tangentialVelocity = -launcherVelocityX * uy + launcherVelocityY * ux;
 
-        // ── Polynomial + 1690 virtual-target solver ───────────────────────────
         // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
         double[] poly =
                 solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
@@ -1165,15 +981,14 @@ public class ShotCalculator {
         double lookaheadDist = poly[3];
         double tofFinal = poly[4];
 
-        // ── Turret angle: static bearing + shoot-on-move yaw + user offset ────
         Rotation2d turretAngle =
                 launcherToTarget
                         .getAngle()
                         .plus(Rotation2d.fromDegrees(yawOffsetDeg))
                         .plus(Rotation2d.fromDegrees(TURRET_ANGLE_OFFSET));
 
-        // ── Lookahead pose: estimated launcher position when the ball arrives ────
-        // Useful for Field2d visualization and validating shoot-on-move compensation.
+        // Estimated launcher position when the ball arrives, for Field2d and for checking
+        // shoot-on-move compensation.
         Pose2d lookaheadPose =
                 new Pose2d(
                         launcherPose
@@ -1184,16 +999,14 @@ public class ShotCalculator {
                                                 launcherVelocityY * tofFinal)),
                         turretAngle);
 
-        // Turret angular velocity (rotations/s) for heading feedforward
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
         double deltaRot =
                 MathUtil.inputModulus(turretAngle.minus(lastTurretAngle).getRotations(), -0.5, 0.5);
         double turretAngularVelocity = turretAngleFilter.calculate(deltaRot / LOOP_PERIOD_SECS);
         lastTurretAngle = turretAngle;
 
-        // ── Hood angle + velocity ─────────────────────────────────────────────
-        // Compute velocity on the raw (un-offset) angle so HOOD_ANGLE_OFFSET (a
-        // near-constant) does not bleed into the derivative.
+        // Velocity comes off the raw angle so HOOD_ANGLE_OFFSET, a near-constant, does not bleed
+        // into the derivative.
         if (Double.isNaN(lastHoodAngle)) lastHoodAngle = rawHoodAngle;
         double hoodVelocity =
                 hoodAngleFilter.calculate((rawHoodAngle - lastHoodAngle) / LOOP_PERIOD_SECS);
@@ -1204,22 +1017,20 @@ public class ShotCalculator {
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
-        // ── Flywheel speed: exit speed (m/s) → RPM ──────────────────────────
         // The near-shot drop is a hub-model correction; feed shots are not characterised.
         double nearShotDrop = feed ? 0.0 : nearShotRpmDrop(lookaheadDist);
         double wantedFlywheelSpeed = exitSpeedMs * rpmPerMps() - nearShotDrop;
         double flywheelSpeed = feasibleFlywheelRPM(wantedFlywheelSpeed);
 
-        // Snapshot for the shot record: the five values a burst row needs that
-        // ShootingParameters does not carry. Kept here rather than widened into the record because
-        // nothing in the control path reads them.
+        // Snapshot for the shot record: the values a burst row needs that ShootingParameters does
+        // not carry. Kept here rather than widened into the record because nothing in the control
+        // path reads them.
         activeModelName = model.name;
         activeModelHoodOffsetDeg = modelHoodOffsetDeg(model);
         activeRadialVelocityMs = radialVelocity;
         activeTangentialVelocityMs = tangentialVelocity;
         activeFeedShot = feed;
 
-        // ── Validity ──────────────────────────────────────────────────────────
         boolean isValid =
                 distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
 
@@ -1236,8 +1047,8 @@ public class ShotCalculator {
                         distanceNoLookahead,
                         tofFinal);
 
-        // Fifteen keys that move with the pose every loop. Loop rate while a shot is in progress,
-        // when they are the record of what was aimed; 10 Hz the rest of the time.
+        // Keys that move with the pose every loop: loop rate while a shot is in progress, when
+        // they are the record of what was aimed, and 10 Hz the rest of the time.
         boolean launching =
                 Robot.getSuperStructure() != null
                         && Robot.getSuperStructure().currentStateIsLaunching();
@@ -1280,35 +1091,30 @@ public class ShotCalculator {
         latestParameters = null;
     }
 
-    // =========================================================================
-    // Private — Polynomial Solver
-    // =========================================================================
-
     /**
      * 1690 Orbit iterative virtual-target solver.
      *
      * <p>Each pass evaluates the polynomial at the current virtual aim point, reads the fitted
      * time-of-flight, shifts the aim point by how far the launcher moves during that flight, and
-     * repeats until TOF converges. Terminates in ≤ 5 iterations (typically 2–3).
+     * repeats until the time of flight converges. Terminates in at most 5 iterations, usually 2 to
+     * 3.
      *
-     * @param model the polynomial model (hub or feed) to evaluate against
      * @param distance horizontal distance to goal centre (metres)
-     * @param radialVelocity launcher velocity toward/away from goal (m/s); positive = closing on
-     *     goal
+     * @param radialVelocity launcher velocity toward or away from goal (m/s); positive = closing
      * @param tangentialVelocity launcher velocity perpendicular to goal line (m/s)
      * @return {@code double[]} with indices:
      *     <ul>
-     *       <li>0 — exit speed (m/s), scaled by {@link #MPS_FACTOR}
-     *       <li>1 — launch angle (degrees), raw polynomial value
-     *       <li>2 — yaw offset (degrees); add to static bearing before firing
-     *       <li>3 — converged virtual aim distance (metres)
-     *       <li>4 — converged time of flight (seconds)
+     *       <li>0: exit speed (m/s), scaled by {@link #MPS_FACTOR}
+     *       <li>1: launch angle (degrees), raw polynomial value
+     *       <li>2: yaw offset (degrees); add to the static bearing before firing
+     *       <li>3: converged virtual aim distance (metres)
+     *       <li>4: converged time of flight (seconds)
      *     </ul>
      */
     private static double[] solveVirtualTarget(
             PolyModel model, double distance, double radialVelocity, double tangentialVelocity) {
-        double vdx = distance; // virtual aim point — radial component (m)
-        double vdz = 0.0; // virtual aim point — lateral component (m)
+        double vdx = distance; // virtual aim point, radial component (m)
+        double vdz = 0.0; // virtual aim point, lateral component (m)
         double tof = 0.0;
         double lead = 0.0; // effective lead time after drag bleed (s)
 
@@ -1316,15 +1122,14 @@ public class ShotCalculator {
             double vDist = Math.sqrt(vdx * vdx + vdz * vdz);
             if (vDist < 0.1) break;
 
-            // Evaluate polynomial at virtual point with rv = 0 (robot motion is
-            // already encoded in the shifted aim point)
+            // Evaluate at the virtual point with rv = 0, since robot motion is already encoded in
+            // the shifted aim point
             double[] raw = evalPolyRaw(model, vDist, 0.0);
             double prevTof = tof;
             tof = raw[2];
             lead = tof * driftEfficiency(tof);
 
-            // Shift aim point: where the target will be relative to the launcher
-            // when the ball arrives
+            // Where the target will be relative to the launcher when the ball arrives
             vdx = distance - radialVelocity * lead;
             vdz = -tangentialVelocity * lead;
 
@@ -1347,15 +1152,14 @@ public class ShotCalculator {
     }
 
     /**
-     * Fraction of the chassis velocity the ball inherits that actually survives to the target.
+     * Fraction of the chassis velocity the ball inherits that survives to the target.
      *
      * <p>Drag bleeds off the inherited velocity during flight, so the ball drifts less than {@code
      * velocity * timeOfFlight}. Leading by the full product over-counter-aims by an amount that
-     * grows with both robot speed and flight time. Measured against the ball sim at 0.89 / 0.86 /
-     * 0.82 for 4 / 6 / 8 m shots — independent of robot speed, and close enough to linear in flight
+     * grows with both robot speed and flight time. Measured against the ball sim at 0.89, 0.86 and
+     * 0.82 for 4, 6 and 8 m shots: independent of robot speed, and close enough to linear in flight
      * time to model with a single coefficient.
      *
-     * @param tofSeconds ball time of flight (seconds)
      * @return drift efficiency in [0, 1]
      */
     private static double driftEfficiency(double tofSeconds) {
@@ -1363,15 +1167,14 @@ public class ShotCalculator {
     }
 
     /**
-     * Evaluates the given polynomial surface at (distance, radialVel). Inputs are clamped to the
-     * model's fitted data range. Returns raw polynomial output — callers are responsible for
-     * applying {@link #MPS_FACTOR} to the exit speed and {@code HOOD_ANGLE_OFFSET} to the launch
-     * angle.
+     * Evaluates the given polynomial surface at (distance, radialVel), with the inputs clamped to
+     * the model's fitted data range. Callers apply {@link #MPS_FACTOR} to the exit speed and {@code
+     * HOOD_ANGLE_OFFSET} to the launch angle.
      *
      * @param model the polynomial model (hub or feed) to evaluate
-     * @param distance horizontal distance to the aim point (metres)
-     * @param radialVel radial velocity (m/s)
-     * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg, tof_s }
+     * @param distance horizontal distance to the aim point, in metres
+     * @param radialVel radial velocity, in m/s
+     * @return {@code double[]} { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg, tof_s }
      */
     private static double[] evalPolyRaw(PolyModel model, double distance, double radialVel) {
         double d_raw = Math.max(model.distMin(), Math.min(model.distMax(), distance));

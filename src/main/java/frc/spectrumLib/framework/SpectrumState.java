@@ -12,12 +12,12 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 
 /**
- * Represents a global or subsystem-specific state that can be used as a Trigger. Integrates with
- * WPILib's Trigger and Alert systems.
+ * A named boolean state usable as a WPILib {@link Trigger}. Every instance built with the same name
+ * reads and writes one shared value, and each raises an {@link Alert} in the States group.
  */
 public class SpectrumState extends Trigger {
 
-    /** Shared map from state name to its current boolean value, polled by all Trigger instances. */
+    /** Keyed by state name, so states that share a name share a value. */
     private static final HashMap<String, Boolean> stateConditions = new HashMap<>();
 
     private String name;
@@ -25,7 +25,7 @@ public class SpectrumState extends Trigger {
     private Alert alert;
 
     /**
-     * Creates a state polled by the command scheduler's default event loop.
+     * Polled by the command scheduler's default event loop.
      *
      * @param name the state's name, used as its key and in its alert
      */
@@ -35,35 +35,19 @@ public class SpectrumState extends Trigger {
         alert = new Alert("States", name, AlertType.kInfo);
     }
 
-    /**
-     * Creates a state polled by the given event loop.
-     *
-     * @param eventLoop the event loop to poll this trigger
-     * @param name the state's name, used as its key and in its alert
-     */
+    /** Polled by the given event loop instead of the scheduler's default one. */
     public SpectrumState(EventLoop eventLoop, String name) {
         super(eventLoop, pollCondition(name));
         this.name = name;
         alert = new Alert("States", name, AlertType.kInfo);
     }
 
-    /**
-     * Directly set the spectrum state to the specified value
-     *
-     * @param value The value to set the state to
-     */
     public void setState(boolean value) {
         this.value = value;
         alert.set(value);
         setCondition(name, value);
     }
 
-    /**
-     * Create a command that will set the state to true while the command is running Then it will
-     * set to false once it is cancelled
-     *
-     * @return the command
-     */
     public Command setTrueWhileRunning() {
         return Commands.startEnd(() -> setState(true), () -> setState(false))
                 .ignoringDisable(true)
@@ -71,10 +55,7 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Create a command that will set the state to true for a given time.
-     *
-     * @param time The time in seconds to set the state to true
-     * @return the command
+     * @param time how long to hold the state true, in seconds
      */
     public Command setTrueForTime(DoubleSupplier time) {
         return Commands.runOnce(() -> setState(true))
@@ -85,10 +66,7 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Create a command that will set the state to false for a given time.
-     *
-     * @param time The time in seconds to set the state to false
-     * @return the command
+     * @param time how long to hold the state false, in seconds
      */
     public Command setFalseForTime(DoubleSupplier time) {
         return Commands.runOnce(() -> setState(false))
@@ -99,12 +77,8 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Create a command that will set the state to true for a given time, or until a cancel
-     * condition is met.
-     *
-     * @param time The time in seconds to set the state to true
-     * @param cancelCondition The condition that will cancel the timer and set the state to false
-     * @return the command
+     * @param time the longest the state stays true, in seconds
+     * @param cancelCondition ends the wait early and drops the state to false
      */
     public Command setTrueForTimeWithCancel(DoubleSupplier time, Trigger cancelCondition) {
         return Commands.runOnce(() -> setState(true))
@@ -118,9 +92,8 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Command to set state to false, and then to true, ensuring your state will trigger actions
-     *
-     * @return the command
+     * Sets the state false, then true after a 5 ms wait, so a binding polled between them still
+     * sees the false state.
      */
     public Command toggleToTrue() {
         return setFalse()
@@ -131,10 +104,8 @@ public class SpectrumState extends Trigger {
     }
 
     /**
-     * Command to set state to true, and then to false, ensuring triggers bound to the false
-     * transition fire reliably.
-     *
-     * @return the command
+     * Sets the state true, then false after a 5 ms wait, so a binding polled between them still
+     * sees the true state.
      */
     public Command toggleToFalse() {
         return setTrue()
@@ -144,63 +115,31 @@ public class SpectrumState extends Trigger {
                 .withName(name + " state: ToggleToFalse");
     }
 
-    /**
-     * Creates an instant command that sets the state to the given value.
-     *
-     * @param value The desired state value
-     * @return the command
-     */
     public Command set(boolean value) {
         return Commands.runOnce(() -> setState(value)).ignoringDisable(true);
     }
 
-    /**
-     * Creates an instant command that sets the state to {@code true}.
-     *
-     * @return the command
-     */
     public Command setTrue() {
         return set(true).withName(name + " state: SetTrue");
     }
 
-    /**
-     * Creates an instant command that sets the state to {@code false}.
-     *
-     * @return the command
-     */
     public Command setFalse() {
         return set(false).withName(name + " state: SetFalse");
     }
 
-    /**
-     * Creates an instant command that flips the current state value.
-     *
-     * @return the command
-     */
     public Command toggle() {
         return Commands.runOnce(() -> setState(!value))
                 .ignoringDisable(true)
                 .withName(name + " state: Toggle");
     }
 
-    /**
-     * Create a boolean supplier that will poll(check) a condition.
-     *
-     * @param name The name of the event
-     * @return A boolean supplier to poll the event's condition
-     */
+    /** A supplier reading the shared value for name, registering the name as false if it is new. */
     private static BooleanSupplier pollCondition(String name) {
         stateConditions.putIfAbsent(name, false);
 
         return () -> stateConditions.get(name);
     }
 
-    /**
-     * Set the value of an event condition
-     *
-     * @param name The name of the condition
-     * @param value The value of the condition
-     */
     protected static void setCondition(String name, boolean value) {
         stateConditions.put(name, value);
     }

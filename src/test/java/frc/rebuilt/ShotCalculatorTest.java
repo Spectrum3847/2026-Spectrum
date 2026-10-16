@@ -17,11 +17,8 @@ public class ShotCalculatorTest {
     private Double originalTurretAngleOffset;
 
     /**
-     * Restore static state, including the Preferences store.
-     *
-     * <p>Since 2026-09-08 the trim commands write through to {@link Preferences}, so putting the
-     * static fields back is no longer enough: a leftover stored trim would be read by the next test
-     * that calls {@code loadPersistedTrims()}.
+     * Trims persist to Preferences, so the statics are not the only state to put back: a leftover
+     * stored trim would be picked up by the next test that calls loadPersistedTrims().
      */
     @AfterEach
     void restoreStaticState() {
@@ -37,7 +34,6 @@ public class ShotCalculatorTest {
         Preferences.remove(ShotCalculator.TURRET_TRIM_PREF_KEY);
     }
 
-    /** Verifies shooting parameters record. */
     @Test
     @DisplayName("Test ShootingParameters record properties")
     void testShootingParametersRecord() {
@@ -66,7 +62,6 @@ public class ShotCalculatorTest {
         assertEquals(1.2, params.timeOfFlight(), 1e-6);
     }
 
-    /** Verifies hood angle offset commands. */
     @Test
     @DisplayName("Test Hood angle offset increment and decrement commands")
     void testHoodAngleOffsetCommands() {
@@ -83,7 +78,6 @@ public class ShotCalculatorTest {
         assertEquals(initialOffset, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-6);
     }
 
-    /** Verifies turret angle offset commands. */
     @Test
     @DisplayName("Test Turret angle offset increment and decrement commands")
     void testTurretAngleOffsetCommands() {
@@ -97,7 +91,6 @@ public class ShotCalculatorTest {
         assertEquals(initialOffset, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-6);
     }
 
-    /** Verifies singleton. */
     @Test
     @DisplayName("Test ShotCalculator singleton instance")
     void testSingleton() {
@@ -108,10 +101,7 @@ public class ShotCalculatorTest {
         instance1.clearShootingParameters();
     }
 
-    /**
-     * The whole point of 3.1: a trim dialled in during a session is still there after the code
-     * restarts. Zeroing the field and reloading is what a redeploy does to these statics.
-     */
+    /** A trim dialled in during a session is still there after the code restarts. */
     @Test
     @DisplayName("A trim survives the restart that used to zero it")
     void trimSurvivesRestart() {
@@ -128,14 +118,12 @@ public class ShotCalculatorTest {
         double turret = ShotCalculator.TURRET_ANGLE_OFFSET;
         assertEquals(-2 * ShotCalculator.HOOD_OFFSET_STEP_DEG, hood, 1e-9);
 
-        // What a redeploy leaves behind: fresh statics, and whatever is in flash.
         ShotCalculator.HOOD_ANGLE_OFFSET = ShotCalculator.STARTING_HOOD_ANGLE_OFFSET;
         ShotCalculator.TURRET_ANGLE_OFFSET = ShotCalculator.STARTING_TURRET_ANGLE_OFFSET;
         ShotCalculator.loadPersistedTrims();
 
         assertEquals(hood, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-9);
-        // The turret trim is session-only since 2026-09-19: it was +1 before the restart and is
-        // zero after it, and nothing about it is left in the store.
+        // The turret trim is session-only: it is zero after the restart, with nothing left stored.
         assertTrue(turret != 0);
         assertEquals(0, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
         assertFalse(Preferences.containsKey(ShotCalculator.TURRET_TRIM_PREF_KEY));
@@ -163,10 +151,7 @@ public class ShotCalculatorTest {
         assertEquals(-ShotCalculator.MAX_TRIM_DEG, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
     }
 
-    /**
-     * The case the cap actually exists for: something other than the D-pad wrote the stored value.
-     * A hand-edited or corrupt preference must not reach the turret.
-     */
+    /** The case the cap exists for: a hand-edited preference must not reach the turret. */
     @Test
     @DisplayName("An out-of-range stored trim is clamped on load, not trusted")
     void storedTrimIsClampedOnLoad() {
@@ -179,22 +164,20 @@ public class ShotCalculatorTest {
         ShotCalculator.loadPersistedTrims();
 
         assertEquals(ShotCalculator.MAX_TRIM_DEG, ShotCalculator.HOOD_ANGLE_OFFSET, 1e-9);
-        // A stored turret trim, in range or not, is discarded rather than clamped.
+        // A stored turret trim is discarded, in range or not, rather than clamped.
         assertEquals(0, ShotCalculator.TURRET_ANGLE_OFFSET, 1e-9);
         assertFalse(Preferences.containsKey(ShotCalculator.TURRET_TRIM_PREF_KEY));
-        // The one-match flywheel trim (Chezy Q11) is deleted from the store on load.
+        // The one-match flywheel trim from Chezy Q11 is deleted from the store on load.
         assertFalse(Preferences.containsKey(ShotCalculator.FLYWHEEL_TRIM_PREF_KEY));
 
-        // And the clamped value is written back, so the bad number is gone rather than waiting.
+        // The clamped value is written back, so the bad number is gone rather than waiting.
         assertEquals(
                 ShotCalculator.MAX_TRIM_DEG,
                 Preferences.getDouble(ShotCalculator.HOOD_TRIM_PREF_KEY, Double.NaN),
                 1e-9);
     }
 
-    /**
-     * Start+Select has to clear the store as well as the fields, or the next boot brings it back.
-     */
+    /** The reset chord must clear the store too, or the next boot reloads the trims. */
     @Test
     @DisplayName("The reset chord clears both trims and the stored copies")
     void resetClearsStoredTrims() {
@@ -220,9 +203,8 @@ public class ShotCalculatorTest {
     }
 
     /**
-     * Ranges are worked from the field: robot centre 15 in inside the bumper, hub centre at the
-     * midpoint of tags 26 and 20. Recomputed here from the same geometry so a changed constant has
-     * to be argued for.
+     * Distances come from the field: centre 15 in inside the bumper, hub at the midpoint of tags 26
+     * and 20. Recomputed from that geometry so a changed constant has to be argued for.
      */
     @Test
     @DisplayName("Set shot ranges match the field geometry and turret angles fit the travel")
@@ -232,12 +214,12 @@ public class ShotCalculatorTest {
         double hubX = (4.0219 + 5.2292) / 2.0;
         double hubY = 4.0346;
 
-        // Tower: front face 43.51 in, on tag 31's y.
+        // Tower front face 43.51 in, lined up with tag 31's y.
         double towerX = 43.51 * 0.0254 + halfRobot;
         double tower = Math.hypot(hubX - towerX, hubY - 3.7457);
         assertEquals(tower, ShotCalculator.SetShot.TOWER.distanceMeters, 0.01);
 
-        // Hub face: bumper on the near face.
+        // Hub face: our bumper meets the hub face.
         assertEquals(hubHalf + halfRobot, ShotCalculator.SetShot.HUB_FACE.distanceMeters, 0.01);
 
         // Trench: lane centre 25.17 in off the wall, robot just clear of the 47 in trench.
@@ -246,12 +228,12 @@ public class ShotCalculatorTest {
         assertEquals(trench, ShotCalculator.SetShot.LEFT_TRENCH.distanceMeters, 0.01);
         assertEquals(trench, ShotCalculator.SetShot.RIGHT_TRENCH.distanceMeters, 0.01);
 
-        // Turret travel is -216 to +180 deg; sitting on a soft limit is not a usable angle.
+        // Turret travel is -216 to +180 deg, so a shot on a soft limit is not a usable angle.
         for (ShotCalculator.SetShot shot : ShotCalculator.SetShot.values()) {
             assertTrue(shot.turretDegrees > -216 && shot.turretDegrees < 180, shot.label);
         }
 
-        // Intake away from the hub, turret at zero, everywhere but the hub face (2026-09-20).
+        // Intake away from the hub, so the turret sits at zero everywhere but the hub face.
         assertEquals(0.0, ShotCalculator.SetShot.TOWER.turretDegrees, 1e-9);
         assertEquals(0.0, ShotCalculator.SetShot.LEFT_TRENCH.turretDegrees, 1e-9);
         assertEquals(0.0, ShotCalculator.SetShot.RIGHT_TRENCH.turretDegrees, 1e-9);

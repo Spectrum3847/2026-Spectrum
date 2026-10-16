@@ -10,10 +10,9 @@ import edu.wpi.first.math.geometry.Translation2d;
  * turret angle, and the inverse, which robot pose a camera solve implies.
  *
  * <p>Pure functions of the three numbers the turret mount is described by, with no robot state, so
- * the forward and inverse models can be checked against each other in a unit test. The forward
- * model is what the robot used to push to the camera every loop; the inverse is what it now applies
- * on the roboRIO to a camera solve, using the turret angle from the frame's own timestamp rather
- * than whatever the turret was doing when the solve arrived.
+ * the forward and inverse models can be checked against each other in a unit test. The inverse
+ * takes the turret angle from the frame's own timestamp rather than whatever the turret was doing
+ * when the solve arrived.
  *
  * <p>Conventions: robot frame is x forward, y left, angles counter-clockwise positive. Turret angle
  * zero points the turret robot-forward. The camera's yaw in the robot frame is the turret angle
@@ -29,8 +28,8 @@ public final class TurretCameraGeometry {
     /**
      * @param robotToTurretCenter robot centre to turret pivot, metres, robot frame
      * @param turretCenterToCamera turret pivot to camera along the camera's look direction, metres,
-     *     expressed in the camera's yaw frame (so a camera on the pivot arm behind the pivot is
-     *     {@code (+arm, 0)} together with a 180 deg {@code cameraYawAtTurretZero})
+     *     expressed in the camera's yaw frame, so a camera on the pivot arm behind the pivot is
+     *     {@code (+arm, 0)} with a 180 deg {@code cameraYawAtTurretZero}
      * @param cameraYawAtTurretZero the camera's yaw in the robot frame with the turret at zero
      */
     public TurretCameraGeometry(
@@ -58,18 +57,15 @@ public final class TurretCameraGeometry {
         return new Transform2d(cameraInRobot(turretAngle), cameraYawInRobot(turretAngle));
     }
 
-    /**
-     * Forward model: the camera's floor-projected field pose (its planar position and heading) for
-     * a robot pose and turret angle.
-     */
+    /** The camera's floor-projected field pose (planar position and heading) for a robot pose. */
     public Pose2d cameraFloorPose(Pose2d robotPose, Rotation2d turretAngle) {
         return robotPose.transformBy(robotToCamera(turretAngle));
     }
 
     /**
      * The robot heading a camera heading implies at this turret angle. A steady difference between
-     * this and the gyro heading is the turret zero error (or a pose heading error; the two cannot
-     * be told apart from the turret camera alone).
+     * this and the gyro heading is the turret zero error, or a pose heading error; the two cannot
+     * be told apart from the turret camera alone.
      */
     public Rotation2d robotHeadingFromCamera(Rotation2d cameraHeading, Rotation2d turretAngle) {
         return cameraHeading.minus(cameraYawInRobot(turretAngle));

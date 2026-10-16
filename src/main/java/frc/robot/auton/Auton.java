@@ -33,13 +33,8 @@ public class Auton {
     private boolean autoMessagePrinted = true;
     private double autonStart = 0;
 
-    /** How long {@link #launch()} holds the launch before idling. */
     private static final double LAUNCH_SECONDS = 2.5;
 
-    /**
-     * This method configures the available autonomous routines that can be selected from the
-     * SmartDashboard.
-     */
     public void setupSelectors() {
 
         pathChooser.setDefaultOption("Do Nothing", doNothing());
@@ -68,18 +63,12 @@ public class Auton {
 
     private SuperStructure robotSuperStructure;
 
-    /**
-     * Creates a new Auton instance.
-     *
-     * @param robotSuperStructure the robotSuperStructure
-     */
     public Auton(SuperStructure robotSuperStructure) {
         this.robotSuperStructure = robotSuperStructure;
-        setupSelectors(); // runs the command to start the chooser for auto on shuffleboard
+        setupSelectors(); // starts the chooser for auto on shuffleboard
         Telemetry.print("Auton Subsystem Initialized");
     }
 
-    /** Init. */
     public void init() {
         CommandScheduler.getInstance().schedule(getAutonomousCommand());
         autonStart = Timer.getFPGATimestamp();
@@ -98,17 +87,11 @@ public class Auton {
         }
     }
 
-    /** Do nothing. */
     public Command doNothing() {
         return Commands.print("Do Nothing Auto ran").withName("Do Nothing");
     }
 
-    /**
-     * A routine step that sets a super state and moves straight on.
-     *
-     * @param state the super state to request
-     * @return the step
-     */
+    /** A routine step that sets a super state and moves straight on. */
     public Command state(WantedSuperState state) {
         return robotSuperStructure.setStateCommand(state);
     }
@@ -116,10 +99,6 @@ public class Auton {
     /**
      * A routine step that holds a super state for a fixed time, then returns to {@code IDLE}
      * ({@code IDLE} resolves to {@code AUTON_IDLE} in auto).
-     *
-     * @param state the super state to hold
-     * @param seconds how long to hold it
-     * @return the step
      */
     public Command holdState(WantedSuperState state, double seconds) {
         return Commands.sequence(
@@ -133,10 +112,9 @@ public class Auton {
                 .withName("Auton.launch");
     }
 
-    // ---- Routines ----
-
     // Named TWOMANOSTBTB because Java identifiers can't start with a digit; the auto file it loads
     // is "2MANOSTBTB FULL.auto".
+
     public Command TWOMANOSTBTB(boolean mirrored) {
         return routine(
                 "2MANOSTBTB FULL",
@@ -155,7 +133,6 @@ public class Auton {
     }
 
     // ---- Building blocks ----
-
     /** A routine that is just one {@code .auto} file. */
     private Command single(String autoName, boolean mirrored) {
         return routine(autoName, mirrored, SpectrumAuton(autoName, mirrored));
@@ -178,11 +155,6 @@ public class Auton {
      * preview the paths and place the robot on the start pose, so for a routine built from segments
      * that file must be the whole routine end to end. The visualizer reads the suffix to decide
      * whether to mirror the poses.
-     *
-     * @param fullAutoName the {@code .auto} file describing the whole routine
-     * @param mirrored whether the routine is mirrored
-     * @param steps the routine's commands, in order
-     * @return the routine command
      */
     private static Command routine(String fullAutoName, boolean mirrored, Command... steps) {
         return Commands.sequence(steps)
@@ -191,25 +163,15 @@ public class Auton {
 
     /**
      * Creates the PathPlannerAuto for one {@code .auto} file, built here at boot so its
-     * trajectories are generated and cached before the match (PathPlanner's FollowPathCommand
-     * generates the ideal trajectory in its constructor and reuses it at start if the robot is
-     * still and within 30 deg of the path's starting heading).
-     *
-     * <p>Until 2026-09-16 this prepended {@code waitSeconds(0.01)}, a leftover from the 2025
-     * migration. A wait command finishes on the scheduler loop after the one it started in, so it
-     * cost a full loop, 25 to 40 ms at our loop period, of the robot standing still -- once per
-     * segment in a multi-segment routine.
-     *
-     * @param autoName the name of the {@code .auto} file, without the extension
-     * @param mirrored whether the autonomous routine should be mirrored
-     * @return the auto command
+     * trajectories are generated and cached before the match. PathPlanner's FollowPathCommand
+     * reuses the ideal trajectory generated in the constructor only if the robot is still and
+     * within 30 deg of the path's starting heading.
      */
     public Command SpectrumAuton(String autoName, boolean mirrored) {
         verifyAutoFile(autoName);
         return new PathPlannerAuto(autoName, mirrored).withName(autoName);
     }
 
-    /** Auto names the chooser was built with that have no {@code .auto} file on this rio. */
     private static final Set<String> missingAutoFiles = new LinkedHashSet<>();
 
     private static final Alert missingAutoFileAlert = new Alert("", AlertType.kError);
@@ -219,12 +181,9 @@ public class Auton {
      * deploy/pathplanner/autos.
      *
      * <p>PathPlanner reports a missing file to the Driver Station once at construction and then
-     * runs an empty command, which is how Chezy 2026-09-19 QM4 sat still for auto: the code said
-     * "OSCENT Full", the file said "OSCENT FULL.auto", and the rio's filesystem cares about the
-     * difference while the Windows sim does not. Robot.logAutoSelection only checks the selected
-     * routine's full file, so a misnamed segment of a multi-segment routine is caught here.
-     *
-     * @param autoName the exact file name without {@code .auto}
+     * runs an empty command, and the rio's filesystem is case sensitive where the Windows sim is
+     * not, so a misnamed segment of a multi-segment routine is otherwise silent.
+     * Robot.logAutoSelection only checks the selected routine's full file.
      */
     private static void verifyAutoFile(String autoName) {
         if (AutoBuilder.getAllAutoNames().contains(autoName)) {
@@ -247,11 +206,9 @@ public class Auton {
     private final Command noSelection = Commands.print("*** AUTON COMMAND IS NULL ***");
 
     /**
-     * Retrieves the autonomous command selected on the shuffleboard. Never null: getSelected()
-     * returns null when the dashboard sends a name the chooser doesn't have, so that falls back to
+     * The autonomous command selected on the shuffleboard. Never null: {@code getSelected()}
+     * returns null when the dashboard sends a name the chooser does not have, so that falls back to
      * a print.
-     *
-     * @return the selected autonomous command
      */
     public Command getAutonomousCommand() {
         Command auton = pathChooser.getSelected();

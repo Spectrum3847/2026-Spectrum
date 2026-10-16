@@ -1,4 +1,4 @@
-# Development Shortcuts
+# Development shortcuts
 
 *Audience: Reference. Assumes you've read [Setup](../setup.md).*
 
@@ -16,11 +16,11 @@ A reference for the shortcuts and commands that come up often. If you're new, th
 | `Alt+Shift+F12`       | Find all references: shows every call site for a symbol.                                                                                   |
 | `Ctrl+P`              | Quick open: fuzzy-search files by name. Faster than the Explorer for navigating a codebase.                                                |
 | `Ctrl+Shift+P`        | Command Palette: run any VS Code or WPILib command by name. This is how you launch sim, clean the workspace, or deploy.                    |
-| `Ctrl+`` ` `` `       | Toggle the integrated terminal.                                                                                                            |
+| ``Ctrl+` ``           | Toggle the integrated terminal.                                                                                                            |
 | `Ctrl+Shift+V`        | Preview Markdown in a side panel; useful when editing docs.                                                                                |
 | `Shift+Alt+Down`      | Duplicate the current line or selected block.                                                                                              |
 
-## Multi-Cursor Editing
+## Multi-cursor editing
 
 Multi-cursor is one of the highest-value things to learn in VS Code. It lets you edit several places at once without regex.
 
@@ -36,7 +36,7 @@ Multi-cursor is one of the highest-value things to learn in VS Code. It lets you
 
 A common use: highlight `public`, then `Ctrl+Shift+L` to select every instance in a file, type `private` and you've renamed them all at once.
 
-## WPILib Actions
+## WPILib actions
 
 These are all available through `Ctrl+Shift+P`. The most useful ones:
 
@@ -50,9 +50,10 @@ These are all available through `Ctrl+Shift+P`. The most useful ones:
 
 Keyboard shortcuts for simulation and deploy (`F5`, `Shift+F5`) can be set up in VS Code's keybinding editor, but the Command Palette is reliable across any machine.
 
-## Terminal Commands
+## Terminal commands
 
-For anything not in the WPILib menu, see [Gradle](../tools/gradle.md) for the full table of `./gradlew` tasks. The ones you'll run most often:
+For anything not in the WPILib menu, see [Gradle](../tools/gradle.md) for the full table of
+`./gradlew` tasks. The ones you'll run most often:
 
 ```
 ./gradlew build          # Compile + format + static analysis
@@ -61,18 +62,9 @@ For anything not in the WPILib menu, see [Gradle](../tools/gradle.md) for the fu
 ./gradlew spotlessApply  # Reformat all source files (run before committing if CI fails on format)
 ```
 
-## Phoenix Tuner X
-
-Phoenix Tuner X has a few actions that aren't in menus most people look at:
-
-- **Self-Test Snapshot**: Run from the device page to dump firmware, config, faults, and temps in one shot. Save the snapshot before asking for help with a motor issue.
-- **Plot tab**: Live-plot any signal pair. For PID tuning, add `Closed Loop Reference` and the matching `Position` or `Velocity` and hit Record. See [PID Tuning](../tools/pid-tuning.md) for how to interpret what you see.
-- **Log Extractor**: Pull `.hoot` files off the CANivore after a match.
-
-See [Phoenix Tuner X](../tools/phoenix-tuner-x.md) for the full workflow.
-
 ## Git in VS Code
 
 The Source Control panel (`Ctrl+Shift+G`) handles staging, committing, pushing, and pulling. For branch management and pull requests, the GitHub Pull Requests and Issues extension integrates directly; you can review PRs, leave comments, and merge without leaving the editor.
 
-If you prefer the terminal, see [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for the conventions this project uses.
+If you prefer the terminal, see [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md)
+for the conventions this project uses.

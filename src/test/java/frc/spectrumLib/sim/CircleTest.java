@@ -10,7 +10,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class CircleTest {
-    /** Verifies circle initialization. */
     @Test
     @DisplayName("Test Circle creation and line background initialization")
     void testCircleInitialization() {
@@ -28,7 +27,6 @@ public class CircleTest {
         }
     }
 
-    /** Verifies color settings. */
     @Test
     @DisplayName("Test Circle setBackgroundColor and setHalfBackground")
     void testColorSettings() {
@@ -40,7 +38,6 @@ public class CircleTest {
 
         Circle circle = new Circle(mech, 4, 4.0, "TestCircle", root, colorRed);
 
-        // Assert initial background is red as specified in constructor
         for (int i = 0; i < 4; i++) {
             assertEquals(colorRed, circle.getCircleBackground()[i].getColor());
         }

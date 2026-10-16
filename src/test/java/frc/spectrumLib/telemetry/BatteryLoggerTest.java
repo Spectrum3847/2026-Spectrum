@@ -6,8 +6,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifies that {@link BatteryLogger} aggregates parent keys exactly as before the key-derivation
- * cache was added, on both the first (uncached) and later (cached) reports of each channel.
+ * BatteryLogger must aggregate parent keys the same on the first uncached report as on every cached
+ * report after it.
  */
 public class BatteryLoggerTest {
 
@@ -43,8 +43,8 @@ public class BatteryLoggerTest {
         assertEquals(2.0, logger.getSubsystemCurrent("Signed"), EPS);
         assertEquals(9.5, logger.getTotalCurrent(), EPS);
 
-        // Second pass hits the cached parent-key path. Leaves are overwritten (put) while parents
-        // keep summing (merge) until logPower() zeroes them, matching the original behavior.
+        // Second pass takes the cached path: leaves are put, parents keep merging until logPower
+        // zeroes them.
         report(logger);
 
         assertEquals(2.0, logger.getSubsystemCurrent("Mechanisms/Turret"), EPS);

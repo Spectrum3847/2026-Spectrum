@@ -1,7 +1,7 @@
 /**
  * Tests for the pure analysis functions. Run with `npm test`.
  *
- * These cover the maths that produces numbers people will act on -- a wrong current limit or a
+ * These cover the maths that produces numbers people will act on. A wrong current limit or a
  * missed breaker trip is worse than no tool at all. UI and transport are not covered here.
  */
 import { test } from "node:test";
@@ -14,6 +14,8 @@ import { parseWpilog } from "../client/lib/wpilog.js";
 import { LogModel, timeAtOrAbove, fitInternalResistance, enabledWindows, clipToEnabled } from "../client/lib/log-model.js";
 import { simulateBreaker, tripTime, CB185_120 } from "../client/lib/breaker.js";
 import { summarize } from "../server/lib/summary.js";
+import { staleTraces } from "../client/lib/analyze-can.js";
+import { LogWriter } from "./helpers/make-log.mjs";
 
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const profile = JSON.parse(fs.readFileSync(path.join(APP, "data/robot-profile.json"), "utf8"));
@@ -174,4 +176,62 @@ test("profile CAN ids are unique across each bus", () => {
     sw.steer.canIds.forEach((id, i) => claim(sw.steer.bus, id, `steer ${i}`));
     sw.cancoders.canIds.forEach((id, i) => claim(sw.cancoders.bus, id, `cancoder ${i}`));
     claim(sw.pigeon.bus, sw.pigeon.canId, "pigeon");
+});
+
+test("parser reports a file shorter than the header instead of throwing", () => {
+    assert.equal(parseWpilog(new Uint8Array(4)).error, "not a WPILOG file");
+});
+
+test("a corrupt string[] record is skipped and the records after it still parse", () => {
+    const w = new LogWriter();
+    w.start("/Robot/Names", "string[]");
+    const bad = Buffer.alloc(8);
+    bad.writeUInt32LE(0xffffffff, 0); // claims four billion strings in an 8-byte payload
+    w.put("/Robot/Names", "raw", 1, bad);
+    w.put("/Robot/After", "double", 2, 7);
+    const log = parseWpilog(w.buffer());
+    assert.equal(log.error, null);
+    assert.deepEqual(log.channel("/Robot/Names"), []);
+    assert.deepEqual(log.channel("/Robot/After"), [[2, 7]]);
+});
+
+test("staleTraces ignores the disabled gap between auto and teleop", () => {
+    const w = new LogWriter();
+    w.put("DS:enabled", "boolean", 0, true);
+    w.put("DS:enabled", "boolean", 15, false);
+    w.put("DS:enabled", "boolean", 18, true);
+    w.put("DS:enabled", "boolean", 30, false);
+    // Logged only while enabled, as a mechanism's slow tier is.
+    w.series("/Robot/Turret/StatorCurrent", "double", { from: 0, to: 15, hz: 10, fn: () => 5 });
+    w.series("/Robot/Turret/StatorCurrent", "double", { from: 18, to: 30, hz: 10, fn: () => 5 });
+    const model = new LogModel(parseWpilog(w.buffer()), profile);
+    assert.deepEqual(staleTraces(model), []);
+});
+
+test("staleTraces still finds a real dropout inside one enabled window", () => {
+    const w = new LogWriter();
+    w.put("DS:enabled", "boolean", 0, true);
+    w.put("DS:enabled", "boolean", 30, false);
+    w.series("/Robot/Turret/StatorCurrent", "double", { from: 0, to: 10, hz: 10, fn: () => 5 });
+    w.series("/Robot/Turret/StatorCurrent", "double", { from: 14, to: 30, hz: 10, fn: () => 5 });
+    const [stale] = staleTraces(new LogModel(parseWpilog(w.buffer()), profile));
+    assert.ok(stale, "expected the 4 s gap to be reported");
+    assert.equal(stale.count, 1);
+    assert.ok(Math.abs(stale.gaps[0][2] - 4) < 0.2);
+});
+
+test("summary reports no loop stats when every loop sample is NaN", () => {
+    const w = new LogWriter();
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 1, NaN);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 2, NaN);
+    assert.equal(summarize(Buffer.from(w.buffer())).loop, null);
+});
+
+test("summary overrun percentage ignores non-finite loop samples", () => {
+    const w = new LogWriter();
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 1, 0.01);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 2, 0.05);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 3, Infinity);
+    w.put("/Robot/Scheduler/robotPeriodic", "double", 4, NaN);
+    assert.equal(summarize(Buffer.from(w.buffer())).loop.overrunPct, 50);
 });

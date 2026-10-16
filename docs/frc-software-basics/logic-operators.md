@@ -1,141 +1,194 @@
-# Logic-Based Operators
+# Logic operators and strings
 
-*Audience: New programmers. Assumes you've read [Variables & Arithmetic](variables-arithmetic.md).*
+*Audience: New programmers. Assumes you've read [Variables and arithmetic](variables-arithmetic.md).*
 
-## Comparison Operators
+The examples on this page are invented, not taken from this robot's code.
 
-These compare two values and return a `boolean`.
+## Comparing values
 
-| Operator |         Meaning          |
-|----------|--------------------------|
-| `>`      | greater than             |
-| `>=`     | greater than or equal to |
-| `<`      | less than                |
-| `<=`     | less than or equal to    |
-| `==`     | equal to                 |
-| `!=`     | not equal to             |
-
-`5 > 4` is `true`. `5 >= 6` is `false`. `5 != 5` is `false`. Those work exactly as you'd expect.
-
-One gotcha: `==` checks value equality for primitives, but for objects (like `String`) it checks whether both variables point to the same object in memory, not whether they contain the same text. For strings, use `.equals()`:
+A comparison takes two values and gives you back a `boolean`.
 
 ```java
-String s1 = "Hello World";
-String s2 = "Hello World";
-s1.equals(s2);  // true, compare content
-s1 == s2;       // may be false, compares memory address
+boolean bigger = 5 > 4;      // true
+boolean tooBig = 5 >= 6;     // false
+boolean smaller = 4 < 3;     // false
+boolean notBigger = 4 <= 4;  // true
+boolean same = 5 == 5;       // true
+boolean different = 5 != 4;  // true
 ```
 
-## Logical Operators
-
-`&&` (AND) returns `true` only when both sides are `true`. `||` (OR) returns `true` when either side is `true`.
+`==` works the way you expect on numbers. On objects it does not, and that is the one beginner bug
+worth memorizing. For an object, `==` asks "are these two variables pointing at the same thing in
+memory", not "do these hold the same value".
 
 ```java
-(5 == 5) && (4 == 4)   // true, both sides true
-(5 == 5) || (5 == 4)   // true, left side is true
-(5 == 4) && (5 == 5)   // false, left side is false
-(5 == 4) || (5 == 3)   // false, both sides false
+String a = new String("Hello");
+String b = new String("Hello");
+
+a == b;       // false, two separate objects
+a.equals(b);  // true, the same text
 ```
 
-In robot code you see these constantly in trigger compositions:
+Using two string literals is the confusing case. Java is allowed to make them the same object, so
+`==` might happen to be `true`, and might not be. Never depend on it.
 
 ```java
-pilot.LT.and(pilot.RT).onTrue(applyState(State.LAUNCH_WITHOUT_SQUEEZE));
-pilot.LT.or(pilot.RT).onFalse(applyState(State.IDLE));
+String x = "Hello";
+String y = "Hello";
+
+x.equals(y);   // true, always
+x == y;        // true or false, depending on the run
 ```
 
-`&&`/`||` are short-circuit operators. For `&&`, if the left side is `false`, Java doesn't evaluate the right side. For `||`, if the left side is `true`, it stops. That matters when the right side has a side effect or could throw an exception.
+For text, use `.equals()`.
 
-## Conditional Statements
+## Combining conditions
+
+`&&` is "and". It is `true` only when both sides are `true`. `||` is "or". It is `true` when at
+least one side is `true`. A single `!` in front flips a `boolean`.
+
+```java
+boolean both = (5 == 5) && (4 == 4);       // true
+boolean neither = (5 == 4) && (5 == 5);    // false
+boolean either = (5 == 5) || (5 == 4);     // true
+boolean notEither = (5 == 4) || (5 == 3);  // false
+boolean flipped = !true;                   // false
+```
+
+Both `&&` and `||` stop early. With `&&`, if the left side is `false`, Java never looks at the
+right side. With `||`, if the left side is `true`, it never looks at the right side either. That
+gives you a way to guard the risky half of a condition:
+
+```java
+if (name != null && name.length() > 3) {
+    // the null check runs first, so length() is only called on real text
+}
+```
+
+Without the short circuit, `name.length()` would run on a `null` and throw.
+
+## Branching
 
 ### If
 
-Runs a block when the condition is `true`. Nothing happens if it's `false`.
+Runs a block when the condition is `true`, and does nothing when it is `false`.
 
 ```java
-if (launcher.isAttached()) {
-    launcher.configPIDGains(kP, kI, kD);
+double balance = 100.0;
+
+if (balance > 0) {
+    System.out.println("in the black");
 }
 ```
 
-### If-Else
+### If and else
 
-Picks one of two paths.
+Chooses one of two paths.
 
 ```java
-if (isSimulation()) {
-    initializeSimDrivetrain();
+if (balance > 0) {
+    System.out.println("in the black");
 } else {
-    initializeRealDrivetrain();
+    System.out.println("overdrawn");
 }
 ```
 
-### Else-If
+### Else if
 
-Chains multiple conditions. Java evaluates them top to bottom and takes the first branch that matches.
+Chooses one of three or more paths. Java reads the conditions top to bottom and runs the first one
+that matches.
 
 ```java
-if (state == State.TRACK_TARGET) {
-    aimAtTarget();
-} else if (state == State.INTAKE_FUEL) {
-    runIntake();
+int score = 42;
+
+if (score >= 90) {
+    System.out.println("excellent");
+} else if (score >= 60) {
+    System.out.println("passing");
 } else {
-    neutral();
+    System.out.println("failing");
 }
 ```
 
-Once any branch runs, the rest are skipped. That's different from writing three separate `if` statements, which would all be evaluated independently.
+With `score` at 42 that prints `failing`, because 42 fails both tests.
+
+Once one branch runs, the rest are skipped. That is different from writing the conditions as
+separate `if` statements, which are each tested on their own, so more than one of them can run.
+
+```java
+int score = 95;
+
+if (score >= 60) { ... }   // runs
+if (score >= 90) { ... }   // also runs
+```
 
 ### Switch
 
-When you're branching on a single enum or integer value, a `switch` often reads more clearly than a stack of `else if`. The codebase uses Java's modern arrow-syntax switch expressions; `SuperStructure.handleStateTransitions()` maps each wanted state to a current one:
+A `switch` picks a branch from one value. With the arrow form shown here, each case returns its own
+result and there is no falling through, so no `break` is needed.
 
 ```java
-private CurrentSuperState handleStateTransitions() {
-    return switch (wantedSuperState) {
-        case INTAKE_FUEL -> CurrentSuperState.INTAKE_FUEL;
-        case LAUNCH_WITH_SQUEEZE -> CurrentSuperState.LAUNCH_WITH_SQUEEZE;
-        // ... one case per WantedSuperState
-        default -> CurrentSuperState.IDLE;
+enum Light {
+    RED,
+    YELLOW,
+    GREEN
+}
+
+String advice(Light light) {
+    return switch (light) {
+        case RED -> "stop";
+        case YELLOW -> "slow down";
+        case GREEN -> "go";
     };
 }
+
+advice(Light.GREEN);   // "go"
 ```
 
-The arrow form doesn't fall through between cases, so you don't need `break` statements. The older colon-syntax switch does fall through unless you `break` explicitly; that's a common source of bugs if you're used to the newer form.
+The older colon form, which uses `break` instead of `->`, does fall through to the next case unless
+you break out. If you have seen the arrow form first, the colon form is a common source of bugs.
 
 ## Strings
 
-`String` isn't a primitive type but it's used constantly. It's immutable; operations return a new string rather than modifying the original.
+A `String` holds text. It is not a primitive type, and it is immutable, which means it cannot be
+changed. Every operation gives you a brand new string and leaves the original alone.
 
 ```java
-String name = "Spectrum";
+String a = "Hello";
+String b = a.toUpperCase();
+
+a;   // still "Hello"
+b;   // "HELLO"
 ```
 
-Common operations:
+Joining text with `+` works, and you will use it constantly to build messages:
 
 ```java
-String s = "Hello ";
-String s1 = s + "World";        // concatenation: "Hello World"
+String name = "Ada";
+String greeting = "Hello, " + name;   // "Hello, Ada"
 
-String str = "IndexerBed";
-str.length();                    // 10
-str.charAt(0);                   // 'I'
-str.substring(0, 7);             // "Indexer"
-str.contains("Bed");             // true
-str.toUpperCase();               // "INDEXERBED"
-str.toLowerCase();               // "indexerbed"
-
-"Hello".equals("Hello");         // true
-"Hello".equals("hello");         // false, case-sensitive
-"Hello".toLowerCase().equals("hello".toLowerCase());  // true
+System.out.println("Opened an account for " + name);
 ```
 
-In log messages you'll often see string concatenation with `+` to attach a variable value:
+You will not need the whole catalogue of `String` methods. A free Java reference has it. These
+three cover most of what you need at first:
 
 ```java
-Telemetry.print(getName() + " Subsystem Initialized");
+String name = "Ada";
+
+name.length();               // 3
+name.substring(0, 1);        // "A"
+name.equalsIgnoreCase("ada") // true
+```
+
+Text comparison is case sensitive, so if you need to ignore case, say so:
+
+```java
+"Hello".equals("hello");                  // false
+"Hello".equalsIgnoreCase("hello");        // true
+"Hello".toLowerCase().equals("hello");    // true
 ```
 
 ---
 
-*Previous: [Variables & Arithmetic](variables-arithmetic.md). Next: [Arrays & Enums](arrays.md)*
+*Previous: [Variables and arithmetic](variables-arithmetic.md). Next: [Arrays and enums](arrays.md)*
