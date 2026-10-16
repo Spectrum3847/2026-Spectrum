@@ -71,7 +71,7 @@ public class IntakeExtension implements Subsystem {
              * going all the way in, still backing off if it hits fuel on the way. Roughly one
              * pull-push cycle per second.
              */
-            @Getter private final double agitateStrokeInches = 2.0;
+            @Getter private final double agitateStrokeInches = 2.00;
             @Getter private final double agitateHalfPeriodSecs = 0.5;
             @Getter private final double agitateLoadedDebounceSecs = 0.06;
             @Getter private final double agitateSettleToleranceInches = 0.25;

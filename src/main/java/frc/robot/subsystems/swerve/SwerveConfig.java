@@ -11,6 +11,7 @@ import static edu.wpi.first.units.Units.Volts;
 import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
+import com.ctre.phoenix6.configs.GyroTrimConfigs;
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -111,7 +112,8 @@ public class SwerveConfig {
     private final CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
 
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
-    @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration();
+    @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration().withGyroTrim(new GyroTrimConfigs().withGyroScalarZ(1.6));
+
 
     // Every 1 rotation of the azimuth results in coupleRatio drive motor turns.
     // MK5n: first drive stage only, 54T / drive pinion. R1 = 12T pinion -> 4.5
