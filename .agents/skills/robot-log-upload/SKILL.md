@@ -7,7 +7,7 @@ metadata:
 
 # Robot Log Upload
 
-Robot → laptop → https://robotlog.spectrum3847.org, where the team scrubs matches and Claude reads
+This skill moves match files from the robot to https://robotlog.spectrum3847.org. The team scrubs matches there, and Claude reads
 them through the `spectrum-logs` MCP. Scripts are in `scripts/`, Python 3.9+ standard library, and
 use the OpenSSH `ssh`/`scp` that Windows 10+, macOS and Linux ship with. Each has `--help`.
 
