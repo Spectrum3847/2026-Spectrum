@@ -15,7 +15,7 @@ export function readManifest() {
 
 export function writeManifest(manifest) {
     if (manifest.corrupt) {
-        throw new Error(`${manifestPath()} is not valid JSON; fix or restore it from git before indexing more logs`);
+        throw new Error(`${manifestPath()} is not valid JSON; fix or delete it before indexing more logs`);
     }
     fs.mkdirSync(logsDir(), { recursive: true });
     manifest.logs.sort((a, b) => (a.name < b.name ? 1 : -1));

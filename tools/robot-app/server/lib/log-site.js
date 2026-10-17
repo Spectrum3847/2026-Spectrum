@@ -56,15 +56,20 @@ export async function uploadLogs(files) {
     }
     const key = readKey();
     if (!key) return { ok: false, error: "no upload key saved" };
-    try {
-        const { stdout } = await exec(process.execPath, [importScript(), "--url", config.logSite.url, ...files], {
-            cwd: analyzerPath(),
-            env: { ...process.env, LOG_SITE_KEY: key },
-            timeout: 30 * 60 * 1000,
-            maxBuffer: 8 << 20,
-        });
-        return { ok: true, output: stdout };
-    } catch (e) {
-        return { ok: false, error: (e.stderr || e.message || "").trim(), output: e.stdout || "" };
+    // Batched because Windows caps a command line at 32,767 characters, about 300 log paths.
+    let output = "";
+    for (let i = 0; i < files.length; i += 50) {
+        try {
+            const { stdout } = await exec(process.execPath, [importScript(), "--url", config.logSite.url, ...files.slice(i, i + 50)], {
+                cwd: analyzerPath(),
+                env: { ...process.env, LOG_SITE_KEY: key },
+                timeout: 30 * 60 * 1000,
+                maxBuffer: 8 << 20,
+            });
+            output += stdout;
+        } catch (e) {
+            return { ok: false, error: (e.stderr || e.message || "").trim(), output: output + (e.stdout || "") };
+        }
     }
+    return { ok: true, output };
 }
