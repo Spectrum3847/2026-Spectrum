@@ -33,7 +33,7 @@ PORT = 5807
 SIDECARS = (".avi", "_manifest.jsonl", "_bootlog.txt.gz")
 CLIP_RE = re.compile(r"^(?P<base>.+?)(\.avi|_manifest\.jsonl|_bootlog\.txt\.gz)$")
 
-# 3847 names match Vision.java on main and 2026-offseason-bot. 8515: back .11, left .12, right .13.
+# 3847: cameras from Vision.java on main and on 2026-offseason-bot; each robot lacks one. 8515: back .11, left .12, right .13.
 CAMERAS = {
     3847: [f"limelight-{n}.local" for n in ("left", "right", "turret", "back")],
     8515: ["10.85.15.11", "10.85.15.12", "10.85.15.13"],
@@ -120,14 +120,14 @@ def cmd_list(args) -> int:
 def cmd_pull(args) -> int:
     dest = Path(args.out)
     dest.mkdir(parents=True, exist_ok=True)
-    failed = 0
+    failed = reached = 0
     for host in cameras(args):
         try:
             clips = clips_on(host)
         except (OSError, ValueError) as e:
             print(f"{host}: unreachable ({e})", file=sys.stderr)
-            failed += 1
             continue
+        reached += 1
         names = [c["base"] for c in clips]
         if args.clip:
             wanted = {CLIP_RE.sub(r"\g<base>", c) for c in args.clip}
@@ -152,7 +152,7 @@ def cmd_pull(args) -> int:
             except OSError as e:
                 failed += 1
                 print(f"  FAILED: {e}", file=sys.stderr)
-    return 1 if failed else 0
+    return 1 if failed or not reached else 0
 
 
 def cmd_pack(args) -> int:

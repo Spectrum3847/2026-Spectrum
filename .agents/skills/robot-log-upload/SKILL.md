@@ -37,12 +37,13 @@ that Windows 10+, macOS and Linux include. Each script has `--help`.
 
 Limelights serve rewind clips over HTTP on port 5807 (`/videolist`, `/recording/<file>`). The 3847
 cameras are `limelight-left`, `-right`, `-turret` and `-back` on `.local`. The 8515 cameras are
-`10.85.15.11` (back), `.12` (left) and `.13` (right).
+`10.85.15.11` (back), `.12` (left) and `.13` (right). Each robot has only some of the 3847 cameras,
+so `list` and `pull` report the others as unreachable.
 
 Robot code saves a clip when the FMS is attached: 165 s at the end of teleop, and on FM also 25 s
 at the end of auto. Camera clocks reset at every boot, so a clip name is the time since boot, not
 the match time. The site takes one `.rwnd` per clip. That is a stored (uncompressed) zip of
-`<clip>.avi`, `<clip>_manifest.jsonl` and `<clip>_bootlog.txt.gz`, the same file the Download
+`<clip>.avi`, `<clip>_manifest.jsonl` and, when the camera has one, `<clip>_bootlog.txt.gz`. It is the same file the Download
 button in the camera web UI (port 5801) saves.
 
 ## Workflow
