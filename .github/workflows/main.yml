@@ -25,7 +25,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # Caches the Gradle distribution, dependencies, and build cache between runs
+      # Caches Gradle dependencies and build outputs between runs
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
