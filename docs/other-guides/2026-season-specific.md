@@ -94,6 +94,21 @@ The measured reasoning, the numbers, and what was tried before this are in
 [Tuning and Calibration Handoff 2026-09-08](tuning-calibration-handoff-2026-09-08.md). The shape of
 the data it produces is in [Shot Records and Trim Events](../tools/shot-log.md).
 
+## Shot map: extra hub range
+
+To make every hub shot land a fixed distance longer, the solver aims at a point past the hub centre
+on the line from the launcher. It does not raise the hood by a fixed angle. Hood angle, flywheel
+speed and time of flight all come from the fit at the longer distance, so the extra is the same at
+every range, and shoot-on-move leads for the longer flight. The range gate (`isValid`) still uses
+the true distance.
+
+The default is one foot (0.3048 m), set on 2026-10-17 at TXMAN1 after Q32. The dashboard knob is the
+`ShotCalc/HubRangeExtraMeters` tunable. It resets to the default every boot, is clamped to ±1 m,
+and can go negative. It is logged as `ShotCalc/HubRangeExtraApplied` on every launch loop and as
+`ShotCalc/Shot/HubRangeExtraMeters` in each shot record. It applies to tracked hub shots and set
+shots, not feed shots. It stacks on the operator's hood trim, which persists separately (see
+[Shot Records and Trim Events](../tools/shot-log.md#the-hood-trim-persists)).
+
 ## Dye rotor: feed auto-unjam
 
 A jammed feed is detected in software, from rotor stator current held above a threshold for a

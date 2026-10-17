@@ -539,6 +539,33 @@ public class ShotCalculator {
             Telemetry.tunable("ShotCalc/NearShotRpmDrop", NEAR_SHOT_RPM_DROP_DEFAULT);
 
     /**
+     * Extra range on every hub shot, in metres. The solver aims at a point this far past the hub
+     * centre, on the line from the launcher, so the hood angle, flywheel speed and time of flight
+     * all come from the fit at the longer distance and shoot-on-move leads for it. Unlike the hood
+     * trim it is the same distance at every range. Feed shots are not changed. A foot, at the drive
+     * team's request on 2026-10-17 (TXMAN1, after Q32).
+     */
+    private static final double HUB_RANGE_EXTRA_DEFAULT_M = 0.5;
+
+    /** Clamp on the live extra range, either way. A metre is past anything a refit would leave. */
+    private static final double HUB_RANGE_EXTRA_MAX_M = 1.0;
+
+    /**
+     * Live handle on the extra range, on the dashboard as {@code ShotCalc/HubRangeExtraMeters}.
+     * Same rules as {@link #NEAR_SHOT_RPM_DROP_TUNE}: back to the default every boot, never
+     * persisted.
+     */
+    private static final DoubleSubscriber HUB_RANGE_EXTRA_TUNE =
+            Telemetry.tunable("ShotCalc/HubRangeExtraMeters", HUB_RANGE_EXTRA_DEFAULT_M);
+
+    private static double hubRangeExtraMeters() {
+        return MathUtil.clamp(
+                HUB_RANGE_EXTRA_TUNE.get(HUB_RANGE_EXTRA_DEFAULT_M),
+                -HUB_RANGE_EXTRA_MAX_M,
+                HUB_RANGE_EXTRA_MAX_M);
+    }
+
+    /**
      * @param distanceMeters launcher to hub centre, the distance the model was evaluated at
      * @return a non-negative RPM reduction, zero at and beyond 3.75 m
      */
@@ -880,14 +907,14 @@ public class ShotCalculator {
      * @return {@code { hoodDegrees, flywheelRPM }}
      */
     private static double[] setShotSolution() {
-        double[] raw = evalPolyRaw(WANTED_HUB_MODEL, selectedSetShot.distanceMeters, 0.0);
+        double distance = selectedSetShot.distanceMeters + hubRangeExtraMeters();
+        double[] raw = evalPolyRaw(WANTED_HUB_MODEL, distance, 0.0);
         double hoodDegrees =
                 MathUtil.clamp(
                         (90 - raw[1]) + modelHoodOffsetDeg(WANTED_HUB_MODEL) + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
-        double rpm =
-                raw[0] * MPS_FACTOR * rpmPerMps() - nearShotRpmDrop(selectedSetShot.distanceMeters);
+        double rpm = raw[0] * MPS_FACTOR * rpmPerMps() - nearShotRpmDrop(distance);
         return new double[] {hoodDegrees, feasibleFlywheelRPM(rpm)};
     }
 
@@ -972,9 +999,17 @@ public class ShotCalculator {
         // Tangential: perpendicular to the radial axis
         double tangentialVelocity = -launcherVelocityX * uy + launcherVelocityY * ux;
 
+        // Hub shots aim past the hub centre by the extra range; the range gate below still uses
+        // the true distance.
+        double rangeExtra = feed ? 0.0 : hubRangeExtraMeters();
+
         // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
         double[] poly =
-                solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
+                solveVirtualTarget(
+                        model,
+                        distanceNoLookahead + rangeExtra,
+                        radialVelocity,
+                        tangentialVelocity);
         double exitSpeedMs = poly[0];
         double rawHoodAngle = 90 - poly[1]; // degrees, before HOOD_ANGLE_OFFSET
         double yawOffsetDeg = poly[2];
@@ -1064,6 +1099,7 @@ public class ShotCalculator {
             Telemetry.log("ShotCalc/RpmPerMps", rpmPerMps(), "RPM per m/s");
             Telemetry.log("ShotCalc/FlywheelWantedRPM", wantedFlywheelSpeed, "RPM");
             Telemetry.log("ShotCalc/NearShotRpmDropApplied", nearShotDrop, "RPM");
+            Telemetry.log("ShotCalc/HubRangeExtraApplied", rangeExtra, "meters");
             Telemetry.log(
                     "ShotCalc/FlywheelClamped", wantedFlywheelSpeed > MAX_FEASIBLE_FLYWHEEL_RPM);
             Telemetry.log("ShotCalc/RadialVelocityMs", radialVelocity, "m/s");

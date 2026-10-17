@@ -59,7 +59,7 @@ basic mental model of WPILib command-based robots.
 * [Autonomous Programming (Auton)](tools/auton.md): PathPlanner, the auto chooser, event triggers.
 * [Vision Systems](tools/vision.md): the Limelights, MegaTag fusion, pose-estimator integration, and calibrating the cameras from the robot app.
 * [Simulation](tools/simulation.md): running the robot without a robot.
-* [Logging and Data Analysis](tools/logging.md): DogLog, `Telemetry`, `.wpilog` files, and the fast between-matches triage script.
+* [Logging and Data Analysis](tools/logging.md): DogLog, `Telemetry`, `.wpilog` files, the fast between-matches triage script, and Limelight Rewind video.
 * [Phoenix Tuner X](tools/phoenix-tuner-x.md): motor configuration, swerve offsets, the plotter.
 * [Swerve Alignment](tools/swerve-alignment.md): the page that zeroes the modules and writes the offsets into the code.
 * [Robot App](../tools/robot-app/README.md): the local web app it lives in, for control maps, log sync, and power and CAN-bus analysis.

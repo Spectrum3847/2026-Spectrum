@@ -71,6 +71,16 @@ It needs only Python 3, no WPILib install and no Java. It makes one pass over th
 
 `.wpilog` files land in `/U/logs/` on the roboRIO. [AdvantageScope](https://docs.advantagescope.org) can open one directly off the RIO, or download it. For a live session, AdvantageScope reads NetworkTables directly: start it before connecting Elastic, point it at the same robot, and it streams everything DogLog publishes.
 
+## Limelight Rewind video
+
+Each Limelight 4 keeps a rolling video buffer, and `Robot.teleopExit()` saves the last 165 s on every camera when the FMS is attached. To pull those recordings and the RIO logs in one go after a match, run the `limelight-rewind` agent skill:
+
+```sh
+python .agents/skills/limelight-rewind/scripts/pull_match_data.py
+```
+
+It prints `SAFE TO DISCONNECT` once every file is copied and checked. After that it works offline. It finds the match in each recording by NT time and confirms it by comparing the Limelight's pose with the robot's logged vision pose. Then it trims each video to the match and writes one `.rwnd` per camera to `logs/rewind/upload/<EVENT>_<MATCH>/`, ready to load into the [Limelight Rewind Viewer](https://tools.limelightvision.io/rewind-viewer). A rewind frame's `ts_nt` is the same clock as the `.wpilog` timestamps, so a moment in the video is found in AdvantageScope at the same time.
+
 ## Committed match logs
 
 Real match logs are committed under [`logs/matches/`](../../logs/matches/README.md), so every clone has real data for the robot app's tests, which parse each one, and for the triage script, with no second repository to hunt through. Only logs the FMS renamed with an event and match belong there; the rest of `logs/` stays gitignored. After each event:
@@ -92,4 +102,5 @@ See [Shot Records and Trim Events](shot-log.md).
 * [Shot Records and Trim Events](shot-log.md), the per-burst and per-trim rows, and how to join them.
 * [Elastic Dashboard](elastic.md), the live NetworkTables view that reads from the same publish stream.
 * `.agents/skills/fast-log-triage/SKILL.md`, the between-matches triage script, its detectors and thresholds.
+* `.agents/skills/limelight-rewind/SKILL.md`, pulling, trimming and packaging Limelight Rewind recordings.
 * [DogLog](../dependencies/doglog.md) for the library's own API and the meaning of each option flag.
