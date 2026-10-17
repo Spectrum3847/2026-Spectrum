@@ -18,6 +18,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK
         uses: actions/setup-java@v6
