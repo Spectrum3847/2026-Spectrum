@@ -85,9 +85,11 @@ def main() -> int:
         print("did not match; no change", file=sys.stderr)
         return 1
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.unlink(missing_ok=True)
-    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as fh:
+    tmp = path.with_suffix(".tmp")
+    tmp.unlink(missing_ok=True)
+    with os.fdopen(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as fh:
         fh.write(key + "\n")
+    tmp.replace(path)
     print(f"saved to {path} ({len(key)} characters). Uploads will use it; the first upload confirms it is right.")
     return 0
 
