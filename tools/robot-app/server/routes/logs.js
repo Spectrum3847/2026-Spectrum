@@ -2,7 +2,8 @@ import { Router } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { logsDir } from "../lib/config.js";
-import { readManifest, writeManifest, indexLog, repoStatus, commitAndPush } from "../lib/manifest.js";
+import { readManifest, indexLog } from "../lib/manifest.js";
+import { siteStatus, saveKey, uploadLogs } from "../lib/log-site.js";
 
 export const logsRouter = Router();
 
@@ -31,7 +32,7 @@ logsRouter.get("/", (req, res) => {
 
 logsRouter.get("/manifest", (req, res) => res.json(readManifest()));
 
-logsRouter.get("/repo-status", async (req, res) => res.json(await repoStatus()));
+logsRouter.get("/site", (req, res) => res.json(siteStatus()));
 
 /** Raw bytes, so the analysis pages can parse the log client-side with the shared parser. */
 logsRouter.get("/file/:name", (req, res) => {
@@ -50,22 +51,16 @@ logsRouter.post("/:name/index", (req, res) => {
     }
 });
 
-logsRouter.post("/:name/pin", (req, res) => {
-    const { pinned = true, note = null } = req.body || {};
-    const manifest = readManifest();
-    const entry = manifest.logs.find((l) => l.name === req.params.name);
-    if (!entry) return res.status(404).json({ error: "log is not in the manifest. Index it first" });
-    entry.pinned = !!pinned;
-    if (note !== null) entry.note = note;
-    try {
-        writeManifest(manifest);
-    } catch (e) {
-        return res.status(500).json({ error: e.message });
-    }
-    res.json(entry);
+logsRouter.post("/site/key", (req, res) => {
+    const key = String(req.body?.key || "").trim();
+    if (!key) return res.status(400).json({ error: "key is empty" });
+    saveKey(key);
+    res.json(siteStatus());
 });
 
-logsRouter.post("/publish", async (req, res) => {
-    const { message, push = true } = req.body || {};
-    res.json(await commitAndPush({ message, push }));
+logsRouter.post("/upload", async (req, res) => {
+    const dir = logsDir();
+    const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith(".wpilog")).map((f) => path.join(dir, f)) : [];
+    if (!files.length) return res.json({ ok: true, output: "No synced logs to upload." });
+    res.json(await uploadLogs(files));
 });

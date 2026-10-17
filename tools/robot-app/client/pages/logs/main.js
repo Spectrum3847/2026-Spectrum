@@ -5,7 +5,7 @@ import { mountHeader, el, api, fmtBytes, fmtDuration, fmtDate } from "../../lib/
 mountHeader();
 const root = document.getElementById("app");
 
-const state = { config: null, host: null, robotLogs: null, localLogs: [], repo: null, selected: new Set(), busy: false };
+const state = { config: null, host: null, robotLogs: null, localLogs: [], site: null, selected: new Set(), busy: false };
 
 /** Progress from the last sync, kept on screen after it ends. */
 let syncProgress = null;
@@ -13,17 +13,16 @@ let syncProgress = null;
 const sections = {
     robot: el("section", {}),
     local: el("section", {}),
-    repo: el("section", {}),
+    site: el("section", {}),
 };
 
 root.replaceChildren(
     el("h1", {}, "Logs"),
     el("p", { class: "lede" },
-        "Pull ", el("code", {}, ".wpilog"), " files off the robot and index them into the team logs repo. ",
-        "Indexing extracts the headline numbers into a manifest that is committed even when the log itself is not, so a season of log history stays in the repo without hundreds of megabytes of binaries."),
+        "Pull ", el("code", {}, ".wpilog"), " files off the robot, index them here, and upload them to the team log site."),
     sections.robot,
     sections.local,
-    sections.repo
+    sections.site
 );
 
 // ---------------------------------------------------------------- robot
@@ -159,7 +158,11 @@ async function sync() {
             for (const part of parts) {
                 if (!part.trim()) continue;
                 const ev = JSON.parse(part);
-                if (ev.state === "complete") {
+                if (ev.state === "uploading") {
+                    lines.set("__upload", el("div", { class: "prog-line" }, el("span", { class: "spin" }), " Uploading to the log site…"));
+                } else if (ev.state === "upload-done") {
+                    lines.set("__upload", uploadResult(ev));
+                } else if (ev.state === "complete") {
                     lines.set("__done", el("div", { class: "prog-line ok" }, `Synced ${ev.count} log${ev.count === 1 ? "" : "s"}.`));
                 } else if (ev.state === "failed") {
                     lines.set("__done", el("div", { class: "prog-line bad" }, `Sync failed: ${ev.error}`));
@@ -181,7 +184,7 @@ async function sync() {
         state.busy = false;
     }
     state.selected.clear();
-    await Promise.all([loadLocal(), loadRepo()]);
+    await loadLocal();
     renderRobot();
 }
 
@@ -209,15 +212,12 @@ function renderLocal() {
             el("div", { class: "table-wrap" },
                 el("table", {},
                     el("thead", {}, el("tr", {},
-                        ["File", "Size", "Enabled", "Min V", "Peak A", "Energy", "Overrun", "CAN max", "", ""].map((h) => el("th", {}, h)))),
+                        ["File", "Size", "Enabled", "Min V", "Peak A", "Energy", "Overrun", "CAN max", ""].map((h) => el("th", {}, h)))),
                     el("tbody", {}, state.localLogs.map((l) =>
                         el("tr", {},
                             el("td", { class: "mono" }, l.name, l.summary?.note ? el("div", { class: "note-text" }, l.summary.note) : null),
                             el("td", { class: "num" }, fmtBytes(l.bytes)),
                             ...summaryCells(l.summary),
-                            el("td", {},
-                                el("button", { class: "mini", title: "Keep this specific log in git, not just its numbers", onclick: () => togglePin(l) },
-                                    l.summary?.pinned ? "📌 pinned" : "pin")),
                             el("td", {},
                                 el("a", { class: "btn mini", href: `/pages/power/?log=${encodeURIComponent(l.name)}` }, "Power"),
                                 el("a", { class: "btn mini", href: `/pages/can/?log=${encodeURIComponent(l.name)}`, style: "margin-left:5px" }, "CAN")))))))
@@ -230,21 +230,6 @@ function renderLocal() {
             el("strong", {}, "Overrun "), "is the share of loops longer than 20 ms. ",
             el("strong", {}, "CAN max "), "is peak CANivore utilization; CTRE wants this well under 60%.")
     );
-}
-
-async function togglePin(l) {
-    let error = null;
-    try {
-        if (!l.summary) await api(`/api/logs/${encodeURIComponent(l.name)}/index`, { method: "POST", body: "{}" });
-        await api(`/api/logs/${encodeURIComponent(l.name)}/pin`, { method: "POST", body: JSON.stringify({ pinned: !l.summary?.pinned }) });
-    } catch (e) {
-        error = e;
-    }
-    await loadLocal();
-    await loadRepo();
-    renderLocal();
-    if (error) sections.local.querySelector("h2")?.after(el("div", { class: "notice bad" }, `Could not update ${l.name}: ${error.message}`));
-    renderRepo();
 }
 
 async function loadLocal() {
@@ -260,62 +245,74 @@ async function loadLocal() {
     }
 }
 
-// ---------------------------------------------------------------- repo
+// ---------------------------------------------------------------- log site
 
-function renderRepo() {
-    const r = state.repo;
-    const c = state.config;
-    const body = [];
-    if (!r) {
-        body.push(el("div", {}, el("span", { class: "spin" }), " Checking…"));
-    } else if (!r.isRepo) {
-        body.push(
-            el("div", { class: "notice warn" },
-                el("strong", {}, "The logs repo is not cloned yet. "),
-                "Synced logs will still land in ", el("code", {}, state.logsDir || r.path), ", but nothing can be committed until you clone it:"),
-            el("pre", { class: "cmd" }, `git clone ${c?.logsRepo?.remote || ""} ${r.path}`)
-        );
-    } else {
-        const pinned = state.localLogs.filter((l) => l.summary?.pinned).length;
-        body.push(
-            el("div", { class: "grid cols-4" },
-                el("div", { class: "stat" }, el("div", { class: "label" }, "Branch"), el("div", { class: "value", style: "font-size:1.05rem" }, r.branch)),
-                el("div", { class: "stat" }, el("div", { class: "label" }, "Uncommitted"), el("div", { class: "value" }, r.dirtyFiles)),
-                el("div", { class: "stat" }, el("div", { class: "label" }, "Unpushed"), el("div", { class: "value" }, r.unpushed ?? "n/a")),
-                el("div", { class: "stat" }, el("div", { class: "label" }, "Pinned logs"), el("div", { class: "value" }, pinned))),
-            el("div", { class: "row", style: "margin-top:14px" },
-                el("button", { class: "primary", onclick: publish }, "Commit & push manifest"),
-                el("span", { style: "color:var(--tx-faint);font-size:0.8rem" },
-                    `Commits the manifest${pinned ? ` and ${pinned} pinned log${pinned === 1 ? "" : "s"}` : ""}. Unpinned .wpilog files stay out of git.`)),
-            el("div", { id: "publish-result" })
-        );
-    }
-    sections.repo.replaceChildren(el("h2", {}, "Logs repo"), el("div", { class: "card" }, ...body));
+function uploadResult(r) {
+    return el("div", {},
+        el("div", { class: `notice ${r.ok ? "" : "bad"}` }, r.ok ? "Uploaded to the log site." : `Upload failed: ${r.error}`),
+        r.output ? el("pre", { class: "cmd" }, r.output) : null);
 }
 
-async function publish() {
-    const out = document.getElementById("publish-result");
-    out.replaceChildren(el("div", { style: "margin-top:10px" }, el("span", { class: "spin" }), " Publishing…"));
+function renderSite() {
+    const s = state.site;
+    const body = [];
+    if (!s) {
+        body.push(el("div", {}, el("span", { class: "spin" }), " Checking…"));
+    } else if (!s.analyzerFound) {
+        body.push(
+            el("div", { class: "notice warn" },
+                el("strong", {}, "WPI-Log-Analizer is not cloned yet. "),
+                "Its import script does the uploading. Clone it, then reload this page:"),
+            el("pre", { class: "cmd" }, `git clone https://github.com/Spectrum3847/WPI-Log-Analizer "${s.analyzerPath}"`)
+        );
+    } else if (!s.keySet) {
+        const input = el("input", { type: "password", placeholder: "Upload key", autocomplete: "off" });
+        body.push(
+            el("p", {}, "Enter the upload key once (ask a mentor). It is saved on this laptop, outside the repo."),
+            el("div", { class: "row" }, input,
+                el("button", { class: "primary", onclick: () => saveKey(input.value) }, "Save key")),
+            el("div", { id: "key-result" })
+        );
+    } else {
+        body.push(
+            el("div", { class: "row" },
+                el("button", { class: "primary", onclick: upload }, "Upload synced logs"),
+                el("span", { style: "color:var(--tx-faint);font-size:0.8rem" },
+                    "Logs upload on their own after each pull. Files already on the site are skipped.")),
+            el("div", { id: "upload-result" })
+        );
+    }
+    sections.site.replaceChildren(
+        el("h2", {}, "Log site"),
+        el("div", { class: "card" }, s ? el("p", {}, el("a", { href: s.url, target: "_blank" }, s.url)) : null, ...body));
+}
+
+async function saveKey(key) {
     try {
-        const r = await api("/api/logs/publish", { method: "POST", body: JSON.stringify({}) });
-        out.replaceChildren(el("div", { class: `notice ${r.ok ? "" : "bad"}` },
-            r.noChanges ? "Nothing to commit. The manifest is already up to date."
-                : r.ok ? `Committed${r.pushed ? ` and pushed to ${r.branch}` : ""}.`
-                : `Failed: ${r.error}`));
+        state.site = await api("/api/logs/site/key", { method: "POST", body: JSON.stringify({ key }) });
+        renderSite();
+    } catch (e) {
+        document.getElementById("key-result").replaceChildren(el("div", { class: "notice bad" }, e.message));
+    }
+}
+
+async function upload() {
+    const out = document.getElementById("upload-result");
+    out.replaceChildren(el("div", { style: "margin-top:10px" }, el("span", { class: "spin" }), " Uploading…"));
+    try {
+        out.replaceChildren(uploadResult(await api("/api/logs/upload", { method: "POST", body: "{}" })));
     } catch (e) {
         out.replaceChildren(el("div", { class: "notice bad" }, e.message));
     }
-    await loadRepo();
-    renderRepo();
 }
 
-async function loadRepo() {
+async function loadSite() {
     try {
-        state.repo = await api("/api/logs/repo-status");
-        renderRepo();
+        state.site = await api("/api/logs/site");
+        renderSite();
     } catch (e) {
-        sections.repo.replaceChildren(el("h2", {}, "Logs repo"),
-            el("div", { class: "card" }, el("div", { class: "notice bad" }, `Could not check the logs repo: ${e.message}`)));
+        sections.site.replaceChildren(el("h2", {}, "Log site"),
+            el("div", { class: "card" }, el("div", { class: "notice bad" }, `Could not check the log site setup: ${e.message}`)));
     }
 }
 
@@ -329,9 +326,9 @@ async function boot() {
     }
     renderRobot();
     renderLocal();
-    renderRepo();
+    renderSite();
     await loadLocal();
-    await loadRepo();
+    await loadSite();
     await refreshProbe();
 }
 boot();
