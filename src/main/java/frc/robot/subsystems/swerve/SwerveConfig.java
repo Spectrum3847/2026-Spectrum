@@ -102,8 +102,9 @@ public class SwerveConfig {
     private final CANcoderConfiguration canCoderInitialConfigs = new CANcoderConfiguration();
 
     // Configs for the Pigeon 2; leave this null to skip applying Pigeon 2 configs
-    @Getter private final Pigeon2Configuration pigeonConfigs = new Pigeon2Configuration().withGyroTrim(new GyroTrimConfigs().withGyroScalarZ(1.6));
-
+    @Getter
+    private final Pigeon2Configuration pigeonConfigs =
+            new Pigeon2Configuration().withGyroTrim(new GyroTrimConfigs().withGyroScalarZ(1.6));
 
     // Every rotation of the azimuth results in coupleRatio drive motor turns. MK5n first drive
     // stage
