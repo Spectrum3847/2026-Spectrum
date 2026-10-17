@@ -28,8 +28,6 @@ jobs:
       # Caches the Gradle distribution, dependencies, and build cache between runs
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-read-only: false
 
       # Grant execute permission for gradlew
       - name: Grant execute permission for gradlew
