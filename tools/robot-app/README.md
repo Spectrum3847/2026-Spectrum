@@ -229,20 +229,20 @@ in fixed order and never cycled. A ninth series on one chart means splitting the
 ## Logs repo
 
 Synced logs land in a clone of
-[Spectrum3847/2026-Robot-Logs](https://github.com/Spectrum3847/2026-Robot-Logs), expected as a
+[Spectrum3847/WPI-Log-Analizer](https://github.com/Spectrum3847/WPI-Log-Analizer), expected as a
 sibling of this repository:
 
 ```bash
-git clone https://github.com/Spectrum3847/2026-Robot-Logs ../../../2026-Robot-Logs
+git clone https://github.com/Spectrum3847/WPI-Log-Analizer ../../../WPI-Log-Analizer
 ```
 
 Point somewhere else with `config.local.json` (gitignored):
 
 ```json
-{ "logsRepo": { "path": "/absolute/path/to/2026-Robot-Logs" } }
+{ "logsRepo": { "path": "/absolute/path/to/WPI-Log-Analizer" } }
 ```
 
-`.wpilog` files are gitignored there by default. A season of match logs is tens of gigabytes and
+The app only commits pinned `.wpilog` files there. A season of match logs is tens of gigabytes and
 git has no good answer for that. What *is* committed is `manifest.json`, carrying each log's
 duration, enabled time, min voltage, peak current, energy, loop overrun rate and peak CAN load. So
 log history survives in the repo even when the binaries don't. Use **pin** on the Logs page to

@@ -21,9 +21,9 @@ const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const profile = JSON.parse(fs.readFileSync(path.join(APP, "data/robot-profile.json"), "utf8"));
 
 // Real logs: the match logs committed in this repo under logs/matches (see its README; add more
-// with tools/copy-match-logs.py), plus the 2026-Robot-Logs archive when it is checked out beside
+// with tools/copy-match-logs.py), plus the WPI-Log-Analizer archive when it is checked out beside
 // this repo. Full paths, so the two folders can be mixed.
-const LOG_DIRS = [path.resolve(APP, "../../logs/matches"), path.resolve(APP, "../../../2026-Robot-Logs/logs")];
+const LOG_DIRS = [path.resolve(APP, "../../logs/matches"), path.resolve(APP, "../../../WPI-Log-Analizer/Logs")];
 const realLogs = LOG_DIRS.filter((d) => fs.existsSync(d)).flatMap((d) =>
     fs.readdirSync(d).filter((f) => f.endsWith(".wpilog")).map((f) => path.join(d, f)),
 );

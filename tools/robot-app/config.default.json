@@ -9,9 +9,9 @@
     "sshTimeoutSecs": 6
   },
   "logsRepo": {
-    "path": "../../../2026-Robot-Logs",
-    "remote": "https://github.com/Spectrum3847/2026-Robot-Logs",
-    "logsSubdir": "logs",
+    "path": "../../../WPI-Log-Analizer",
+    "remote": "https://github.com/Spectrum3847/WPI-Log-Analizer",
+    "logsSubdir": "Logs",
     "manifest": "manifest.json"
   },
   "swerveAlign": {
