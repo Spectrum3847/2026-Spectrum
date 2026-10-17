@@ -2,7 +2,7 @@ import express from "express";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { config, APP_ROOT, logsRepoPath, logsDir } from "./lib/config.js";
+import { config, APP_ROOT, logsDir, analyzerPath } from "./lib/config.js";
 import { robotRouter } from "./routes/robot.js";
 import { logsRouter } from "./routes/logs.js";
 import { swerveRouter } from "./routes/swerve.js";
@@ -33,18 +33,12 @@ app.use(express.json({ limit: "2mb" }));
 app.get("/api/health", (req, res) => res.json({ ok: true, node: process.version }));
 
 app.get("/api/config", (req, res) => {
-    const repo = logsRepoPath();
     res.json({
         port: config.port,
         robot: config.robot,
         robotProfile: config.robotProfile,
-        logsRepo: {
-            ...config.logsRepo,
-            resolvedPath: repo,
-            exists: fs.existsSync(repo),
-            isGitRepo: fs.existsSync(path.join(repo, ".git")),
-            logsDir: logsDir(),
-        },
+        logsDir: logsDir(),
+        logSite: config.logSite,
     });
 });
 
@@ -163,7 +157,8 @@ app.use((err, req, res, next) => {
 app.listen(config.port, LISTEN_HOST, () => {
     const url = `http://localhost:${config.port}`;
     console.log(`\n  Spectrum robot app   ${url}`);
-    console.log(`  logs repo            ${logsRepoPath()}${fs.existsSync(logsRepoPath()) ? "" : "   (not cloned yet)"}`);
+    console.log(`  logs                 ${logsDir()}`);
+    console.log(`  log analyzer         ${analyzerPath()}${fs.existsSync(analyzerPath()) ? "" : "   (not cloned yet)"}`);
     console.log(`  robot profile        ${config.robotProfile}`);
     console.log(`  writes offsets to    ${config.swerveAlign?.targetConfig ?? "(unset)"}`);
     console.log(`  writes camera mounts to ${config.vision?.targetConfig ?? "src/main/java/frc/robot/subsystems/vision/Vision.java"}\n`);

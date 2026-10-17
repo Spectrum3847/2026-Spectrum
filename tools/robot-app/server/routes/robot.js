@@ -1,8 +1,10 @@
 import { Router } from "express";
 import fs from "node:fs";
+import path from "node:path";
 import { probeAll, robotCandidates, listRobotLogs, downloadLogs } from "../lib/robot.js";
 import { config, logsDir } from "../lib/config.js";
 import { indexLog } from "../lib/manifest.js";
+import { siteStatus, uploadLogs } from "../lib/log-site.js";
 
 export const robotRouter = Router();
 
@@ -56,6 +58,10 @@ robotRouter.post("/sync", async (req, res) => {
             } catch (e) {
                 emit({ name: f.name, state: "index-failed", error: String(e.message) });
             }
+        }
+        if (done.length && siteStatus().keySet) {
+            emit({ state: "uploading" });
+            emit({ state: "upload-done", ...(await uploadLogs(done.map((f) => path.join(dest, f.name)))) });
         }
         emit({ state: "complete", count: done.length });
     } catch (e) {

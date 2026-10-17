@@ -19,25 +19,26 @@ function load() {
     const portArg = process.argv.indexOf("--port");
     if (portArg !== -1 && process.argv[portArg + 1]) cfg.port = Number(process.argv[portArg + 1]);
     if (process.env.ROBOT_APP_PORT) cfg.port = Number(process.env.ROBOT_APP_PORT);
-    if (process.env.ROBOT_APP_LOGS_REPO) cfg.logsRepo.path = process.env.ROBOT_APP_LOGS_REPO;
+    if (process.env.ROBOT_APP_LOGS_DIR) cfg.logsDir = process.env.ROBOT_APP_LOGS_DIR;
     return cfg;
 }
 
 export const config = load();
 
-/**
- * Absolute path to the logs repo clone. Relative paths in config resolve against the app
- * directory rather than the shell's cwd, so `npm start` behaves the same from anywhere.
- */
-export function logsRepoPath() {
-    const p = config.logsRepo.path;
+/** Relative paths in config resolve against the app directory, so `npm start` works from anywhere. */
+function resolve(p) {
     return path.isAbsolute(p) ? p : path.resolve(APP_ROOT, p);
 }
 
 export function logsDir() {
-    return path.join(logsRepoPath(), config.logsRepo.logsSubdir);
+    return resolve(config.logsDir);
 }
 
 export function manifestPath() {
-    return path.join(logsRepoPath(), config.logsRepo.manifest);
+    return path.join(logsDir(), "manifest.json");
+}
+
+/** The WPI-Log-Analizer clone whose import script does the uploading. */
+export function analyzerPath() {
+    return resolve(config.logSite.analyzerPath);
 }
