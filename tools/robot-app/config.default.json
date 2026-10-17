@@ -8,11 +8,10 @@
     "logDirs": ["/U/logs", "/home/lvuser/logs"],
     "sshTimeoutSecs": 6
   },
-  "logsRepo": {
-    "path": "../../../WPI-Log-Analizer",
-    "remote": "https://github.com/Spectrum3847/WPI-Log-Analizer",
-    "logsSubdir": "Logs",
-    "manifest": "manifest.json"
+  "logsDir": "../../rio-logs",
+  "logSite": {
+    "url": "https://robotlog.spectrum3847.org",
+    "analyzerPath": "../../../WPI-Log-Analizer"
   },
   "swerveAlign": {
     "targetConfig": "src/main/java/frc/robot/configs/OM2026.java"
