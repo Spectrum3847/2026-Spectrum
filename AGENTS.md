@@ -44,7 +44,6 @@ Full workflow: `docs/coding-conventions/commits-pull-requests.md`. How to write 
 `./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07.)
 - New skills must describe our real classes/topics, never generic donor code. Verify names against `src/main/java` and `docs/`.
 - To keep a skill from loading across all agents (opencode, Claude Code, etc.), rename its `SKILL.md` → `SKILL.md.disabled` instead of editing frontmatter. Leave the directory's other files in place.
-- **Get match logs onto robotlog.spectrum3847.org**: `.agents/skills/robot-log-upload/` pulls `.wpilog` files off a roboRIO or SystemCore and Limelight rewinds, then uploads them (Python stdlib; Windows, macOS, Linux). The upload key is never committed: each person saves it once with `python .agents/skills/robot-log-upload/scripts/set_upload_key.py`. (Added 2026-10-16.)
 
 ## Important Notes
 

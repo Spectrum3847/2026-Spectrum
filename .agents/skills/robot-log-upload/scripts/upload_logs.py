@@ -61,7 +61,7 @@ def check() -> tuple[Path | None, bool]:
         print("upload key    : NOT SET. A person runs this in their own terminal (hidden prompt; ask a mentor for the key):")
         print(f"                python \"{setter}\"")
     if analyzer and not (analyzer / "node_modules").exists():
-        print("note          : run `npm install` in the analyzer repo once")
+        print("note          : the first upload runs `npm install` in the analyzer repo")
     return analyzer, bool(analyzer and key and shutil.which("node"))
 
 
