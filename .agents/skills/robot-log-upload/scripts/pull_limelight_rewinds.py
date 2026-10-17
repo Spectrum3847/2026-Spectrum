@@ -24,6 +24,7 @@ import argparse
 import json
 import re
 import sys
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -32,10 +33,9 @@ PORT = 5807
 SIDECARS = (".avi", "_manifest.jsonl", "_bootlog.txt.gz")
 CLIP_RE = re.compile(r"^(?P<base>.+?)(\.avi|_manifest\.jsonl|_bootlog\.txt\.gz)$")
 
-# Known camera addresses per team. 3847's offseason bot names its cameras limelight-left/right/turret
-# (Vision.java); 8515 (FM on SystemCore) has static IPs back .11, left .12, right .13.
+# 3847 names match Vision.java on main and 2026-offseason-bot. 8515: back .11, left .12, right .13.
 CAMERAS = {
-    3847: ["limelight-left.local", "limelight-right.local", "limelight-turret.local"],
+    3847: [f"limelight-{n}.local" for n in ("left", "right", "turret", "back")],
     8515: ["10.85.15.11", "10.85.15.12", "10.85.15.13"],
 }
 
@@ -90,13 +90,15 @@ def pack(folder: Path, base: str, dest: Path, camera: str | None = None) -> Path
         raise FileNotFoundError(avi)
     name = f"{camera}_{base}.rwnd" if camera else f"{base}.rwnd"
     out = dest / name
-    with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_STORED, allowZip64=True) as z:
+    tmp = out.with_suffix(".rwnd.part")
+    with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_STORED, allowZip64=True) as z:
         for suffix in SIDECARS:
             f = folder / f"{base}{suffix}"
             if f.exists():
                 z.write(f, f.name)
             elif suffix != "_bootlog.txt.gz":
                 print(f"  warning: {f.name} missing; the site needs it to sync frames", file=sys.stderr)
+    tmp.replace(out)
     return out
 
 
@@ -105,7 +107,7 @@ def cmd_list(args) -> int:
     for host in cameras(args):
         try:
             clips = clips_on(host)
-        except OSError as e:
+        except (OSError, ValueError) as e:
             print(f"{host}: unreachable ({e})")
             continue
         ok = True
@@ -122,15 +124,18 @@ def cmd_pull(args) -> int:
     for host in cameras(args):
         try:
             clips = clips_on(host)
-        except OSError as e:
+        except (OSError, ValueError) as e:
             print(f"{host}: unreachable ({e})", file=sys.stderr)
             failed += 1
             continue
         names = [c["base"] for c in clips]
         if args.clip:
-            want = [b for b in names if b in args.clip]
+            wanted = {CLIP_RE.sub(r"\g<base>", c) for c in args.clip}
+            want = [b for b in names if b in wanted]
+            for missing in wanted - set(want):
+                print(f"{host}: no clip {missing}", file=sys.stderr)
         else:
-            want = sorted(names)[-args.latest:]
+            want = sorted(names)[-args.latest:] if args.latest > 0 else []
         camera = host.split(".")[0] if not host[0].isdigit() else host.replace(".", "-")
         raw = dest / "raw" / camera
         raw.mkdir(parents=True, exist_ok=True)
@@ -138,7 +143,11 @@ def cmd_pull(args) -> int:
             print(f"{host}: {base}", file=sys.stderr)
             try:
                 for suffix in SIDECARS:
-                    download(f"http://{host}:{PORT}/recording/{base}{suffix}", raw / f"{base}{suffix}")
+                    try:
+                        download(f"http://{host}:{PORT}/recording/{base}{suffix}", raw / f"{base}{suffix}")
+                    except urllib.error.HTTPError as e:
+                        if suffix != "_bootlog.txt.gz" or e.code != 404:
+                            raise
                 print(pack(raw, base, dest, camera))
             except OSError as e:
                 failed += 1

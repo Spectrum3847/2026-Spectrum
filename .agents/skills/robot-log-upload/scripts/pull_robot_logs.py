@@ -101,11 +101,11 @@ def main() -> int:
             failed = 0
             for f in files:
                 print(f"  {f}", file=sys.stderr)
-                if not copy(user, host, f, dest, a.interactive):
+                if copy(user, host, f, dest, a.interactive):
+                    print(dest / Path(f).name)
+                else:
                     failed += 1
                     print(f"  FAILED: {f}", file=sys.stderr)
-            for f in files:
-                print(dest / Path(f).name)
             return 1 if failed else 0
     print("could not reach a robot. Check the cable/radio, or pass --host. "
           "If a host asked for a password, rerun with --interactive in your own terminal.", file=sys.stderr)
