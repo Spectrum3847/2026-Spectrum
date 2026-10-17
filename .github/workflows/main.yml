@@ -15,16 +15,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # This grabs the WPILib docker container
-    container: wpilib/roborio-cross-ubuntu:2025-24.04
-
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v7
 
-      # Declares the repository safe and not under dubious ownership.
-      - name: Add repository to git safe directories
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Caches the Gradle distribution, dependencies, and build cache between runs
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: false
 
       # Grant execute permission for gradlew
       - name: Grant execute permission for gradlew
