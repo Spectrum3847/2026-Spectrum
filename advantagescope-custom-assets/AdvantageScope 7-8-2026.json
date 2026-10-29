@@ -87,11 +87,20 @@
                 "sources": [
                   {
                     "type": "robot",
+                    "logKey": "NT:/Robot/Swerve/State/Pose3d",
+                    "logType": "Pose3d",
+                    "visible": true,
+                    "options": {
+                      "model": "3847 - OM"
+                    }
+                  },
+                  {
+                    "type": "robot",
                     "logKey": "NT:/Robot/Sim/RobotPose3d",
                     "logType": "Pose3d",
                     "visible": true,
                     "options": {
-                      "model": "3847 - PM"
+                      "model": "3847 - OM"
                     }
                   },
                   {

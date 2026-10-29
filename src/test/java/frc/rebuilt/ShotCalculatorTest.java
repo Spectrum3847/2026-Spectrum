@@ -254,6 +254,34 @@ public class ShotCalculatorTest {
         assertEquals(-180.0, ShotCalculator.SetShot.HUB_FACE.turretDegrees, 1e-9);
     }
 
+    /**
+     * Both deployed CSVs parse, so a bad edit fails the build instead of the robot's boot. Reads
+     * the same files the rio does: off the robot the deploy directory is src/main/deploy.
+     */
+    @Test
+    @DisplayName("Shot map CSVs load and interpolate between rows")
+    void shotMapsLoad() {
+        ShotCalculator.ShotMap hub = ShotCalculator.getInstance().getHubMap();
+        ShotCalculator.ShotMap feed = ShotCalculator.getInstance().getFeedMap();
+
+        assertTrue(hub.minDistance() < hub.maxDistance());
+        assertTrue(feed.minDistance() < feed.maxDistance());
+
+        // Halfway between the 3.0 m and 3.5 m rows of lab_shot_map.csv.
+        ShotCalculator.LaunchParameter mid = hub.get(3.25);
+        assertEquals((7.56 + 7.89) / 2, mid.launchVelocityMps(), 1e-9);
+        assertEquals((68 + 66) / 2.0, mid.launchAngleDeg(), 1e-9);
+        assertEquals((1.169 + 1.211) / 2, mid.timeOfFlightSec(), 1e-9);
+
+        // Held at the end rows outside the table, and flagged out of range.
+        assertEquals(
+                hub.get(hub.maxDistance()).launchVelocityMps(),
+                hub.get(hub.maxDistance() + 5).launchVelocityMps(),
+                1e-9);
+        assertFalse(hub.inRange(hub.maxDistance() + 0.01));
+        assertTrue(hub.inRange(hub.minDistance()));
+    }
+
     /** The binding picks the shot before the state is requested; the pick has to stick. */
     @Test
     @DisplayName("Selecting a set shot changes what the turret is asked for")

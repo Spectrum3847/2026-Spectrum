@@ -104,7 +104,7 @@
             "height": 128,
             "type": "Large Text Display",
             "properties": {
-              "topic": "/Robot/ShotCalc/HubPolyModel",
+              "topic": "/Robot/ShotCalc/HubShotMap",
               "period": 0.06,
               "data_type": "string"
             }
@@ -979,7 +979,7 @@
             "height": 128,
             "type": "Large Text Display",
             "properties": {
-              "topic": "/Robot/ShotCalc/HubPolyModel",
+              "topic": "/Robot/ShotCalc/HubShotMap",
               "period": 0.06,
               "data_type": "string"
             }

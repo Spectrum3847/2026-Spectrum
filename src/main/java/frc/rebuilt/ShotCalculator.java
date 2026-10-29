@@ -7,10 +7,14 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
+import edu.wpi.first.math.interpolation.Interpolatable;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
+import edu.wpi.first.math.interpolation.InterpolatingTreeMap;
+import edu.wpi.first.math.interpolation.InverseInterpolator;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -20,6 +24,13 @@ import frc.rebuilt.targetFactories.HubTargetFactory;
 import frc.robot.Robot;
 import frc.spectrumLib.telemetry.Telemetry;
 import frc.spectrumLib.telemetry.Telemetry.PrintPriority;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.OptionalDouble;
+import java.util.TreeMap;
 
 @SuppressWarnings("unused")
 public class ShotCalculator {
@@ -43,6 +54,253 @@ public class ShotCalculator {
     }
 
     // =========================================================================
+    // Shot maps — CSV launch tables
+    // =========================================================================
+    //
+    // Every hub and feed shot is read off a distance-indexed CSV in src/main/deploy, linearly
+    // interpolated between rows and held at the end rows outside them. Edit the CSV and redeploy to
+    // change the shot; no code change needed.
+    //
+    // Columns, by header name, in any order:
+    //   distance_m          launcher to target centre, metres
+    //   optimal_v_mps       ball exit speed, m/s (converted to RPM by rpmPerMps())
+    //   optimal_angle_deg   launch angle above horizontal, degrees (hood = 90 - this)
+    //   tof_s               optional ball time of flight, seconds; drag-free d / (v cos θ) without
+    // it
+
+    public static final String kDISTANCE_COLUMN_LABEL = "distance_m";
+    public static final String kVELOCITY_COLUMN_STRING = "optimal_v_mps";
+    public static final String kANGLE_COLUMN_LABEL = "optimal_angle_deg";
+    public static final String kTOF_COLUMN_LABEL = "tof_s";
+
+    /**
+     * Hub shot map. Its first twelve rows were sampled from the retired 3 m ceiling polynomial at
+     * zero radial velocity, the fit the robot was shooting with, so the switch to the CSV left the
+     * shot where it was (2026-10-29).
+     */
+    public static final String HUB_SHOT_MAP_FILE = "lab_shot_map.csv";
+
+    /** Feed shot map, sampled from the retired feed polynomial the same way. Never calibrated. */
+    public static final String FEED_SHOT_MAP_FILE = "feed_shot_map.csv";
+
+    /** Robot pose prediction horizon used by {@link #computeLaunchInfo}. */
+    public static final double latencySec = 0.05;
+
+    /** One row of a shot map, or an interpolation between two. */
+    public static class LaunchParameter implements Interpolatable<LaunchParameter> {
+        private final double m_launchVelocityMps;
+        private final double m_launchAngleDeg;
+        private final double m_timeOfFlightSec;
+
+        public LaunchParameter(
+                double launchVelocityMps, double launchAngleDeg, double timeOfFlightSec) {
+            this.m_launchVelocityMps = launchVelocityMps;
+            this.m_launchAngleDeg = launchAngleDeg;
+            this.m_timeOfFlightSec = timeOfFlightSec;
+        }
+
+        public double launchVelocityMps() {
+            return m_launchVelocityMps;
+        }
+
+        public double launchAngleDeg() {
+            return m_launchAngleDeg;
+        }
+
+        public double timeOfFlightSec() {
+            return m_timeOfFlightSec;
+        }
+
+        @Override
+        public LaunchParameter interpolate(LaunchParameter endValue, double t) {
+            if (t <= 0) {
+                return this;
+            } else if (t >= 1) {
+                return endValue;
+            } else {
+                return new LaunchParameter(
+                        MathUtil.interpolate(m_launchVelocityMps, endValue.m_launchVelocityMps, t),
+                        MathUtil.interpolate(m_launchAngleDeg, endValue.m_launchAngleDeg, t),
+                        MathUtil.interpolate(m_timeOfFlightSec, endValue.m_timeOfFlightSec, t));
+            }
+        }
+    }
+
+    /** A distance-indexed launch table loaded from a CSV in the deploy directory. */
+    public static final class ShotMap {
+        private final String name;
+        private final String fileName;
+        private final double hoodOffsetDeg;
+        private final InterpolatingTreeMap<Double, LaunchParameter> table =
+                new InterpolatingTreeMap<>(
+                        InverseInterpolator.forDouble(), LaunchParameter::interpolate);
+        private double minDistance = Double.NaN;
+        private double maxDistance = Double.NaN;
+
+        /**
+         * Loads a shot map.
+         *
+         * @param name descriptive name for telemetry
+         * @param fileName CSV file name in the deploy directory
+         * @param hoodOffsetDeg calibration trim added to this map's hood angle, in degrees. Prefer
+         *     fixing the CSV; this is for a quick correction that belongs to one map and not the
+         *     other. The operator's D-pad trim is added on top and applies to whichever map is
+         *     live.
+         */
+        ShotMap(String name, String fileName, double hoodOffsetDeg) {
+            this.name = name;
+            this.fileName = fileName;
+            this.hoodOffsetDeg = hoodOffsetDeg;
+            reload();
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public double hoodOffsetDeg() {
+            return hoodOffsetDeg;
+        }
+
+        public double minDistance() {
+            return minDistance;
+        }
+
+        public double maxDistance() {
+            return maxDistance;
+        }
+
+        /**
+         * Launch parameters at a distance, interpolated between rows and held at the end rows.
+         *
+         * @param distanceM launcher to target centre, metres
+         * @return the launch parameters
+         */
+        public LaunchParameter get(double distanceM) {
+            return table.get(MathUtil.clamp(distanceM, minDistance, maxDistance));
+        }
+
+        /**
+         * Whether a distance is inside the map's rows rather than held at an end.
+         *
+         * @param distanceM launcher to target centre, metres
+         * @return true between the first and last row, inclusive
+         */
+        public boolean inRange(double distanceM) {
+            return distanceM >= minDistance && distanceM <= maxDistance;
+        }
+
+        /** Re-reads the CSV. Throws, leaving the old table in place, if the file is unusable. */
+        public void reload() {
+            Path path = Filesystem.getDeployDirectory().toPath().resolve(fileName);
+            List<String> lines;
+            try {
+                lines = Files.readAllLines(path, StandardCharsets.US_ASCII);
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to read shot map CSV: " + path, e);
+            }
+            if (lines.isEmpty()) {
+                throw new IllegalStateException("Shot map CSV is empty: " + path);
+            }
+
+            String[] headers = lines.get(0).trim().split(",", -1);
+            int distanceIndex = -1;
+            int velocityIndex = -1;
+            int angleIndex = -1;
+            int tofIndex = -1;
+            for (int i = 0; i < headers.length; i++) {
+                String header = headers[i].trim();
+                if (header.equals(kDISTANCE_COLUMN_LABEL)) distanceIndex = i;
+                if (header.equals(kVELOCITY_COLUMN_STRING)) velocityIndex = i;
+                if (header.equals(kANGLE_COLUMN_LABEL)) angleIndex = i;
+                if (header.equals(kTOF_COLUMN_LABEL)) tofIndex = i;
+            }
+            if (distanceIndex < 0 || velocityIndex < 0 || angleIndex < 0) {
+                throw new IllegalStateException(
+                        "Shot map CSV is missing a required column ("
+                                + kDISTANCE_COLUMN_LABEL
+                                + ", "
+                                + kVELOCITY_COLUMN_STRING
+                                + ", "
+                                + kANGLE_COLUMN_LABEL
+                                + "): "
+                                + path);
+            }
+            int maximalIndex = Math.max(distanceIndex, Math.max(velocityIndex, angleIndex));
+            maximalIndex = Math.max(maximalIndex, tofIndex);
+
+            // Parsed in full before the live table is touched, so a bad edit leaves the old map.
+            TreeMap<Double, LaunchParameter> loaded = new TreeMap<>();
+            for (int lineIndex = 1; lineIndex < lines.size(); lineIndex++) {
+                String line = lines.get(lineIndex).trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                String[] tokens = line.split(",", -1);
+                if (tokens.length <= maximalIndex) {
+                    throw new IllegalStateException(
+                            "Line " + (lineIndex + 1) + " of " + path + " is missing columns");
+                }
+                double distance = Double.parseDouble(tokens[distanceIndex].trim());
+                double velocity = Double.parseDouble(tokens[velocityIndex].trim());
+                double angleDeg = Double.parseDouble(tokens[angleIndex].trim());
+                if (distance <= 0 || velocity <= 0 || angleDeg <= 0 || angleDeg >= 90) {
+                    throw new IllegalStateException(
+                            "Line " + (lineIndex + 1) + " of " + path + " is out of range");
+                }
+                double tof =
+                        tofIndex >= 0 && !tokens[tofIndex].isBlank()
+                                ? Double.parseDouble(tokens[tofIndex].trim())
+                                : distance / (velocity * Math.cos(Math.toRadians(angleDeg)));
+                loaded.put(distance, new LaunchParameter(velocity, angleDeg, tof));
+            }
+            if (loaded.isEmpty()) {
+                throw new IllegalStateException("Shot map CSV has no data rows: " + path);
+            }
+
+            table.clear();
+            loaded.forEach(table::put);
+            minDistance = loaded.firstKey();
+            maxDistance = loaded.lastKey();
+        }
+    }
+
+    /**
+     * Hub shot map. The name is logged to {@code ShotCalc/HubShotMap}; edit {@value
+     * #HUB_SHOT_MAP_FILE} to move the shot.
+     */
+    private final ShotMap hubMap = new ShotMap("Lab Hub Shot Map", HUB_SHOT_MAP_FILE, 0.0);
+
+    /** Feed shot map, floor target. */
+    private final ShotMap feedMap = new ShotMap("Feed Shot Map", FEED_SHOT_MAP_FILE, 0.0);
+
+    /**
+     * The hub shot map.
+     *
+     * @return the hub shot map
+     */
+    public ShotMap getHubMap() {
+        return hubMap;
+    }
+
+    /**
+     * The feed shot map.
+     *
+     * @return the feed shot map
+     */
+    public ShotMap getFeedMap() {
+        return feedMap;
+    }
+
+    /**
+     * Hub launch parameters at a distance. Kept for the 604 launch helpers below.
+     *
+     * @param distanceM launcher to hub centre, metres
+     * @return the launch parameters
+     */
+    public LaunchParameter interpolateLaunchEntry(double distanceM) {
+        return hubMap.get(distanceM);
+    }
+
+    // =========================================================================
     // Shot Parameters Record
     // =========================================================================
 
@@ -51,7 +309,7 @@ public class ShotCalculator {
      * subsystems for a single shot.
      */
     public record ShootingParameters(
-            /** {@code true} when distance is within the polynomial's fitted range. */
+            /** {@code true} when distance is within the shot map's rows. */
             boolean isValid,
             /** Field-relative heading the robot must face to aim at the goal. */
             Rotation2d turretAngle,
@@ -63,7 +321,7 @@ public class ShotCalculator {
             double hoodVelocity,
             /** Commanded flywheel speed (RPM). */
             double flywheelSpeed,
-            /** Ball exit speed from the polynomial (m/s), before RPM conversion. */
+            /** Ball exit speed from the shot map (m/s), before RPM conversion. */
             double exitSpeedMs,
             /** Shoot-on-move compensated distance to goal (metres). */
             double distance,
@@ -472,22 +730,19 @@ public class ShotCalculator {
     }
 
     // =========================================================================
-    // Polynomial Model
+    // Exit speed to flywheel RPM
     // =========================================================================
-    // 2D degree-3 polynomial surface:
-    //   f(distance_m, radialVel_ms) → { exitSpeed_ms, launchAngle_deg }
-    // Monomial basis: 1, d, v, d², d·v, v², d³, d²·v, d·v², v³
 
     /**
      * Global exit-speed scale factor. Adjust post-characterization to correct for ball compression,
-     * wear, or temperature without re-fitting the polynomial. 1.0 = no scaling. Applied to both the
-     * hub and feed models.
+     * wear, or temperature without editing the shot maps. 1.0 = no scaling. Applied to both the hub
+     * and feed maps.
      */
     private static final double MPS_FACTOR = 1;
 
     /**
-     * Scale factor converting polynomial exit speed (m/s) to flywheel RPM: the shot's power
-     * transfer, expressed as the RPM it costs to put one m/s on the ball.
+     * Scale factor converting shot-map exit speed (m/s) to flywheel RPM: the shot's power transfer,
+     * expressed as the RPM it costs to put one m/s on the ball.
      *
      * <p>The fitted 365 RPM per m/s against the 4 in wheel is a coupling ratio of 0.515 (ball speed
      * over wheel surface speed), which is the no-slip figure for a single wheel against a fixed
@@ -496,11 +751,11 @@ public class ShotCalculator {
      * moves the real ratio below 0.515, and then every shot lands short at the RPM the model asks
      * for.
      *
-     * <p>Fudge it here rather than re-fitting the polynomial. This is the coupling only: raising it
-     * commands more RPM for the same wanted exit speed and leaves the ballistics, the time of
-     * flight, and the sim's ball alone. {@link #MPS_FACTOR} is the other knob and means something
-     * different -- that the ball really does leave faster than the poly says -- so it moves the
-     * simulated ball too.
+     * <p>Fudge it here rather than editing every row of the shot map. This is the coupling only:
+     * raising it commands more RPM for the same wanted exit speed and leaves the ballistics, the
+     * time of flight, and the sim's ball alone. {@link #MPS_FACTOR} is the other knob and means
+     * something different -- that the ball really does leave faster than the map says -- so it
+     * moves the simulated ball too.
      */
     private static final double RPM_PER_MPS_FITTED = 365.0;
 
@@ -672,216 +927,6 @@ public class ShotCalculator {
      */
     private static final double LEAD_DRAG_BLEED_PER_SEC = 0.085;
 
-    /**
-     * A fitted degree-3 polynomial surface plus its input domain and normalisation. Inputs are
-     * mapped to zero-mean unit-variance before evaluation, so the coefficients live in normalised
-     * space and must not be applied to raw (metres / m/s) inputs directly.
-     *
-     * @param name descriptive name for telemetry
-     * @param distMin fitted distance lower bound (metres); inputs clamped, shots outside flagged
-     *     invalid
-     * @param distMax fitted distance upper bound (metres)
-     * @param rvMin fitted radial-velocity lower bound (m/s)
-     * @param rvMax fitted radial-velocity upper bound (m/s)
-     * @param dMean distance normalisation mean
-     * @param dStd distance normalisation standard deviation
-     * @param vMean radial-velocity normalisation mean
-     * @param vStd radial-velocity normalisation standard deviation
-     * @param speedCoeffs exit-speed coefficients in the monomial basis 1, d, v, d², d·v, v², d³,
-     *     d²·v, d·v², v³
-     * @param angleCoeffs launch-angle coefficients in the same basis
-     * @param tofCoeffs time-of-flight coefficients (seconds) in the same basis; read this instead
-     *     of simulating or estimating flight time when solving the virtual target. Null when the
-     *     model was fitted without a flight-time output, in which case the solver falls back to a
-     *     drag-free kinematic estimate.
-     * @param hoodOffsetDeg calibration trim added to this model's hood angle, in degrees. Each fit
-     *     is wrong in its own way, so the correction belongs to the model rather than to the robot:
-     *     a trim that fixes the full-field fit has no business moving the ceiling fit, which
-     *     already scores. The operator's D-pad trim is added on top of this and applies to whatever
-     *     model is live.
-     */
-    private record PolyModel(
-            String name,
-            double distMin,
-            double distMax,
-            double rvMin,
-            double rvMax,
-            double dMean,
-            double dStd,
-            double vMean,
-            double vStd,
-            double[] speedCoeffs,
-            double[] angleCoeffs,
-            double[] tofCoeffs,
-            double hoodOffsetDeg) {}
-
-    /** Hub-shot model — used when the robot is in a scoring zone. */
-    private static final PolyModel HUB_MODEL =
-            new PolyModel(
-                    "No Ceiling Hub Model",
-                    1.5, // distMin (m)
-                    8.0, // distMax (m)
-                    -3.0, // rvMin (m/s)
-                    3.0, // rvMax (m/s)
-                    4.8380417957, // dMean
-                    1.9319000086, // dStd
-                    -0.0808823529, // vMean
-                    1.9705745171, // vStd
-                    new double[] {
-                        /* 1    */ 9.4913945634e+0,
-                        /* d    */ 1.6537445477e+0,
-                        /* v    */ -1.7241818573e+0,
-                        /* d²   */ 1.3831911088e-1,
-                        /* d·v  */ -3.8132583276e-2,
-                        /* v²   */ -3.6027845385e-2,
-                        /* d³   */ -9.4815161267e-2,
-                        /* d²·v */ -9.8905876874e-2,
-                        /* d·v² */ 8.4171094158e-2,
-                        /* v³   */ 1.5667670376e-1
-                    },
-                    new double[] {
-                        /* 1    */ 6.7148106203e+1,
-                        /* d    */ -1.8755189845e+0,
-                        /* v    */ 5.5988307381e+0,
-                        /* d²   */ 1.5170142533e+0,
-                        /* d·v  */ -7.0971996428e-1,
-                        /* v²   */ -6.1935424997e-1,
-                        /* d³   */ -7.1916259693e-1,
-                        /* d²·v */ -3.6499963826e-1,
-                        /* d·v² */ 1.0534259064e+0,
-                        /* v³   */ 4.8011508185e-1
-                    },
-                    new double[] {
-                        /* 1    */ 1.5339171616e+0,
-                        /* d    */ 2.8197518906e-1,
-                        /* v    */ -2.4847729715e-1,
-                        /* d²   */ 2.4918872691e-2,
-                        /* d·v  */ 2.6962100375e-2,
-                        /* v²   */ -4.6144611911e-2,
-                        /* d³   */ -2.2832527755e-2,
-                        /* d²·v */ -3.5839964885e-2,
-                        /* d·v² */ 3.5468556379e-2,
-                        /* v³   */ 3.7823545109e-2
-                    },
-                    // Shots landed 3 to 4 feet past the hub centre on 2026-09-05. The model moves
-                    // the hood about one degree per foot of range near where this robot shoots, so
-                    // four degrees down. Still long on the 20:00 run that evening, so one more.
-                    -5.0);
-
-    /** 3 meter ceiling hub model - used when the robot is testing at home */
-    private static final PolyModel CEILING_3M_HUB_MODEL =
-            new PolyModel(
-                    "3 Meter Ceiling Hub Model",
-                    1.5, // distMin (m)
-                    8.0, // distMax (m)
-                    -3.0, // rvMin (m/s)
-                    3.0, // rvMax (m/s)
-                    4.8380417957, // dMean
-                    1.9319000086, // dStd
-                    -0.0808823529, // vMean
-                    1.9705745171, // vStd
-                    new double[] {
-                        /* 1    */ 8.7963133789e+0,
-                        /* d    */ 1.1951603207e+0,
-                        /* v    */ -1.1069879388e+0,
-                        /* d²   */ -8.7791981659e-2,
-                        /* d·v  */ -3.7029252318e-2,
-                        /* v²   */ 3.1929955472e-2,
-                        /* d³   */ -3.2965513546e-2,
-                        /* d²·v */ -3.0624443563e-2,
-                        /* d·v² */ 6.9040866571e-2,
-                        /* v³   */ 2.1341472621e-2
-                    },
-                    new double[] {
-                        /* 1    */ 6.0223997922e+1,
-                        /* d    */ -8.3303295646e+0,
-                        /* v    */ 1.0091287979e+1,
-                        /* d²   */ -3.6385265944e-1,
-                        /* d·v  */ -1.1510410447e+0,
-                        /* v²   */ 9.2100949639e-2,
-                        /* d³   */ -1.0315777427e-1,
-                        /* d²·v */ -1.0030994978e+0,
-                        /* d·v² */ 1.6204499882e+0,
-                        /* v³   */ -1.3083914733e-1
-                    },
-                    new double[] {
-                        /* 1    */ 1.2901109428e+0,
-                        /* d    */ 7.3269523909e-2,
-                        /* v    */ -4.3816902018e-2,
-                        /* d²   */ -5.2525932813e-2,
-                        /* d·v  */ 3.7797567390e-2,
-                        /* v²   */ -2.8695676372e-2,
-                        /* d³   */ -5.4873215203e-4,
-                        /* d²·v */ -3.0552109674e-2,
-                        /* d·v² */ 4.6814046679e-2,
-                        /* v³   */ 3.1845113863e-3
-                    },
-                    // This fit scores as it is.
-                    0.0);
-
-    /** Feed-shot model — floor target, optimised for maximum robustness. */
-    private static final PolyModel FEED_MODEL =
-            new PolyModel(
-                    "Feed Shot Model",
-                    5.0, // distMin (m)
-                    10.0, // distMax (m)
-                    -3.0, // rvMin (m/s)
-                    3.0, // rvMax (m/s)
-                    7.5000000000, // dMean
-                    1.5430334996, // dStd
-                    0.0000000000, // vMean
-                    2.0000000000, // vStd
-                    new double[] {
-                        /* 1    */ 8.9574914779e+0,
-                        /* d    */ 1.2320032575e+0,
-                        /* v    */ -1.3282274119e+0,
-                        /* d²   */ -9.0580610943e-2,
-                        /* d·v  */ -4.1967119907e-2,
-                        /* v²   */ 1.9536019536e-1,
-                        /* d³   */ -8.4567038602e-2,
-                        /* d²·v */ -3.7665953956e-2,
-                        /* d·v² */ 4.0977995869e-2,
-                        /* v³   */ -7.9772079772e-2
-                    },
-                    new double[] {
-                        /* 1    */ 4.4856254322e+1,
-                        /* d    */ 1.6637913478e+0,
-                        /* v    */ 3.7355931469e+0,
-                        /* d²   */ -5.7584406544e-1,
-                        /* d·v  */ -3.3044655869e-1,
-                        /* v²   */ 1.4309743590e+0,
-                        /* d³   */ -1.0899200445e+0,
-                        /* d²·v */ -3.1788374521e-1,
-                        /* d·v² */ 3.5247632927e-1,
-                        /* v³   */ -7.6581196581e-1
-                    },
-                    new double[] {
-                        /* 1    */ 1.3453977447e+0,
-                        /* d    */ 1.7869716357e-1,
-                        /* v    */ -1.0562802078e-1,
-                        /* d²   */ -2.3670760612e-2,
-                        /* d·v  */ -7.3999477975e-3,
-                        /* v²   */ 4.6025396825e-2,
-                        /* d³   */ -2.6904794466e-2,
-                        /* d²·v */ -9.7571644042e-3,
-                        /* d·v² */ 1.2178208201e-2,
-                        /* v³   */ -2.3703703704e-2
-                    },
-                    // Never calibrated; feed shots have not been characterised.
-                    0.0);
-
-    /**
-     * Active hub model. The name is logged to {@code ShotCalc/HubPolyModel} — check it before a
-     * match, because the two fits do not shoot the same and nothing else makes the difference
-     * obvious.
-     *
-     * <p>Back on the full-field fit to test the -4 deg hood trim it now carries. It shot 3 to 4
-     * feet past the hub centre without it, which its own table says is about four degrees of hood.
-     * If that trim does not close the gap, {@link #CEILING_3M_HUB_MODEL} is the known-good fallback
-     * — it scores, at the cost of a trajectory shaped to stay under a 3 m roof.
-     */
-    private static final PolyModel WANTED_HUB_MODEL = CEILING_3M_HUB_MODEL;
-    
     // =========================================================================
     // Set shot -- the fallback when the pose is gone
     // =========================================================================
@@ -995,14 +1040,16 @@ public class ShotCalculator {
      * @return {@code { hoodDegrees, flywheelRPM }}
      */
     private static double[] setShotSolution() {
-        double[] raw = evalPolyRaw(WANTED_HUB_MODEL, selectedSetShot.distanceMeters, 0.0);
+        ShotMap map = getInstance().hubMap;
+        LaunchParameter shot = map.get(selectedSetShot.distanceMeters);
         double hoodDegrees =
                 MathUtil.clamp(
-                        (90 - raw[1]) + WANTED_HUB_MODEL.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
+                        (90 - shot.launchAngleDeg()) + map.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
         double rpm =
-                raw[0] * MPS_FACTOR * rpmPerMps() - nearShotRpmDrop(selectedSetShot.distanceMeters);
+                shot.launchVelocityMps() * MPS_FACTOR * rpmPerMps()
+                        - nearShotRpmDrop(selectedSetShot.distanceMeters);
         return new double[] {hoodDegrees, feasibleFlywheelRPM(rpm)};
     }
 
@@ -1086,8 +1133,8 @@ public class ShotCalculator {
         boolean feed = Robot.getSuperStructure().isRobotInFeedZone();
         Translation2d target =
                 feed ? FeedTargetFactory.generate() : HubTargetFactory.generate().toTranslation2d();
-        // Feed and hub shots use separately-fitted polynomial surfaces.
-        PolyModel model = feed ? FEED_MODEL : WANTED_HUB_MODEL;
+        // Feed and hub shots read separate CSV shot maps.
+        ShotMap map = feed ? feedMap : hubMap;
 
         // ── Phase-delayed pose estimate ──────────────────────────────────────
         Pose2d estimatedPose = Robot.getSwerve().getRobotPose();
@@ -1129,15 +1176,15 @@ public class ShotCalculator {
         // Tangential: perpendicular to the radial axis
         double tangentialVelocity = -launcherVelocityX * uy + launcherVelocityY * ux;
 
-        // ── Polynomial + 1690 virtual-target solver ───────────────────────────
+        // ── Shot map + 1690 virtual-target solver ─────────────────────────────
         // Returns: { exitSpeed_ms, launchAngle_deg, yawOffset_deg, virtualDist_m, tof_s }
-        double[] poly =
-                solveVirtualTarget(model, distanceNoLookahead, radialVelocity, tangentialVelocity);
-        double exitSpeedMs = poly[0];
-        double rawHoodAngle = 90 - poly[1]; // degrees, before HOOD_ANGLE_OFFSET
-        double yawOffsetDeg = poly[2];
-        double lookaheadDist = poly[3];
-        double tofFinal = poly[4];
+        double[] shot =
+                solveVirtualTarget(map, distanceNoLookahead, radialVelocity, tangentialVelocity);
+        double exitSpeedMs = shot[0];
+        double rawHoodAngle = 90 - shot[1]; // degrees, before HOOD_ANGLE_OFFSET
+        double yawOffsetDeg = shot[2];
+        double lookaheadDist = shot[3];
+        double tofFinal = shot[4];
 
         // ── Turret angle: static bearing + shoot-on-move yaw + user offset ────
         Rotation2d turretAngle =
@@ -1174,7 +1221,7 @@ public class ShotCalculator {
         lastHoodAngle = rawHoodAngle;
         double hoodAngle =
                 MathUtil.clamp(
-                        rawHoodAngle + model.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
+                        rawHoodAngle + map.hoodOffsetDeg() + HOOD_ANGLE_OFFSET,
                         Robot.getHood().getConfig().getMinRotations() * 360.0,
                         Robot.getHood().getConfig().getMaxRotations() * 360.0);
 
@@ -1187,15 +1234,14 @@ public class ShotCalculator {
         // Snapshot for the shot record: the five values a burst row needs that
         // ShootingParameters does not carry. Kept here rather than widened into the record because
         // nothing in the control path reads them.
-        activeModelName = model.name;
-        activeModelHoodOffsetDeg = model.hoodOffsetDeg();
+        activeModelName = map.name();
+        activeModelHoodOffsetDeg = map.hoodOffsetDeg();
         activeRadialVelocityMs = radialVelocity;
         activeTangentialVelocityMs = tangentialVelocity;
         activeFeedShot = feed;
 
         // ── Validity ──────────────────────────────────────────────────────────
-        boolean isValid =
-                distanceNoLookahead >= model.distMin() && distanceNoLookahead <= model.distMax();
+        boolean isValid = map.inRange(distanceNoLookahead);
 
         latestParameters =
                 new ShootingParameters(
@@ -1233,11 +1279,10 @@ public class ShotCalculator {
             Telemetry.log("ShotCalc/TangentialVelocityMs", tangentialVelocity, "m/s");
             Telemetry.logDash("ShotCalc/TimeOfFlight", tofFinal, "seconds");
             Telemetry.log("ShotCalc/FeedShot", feed);
-            Telemetry.logDash("ShotCalc/HubPolyModel", WANTED_HUB_MODEL.name);
+            Telemetry.logDash("ShotCalc/HubShotMap", hubMap.name());
             Telemetry.logDash("ShotCalc/TurretAngleOffsetDegrees", TURRET_ANGLE_OFFSET, "degrees");
             Telemetry.logDash("ShotCalc/HoodAngleOffsetDegrees", HOOD_ANGLE_OFFSET, "degrees");
-            Telemetry.logDash(
-                    "ShotCalc/HoodModelOffsetDegrees", WANTED_HUB_MODEL.hoodOffsetDeg(), "degrees");
+            Telemetry.logDash("ShotCalc/HoodModelOffsetDegrees", hubMap.hoodOffsetDeg(), "degrees");
             Telemetry.log("ShotCalc/Target", target);
         }
 
@@ -1253,17 +1298,17 @@ public class ShotCalculator {
     }
 
     // =========================================================================
-    // Private — Polynomial Solver
+    // Private — Virtual-Target Solver
     // =========================================================================
 
     /**
      * 1690 Orbit iterative virtual-target solver.
      *
-     * <p>Each pass evaluates the polynomial at the current virtual aim point, reads the fitted
-     * time-of-flight, shifts the aim point by how far the launcher moves during that flight, and
-     * repeats until TOF converges. Terminates in ≤ 5 iterations (typically 2–3).
+     * <p>Each pass reads the shot map at the current virtual aim point, takes its time of flight,
+     * shifts the aim point by how far the launcher moves during that flight, and repeats until TOF
+     * converges. Terminates in ≤ 5 iterations (typically 2–3).
      *
-     * @param model the polynomial model (hub or feed) to evaluate against
+     * @param map the shot map (hub or feed) to read
      * @param distance horizontal distance to goal centre (metres)
      * @param radialVelocity launcher velocity toward/away from goal (m/s); positive = closing on
      *     goal
@@ -1271,14 +1316,14 @@ public class ShotCalculator {
      * @return {@code double[]} with indices:
      *     <ul>
      *       <li>0 — exit speed (m/s), scaled by {@link #MPS_FACTOR}
-     *       <li>1 — launch angle (degrees), raw polynomial value
+     *       <li>1 — launch angle (degrees), straight from the map
      *       <li>2 — yaw offset (degrees); add to static bearing before firing
      *       <li>3 — converged virtual aim distance (metres)
      *       <li>4 — converged time of flight (seconds)
      *     </ul>
      */
     private static double[] solveVirtualTarget(
-            PolyModel model, double distance, double radialVelocity, double tangentialVelocity) {
+            ShotMap map, double distance, double radialVelocity, double tangentialVelocity) {
         double vdx = distance; // virtual aim point — radial component (m)
         double vdz = 0.0; // virtual aim point — lateral component (m)
         double tof = 0.0;
@@ -1288,11 +1333,10 @@ public class ShotCalculator {
             double vDist = Math.sqrt(vdx * vdx + vdz * vdz);
             if (vDist < 0.1) break;
 
-            // Evaluate polynomial at virtual point with rv = 0 (robot motion is
-            // already encoded in the shifted aim point)
-            double[] raw = evalPolyRaw(model, vDist, 0.0);
+            // Read the map at the virtual point; robot motion is already encoded in the shifted
+            // aim point.
             double prevTof = tof;
-            tof = raw[2];
+            tof = map.get(vDist).timeOfFlightSec();
             lead = tof * driftEfficiency(tof);
 
             // Shift aim point: where the target will be relative to the launcher
@@ -1308,13 +1352,13 @@ public class ShotCalculator {
                 Math.atan2(-tangentialVelocity * lead, distance - radialVelocity * lead)
                         * (180.0 / Math.PI);
 
-        double[] result = evalPolyRaw(model, virtualDist, 0.0);
+        LaunchParameter result = map.get(virtualDist);
         return new double[] {
-            result[0] * MPS_FACTOR, // exitSpeed_ms
-            result[1], // launchAngle_deg
+            result.launchVelocityMps() * MPS_FACTOR, // exitSpeed_ms
+            result.launchAngleDeg(), // launchAngle_deg
             yawOffsetDeg, // yaw correction (degrees)
             virtualDist, // converged lookahead distance (m)
-            result[2] // time of flight at the converged aim point (s)
+            result.timeOfFlightSec() // time of flight at the converged aim point (s)
         };
     }
 
@@ -1334,50 +1378,284 @@ public class ShotCalculator {
         return MathUtil.clamp(1.0 - LEAD_DRAG_BLEED_PER_SEC * tofSeconds, 0.0, 1.0);
     }
 
-    /**
-     * Evaluates the given polynomial surface at (distance, radialVel). Inputs are clamped to the
-     * model's fitted data range. Returns raw polynomial output — callers are responsible for
-     * applying {@link #MPS_FACTOR} to the exit speed and {@code HOOD_ANGLE_OFFSET} to the launch
-     * angle.
-     *
-     * @param model the polynomial model (hub or feed) to evaluate
-     * @param distance horizontal distance to the aim point (metres)
-     * @param radialVel radial velocity (m/s)
-     * @return double[] { exitSpeed_ms (raw, before MPS_FACTOR), launchAngle_deg, tof_s }
-     */
-    private static double[] evalPolyRaw(PolyModel model, double distance, double radialVel) {
-        double d_raw = Math.max(model.distMin(), Math.min(model.distMax(), distance));
-        double v_raw = Math.max(model.rvMin(), Math.min(model.rvMax(), radialVel));
-        double d = (d_raw - model.dMean()) / model.dStd();
-        double v = (v_raw - model.vMean()) / model.vStd();
+    // =========================================================================
+    // LaunchInfo + ballistic/geometry helpers
+    // =========================================================================
 
-        double d2 = d * d;
-        double v2 = v * v;
-        double d3 = d2 * d;
-        double v3 = v2 * v;
+    public static class LaunchInfo {
+        public final double yaw;
+        public double yawVelocity;
+        public double yawAcceleration;
+        public final double elevation;
+        public final double launchVelocity;
 
-        double[] terms = {
-            1.0, // 1
-            d, // d
-            v, // v
-            d2, // d²
-            d * v, // d·v
-            v2, // v²
-            d3, // d³
-            d2 * v, // d²·v
-            d * v2, // d·v²
-            v3 // v³
-        };
-
-        double[] speedCoeffs = model.speedCoeffs();
-        double[] angleCoeffs = model.angleCoeffs();
-        double[] tofCoeffs = model.tofCoeffs();
-        double exitSpeed = 0.0, launchAngle = 0.0, tof = 0.0;
-        for (int i = 0; i < terms.length; i++) {
-            exitSpeed += speedCoeffs[i] * terms[i];
-            launchAngle += angleCoeffs[i] * terms[i];
-            if (tofCoeffs != null) tof += tofCoeffs[i] * terms[i];
+        public LaunchInfo(
+                double yaw,
+                double yawVelocity,
+                double yawAcceleration,
+                double elevation,
+                double launchVelocity) {
+            this.yaw = yaw;
+            this.yawVelocity = yawVelocity;
+            this.yawAcceleration = yawAcceleration;
+            this.elevation = elevation;
+            this.launchVelocity = launchVelocity;
         }
-        return new double[] {exitSpeed, launchAngle, tof};
+    }
+
+    private static LaunchInfo computeStateAtTime(
+            final boolean isFeed,
+            final double t,
+            final Pose2d robotFieldPose,
+            final Pose2d targetPose,
+            final ShotCalculator launchCalculator,
+            final Twist2d robotVel,
+            final Twist2d robotAccel,
+            final Twist2d robotFieldVel,
+            final Twist2d robotFieldAccel,
+            final double imuRoll,
+            final double imuPitch) {
+        final Twist2d dTwist =
+                new Twist2d(
+                        robotVel.dx * t + 0.5 * robotAccel.dx * t * t,
+                        robotVel.dy * t + 0.5 * robotAccel.dy * t * t,
+                        robotVel.dtheta * t + 0.5 * robotAccel.dtheta * t * t);
+        final Pose2d pose = robotFieldPose.exp(dTwist);
+
+        final Twist2d vel =
+                new Twist2d(
+                        robotVel.dx + robotAccel.dx * t,
+                        robotVel.dy + robotAccel.dy * t,
+                        robotVel.dtheta + robotAccel.dtheta * t);
+
+        final Twist2d fieldVel =
+                new Twist2d(
+                        robotFieldVel.dx + robotFieldAccel.dx * t,
+                        robotFieldVel.dy + robotFieldAccel.dy * t,
+                        robotFieldVel.dtheta + robotFieldAccel.dtheta * t);
+
+        return computeInstantaneousLaunchInfo(
+                isFeed,
+                pose,
+                targetPose,
+                launchCalculator,
+                vel,
+                robotAccel,
+                fieldVel,
+                robotFieldAccel,
+                imuRoll,
+                imuPitch);
+    }
+
+    public static LaunchInfo computeLaunchInfo(
+            final boolean isFeed,
+            final Pose2d robotFieldPose,
+            final Pose2d targetPose,
+            final ShotCalculator launchCalculator,
+            final Twist2d robotVel,
+            final Twist2d robotAccel,
+            final Twist2d robotFieldVel,
+            final Twist2d robotFieldAccel,
+            final double imuRoll,
+            final double imuPitch) {
+        final double dt = 0.005;
+
+        final LaunchInfo infoMinus =
+                computeStateAtTime(
+                        isFeed,
+                        latencySec - dt,
+                        robotFieldPose,
+                        targetPose,
+                        launchCalculator,
+                        robotVel,
+                        robotAccel,
+                        robotFieldVel,
+                        robotFieldAccel,
+                        imuRoll,
+                        imuPitch);
+        final LaunchInfo info0 =
+                computeStateAtTime(
+                        isFeed,
+                        latencySec,
+                        robotFieldPose,
+                        targetPose,
+                        launchCalculator,
+                        robotVel,
+                        robotAccel,
+                        robotFieldVel,
+                        robotFieldAccel,
+                        imuRoll,
+                        imuPitch);
+        final LaunchInfo infoPlus =
+                computeStateAtTime(
+                        isFeed,
+                        latencySec + dt,
+                        robotFieldPose,
+                        targetPose,
+                        launchCalculator,
+                        robotVel,
+                        robotAccel,
+                        robotFieldVel,
+                        robotFieldAccel,
+                        imuRoll,
+                        imuPitch);
+
+        info0.yawVelocity = constrainAngleNegPiToPi(infoPlus.yaw - infoMinus.yaw) / (2.0 * dt);
+        info0.yawAcceleration =
+                (constrainAngleNegPiToPi(infoPlus.yaw - info0.yaw)
+                                - constrainAngleNegPiToPi(info0.yaw - infoMinus.yaw))
+                        / (dt * dt);
+
+        return info0;
+    }
+
+    public static LaunchInfo computeInstantaneousLaunchInfo(
+            final boolean isFeed,
+            final Pose2d robotFieldPose,
+            final Pose2d targetPose,
+            final ShotCalculator launchCalculator,
+            final Twist2d robotVel,
+            final Twist2d robotAccel,
+            final Twist2d robotFieldVel,
+            final Twist2d robotFieldAccel,
+            final double imuRoll,
+            final double imuPitch) {
+        final Pose2d turretFieldPose = robotFieldPose.transformBy(Transform2d.kZero);
+        final Twist2d turretVelocity =
+                getVelocityAtOffset(robotFieldPose, Transform2d.kZero, robotFieldVel);
+
+        final Translation2d turretToTarget =
+                targetPose.getTranslation().minus(turretFieldPose.getTranslation());
+        final double distanceToTarget = turretToTarget.getNorm();
+        Telemetry.log("LaunchCalculator/distanceToTarget", distanceToTarget);
+
+        final double v0;
+        final double phi0;
+        final double theta0 = Math.atan2(turretToTarget.getY(), turretToTarget.getX());
+        if (isFeed) {
+            phi0 = 35;
+            v0 = solveBallisticVelocity(distanceToTarget, -19, phi0).orElse(0.0);
+        } else {
+            final var fieldRelativeLaunchParams =
+                    launchCalculator.interpolateLaunchEntry(distanceToTarget);
+            v0 = fieldRelativeLaunchParams.launchVelocityMps();
+            phi0 = Math.toRadians(fieldRelativeLaunchParams.launchAngleDeg());
+        }
+
+        final double vx_target = v0 * Math.cos(phi0) * Math.cos(theta0);
+        final double vy_target = v0 * Math.cos(phi0) * Math.sin(theta0);
+        final double vz_target = v0 * Math.sin(phi0);
+
+        final double vx_field = vx_target - turretVelocity.dx;
+        final double vy_field = vy_target - turretVelocity.dy;
+        final double vz_field = vz_target;
+
+        final double heading = turretFieldPose.getRotation().getRadians();
+        final double[] vRel =
+                fieldToRobotVelocity(vx_field, vy_field, vz_field, heading, imuRoll, imuPitch);
+        final double vx_rel = vRel[0];
+        final double vy_rel = vRel[1];
+        final double vz_rel = vRel[2];
+
+        final double v_rel = Math.sqrt(vx_rel * vx_rel + vy_rel * vy_rel + vz_rel * vz_rel);
+        final double phi_rel = Math.asin(vz_rel / v_rel);
+        final double yaw_rel =
+                Math.atan2(vy_rel, vx_rel) - turretFieldPose.getRotation().getRadians();
+
+        return new LaunchInfo(yaw_rel, 0, 0, phi_rel, v_rel);
+    }
+
+    public static double[] fieldToRobotVelocity(
+            final double vxField,
+            final double vyField,
+            final double vzField,
+            final double heading,
+            final double roll,
+            final double pitch) {
+        final double cosH = Math.cos(heading);
+        final double sinH = Math.sin(heading);
+        final double vfwd = cosH * vxField + sinH * vyField;
+        final double vlat = -sinH * vxField + cosH * vyField;
+        final double vup = vzField;
+
+        final double cosR = Math.cos(roll);
+        final double sinR = Math.sin(roll);
+        final double cosP = Math.cos(pitch);
+        final double sinP = Math.sin(pitch);
+        final double vfwd2 = cosP * vfwd - sinP * vup;
+        final double vlat2 = vlat;
+        final double vup2 = sinP * vfwd + cosP * vup;
+        final double vfwd3 = vfwd2;
+        final double vlat3 = cosR * vlat2 + sinR * vup2;
+        final double vup3 = -sinR * vlat2 + cosR * vup2;
+
+        return new double[] {cosH * vfwd3 - sinH * vlat3, sinH * vfwd3 + cosH * vlat3, vup3};
+    }
+
+    public static double getTargetYaw(final Pose2d robotPose, final Translation2d target) {
+        final double dx = target.getX() - robotPose.getX();
+        final double dy = target.getY() - robotPose.getY();
+        return Math.atan2(dy, dx) - robotPose.getRotation().getRadians();
+    }
+
+    public static double getTargetYawVelocity(
+            final Pose2d robotPose, final Twist2d robotVelocity, final Translation2d target) {
+        final double x = target.getX() - robotPose.getX();
+        final double y = target.getY() - robotPose.getY();
+        final double xVelocity = robotVelocity.dx;
+        final double yVelocity = robotVelocity.dy;
+        final double rotationVelocity = robotVelocity.dtheta;
+        return ((y * xVelocity) - (x * yVelocity)) / (x * x + y * y) - rotationVelocity;
+    }
+
+    public static double getTargetYawAcceleration(
+            final Pose2d robotPose,
+            final Twist2d robotVelocity,
+            final Twist2d robotAcceleration,
+            final Translation2d target) {
+        final double x = target.getX() - robotPose.getX();
+        final double y = target.getY() - robotPose.getY();
+        final double xVelocity = robotVelocity.dx;
+        final double yVelocity = robotVelocity.dy;
+        final double xAcceleration = robotAcceleration.dx;
+        final double yAcceleration = robotAcceleration.dy;
+        final double rotationAcceleration = robotAcceleration.dtheta;
+        final double r2 = x * x + y * y;
+        return (((y * xAcceleration) - (x * yAcceleration)) * r2
+                                - 2
+                                        * ((y * xVelocity) - (x * yVelocity))
+                                        * ((x * xVelocity) + (y * yVelocity)))
+                        / (r2 * r2)
+                - rotationAcceleration;
+    }
+
+    public static double constrainAngleNegPiToPi(final double angle) {
+        double x = (angle + Math.PI) % (2.0 * Math.PI);
+        if (x < 0.0) x += 2.0 * Math.PI;
+        return x - Math.PI;
+    }
+
+    public static Twist2d getVelocityAtOffset(
+            final Pose2d basePose, final Transform2d offset, final Twist2d velocity) {
+        final double omega = velocity.dtheta;
+        final Translation2d offsetField = offset.getTranslation().rotateBy(basePose.getRotation());
+        return new Twist2d(
+                velocity.dx + (-omega * offsetField.getY()),
+                velocity.dy + (omega * offsetField.getX()),
+                velocity.dtheta);
+    }
+
+    static OptionalDouble solveBallisticVelocity(
+            final double horizontalDistance,
+            final double heightDifference,
+            final double launchAngle) {
+        final double g = 9.81;
+        final double cosTheta = Math.cos(launchAngle);
+        final double tanTheta = Math.tan(launchAngle);
+        final double numerator = g * horizontalDistance * horizontalDistance;
+        final double denominator =
+                2.0 * cosTheta * cosTheta * (horizontalDistance * tanTheta - heightDifference);
+        if (denominator <= 0) return OptionalDouble.empty();
+        return OptionalDouble.of(Math.sqrt(numerator / denominator));
     }
 }

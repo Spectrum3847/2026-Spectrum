@@ -159,8 +159,10 @@ public class Robot extends SpectrumRobot {
          */
         SignalLogger.enableAutoLogging(false);
 
-        // Mirror-to-NetworkTables off; see Telemetry.start() for what the dashboard gets instead.
-        Telemetry.start(false, true, false, true, false, true, PrintPriority.NORMAL);
+        // Mirror-to-NetworkTables off on the robot; see Telemetry.start() for what the dashboard
+        // gets instead. On in sim so live AdvantageScope sees every Telemetry.log key.
+        Telemetry.start(
+                RobotBase.isSimulation(), true, false, true, false, true, PrintPriority.NORMAL);
 
         try {
             Telemetry.print("--- Robot Init Starting ---");

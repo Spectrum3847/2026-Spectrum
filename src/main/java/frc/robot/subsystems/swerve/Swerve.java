@@ -269,6 +269,7 @@ public class Swerve extends SwerveDrivetrain<TalonFX, TalonFX, CANcoder> impleme
     private void logSwerveState() {
         SwerveDriveState state = loopState();
         Telemetry.log("Swerve/State/Pose", state.Pose);
+        Telemetry.log("Swerve/State/Pose3d", new Pose3d(state.Pose));
         Telemetry.log("Swerve/State/TargetStates", state.ModuleTargets);
         Telemetry.log("Swerve/State/MeasuredStates", state.ModuleStates);
         Telemetry.log("Swerve/State/MeasuredSpeeds", state.Speeds);
