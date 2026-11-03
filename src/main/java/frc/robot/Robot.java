@@ -37,6 +37,7 @@ import frc.robot.operator.Operator.OperatorConfig;
 import frc.robot.pilot.Pilot;
 import frc.robot.pilot.Pilot.PilotConfig;
 import frc.robot.subsystems.SuperStructure;
+import frc.robot.subsystems.SuperStructure.DemoTurret;
 import frc.robot.subsystems.SuperStructure.WantedSuperState;
 import frc.robot.subsystems.dyeRotor.DyeRotor;
 import frc.robot.subsystems.dyeRotor.DyeRotor.Feeder.FeederConfig;
@@ -336,6 +337,21 @@ public class Robot extends SpectrumRobot {
          * enabling LiveWindow in test, which disables the CommandScheduler. It defaults off and
          * nothing here turns it on. Leave it that way.
          */
+        // Demo mode: the D-pad picks where the turret sits. See SuperStructure.DemoTurret.
+        Trigger demo = new Trigger(superStructure::isDemoMode);
+        pilot.demoTurretHome_dPadDown
+                .and(demo)
+                .onTrue(superStructure.setDemoTurretCommand(DemoTurret.HOME));
+        pilot.demoTurretIntake_dPadUp
+                .and(demo)
+                .onTrue(superStructure.setDemoTurretCommand(DemoTurret.INTAKE));
+        pilot.demoTurretLeft_dPadLeft
+                .and(demo)
+                .onTrue(superStructure.setDemoTurretCommand(DemoTurret.LEFT));
+        pilot.demoTurretRight_dPadRight
+                .and(demo)
+                .onTrue(superStructure.setDemoTurretCommand(DemoTurret.RIGHT));
+
         pilot.testTurretFollowTag_dPadUp.whileTrue(
                 superStructure.setStateCommand(WantedSuperState.TEST_TURRET_FOLLOW_TAG));
         pilot.testTurretSweep_dPadLeft.whileTrue(

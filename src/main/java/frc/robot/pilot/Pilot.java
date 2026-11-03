@@ -84,6 +84,15 @@ public class Pilot extends Gamepad {
     public final Trigger testTurretSweep_dPadLeft = dPadLeft.and(noLB).and(testMode);
     public final Trigger testTurretZero_dPadDown = dPadDown.and(noLB).and(testMode);
 
+    /*
+     * Demo-mode turret positions, teleop only. Bare D-pad, so noLB keeps them off the reorients;
+     * Robot gates them on demo mode being on.
+     */
+    public final Trigger demoTurretHome_dPadDown = dPadDown.and(noLB).and(teleop);
+    public final Trigger demoTurretIntake_dPadUp = dPadUp.and(noLB).and(teleop);
+    public final Trigger demoTurretLeft_dPadLeft = dPadLeft.and(noLB).and(teleop);
+    public final Trigger demoTurretRight_dPadRight = dPadRight.and(noLB).and(teleop);
+
     public static class PilotConfig extends Config {
         private double deadzone = 0.10;
 

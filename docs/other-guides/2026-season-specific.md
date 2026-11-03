@@ -67,6 +67,15 @@ teleop. Nothing is quieter in test. The one thing that would break this is WPILi
 in test, which disables the command scheduler. It defaults off and nothing turns it on here. Leave it
 that way.
 
+**Demo mode.** Toggle `Demo/Enabled` on the dashboard (on by default, since this robot no longer plays matches; re-read every loop). While
+it is on, every launch request (RT, LB+RT, the LB set shots) becomes `DEMO_SHOT`: flywheel at
+`Demo/FlywheelRPM` (1900) and hood up at `Demo/HoodDegrees` (30), a lob meant to land about 10 ft
+out, still feed-gated on speed, hood and turret. The turret ignores the hub and holds the position
+the pilot picks with the bare D-pad in teleop: down home (0), up over the intake (-178), left (-90),
+right (+90); each has one winding inside the -216 to +180 travel, so it cannot over-wrap. Teleop
+drive runs at half its normal translation and rotation limits. Intake (LT) and unjam are unchanged.
+See `SuperStructure.DemoTurret`.
+
 **The turret zero depends on a physical pin.** The turret has no absolute position reference, so the
 code recovers its zero at boot from the motor's rotor angle. That is only correct if the turret was
 pinned at its zero before the power cycle. A code restart keeps the count the code already had, so

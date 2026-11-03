@@ -262,6 +262,41 @@
           ]
         },
         {
+          "id": "demo",
+          "name": "Demo mode",
+          "when": "Teleop, Demo/Enabled on, LB not held",
+          "bindings": [
+            {
+              "control": "dpadDown",
+              "edge": "onTrue",
+              "action": "Demo turret home",
+              "detail": "Turret holds 0 deg (facing away from the intake). Sticks until another D-pad press.",
+              "trigger": "pilot.demoTurretHome_dPadDown"
+            },
+            {
+              "control": "dpadUp",
+              "edge": "onTrue",
+              "action": "Demo turret over the intake",
+              "detail": "Turret holds -178 deg, the only winding inside the travel, so it cannot over-wrap.",
+              "trigger": "pilot.demoTurretIntake_dPadUp"
+            },
+            {
+              "control": "dpadLeft",
+              "edge": "onTrue",
+              "action": "Demo turret left",
+              "detail": "Turret holds -90 deg.",
+              "trigger": "pilot.demoTurretLeft_dPadLeft"
+            },
+            {
+              "control": "dpadRight",
+              "edge": "onTrue",
+              "action": "Demo turret right",
+              "detail": "Turret holds +90 deg.",
+              "trigger": "pilot.demoTurretRight_dPadRight"
+            }
+          ]
+        },
+        {
           "id": "test",
           "name": "Test mode (pit)",
           "when": "Robot in test mode, LB not held",

@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.networktables.BooleanSubscriber;
 import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -73,6 +74,8 @@ public class SuperStructure {
         TEST_TURRET_ZERO,
         /** Test mode at rest: every mechanism off, turret held where it is. */
         TEST_TURRET_STOP,
+        /** Demo-mode low-power lob. Every launch request becomes this while demo mode is on. */
+        DEMO_SHOT,
     }
 
     public enum CurrentSuperState {
@@ -96,6 +99,49 @@ public class SuperStructure {
         TEST_TURRET_SWEEP,
         TEST_TURRET_ZERO,
         TEST_TURRET_STOP,
+        DEMO_SHOT,
+    }
+
+    /*
+     * Demo mode, for showing the robot off with people around it. On by default (this robot no longer plays matches); toggled from the dashboard
+     * (Demo/Enabled). While it is on: every launch request runs the low-power DEMO_SHOT, the turret
+     * holds the angle the pilot picks on the D-pad instead of aiming at the hub, and teleop drive
+     * runs at DEMO_DRIVE_SCALE of its normal limits. Intake and unjam are unchanged.
+     */
+    private static final BooleanSubscriber demoEnabled = Telemetry.tunable("Demo/Enabled", true);
+
+    /** Fraction of the normal teleop translation and rotation limits used in demo mode. */
+    private static final double DEMO_DRIVE_SCALE = 0.5;
+
+    /**
+     * Demo turret positions, mechanism degrees from zero (zero faces away from the intake). The
+     * travel is -216 to +180, so each of these has exactly one winding inside it and the turret can
+     * never pick a long way round or wrap the cable: the intake is -178 rather than 180 so that
+     * +182 is out of travel and the forward soft limit is never the target.
+     */
+    public enum DemoTurret {
+        HOME(0.0),
+        INTAKE(-178.0),
+        LEFT(-90.0),
+        RIGHT(90.0);
+
+        public final double degrees;
+
+        DemoTurret(double degrees) {
+            this.degrees = degrees;
+        }
+    }
+
+    private DemoTurret demoTurret = DemoTurret.HOME;
+
+    public boolean isDemoMode() {
+        return demoEnabled.get();
+    }
+
+    /** Picks where the turret sits in demo mode. */
+    public Command setDemoTurretCommand(DemoTurret position) {
+        return new InstantCommand(() -> demoTurret = position)
+                .withName("SuperStructure.demoTurret." + position.name());
     }
 
     @Getter private WantedSuperState wantedSuperState = WantedSuperState.IDLE;
@@ -152,7 +198,8 @@ public class SuperStructure {
                 || currentSuperState == CurrentSuperState.LAUNCH_WITH_BRAKE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITHOUT_SQUEEZE
                 || currentSuperState == CurrentSuperState.AUTON_LAUNCH_WITH_SQUEEZE
-                || currentSuperState == CurrentSuperState.SET_SHOT;
+                || currentSuperState == CurrentSuperState.SET_SHOT
+                || currentSuperState == CurrentSuperState.DEMO_SHOT;
     }
 
     /**
@@ -193,6 +240,7 @@ public class SuperStructure {
         previousSuperState = currentSuperState;
 
         Telemetry.logState("SuperStructure/WantedSuperState", wantedSuperState);
+        Telemetry.logState("Demo/Turret", demoTurret);
         Telemetry.logStateDash("SuperStructure/CurrentSuperState", currentSuperState);
         Telemetry.log(
                 "SuperStructure/IntakeSqueezeTimerElapsed", intakeSqueezeTimer.get(), "seconds");
@@ -305,7 +353,9 @@ public class SuperStructure {
         // it gets no vote; the driver has taken responsibility for parking the robot. Speed, hood
         // angle and the turret still do: the turret has a fixed angle to reach (a half turn for the
         // over-the-intake shots), and fuel fed mid-slew goes anywhere.
-        boolean setShot = currentSuperState == CurrentSuperState.SET_SHOT;
+        boolean setShot =
+                currentSuperState == CurrentSuperState.SET_SHOT
+                        || currentSuperState == CurrentSuperState.DEMO_SHOT;
         boolean shotReady =
                 launcherAtSpeed && hoodAtAngle && turretOnTarget && (setShot || rangeOk);
 
@@ -374,6 +424,19 @@ public class SuperStructure {
     }
 
     private CurrentSuperState handleStateTransitions() {
+        if (isDemoMode()) {
+            switch (wantedSuperState) {
+                case LAUNCH_WITH_SQUEEZE,
+                        LAUNCH_WITH_SQUEEZE_WITH_NO_DELAY,
+                        LAUNCH_WITHOUT_SQUEEZE,
+                        LAUNCH_WITH_BRAKE,
+                        SET_SHOT,
+                        DEMO_SHOT:
+                    return CurrentSuperState.DEMO_SHOT;
+                default:
+                    break;
+            }
+        }
         return switch (wantedSuperState) {
             case IDLE -> Util.autoMode.getAsBoolean() || Util.disabled.getAsBoolean()
                     ? CurrentSuperState.AUTON_IDLE
@@ -397,6 +460,8 @@ public class SuperStructure {
             case TEST_TURRET_SWEEP -> CurrentSuperState.TEST_TURRET_SWEEP;
             case TEST_TURRET_ZERO -> CurrentSuperState.TEST_TURRET_ZERO;
             case TEST_TURRET_STOP -> CurrentSuperState.TEST_TURRET_STOP;
+                // Only reachable with demo mode off, where there is no demo shot to take.
+            case DEMO_SHOT -> CurrentSuperState.IDLE;
         };
     }
 
@@ -462,7 +527,48 @@ public class SuperStructure {
             case TEST_TURRET_STOP:
                 testTurret(Turret.WantedState.OFF);
                 break;
+            case DEMO_SHOT:
+                demoShot();
+                break;
         }
+        applyDemoTurret();
+    }
+
+    /**
+     * In demo mode the turret holds the pilot's D-pad position in every state that would otherwise
+     * aim it, so it never slews toward a hub that is not there. Unjam keeps its shake and the test
+     * states keep their checks.
+     */
+    private void applyDemoTurret() {
+        if (!isDemoMode()) {
+            return;
+        }
+        switch (currentSuperState) {
+            case UNJAM,
+                    KICKER_UNJAM,
+                    TEST_TURRET_FOLLOW_TAG,
+                    TEST_TURRET_SWEEP,
+                    TEST_TURRET_ZERO,
+                    TEST_TURRET_STOP:
+                return;
+            default:
+                turret.setFixedAngleDegrees(demoTurret.degrees);
+                turret.setWantedState(Turret.WantedState.FIXED_ANGLE);
+        }
+    }
+
+    /**
+     * Demo-mode lob: low flywheel, hood up, intake rollers running as in a normal launch, feed
+     * gated on speed, hood and turret like any shot. The turret is set by {@link
+     * #applyDemoTurret()}.
+     */
+    private void demoShot() {
+        teleopDrive(true);
+        fuelIntake.setWantedState(FuelIntake.WantedState.SLOW_INTAKE);
+        intakeExtension.setWantedState(IntakeExtension.WantedState.FULL_EXTEND);
+        launcher.setWantedState(Launcher.WantedState.DEMO);
+        hood.setWantedState(Hood.WantedState.DEMO);
+        applyGatedFeed();
     }
 
     /**
@@ -604,15 +710,18 @@ public class SuperStructure {
 
     /** Teleop drive at the shooting or the regular speed limits. */
     private void teleopDrive(boolean shooting) {
+        double scale = isDemoMode() ? DEMO_DRIVE_SCALE : 1.0;
         swerve.setWantedState(Swerve.WantedState.TELEOP_DRIVE);
         swerve.setTeleopVelocityCoefficient(
-                shooting
-                        ? SHOOTING_TELEOP_TRANSLATION_COEFFICIENT
-                        : REGULAR_TELEOP_TRANSLATION_COEFFICIENT);
+                scale
+                        * (shooting
+                                ? SHOOTING_TELEOP_TRANSLATION_COEFFICIENT
+                                : REGULAR_TELEOP_TRANSLATION_COEFFICIENT));
         swerve.setTeleopRotationVelocityCoefficient(
-                shooting
-                        ? SHOOTING_TELEOP_ROTATION_COEFFICIENT
-                        : REGULAR_TELEOP_ROTATION_COEFFICIENT);
+                scale
+                        * (shooting
+                                ? SHOOTING_TELEOP_ROTATION_COEFFICIENT
+                                : REGULAR_TELEOP_ROTATION_COEFFICIENT));
     }
 
     /**

@@ -2,6 +2,7 @@ package frc.robot.subsystems.hood;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.RobotSim;
@@ -79,14 +80,23 @@ public class Hood extends Mechanism {
         HOME,
         AIM_AT_TARGET,
         /** Fixed angle for the pose-independent set shot. */
-        SET_SHOT
+        SET_SHOT,
+        /** Fixed angle for the demo-mode lob, see {@link #demoDegrees}. */
+        DEMO
     }
 
     public enum SystemState {
         HOME,
         AIM_AT_TARGET,
-        SET_SHOT
+        SET_SHOT,
+        DEMO
     }
+
+    /**
+     * Demo-mode hood angle. 30 deg is a 60 deg launch, near the top of the 34.5 deg travel, so the
+     * hood visibly comes up when the shot starts. Tunable from NetworkTables.
+     */
+    private static final DoubleSubscriber demoDegrees = Telemetry.tunable("Demo/HoodDegrees", 30.0);
 
     private WantedState wantedState = WantedState.HOME;
     private SystemState systemState = SystemState.HOME;
@@ -100,6 +110,7 @@ public class Hood extends Mechanism {
             case HOME -> SystemState.HOME;
             case AIM_AT_TARGET -> SystemState.AIM_AT_TARGET;
             case SET_SHOT -> SystemState.SET_SHOT;
+            case DEMO -> SystemState.DEMO;
         };
     }
 
@@ -126,6 +137,12 @@ public class Hood extends Mechanism {
             case SET_SHOT:
                 wantedDegrees = ShotCalculator.getSetShotHoodDegrees();
                 break;
+            case DEMO:
+                wantedDegrees =
+                        Math.max(
+                                config.getMinRotations() * 360.0,
+                                Math.min(demoDegrees.get(), config.getMaxRotations() * 360.0));
+                break;
         }
         commandedDegrees = wantedDegrees;
         double wantedPosition = degreesToRotations(() -> commandedDegrees);
@@ -142,7 +159,9 @@ public class Hood extends Mechanism {
      * a wider tolerance to decide whether to <em>keep</em> feeding than to start.
      */
     public boolean isAtAngle(double toleranceDegrees) {
-        return (systemState == SystemState.AIM_AT_TARGET || systemState == SystemState.SET_SHOT)
+        return (systemState == SystemState.AIM_AT_TARGET
+                        || systemState == SystemState.SET_SHOT
+                        || systemState == SystemState.DEMO)
                 && Math.abs(getPositionDegrees() - commandedDegrees) <= toleranceDegrees;
     }
 

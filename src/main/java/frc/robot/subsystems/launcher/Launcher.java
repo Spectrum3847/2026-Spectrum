@@ -3,6 +3,7 @@ package frc.robot.subsystems.launcher;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.DoubleSubscriber;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import frc.rebuilt.ShotCalculator;
 import frc.robot.Robot;
@@ -77,6 +78,8 @@ public class Launcher extends Mechanism {
         REVERSE,
         /** Fixed speed for the pose-independent set shot. */
         SET_SHOT,
+        /** Low-power lob for demos, see {@link #demoRPM}. */
+        DEMO,
     }
 
     public enum SystemState {
@@ -85,7 +88,15 @@ public class Launcher extends Mechanism {
         LAUNCH,
         REVERSE,
         SET_SHOT,
+        DEMO,
     }
+
+    /**
+     * Demo-mode flywheel speed. 1900 RPM is about 5.2 m/s on the ball at the fitted 365 RPM per
+     * m/s, which with the demo hood angle lands about 10 ft from the robot on the floor, ignoring
+     * drag. A starting point, not a measurement: tune it live from NetworkTables.
+     */
+    private static final DoubleSubscriber demoRPM = Telemetry.tunable("Demo/FlywheelRPM", 1900.0);
 
     /**
      * Flywheel speed while unjamming. Modest on purpose: the reverse torque limit is only 10 A
@@ -107,6 +118,7 @@ public class Launcher extends Mechanism {
             case LAUNCH -> SystemState.LAUNCH;
             case REVERSE -> SystemState.REVERSE;
             case SET_SHOT -> SystemState.SET_SHOT;
+            case DEMO -> SystemState.DEMO;
         };
     }
 
@@ -133,14 +145,23 @@ public class Launcher extends Mechanism {
             case SET_SHOT:
                 wantedRPM = ShotCalculator.getSetShotFlywheelRPM();
                 break;
+            case DEMO:
+                wantedRPM = demoRPM.get();
+                break;
         }
         commandedRPM = wantedRPM;
         setVelocityRPM(() -> commandedRPM);
     }
 
+    private boolean isShooting() {
+        return systemState == SystemState.LAUNCH
+                || systemState == SystemState.SET_SHOT
+                || systemState == SystemState.DEMO;
+    }
+
     /** True when the flywheel is launching and on its commanded shot speed. Gates feeding it. */
     public boolean isAtSpeed() {
-        return (systemState == SystemState.LAUNCH || systemState == SystemState.SET_SHOT)
+        return isShooting()
                 && Math.abs(getVelocityRPM() - commandedRPM) <= config.getOnTargetToleranceRPM();
     }
 
@@ -152,9 +173,7 @@ public class Launcher extends Mechanism {
      * stop feeding.
      */
     public boolean isAboveSpeedFraction(double fraction) {
-        return (systemState == SystemState.LAUNCH || systemState == SystemState.SET_SHOT)
-                && commandedRPM > 0
-                && getVelocityRPM() >= commandedRPM * fraction;
+        return isShooting() && commandedRPM > 0 && getVelocityRPM() >= commandedRPM * fraction;
     }
 
     @Getter private final LauncherConfig config;
