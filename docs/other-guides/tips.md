@@ -1,45 +1,45 @@
 # Programming tips
 
-*Audience: Reference. Assumes you've read [2026 season specific](2026-season-specific.md).*
+*Audience: reference. Assumes you have read [2026 season specific](2026-season-specific.md).*
 
-Practical things that come up often enough to be worth writing down.
+Practical things that come up often enough to write down.
 
-## Clean your Java workspace
+## Restart rust-analyzer
 
-If VS Code is showing red squiggles on code that definitely compiles, or IntelliSense is behaving strangely, the language server's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `Java: Clean Language Server Workspace`. If that doesn't do it, run `./gradlew clean build` from the terminal; see [Gradle](../tools/gradle.md) for what that actually does.
+If VS Code shows red underlines on code that builds, or completion acts strangely, rust-analyzer's cache is probably stale. Open the Command Palette (`Ctrl+Shift+P`) and run `rust-analyzer: Restart server`. If that does not help, run `cargo build` from `rust/` and read the real compiler message. See [Build tools](../tools/build-tools.md).
+
+## Read compiler errors from the top
+
+The Rust compiler's first error is usually the real one. Later errors often come from it. Read the first message to the end. It often says what to change. `cargo clippy` gives the same kind of help for style and common mistakes.
 
 ## Coordinate systems
 
-FRC uses a field-relative coordinate system where positive X points toward the opposing alliance wall and positive Y points left from the driver's perspective. Robot heading is in radians measured counter-clockwise from the positive X axis. This matters when writing drive commands and when interpreting `Pose2d` values from the vision or auton systems.
+FRC uses a field coordinate system. Positive X points toward the opposing alliance wall. Positive Y points left from the driver's view. Robot heading is in radians, counter-clockwise from the positive X axis. This matters when you write drive code and when you read `Pose2d` values from vision or auton.
 
-If you're confused about which way something points, draw it. A quick sketch on a whiteboard with labeled axes has unblocked many programming sessions faster than any amount of reading.
+If you are unsure which way something points, draw it. A sketch with labeled axes unblocks more sessions than reading does.
 
-## `DoubleSupplier` vs. `double`
+## Closures instead of numbers
 
-Most command and trigger factory methods in this codebase take a `DoubleSupplier` instead of a raw `double`. The difference is that a `DoubleSupplier` is evaluated each time it's called, while a plain `double` is captured once when the command is scheduled.
+Many mechanism methods take a closure, `impl Fn() -> f64`, and not a plain `f64`. A closure runs each time it is called. A plain number is fixed when you pass it.
 
-For setpoints that may shift while a command runs, such as shooter speed that tracks a distance lookup, a hood angle that follows live vision data, or a value you're tuning with [`TuneValue`](../tools/pid-tuning.md#live-tuning-with-tunevalue), you want the supplier. If you pass a bare `double`, the command freezes the value at scheduling time and never updates it.
+Use a closure for setpoints that can change while a command runs: a launcher speed that follows a distance lookup, a hood angle that follows live vision data, or a value you tune with `TuneValue` (see [PID tuning](../tools/pid-tuning.md#live-tuning-with-tunevalue)). If you pass a fixed number, the value freezes when you pass it, and a "live" value stays still.
 
-The launcher is the clearest example. Its `applyStates()` reads a wanted RPM out of `ShotCalculator` for the aim state, and sends it as the flywheel target. `Launcher.periodic()` calls `applyStates()` every loop, so the target is recomputed each time and the flywheel keeps following the live shot solution instead of freezing on the distance at the moment the state was entered. The control request itself reads its supplier once, when it is sent; the tracking comes from the loop calling it again.
-
-More on the habit in [Class Generation](../coding-conventions/class-generation.md#methods).
+The hood is a clear example. `Hood::apply_states` calls `output_for`, which asks the shot calculator for the aim angle every loop in the `AimAtTarget` state. `periodic` calls `apply_states` each loop, so the hood follows the live shot solution. A control request reads its closure once, when you send it. The tracking comes from the loop sending it again.
 
 ## Cached values
 
-Every CAN read is a network call. If you call `motor.getPosition().getValueAsDouble()` three times in one loop from different parts of the code, you've made three CAN requests and gotten three (potentially different) readings back.
+Every CAN read is a network call. If you read the same motor position three times in one loop from three places, you make three CAN requests and may get three different readings.
 
-The pattern in `frc.spectrumLib` is to cache reads once per loop. The `Mechanism` base class does this for every status signal it reads: the first getter call in a loop runs one `BaseStatusSignal.refreshAll`, and later calls in the same loop reuse that sample. The loop number comes from [`RobotLoop`](../../src/main/java/frc/spectrumLib/framework/RobotLoop.java), which `Robot.robotPeriodic()` advances first thing. Without that call the cache never refreshes and every reading freezes. `Limelight` works the same way, with `Vision.periodic()` calling `invalidate()` on each camera at the top of the loop.
+`Mechanism` caches the status signals it reads, so a repeated read in one loop reuses the first sample. The loop number comes from `robot_loop::next()` (`spectrum_lib/framework/robot_loop.rs`), which `robot_periodic` calls first thing. Without that call, the cache never refreshes and every reading freezes. `Limelight` works the same way. `Vision::periodic` calls `invalidate()` on each camera at the top of the loop. `CachedDouble` (`spectrum_lib/util/cached_double.rs`) caches any value once per scheduler loop.
 
-If you're reading a sensor value that `Mechanism` does not already cache, read it once into a field and have every caller read the field. The mechanism's own `periodic()` is a good place for that refresh: every `Mechanism` registers itself with the scheduler in its constructor, so an override runs once per loop. The base `Mechanism.periodic()` is empty. Either way, don't scatter CAN reads across command bodies.
+For a sensor `Mechanism` does not cache, read it once in the subsystem's `periodic` and store it in a field. Do not scatter CAN reads across command bodies.
 
 ## Simulation before robot time
 
-Simulation catches the majority of logic bugs. State transitions, command sequencing, PathPlanner paths, most of it is testable without touching physical hardware. The full workflow is in [Simulation](../tools/simulation.md), but the short version: run `Ctrl+Shift+P`, then `WPILib: Simulate Robot Code`, pick `GUI Sim`, and you get Glass plus a Field2d view.
-
-Reserve time on the real robot for things that genuinely require it: tuning gains, calibrating offsets, testing hardware interactions. Don't develop new features on the robot.
+[Simulation](../tools/simulation.md) catches most logic bugs: state changes, command order, PathPlanner paths. Keep time on the real robot for what needs it: tuning gains, setting offsets and hardware tests. Do not develop new features on the robot.
 
 ## Before you commit
 
-Branch from `main`, develop and test in sim, merge `main` back in, then open a PR. The commit and PR conventions, the shared-machine commit identity mechanism, and the one-feature-per-PR rule are all in [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md). Don't keep a second copy of that here; it changes as the team changes and two copies means one of them is wrong.
+Branch from `main`, build and test in simulation, run `cargo xtask gate` from `rust/`, merge `main` into your branch, then open a pull request. The commit rules, the shared-computer commit identity and one-feature-per-PR are in [Commits and pull requests](../coding-conventions/commits-pull-requests.md). That page is the one copy. Do not repeat it here.
 
-For logging, the `Telemetry` API and how to pull signals back out of a `.wpilog` are in [Logging](../tools/logging.md). Log more than you think you need to, but read that page before inventing a pattern: there is already a convention for naming keys and for wrapping commands, and matching it is what makes a log readable six weeks later.
+For logging, the `telemetry` functions and how to read a `.wpilog` are in [Logging](../tools/logging.md). Log more than you think you need, but read that page first. There is already a convention for key names, and following it makes a log readable six weeks later.

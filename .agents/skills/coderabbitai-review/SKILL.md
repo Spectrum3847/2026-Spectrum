@@ -80,8 +80,8 @@ first (read the file, check the behavior).
 ### 4. Fix and push
 
 1. Make minimal edits.
-2. Validate: `./gradlew build` (Spotless auto-formats; re-run if it fails on
-   formatting).
+2. Validate: `cargo xtask gate` from `rust/` (rustfmt check, clippy with warnings as
+   errors, tests). Run `cargo fmt --all` first if the format check fails.
 3. Commit with a concise message (see `docs/coding-conventions/commits-pull-requests.md`).
 4. Push: `git push`.
 

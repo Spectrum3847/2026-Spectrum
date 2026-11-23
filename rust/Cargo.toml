@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "xtask"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace.dependencies]
+wpimath = { path = "crates/wpimath" }
+wpilib = { path = "crates/wpilib" }
+commands = { path = "crates/commands" }
+phoenix6 = { path = "crates/phoenix6" }
+pathplanner = { path = "crates/pathplanner" }
+swerve = { path = "crates/swerve" }
+telemetry = { path = "crates/telemetry" }
+golden = { path = "crates/golden" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

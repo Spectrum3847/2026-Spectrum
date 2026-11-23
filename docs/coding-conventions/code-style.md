@@ -1,55 +1,67 @@
-# Code Style
+# Code style
 
-*Audience: Reference. No prerequisites.*
+*Audience: reference. No prerequisites.*
 
-We use the [Android Open Source Project (AOSP) coding standards](https://source.android.com/docs/setup/contribute/code-style) as our baseline. A formatter enforces the mechanical parts on every build, so this page is about the parts a formatter can't enforce: naming, structure, and judgment calls.
+Tools check the mechanical parts: rustfmt for layout, clippy for common mistakes. This page covers what they cannot check: naming, structure and judgment calls. The rules that govern the code are also in `AGENTS.md`, under "Rules for the code". If the two ever differ, `AGENTS.md` wins.
 
-## Spotless Does the Mechanical Work
+## The gate
 
-[`build.gradle`](../../build.gradle) wires `compileJava` to `spotlessApply`, so every local build reformats the tree. There's no need to format anything by hand; run `./gradlew build` and Spotless tidies up. If a build fails on formatting, that is normal and the second build passes. See [Build Tools](../tools/build-tools.md) for the full Spotless story.
+Run this from `rust/` before every commit:
 
-## The Spirit, Borrowed from AOSP
+```text
+cargo xtask gate
+```
 
-> "One of the simplest rules is BE CONSISTENT. If you're editing code, take a few minutes to look at the surrounding code and determine its style. … The point of having style guidelines is to have a common vocabulary of coding, so readers can concentrate on what you're saying, rather than on how you're saying it."
+It runs `cargo fmt --all --check`, then `cargo clippy --workspace --all-targets -- -D warnings`, then `cargo test --workspace`. A clippy warning fails the gate. To fix formatting, run `cargo fmt --all`. See [Build tools](../tools/build-tools.md).
 
-If you're touching `Launcher.java`, look at how the rest of that file is organized and match it. If `Hood.java` uses a slightly different pattern for the same job, fix the inconsistency in a separate commit so the diff is reviewable on its own.
+## Be consistent
+
+When you edit a file, look at the code around yours and match it. If two files do the same job in different ways, fix that in its own change, so each diff is easy to review.
 
 ## Naming
 
-* **Classes / interfaces:** `UpperCamelCase`, for example `Launcher`, `LauncherConfig`, `SuperStructure`.
-* **Methods and variables:** `lowerCamelCase`, for example `getVelocityRPM()`, `kPSlot0`.
-* **Constants:** `UPPER_SNAKE_CASE` *only* for true compile-time constants that can never change (`Math.PI`, the `MAX_JAVA_HEAP_SIZE_MB` in `build.gradle`). Anything tunable, even something like `WHEEL_BASE_INCHES` that varies between robots, goes in a `*Config` class as a regular field, not a constant.
-* **Enums:** enum *names* are `UpperCamelCase`; their *values* are `UPPER_SNAKE_CASE`.
+Rust has standard names. clippy and rustc warn when you break them.
 
-Acronyms get treated as words. `PidConfig`, not `PIDConfig`. `Rpm` in compound names, not `RPM`. The one exception is when the acronym *is* the whole identifier (a constant `RPM`).
+* **Types and traits:** `UpperCamelCase`. Example: `HoodConfig`, `SuperStructure`.
+* **Functions, methods, variables, modules and files:** `snake_case`. Example: `set_wanted_state`, `super_structure.rs`.
+* **Constants and statics:** `UPPER_SNAKE_CASE`. Example: `SECONDS_TO_SQUEEZE`.
+* **Enum variants:** `UpperCamelCase`. Example: `WantedSuperState::IntakeFuel`. Enums that show up in logs implement `EnumName`, which gives the text the dashboard and logs show, such as `INTAKE_FUEL`.
 
-## No `m_` or `_` Prefixes
+Acronyms count as words: `PidConstants`, not `PIDConstants`.
 
-If you see `m_someField`, it's from a library we imported and didn't rewrite. Don't add new ones, and feel free to rename them away when touching a file. Field-versus-local disambiguation belongs in `this.field = field` if needed, not in the name.
+Put the unit in the name when a number has one: `hood_angle_degrees`, `position_kp`, `velocity_rps`, `max_speed_mps`. Library crates use SI units (meters, radians, seconds). Phoenix values use rotations and rotations per second (`*_rot`, `*_rps`). Robot code keeps the units the old Java used (RPM, rotations, degrees). Convert at the edge between two kinds.
 
-## Pasting Code From Elsewhere
+Tunable values, even ones that look like constants, go in a subsystem's config struct, not in a `const`. A `const` is for a value that never changes, such as a mathematical constant.
 
-If you're pasting from WPILib examples or another team's repo, run `./gradlew spotlessApply` right away. It fixes indentation, trailing whitespace, and import order in one pass. Don't write star imports (`import com.ctre.phoenix6.*`); the formatter expands them, and a collapsed import list tells you nothing about where a symbol came from.
+## Rules for the code
 
-## File Organization
+These come from `AGENTS.md`. Each one prevents a real bug.
 
-For a subsystem file like `Launcher.java`, the conventional order is:
+* **Threads.** Robot setup, commands, the scheduler and dashboards run on the loop thread only. They use `Rc` and `RefCell`. Code on other threads (swerve odometry, notifiers, telemetry) uses only `Send + Sync` types: telemetry functions, Phoenix signals, atomics and `Mutex`. A dashboard call from another thread panics.
+* **Borrows.** Subsystems are `Rc<T>` with `&self` methods. Hold a `RefCell` borrow only inside one method. Never hold it across a call into another subsystem, the scheduler, a command or a callback. That panics with "already borrowed".
+* **Native calls.** Every `extern` signature must match the C header exactly. `#[repr(C)]` structs carry size checks for 64-bit and the 32-bit roboRIO. Put a `// SAFETY:` comment on every `unsafe` call. Register a stop function with `wpilib::shutdown` for any thread or notifier that touches native code.
+* **CTRE.** The C layer is not a documented CTRE API, so the version stays pinned. After you change the generated tables in `crates/phoenix6`, run `python3 tools/check-ctre-tables.py`. Never disassemble CTRE binaries.
+* **Licenses.** Ported code keeps its license. List every ported source in `rust/THIRD_PARTY.md`.
+* **Behavior.** The robot must behave as the Java robot did. A behavior change gets its own commit, never a side effect of a refactor.
+* **Tests.** Every calculation has a test. Ported math is checked against `rust/fixtures/`.
+* **Scope.** Port or add only what the robot uses.
 
-1. Inner `Config` class (with `@Getter`/`@Setter` fields).
-2. Inner `WantedState` and `SystemState` enums, then the fields holding the current one of each.
-3. `setWantedState(...)`, `handleStateTransition()`, `applyStates()`.
-4. Fields (motors, sensors, suppliers, triggers).
-5. Constructor.
-6. `periodic()`.
-7. Public API used from `SuperStructure` and `Auton` (getters, setpoint setters, and the `at*`, `above*`, `below*` trigger helpers on `Mechanism`).
-8. Private helpers.
+## `Java:` comments
 
-This isn't a hard rule, but every existing subsystem follows it, and a reader skimming the file knows where to look. See [Class Generation](class-generation.md) for the reasoning behind this layout.
+A comment that starts with `Java:` marks behavior kept from the Java robot that looks wrong. Do not fix it as part of another change. Fix each one in its own commit, and remove the comment.
 
-## Line Length
+## Pasting code
 
-The formatter wraps at 100 columns. If a method signature or chained call ends up wrapping in an ugly way, that's usually a sign the code wants to be restructured: pull out a local, or split a chained `Commands.sequence(...)` across multiple lines with one command per line. Don't fight the formatter; let it tell you where things are too dense.
+When you copy from WPILib examples or another team, run `cargo fmt --all` right away. Read the code before you keep it. Use plain `use` lines for what you need. Avoid `use something::*`, which hides where a name comes from.
 
-## When to Diverge
+## File order
 
-Spotless honors `// spotless:off` and `// spotless:on` markers. Use them sparingly, typically for a hand-aligned constant table or a multi-line math expression where the alignment is the readability. Document *why* you're disabling Spotless in a one-line comment above the `off` marker. If a future reader can't tell why the section is special, they'll either re-enable it and lose the alignment, or worse, copy the suppression elsewhere.
+Subsystem files follow one order, so a reader knows where to look. See [Adding a subsystem](adding-a-subsystem.md).
+
+## Line length
+
+rustfmt wraps at 100 columns. If a call wraps in an ugly way, the code usually wants a local variable, or a split into smaller functions. Do not fight the formatter.
+
+## When to diverge
+
+Use `#[rustfmt::skip]` on one item when hand-aligned numbers are clearer, and use `#[allow(clippy::...)]` on one item when a lint is wrong for that code. Add a one-line comment that says why. A reader should not have to guess.

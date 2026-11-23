@@ -1,65 +1,77 @@
-# 2026 Spectrum Robot Code
+# 2026 Spectrum robot code
 
-Robot code for Spectrum 3847's FRC 2026 season.
+Robot code for FRC Team Spectrum 3847, 2026 season (REBUILT), written in Rust.
 
-## Description
+The robot is a swerve drive with a fuel launcher, hood, intake, two indexers, Limelight vision and LEDs. It runs on a roboRIO 2.
 
-This is the working code base for our robots in the 2026 REBUILT FRC Competition. The code is constantly being worked on, so watch out for bugs and issues.
+## Quick start
 
-### Features
+Run everything from the `rust/` folder. Full steps for Linux, Windows and macOS are in [docs/setup.md](docs/setup.md).
 
-* Mechanism class wraps all the TalonFX configurations and control mode calls so they are easier to use.
-* Heavy use of Triggers as states for activating commands. This all but eliminates the need for complex multi-mechanism command groups.
-* Simulation classes allow us to build a good representation of the complete robot in sim so more of the code can be tested without the robot.
-* CachedDouble: Allows a value to only be updated once per periodic loop. This is useful for CANbus calls to sensors or motors, etc.
-* LED classes that use the CTRE CANdle for animations, easily have multiple strips on one port, has priorities for when to override animations that are currently running, different animations for each control mode, etc.
+1. Install Rust with [rustup](https://rustup.rs). The right Rust version installs itself the first time you run `cargo` in `rust/`.
+2. `cargo xtask fetch-natives` downloads the WPILib and CTRE libraries for your computer.
+3. `cargo xtask sim` runs the robot in simulation and opens the Sim GUI. Add `--ds` for the driver station socket, or `--no-gui` for no window.
+4. `cargo xtask gate` checks formatting, lints and tests. Run it before every commit.
+5. `cargo xtask build-roborio` builds the program for the roboRIO.
+6. `cargo xtask deploy` copies it to the roboRIO.
 
-### Build Tools and Extensions
+Deploying to a real roboRIO has not been tested yet. Neither has `xtask` on Windows or macOS. See [Setup](docs/setup.md#what-has-not-been-tested).
 
-* **Spotless:** Autoformats are code on each build so that we keep a consistent format across programmers.
-* **SpotBugs**: Catches some common bugs in the software such as using = instead of == in a conditional, etc.
-* **Lombok:** Annotations to create Getter and Setter methods. This allows for less boilerplate code.
-* **Error Lens:** Highlights errors and makes them easier to see and fix.
-* **Git Config User Profiles:** Allows multiple programmers to share the same computers and commit under their own names.
-* **Git Lens:** lets you see who committed changes and more
-* **SpellRight:** Spell Check for VSCode
-
-### Dependencies
-
-* WPILib 2026
-* CTRE Phoenix 6 (using their swerve control code)
-* PathPlanner
-* DogLog (logging)
-* MapleSim (drivetrain simulation)
-
-## Project Structure
-
-* `frc/robot` is in-season robot code. Configuration files let one codebase run on several robots. It leans on WPILib commands and triggers.
-* [`SpectrumLib`](src/main/java/frc/spectrumLib) is code we aim to reuse year to year.
-* Each subsystem can be modified independently without needing to understand the rest of the robot code.
-
-The source tree is the authority on what exists and where. Below is the shape of the repo, one level
-below the split above, so you know which directory to open:
+## Repository structure
 
 ```text
-src/main/java/frc
-├── robot/          in-season code
-│   ├── auton/      autonomous routines and PathPlanner integration
-│   ├── configs/    per-robot hardware config, one class per robot
-│   ├── pilot/      pilot gamepad bindings
-│   ├── operator/   operator gamepad bindings
-│   └── subsystems/ the orchestrator plus one folder per mechanism
-├── spectrumLib/    reusable utilities
-└── rebuilt/        game-specific field, sim, and targeting helpers
-
-src/main/deploy/pathplanner/   paths and autos deployed to the RoboRIO
-vendordeps/                    vendor dependency JSON files
+.
+├── rust/                        Cargo workspace (all robot code)
+│   ├── crates/
+│   │   ├── wpilib/              HAL, driver station, robot loop, NetworkTables, dashboards
+│   │   ├── commands/            command-based framework
+│   │   ├── wpimath/             geometry, kinematics, pose estimator, PID, sims
+│   │   ├── phoenix6/            TalonFX, CANcoder, Pigeon2, CANdle
+│   │   ├── swerve/              swerve drivetrain over Phoenix 6
+│   │   ├── pathplanner/         PathPlannerLib port
+│   │   ├── telemetry/           wpilog writer and DogLog-style logging
+│   │   ├── robot/               the robot program
+│   │   └── golden/              test helper for fixtures
+│   ├── xtask/                   fetch-natives, build-roborio, deploy, sim, gate
+│   ├── fixtures/                frozen Java outputs used by tests
+│   ├── tools/                   check-ctre-tables.py
+│   ├── rust-toolchain.toml      pinned Rust version
+│   └── THIRD_PARTY.md           ported code, versions and licenses
+├── src/main/deploy/             files copied to the roboRIO
+│   ├── pathplanner/             paths, autos, navgrid, settings
+│   └── elastic-layout.json      Elastic dashboard layout
+├── docs/                        team documentation
+├── advantagescope-custom-assets/ robot models for AdvantageScope
+├── images/                      two PNG tag images
+├── AGENTS.md                    instructions for AI coding agents
+└── WPILib-License.md
 ```
 
-### Documentation
+Inside `rust/crates/robot/src`:
 
-[`docs/`](docs/index.md) holds our conventions, workflows, and hard-won gotchas, and is written for
-people. It deliberately does not restate what the code does, because a copy of the code in prose goes
-stale and then misleads. If you want to know what a class or a state does, read the class.
+```text
+robot/            the 2026 robot: init, bindings, subsystems, auton, per-robot configs
+rebuilt/          game logic (field, hub shift clock, shot calculator) and fuel and bump sims
+spectrum_lib/     shared code: Mechanism, gamepads, LEDs, Limelight vision, sims
+context.rs        robot-wide objects, set once at init
+```
 
-#### View the online JavaDoc [here](https://spectrum3847.github.io/2026-Spectrum).
+## Documentation
+
+[docs/index.md](docs/index.md) lists every page.
+
+Pages in `docs/frc-software-basics/` teach Java. They are background from before the Rust port.
+
+## Dependencies
+
+Rust crates in this repo replace the usual FRC libraries. They are ports of specific upstream versions, listed in [rust/THIRD_PARTY.md](rust/THIRD_PARTY.md).
+
+| Replaces | Crate |
+|---|---|
+| WPILib | `wpilib`, `commands`, `wpimath` |
+| CTRE Phoenix 6 | `phoenix6`, `swerve` |
+| PathPlanner | `pathplanner` |
+| DogLog | `telemetry` |
+| maple-sim | `robot/src/spectrum_lib/swerve` |
+
+Native code comes only through the WPILib and CTRE C libraries, which `cargo xtask fetch-natives` downloads.

@@ -1,35 +1,111 @@
 # Agent Instructions
 
-FRC Team Spectrum 3847 robot code for the 2026 season (REBUILT game): **Java 17**, GradleRIO 2026.2.1, WPILib 2026. (Verified 2026-08-03: `gradle/wrapper/gradle-wrapper.properties` → Gradle 8.x; `build.gradle` → `wpilibVersion = "2026.x"`.)
-Swerve drive with fuel launcher, turret, indexer, intake, vision, LEDs, and climb. (Verified 2026-08-03: subsystem list matches `src/main/java/frc/robot/subsystems`.)
+FRC Team Spectrum 3847 robot code for the 2026 season (REBUILT game), written in
+Rust. Swerve drive with a fuel launcher, hood, intake, indexers, vision and LEDs.
+The Cargo workspace is in `rust/`. The Java version it was ported from is the
+parent of the commit `feat: port the robot program to Rust`.
 
-## Documentation (read this first)
+## Direction
 
-`docs/` is the source of truth for this codebase; read the relevant page instead of guessing, and update the docs when your changes affect behavior. (Verified 2026-08-03: `docs/index.md` exists and cross-links the pages below.)
+- The robot must behave like the Java robot did. Change behavior on purpose, in
+  its own commit, never as a side effect of a refactor.
+- Small memory and CPU use: the program runs on a roboRIO 2.
+- Pure Rust where possible. Native code only through the WPILib and CTRE C APIs,
+  loaded at runtime.
+- Every calculation has a test. Ported math is checked against frozen Java
+  outputs in `rust/fixtures/`.
+- Port or add only what the robot uses.
 
-- `docs/index.md`: full doc map
-- `docs/other-guides/2026-season-specific.md`: what's in the codebase: subsystems, state machine, controls, per-robot configs
-- `docs/tools/*.md`: build tools, gradle commands, auton, vision, simulation, logging, PID tuning, Elastic, Phoenix Tuner X
-- `docs/dependencies/*.md`: how we use Phoenix 6, PathPlanner, DogLog, MapleSim, PhotonVision, WPILib
-- `docs/coding-conventions/*.md`: code style (AOSP), class generation, exceptions, Lombok, git workflow
-- `README.md`: repository structure tree
+## Glossary
 
-## Build & Development
+- **Natives**: WPILib 2026.2.1 and CTRE Phoenix 6 26.3.0 shared libraries.
+  `cargo xtask fetch-natives` puts them in `rust/native/<platform>/` (gitignored).
+- **Golden fixture**: JSON in `rust/fixtures/` with inputs and the Java outputs
+  for them. Frozen: the Java generator is gone. `golden::check` compares them.
+- **SPN**: CTRE signal or config parameter number, used by the CTRE C API.
+- **Context item**: a robot-wide object (`swerve`, `super_structure` and others)
+  set once at init in `crates/robot/src/context.rs` and read through a function.
+- **`Java:` comment**: marks behavior kept from the Java robot that looks wrong.
+  Fix each in its own change.
 
-- **Java 17** is required. If it's not the default JDK, use sdkman; fallback: download a Temurin 17 archive to a temp directory, extract it there, and point `JAVA_HOME` at the extracted JDK (or prepend its `bin` directory to `PATH`) before invoking `./gradlew`. Source: Eclipse Temurin releases at <https://adoptium.net/temurin/releases/> (recorded 2026-08-02). Full setup: `docs/setup.md`.
-- `./gradlew build`: compile + Spotless auto-format + tests + SpotBugs. Also: `./gradlew simulateJava`, `./gradlew deploy`, `./gradlew test`, `./gradlew spotlessApply`.
-- **Spotless auto-formats on every build** (Google Java Format **AOSP**, 4-space indent, LF line endings; covers `.java`, `.gradle`, `.xml`, `.md`, `.gitignore`). Re-run `./gradlew build` if the first pass fails on formatting. CI runs `spotlessCheck`.
-- Known issues: `src/main/java/frc/robot/BuildConstants.java` is auto-generated (never edit or commit it); SpotBugs report at `build/reports/spotbugs.html` (exclude filter `excludeFilter-spotbugs.xml`); ErrorProne may elevate warnings to errors.
-- **WPILib's `Trigger` is vendored** (patched copy at `src/main/java/edu/wpi/first/wpilibj2/command/button/Trigger.java`, default start condition `false`). Do not replace with the upstream version.
+## Layout
 
-## Architecture in Brief
+| Crate (`rust/crates/`) | What |
+|---|---|
+| `wpilib` | HAL, driver station, timed robot loop, NetworkTables, dashboards (SmartDashboard, chooser, Field2d, Mechanism2d, Alert), WebServer, shutdown hooks |
+| `commands` | Command-based framework: scheduler, subsystems, triggers, SysIdRoutine |
+| `wpimath` | Geometry, kinematics, pose estimator, PID, DCMotor and mechanism sims |
+| `phoenix6` | TalonFX, CANcoder, Pigeon2, CANdle over CTRE's C layer |
+| `swerve` | Swerve drivetrain with CTRE's API and behavior |
+| `pathplanner` | PathPlannerLib port: paths, autos, follower, pathfinding |
+| `telemetry` | wpilog writer and DogLog-style logging |
+| `robot` | The robot program |
+| `golden` | Test helper for fixtures |
 
-- **State machine**: `State.java` (17 states) → `RobotStates.java` (Triggers) → `Coordinator.java` (state → subsystem command mappings). Edit `Coordinator.java` for new behaviors. (A new state-machine architecture is under test on branch `2026-offseason-bot`.)
-- **Subsystems**: `SubsystemName.java` + `SubsystemNameStates.java`; motor-based ones extend `frc.spectrumLib.Mechanism` and implement `frc.spectrumLib.SpectrumSubsystem`; hardware config lives in each subsystem's inner `Config` class.
-- **Robot configs**: `FM2026` / `XM2026` / `PM2026` / `AM2026` / `PHOTON2026` in `src/main/java/frc/robot/configs/`, auto-selected by RoboRIO serial via `frc.spectrumLib.Rio`. CAN IDs and encoder offsets go here, not in subsystem files.
-- **Autos**: PathPlanner (paths/autos in `src/main/deploy/pathplanner/`); named commands registered in `Auton.java`.
-- **Telemetry**: DogLog via `frc.spectrumLib.telemetry.Telemetry`; `TuneValue` for live tuning.
-- **Gamepads**: `Pilot.java` / `Operator.java`; bindings in `PilotStates.java` / `OperatorStates.java`.
+`rust/xtask` holds the build, deploy and sim tasks. `src/main/deploy/` holds
+PathPlanner paths and autos, the navgrid and the Elastic layout; the robot reads
+them from there in sim, and `cargo xtask deploy` copies them to the roboRIO.
+
+Inside `crates/robot/src`:
+
+- `robot/robot.rs`: init order, config selection, controller bindings, mode
+  methods. Config by roboRIO serial (`spectrum_lib/hardware/rio.rs`):
+  `PHOTON2026`, `PM2026`, else `FM2026`. Configs set swerve encoder offsets and
+  which mechanisms are attached. CAN IDs live in each subsystem's config struct.
+- `robot/subsystems/super_structure.rs`: the robot state machine
+  (`WantedSuperState`). Mechanisms are `Mechanism` subsystems in
+  `robot/subsystems/`.
+- `robot/auton/`: auto chooser and PathPlanner event triggers (`intake`,
+  `shotPrep`, `clearState`, `unjam`, `poseUpdate`).
+- `rebuilt/`: game logic (field, hub shift clock, shot calculator) and the fuel
+  and bump sims. `spectrum_lib/`: shared code (Mechanism, gamepads, LEDs,
+  Limelight vision, mechanism sims, maple-sim swerve sim).
+
+## Build and run
+
+Rust toolchain is pinned in `rust/rust-toolchain.toml`. From `rust/`:
+
+- `cargo xtask gate`: rustfmt check, clippy with warnings as errors, all tests. Run it
+  before every commit.
+- `cargo xtask fetch-natives [platform]`: download natives (host default;
+  `linuxathena` is the roboRIO).
+- `cargo xtask sim`: run the robot in simulation. `cargo xtask sim <example> -p <crate>`
+  runs an example.
+- `cargo xtask build-roborio`, then `cargo xtask deploy [host]` (default
+  `10.38.47.2`, USB `172.22.11.2`). The roboRIO `admin` password is empty.
+- Unverified: `deploy` has not run on a real roboRIO yet, and `xtask` has not
+  run on Windows or macOS yet (their code paths are unit-tested only).
+
+## Rules for the code
+
+- **Threads**: robot setup, commands, the scheduler and dashboards run on the
+  loop thread only and use `Rc`/`RefCell`. Code on other threads (swerve
+  odometry, notifiers, telemetry) uses only `Send + Sync` APIs: telemetry,
+  Phoenix signals, atomics, `Mutex`. Dashboard calls from another thread panic.
+- **Borrows**: subsystems are `Rc<T>` with `&self` methods. Hold a `RefCell`
+  borrow only inside one method body, never across a call into another
+  subsystem, the scheduler, a command or a callback.
+- **Units**: library crates use SI `f64`, with rotations only at the Phoenix
+  boundary (`*_rot`, `*_rps`). Robot code keeps the units the Java used (RPM,
+  rotations, degrees), with the unit in the name.
+- **Native calls**: every `extern` signature matches the C header exactly.
+  `#[repr(C)]` structs carry size checks for 64-bit and the 32-bit roboRIO.
+  Wrap each unsafe call with a `// SAFETY:` comment. Register a stop function
+  with `wpilib::shutdown` for any thread or notifier that touches natives.
+- **CTRE**: the C layer is not a documented CTRE API, so keep the version
+  pinned. After changing the generated tables in `crates/phoenix6`, run
+  `python3 tools/check-ctre-tables.py`. Never disassemble CTRE binaries
+  (CTRE's license forbids it); learn behavior from headers, Java sources, docs
+  or by measuring.
+- **Swerve facts measured from CTRE's sim** (CTRE ships this code compiled
+  only): the coupling correction low-pass filters steer velocity with a 50 ms
+  time constant (measured at 250 Hz only); wheel force feedforward is projected
+  on the measured steer angle; CANcoder position and velocity frames stay at
+  100 Hz after bus optimization, because the steer Talons' fused feedback reads
+  them.
+- **Licenses**: ported code keeps its license (WPILib BSD-3 in
+  `WPILib-License.md`). List every ported source in `rust/THIRD_PARTY.md`.
+- Short comments that explain why. No emojis.
 
 ## Git, Commits, and Pull Requests
 
@@ -41,14 +117,22 @@ Full workflow: `docs/coding-conventions/commits-pull-requests.md`. How to write 
 
 ## Skills Policy
 
-`./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: DogLog (via `frc.spectrumLib.telemetry.Telemetry`), MapleSim (`MapleSimSwerveDrivetrain`), `FuelPhysicsSim`, PhotonVision, PathPlanner, CTRE Phoenix 6. We do **not** use AdvantageKit, so: (Aligns to Spectrum 3847 stack; PR #132, reviewed 2026-08-07.)
-- New skills must describe our real classes/topics, never generic donor code. Verify names against `src/main/java` and `docs/`.
+`./.agents/skills/` holds agent skills for this team. Keep them tailored to **Spectrum 3847** (team 3847, IP `10.38.47.2`) and to our actual stack: the Rust crates above, Limelight vision, PathPlanner, CTRE Phoenix 6, DogLog-style logs. We do **not** use AdvantageKit or PhotonVision.
+- New skills must describe our real code and topics, never generic donor code. Verify names against `rust/crates/` and `docs/`.
 - To keep a skill from loading across all agents (opencode, Claude Code, etc.), rename its `SKILL.md` → `SKILL.md.disabled` instead of editing frontmatter. Leave the directory's other files in place.
+
+## Documentation
+
+`docs/index.md` maps the docs. Update the page that covers your change.
+`docs/frc-software-basics/` is Java background material from before the Rust port.
 
 ## Important Notes
 
-1. Run `./gradlew build` after any Java change; it auto-formats and runs SpotBugs/tests. Re-run if it fails on formatting.
-2. Never edit `BuildConstants.java`.
-3. New subsystem → register in `Robot.java` + `Coordinator.java`. New state → `State.java` + `Coordinator.java` + `RobotStates.java`. New paths/autos → `src/main/deploy/pathplanner/` + register in `Auton.java`. Hardware config → the `*2026.java` config class.
-4. Line endings must be **LF (UNIX)**; `.gitattributes` enforces `eol=lf`.
-5. When you learn new repo facts, append a concise note here (source + date), and keep `docs/` updated too. No secrets or credentials.
+1. Run `cargo xtask gate` from `rust/` after any change.
+2. New subsystem: build it in `robot/robot.rs` init and set a context item if
+   others read it. New robot state: `WantedSuperState` in `super_structure.rs`.
+   New paths or autos: `src/main/deploy/pathplanner/`, registered in
+   `robot/auton/`.
+3. Line endings must be LF; `.gitattributes` enforces it.
+4. When you learn a new repo fact, add a short note here (what and why) and
+   update `docs/`. No secrets or credentials.

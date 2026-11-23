@@ -1,60 +1,60 @@
 # Phoenix Tuner X
 
-*Audience: Reference. Assumes you've read [Setup](../setup.md).*
+*Audience: reference. Assumes you have read [Setup](../setup.md).*
 
-[Phoenix Tuner X](https://pro.docs.ctr-electronics.com/en/latest/docs/tuner/index.html) is CTRE's tool for talking to TalonFX, CANcoder, CANivore, and Pigeon devices over the same link the Driver Station uses. It is the fastest way to see what the CAN bus is actually doing, and the only way to read a raw encoder value before the robot code gets to it.
+[Phoenix Tuner X](https://pro.docs.ctr-electronics.com/en/latest/docs/tuner/index.html) is CTRE's tool for talking to TalonFX, CANcoder, CANivore and Pigeon devices over the same link the driver station uses. It is the fastest way to see what the CAN bus is doing, and the only way to read a raw encoder value before the robot code gets to it.
 
 ## First run
 
-* **License every Phoenix 6 device** with the team's CTRE account before anything else. An unlicensed device reports values but refuses gain and configuration writes, and the symptom is Tuner X appearing not to save. Re-apply the license every season; they do not carry over.
-* **Pick the right bus.** `Rio.CANIVORE` is a wildcard that resolves to the first CANivore the system reports, and `Rio.RIO_CANBUS` is the roboRIO's own port. Swerve and most mechanisms are on the CANivore, and a few are not: the fuel intake is on the RIO bus. Tuner X shows both. Configuring a device through the wrong bus is the single most common wasted afternoon here.
-* **Update firmware** to match the Phoenix release in `vendordeps/`. Update CANivores and Pigeons through Tuner X too. Mismatched firmware produces motion that is subtly and intermittently wrong and reads as a tuning problem.
+* **License every Phoenix 6 device** with the team's CTRE account first. An unlicensed device reports values but refuses gain and config writes. The symptom is Tuner X that seems not to save. Apply the license again every season.
+* **Pick the right bus.** `Rio::CANIVORE` is a wildcard for the first CANivore the system reports. `Rio::RIO_CANBUS` is the roboRIO's own port. Swerve and most mechanisms are on the CANivore. The fuel intake is on the roboRIO bus. Tuner X shows both. Configuring a device through the wrong bus wastes many afternoons.
+* **Update firmware** to match the Phoenix version the robot uses (26.3.0, set in `rust/xtask/src/fetch.rs`). Update CANivores and Pigeons in Tuner X too. Mismatched firmware gives motion that is slightly and sometimes wrong, and looks like a tuning problem.
 
 ## Naming devices
 
-CAN IDs must be unique across all device types on a bus, so a TalonFX and a CANcoder cannot both be 5. This repo pairs the id with its bus in [`CanDeviceId`](../../src/main/java/frc/spectrumLib/util/CanDeviceId.java), adapted from [Team 254's 2023 code](https://github.com/Team254/FRC-2023-Public/blob/main/src/main/java/com/team254/lib/drivers/CanDeviceId.java). Each subsystem's `*Config` class passes its own name and ID up to its superclass constructor, and the per-robot overrides live in the `*2026.java` config classes.
+CAN IDs must be unique across all device types on a bus. A TalonFX and a CANcoder cannot both be 5. The robot pairs an ID with its bus in `CanDeviceId` (`spectrum_lib/util/can_device_id.rs`), adapted from [Team 254's 2023 code](https://github.com/Team254/FRC-2023-Public/blob/main/src/main/java/com/team254/lib/drivers/CanDeviceId.java). Each subsystem's config struct sets its own name, ID and bus. Swerve IDs are in `SwerveConfig`. A robot that differs changes values in its function in `robot/configs/`.
 
-Name the device in Tuner X exactly what the code passes as the name. Casing is part of it, and a mismatch presents as a connection failure rather than as a typo.
+Name the device in Tuner X the same as the name in the code. Casing counts. A mismatch looks like a connection failure, not a typo.
 
 ## Swerve encoder offsets
 
-Do this once a season, and again after a hard crash or any work that moves a module.
+Do this once a season, and again after a hard crash or work that moves a module.
 
-1. **Square the modules.** Drop the aligners on, bevel inward, and confirm by eye that all four point the same way. Every reading below is measured from this.
-2. **Read the raw value.** In Tuner X, open each module's CANcoder and look at **Absolute Position No Offset**. That is the reading before any magnet offset in the device config is applied.
-3. **Put it in the code.** The fields are `frontLeftEncoderOffset`, `frontRightEncoderOffset`, `backLeftEncoderOffset`, and `backRightEncoderOffset` in [`SwerveConfig`](../../src/main/java/frc/robot/subsystems/swerve/SwerveConfig.java). A robot's actual offsets are set by `swerve.configEncoderOffsets(...)` in its `*2026.java` class under `src/main/java/frc/robot/configs/`, so edit that file, not the defaults. Check the sign against the modules you actually have, and check whether the robot you are on already stores its readings offset by half a turn: one of them does and the defaults do not.
-4. **Deploy and re-check.** With the offset applied, **Absolute Position** should sit near zero. A few millionths is fine. A reading around 0.34 means the sign is wrong or you copied from the wrong module.
+1. **Square the modules.** Put the aligners on, bevel gear inward, and check by eye that all four point the same way.
+2. **Read the raw value.** In Tuner X, open each module's CANcoder and read **Absolute Position No Offset**. That is the value before any magnet offset in the device config.
+3. **Put it in the code.** The fields are `front_left_encoder_offset_rot`, `front_right_encoder_offset_rot`, `back_left_encoder_offset_rot` and `back_right_encoder_offset_rot` in `SwerveConfig` (`robot/subsystems/swerve/swerve_config.rs`). A robot sets its own values with `config_encoder_offsets(...)` in its file in `robot/configs/`, so edit that file and leave the defaults. Check the sign against your modules. `pm2026` and `xm2026` store their readings shifted by half a turn (`+ 0.5` or `- 0.5`). The other configs do not.
+4. **Deploy and check.** With the offset applied, **Absolute Position** should be near zero. A few millionths is fine. A value near 0.34 means the sign is wrong, or you copied from the wrong module.
 
-Keep the offsets in code rather than in Tuner X. An offset belongs to a physical robot, and the per-robot config classes are what turn a swapped module into a config change instead of a laptop with one device configured and three not.
+Keep offsets in code, not in Tuner X. An offset belongs to a physical robot. Per-robot config files turn a swapped module into a config change, not a laptop with one device set and three not.
 
 ## Plotter
 
-The fastest way to know whether a tuning change helped.
+The fastest way to see if a tuning change helped.
 
-1. Open the device and switch to the **Plot** tab.
+1. Open the device and go to the **Plot** tab.
 2. Add `Closed Loop Reference` and the matching `Position` or `Velocity`.
-3. Hit record, run the mechanism, and watch the two lines against each other.
+3. Record, run the mechanism, and compare the two lines.
 
-[PID Tuning](pid-tuning.md) covers what to do with what you see.
+[PID tuning](pid-tuning.md) says what to do with what you see.
 
 ## Self-test
 
-**Self-Test Snapshot** dumps firmware version, active config, faults, sticky faults, temperatures, and supply voltage. Run it before you ask anyone for help and save it, because it is what a CTRE Discord answer needs. It is also worth reading later when something was intermittent and you no longer remember.
+**Self-Test Snapshot** shows firmware version, active config, faults, sticky faults, temperatures and supply voltage. Run it before you ask anyone for help, and save it. A CTRE support answer needs it. It also helps later, when a problem came and went and nobody remembers the details.
 
 ## Hoot logs
 
-Phoenix 6 records `.hoot` logs to the CANivore's onboard storage, at whatever path the `CANBus` was constructed with. Ours is built in `SwerveConfig.canBus` and points under `./logs/`. Pull them in Tuner X with **Log Extractor** after a match.
+Phoenix 6 can record `.hoot` signal logs. Extract them in Tuner X with **Log Extractor**. They have more detail than NetworkTables and survive a dropped radio. The `phoenix6` crate has a `signal_logger` module (`start`, `stop`, `set_path`). The robot code does not call it, so check the logging settings in Tuner X before a run you want recorded. We have not confirmed what is recorded by default.
 
-They are higher resolution than NetworkTables and they survive a dropped radio, which is what you want when the NT capture came out incomplete.
+`SwerveConfig` has a `hoot_file_path` of `./logs/spectrum.hoot`. At startup `Swerve::new` builds the CAN bus with that path, which loads the file for replay, and reports a warning if it cannot. That is for replay, not for recording.
 
 ## When something looks wrong
 
-* **A device vanished from the bus.** Usually a CAN ID collision after somebody reassigned a device. Tuner X shows the duplicate in red.
-* **Configs will not stick.** Seasonal license expired, or never applied.
-* **The motor refuses to spin.** Read the sticky faults before anything else. `Hardware Failure`, `Over Voltage`, and `Boot during enable` all show there long before the robot side shows symptoms.
+* **A device vanished from the bus.** Usually a CAN ID clash after someone changed a device. Tuner X shows the duplicate in red.
+* **Configs will not stick.** The seasonal license expired or was never applied.
+* **The motor refuses to spin.** Read the sticky faults first. `Hardware Failure`, `Over Voltage` and `Boot during enable` show there long before the robot code shows symptoms.
 
 ## See also
 
-* [PID Tuning](pid-tuning.md), the workflow that uses the plotter.
-* [Phoenix 6](../dependencies/phoenix6.md) for the version and the control requests.
-* CTRE's [Phoenix 6 documentation](https://v6.docs.ctr-electronics.com/en/latest/) for everything not covered here.
+* [PID tuning](pid-tuning.md) for the workflow that uses the plotter.
+* [Phoenix 6](../dependencies/phoenix6.md) for the crate and the control requests.
+* CTRE's [Phoenix 6 documentation](https://v6.docs.ctr-electronics.com/en/latest/).

@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # Gradle plugin and dependency updates
-  - package-ecosystem: "gradle"
-    directory: "/"
+  # Rust crate updates
+  - package-ecosystem: "cargo"
+    directory: "/rust"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -11,9 +11,9 @@ updates:
       - "Spectrum3847/2025-26"
     labels:
       - "dependencies"
-      - "gradle"
+      - "rust"
     commit-message:
-      prefix: "deps(gradle)"
+      prefix: "deps(cargo)"
 
   # GitHub Actions workflow updates
   - package-ecosystem: "github-actions"

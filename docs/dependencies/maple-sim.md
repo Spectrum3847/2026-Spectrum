@@ -1,31 +1,41 @@
-# MapleSim
+# maple-sim
 
-*Audience: Reference. Assumes you've read [Dependencies overview](overview.md).*
+*Audience: reference. Assumes you have read [Dependencies overview](overview.md).*
 
-MapleSim is a physics based simulation library under `org.ironmaple.simulation` that models the swerve drivetrain and the current season's arena. On this robot it does exactly one thing: the drivetrain. Game piece physics, intake, flight, and scoring are not MapleSim. Those run through [`FuelPhysicsSim`](../../src/main/java/frc/rebuilt/FuelPhysicsSim.java) as `RobotSim.ballSim`, published under the `Sim/Fuel` key. If you went looking for fuel physics in MapleSim, that is why you did not find it. See [Simulation](../tools/simulation.md) for that side.
+maple-sim is a physics library that models a swerve drivetrain and the season's arena. This repo ports the parts the robot uses from **maple-sim v0.4.0-beta** (MIT license, Team 5516 "Iron Maple") and the part of dyn4j 5.0.2 it runs on (BSD-3). The port is in `rust/crates/robot/src/spectrum_lib/swerve/`. Sources and licenses are in `rust/THIRD_PARTY.md`.
 
-`vendordeps/` holds the pinned JSON.
+On this robot maple-sim does one job: the drivetrain. Game piece physics are not maple-sim. They run in `FuelPhysicsSim` (`rebuilt/fuel_physics_sim.rs`), owned by `RobotSim`, and publish under `Sim/Fuel`. See [Simulation](../tools/simulation.md).
+
+## Files
+
+| File | What |
+|---|---|
+| `maple_sim.rs` | The maple-sim classes: motor and battery sims, the swerve module and drivetrain sim, the gyro sim, and the arena with the 2026 field obstacles. |
+| `physics.rs` | The rigid body physics: shapes, contacts and the solver. |
+| `maple_sim_swerve_drivetrain.rs` | `MapleSimSwerveDrivetrain`: connects the drivetrain sim to the Phoenix sim states of the real swerve modules and the Pigeon 2. |
+
+`rebuilt/robot_bump_sim.rs` models the field bump for the robot pose.
 
 ## Where it plugs in
 
-[`MapleSimSwerveDrivetrain`](../../src/main/java/frc/spectrumLib/swerve/MapleSimSwerveDrivetrain.java) wraps `SwerveDriveSimulation` plus a per module `SwerveModuleSimulation` and owns the Pigeon 2 sim state. Its constructor also takes over MapleSim's global state: it overrides the simulation timing and installs a fresh `Arena2026Rebuilt`. That arena is a MapleSim season specific import, so it is the line that breaks every offseason when the new game ships. Wheel slip and weight transfer come from here, not from WPILib's own sim.
+`Swerve::start_sim_thread` in `robot/subsystems/swerve/swerve.rs` builds `MapleSimSwerveDrivetrain` and a sim notifier, only in simulation. Wheel slip and weight transfer come from here, not from WPILib's own sim.
 
-## Guarding sim code
+`regulate_module_constants_for_simulation` in `swerve.rs` runs when `Swerve::new` builds the modules. It clears the encoder offset and the drive, steer and encoder inversions in simulation, and sets sim gains, friction voltages and steer inertia. It has to. An inverted drive config upsets the drive PID, and a non-zero CANcoder offset upsets module state optimization. Without it the sim robot misbehaves in ways that look like physics but are config.
 
-`Swerve` constructs the drivetrain sim only inside a `Utils.isSimulation()` branch in its constructor, so `mapleSimSwerveDrivetrain` stays null on a real roboRIO. Guard new sim entry points the same way, using whichever `isSimulation()` the surrounding file already imports.
+## Hookups to know
 
-`MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(modules)` is also called from `Swerve`'s constructor, and it has its own `RobotBase.isReal()` guard, so calling it unconditionally is safe. It zeroes the encoder offset and clears the drive, steer, and encoder inversions, then substitutes sim tuned gains, gear ratio, friction voltages, and steer inertia. It has to do that, because an inverted drive config upsets the drive PID and a non zero CANcoder offset upsets module state optimization. Skip it and the sim robot misbehaves in ways that look like a physics problem but are really a config problem.
+In simulation `Swerve::get_robot_pose` reads the pose from the drivetrain sim, and `reset_pose` sets the sim world pose. That is how an auto seeds its pose in simulation.
 
-## Hookups worth knowing
+The sim tick is a `Notifier` that runs every `sim_loop_period` in `SwerveConfig`, which is 5 ms. It runs faster than the robot loop on purpose, so the gains written for the real robot behave in simulation. Check how the gains respond before you slow it down.
 
-In sim, `Swerve.getRobotPose()` returns `mapleSimSwerveDrivetrain.mapleSimDrive.getSimulatedDriveTrainPose()`. `Swerve.resetPose(...)` calls `setSimulationWorldPose(pose)` on that same object, which is how an auto seeds its pose during simulation.
+## Constants that track the robot
 
-The sim tick is a WPILib `Notifier` in `Swerve` (`simNotifier`), started at `config.getSimLoopPeriod()`, which is 5 ms in `SwerveConfig`. It runs faster than real time on purpose, so the PID gains written for the real robot behave sanely in sim. Do not slow it down without re checking how the gains respond.
+`start_sim_thread` passes the robot mass (115 lb), the bumper size (30 in by 30 in), the motor models and the wheel friction as numbers into the `MapleSimSwerveDrivetrain` constructor. If the real mass, bumpers or motor count change, update those numbers. Nothing checks them against `SwerveConfig`, so a mismatch shows as a sim that drifts from the robot, not as a failure.
 
-## Constants that track reality
+## Each new season
 
-`Swerve.startSimThread()` passes the robot mass, the two bumper dimensions, the drive and steer motor models, and the wheel coefficient of friction as literals into the `MapleSimSwerveDrivetrain` constructor. If the real robot's weight, bumper size, or motor count changes, those are the literals to update. Nothing cross checks them against `SwerveConfig`, so a mismatch shows up as sim quietly diverging from the robot rather than as a failure.
+The arena (`Arena2026Rebuilt` field obstacles in `maple_sim.rs`) is specific to the 2026 game. It needs a new version when the game changes.
 
 ## Further reading
 
-[MapleSim JavaDoc](https://shenzhen-robotics-alliance.github.io/maple-sim/javadocs/) is linked into our generated docs, and the [README](https://github.com/Shenzhen-Robotics-Alliance/maple-sim) has examples plus the physics knobs we have not touched. For the broader sim workflow, see [Simulation](../tools/simulation.md).
+The [maple-sim repository](https://github.com/Shenzhen-Robotics-Alliance/maple-sim) has examples and the physics settings we do not use. See [Simulation](../tools/simulation.md) for the whole sim workflow.

@@ -1,0 +1,15 @@
+[package]
+name = "wpimath"
+description = "Geometry, kinematics, estimation and system models (WPILib math subset)."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+nalgebra = { version = "0.35", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+golden = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,5 +1,7 @@
 # Loops
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've read [Arrays and enums](arrays.md).*
 
 A loop runs the same block of code more than once. You use a `for` loop when you know how many times, and a `while` loop when you do not.

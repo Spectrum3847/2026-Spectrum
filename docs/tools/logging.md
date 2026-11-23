@@ -1,89 +1,94 @@
 # Logging and data analysis
 
-*Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
+*Audience: reference. Assumes you have read [2026 season specific](../other-guides/2026-season-specific.md).*
 
-A log is the difference between "the indexer stopped at champs" and "the indexer stopped because the CANivore dropped the bus at 2.14 seconds." Everything goes through [`Telemetry`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java), a thin wrapper over [DogLog](https://doglog.dev) that keeps call sites short. The library itself is covered on the [DogLog](../dependencies/doglog.md) page.
+A log is the difference between "the indexer stopped at champs" and "the indexer stopped because the CANivore dropped the bus at 2.14 seconds." Robot code logs through the free functions in `telemetry::telemetry` (`rust/crates/telemetry/src/telemetry.rs`). They sit on top of a port of [DogLog](https://doglog.dev). See [DogLog](../dependencies/doglog.md) for the crate.
 
 ## What ends up in the file
 
-`Telemetry.start(...)`, called from the `Robot` constructor, sets the whole policy in one place. Seven flags, in the order they are passed:
+`telemetry::start(...)`, called from `Robot::new`, sets the policy. It takes seven arguments, in this order:
 
-* `ntMirror` is the starting position of the SmartDashboard switch `Telemetry/MirrorLogsToNT`, which mirrors every logged value to NetworkTables so AdvantageScope can see it live. It starts on in simulation and off on the robot, to save roboRIO CPU. Flip it in Elastic when AdvantageScope needs the full live stream in the shop. It is forced off whenever the FMS is attached. The dashboard gets its values another way, see [What reaches the dashboard](#what-reaches-the-dashboard).
-* `captureDs` records SmartDashboard entries in the log, so a value published the old way is still recoverable from the file afterwards. On.
-* `captureNt` records the entire NetworkTables tree. Off, because it swamps the log and duplicates what the code already logs. Turn it on only when you specifically need a topic that nothing in our code logs.
-* `captureConsole` folds console output into the log, which is how bare prints from CTRE and WPILib survive. On.
-* `logExtras` adds PDH currents, CAN bus usage, and radio status. Off by default because it is a lot of data for a diagnostic you rarely run. Worth turning on for a brownout investigation.
-* `tunableOnFMS` controls DogLog's own NetworkTables tunables, and it is on, so tunables stay editable with an FMS attached. That is a practice convenience and a match-day hazard.
-* `priority` is the lowest priority that still reaches the console.
+1. `nt_mirror_default`: the starting position of the SmartDashboard switch `Telemetry/MirrorLogsToNT`. The switch copies every logged value to NetworkTables so AdvantageScope sees it live. The robot passes `wpilib::is_simulation()`, so it starts on in simulation and off on the robot, to save roboRIO CPU. Flip it in Elastic when AdvantageScope needs the full live stream in the shop. It stays off whenever the FMS is attached.
+2. `capture_ds`: records SmartDashboard entries in the log. On.
+3. `capture_nt`: would record the whole NetworkTables tree. The Rust port does not support it. Off.
+4. `capture_console`: puts console output in the log. On.
+5. `log_extras`: adds PDH currents, CAN bus use and radio status. Off. Turn it on for a brownout investigation.
+6. `tunable_on_fms`: keeps DogLog's own tunables editable with an FMS attached. On.
+7. `priority`: the lowest print priority that reaches the console. The robot passes `PrintPriority::Normal`.
 
-`Telemetry.start` also hands DogLog a `PowerDistribution` and puts the command scheduler on the dashboard. Leave that scheduler entry alone, it is the fastest way to see what is actually scheduled when something looks stuck.
+## Where the file goes
+
+The log manager picks the folder:
+
+* On a robot: a USB stick's `logs` folder if one is plugged in and writable, else `/home/lvuser/logs`.* In simulation: a `logs` folder in the folder you ran from. `cargo xtask sim` runs from `rust/`.
+
+A file starts as `FRC_TBD_<random>.wpilog`. It is renamed `FRC_<UTC time>.wpilog` once the driver station connects, and `FRC_<UTC time>_<event>_<P|Q|E><match>.wpilog` once the FMS sends match info. When free space drops under 50 MB, old logs are deleted, but at least 10 stay.
 
 ## Naming keys
 
-Keys are `Subsystem/Name` and they are the file's table of contents. Two rules:
+Keys are `Subsystem/Name`. Two rules:
 
-* Lead with the subsystem's own name. `/Launcher/RPM` is findable, `/motorSpeed7` is not.
-* Pass the unit as the third argument when there is one. DogLog records it as metadata and AdvantageScope uses it for axis labels, so the plot reads `volts` instead of a bare number.
+* Start with the subsystem's name. `Launcher/RPM` is findable. `motorSpeed7` is not.
+* Pass the unit with the `_with_unit` functions. The log stores it, and AdvantageScope uses it for axis labels.
 
-Log inside `periodic()`. That is the one place you know a value is fresh at loop rate, and it keeps log calls out of command bodies where they get forgotten. Do not log the same value from two places under two names; a season of that makes the logs unsearchable and nothing fixes it retroactively.
+Log inside `periodic`. That is the one place a value is fresh at loop rate. Do not log the same value under two names.
 
 ## What reaches the dashboard
 
-While the mirror is off, a value is on NetworkTables only if the code publishes it on purpose. `Telemetry` has three tiers:
+With the mirror off, a value is on NetworkTables only if the code publishes it on purpose. There are three tiers:
 
-|                 call                  |                   wpilog                   |      NetworkTables       |                                   use for                                   |
-|---------------------------------------|--------------------------------------------|--------------------------|-----------------------------------------------------------------------------|
-| `Telemetry.log(key, value)`           | every call (DogLog skips unchanged values) | only through the mirror  | everything                                                                  |
-| `Telemetry.logDash(key, value)`       | every call                                 | every fifth loop (10 Hz) | keys the Elastic layout shows                                               |
-| `Telemetry.logDashAlways(key, value)` | every call                                 | every call               | dashboard keys logged once or on their own cadence, like `BuildConstants/*` |
+| Call | wpilog | NetworkTables | Use for |
+|---|---|---|---|
+| `telemetry::log(key, value)` | every call, skipped when unchanged | only through the mirror | everything |
+| `telemetry::log_dash(key, value)` | every call | every fifth loop (10 Hz) | keys the Elastic layout shows |
+| `telemetry::log_dash_always(key, value)` | every call | every call | keys logged once or on their own timing, like `BuildConstants/*` |
 
-`Telemetry.slowLogThisLoop()` is true on the same every-fifth loop; wrap anything that does not need 20 ms resolution in it. The Elastic layout in `src/main/deploy/elastic-layout.json` is the list of keys that have to stay `logDash`.
+Each has a `_with_unit` form. `telemetry::slow_log_this_loop()` is true on the same every-fifth loop. Use it for anything that does not need 20 ms resolution. The keys in `src/main/deploy/elastic-layout.json` have to stay `log_dash` or `log_dash_always`.
 
-## Command lifecycle
+Other functions: `log_struct`, `log_struct_array`, `log_enum` and `log_state` for non-number values, and `time` / `time_end` to time a block. Enums implement `EnumName` so the log shows their name in capitals, like `INTAKE_FUEL`.
 
-`Telemetry.log(cmd)` wraps a command so its start and end land in the `Commands` key with the command's own name. Wrap the outermost command in a group, not every step inside it, or the log fills with internal sequence steps.
+## Per-subsystem keys
 
-Every subsystem already logs its running command name and its wanted and current state each loop from its own `periodic()`, so you can see what owns a mechanism without decorating anything. Look for `<Subsystem>/CurrentCommand` in a log rather than adding more wrappers.
+Each subsystem logs its wanted state, its system state and its running command every loop from `periodic`. Look for `<Subsystem>/CurrentCommand` in a log to see what owns a mechanism.
 
 ## Console prints
 
-`Telemetry.print(...)` timestamps the line, decides whether it reaches the console, and writes it to the `Prints` key so it survives in the file either way. `HIGH` priority always prints. `NORMAL` prints only while the global priority is `NORMAL`, which is what the robot sets, so you can mark a fault loud without turning on console spam for everything else.
+`telemetry::print(...)` stamps the line with the FPGA time, prints it to the console if the priority allows, and always writes it to the `Prints` key. `print_with(text, PrintPriority::High)` always reaches the console. A normal print reaches it only when the global priority is `Normal`, which the robot sets.
 
-Use prints for initialization milestones and faults. Anything you would want to graph belongs in `log`, not `print`. The exception-handling convention is in [Exception Handling](../coding-conventions/exception-handling.md).
+Use prints for startup steps and faults. Anything you want to graph belongs in `log`.
 
 ## Alerts
 
-`Telemetry.logAlerts()` runs every loop and copies anything new from `SmartDashboard/Alerts` into the log, deduplicated so a flapping alert does not fill the disk. An ordinary WPILib `Alert` shows on the dashboard and lands in the file with no extra plumbing.
+`Telemetry::periodic` runs every loop as a subsystem. It copies new entries from `SmartDashboard/Alerts` into the `Alerts` key, once per appearance. A WPILib `Alert` shows on the dashboard and lands in the file with no extra work.
 
 ## Faults
 
-`Telemetry.Fault` is an enum of named failure modes kept so the codebase has a shared vocabulary instead of free-text strings. There is no `logFault(...)` helper, so a fault is logged as a high-priority print using the enum's name. Add entries as new failure classes show up; the post-match grep is much faster than scanning prose.
+`Fault` in `telemetry.rs` names three failure modes: `CameraOffline`, `AutoShotTimeoutTriggered` and `Brownout`. Nothing in the robot logs them yet. There is no `log_fault` function.
 
 ## Which build wrote this
 
-The robot stamps its git branch, commit, dirty flag, and build date into the log at startup. A log that does not say which build produced it cannot be compared to anything.
+At startup the robot logs the project name, build date, git SHA, git date, git branch and dirty flag under `BuildConstants/`. A log without them cannot be compared to anything.
+
+## System health
+
+`SystemLoadMonitor` runs once a second and publishes `System/CpuPercent`, `System/MemAvailableMB` and `System/Loop/*` (mean and max loop period, overrun share). It raises alerts, listed on the [Elastic](elastic.md#system-health-alerts) page. Its constants are at the top of `telemetry/src/system_load_monitor.rs`.
 
 ## Tunables
 
-`TuneValue` writes to `SmartDashboard`, so it stays editable when the FMS is attached no matter what the `tunableOnFMS` flag says. If a value must not move during a match, guard or remove the `TuneValue` at the call site. The FMS will not stop it for you.
+`TuneValue` publishes a number to SmartDashboard so you can edit it live. It stays editable with an FMS attached, whatever `tunable_on_fms` says. No robot code uses it yet. See [PID tuning](pid-tuning.md#live-tuning-with-tunevalue).
 
 ## Getting logs off the roboRIO
 
-`.wpilog` files are written under `/U/logs/` on the roboRIO. Connect over USB or Ethernet, then:
+`.wpilog` files are in `/home/lvuser/logs` or on the USB stick. The `robot-log-upload` skill in `.agents/skills` pulls them off the roboRIO and uploads them to the team log site. Open them in [AdvantageScope](https://docs.advantagescope.org) with **File, Open Log**. Drag entries from the tree into a plot.
 
-1. Open the file straight off the robot in [AdvantageScope](https://docs.advantagescope.org) with **File, then Open Log**, or download it first and open the copy.
-2. Drag entries from the log's own tree into a plot. AdvantageScope carries the layout you had in the live view into the recorded file, so a plot you set up while watching a mechanism is already set up for the analysis.
-
-For a live session, start AdvantageScope before connecting the driver station and point it at the same robot. It reads NetworkTables directly, so it sees everything `Telemetry` publishes.
+For a live session, start AdvantageScope and connect it to the robot. It reads NetworkTables directly.
 
 ## What to log
 
-Motor voltages and currents, sensor readings, setpoints, state transitions, vision estimates, command lifecycle, and anything else you would want to graph the morning after.
-
-Do not log the same value on every iteration of a tight inner loop. DogLog will accept it and the disk will not thank you.
+Motor voltages and currents, sensor readings, setpoints, state changes and vision results. Do not log the same value many times in one loop.
 
 ## See also
 
-* [DogLog](../dependencies/doglog.md) for the library, its version, and the option flags in full.
-* [Elastic Dashboard](elastic.md), the live view of the same publish stream.
-* [Exception Handling](../coding-conventions/exception-handling.md) for when to print at high priority.
+* [DogLog](../dependencies/doglog.md) for the crate.
+* [Elastic dashboard](elastic.md) for the live view.
+* [Exception handling](../coding-conventions/exception-handling.md) for when to print at high priority.

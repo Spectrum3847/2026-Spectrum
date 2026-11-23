@@ -1,5 +1,7 @@
 # Arrays and enums
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've read [Logic operators and strings](logic-operators.md).*
 
 An array holds a fixed number of values, all of the same type, and you reach them by position. Counting starts at zero, so the first element is at index 0.

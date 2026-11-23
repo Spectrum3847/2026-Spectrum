@@ -1,5 +1,7 @@
 # Logic operators and strings
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've read [Variables and arithmetic](variables-arithmetic.md).*
 
 A comparison is an expression that evaluates to `true` or `false`. `>` is greater than, `<` is less than, `>=` and `<=` include the equal case, `==` is equal, and `!=` is not equal.

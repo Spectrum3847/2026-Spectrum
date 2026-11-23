@@ -1,5 +1,7 @@
 # Classes, methods, and objects
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've read [Loops](loops.md).*
 
 A class is a blueprint that describes what something is and what it can do. An object is one real thing built from that blueprint. Here is a whole class. It is short on purpose, and most real classes are about this size.
@@ -128,9 +130,9 @@ Runnable second = this::printDone;  // same thing, if printDone takes nothing
 
 Use a lambda when the body is a couple of lines, and a method reference when it is one call. Do not invent a named method just to have something to reference.
 
-WPILib APIs lean on this heavily. Any method that takes a supplier, so that it can ask for a value later instead of taking one now, takes a lambda or a method reference. When you meet a parameter whose name ends in `Supplier`, that is what you are looking at. See [Programming tips](../other-guides/tips.md#doublesupplier-vs-double).
+WPILib APIs lean on this heavily. Any method that takes a supplier, so that it can ask for a value later instead of taking one now, takes a lambda or a method reference. When you meet a parameter whose name ends in `Supplier`, that is what you are looking at. See [Programming tips](../other-guides/tips.md#closures-instead-of-numbers).
 
-Once you are comfortable with classes, [Class Generation](../coding-conventions/class-generation.md) covers how we lay out the classes in this codebase.
+Once you are comfortable with classes, [Adding a subsystem](../coding-conventions/adding-a-subsystem.md) covers how we lay out the classes in this codebase.
 
 ---
 

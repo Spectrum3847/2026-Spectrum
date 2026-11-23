@@ -1,49 +1,49 @@
-# Vision systems
+# Vision
 
-*Audience: Reference. Assumes you've read [2026 Season Specific](../other-guides/2026-season-specific.md).*
+*Audience: reference. Assumes you have read [2026 season specific](../other-guides/2026-season-specific.md).*
 
-Three Limelights feed the swerve pose estimator. [`Vision`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) decides which camera to trust, which of the two MegaTag pipelines to use in the current mode, and which single measurement to hand the estimator each loop.
+Three Limelights (back, left, right) feed the swerve pose estimator. `Vision` in `robot/subsystems/vision.rs` picks the best camera, decides whether to trust its estimate and hands one measurement to the estimator each loop. The Limelight calls are in `spectrum_lib/vision/`. `limelight_helpers.rs` is a port of the Limelight Java helper library, v1.14.
 
 ## Mounting
 
-Camera names, mount transforms, pipeline numbers, and the default measurement sigmas are all in `Vision.VisionConfig`. Two conventions there are easy to get wrong and hard to debug:
+Camera names, mount transforms, pipeline numbers and default standard deviations are in `VisionConfig`. Two units are easy to mix up:
 
-* `withTranslation(x, y, z)` is robot frame **metres**.
-* `withRotation(roll, pitch, yaw)` is **degrees**.
+* `with_translation(x, y, z)` is robot frame meters.
+* `with_rotation(roll, pitch, yaw)` is degrees.
 
-The mount transform is the whole accuracy budget. Get it wrong and the tags resolve to the wrong place on the field, so the estimator blends a good odometry estimate with a bad vision one. That presents as a robot that drifts, not as a vision bug, and you will chase the wrong thing for a day. Re-measure after any CAD change.
+The mount transform decides how accurate the estimate is. A wrong mount puts tags in the wrong place on the field, and the estimator blends good odometry with bad vision. That looks like a robot that drifts, not like a vision bug. Measure again after any CAD change.
 
-The AprilTag field layout is loaded in the `Vision` constructor from WPILib's `AprilTagFields`, so there is nothing to upload to the Limelights. Pipeline contents, exposure, gain, and the AprilTag family are the Limelight's own settings on its web UI, and are the one part of this system that is not in the repo.
+Pipeline contents, exposure, gain and the AprilTag family are settings on the Limelight web page. They are not in this repo.
 
-## Which estimate gets used
+## Which estimate is used
 
-The rule lives in `Vision.periodic()` and the two update methods it calls, and it comes down to this. MegaTag1's heading comes from tag geometry and stays usable while the robot is moving. MegaTag2's heading comes from the Limelight's own IMU and drifts as soon as the robot moves, so MT2 is only fused while the robot is disabled, and its rotational standard deviation is set to `VisionConfig.kLargeVariance`, which tells the estimator to ignore that dimension entirely.
+The rules are pure functions in `vision.rs`, so tests run them without a camera: `rejection_check`, `mt1_decision`, `mt2_decision` and `reset_pose_to_vision_check`. Read them for the current thresholds, and do not trust a number copied into a doc.
 
-Measurements can be rejected, and the rejection thresholds are the literals inside `rejectionCheck(...)` and `getMT1VisionEstimate(...)` in `Vision.java`. The confidence tiers that pick each measurement's sigmas are the `sendValidStatus` branches in those same two methods. Read them there rather than trusting a number written down anywhere else, including here.
+* Each loop `get_best_limelight` picks the camera with the highest tag count plus target size. With no tags in view it picks the back camera.
+* While **disabled**, both MegaTag1 and MegaTag2 estimates are fused. This pre-seeds the pose before the match.
+* While **enabled**, only MegaTag1 is fused, and only in teleop, or in auton while the `poseUpdate` marker is active or an auton launch is running.
+* MegaTag2 takes its heading from the pose that `Vision` sends to the camera. The MegaTag2 estimate ignores its own heading: its rotation standard deviation is `k_large_variance`, which tells the estimator to skip that dimension.
+* The shared rejection gate drops a pose outside the field, a capture older than `k_max_time_delta_seconds` (0.1 s), a spin rate of 1.6 rad/s or more, and a target area of 0.025 percent or less.
 
-Two behaviors worth knowing because they are silent:
+Two silent behaviors:
 
-* A rejected measurement returns null and the caller ignores it. Nothing is logged as an error, so the only symptom of a badly tuned threshold is "vision is not updating." `VisionLogger` publishes the accept or reject reason per camera, and that is where to look.
-* `getBestLimelight()` falls back to the back camera when no camera sees a tag, so the reject reason you get is always that one camera's. When all three go blind, the log blames the back camera and nothing tells you the others are fine.
+* A rejected measurement is dropped with no error. The only symptom is "vision is not updating". `VisionLogger` publishes the accept or reject reason for each camera. Look there.
+* When no camera sees a tag, the log blames the back camera, because it is the fallback. That does not mean the others are fine.
 
 ## Resetting pose to vision
 
-`resetPoseToVision()` snaps the estimator onto a vision pose with near-zero covariance, so it jumps instead of blending. It is not a measurement. The no-argument overload does not expose whether the reset was applied, so call the four-argument form if you need to know, and log it when you do, because a rejected reset leaves the robot where it was and looks like the reset not working.
-
-Use it when the robot has been pushed and nobody knows where it is, and before an auto when the gyro is fresh but the field-frame pose is not.
+`reset_pose_to_vision` snaps the estimator onto a vision pose with near-zero standard deviations. It does not blend. The no-argument form does not tell you if the reset was applied. Use `reset_pose_to_vision_with`, which returns a `bool`, when you need to know. A rejected reset leaves the robot where it was and logs the reason under `Vision/PoseReset/Rejection`.
 
 ## Post-match video
 
-`teleopExit` asks every camera to rewind-capture 165 seconds, which is the longest buffer a Limelight keeps, but only when a FMS is attached. At practice with no FMS it never fires, so the footage of a bad match is not there when you go back for it. Pull the video before you leave the field either way.
+On `teleop_exit`, when the FMS is attached, `Vision` asks every camera to save the last 165 seconds. That is the longest buffer a Limelight keeps. With no FMS it never fires, so pull the video yourself before you leave the field.
 
 ## Not integrated
 
-Two things have been discussed and deliberately have no code. Do not assume either works.
-
-* **Fuel detection.** No detection pipeline runs, and there is nothing in this repo for one. A neural detector on the Limelights or a separate coprocessor would both be new work.
-* **QuestNav.** Meta Quest inside-out tracking as an extra pose source. It would feed the same `addVisionMeasurement` call with a different sigma profile, and nothing has been written.
+* Fuel detection. No detection pipeline runs.
+* QuestNav. Nothing is written for it.
 
 ## See also
 
-* [Auton](auton.md): `autonPoseUpdate` is one of the conditions that enables vision integration while enabled.
-* [Phoenix Tuner X](phoenix-tuner-x.md): gyro calibration, which feeds MT2.
+* [Auton](auton.md): the `poseUpdate` marker lets `Vision` fuse estimates during auton.
+* [Phoenix Tuner X](phoenix-tuner-x.md): gyro calibration, which MegaTag2 depends on.

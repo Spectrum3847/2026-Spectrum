@@ -1,58 +1,79 @@
-# Exception Handling
+# Errors and panics
 
-*Audience: Reference. Assumes you've read [Code Style](code-style.md).*
+*Audience: reference. Assumes you have read [Code style](code-style.md).*
 
-Robot code runs in a single process that's responsible for moving a lot of mass around. Crashing during a match is the worst outcome; silently swallowing an exception that explains *why* the robot is misbehaving is a close second. The aim of exception handling here is to fail loudly when something is wrong, recover gracefully when recovery is meaningful, and never hide errors from the log.
+Robot code moves a lot of mass. A crash in a match is the worst result. Hiding the error that explains a misbehaving robot is almost as bad. The goal is to fail loudly when something is wrong, recover when recovery makes sense, and never hide an error from the log.
 
-## Never write an empty catch
+Rust has no exceptions. There are two tools:
 
-> "Anytime somebody has an empty catch clause they should have a creepy feeling. There are definitely times when it is actually the correct thing to do, but at least you have to think about it." Attributed to James Gosling.
+* **`Result` and `Option`** for things that can fail in normal use. The caller decides what to do.
+* **`panic!`** for a bug, an impossible state or a broken setup. A panic unwinds the stack, and the code that catches it reports it.
 
-If you have a reason to catch and not log, write it down in a one-line comment so a future reader sees you thought about it. Otherwise log it and dump the trace:
+## What happens on a panic
 
-```java
-} catch (IOException e) {
-    Telemetry.print("Failed to load auto file: " + e, PrintPriority.HIGH);
-    e.printStackTrace();
-}
+* **Building the robot.** `wpilib::start_robot` catches a panic while the robot is built. It reports "Unhandled exception instantiating robot" and the message to the driver station, and the program ends.
+* **In the loop.** `start_robot` also catches a panic in the robot loop. It reports "Unhandled exception" and the message to the driver station, and the program ends.
+* **`guarded` in `robot/robot.rs`.** Robot init, `robot_periodic` and the mode init methods run inside `guarded`. It writes the panic message to `/home/lvuser/crash_tracking.txt` through `CrashTracker` (`spectrum_lib/util/crash_tracker.rs`), then raises the panic again. The file is appended to, never rolled over, and it survives a reboot. Each line has a run ID, the time and the text. In simulation the write fails and prints a note.
+* **Notifier threads.** A panic in a `Notifier` callback is reported to the driver station, and that notifier stops.
+* **Sim steps.** A panic in a `sim_loop` step is reported as "SimLoop step failed", and the other steps still run.
+* **Shutdown hooks.** A panic in one is caught, so the others still run.
+
+So a panic in robot code ends the program. Plan for that. Do not rely on a panic to "continue with whatever works".
+
+## Use `Result` for things that can fail
+
+Return `Result` where failure is normal: loading a file, parsing JSON, creating a device. The `wpilib` and `phoenix6` constructors return `Result`. A getter that fails reports to the driver station and returns zero, and does not panic.
+
+Handle the error where you can do something useful:
+
+```rust
+let robot_config = match RobotConfig::from_gui_settings() {
+    Ok(config) => config,
+    Err(error) => {
+        driver_station::report_error(&format!("Failed to load PathPlanner config: {error}"));
+        return;
+    }
+};
 ```
 
-Use [`Telemetry.print(..., PrintPriority.HIGH)`](../tools/logging.md); it ends up in the WPILib log *and* on the Driver Station console. `e.printStackTrace()` puts the call site in stderr, which is also captured because `Telemetry.start(...)` is called with console capture on.
+That is from `Swerve::configure_path_planner`. It reports the failure and goes on without paths. Do not write `let _ = ...` to throw away a `Result` without a reason. If you ignore one on purpose, write a short comment that says why.
 
-## Don't catch `Exception` broadly
+## Report where people will see it
 
-Catching `Exception` or `Throwable` at the top of a method silences `NullPointerException`, `ClassCastException`, and `OutOfMemoryError` along with whatever you actually wanted to catch. Those generic exceptions almost always mean a real bug; let them propagate so the WPILib robot wrapper can log them and the match continues with whatever it can.
+* `driver_station::report_error` and `report_warning` show in the driver station console and in the log.
+* `HalError::report` sends a HAL error to the driver station.
+* `telemetry::print_with(text, PrintPriority::High)` always reaches the console and the `Prints` key. See [Logging](../tools/logging.md).
 
-Catch the *specific* exceptions you're handling and join them with `|`. The pattern to copy is in [`Auton.followSinglePath`](../../src/main/java/frc/robot/auton/Auton.java): the three exceptions that loading a PathPlanner path file can throw, one combined catch, and a fallback that names the failure mode instead of returning null.
+## Do not use `unwrap` on a value that can fail
 
-## Prefer validating inputs over catching `NullPointerException`
+`unwrap()` and `expect()` panic when the value is `None` or `Err`. Use them only when failure means a bug, and then prefer `expect` with a message that says what was wrong. The code does this for setup that cannot work without it:
 
-`NullPointerException` is almost never the right thing to catch. If a value can be null, check for null and return an explicit fallback. [`Auton.getAutonomousCommand`](../../src/main/java/frc/robot/auton/Auton.java) is the reference: it checks `pathChooser.getSelected()` for null and returns a `PrintCommand` that says so, rather than letting the null travel.
+* Reading a context item before it is set panics with `"<name> is not set"` (`context.rs`).
+* `Swerve::new` panics with "Could not create the swerve drivetrain" when the device setup fails.
 
-Same logic for `ArrayIndexOutOfBoundsException`: bounds-check before indexing rather than trapping the throw.
+Do not use `unwrap` on user input, on files, on a network call or on a device read. Use `match`, `if let`, `?` or a default.
 
-## When `try-catch` is the right tool
+For indexing, check bounds first or use `.get(i)`, which returns an `Option`.
 
-You want `try-catch` when:
+## Locks and borrows
 
-* You're at a boundary with code you don't control: file I/O, network calls, vendor SDK methods that declare checked exceptions.
-* The recoverable behavior is meaningful: fall back to a default, retry once, switch to a degraded mode.
-* You want to *log and continue* rather than crash. Per-loop sensor reads are a common case: a bad read shouldn't crash the loop, just produce a sentinel value and log the issue.
+* A `Mutex` is poisoned when a thread panics while it holds the lock. The code uses `lock().unwrap_or_else(PoisonError::into_inner)` so one panic does not stop every later lock.
+* A `RefCell` panics with "already borrowed" if you borrow it twice at once. Keep a borrow inside one method. See the borrow rule in [Code style](code-style.md).
+* Dashboard calls from a thread other than the loop thread panic.
 
-You don't want `try-catch` when:
+## Stopping the robot on purpose
 
-* The exception indicates a bug in your code. Let it crash; fix the bug.
-* You're catching it just to log and re-throw. Use the underlying logging hook instead, or let it propagate.
-
-## Log the exception, not just its message
-
-`e.getMessage()` alone often loses the chain. Log `e` itself, which is `e.toString()` and therefore includes the exception class name, and call `e.printStackTrace()` to get the call site. Both together let someone reading the log six weeks later figure out what happened.
+`KillRobotException` (`spectrum_lib/util/exceptions/kill_robot_exception.rs`) is an error type for the case where continuing is unsafe. A caller that must stop the program does `panic!` with it. Nothing in the robot uses it today.
 
 ## Faults
 
-For known failure modes, add a named entry to the `Telemetry.Fault` enum in [`Telemetry.java`](../../src/main/java/frc/spectrumLib/telemetry/Telemetry.java) and log it with `Telemetry.print(Fault.X.name(), PrintPriority.HIGH)`. The enum is the shared vocabulary, so a fault is easy to grep after a match. New entries are cheap and make post-match analysis far faster than searching free text through `Prints`.
+`Fault` in `telemetry.rs` names known failure modes (`CameraOffline`, `AutoShotTimeoutTriggered` and `Brownout`). Nothing logs them yet. When you add a fault, log it with `telemetry::print_with` at `High` priority, using the name of the variant, so a search of the log finds it.
+
+## Log the error, not only its message
+
+Log the whole error value with `{error}` or `{error:?}`. `{error}` gives the text. `{error:?}` shows the type and fields. A message with no cause is hard to read six weeks later.
 
 ## See also
 
-* [Logging](../tools/logging.md) for how `Telemetry.print` and `log` end up in the `.wpilog`.
-* [Code Style](code-style.md) for the surrounding conventions.
+* [Logging](../tools/logging.md) for how prints and logs reach the `.wpilog`.
+* [Code style](code-style.md) for the thread and borrow rules.

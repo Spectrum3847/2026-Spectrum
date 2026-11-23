@@ -1,5 +1,7 @@
 # Formatting code and comments
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've read [Classes, methods, and objects](classes-methods-objects.md).*
 
 You do not have to think about indentation or line length. A formatter runs as part of every build and rewrites your files to match the team style, so save your file, run the build, and read the result. [Code Style](../coding-conventions/code-style.md) has the naming rules, the file layout, and how to tell the formatter to leave a block alone.

@@ -1,0 +1,13 @@
+[package]
+name = "golden"
+description = "Test helper that checks Rust results against Java golden fixtures."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

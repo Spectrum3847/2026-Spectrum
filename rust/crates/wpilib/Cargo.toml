@@ -1,0 +1,13 @@
+[package]
+name = "wpilib"
+description = "HAL, driver station, NetworkTables, dashboards and logging over WPILib native C APIs."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+libloading = "0.8"
+wpimath = { workspace = true }
+
+[lints]
+workspace = true

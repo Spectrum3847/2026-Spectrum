@@ -1,0 +1,15 @@
+[package]
+name = "xtask"
+description = "Build, deploy and simulation tasks that run on Linux, Windows and macOS."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+flate2 = "1"
+tar = "0.4"
+ureq = "3"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+
+[lints]
+workspace = true

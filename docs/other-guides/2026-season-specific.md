@@ -1,56 +1,111 @@
 # 2026 season specific: REBUILT
 
-*Audience: Reference. Assumes you've read [Setup](../setup.md).*
+*Audience: reference. Assumes you have read [Setup](../setup.md).*
 
-Orientation for the 2026 game. It tells you where things live and which file owns which decision, and it points at the code for everything else. It deliberately does not list the states, the controls, or the per-robot configs, because those live in source and a copy here would be a copy that lies to you within a week.
+This page tells you where things live and which file owns which decision. It also lists the robot's states and controls, because students ask for them first. The code is the source of truth. If this page and the code differ, trust the code and fix the page.
 
 ## Where things live
 
-Under `src/main/java/frc/robot/`:
+All robot code is in `rust/crates/robot/src/`.
 
-* `subsystems/` holds one folder per mechanism, each with a single file that carries the mechanism, its inner `Config` class, and its inner `WantedState` and `SystemState` enums. The layout and the reasoning behind it are in [Class Generation](../coding-conventions/class-generation.md).
-* `subsystems/SuperStructure.java` is the orchestrator, a `SubsystemBase`. The mechanisms below it implement `Subsystem` rather than extending `SubsystemBase`, and each registers itself with the scheduler in the `Mechanism` constructor.
-* `pilot/` and `operator/` hold the gamepad classes. They expose `Trigger`s and nothing else; they hold no behavior.
-* `configs/` holds the per-robot config classes.
-* `auton/` holds the auto chooser and the named commands the paths call back into.
-* `Robot.java` constructs everything, owns the hardware CAN bus, and holds the binding wiring.
-* `RobotSim.java` and the classes under `src/main/java/frc/rebuilt/` are game math and simulation support. `ShotCalculator` and `Field` are called on the real robot, so treat those as robot code. `FuelPhysicsSim` is simulation only and is reached through `RobotSim`.
+* `robot/robot.rs` builds everything in `Robot::init`, picks the config, and holds `bind_controls`, where gamepad buttons become commands. It also has the mode methods (`autonomous_init`, `teleop_init` and so on).
+* `robot/subsystems/` has one file per mechanism: `fuel_intake`, `intake_extension`, `indexer_bed`, `indexer_tower`, `launcher`, `hood`, `leds` (not used yet), `vision` and `swerve/`. `super_structure.rs` is the orchestrator. See [Adding a subsystem](../coding-conventions/adding-a-subsystem.md).
+* `robot/pilot/` and `robot/operator/` hold the gamepad classes. They expose `Trigger`s and hold no behavior.
+* `robot/configs/` holds one function per robot.
+* `robot/auton/` holds the auto chooser and the PathPlanner event triggers.
+* `robot/robot_sim.rs` and `rebuilt/` hold game logic and simulation. `ShotCalculator` and `field.rs` run on the real robot, so treat them as robot code. `FuelPhysicsSim` and `RobotBumpSim` are simulation only.
+* `context.rs` holds robot-wide objects (`swerve`, `super_structure`, `hood` and others). Each is set once during init and read through a function. Reading one before it is set panics with its name.
+* `spectrum_lib/` is the reusable layer: `Mechanism`, gamepads, hardware wrappers, LEDs, vision, sims. A change here changes every robot, so take more care than with a per-robot config.
 
-Under `src/main/java/frc/spectrumLib/` is the reusable layer: the `mechanism` base class, gamepads, hardware wrappers, telemetry, LEDs, swerve, vision, and sim configs. If something there changes, it changes for every robot, so treat it with more care than a per-robot config.
+Other crates (`wpilib`, `commands`, `wpimath`, `phoenix6`, `swerve`, `pathplanner`, `telemetry`) are libraries. See [Dependencies overview](../dependencies/overview.md).
 
 ## Where a behavior belongs
 
-This is the judgment call the code cannot teach:
+* A move that needs several mechanisms to change together is a new `WantedSuperState` in `super_structure.rs`. Add it to `WantedSuperState`, `CurrentSuperState`, `handle_state_transitions` and `plan_for`.
+* A button that starts a state that already exists is a binding in `bind_controls`, calling `targets.set_state(...)`.
 
-* A coordinated move across several mechanisms is a new entry in the `WantedSuperState` enum in [`SuperStructure.java`](../../src/main/java/frc/robot/subsystems/SuperStructure.java), handled in its `handleStateTransition()` and applied in `applyStates()`. A new super-state is the answer whenever two or more mechanisms have to change together.
-* A single trigger that fires a state that already exists is a binding in [`Robot.configureBindings()`](../../src/main/java/frc/robot/Robot.java), calling `superStructure.setStateCommand(...)`.
+## The state machine
 
-Where to read the current answers:
+`WantedSuperState` is what a button or auto asks for. `handle_state_transitions` turns it into a `CurrentSuperState`. `plan_for` maps that state to a `Plan`, which is the wanted state of the swerve and each mechanism. `SuperStructure::apply_states` sends the plan out every loop.
 
-* **The list of robot-level states** is the `WantedSuperState` enum in `SuperStructure.java`. The transition table is that class's `handleStateTransition()`, and the fan-out to each mechanism is in the `apply*` methods it dispatches to. Field-location triggers such as `robotInNeutralZone()` are methods on the same class.
-* **Which button fires which state** is in `Robot.configureBindings()`, and only there. `Pilot` and `Operator` name the triggers and hold no behavior.
+| State | What it does |
+|---|---|
+| `Idle` | Mechanisms off or at rest, launcher in idle prep, hood home. Teleop drive. While disabled or in auto, the swerve idles. |
+| `IntakeFuel` | Extends the intake, runs the intake and the bed slowly. |
+| `TrackTarget` | Drive aims at the target, launcher and hood aim. Intake extension is `ConditionalExtend`. |
+| `LaunchWithSqueeze` | Aims and launches with the intake held out for 1 second, then closes it slowly. |
+| `LaunchWithSqueezeWithNoDelay` | Same, but the intake closes right away. |
+| `LaunchWithoutSqueeze` | Same, with the intake held out the whole time. |
+| `LaunchWithBrake` | Locks the wheels in an X, launches. No pilot binding uses it today. |
+| `AutonIntakeFuel`, `AutonTrackTarget` | Like the teleop states, but the swerve is left to the path follower. |
+| `Unjam` | Runs the indexers in reverse. Launcher off. |
+| `Eject` | Runs the intake out and the indexers in reverse. Launcher off. |
+| `ForceHome` | Retracts the intake fully. Launcher off. |
+
+While the drive aims at the target in the launch states, the pilot's translation speed drops to 10 percent. `plan_for` has the exact settings for every state.
+
+Field zone triggers, such as `robot_in_neutral_zone`, are methods on `SuperStructure`.
+
+## Controls
+
+Read `bind_controls` in `robot/robot.rs` for the current bindings. The pilot is gamepad port 0 and the operator is port 1.
+
+Pilot:
+
+| Input | Action |
+|---|---|
+| Left trigger | `IntakeFuel` while held |
+| Right trigger | `LaunchWithSqueeze` while held |
+| Both triggers | `LaunchWithoutSqueeze` |
+| Left trigger released while right is held | `LaunchWithSqueezeWithNoDelay` |
+| Right trigger released while left is held | `IntakeFuel` |
+| Both triggers released | `Idle` |
+| Left trigger and left bumper | `Eject` |
+| X | `TrackTarget` while held |
+| A | `Unjam` while held |
+| Select | `ForceHome` while held |
+| Left bumper and D-pad | Set the field-centric forward direction (up, left, down, right) |
+| A while disabled | Coast the intake extension and hood |
+| B while disabled | Brake the intake extension and hood |
+
+Operator:
+
+| Input | Action |
+|---|---|
+| Left bumper and Y | Reset the intake extension position to its maximum, with a rumble. Works while disabled. |
+| Select | `ForceHome` while held |
+| D-pad up and down | Raise or lower the hood angle offset by 0.1 |
+| D-pad left and right | Raise or lower the drive angle offset by 1 |
+| A or B while disabled | Coast or brake, as for the pilot |
 
 ## Per-robot configs
 
-The same code runs on several physical robots. At startup the `Robot()` constructor switches on `Rio.id` to pick a config class; `Rio.id` resolves the RoboRIO serial number against the `Rio` enum in [`Rio.java`](../../src/main/java/frc/spectrumLib/hardware/Rio.java).
+The same program runs on several robots. At startup `config_for(Rio::id())` picks a config function by roboRIO serial. `spectrum_lib/hardware/rio.rs` holds the serial numbers.
 
-Two gotchas a reader will not guess:
+* `PHOTON2026` uses `photon2026`.
+* `PM2026` uses `pm2026`.
+* Anything else, including the simulator, uses `fm2026`.
+* `am2026` and `xm2026` exist, but nothing selects them. Editing them changes no robot.
 
-* **A serial that matches no entry resolves to `Rio.UNKNOWN`,** and `Robot()` falls back to the competition config. So a reflashed or replaced RoboRIO looks exactly like a working robot right up until you deploy to it. If a bot behaves like the wrong robot, check `Rio` first.
-* **Not every config class in `configs/` is wired into that switch.** A class can exist for a robot you are no longer running. Grep `Robot.java` for the config you are about to edit, and if it isn't in the switch, editing it changes nothing at runtime.
+Two gotchas:
 
-Every config class marks each mechanism present or absent with `setAttached(boolean)`. The mechanism object is still constructed on every robot; the flag is what stops it creating motors and running per-loop work for hardware that is not there, and what makes the sensor getters return zero instead of reading a device that does not exist. Encoder offsets and CAN IDs are per-robot facts. Changing one in the wrong config class silently breaks a different robot and will not fail to compile.
+* A serial that matches no robot falls back to `fm2026`. A reflashed or replaced roboRIO looks like a working robot until you deploy to it. If a robot behaves like the wrong one, check `rio.rs` first.
+* Each config sets `attached` for each mechanism. A mechanism is built on every robot, but an unattached one makes no motors and its reads return zero. Swerve encoder offsets are per-robot facts. CAN IDs are in each subsystem's config struct. A change in the wrong config breaks a different robot and still compiles.
+
+## Autos
+
+Autos are PathPlanner files in `src/main/deploy/pathplanner/`. `Auton` builds the chooser from them. Event markers on paths (`intake`, `shotPrep`, `unjam`, `clearState`, `poseUpdate`) trigger states. See [Auton](../tools/auton.md).
 
 ## Vision
 
-Three Limelights, back, left, and right, doing AprilTag pose estimation. [`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) decides which candidate estimate to trust and builds a `VisionFieldPoseEstimate` (pose, capture timestamp, and per-axis standard deviations), then hands it to the swerve's `addVisionMeasurement(...)`. The tag layout it loads is the seasonal field map, so it changes with the game each year. Game-piece detection and QuestNav are not integrated, so tag tracking is all that runs today.
-
-Which estimate gets used, and when, is the part worth reading before you change anything, and it is in `Vision.java`. The fusion scheme, the ambiguity rejection, and resetting pose from vision are covered in [Vision](../tools/vision.md).
+Three Limelights (back, left, right) do AprilTag pose estimation. `Vision` decides which estimate to trust and passes it to the swerve pose estimator. Game piece detection and QuestNav are not integrated. See [Vision](../tools/vision.md).
 
 ## Hub shifts
 
-REBUILT alternates each alliance's hub between active and inactive during teleop. This is a competition rule, so the code implements it but cannot state it. The schedule lives in [`ShiftHelpers.java`](../../src/main/java/frc/rebuilt/ShiftHelpers.java), as two parallel arrays of shift start and end times, one active and one inactive, with the rotation chosen by which alliance is active first. `autoEndTime` in that same class is the length of the autonomous period, another rule the code encodes rather than states.
+In REBUILT each alliance's hub switches between active and inactive during teleop. This is a game rule, so the code uses it without stating it. `rebuilt/shift_helpers.rs` holds the schedule: shift start and end times and which alliance is active in each. `bind_controls` calls `shift_helpers::initialize` when teleop, auto or disabled starts, so the shift clock restarts from zero. If a shift-aware behavior reads wrong, check that reset first.
 
-`Robot.configureBindings()` calls `ShiftHelpers.initialize()` on the teleop, auto, and disabled transitions, which is what keeps the shift clock lined up with the match. That only works because the timer restarts from zero on each of those edges; if a shift-aware behavior reads wrong, check that the clock was reset before you look at the mechanism.
+The first active alliance comes from the FMS game message, not from alliance color. With no FMS, as in practice, the code assumes the opponent is active first, so the schedule can be wrong in practice.
 
-Which alliance is active first comes from the FMS game message rather than from alliance color. That is an FMS convention, and it is why the schedule can be wrong in a practice session with no FMS: the fallback assumes the opponent is active first.
+## Shot calculation
+
+`ShotCalculator` (`rebuilt/shot_calculator.rs`) computes the drive angle, hood angle and launcher speed for the current pose and velocity. The operator's D-pad nudges the hood and drive offsets. A `Hub Model Chooser` shows on the dashboard.

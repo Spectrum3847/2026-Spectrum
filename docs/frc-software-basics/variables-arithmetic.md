@@ -1,5 +1,7 @@
 # Variables and arithmetic
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've completed [Setup](../setup.md).*
 
 A variable is a named box for a value. Java is statically typed, which means you say what type goes in the box before you put anything in it, and every statement ends with a semicolon. If you are coming from Python, both of those feel odd at first.

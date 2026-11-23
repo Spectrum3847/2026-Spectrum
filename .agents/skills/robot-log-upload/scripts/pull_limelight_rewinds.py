@@ -33,7 +33,7 @@ PORT = 5807
 SIDECARS = (".avi", "_manifest.jsonl", "_bootlog.txt.gz")
 CLIP_RE = re.compile(r"^(?P<base>.+?)(\.avi|_manifest\.jsonl|_bootlog\.txt\.gz)$")
 
-# 3847: cameras from Vision.java on main and on 2026-offseason-bot; each robot lacks one. 8515: back .11, left .12, right .13.
+# 3847: cameras from the robot's vision config (rust/crates/robot/src/robot/subsystems/vision.rs; Vision.java before the Rust port); each robot lacks one. 8515: back .11, left .12, right .13.
 CAMERAS = {
     3847: [f"limelight-{n}.local" for n in ("left", "right", "turret", "back")],
     8515: ["10.85.15.11", "10.85.15.12", "10.85.15.13"],

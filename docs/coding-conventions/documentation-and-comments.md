@@ -1,77 +1,79 @@
-# Documentation and Comments
+# Documentation and comments
 
-*Audience: Reference. Assumes you've read [Code Style](code-style.md).*
+*Audience: reference. Assumes you have read [Code style](code-style.md).*
 
-The goal: someone joining the team next month should be able to read this codebase top-to-bottom and form an accurate mental model without you on a call to translate. Comments and JavaDoc are the most useful when the code's *what* is clear from the names but the *why* isn't.
+Someone who joins next month should be able to read this code base and understand it without you on a call. Comments help most when the code shows what happens, but not why.
 
-The code is the record of what the robot does. A comment never replaces it, and a comment that claims something the code no longer does is worse than no comment at all. So a comment earns its place by adding something the code cannot say: the reasoning, the constraint, the reason for the choice.
+The code is the record of what the robot does. A comment never replaces it. A comment that says something the code no longer does is worse than no comment. A comment earns its place by saying what the code cannot: the reason, the constraint, the cause of a choice.
 
-## When to Comment
+## When to comment
 
-Default to writing no comment. Add one when the *why* is non-obvious:
+Write no comment by default. Add one when the why is not obvious. Keep it to a few words or a few lines.
 
-* A hidden constraint (`// PathPlanner expects angles in radians, not degrees`)
-* A workaround for a specific bug (`// Phoenix 6 < 26.3.0 returns NaN for unconfigured slots, see CTRE issue #471`)
-* A subtle invariant (`// must be called before configurePID(), order matters`)
-* Behavior that would surprise a reader (`// LED priority of -1 is the lowest; it only runs when no higher-priority pattern is active`)
+* A hidden constraint: `// PathPlanner expects radians`.
+* A workaround: `// Java: the staleness check reads the MT1 capture time, not the MT2 one`.
+* An order that matters: `// Set the context item before the sims are built`.
+* Behavior that would surprise a reader.
 
-Don't write comments that just restate the code. `// loop over modules` above `for (var module : modules)` is noise. Names like `tightenMagnetOffset` or `rejectAmbiguousTagEstimate` already say what the code does.
+Do not restate the code. `// loop over modules` above a `for` loop is noise. A clear name does that job.
 
-## JavaDoc
+Do not describe the old code, an issue number or the current change. "Used to" and "no longer" comments go stale. Put that in the commit message. When behavior changes, update or delete the comment next to it.
 
-Public methods on subsystems (and `SuperStructure`) and the fields on `*Config` inner classes are the API the rest of the robot depends on. Those deserve at least a one-line JavaDoc, especially when units or ranges are non-obvious. A shape to aim for:
+## Doc comments
 
-```java
-/**
- * Sets the flywheel target.
- *
- * @param rpm target speed in revolutions per minute, 0-6000
- */
-public void setTargetRPM(double rpm) { ... }
+Rust has two doc comment forms:
+
+* `///` documents the item below it.
+* `//!` documents the module or crate it sits in. It goes at the top of the file.
+
+Public items that other code uses should have at least one line. The top of each file has a `//!` line that says what the file is for, as in `hood.rs`: "Sets the hood angle that aims the fuel shot."
+
+Two habits that help:
+
+* **Say the unit.** `meters`, `radians`, `volts`, `RPM`, `rotations`. Wrong-unit errors are common. Config fields get their unit in the doc comment or the name, such as `hood_x` in meters.
+* **Say the thread or loop rule when it matters.** For example "Call on the robot loop thread" or "Safe to call from any thread".
+
+A shape to aim for:
+
+```rust
+/// Position in rotations, via Motion Magic in torque current FOC (requires Phoenix Pro).
+pub fn set_mm_position_foc(&self, rotations: impl Fn() -> f64) { ... }
 ```
 
-Two specific habits that pay off:
+Link to other items with `[`name`]`. `cargo doc` turns them into links, and warns if they break.
 
-* **Document units in `@param`/`@return`**, `meters`, `radians`, `volts`, `RPM`. Off-by-π errors happen because someone assumed the wrong unit.
-* **Note thread/loop expectations when they matter**, "must be called from `periodic()`", "safe to call while disabled", etc.
+Run `cargo doc --workspace --no-deps --open` to see the result.
 
-`./gradlew javadoc` renders HTML to `build/docs/javadoc/`. `Xdoclint:none` is set, so missing JavaDocs don't fail the build, but they do fail readers later. See [Build Tools](../tools/build-tools.md) for the JavaDoc task config and cross-link setup.
+## Safety comments
 
-## TODO Comments
+Every `unsafe` call needs a `// SAFETY:` comment that says why the call is sound. For example, `// SAFETY: no arguments, no preconditions.` See [Code style](code-style.md).
 
-Use `// TODO:` for code that works but you know wants follow-up. Include enough context that future-you can pick it up cold:
+## TODO comments
 
-```java
-// TODO: replace hardcoded 12V with battery-compensated supply voltage
-```
+Use `// TODO:` for code that works but needs follow-up. Give enough detail that someone can pick it up cold. For anything bigger than one line, open a GitHub issue and put its number in the TODO: `// TODO(#142): add the game piece detection pipeline`. Do not use a TODO for known broken code. Fix it, or open an issue.
 
-VSCode surfaces TODOs in the Problems panel, which is the closest thing to a built-in tracker. For anything bigger than a one-line follow-up, open a GitHub Issue and reference it from the TODO (`// TODO(#142): add game-piece detection pipeline`). The Issue persists; the TODO might get refactored away.
+## What not to write
 
-Don't use `// TODO` for known broken code; fix it or open an Issue and `@SuppressWarnings` it intentionally. A TODO on a bug becomes a landmine for the next person.
+* **Banners.** `// === Helpers ===` adds nothing.
+* **Long doc comments** unless the item is that subtle. If the comment is longer than the code, split the code.
+* **Commented-out code.** Delete it. Git has the history.
 
-## What Not to Write
+## Linking docs to code
 
-* **Don't reference current context.** `// added for the launching state` or `// fix for issue #99` rots: the issue gets closed, the state gets renamed, and the comment is wrong forever. Put that in the PR description and commit message.
-* **Don't write block-comment banners.** `/* === Helpers === */` looks tidy but adds nothing.
-* **Don't write multi-paragraph docstrings** unless the method really is that subtle. If your comment is longer than the method, the method probably wants to be split.
-* **Don't commit commented-out code.** Delete it; git has the history. The only exception is when explicitly marking a WIP region with a clear `// TODO: re-enable when X`, and even then, prefer a stub or `throw new UnsupportedOperationException`.
+The pages in `docs/` link to source files with relative paths. Keep them working:
 
-## Cross-Referencing Code From Docs
+* When you rename a file or type, search `docs/` for the old name (`grep -r "OldName" docs/`) and fix it.
+* When you delete a file, remove the reference or point to its replacement.
+* When you move a file, update the relative path.
 
-This documentation set links into source via relative paths from `docs/`, e.g., `[Launcher.java](../../src/main/java/frc/robot/subsystems/launcher/Launcher.java)`. Keep those alive:
+Nothing checks the links for you. If you break one, nobody notices until someone clicks it.
 
-* When you rename a class, grep the `docs/` tree for the old name (`grep -r "OldClassName" docs/`) and fix references.
-* When you delete a class, decide whether the doc reference is still useful (might point to a successor) or should be removed.
-* When you move a file, the relative path needs updating.
+## External resources
 
-There's no automated link checker on this repo; if you break a link, nobody notices until someone clicks. Periodic grep-and-fix is the only enforcement.
+Do not repeat the [WPILib docs](https://docs.wpilib.org), CTRE, Limelight or PathPlanner docs. These pages cover how we put those pieces together. If the answer is "read the WPILib docs on commands", link to them.
 
-## External Resources
+## See also
 
-Don't reinvent. Chief Delphi, the [WPILib docs](https://docs.wpilib.org), and CTRE / Limelight / PathPlanner docs cover everything except the team-specific patterns. This doc set is specifically *not* trying to replace those; its job is to capture how *we* assemble those pieces. If the right answer is "go read the WPILib docs on `SubsystemBase`," that's the right answer; link to it.
-
-## See Also
-
-* [Code Style](code-style.md) for naming and formatting.
-* [Class Generation](class-generation.md) for the structural conventions JavaDocs live around.
-* [Build Tools](../tools/build-tools.md) for the JavaDoc Gradle task.
+* [Code style](code-style.md) for naming and layout.
+* [Adding a subsystem](adding-a-subsystem.md) for the structure the docs sit around.
+* [Build tools](../tools/build-tools.md) for `cargo doc`.

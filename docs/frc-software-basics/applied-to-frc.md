@@ -1,5 +1,7 @@
 # Applied to FRC
 
+> **Java background.** This lesson is from before the Rust port. The robot code is now Rust. The ideas carry over, but the syntax and examples are Java. See [Setup](../setup.md) for the Rust workflow.
+
 *Audience: New programmers. Assumes you've read [Formatting code and comments](formatting-code.md).*
 
 The lessons in this folder are about Java, and Java is the same everywhere. This page is the bridge to the one framework on top of it. WPILib does not change the way a language does, so what is written here stays true.
@@ -59,7 +61,7 @@ The same idea covers most cases where you would have reached for `while`. `onTru
 
 **Conditionals and logic operators.** They gate everything. Whether a command should start, whether a subsystem should act, whether a value passed a limit. The short-circuit rules from the logic lesson matter more here than anywhere, because guarding a sensor read with `if (sensor != null && sensor.isValid())` is the difference between a warning and a crash at a competition.
 
-**Classes and objects.** Each mechanism is a class, you create one object of it, and that object holds the hardware and the current state for the whole match. Other code asks the object to do things through its `public` methods. See [Class Generation](../coding-conventions/class-generation.md) for how we lay those classes out.
+**Classes and objects.** Each mechanism is a class, you create one object of it, and that object holds the hardware and the current state for the whole match. Other code asks the object to do things through its `public` methods. See [Adding a subsystem](../coding-conventions/adding-a-subsystem.md) for how we lay those classes out.
 
 **Enums.** Anything with a fixed set of named modes is an enum, and a `switch` over an enum is how you respond to them. A `switch` expression with no `default` has to cover every value, so adding a mode later is a compile error at each site that needs updating. A `switch` statement can leave values out, and the ones you left out do nothing.
 
@@ -73,7 +75,7 @@ runMotor(() -> tunedSetpoint);  // asks for the value every time it is called
 runMotor(tunedSetpoint);       // asks once, and that is the number it uses
 ```
 
-The lambda is `() -> tunedSetpoint`. It looks like a value but it is a function, and the difference above is the whole reason the supplier form exists. `config::getSetpoint` is the same thing written shorter. See [Programming tips](../other-guides/tips.md#doublesupplier-vs-double) and [Classes, methods, and objects](classes-methods-objects.md).
+The lambda is `() -> tunedSetpoint`. It looks like a value but it is a function, and the difference above is the whole reason the supplier form exists. `config::getSetpoint` is the same thing written shorter. See [Programming tips](../other-guides/tips.md#closures-instead-of-numbers) and [Classes, methods, and objects](classes-methods-objects.md).
 
 ## What is rare
 
@@ -83,4 +85,4 @@ Raw arrays. They show up at the edges, where a WPILib API expects an array or yo
 
 ---
 
-*Previous: [Formatting code and comments](formatting-code.md), Up next: the [reference docs](../index.md#i-already-know-how-to-program-show-me-the-reference) on tools, dependencies, and conventions.*
+*Previous: [Formatting code and comments](formatting-code.md), Up next: the [reference docs](../index.md#tools) on tools, dependencies, and conventions.*

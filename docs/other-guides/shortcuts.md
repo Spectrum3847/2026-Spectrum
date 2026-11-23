@@ -1,72 +1,65 @@
 # Development shortcuts
 
-*Audience: Reference. Assumes you've read [Setup](../setup.md).*
+*Audience: reference. Assumes you have read [Setup](../setup.md).*
 
-A reference for the shortcuts and commands that come up often. If you're new, the ones worth memorizing first are `F2`, `Ctrl+D`, `Ctrl+Shift+P`, and the multi-cursor shortcuts; they pay off immediately.
+Shortcuts and commands that come up often. If you are new, learn `F2`, `Ctrl+D`, `Ctrl+Shift+P` and the multi-cursor shortcuts first. They pay off right away.
 
 ## VS Code
 
-|       Shortcut        |                                                                What it does                                                                |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `Tab`                 | Accept an inline Copilot suggestion.                                                                                                       |
-| `Ctrl+Right Arrow`    | Accept the next word of a suggestion.                                                                                                      |
-| `F2`                  | Rename: renames all references to a variable, method, or class across the project. Use this instead of find-and-replace; it's scope-aware. |
-| `Ctrl+/`              | Toggle line comment on the selected text.                                                                                                  |
-| `Ctrl+Click` or `F12` | Go to definition: jumps to where a method or class is declared.                                                                            |
-| `Alt+Shift+F12`       | Find all references: shows every call site for a symbol.                                                                                   |
-| `Ctrl+P`              | Quick open: fuzzy-search files by name. Faster than the Explorer for navigating a codebase.                                                |
-| `Ctrl+Shift+P`        | Command Palette: run any VS Code or WPILib command by name. This is how you launch sim, clean the workspace, or deploy.                    |
-| `Ctrl+`` ` `` `       | Toggle the integrated terminal.                                                                                                            |
-| `Ctrl+Shift+V`        | Preview Markdown in a side panel; useful when editing docs.                                                                                |
-| `Shift+Alt+Down`      | Duplicate the current line or selected block.                                                                                              |
+| Shortcut | What it does |
+|---|---|
+| `Tab` | Accept an inline suggestion, if you use a code completion extension. |
+| `F2` | Rename a variable, function or type everywhere it is used. Use this instead of find and replace. It knows scope. |
+| `Ctrl+/` | Toggle a line comment on the selected text. |
+| `Ctrl+Click` or `F12` | Go to definition. |
+| `Alt+Shift+F12` | Find all references to a name. |
+| `Ctrl+P` | Quick open. Search files by name. |
+| `Ctrl+Shift+P` | Command Palette. Run any VS Code command by name. |
+| `Ctrl+Shift+V` | Preview Markdown in a side panel. Useful when you edit docs. |
+| `Shift+Alt+Down` | Duplicate the current line or block. |
 
-## Multi-Cursor Editing
+## Multi-cursor editing
 
-Multi-cursor is one of the highest-value things to learn in VS Code. It lets you edit several places at once without regex.
+Multi-cursor lets you edit several places at once without regular expressions.
 
-|        Shortcut        |                                               What it does                                               |
-|------------------------|----------------------------------------------------------------------------------------------------------|
-| `Ctrl+D`               | Select the next occurrence of the highlighted text and add a cursor there. Keep pressing to select more. |
-| `Ctrl+U`               | Undo the last `Ctrl+D` (deselect the most recently added cursor).                                        |
-| `Ctrl+Shift+L`         | Select all occurrences of the highlighted text at once.                                                  |
-| `Ctrl+Alt+Up/Down`     | Add a cursor above or below the current line.                                                            |
-| `Alt+Click`            | Place a cursor at any clicked location.                                                                  |
-| `Middle Click + Drag`  | Column select: places cursors on every line you drag across.                                             |
-| `Alt+Shift+Arrow Keys` | Expand or shrink the selection by word, line, or block.                                                  |
+| Shortcut | What it does |
+|---|---|
+| `Ctrl+D` | Select the next copy of the highlighted text and add a cursor there. Press again for more. |
+| `Ctrl+U` | Undo the last `Ctrl+D`. |
+| `Ctrl+Shift+L` | Select every copy of the highlighted text at once. |
+| `Ctrl+Alt+Up` or `Down` | Add a cursor above or below. |
+| `Alt+Click` | Add a cursor where you click. |
+| Middle click and drag | Column select. |
+| `Alt+Shift+Arrow keys` | Expand or shrink the selection. |
 
-A common use: highlight `public`, then `Ctrl+Shift+L` to select every instance in a file, type `private` and you've renamed them all at once.
+## rust-analyzer commands
 
-## WPILib Actions
+Run these from the Command Palette (`Ctrl+Shift+P`).
 
-These are all available through `Ctrl+Shift+P`. The most useful ones:
+| Command | What it does |
+|---|---|
+| `rust-analyzer: Restart server` | Clear stale errors after a branch switch. |
+| `rust-analyzer: Run` | Run a `main` function, test or example. |
+| `rust-analyzer: Expand macro recursively` | Show what a macro writes. |
 
-|                 Command                 |                                      What it does                                      |
-|-----------------------------------------|----------------------------------------------------------------------------------------|
-| `WPILib: Simulate Robot Code`           | Build and launch the simulator. Equivalent to `./gradlew simulateJava`.                |
-| `WPILib: Deploy Robot Code`             | Build and deploy to a connected RoboRIO. Equivalent to `./gradlew deploy`.             |
-| `WPILib: Build Robot Code`              | Compile without deploying. Equivalent to `./gradlew build`.                            |
-| `Java: Clean Language Server Workspace` | Clear the Java language server cache. Use when IntelliSense is showing phantom errors. |
-| `WPILib: Manage Vendor Libraries`       | Add or update vendordep libraries (Phoenix 6, PathPlanner, etc.).                      |
+## Terminal commands
 
-Keyboard shortcuts for simulation and deploy (`F5`, `Shift+F5`) can be set up in VS Code's keybinding editor, but the Command Palette is reliable across any machine.
+Run these from `rust/`. [Cargo xtask](../tools/cargo-xtask.md) has the full list.
 
-## Terminal Commands
-
-For anything not in the WPILib menu, see [Gradle](../tools/gradle.md) for the full table of `./gradlew` tasks. The ones you'll run most often:
-
-```
-./gradlew build          # Compile + format + static analysis
-./gradlew clean build    # Same, from scratch
-./gradlew deploy         # Build and push to the RoboRIO
-./gradlew spotlessApply  # Reformat all source files (run before committing if CI fails on format)
+```text
+cargo xtask gate                    # format check, clippy, all tests
+cargo fmt --all              # format the code
+cargo xtask sim              # run the robot in simulation
+cargo xtask build-roborio    # build for the roboRIO
+cargo xtask deploy           # copy to the roboRIO
 ```
 
 ## Git in VS Code
 
-The Source Control panel (`Ctrl+Shift+G`) handles staging, committing, pushing, and pulling. For branch management and pull requests, the GitHub Pull Requests and Issues extension integrates directly; you can review PRs, leave comments, and merge without leaving the editor.
+The Source Control panel (`Ctrl+Shift+G`) handles staging, committing, pushing and pulling. The GitHub Pull Requests and Issues extension lets you review and comment on pull requests in the editor.
 
-If you prefer the terminal, see [Commits and Pull Requests](../coding-conventions/commits-pull-requests.md) for the conventions this project uses.
+If you prefer the terminal, see [Commits and pull requests](../coding-conventions/commits-pull-requests.md) for our rules.
 
 ## Phoenix Tuner X
 
-Phoenix Tuner X is a desktop app rather than a VS Code extension, so there are no keyboard shortcuts for it. Its self-test snapshot, plotter, and hoot-log export are documented in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).
+Phoenix Tuner X is a desktop app, not a VS Code extension, so it has no editor shortcuts. Its self-test snapshot, plotter and log export are in [Phoenix Tuner X](../tools/phoenix-tuner-x.md).

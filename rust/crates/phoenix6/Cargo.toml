@@ -1,0 +1,12 @@
+[package]
+name = "phoenix6"
+description = "CTRE Phoenix 6 devices over the Phoenix C API."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+wpilib = { workspace = true }
+
+[lints]
+workspace = true

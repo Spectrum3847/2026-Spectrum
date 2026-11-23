@@ -25,6 +25,8 @@ Each commit should answer "*why*" a change happened. The "what" is in the diff. 
 * `Tighten MT1 ambiguity threshold to 0.5 to drop bad poses`
 * `Fix swerve module 3 offset after collision at FNC week 4`
 
+These are examples of style. The thresholds and numbers in them are made up.
+
 Examples of subjects to avoid: `update`, `wip`, `fixes`, `changes from review`. Those tell future-you nothing.
 
 Format:
@@ -33,7 +35,9 @@ Format:
 * Blank line.
 * Body paragraph(s) when the change is non-trivial: explain rationale, alternatives considered, follow-up TODOs.
 
-Don't commit `BuildConstants.java` changes or formatter-only churn as standalone commits unless that's all the PR is. Roll them into the substantive commit they go with.
+Don't make formatter-only changes a standalone commit unless that's all the PR is. Roll them into the substantive commit they go with. Run `cargo xtask gate` from `rust/` before every commit. See [Code style](code-style.md).
+
+A change to robot behavior gets its own commit. Never hide one inside a refactor.
 
 ### Who You're Committing As
 
@@ -43,7 +47,7 @@ On a team-owned laptop, five people use the same checkout in one build session. 
 git config user.name
 ```
 
-VS Code users: the Git Config User Profiles extension (see the README) switches this from the status bar. For a one-off commit under your own name without touching the machine's config:
+VS Code users: the Git Config User Profiles extension switches this from the status bar. For a one-off commit under your own name without touching the machine's config:
 
 ```sh
 git -c user.name="Your Name" -c user.email="id+you@users.noreply.github.com" commit -m "..."
@@ -58,21 +62,21 @@ AI agent sessions follow the same rule, enforced rather than trusted: see [Writi
 Open the PR against `main`. Before clicking *Create*:
 
 * **One feature per PR.** This is the rule we bend least. The point is removability: when a mechanism misbehaves at an event, backing out auto-aim should be one `git revert` of one squashed merge, not an hour of separating auto-aim from the LED cleanup that rode along with it. If you found an unrelated bug mid-branch, fix it on its own branch off `main`, even if it's one line. Refactors go in their own PR, separate from the behavior change they enable. If your description needs the word "also," you have two PRs.
-* **CI must pass.** A PR with a red build doesn't get reviewed. Run `./gradlew clean build` locally first; if you can't be bothered locally, CI will catch it and you'll just iterate slower.
+* **CI must pass.** A PR with a red check doesn't get reviewed. Run `cargo xtask gate` locally first. CI currently runs a spell check (`typos`) on pull requests, so run the gate yourself for format, lint and tests.
 * **Pull `main` first.** A PR that doesn't merge cleanly is a PR that's hard to review.
 * **Self-review the diff.** Skim it before assigning a reviewer. You'll catch debug prints, commented-out code, and accidental file moves about half the time.
 * **Description**: one or two sentences on what the PR does and why. If there's a known limitation (e.g., "doesn't handle the X edge case yet, tracked in #123") call it out so reviewers don't waste time on it.
 
 ### Reviewers
 
-Tag a programming lead, or whoever you collaborated with on the feature. For anything that touches `Robot.java`, `SuperStructure.java`, swerve, or vision integration, get a second pair of eyes; those files have the most blast radius.
+Tag a programming lead, or whoever you collaborated with on the feature. For anything that touches `robot/robot.rs`, `super_structure.rs`, swerve, or vision integration, get a second pair of eyes; those files have the most blast radius.
 
 ### Merging
 
-* Build must be green.
+* Checks must be green, and `cargo xtask gate` must pass.
 * All review comments resolved (either addressed or replied to with a reason).
 * Use *Squash and merge* by default; it keeps `main` history readable. Use *Rebase and merge* for a stack of intentionally separate commits (rare).
-* **Never merge a red branch.** A broken `main` means everyone on the team is deploying broken code. The 10 minutes to fix it locally is much cheaper than the next person's 90 minutes of debugging "why doesn't my unrelated feature work."
+* **Never merge a red branch.** A broken `main` means everyone on the team is building and deploying broken code. The 10 minutes to fix it locally is much cheaper than the next person's 90 minutes of debugging "why doesn't my unrelated feature work."
 
 ## After a Merge
 

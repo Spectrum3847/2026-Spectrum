@@ -1,0 +1,19 @@
+[package]
+name = "pathplanner"
+description = "PathPlanner path loading, trajectory generation and following."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+wpimath = { workspace = true }
+commands = { workspace = true }
+wpilib = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+golden = { workspace = true }
+
+[lints]
+workspace = true

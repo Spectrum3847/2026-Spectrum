@@ -1,57 +1,55 @@
 # PathPlanner
 
-*Audience: Reference. Assumes you've read [Dependencies overview](overview.md).*
+*Audience: reference. Assumes you have read [Dependencies overview](overview.md).*
 
-PathPlanner is two pieces: a desktop editor that produces `.path` and `.auto` files, and an on robot library that reads them and drives the swerve. We use both for every autonomous routine. `vendordeps/` holds the pinned JSON.
+PathPlanner is two things: a desktop editor that writes `.path` and `.auto` files, and a library on the robot that reads them and drives the swerve. We use both for every autonomous routine. The `pathplanner` crate replaces PathPlannerLib. It ports **v2026.1.2** (MIT license, `rust/crates/pathplanner/LICENSE`).
 
-Trajectories and autos live in [`src/main/deploy/pathplanner/`](../../src/main/deploy/pathplanner/) and deploy to the roboRIO under `/home/lvuser/deploy/pathplanner/`.
+Paths and autos are in `src/main/deploy/pathplanner/`. They deploy to `/home/lvuser/deploy/pathplanner/` on the roboRIO.
 
-## Where Java meets PathPlanner
+## What is ported
 
-Three places, and only three:
+Paths, trajectory generation, the holonomic drive controller, `FollowPathCommand`, `PathfindingCommand` with AD* pathfinding, `AutoBuilder`, `PathPlannerAuto`, `NamedCommands`, event triggers and flipping.
 
-* `Swerve.configurePathPlanner()` in [`Swerve.java`](../../src/main/java/frc/robot/subsystems/swerve/Swerve.java) is private and runs from the Swerve constructor. It reseeds the pose to a merely plausible blue start, loads `RobotConfig.fromGUISettings()`, and hands `AutoBuilder` the pose, speed, and control plumbing.
-* [`Auton.java`](../../src/main/java/frc/robot/auton/Auton.java) holds the `EventTrigger` constants, the `SendableChooser`, and the command builders that turn an `.auto` name into a command.
-* `Robot.disabledInit` schedules the PathPlanner warmups once per session, guarded by the `autonWarmedUp` flag.
+What the robot does not use is not ported. The list is in the doc comment at the top of `crates/pathplanner/src/lib.rs`. It includes Choreo trajectories, `PathfindThenFollowPath`, dynamic obstacles, the auto trigger helpers (`isRunning`, `timeElapsed` and others) and the setpoint generator.
 
-The translation and rotation `PIDConstants` in that `AutoBuilder` call get re tuned every year. Do not change them without coordinating with whoever owns auto tuning, because small shifts have outsized effects on whether a path lands on its end pose. The alliance lambda in the same call handles red: paths are authored against blue, so on red PathPlanner mirrors the whole path for you.
+## Where the robot meets PathPlanner
+
+Three places:
+
+* `Swerve::configure_path_planner` in `robot/subsystems/swerve/swerve.rs` runs from `Swerve::new`. It moves the pose to a plausible blue start, loads `RobotConfig::from_gui_settings()`, and gives `AutoBuilder::configure` the pose, reset, speed and output closures. The output sends the speeds and per-wheel force feedforwards to the drivetrain. The translation and rotation `PidConstants` are in that call (4.0 and 3.0 now). They get tuned each year. Ask whoever owns auto tuning before you change them, because small changes move where a path ends.
+* `robot/auton/auton.rs` holds the `EventTrigger`s, the `SendableChooser` and the builders that turn an `.auto` name into a command.
+* `disabled_init` in `robot/robot.rs` schedules the warmup commands once per session, guarded by `auton_warmed_up`.
+
+Paths are drawn for the blue alliance. The alliance closure passed to `AutoBuilder::configure` makes PathPlanner flip them for red.
 
 ## Adding an auto step
 
-1. Drop the event marker in the PathPlanner editor on the path that needs it.
-2. Add a matching `public static final EventTrigger` in `Auton.java`. The marker name and the string passed to the constructor have to match exactly.
-3. Bind it in `Robot.configureBindings()` to a super state, or to whatever command the step needs. The existing `Auton.autonIntake` style triggers are bound there, next to the driver bindings.
-
-If a trigger never fires, check the marker name first, then check it for trailing whitespace. A trailing space looks identical in the editor and does not match the Java string.
+See [Auton](../tools/auton.md#event-markers). In short: marker in the editor, an `EventTrigger` with the same name in `auton.rs`, a binding in `bind_controls`. If a trigger never fires, check the marker name, including a trailing space that the editor does not show.
 
 ## Mirroring and flipping
 
-These are two different operations and the difference matters.
+These are two different things.
 
-`Auton.SpectrumAuton(name, mirrored)` is the wrapper that turns an `.auto` name plus a mirror flag into a command, and each chooser option chains several of those together with a `launch()` step between segments. The `mirrored` flag is a within alliance mirror, which is how one `.auto` file becomes both the "Left" and "Right" options. The `withName` suffix on those options is also read by the field visualizer, so keep the " - Left" and " - Right" endings.
+`spectrum_auton(name, mirrored)` in `auton.rs` makes a command from an `.auto` name and a mirror flag. A chooser option chains several of them, with `launch()` between. `mirrored` flips within one alliance, which is how one `.auto` file becomes both Left and Right. Keep the ` - Left` and ` - Right` endings on the names, because `disabled_periodic` reads them for the `Field2d` preview.
 
-Red versus blue is the other operation, and it only happens automatically inside an `.auto` loaded by `PathPlannerAuto`. If you load a path straight from Java instead, nothing flips it. You are on the hook for the red flip and the mirror yourself.
+Blue to red flipping happens when an `.auto` loads through `PathPlannerAuto`. A path you load yourself is not flipped. Do the flip and mirror in your own code.
 
 ## Warmup
 
-`Robot.disabledInit` schedules `FollowPathCommand.warmupCommand()` and `PathfindingCommand.warmupCommand()`, guarded by `autonWarmedUp`, so the JIT compiles the hot paths before the first auto runs. If you add path loading code that only runs during matches, give it the same treatment. The first `PathPlannerPath.fromPathFile(...)` call is expensive.
-
-## Loading a path from Java
-
-`Auton.followSinglePath(pathName)` is the helper for a one off, such as a recovery routine after a failed pose update. It catches `FileVersionException`, `IOException`, and `ParseException` and returns a `PrintCommand` that says the path failed to load, so a missing or malformed file ends that command rather than killing the auto. `Auton.pathfindingCommandToPose(...)` does the equivalent job against a live pose. Neither currently has callers, so read them before assuming they are wired to something.
+`disabled_init` schedules `FollowPathCommand::warmup_command()` and `PathfindingCommand::warmup_command()` once. The first use of path code is slow, so warm it up before the first match. If you add path-loading code that first runs in a match, warm it up the same way. `disabled_periodic` also loads the chosen auto's paths and runs the first one briefly while disabled.
 
 ## Gotchas
 
-The editor's `settings.json` shadows the robot constants. Its `robotMass`, `robotMOI`, `driveWheelRadius`, `driveGearing`, and `wheelCOF` are what the editor generates trajectories from, and nothing reads them back on the robot. If they drift from `SwerveConfig`, generated paths stop tracking, and the symptom is a bot that is off its line at the end of every path rather than anything the error log will tell you.
+`settings.json` is read on the robot. `RobotConfig::from_gui_settings` loads it for robot mass, moment of inertia, wheel radius, gearing, max speed, motor type and wheel friction. The editor uses the same values to make trajectories. If they differ from the real robot, paths do not track. The symptom is a robot off its line at the end of every path, with nothing in the error log. If the file is missing, `configure_path_planner` reports an error and returns without configuring `AutoBuilder`.
 
-`settings.json` also declares a `pathFolders` and `autoFolders` list, but `paths/` and `autos/` are flat on disk. A path saved from the editor can land in one of those folders instead of next to the existing files. Check where a new `.path` ended up before committing it.
+`settings.json` lists `pathFolders` and `autoFolders`, but `paths/` and `autos/` are flat on disk. A path saved in the editor can land in a folder entry instead of next to the existing files. Check where a new `.path` ended up before you commit it.
 
-`navgrid.json` is editor only. It deploys to the roboRIO and nothing reads it there, but keep it under source control anyway so the editor opens cleanly for everyone.
+`navgrid.json` is used by the pathfinding code. Keep it in the repo so the editor opens the same for everyone.
 
 ## Provenance
 
-`Auton.printAutoDuration()`, which reports how long an auto actually took and flags a cancelled run, is ported from team 6328.
+`Auton::print_auto_duration`, which reports how long an auto took, came from team 6328.
 
 ## Further reading
 
-[PathPlanner documentation](https://pathplanner.dev/home.html) covers the editor and the on robot library at a concept level, and the [JavaDoc](https://pathplanner.dev/api/java/) is linked into our generated docs. For how an auto runs end to end, see [Auton](../tools/auton.md).
+[PathPlanner documentation](https://pathplanner.dev/home.html) covers the editor and the library concepts. The Rust names are the Java names in snake_case, with the `PP` prefix written `Pp`. For how an auto runs from start to finish, see [Auton](../tools/auton.md).

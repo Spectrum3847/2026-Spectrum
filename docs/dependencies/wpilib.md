@@ -1,52 +1,46 @@
 # WPILib
 
-*Audience: Reference. Assumes you've read [Dependencies overview](overview.md).*
+*Audience: reference. Assumes you have read [Dependencies overview](overview.md).*
 
-WPILib is the substrate: the command scheduler, the math types, the simulation hooks, NetworkTables, the deploy pipeline. This page covers only the places where the team has made a decision. Anything not here, read [WPILib docs](https://docs.wpilib.org/).
+Three crates replace WPILib. They port WPILib v2026.2.1 (BSD-3 license, see `WPILib-License.md` at the repo root).
 
-The command-based extension is the only vendored piece, `vendordeps/WPILibNewCommands.json`. WPILib core comes straight from GradleRIO via `build.gradle`.
+| Crate | What it holds |
+|---|---|
+| `wpilib` | The HAL over WPILib's C API, driver station, timers, notifiers, the timed robot loop, joysticks, PWM, power distribution, NetworkTables, dashboards (SmartDashboard, `SendableChooser`, `Field2d`, `Mechanism2d`, `Alert`), the deploy folder, a small web server and shutdown hooks. |
+| `commands` | The command-based framework: scheduler, subsystems, triggers, command groups, `SysIdRoutine`. |
+| `wpimath` | Geometry, kinematics, the pose estimator, PID, filters, DC motor models and mechanism sims. A subset only. |
 
-## Mechanisms, and the one direct Subsystem
+Port only what the robot uses. If you need a WPILib class that is missing, add it to the right crate with tests, and add it to `rust/THIRD_PARTY.md`.
 
-Do not extend `SubsystemBase` for a TalonFX mechanism. Extend [`Mechanism`](../../src/main/java/frc/spectrumLib/mechanism/Mechanism.java), which is already a `Subsystem`, so it lands in the scheduler with no adapter. [`Vision`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) is the deliberate exception: it implements `Subsystem` directly because there is no motor to wrap and nothing for a base class to do.
+## How it differs from Java
+
+* **Natives load at runtime.** `wpilib` finds `wpiHal`, `ntcore` and the rest by name through the library path. A missing library gives a clear error that names the file. `cargo xtask fetch-natives` downloads them.
+* **Errors go to the driver station.** Where Java throws, a getter reports to the driver station and returns zero. Constructors return `Result`.
+* **One loop thread.** The robot loop, the scheduler and dashboards run on one thread. Code on other threads must not touch them. See [Exception handling](../coding-conventions/exception-handling.md) and the rules in `AGENTS.md`.
+* **`start_robot`.** `main.rs` calls `wpilib::start_robot(robot::robot::robot::new_timed_robot)`. It starts the HAL, builds the robot, runs the loop, and reports a panic to the driver station.
+* **Time and mode.** `commands` does not depend on `wpilib`. `new_timed_robot` hands it WPILib's clock and the robot mode through `commands::env`.
+
+## Mechanisms and subsystems
+
+Motor mechanisms hold a `Mechanism` (`spectrum_lib/mechanism/mechanism.rs`), which owns the TalonFX. Each subsystem, such as `Hood`, implements the `Subsystem` trait and registers itself with `CommandScheduler::get_instance().register_subsystem(...)`. `Vision` implements `Subsystem` directly because it has no motor.
 
 ## Commands and triggers
 
-`Robot.configureBindings()` in [`Robot.java`](../../src/main/java/frc/robot/Robot.java) is the one place operator input becomes commands. It is a few dozen lines and it shows every pattern we use, so read it before adding a binding.
+`bind_controls` in `robot/robot.rs` is the one place gamepad input becomes commands. Read it before you add a binding. Habits that matter:
 
-The habits that matter:
-
-* Build commands from the `Commands.*` factories instead of hand rolled `InstantCommand` and `SequentialCommandGroup`. They compose with `onTrue`, `whileTrue`, and `onFalse` without extra wrapping.
-* Tag every command with `.withName("...")`. That name is what DogLog prints and what the running commands widget shows. An untagged command logs as a class name, which is useless in a post match log.
-* Reserve `.ignoringDisable(true)` for behavior that genuinely has to run while the robot is disabled. Current uses include swerve control requests, super structure state changes, the shot calculator nudges, the disable time shift timer reset, and the operator `LB+Y` intake extension reset in `Robot.configureBindings()`. Putting it on a mechanism default command means that command keeps fighting for the mechanism while the robot sits disabled.
-* Bind a trigger instead of calling `CommandScheduler.schedule(...)` from a `periodic()`. The scheduler does arbitrate between the two commands either way. The reason to bind a trigger is that a command the scheduler did not enqueue cannot stop one that was, so nothing will preempt a long-running command that a periodic method started. A trigger puts the start on the scheduler's own queue where its requirement and interruption rules apply.
+* Build commands with the `Commands::` factories (`sequence`, `parallel`, `run_once`, `wait_seconds`, `either` and others).
+* Give a command a name with `.with_name("...")`. That name shows in the log and in the running commands widget.
+* Use `.ignoring_disable(true)` only for behavior that must run while disabled, such as swerve control requests, coast and brake mode, and the shot offsets.
+* Bind a trigger rather than scheduling from a `periodic`. A trigger puts the start in the scheduler's own queue, where its requirement and interruption rules apply.
 
 ## Units
 
-`edu.wpi.first.units` is the newer style and is what new code should use. `Pounds.of(...)`, `Inches.of(...)`, and `Seconds.of(...)` return a `Mass`, `Distance`, or `Time` rather than a bare `double`, so the unit travels with the value and a caller cannot silently read metres as inches. Seven files use it: `SwerveConfig`, `Swerve`, `Robot`, `Pilot`, `SysID`, `MapleSimSwerveDrivetrain`, and `SpectrumLEDs`. `SwerveConfig` is the clearest example, where every module position is declared as `@Getter private Distance frontLeftXPos = Inches.of(wheelBaseInches / 2);` rather than a converted double. Older files still pass raw doubles through `Units.inchesToMeters(...)`, and several current files do both. Mixing the two inside one file is the thing to avoid. Match whatever the file you are editing already does.
+The `wpimath` crate uses SI `f64`: meters, radians, seconds. Robot code keeps the units the Java used (RPM, rotations, degrees) and puts the unit in the name, such as `hood_angle_degrees` or `position_kp`. Do not mix units inside one function. Convert at the edge with the helpers in `wpimath::units`, such as `inches_to_meters`.
 
 ## The season field layout
 
-[`Vision.java`](../../src/main/java/frc/robot/subsystems/vision/Vision.java) pins the tag layout with `AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded)`. That constant is the only thing tying vision to the current field, so it is the line to change when a new game ships.
+`rebuilt/field.rs` holds the field sizes and key points. Change it when a new game ships. The robot code does not load an AprilTag layout. Check the field map set on each Limelight.
 
-## Alerts
+## Not covered here
 
-Create an `Alert` once as a static field, then call `set(...)` on it. `Telemetry.logAlerts()` scrapes the SmartDashboard alerts table every loop and mirrors anything new into the log, so the dashboard, the log, and the Driver Station all get it with no extra plumbing. [`Rio.java`](../../src/main/java/frc/spectrumLib/hardware/Rio.java) is the model to copy, with one alert per known roboRIO serial plus one for the unknown case.
-
-## Simulation
-
-`Utils.isSimulation()` is Phoenix's check and `RobotBase.isSimulation()` is WPILib's. Both work; use whichever the surrounding file already imports instead of adding a second import for the other.
-
-`MapleSimSwerveDrivetrain.regulateModuleConstantsForSimulation(...)` carries its own `RobotBase.isReal()` guard, so calling it unconditionally is safe. Mechanism sims step on `SimLoop`, a shared 200 Hz `Notifier`, and the classes that need a sim object build it in their own `simulationInit()`. Game piece physics is not a WPILib job on this robot; see [Simulation](../tools/simulation.md).
-
-## Things to watch for
-
-`addVisionMeasurement` belongs in a periodic style update, once per measurement with a distinct timestamp. The pose estimator keys measurements by timestamp, so several cameras fusing in one loop is fine and is what `Vision` does. Two calls sharing a timestamp is the problem: the second replaces the correction the first made. A timestamp older than one already processed can also undo later corrections, so a stalled camera that keeps offering a stale reading is worth rejecting rather than passing through.
-
-`Notifier` versus `addPeriodic`: the swerve sim uses a `Notifier` because it needs tight, regular updates. For everything else, `TimedRobot.addPeriodic(...)` is the simpler choice.
-
-Requirements cancel any other command touching the same subsystem, which is usually what you want. It bites on a state-change `runOnce` chained ahead of a real command, such as `setStateCommand(...)` in `SuperStructure`. A `SequentialCommandGroup` holds the union of its children's requirements for the whole sequence, so a requirement on either child reserves that subsystem until the sequence ends, not just while that child runs. Add the requirements for the subsystems the sequence should hold, and no others.
-
-## Further reading
-
-[WPILib documentation](https://docs.wpilib.org/) is the concept level guide, and the [JavaDoc](https://github.wpilib.org/allwpilib/docs/release/java/) is linked into our generated docs. Read the [command based programming chapter](https://docs.wpilib.org/en/stable/docs/software/commandbased/index.html) before writing a subsystem from scratch.
+WPILib's own [docs](https://docs.wpilib.org/) describe the concepts. The Rust crates keep the Java names in snake_case, so those docs map over.
